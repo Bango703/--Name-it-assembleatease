@@ -1,64 +1,62 @@
-import { supabase } from './supabase.js';
+document.getElementById("signup-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault()
 
-// Authentication functions
-export async function signUp(email, password, metadata = {}) {
+  const email = document.getElementById("email").value
+  const password = document.getElementById("password").value
+  const role = document.getElementById("role").value
+
+  // 1. Create the user in Supabase Auth
   const { data, error } = await supabase.auth.signUp({
     email,
-    password,
-    options: {
-      data: metadata
-    }
-  });
-  if (error) throw error;
-  return data;
-}
+    password
+  })
 
-export async function signIn(email, password) {
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  const user = data.user
+
+  // 2. Insert profile row
+  await supabase.from("profiles").insert({
+    id: user.id,
+    full_name: "",
+    role: role
+  })
+
+  alert("Account created! Please log in.")
+  window.location.href = "login.html"
+})document.getElementById("login-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault()
+
+  const email = document.getElementById("email").value
+  const password = document.getElementById("password").value
+
+  // 1. Log the user in
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
-  });
-  if (error) throw error;
-  return data;
-}
+  })
 
-export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-}
+  if (error) {
+    alert(error.message)
+    return
+  }
 
-export async function getCurrentUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) throw error;
-  return user;
-}
+  const user = data.user
 
-export async function resetPassword(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  if (error) throw error;
-}
+  // 2. Get their role from profiles table
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
 
-export async function updatePassword(newPassword) {
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword
-  });
-  if (error) throw error;
-}
-
-// Auth state listener
-export function onAuthStateChange(callback) {
-  return supabase.auth.onAuthStateChange(callback);
-}
-
-// Check if user is authenticated
-export async function isAuthenticated() {
-  const user = await getCurrentUser();
-  return !!user;
-}
-
-// Get user session
-export async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  return session;
-}
+  // 3. Redirect based on role
+  if (profile.role === "customer") {
+    window.location.href = "../customer/index.html"
+  } else {
+    window.location.href = "../assembler/index.html"
+  }
+})
