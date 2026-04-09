@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Customers</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <main class="customers-page">
+    <h1>Customers</h1>
+    <div id="customers-list">Loading…</div>
+    <button id="refresh">Refresh</button>
+  </main>
+
+  <script type="module">
+    import { fetchCustomers } from '/assets/js/customer.js';
+
+    const listEl = document.getElementById('customers-list');
+    const refreshBtn = document.getElementById('refresh');
+
+    async function load() {
+      listEl.textContent = 'Loading…';
+      try {
+        const customers = await fetchCustomers();
+        if (!Array.isArray(customers) || customers.length === 0) {
+          listEl.textContent = 'No customers found.';
+          return;
+        }
+        listEl.innerHTML = customers.map(c => `
+          <div class="customer">
+            <strong>${escapeHtml(c.name || c.email || 'Unnamed')}</strong>
+            <div class="meta">${escapeHtml(c.email || '')}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        listEl.textContent = 'Failed to load customers.';
+        console.error(err);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    refreshBtn.addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>

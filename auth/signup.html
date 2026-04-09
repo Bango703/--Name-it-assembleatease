@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sign up</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <main class="auth-page">
+    <h1>Create an account</h1>
+    <form id="signup-form" action="/api/signup" method="post">
+      <label>
+        Full name
+        <input type="text" name="name" required />
+      </label>
+      <label>
+        Email
+        <input type="email" name="email" required />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required />
+      </label>
+      <button type="submit">Sign up</button>
+    </form>
+    <p><a href="/auth/login.html">Already have an account? Sign in</a></p>
+  </main>
+
+  <script type="module">
+    import '/assets/js/auth.js';
+    const form = document.getElementById('signup-form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        // By default the form posts to /api/signup; add SPA handling here if desired
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <main class="auth-page">
+    <h1>Sign in</h1>
+    <form id="login-form" action="/api/login" method="post">
+      <label>
+        Email
+        <input type="email" name="email" required />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required />
+      </label>
+      <button type="submit">Log in</button>
+    </form>
+    <p><a href="/auth/register.html">Create an account</a></p>
+  </main>
+
+  <script type="module">
+    import '/assets/js/auth.js';
+    // Optional: enhance the form with client-side handling
+    const form = document.getElementById('login-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        // allow normal POST by default; override if you want SPA behavior
+      });
+    }
+  </script>
+</body>
+</html>
