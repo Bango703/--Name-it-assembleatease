@@ -1,31 +1,34 @@
-import { db } from './supabase.js';
+const supabaseClient = window.supabaseClient || window.supabase;
 
-export async function fetchCustomers() {
-  const { data, error } = await db.customers.select('*');
+if (!supabaseClient) {
+  console.error('Supabase client is not initialized. Ensure config.js loads before customer.js.');
+}
+
+window.fetchCustomers = async function () {
+  const { data, error } = await supabaseClient.from('customers').select('*');
   if (error) throw error;
   return data;
-}
+};
 
-export async function fetchCustomer(id) {
-  const { data, error } = await db.customers.select('*').eq('id', id).single();
+window.fetchCustomer = async function (id) {
+  const { data, error } = await supabaseClient.from('customers').select('*').eq('id', id).single();
   if (error) throw error;
   return data;
-}
+};
 
-export async function createCustomer(data) {
-  const { data: result, error } = await db.customers.insert(data).select();
+window.createCustomer = async function (data) {
+  const { data: result, error } = await supabaseClient.from('customers').insert(data).select();
   if (error) throw error;
   return result;
-}
+};
 
-export async function updateCustomer(id, data) {
-  const { data: result, error } = await db.customers.update(data).eq('id', id).select();
+window.updateCustomer = async function (id, data) {
+  const { data: result, error } = await supabaseClient.from('customers').update(data).eq('id', id).select();
   if (error) throw error;
   return result;
-}
+};
 
-export async function deleteCustomer(id) {
-  const { error } = await db.customers.delete().eq('id', id);
+window.deleteCustomer = async function (id) {
+  const { error } = await supabaseClient.from('customers').delete().eq('id', id);
   if (error) throw error;
-}
-}
+};

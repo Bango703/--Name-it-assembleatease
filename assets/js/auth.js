@@ -1,4 +1,8 @@
-import { supabase } from './supabase.js';
+const supabaseClient = window.supabaseClient || window.supabase;
+
+if (!supabaseClient) {
+  console.error('Supabase client is not initialized. Ensure the CDN script and config.js are loaded before auth.js.');
+}
 
 // SIGNUP
 const signupForm = document.getElementById('signup-form');
@@ -14,7 +18,7 @@ signupForm?.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
     options: {
@@ -30,7 +34,7 @@ signupForm?.addEventListener('submit', async (e) => {
   const user = data.user;
 
   if (user) {
-    const { error: profileError } = await supabase.from('profiles').insert({
+    const { error: profileError } = await supabaseClient.from('profiles').insert({
       id: user.id,
       full_name: '',
       role,
@@ -55,7 +59,7 @@ loginForm?.addEventListener('submit', async (e) => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
@@ -71,7 +75,7 @@ loginForm?.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
     .select('role')
     .eq('id', user.id)

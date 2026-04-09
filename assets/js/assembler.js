@@ -1,7 +1,14 @@
-import { get } from './api.js';
+async function get(path) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) {
+    throw new Error('Request failed: ' + res.statusText);
+  }
+  return res.json();
+}
 
-// Small helper module for assembling UI pieces
-export async function initAssembler(selector = '[data-assembler]') {
+window.initAssembler = async function (selector = '[data-assembler]') {
   const el = document.querySelector(selector);
   if (!el) return null;
   try {
@@ -12,6 +19,4 @@ export async function initAssembler(selector = '[data-assembler]') {
     el.textContent = 'Failed to load content';
     throw err;
   }
-}
-
-export default initAssembler;
+};
