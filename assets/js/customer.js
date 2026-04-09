@@ -1,21 +1,31 @@
-import { get, post, put, del } from './api.js';
+import { db } from './supabase.js';
 
 export async function fetchCustomers() {
-  return get('/api/customers');
+  const { data, error } = await db.customers.select('*');
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchCustomer(id) {
-  return get(`/api/customers/${id}`);
+  const { data, error } = await db.customers.select('*').eq('id', id).single();
+  if (error) throw error;
+  return data;
 }
 
 export async function createCustomer(data) {
-  return post('/api/customers', data);
+  const { data: result, error } = await db.customers.insert(data).select();
+  if (error) throw error;
+  return result;
 }
 
 export async function updateCustomer(id, data) {
-  return put(`/api/customers/${id}`, data);
+  const { data: result, error } = await db.customers.update(data).eq('id', id).select();
+  if (error) throw error;
+  return result;
 }
 
 export async function deleteCustomer(id) {
-  return del(`/api/customers/${id}`);
+  const { error } = await db.customers.delete().eq('id', id);
+  if (error) throw error;
+}
 }
