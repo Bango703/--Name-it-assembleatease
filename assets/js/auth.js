@@ -1,62 +1,90 @@
-document.getElementById("signup-form")?.addEventListener("submit", async (e) => {
-  e.preventDefault()
+import { supabase } from './supabase.js';
 
-  const email = document.getElementById("email").value
-  const password = document.getElementById("password").value
-  const role = document.getElementById("role").value
+// SIGNUP
+const signupForm = document.getElementById('signup-form');
+signupForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-  // 1. Create the user in Supabase Auth
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  })
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const role = document.getElementById('role').value;
 
-  if (error) {
-    alert(error.message)
-    return
+  if (!email || !password || !role) {
+    alert('Please fill in all fields.');
+    return;
   }
 
-  const user = data.user
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { role }
+    }
+  });
 
-  // 2. Insert profile row
-  await supabase.from("profiles").insert({
-    id: user.id,
-    full_name: "",
-    role: role
-  })
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
-  alert("Account created! Please log in.")
-  window.location.href = "login.html"
-})document.getElementById("login-form")?.addEventListener("submit", async (e) => {
-  e.preventDefault()
+  const user = data.user;
 
-  const email = document.getElementById("email").value
-  const password = document.getElementById("password").value
+  if (user) {
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: user.id,
+      full_name: '',
+      role,
+      email
+    });
 
-  // 1. Log the user in
+    if (profileError) {
+      alert(profileError.message);
+      return;
+    }
+  }
+
+  alert('Account created! Please check your email to confirm your account.');
+  window.location.href = 'login.html';
+});
+
+// LOGIN
+const loginForm = document.getElementById('login-form');
+loginForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
-  })
+  });
 
   if (error) {
-    alert(error.message)
-    return
+    alert(error.message);
+    return;
   }
 
-  const user = data.user
+  const user = data.user;
+  if (!user) {
+    alert('Login successful, but no user returned.');
+    return;
+  }
 
-  // 2. Get their role from profiles table
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
 
-  // 3. Redirect based on role
-  if (profile.role === "customer") {
-    window.location.href = "../customer/index.html"
+  if (profileError) {
+    alert(profileError.message);
+    return;
+  }
+
+  if (profile?.role === 'customer') {
+    window.location.href = '../customer/index.html';
   } else {
-    window.location.href = "../assembler/index.html"
+    window.location.href = '../assembler/index.html';
   }
-})
+});

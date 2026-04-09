@@ -1,22 +1,14 @@
-/* App entrypoint - initializes UI behaviors and demonstrates API usage */
-import { get, post } from './api.js';
+async function apiRequest(functionName, method = "GET", body = null) {
+  const url = `${CONFIG.API_BASE_URL}/${functionName}`;
+  const options = {
+    method,
+    headers: { "Content-Type": "application/json" }
+  };
+  if (body) options.body = JSON.stringify(body);
 
-document.addEventListener('DOMContentLoaded', () => {
-  get('/api/health')
-    .then(data => console.log('API health:', data))
-    .catch(err => console.warn('API health check failed', err));
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
 
-  const contactForm = document.querySelector('#contact-form');
-  if (contactForm) {
-    contactForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = Object.fromEntries(new FormData(contactForm).entries());
-      try {
-        await post('/api/contact', formData);
-        alert('Submitted successfully');
-      } catch (err) {
-        alert('Submission failed');
-      }
-    });
-  }
-});
+window.apiRequest = apiRequest;

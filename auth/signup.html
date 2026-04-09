@@ -6,13 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
 
-  <!-- Supabase MUST load here -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="../config.js"></script>
-
   <!-- Your app scripts -->
   <script src="../assets/js/app.js" defer></script>
-  <script src="../assets/js/auth.js" defer></script>
+  <script type="module" src="../assets/js/auth.js"></script>
 </head>
 <body>
 
@@ -38,43 +34,6 @@
     Already have an account?
     <a href="login.html">Login</a>
   </p>
-
-  <script type="module">
-    import { signUp } from '../assets/js/auth.js';
-
-    const form = document.getElementById('signup-form');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const roleSelect = document.getElementById('role');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-      const role = roleSelect.value;
-
-      if (!email || !password || !role) {
-        alert('Please fill in all fields');
-        return;
-      }
-
-      if (password.length < 6) {
-        alert('Password must be at least 6 characters');
-        return;
-      }
-
-      try {
-        const { user, session } = await signUp(email, password, { role });
-        alert('Account created! Please check your email to confirm your account.');
-        // Redirect to login or home
-        window.location.href = 'login.html';
-      } catch (error) {
-        console.error('Signup error:', error);
-        alert('Signup failed: ' + error.message);
-      }
-    });
-  </script>
 
 </body>
 </html>
