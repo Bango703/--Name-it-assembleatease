@@ -1,40 +1,80 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sign up</title>
-  <link rel="stylesheet" href="/assets/css/style.css">
+  <meta charset="UTF-8" />
+  <title>Sign Up — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+
+  <!-- Supabase MUST load here -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+
+  <!-- Your app scripts -->
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/auth.js" defer></script>
 </head>
 <body>
-  <main class="auth-page">
-    <h1>Create an account</h1>
-    <form id="signup-form" action="/api/signup" method="post">
-      <label>
-        Full name
-        <input type="text" name="name" required />
-      </label>
-      <label>
-        Email
-        <input type="email" name="email" required />
-      </label>
-      <label>
-        Password
-        <input type="password" name="password" required />
-      </label>
-      <button type="submit">Sign up</button>
-    </form>
-    <p><a href="/auth/login.html">Already have an account? Sign in</a></p>
-  </main>
+
+  <h1>Sign Up</h1>
+
+  <form id="signup-form">
+    <label>Email</label>
+    <input type="email" id="email" required />
+
+    <label>Password</label>
+    <input type="password" id="password" required />
+
+    <label>Role</label>
+    <select id="role" required>
+      <option value="customer">Customer</option>
+      <option value="assembler">Assembler</option>
+    </select>
+
+    <button class="btn primary" type="submit">Create Account</button>
+  </form>
+
+  <p>
+    Already have an account?
+    <a href="login.html">Login</a>
+  </p>
 
   <script type="module">
-    import '/assets/js/auth.js';
+    import { signUp } from '../assets/js/auth.js';
+
     const form = document.getElementById('signup-form');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        // By default the form posts to /api/signup; add SPA handling here if desired
-      });
-    }
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const roleSelect = document.getElementById('role');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const role = roleSelect.value;
+
+      if (!email || !password || !role) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      if (password.length < 6) {
+        alert('Password must be at least 6 characters');
+        return;
+      }
+
+      try {
+        const { user, session } = await signUp(email, password, { role });
+        alert('Account created! Please check your email to confirm your account.');
+        // Redirect to login or home
+        window.location.href = 'login.html';
+      } catch (error) {
+        console.error('Signup error:', error);
+        alert('Signup failed: ' + error.message);
+      }
+    });
   </script>
+
 </body>
 </html>
