@@ -1,13 +1,219 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Handyman Marketplace</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8" />
+  <title>AssembleAtEase — Furniture Assembly Marketplace</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Connect with skilled furniture assemblers. Fast, reliable, and affordable assembly services." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
 </head>
 <body>
-  <h1>Handyman Marketplace</h1>
-  <script src="assets/js/main.js"></script>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <div class="nav-logo-icon">⚙️</div>
+        <div><span>Assemble</span>AtEase</div>
+      </div>
+      <div class="nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+      </div>
+      <div class="nav-actions">
+        <a href="auth/login.html" class="btn btn-ghost btn-sm">Login</a>
+        <a href="auth/signup.html" class="btn btn-primary btn-sm">Sign Up</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-bg-grid"></div>
+    <div class="hero-bg-glow"></div>
+    <div class="container hero-content">
+      <div class="hero-tag">
+        <span>🎉</span>
+        <span>Your furniture assembly partner</span>
+      </div>
+      <h1>
+        Furniture Assembly
+        <span class="highlight-teal">Made Simple</span>
+      </h1>
+      <p class="hero-desc">
+        Connect with vetted, skilled assemblers in your area. No more wrestling with instructions or spending hours on assembly. Let the experts handle it.
+      </p>
+      <div class="hero-actions">
+        <a href="auth/signup.html" class="btn btn-primary btn-lg">Get Started Free</a>
+        <a href="auth/login.html" class="btn btn-outline btn-lg">Sign In</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-value"><span>500+</span></div>
+          <div class="hero-stat-label">Assemblers</div>
+        </div>
+        <div>
+          <div class="hero-stat-value"><span>2K+</span></div>
+          <div class="hero-stat-label">Jobs Completed</div>
+        </div>
+        <div>
+          <div class="hero-stat-value"><span>4.8★</span></div>
+          <div class="hero-stat-label">Average Rating</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="section">
+    <div class="container">
+      <h2 class="text-center">Why Choose AssembleAtEase?</h2>
+      <div class="grid-3" style="margin-top: 48px;">
+        
+        <div class="card">
+          <div style="font-size: 2.2rem; margin-bottom: 16px;">✓</div>
+          <h3>Vetted Professionals</h3>
+          <p>All assemblers are verified and rated by customers. Trust and quality guaranteed.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2.2rem; margin-bottom: 16px;">⏱</div>
+          <h3>Quick & Reliable</h3>
+          <p>Get your furniture assembled fast. Most jobs completed within 24 hours.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2.2rem; margin-bottom: 16px;">💰</div>
+          <h3>Affordable Pricing</h3>
+          <p>Transparent pricing with no hidden fees. Competitive rates across all service tiers.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2.2rem; margin-bottom: 16px;">📱</div>
+          <h3>Easy Booking</h3>
+          <p>Book in minutes. Track your job in real-time with live updates and photos.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2.2rem; margin-bottom: 16px;">🛡</div>
+          <h3>100% Secure</h3>
+          <p>Safe payments and verified profiles. Your satisfaction is guaranteed.</p>
+        </div>
+
+        <div class="card">
+          <div style="font-size: 2.2rem; margin-bottom: 16px;">🏆</div>
+          <h3>Top Rated</h3>
+          <p>Join thousands of satisfied customers. Average rating: 4.8/5 stars.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works" class="section" style="background: var(--bg-card); border-top: 1px solid var(--border);">
+    <div class="container">
+      <h2 class="text-center">How It Works</h2>
+      <div class="grid-3" style="margin-top: 48px;">
+
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-icon">📋</div>
+          <h3>Post Your Job</h3>
+          <p>Tell us what furniture needs assembly and your preferred date/time.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-icon">👷</div>
+          <h3>Get Quotes</h3>
+          <p>Receive offers from nearby assemblers. Review profiles and ratings.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-icon">✅</div>
+          <h3>Get It Done</h3>
+          <p>Professional assembly completed. Pay after you're 100% satisfied.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="section">
+    <div class="container-sm text-center">
+      <h2>Ready to Get Started?</h2>
+      <p style="font-size: 1.05rem; margin: 16px 0 32px; color: var(--text-secondary);">
+        Join thousands of customers who trust AssembleAtEase for professional furniture assembly.
+      </p>
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="auth/signup.html" class="btn btn-primary btn-lg">Get Started Today</a>
+        <a href="auth/login.html" class="btn btn-outline btn-lg">Sign In to Your Account</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        
+        <div class="footer-brand">
+          <h3>AssembleAtEase</h3>
+          <p>Professional furniture assembly made simple. Trusted by thousands of customers nationwide.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>For Customers</h4>
+          <ul>
+            <li><a href="#">Post a Job</a></li>
+            <li><a href="#">Browse Assemblers</a></li>
+            <li><a href="#">Pricing</a></li>
+            <li><a href="#">Reviews</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>For Assemblers</h4>
+          <ul>
+            <li><a href="#">Sign Up</a></li>
+            <li><a href="#">How to Earn</a></li>
+            <li><a href="#">Tools & Resources</a></li>
+            <li><a href="#">Community</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; <span id="year"></span> AssembleAtEase. All rights reserved.</p>
+        <div style="display: flex; gap: 24px;">
+          <a href="#" style="color: var(--text-muted); transition: color var(--transition);" onmouseover="this.style.color='var(--teal-light)'" onmouseout="this.style.color='var(--text-muted)'">Twitter</a>
+          <a href="#" style="color: var(--text-muted); transition: color var(--transition);" onmouseover="this.style.color='var(--teal-light)'" onmouseout="this.style.color='var(--text-muted)'">Facebook</a>
+          <a href="#" style="color: var(--text-muted); transition: color var(--transition);" onmouseover="this.style.color='var(--teal-light)'" onmouseout="this.style.color='var(--text-muted)'">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
 </body>
 </html>
