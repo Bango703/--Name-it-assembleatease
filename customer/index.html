@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AssembleAtEase — Assembly Services Marketplace</title>
+  <title>Customer Dashboard — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Find skilled assemblers near you or post your job and get competitive bids. Furniture, gym equipment, flat-pack and more." />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="../config.js"></script>
@@ -13,294 +12,152 @@
   <script src="../assets/js/supabase.js" defer></script>
 </head>
 <body>
- 
-  <!-- NAV -->
-  <nav class="nav" id="main-nav"></nav>
- 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-bg-grid"></div>
-    <div class="hero-bg-glow"></div>
-    <div class="container">
-      <div class="hero-content">
-        <div class="hero-tag animate-fadeInUp">
-          ⬡ &nbsp; The smarter way to get things assembled
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html" class="active"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header flex-between">
+      <div>
+        <h1 id="welcome-msg">Welcome back 👋</h1>
+        <p>Manage your jobs and find the perfect assembler for your needs.</p>
+      </div>
+      <a href="post-job.html" class="btn btn-primary">📝 &nbsp; Post a Job</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="grid-4 mb-32" id="stats-grid">
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Recent jobs -->
+      <div>
+        <div class="flex-between mb-16">
+          <h3>Your Recent Jobs</h3>
+          <a href="my-jobs.html" class="btn btn-ghost btn-sm">View all →</a>
         </div>
-        <h1 class="animate-fadeInUp animate-delay-1">
-          Assembly done right,<br>
-          <span class="highlight">on your schedule</span>
-        </h1>
-        <p class="hero-desc animate-fadeInUp animate-delay-2">
-          Connect with vetted local assemblers for furniture, gym equipment, flat-pack
-          and more — or post a job and let professionals come to you.
-        </p>
-        <div class="hero-actions animate-fadeInUp animate-delay-3">
-          <a href="../auth/signup.html?role=customer" class="btn btn-warm btn-lg">
-            🔧 &nbsp; Post a Job
-          </a>
-          <a href="../auth/signup.html?role=assembler" class="btn btn-outline btn-lg">
-            💼 &nbsp; Become an Assembler
-          </a>
+        <div id="jobs-list">
+          <div class="loading-overlay"><div class="spinner spinner-lg"></div></div>
         </div>
- 
-        <!-- Search bar -->
-        <div class="search-bar animate-fadeInUp animate-delay-4" style="margin-bottom: 48px;">
-          <span style="font-size:1.1rem">🔍</span>
-          <input type="text" id="hero-search" placeholder="What needs assembling? (e.g. IKEA wardrobe, treadmill...)" />
-          <button class="btn btn-primary" onclick="handleHeroSearch()">Search</button>
+      </div>
+
+      <!-- Recommendations -->
+      <div>
+        <div class="flex-between mb-16">
+          <h3>Recommended Assemblers</h3>
+          <a href="browse-assemblers.html" class="btn btn-ghost btn-sm">Browse all →</a>
         </div>
- 
-        <!-- Stats -->
-        <div class="hero-stats animate-fadeInUp animate-delay-4">
+        <div id="assemblers-list">
+          <div class="loading-overlay"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  const { user, profile } = auth;
+  await APP.buildNav('customer');
+  APP.setActiveSidebarLink();
+
+  document.getElementById('welcome-msg').textContent =
+    `Welcome back, ${profile.full_name?.split(' ')[0] || 'there'} 👋`;
+
+  // Logout handler
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  // Load stats
+  const stats = await API.getCustomerStats(user.id);
+  const statsGrid = document.getElementById('stats-grid');
+  statsGrid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${stats.totalJobs}</div>
+      <div class="stat-label">Total Jobs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${stats.openJobs}</div>
+      <div class="stat-label">Open Jobs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${stats.inProgress}</div>
+      <div class="stat-label">In Progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${stats.completed}</div>
+      <div class="stat-label">Completed</div>
+    </div>
+  `;
+
+  // Load recent jobs
+  const { data: jobs } = await API.getJobs({ customerId: user.id, limit: 5 });
+  const jobsList = document.getElementById('jobs-list');
+  if (jobs?.length) {
+    jobsList.innerHTML = jobs.map(job => `
+      <div class="card" style="padding:16px;margin-bottom:12px;cursor:pointer" onclick="window.location.href='job-detail.html?id=${job.id}'">
+        <div class="flex-between mb-8">
+          <h4>${job.title}</h4>
+          <span class="badge" style="background:${job.status === 'open' ? 'var(--teal-light)' : job.status === 'assigned' ? 'var(--orange)' : 'var(--text-muted)'}">${job.status}</span>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-secondary)">${job.description?.substring(0, 80)}...</p>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:8px">${job.bids?.length || 0} bids</div>
+      </div>
+    `).join('');
+  } else {
+    jobsList.innerHTML = '<div class="card text-center" style="padding:32px"><p>No jobs yet. <a href="post-job.html">Post one now!</a></p></div>';
+  }
+
+  // Load recommended assemblers
+  const { data: assemblers } = await API.getAssemblers({ limit: 5 });
+  const assemblersList = document.getElementById('assemblers-list');
+  if (assemblers?.length) {
+    assemblersList.innerHTML = assemblers.map(a => `
+      <div class="card" style="padding:16px;margin-bottom:12px;cursor:pointer" onclick="window.location.href='assembler-detail.html?id=${a.id}'">
+        <div class="flex-between mb-8">
           <div>
-            <div class="hero-stat-value">2.4<span>k+</span></div>
-            <div class="hero-stat-label">Vetted assemblers</div>
+            <h4>${a.full_name || 'Unnamed'}</h4>
+            <div style="font-size:0.85rem;color:var(--text-secondary)">${a.city || 'Location TBD'}</div>
           </div>
-          <div style="width:1px;height:40px;background:var(--border)"></div>
-          <div>
-            <div class="hero-stat-value">18<span>k+</span></div>
-            <div class="hero-stat-label">Jobs completed</div>
-          </div>
-          <div style="width:1px;height:40px;background:var(--border)"></div>
-          <div>
-            <div class="hero-stat-value">4.9<span>★</span></div>
-            <div class="hero-stat-label">Average rating</div>
-          </div>
-          <div style="width:1px;height:40px;background:var(--border)"></div>
-          <div>
-            <div class="hero-stat-value">98<span>%</span></div>
-            <div class="hero-stat-label">Satisfaction rate</div>
+          <div style="text-align:right">
+            <div style="font-weight:600">⭐ ${a.rating || 'N/A'}</div>
+            <div style="font-size:0.85rem;color:var(--text-muted)">${a.completed_jobs || 0} jobs</div>
           </div>
         </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary)">${a.bio?.substring(0, 60) || 'Professional assembler'}...</p>
       </div>
-    </div>
-  </section>
- 
-  <!-- CATEGORIES -->
-  <section class="section" id="categories">
-    <div class="container">
-      <div class="text-center mb-32">
-        <h2>What can we assemble for you?</h2>
-        <p class="mt-8" style="max-width:500px;margin:8px auto 0">From flat-pack furniture to complex gym equipment, our assemblers handle it all.</p>
-      </div>
-      <div class="category-grid">
-        <div class="category-pill" onclick="browseCategory('furniture')">
-          <span class="cat-icon">🛋️</span> Furniture
-        </div>
-        <div class="category-pill" onclick="browseCategory('gym-equipment')">
-          <span class="cat-icon">🏋️</span> Gym Equipment
-        </div>
-        <div class="category-pill" onclick="browseCategory('flat-pack')">
-          <span class="cat-icon">📦</span> Flat-Pack (IKEA etc)
-        </div>
-        <div class="category-pill" onclick="browseCategory('office')">
-          <span class="cat-icon">🖥️</span> Office Furniture
-        </div>
-        <div class="category-pill" onclick="browseCategory('outdoor')">
-          <span class="cat-icon">🌳</span> Outdoor & Garden
-        </div>
-        <div class="category-pill" onclick="browseCategory('kids')">
-          <span class="cat-icon">🧸</span> Kids Furniture & Toys
-        </div>
-        <div class="category-pill" onclick="browseCategory('appliances')">
-          <span class="cat-icon">🔌</span> Appliances
-        </div>
-        <div class="category-pill" onclick="browseCategory('shelving')">
-          <span class="cat-icon">📚</span> Shelving & Storage
-        </div>
-        <div class="category-pill" onclick="browseCategory('beds')">
-          <span class="cat-icon">🛏️</span> Beds & Bedroom
-        </div>
-        <div class="category-pill" onclick="browseCategory('other')">
-          <span class="cat-icon">⬡</span> Other
-        </div>
-      </div>
-    </div>
-  </section>
- 
-  <!-- HOW IT WORKS -->
-  <section class="section" id="how-it-works" style="background: linear-gradient(180deg, transparent, rgba(13,148,136,0.03), transparent);">
-    <div class="container">
-      <div class="text-center mb-32">
-        <h2>How AssembleAtEase works</h2>
-        <p class="mt-8" style="max-width:480px;margin:8px auto 0">Simple, transparent, and designed around your convenience.</p>
-      </div>
- 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:64px;">
-        <div class="card step-card animate-fadeInUp animate-delay-1">
-          <span class="step-icon">📋</span>
-          <div class="step-number" style="width:36px;height:36px;font-size:1rem;margin:0 auto 16px">1</div>
-          <h3>Post your job</h3>
-          <p class="mt-8">Describe what needs assembling, set your budget and schedule. Takes under 2 minutes.</p>
-        </div>
-        <div class="card step-card animate-fadeInUp animate-delay-2">
-          <span class="step-icon">⚡</span>
-          <div class="step-number" style="width:36px;height:36px;font-size:1rem;margin:0 auto 16px">2</div>
-          <h3>Receive bids</h3>
-          <p class="mt-8">Local assemblers see your job and submit competitive bids. Compare profiles, ratings, and prices.</p>
-        </div>
-        <div class="card step-card animate-fadeInUp animate-delay-3">
-          <span class="step-icon">✅</span>
-          <div class="step-number" style="width:36px;height:36px;font-size:1rem;margin:0 auto 16px">3</div>
-          <h3>Get it done</h3>
-          <p class="mt-8">Pick your assembler, schedule the visit, and relax. Rate and review when complete.</p>
-        </div>
-      </div>
- 
-      <!-- OR browse assemblers -->
-      <div class="card card-glow text-center" style="max-width:640px;margin:0 auto;padding:36px;">
-        <div style="font-size:2.5rem;margin-bottom:12px">🔍</div>
-        <h3>Prefer to browse first?</h3>
-        <p class="mt-8 mb-24">Browse our vetted assemblers directly. Filter by skill, rate, and location — then book instantly.</p>
-        <a href="../auth/signup.html" class="btn btn-primary btn-lg">Browse Assemblers</a>
-      </div>
-    </div>
-  </section>
- 
-  <!-- WHY US -->
-  <section class="section">
-    <div class="container">
-      <div class="text-center mb-32">
-        <h2>Why thousands choose AssembleAtEase</h2>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
-        <div class="card card-glow">
-          <div style="font-size:2rem;margin-bottom:14px">🛡️</div>
-          <h4>Vetted Professionals</h4>
-          <p class="mt-8 text-secondary" style="font-size:0.9rem">Every assembler goes through identity verification and review checks before joining.</p>
-        </div>
-        <div class="card card-glow">
-          <div style="font-size:2rem;margin-bottom:14px">💬</div>
-          <h4>Real-Time Messaging</h4>
-          <p class="mt-8 text-secondary" style="font-size:0.9rem">Communicate directly with your assembler before, during and after the job.</p>
-        </div>
-        <div class="card card-glow">
-          <div style="font-size:2rem;margin-bottom:14px">⭐</div>
-          <h4>Verified Reviews</h4>
-          <p class="mt-8 text-secondary" style="font-size:0.9rem">All reviews come from real completed jobs. No fake ratings, ever.</p>
-        </div>
-        <div class="card card-glow">
-          <div style="font-size:2rem;margin-bottom:14px">💰</div>
-          <h4>Competitive Pricing</h4>
-          <p class="mt-8 text-secondary" style="font-size:0.9rem">Multiple assemblers bid on your job, driving the best price for you.</p>
-        </div>
-        <div class="card card-glow">
-          <div style="font-size:2rem;margin-bottom:14px">📅</div>
-          <h4>Flexible Scheduling</h4>
-          <p class="mt-8 text-secondary" style="font-size:0.9rem">Book same-day, next-day, or schedule weeks ahead — whatever works for you.</p>
-        </div>
-        <div class="card card-glow">
-          <div style="font-size:2rem;margin-bottom:14px">🔒</div>
-          <h4>Secure Platform</h4>
-          <p class="mt-8 text-secondary" style="font-size:0.9rem">Your data is protected and payments will be secured through our trusted platform.</p>
-        </div>
-      </div>
-    </div>
-  </section>
- 
-  <!-- CTA BANNER -->
-  <section class="section">
-    <div class="container">
-      <div class="card" style="background:linear-gradient(135deg,#0d2a27,#0a1f35);border-color:rgba(13,148,136,0.3);text-align:center;padding:64px 40px;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:-50%;left:-10%;width:50%;height:200%;background:radial-gradient(circle,rgba(13,148,136,0.1),transparent);pointer-events:none"></div>
-        <div style="position:absolute;top:-50%;right:-10%;width:50%;height:200%;background:radial-gradient(circle,rgba(249,115,22,0.08),transparent);pointer-events:none"></div>
-        <div style="position:relative;z-index:1">
-          <h2 style="font-size:clamp(1.6rem,4vw,2.6rem);margin-bottom:16px">
-            Ready to get started?
-          </h2>
-          <p style="max-width:480px;margin:0 auto 32px;font-size:1.05rem">
-            Join thousands of customers and assemblers already using AssembleAtEase.
-          </p>
-          <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-            <a href="../auth/signup.html?role=customer" class="btn btn-warm btn-lg">Post a Job Free</a>
-            <a href="../auth/signup.html?role=assembler" class="btn btn-outline btn-lg">Start Earning</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
- 
-  <!-- FOOTER -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="nav-logo" style="margin-bottom:12px">
-            <div class="nav-logo-icon">⬡</div>
-            Assemble<span style="color:var(--teal-light)">AtEase</span>
-          </div>
-          <p>The marketplace connecting skilled assemblers with people who need them. Simple, reliable, and local.</p>
-        </div>
-        <div class="footer-col">
-          <h4>For Customers</h4>
-          <ul>
-            <li><a href="../auth/signup.html?role=customer">Post a Job</a></li>
-            <li><a href="../auth/signup.html">Browse Assemblers</a></li>
-            <li><a href="#how-it-works">How it works</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>For Assemblers</h4>
-          <ul>
-            <li><a href="../auth/signup.html?role=assembler">Join as Assembler</a></li>
-            <li><a href="../auth/signup.html?role=assembler">Browse Jobs</a></li>
-            <li><a href="../auth/signup.html?role=assembler">Start Earning</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>Company</h4>
-          <ul>
-            <li><a href="#">About Us</a></li>
-            <li><a href="#">Safety</a></li>
-            <li><a href="#">Terms</a></li>
-            <li><a href="#">Privacy</a></li>
-            <li><a href="#">Contact</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <span>© 2025 AssembleAtEase. All rights reserved.</span>
-        <span>Made with ⬡ for people who deserve better assembly services.</span>
-      </div>
-    </div>
-  </footer>
- 
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      await APP.buildNav();
-    });
- 
-    function handleHeroSearch() {
-      const q = document.getElementById('hero-search').value.trim();
-      window.location.href = `auth/signup.html${q ? '?search=' + encodeURIComponent(q) : ''}`;
-    }
- 
-    document.getElementById('hero-search')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleHeroSearch();
-    });
- 
-    function browseCategory(cat) {
-      window.location.href = `auth/signup.html?category=${cat}`;
-    }
- 
-    // Scroll animations
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
-        }
-      });
-    }, { threshold: 0.1 });
- 
-    document.querySelectorAll('.card, .category-pill').forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(20px)';
-      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      observer.observe(el);
-    });
-  </script>
+    `).join('');
+  } else {
+    assemblersList.innerHTML = '<div class="card text-center" style="padding:32px"><p><a href="browse-assemblers.html">Browse assemblers →</a></p></div>';
+  }
+});
+</script>
 </body>
 </html>
- 

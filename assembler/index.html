@@ -10,12 +10,166 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <script src="../assets/js/supabase.js" defer></script>
-  <script src="../assets/js/assembler.js" defer></script>
 </head>
 <body>
+<nav class="nav" id="main-nav"></nav>
 
-  <h1>Assembler Dashboard</h1>
-  <p>This is a placeholder. Features will be added later.</p>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html" class="active"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-jobs.html"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
+        <li><a href="my-bids.html"><span class="nav-icon">💬</span> My Bids</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⭐</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
 
+  <main class="dashboard-main">
+    <div class="page-header flex-between">
+      <div>
+        <h1 id="welcome-msg">Welcome back 👋</h1>
+        <p>Here's your activity overview for today.</p>
+      </div>
+      <a href="browse-jobs.html" class="btn btn-primary">🔍 &nbsp; Browse Jobs</a>
+    </div>
+
+    <!-- Profile completion banner -->
+    <div id="profile-banner" class="hidden" style="background:linear-gradient(135deg,rgba(249,115,22,0.1),rgba(251,191,36,0.05));border:1px solid rgba(249,115,22,0.25);border-radius:var(--radius-md);padding:18px 24px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="font-size:1.8rem">⚡</span>
+        <div>
+          <div style="font-weight:600;color:var(--orange)">Complete your profile to get more jobs</div>
+          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px">Add your skills, hourly rate, and bio to appear in customer searches.</div>
+        </div>
+      </div>
+      <a href="profile.html" class="btn btn-warm btn-sm" style="flex-shrink:0">Complete Profile</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="grid-4 mb-32" id="stats-grid">
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Recent bids -->
+      <div>
+        <div class="flex-between mb-16">
+          <h3>Recent Bids</h3>
+          <a href="my-bids.html" class="btn btn-ghost btn-sm">View all →</a>
+        </div>
+        <div id="bids-list">
+          <div class="loading-overlay"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </div>
+
+      <!-- Available jobs -->
+      <div>
+        <div class="flex-between mb-16">
+          <h3>New Jobs Near You</h3>
+          <a href="browse-jobs.html" class="btn btn-ghost btn-sm">Browse all →</a>
+        </div>
+        <div id="jobs-list">
+          <div class="loading-overlay"><div class="spinner spinner-lg"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['assembler']);
+  if (!auth) return;
+  const { user, profile } = auth;
+  await APP.buildNav('assembler');
+  APP.setActiveSidebarLink();
+
+  document.getElementById('welcome-msg').textContent =
+    `Welcome back, ${profile.full_name?.split(' ')[0] || 'there'} 👋`;
+
+  // Show profile completion banner if needed
+  if (!profile.hourly_rate || !profile.city) {
+    document.getElementById('profile-banner').classList.remove('hidden');
+  }
+
+  // Logout handler
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  // Load stats
+  const stats = await API.getAssemblerStats(user.id);
+  const statsGrid = document.getElementById('stats-grid');
+  statsGrid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${stats.totalBids}</div>
+      <div class="stat-label">Total Bids</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${stats.pendingBids}</div>
+      <div class="stat-label">Pending Bids</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${stats.acceptedBids}</div>
+      <div class="stat-label">Accepted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">$${stats.totalEarned?.toFixed(0) || 0}</div>
+      <div class="stat-label">Total Earned</div>
+    </div>
+  `;
+
+  // Load recent bids
+  const { data: bids } = await API.getMyBids(user.id);
+  const bidsList = document.getElementById('bids-list');
+  if (bids?.length) {
+    bidsList.innerHTML = bids.slice(0, 5).map(bid => `
+      <div class="card" style="padding:16px;margin-bottom:12px;cursor:pointer" onclick="window.location.href='bid-detail.html?id=${bid.id}'">
+        <div class="flex-between mb-8">
+          <h4>${bid.job?.title || 'Job'}</h4>
+          <span class="badge" style="background:${bid.status === 'pending' ? 'var(--orange)' : bid.status === 'accepted' ? 'var(--teal-light)' : 'var(--text-muted)'}">${bid.status}</span>
+        </div>
+        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">${bid.job?.customer?.full_name || 'Customer'}</div>
+        <p style="font-size:0.9rem;color:var(--text-secondary)">${bid.job?.description?.substring(0, 80) || 'Assembly job'}...</p>
+      </div>
+    `).join('');
+  } else {
+    bidsList.innerHTML = '<div class="card text-center" style="padding:32px"><p>No bids yet. <a href="browse-jobs.html">Browse jobs →</a></p></div>';
+  }
+
+  // Load available jobs
+  const { data: jobs } = await API.getOpenJobs({ limit: 5 });
+  const jobsList = document.getElementById('jobs-list');
+  if (jobs?.length) {
+    jobsList.innerHTML = jobs.map(job => `
+      <div class="card" style="padding:16px;margin-bottom:12px;cursor:pointer" onclick="window.location.href='job-detail.html?id=${job.id}'">
+        <div class="flex-between mb-8">
+          <h4>${job.title}</h4>
+          <div style="font-weight:600;color:var(--text-secondary)">${job.bids?.[0]?.count || 0} bids</div>
+        </div>
+        <p style="font-size:0.9rem;color:var(--text-secondary)">${job.description?.substring(0, 80)}...</p>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:8px">${job.customer?.city || 'Location TBD'} • Posted ${new Date(job.created_at).toLocaleDateString()}</div>
+      </div>
+    `).join('');
+  } else {
+    jobsList.innerHTML = '<div class="card text-center" style="padding:32px"><p><a href="browse-jobs.html">Browse available jobs →</a></p></div>';
+  }
+});
+</script>
 </body>
 </html>
