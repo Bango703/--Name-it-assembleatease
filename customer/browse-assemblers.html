@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Browse Assemblers — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header">
+      <h1>Browse Assemblers</h1>
+      <p>Find vetted professionals by skills, location, and rates.</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="card" style="padding:20px;margin-bottom:24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="form-group" style="margin:0">
+          <label style="font-size:0.8rem">Search by Name</label>
+          <input type="text" id="search-filter" class="form-control" placeholder="Search..." />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:0.8rem">City/Location</label>
+          <input type="text" id="city-filter" class="form-control" placeholder="e.g. San Francisco" />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="font-size:0.8rem">Min Rating</label>
+          <select id="rating-filter" class="form-control">
+            <option value="">Any Rating</option>
+            <option value="5">⭐ 5 stars</option>
+            <option value="4">⭐ 4+ stars</option>
+            <option value="3">⭐ 3+ stars</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset Filters</button>
+    </div>
+
+    <!-- Assemblers Grid -->
+    <div id="assemblers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
+      <div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--text-secondary)">
+        <div class="spinner spinner-lg" style="margin:0 auto 16px"></div>
+        <p>Loading assemblers...</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div style="text-align:center;margin-top:40px;padding:20px" id="pagination">
+    </div>
+  </main>
+</div>
+
+<script>
+let allAssemblers = [];
+let currentPage = 0;
+const itemsPerPage = 12;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  await APP.buildNav('customer');
+  APP.setActiveSidebarLink();
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  // Filter event listeners
+  document.getElementById('search-filter').addEventListener('input', () => { currentPage = 0; renderAssemblers(); });
+  document.getElementById('city-filter').addEventListener('input', () => { currentPage = 0; renderAssemblers(); });
+  document.getElementById('rating-filter').addEventListener('change', () => { currentPage = 0; renderAssemblers(); });
+
+  loadAssemblers();
+});
+
+async function loadAssemblers() {
+  const { data, error } = await API.getAssemblers({ limit: 100 });
+
+  if (error) {
+    document.getElementById('assemblers-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center"><p>Error loading assemblers: ' + error.message + '</p></div>';
+    return;
+  }
+
+  allAssemblers = data || [];
+  renderAssemblers();
+}
+
+function renderAssemblers() {
+  // Apply filters
+  let filtered = allAssemblers;
+
+  const searchTerm = document.getElementById('search-filter').value.toLowerCase();
+  if (searchTerm) {
+    filtered = filtered.filter(a => 
+      a.full_name?.toLowerCase().includes(searchTerm) || 
+      a.bio?.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  const city = document.getElementById('city-filter').value.toLowerCase();
+  if (city) {
+    filtered = filtered.filter(a => a.city?.toLowerCase().includes(city));
+  }
+
+  const minRating = parseFloat(document.getElementById('rating-filter').value);
+  if (minRating) {
+    filtered = filtered.filter(a => (a.rating || 0) >= minRating);
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const start = currentPage * itemsPerPage;
+  const end = start + itemsPerPage;
+  const paged = filtered.slice(start, end);
+
+  // Render cards
+  const assemblersGrid = document.getElementById('assemblers-grid');
+
+  if (!paged.length) {
+    assemblersGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:64px"><p>No assemblers found matching your filters.</p></div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  assemblersGrid.innerHTML = paged.map(assembler => `
+    <div class="card" style="padding:24px;text-align:center;cursor:pointer;transition:all 0.3s" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''" onclick="window.location.href='assembler-detail.html?id=${assembler.id}'">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin:0 auto 16px">👤</div>
+      
+      <h3 style="margin:0 0 4px">${assembler.full_name || 'Assembler'}</h3>
+      
+      <div style="margin-bottom:12px">
+        <div style="font-size:1.2rem;color:var(--orange);margin:0">⭐ ${(assembler.rating || 0).toFixed(1)}</div>
+        <div style="font-size:0.85rem;color:var(--text-secondary)">${assembler.completed_jobs || 0} completed jobs</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;justify-content:center;flex-wrap:wrap">
+        ${assembler.city ? `<span style="background:var(--border);padding:4px 8px;border-radius:4px;font-size:0.8rem">${assembler.city}</span>` : ''}
+        ${assembler.hourly_rate ? `<span style="background:var(--teal-light);color:white;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:600">$${assembler.hourly_rate}/hr</span>` : ''}
+      </div>
+
+      <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;margin:12px 0">${assembler.bio ? assembler.bio.substring(0, 80) + '...' : 'Professional assembler'}</p>
+
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:16px">View Profile</button>
+    </div>
+  `).join('');
+
+  // Pagination controls
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    paginationHtml = '<div style="display:flex;gap:8px;justify-content:center">';
+    
+    if (currentPage > 0) {
+      paginationHtml += `<button class="btn btn-ghost btn-sm" onclick="previousPage()">← Previous</button>`;
+    }
+    
+    paginationHtml += `<div style="padding:8px 12px;color:var(--text-secondary)">Page ${currentPage + 1} of ${totalPages}</div>`;
+    
+    if (currentPage < totalPages - 1) {
+      paginationHtml += `<button class="btn btn-ghost btn-sm" onclick="nextPage()">Next →</button>`;
+    }
+    
+    paginationHtml += '</div>';
+  }
+
+  document.getElementById('pagination').innerHTML = paginationHtml;
+}
+
+function previousPage() {
+  if (currentPage > 0) {
+    currentPage--;
+    renderAssemblers();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function nextPage() {
+  const totalPages = Math.ceil(allAssemblers.length / itemsPerPage);
+  if (currentPage < totalPages - 1) {
+    currentPage++;
+    renderAssemblers();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function resetFilters() {
+  document.getElementById('search-filter').value = '';
+  document.getElementById('city-filter').value = '';
+  document.getElementById('rating-filter').value = '';
+  currentPage = 0;
+  renderAssemblers();
+}
+</script>
+</body>
+</html>

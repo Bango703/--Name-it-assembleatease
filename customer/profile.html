@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Profile — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html" class="active"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header">
+      <h1>My Profile</h1>
+      <p>Manage your account and information.</p>
+    </div>
+
+    <div style="max-width:900px">
+      <form id="profile-form" class="card" style="padding:32px">
+        <!-- Full Name -->
+        <div class="form-group mb-24">
+          <label for="full-name">Full Name *</label>
+          <input type="text" id="full-name" class="form-control" required />
+        </div>
+
+        <!-- City -->
+        <div class="form-group mb-24">
+          <label for="city">City/Location *</label>
+          <input type="text" id="city" class="form-control" placeholder="e.g. San Francisco, CA" required />
+        </div>
+
+        <!-- State -->
+        <div class="form-group mb-24">
+          <label for="state">State/Province</label>
+          <input type="text" id="state" class="form-control" placeholder="e.g. CA" />
+        </div>
+
+        <!-- Phone -->
+        <div class="form-group mb-24">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="form-control" placeholder="+1 (555) 000-0000" />
+        </div>
+
+        <!-- Submit Button -->
+        <div style="display:flex;gap:12px;margin-top:32px">
+          <button type="submit" class="btn btn-primary btn-lg" style="flex:1">Save Profile</button>
+          <a href="index.html" class="btn btn-ghost btn-lg" style="flex:1;text-align:center">Cancel</a>
+        </div>
+      </form>
+
+      <!-- Account Settings -->
+      <div class="card" style="padding:32px;margin-top:24px">
+        <h2 style="margin-top:0">Account Settings</h2>
+        
+        <div style="margin-bottom:24px">
+          <h4 style="margin:0 0 8px">Email</h4>
+          <div id="email-display" style="color:var(--text-secondary);font-size:0.9rem">Loading...</div>
+        </div>
+
+        <div style="margin-bottom:24px">
+          <h4 style="margin:0 0 8px">Account Status</h4>
+          <div style="color:var(--text-secondary);font-size:0.9rem">Active</div>
+        </div>
+
+        <div>
+          <h4 style="margin:0 0 8px">Change Password</h4>
+          <button class="btn btn-outline" onclick="changePassword()" type="button">Update Password</button>
+        </div>
+
+        <div style="margin-top:32px;padding-top:32px;border-top:1px solid var(--border)">
+          <h4 style="margin:0 0 8px;color:var(--text-muted)">Danger Zone</h4>
+          <button class="btn btn-ghost" onclick="deleteAccount()" type="button" style="color:var(--text-muted)">Delete Account</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  const { user, profile } = auth;
+  await APP.buildNav('customer');
+  APP.setActiveSidebarLink();
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  // Load current profile
+  document.getElementById('full-name').value = profile.full_name || '';
+  document.getElementById('city').value = profile.city || '';
+  document.getElementById('state').value = profile.state || '';
+  document.getElementById('phone').value = profile.phone || '';
+  document.getElementById('email-display').textContent = user.email;
+
+  // Form submission
+  document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const updates = {
+      full_name: document.getElementById('full-name').value.trim(),
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim(),
+      phone: document.getElementById('phone').value.trim()
+    };
+
+    const { data, error } = await API.updateProfile(user.id, updates);
+
+    if (error) {
+      alert('Error updating profile: ' + error.message);
+      return;
+    }
+
+    alert('Profile updated successfully!');
+    window.location.href = 'index.html';
+  });
+});
+
+function changePassword() {
+  alert('Password change feature coming soon');
+}
+
+function deleteAccount() {
+  if (!confirm('Are you sure? This action cannot be undone.')) return;
+  if (!confirm('This will permanently delete your account and all data. Confirm again?')) return;
+  
+  alert('Account deletion feature coming soon');
+}
+</script>
+</body>
+</html>

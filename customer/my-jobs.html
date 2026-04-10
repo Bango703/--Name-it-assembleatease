@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Jobs — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html" class="active"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header flex-between">
+      <div>
+        <h1>My Jobs</h1>
+        <p>Manage and track all your posted jobs.</p>
+      </div>
+      <a href="post-job.html" class="btn btn-primary">📝 &nbsp; Post a New Job</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card" style="padding:16px;margin-bottom:24px;display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm filter-btn active" data-status="all">All</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-status="open">Open</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-status="assigned">Assigned</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-status="in_progress">In Progress</button>
+      <button class="btn btn-ghost btn-sm filter-btn" data-status="completed">Completed</button>
+    </div>
+
+    <!-- Jobs List -->
+    <div id="jobs-list">
+      <div class="text-center" style="padding:64px;color:var(--text-secondary)">
+        <div class="spinner spinner-lg" style="margin:0 auto 16px"></div>
+        <p>Loading your jobs...</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let allJobs = [];
+let currentFilter = 'all';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  const { user } = auth;
+  await APP.buildNav('customer');
+  APP.setActiveSidebarLink();
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.status;
+      renderJobs();
+    });
+  });
+
+  // Load jobs
+  loadJobs(user.id);
+});
+
+async function loadJobs(customerId) {
+  const { data, error } = await API.getJobs({ customerId, limit: 100 });
+  
+  if (error) {
+    document.getElementById('jobs-list').innerHTML = '<div class="card text-center" style="padding:64px"><p>Error loading jobs: ' + error.message + '</p></div>';
+    return;
+  }
+
+  allJobs = data || [];
+  renderJobs();
+}
+
+function renderJobs() {
+  const filtered = currentFilter === 'all' 
+    ? allJobs 
+    : allJobs.filter(j => j.status === currentFilter);
+
+  const jobsList = document.getElementById('jobs-list');
+
+  if (!filtered.length) {
+    jobsList.innerHTML = '<div class="card text-center" style="padding:64px"><p>No jobs found. <a href="post-job.html">Post one now!</a></p></div>';
+    return;
+  }
+
+  jobsList.innerHTML = filtered.map(job => `
+    <div class="card" style="padding:20px;margin-bottom:16px;cursor:pointer;transition:all 0.3s" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''" onclick="window.location.href='job-detail.html?id=${job.id}'">
+      <div class="flex-between mb-12">
+        <div>
+          <h3>${job.title}</h3>
+          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px">${job.category} • ${job.city}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="badge" style="background:${
+            job.status === 'open' ? 'var(--teal-light)' : 
+            job.status === 'assigned' ? 'var(--orange)' : 
+            job.status === 'in_progress' ? '#0ea5e9' : 
+            'var(--text-muted)'
+          };padding:6px 12px;border-radius:4px;font-weight:600;font-size:0.85rem">
+            ${job.status.replace('_', ' ').toUpperCase()}
+          </span>
+          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px">${job.bids?.length || 0} bids</div>
+        </div>
+      </div>
+
+      <p style="color:var(--text-secondary);margin-bottom:12px">${job.description?.substring(0, 120)}...</p>
+
+      <div class="flex-between" style="font-size:0.85rem;color:var(--text-muted)">
+        <div>Budget: $${job.budget_min} - $${job.budget_max} ${job.budget_type ? '(' + job.budget_type + ')' : ''}</div>
+        <div>Posted ${new Date(job.created_at).toLocaleDateString()}</div>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>

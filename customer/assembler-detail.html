@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Assembler Profile — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div style="margin-bottom:24px">
+      <a href="browse-assemblers.html" style="color:var(--teal-light);text-decoration:none;font-weight:500">← Back to Assemblers</a>
+    </div>
+
+    <!-- Profile Header -->
+    <div class="card" style="padding:32px;margin-bottom:24px">
+      <div style="display:flex;gap:24px;align-items:start">
+        <div style="width:120px;height:120px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:4rem;flex-shrink:0">👤</div>
+        
+        <div style="flex:1">
+          <h1 id="assembler-name" style="margin:0">Loading...</h1>
+          <div style="font-size:1.1rem;color:var(--orange);margin:8px 0">⭐ <span id="assembler-rating">—</span> <span id="assembler-reviews" style="color:var(--text-secondary);font-size:0.85rem">—</span></div>
+          
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px">
+            <div>
+              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">HOURLY RATE</div>
+              <div id="assembler-rate" style="font-size:1.3rem;font-weight:700">—</div>
+            </div>
+            <div>
+              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">COMPLETED JOBS</div>
+              <div id="assembler-jobs" style="font-size:1.3rem;font-weight:700">—</div>
+            </div>
+            <div>
+              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">LOCATION</div>
+              <div id="assembler-city" style="font-size:1.1rem;font-weight:600">—</div>
+            </div>
+            <div>
+              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">MEMBER SINCE</div>
+              <div id="assembler-joined" style="font-size:0.95rem">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-direction:column">
+          <a href="post-job.html" class="btn btn-primary">Post a Job</a>
+          <button class="btn btn-outline" onclick="contactAssembler()">Contact</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Bio & Skills -->
+      <div>
+        <div class="card" style="padding:24px;margin-bottom:24px">
+          <h2 style="margin-top:0">About</h2>
+          <p id="assembler-bio" style="line-height:1.6;color:var(--text-secondary)">Loading...</p>
+        </div>
+
+        <div class="card" style="padding:24px">
+          <h2 style="margin-top:0">Skills</h2>
+          <div id="assembler-skills" style="display:flex;flex-wrap:wrap;gap:8px">
+            <div class="spinner spinner-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div>
+        <div class="card" style="padding:24px">
+          <h2 style="margin-top:0">Recent Reviews</h2>
+          <div id="reviews-list">
+            <div style="text-align:center;padding:32px;color:var(--text-secondary)">
+              <div class="spinner spinner-sm" style="margin:0 auto 12px"></div>
+              <p>Loading reviews...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  await APP.buildNav('customer');
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  const assemblerId = new URLSearchParams(window.location.search).get('id');
+  if (!assemblerId) {
+    document.querySelector('main').innerHTML = '<p>Assembler not found.</p>';
+    return;
+  }
+
+  loadAssemblerProfile(assemblerId);
+});
+
+async function loadAssemblerProfile(assemblerId) {
+  const { data: assembler, error } = await API.getProfile(assemblerId);
+
+  if (error || !assembler || assembler.role !== 'assembler') {
+    document.querySelector('main').innerHTML = '<p>Error loading profile: ' + (error?.message || 'Not found') + '</p>';
+    return;
+  }
+
+  // Populate profile
+  document.getElementById('assembler-name').textContent = assembler.full_name || 'Assembler';
+  document.getElementById('assembler-rating').textContent = (assembler.rating || 0).toFixed(1);
+  document.getElementById('assembler-reviews').textContent = `(${assembler.completed_jobs || 0} jobs)`;
+  document.getElementById('assembler-rate').textContent = assembler.hourly_rate ? `$${assembler.hourly_rate}/hr` : 'Contact for rates';
+  document.getElementById('assembler-jobs').textContent = assembler.completed_jobs || 0;
+  document.getElementById('assembler-city').textContent = assembler.city || 'Location TBD';
+  document.getElementById('assembler-joined').textContent = assembler.created_at ? new Date(assembler.created_at).toLocaleDateString() : '—';
+  document.getElementById('assembler-bio').textContent = assembler.bio || 'No bio provided';
+
+  // Skills
+  const skillsHtml = assembler.skills 
+    ? typeof assembler.skills === 'string' 
+      ? assembler.skills.split(',').map(s => `<span style="background:var(--teal-light);color:white;padding:6px 12px;border-radius:20px;font-size:0.85rem;font-weight:600">${s.trim()}</span>`).join('')
+      : '<span style="color:var(--text-secondary);font-size:0.9rem">No skills listed</span>'
+    : '<span style="color:var(--text-secondary);font-size:0.9rem">No skills listed</span>';
+  
+  document.getElementById('assembler-skills').innerHTML = skillsHtml;
+
+  // Load reviews
+  const { data: reviews, error: reviewsError } = await API.getReviews(assemblerId);
+  
+  const reviewsList = document.getElementById('reviews-list');
+  if (reviews?.length) {
+    reviewsList.innerHTML = reviews.slice(0, 5).map(review => `
+      <div style="padding:16px;border-bottom:1px solid var(--border)">
+        <div class="flex-between mb-8">
+          <h4 style="margin:0">${review.reviewer?.full_name || 'Customer'}</h4>
+          <div style="color:var(--orange)">⭐ ${review.rating || 5}</div>
+        </div>
+        <p style="margin:8px 0;color:var(--text-secondary);font-size:0.9rem">${review.comment || 'Great work!'}</p>
+        <div style="font-size:0.8rem;color:var(--text-muted)">${new Date(review.created_at).toLocaleDateString()}</div>
+      </div>
+    `).join('');
+  } else {
+    reviewsList.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-secondary)">No reviews yet</div>';
+  }
+}
+
+function contactAssembler() {
+  alert('Messaging feature coming soon');
+}
+</script>
+</body>
+</html>

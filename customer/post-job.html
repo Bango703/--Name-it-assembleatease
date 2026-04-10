@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Post a Job — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html" class="active"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header">
+      <h1>Post a Job</h1>
+      <p>Describe what needs assembling and get competitive bids from vetted professionals.</p>
+    </div>
+
+    <div style="max-width:900px">
+      <form id="post-job-form" class="card" style="padding:32px">
+        <!-- Job Title -->
+        <div class="form-group mb-24">
+          <label for="title">Job Title *</label>
+          <input type="text" id="title" class="form-control" placeholder="e.g. Assemble IKEA Billy Bookshelf" required />
+        </div>
+
+        <!-- Category -->
+        <div class="form-group mb-24">
+          <label for="category">Category *</label>
+          <select id="category" class="form-control" required>
+            <option value="">Select a category</option>
+            <option value="furniture">Furniture</option>
+            <option value="gym-equipment">Gym Equipment</option>
+            <option value="flat-pack">Flat-Pack (IKEA etc)</option>
+            <option value="office">Office Furniture</option>
+            <option value="outdoor">Outdoor & Garden</option>
+            <option value="kids">Kids Furniture & Toys</option>
+            <option value="appliances">Appliances</option>
+            <option value="shelving">Shelving & Storage</option>
+            <option value="beds">Beds & Bedroom</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group mb-24">
+          <label for="description">Description *</label>
+          <textarea id="description" class="form-control" rows="6" placeholder="Provide details about what needs to be assembled, any specific requirements, or materials you have..." required></textarea>
+        </div>
+
+        <!-- Location -->
+        <div class="form-group mb-24">
+          <label for="city">City/Location *</label>
+          <input type="text" id="city" class="form-control" placeholder="e.g. San Francisco, CA" required />
+        </div>
+
+        <!-- Budget -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+          <div class="form-group">
+            <label for="budget_min">Budget Min ($) *</label>
+            <input type="number" id="budget_min" class="form-control" placeholder="50" min="0" required />
+          </div>
+          <div class="form-group">
+            <label for="budget_max">Budget Max ($) *</label>
+            <input type="number" id="budget_max" class="form-control" placeholder="500" min="0" required />
+          </div>
+        </div>
+
+        <!-- Budget Type -->
+        <div class="form-group mb-24">
+          <label for="budget_type">Budget Type *</label>
+          <select id="budget_type" class="form-control" required>
+            <option value="">Select type</option>
+            <option value="fixed">Fixed Price</option>
+            <option value="hourly">Hourly Rate</option>
+            <option value="negotiable">Negotiable</option>
+          </select>
+        </div>
+
+        <!-- Timeline -->
+        <div class="form-group mb-24">
+          <label for="timeline">When do you need this done? *</label>
+          <select id="timeline" class="form-control" required>
+            <option value="">Select timeline</option>
+            <option value="urgent">ASAP / Same Day</option>
+            <option value="this-week">This Week</option>
+            <option value="next-week">Next Week</option>
+            <option value="flexible">Flexible</option>
+          </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="display:flex;gap:12px;margin-top:32px">
+          <button type="submit" class="btn btn-primary btn-lg" style="flex:1">Post Job</button>
+          <a href="my-jobs.html" class="btn btn-ghost btn-lg" style="flex:1;text-align:center">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  const { user } = auth;
+  await APP.buildNav('customer');
+  APP.setActiveSidebarLink();
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  document.getElementById('post-job-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const jobData = {
+      customer_id: user.id,
+      title: document.getElementById('title').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      category: document.getElementById('category').value,
+      city: document.getElementById('city').value.trim(),
+      budget_min: parseInt(document.getElementById('budget_min').value),
+      budget_max: parseInt(document.getElementById('budget_max').value),
+      budget_type: document.getElementById('budget_type').value,
+      timeline: document.getElementById('timeline').value,
+      status: 'open'
+    };
+
+    if (jobData.budget_min > jobData.budget_max) {
+      alert('Minimum budget cannot be greater than maximum budget');
+      return;
+    }
+
+    const { data, error } = await API.createJob(jobData);
+
+    if (error) {
+      alert('Error posting job: ' + error.message);
+      return;
+    }
+
+    alert('Job posted successfully!');
+    window.location.href = `job-detail.html?id=${data.id}`;
+  });
+});
+</script>
+</body>
+</html>

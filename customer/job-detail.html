@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Job Details — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
+        <li><a href="my-jobs.html" class="active"><span class="nav-icon">📋</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </sidebar>
+
+  <main class="dashboard-main">
+    <div style="margin-bottom:24px">
+      <a href="my-jobs.html" style="color:var(--teal-light);text-decoration:none;font-weight:500">← Back to My Jobs</a>
+    </div>
+
+    <div class="grid-2">
+      <!-- Job Details -->
+      <div>
+        <div class="card" style="padding:24px;margin-bottom:24px">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
+            <div>
+              <h1 id="job-title" style="margin:0">Loading...</h1>
+              <div id="job-status" style="margin-top:8px"></div>
+            </div>
+            <div id="job-actions"></div>
+          </div>
+
+          <div style="border-bottom:1px solid var(--border);padding:16px 0;margin:16px 0">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:0.9rem">
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">CATEGORY</div>
+                <div id="job-category" style="font-weight:600">—</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">LOCATION</div>
+                <div id="job-city" style="font-weight:600">—</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">BUDGET</div>
+                <div id="job-budget" style="font-weight:600">—</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">TIMELINE</div>
+                <div id="job-timeline" style="font-weight:600">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin:16px 0">
+            <h3>Description</h3>
+            <p id="job-description" style="line-height:1.6;color:var(--text-secondary)">Loading...</p>
+          </div>
+
+          <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border)">
+            <div style="font-size:0.85rem;color:var(--text-muted)">Posted <span id="job-date">—</span> by <span id="job-customer">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bids -->
+      <div>
+        <div class="card" style="padding:24px">
+          <h2 style="margin-top:0">Bids Received</h2>
+          <div id="bids-list" style="margin-top:16px">
+            <div style="text-align:center;padding:32px;color:var(--text-secondary)">
+              <div class="spinner spinner-sm" style="margin:0 auto 12px"></div>
+              <p>Loading bids...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['customer']);
+  if (!auth) return;
+  const { user } = auth;
+  await APP.buildNav('customer');
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  const jobId = new URLSearchParams(window.location.search).get('id');
+  if (!jobId) {
+    document.querySelector('main').innerHTML = '<p>Job not found.</p>';
+    return;
+  }
+
+  loadJobDetails(jobId, user.id);
+});
+
+async function loadJobDetails(jobId, userId) {
+  const { data: job, error } = await API.getJob(jobId);
+
+  if (error || !job) {
+    document.querySelector('main').innerHTML = '<p>Error loading job: ' + (error?.message || 'Not found') + '</p>';
+    return;
+  }
+
+  // Check ownership
+  if (job.customer_id !== userId) {
+    document.querySelector('main').innerHTML = '<p>You do not have permission to view this job.</p>';
+    return;
+  }
+
+  // Populate job details
+  document.getElementById('job-title').textContent = job.title;
+  document.getElementById('job-category').textContent = job.category?.replace('-', ' ').toUpperCase();
+  document.getElementById('job-city').textContent = job.city;
+  document.getElementById('job-budget').textContent = `$${job.budget_min} - $${job.budget_max}`;
+  document.getElementById('job-timeline').textContent = job.timeline?.replace('_', ' ').toUpperCase();
+  document.getElementById('job-description').textContent = job.description;
+  document.getElementById('job-date').textContent = new Date(job.created_at).toLocaleDateString();
+  document.getElementById('job-customer').textContent = job.customer?.full_name || 'You';
+
+  const statusBadgeStyle = job.status === 'open' ? 'background:var(--teal-light)' : 
+                           job.status === 'assigned' ? 'background:var(--orange)' : 
+                           job.status === 'in_progress' ? 'background:#0ea5e9' : 
+                           'background:var(--text-muted)';
+  document.getElementById('job-status').innerHTML = `<span style="${statusBadgeStyle};padding:6px 12px;border-radius:4px;color:white;font-weight:600;font-size:0.85rem">${job.status.replace('_', ' ').toUpperCase()}</span>`;
+
+  // Job actions
+  const actionsHtml = job.status === 'open' 
+    ? `<button class="btn btn-primary" onclick="editJob()">Edit</button><button class="btn btn-ghost" onclick="closeJob()">Close</button>`
+    : job.status === 'assigned'
+    ? `<button class="btn btn-primary" onclick="markInProgress()">Mark In Progress</button>`
+    : job.status === 'in_progress'
+    ? `<button class="btn btn-primary" onclick="completeJob()">Mark Complete</button>`
+    : '<button class="btn btn-ghost" disabled>Completed</button>';
+  
+  document.getElementById('job-actions').innerHTML = actionsHtml;
+
+  // Load bids
+  const { data: bids, error: bidsError } = await API.getBidsForJob(jobId);
+
+  const bidsList = document.getElementById('bids-list');
+  if (!bids?.length) {
+    bidsList.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-secondary)"><p>No bids yet. Assemblers will see your job and submit bids.</p></div>';
+    return;
+  }
+
+  bidsList.innerHTML = bids.map(bid => `
+    <div class="card" style="padding:16px;margin-bottom:12px;border:1px solid var(--border)">
+      <div class="flex-between mb-12">
+        <div>
+          <h4 style="margin:0">${bid.assembler?.full_name || 'Assembler'}</h4>
+          <div style="font-size:0.85rem;color:var(--text-secondary)">${bid.assembler?.city || 'Location TBD'}</div>
+        </div>
+        <div style="text-align:right;font-weight:600">
+          ⭐ ${bid.assembler?.rating || 'N/A'}
+          <div style="font-size:0.85rem;color:var(--text-secondary);font-weight:400">${bid.assembler?.completed_jobs || 0} jobs</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(13,148,136,0.05);padding:12px;border-radius:6px;margin:12px 0">
+        <div style="font-size:0.85rem;color:var(--text-secondary)">Proposed Amount</div>
+        <div style="font-size:1.3rem;font-weight:700;color:var(--teal)">$${bid.proposed_amount || 'TBD'}</div>
+      </div>
+
+      <p style="font-size:0.9rem;color:var(--text-secondary);margin:12px 0">${bid.message || 'No message provided'}</p>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        ${bid.status === 'pending' ? `
+          <button class="btn btn-primary btn-sm" onclick="acceptBid('${bid.id}', '${bid.assembler_id}', ${bid.proposed_amount})">Accept</button>
+          <button class="btn btn-ghost btn-sm" onclick="rejectBid('${bid.id}')">Reject</button>
+        ` : `
+          <span style="padding:6px 12px;border-radius:4px;background:var(--text-muted);color:white;font-size:0.85rem;font-weight:600">${bid.status.toUpperCase()}</span>
+        `}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function acceptBid(bidId, assemblerId, amount) {
+  const jobId = new URLSearchParams(window.location.search).get('id');
+  const { error } = await API.acceptBid(bidId, jobId, assemblerId, amount);
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+  
+  alert('Bid accepted! You can now contact the assembler.');
+  location.reload();
+}
+
+async function rejectBid(bidId) {
+  if (!confirm('Reject this bid?')) return;
+  
+  const { error } = await supabaseClient.from('bids').update({ status: 'rejected' }).eq('id', bidId);
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+  
+  location.reload();
+}
+
+async function editJob() {
+  alert('Edit feature coming soon');
+}
+
+async function closeJob() {
+  if (!confirm('Close this job? Assemblers won\'t be able to bid anymore.')) return;
+  
+  const jobId = new URLSearchParams(window.location.search).get('id');
+  const { error } = await API.updateJob(jobId, { status: 'closed' });
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+  
+  alert('Job closed');
+  location.reload();
+}
+
+async function markInProgress() {
+  const jobId = new URLSearchParams(window.location.search).get('id');
+  const { error } = await API.updateJob(jobId, { status: 'in_progress' });
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+  
+  alert('Job marked as in progress');
+  location.reload();
+}
+
+async function completeJob() {
+  const jobId = new URLSearchParams(window.location.search).get('id');
+  const { error } = await API.updateJob(jobId, { status: 'completed' });
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+  
+  alert('Job marked as complete! Please leave a review for the assembler.');
+  location.reload();
+}
+</script>
+</body>
+</html>

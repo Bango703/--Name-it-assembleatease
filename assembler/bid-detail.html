@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bid Details — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
+</head>
+<body>
+<nav class="nav" id="main-nav"></nav>
+
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="browse-jobs.html"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
+        <li><a href="my-bids.html" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">⭐</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div style="margin-bottom:24px">
+      <a href="my-bids.html" style="color:var(--teal-light);text-decoration:none;font-weight:500">← Back to My Bids</a>
+    </div>
+
+    <div class="grid-2">
+      <!-- Job Info -->
+      <div>
+        <div class="card" style="padding:24px;margin-bottom:24px">
+          <h2 id="job-title" style="margin:0">Loading...</h2>
+          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px" id="job-meta">—</div>
+
+          <div style="border-bottom:1px solid var(--border);padding:16px 0;margin:16px 0">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:0.9rem">
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">CATEGORY</div>
+                <div id="job-category" style="font-weight:600">—</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">LOCATION</div>
+                <div id="job-city" style="font-weight:600">—</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">BUDGET</div>
+                <div id="job-budget" style="font-weight:600">—</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">STATUS</div>
+                <div id="job-status" style="font-weight:600">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin:16px 0">
+            <h3>Job Description</h3>
+            <p id="job-description" style="line-height:1.6;color:var(--text-secondary)">Loading...</p>
+          </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="card" style="padding:24px">
+          <h3 style="margin-top:0">Customer Info</h3>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.8rem">👤</div>
+            <div>
+              <div style="font-weight:600" id="customer-name">—</div>
+              <div style="font-size:0.85rem;color:var(--text-secondary)" id="customer-city">—</div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px" id="customer-email">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bid Details -->
+      <div>
+        <div class="card" style="padding:24px;margin-bottom:24px">
+          <h2 style="margin-top:0">Your Bid</h2>
+
+          <div style="background:rgba(13,148,136,0.05);padding:16px;border-radius:8px;margin:20px 0">
+            <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px">PROPOSED AMOUNT</div>
+            <div style="font-size:2rem;font-weight:700;color:var(--teal)" id="bid-amount">$—</div>
+            <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px">vs Budget: <span id="bid-vs-budget">—</span></div>
+          </div>
+
+          <div style="margin:20px 0">
+            <h4 style="margin:0 0 8px">Your Message</h4>
+            <div id="bid-message" style="background:var(--border);padding:16px;border-radius:8px;line-height:1.6;color:var(--text-secondary)">Loading...</div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:24px">
+            <div id="bid-status-display" style="background:var(--text-muted);color:white;padding:8px 16px;border-radius:6px;font-weight:600;font-size:0.85rem">PENDING</div>
+          </div>
+
+          <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="viewJob()" style="flex:1">View Full Job</button>
+              <button class="btn btn-ghost" id="withdraw-btn" onclick="withdrawBid()" style="flex:1">Withdraw Bid</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bid Status -->
+        <div class="card" style="padding:24px">
+          <h3 style="margin-top:0">Bid Status</h3>
+          <div id="bid-status-info" style="line-height:1.8">
+            <div style="padding:16px;background:rgba(249,115,22,0.05);border-radius:6px;color:var(--text-secondary)">
+              Waiting for customer response...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await APP.requireAuth(['assembler']);
+  if (!auth) return;
+  const { user } = auth;
+  await APP.buildNav('assembler');
+
+  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = '../index.html';
+  });
+
+  const bidId = new URLSearchParams(window.location.search).get('id');
+  if (!bidId) {
+    document.querySelector('main').innerHTML = '<p>Bid not found.</p>';
+    return;
+  }
+
+  loadBidDetails(bidId, user.id);
+});
+
+async function loadBidDetails(bidId, userId) {
+  const { data: bid, error } = await supabaseClient
+    .from('bids')
+    .select(`
+      *,
+      job:jobs(*,customer:profiles!jobs_customer_id_fkey(*))
+    `)
+    .eq('id', bidId)
+    .single();
+
+  if (error || !bid) {
+    document.querySelector('main').innerHTML = '<p>Error loading bid: ' + (error?.message || 'Not found') + '</p>';
+    return;
+  }
+
+  // Check ownership
+  if (bid.assembler_id !== userId) {
+    document.querySelector('main').innerHTML = '<p>You do not have permission to view this bid.</p>';
+    return;
+  }
+
+  const job = bid.job;
+
+  // Populate job info
+  document.getElementById('job-title').textContent = job.title;
+  document.getElementById('job-meta').textContent = `${job.category?.replace('-', ' ').toUpperCase()} • ${job.city}`;
+  document.getElementById('job-category').textContent = job.category?.replace('-', ' ').toUpperCase();
+  document.getElementById('job-city').textContent = job.city;
+  document.getElementById('job-budget').textContent = `$${job.budget_min} - $${job.budget_max}`;
+  document.getElementById('job-description').textContent = job.description;
+
+  const statusBadge = job.status === 'open' ? 'OPEN' : 
+                     job.status === 'assigned' ? 'ASSIGNED' :
+                     job.status === 'in_progress' ? 'IN PROGRESS' :
+                     job.status === 'completed' ? 'COMPLETED' : job.status.toUpperCase();
+  document.getElementById('job-status').textContent = statusBadge;
+
+  // Customer info
+  document.getElementById('customer-name').textContent = job.customer?.full_name || 'Customer';
+  document.getElementById('customer-city').textContent = job.customer?.city || 'Location TBD';
+  document.getElementById('customer-email').textContent = job.customer?.email || '—';
+
+  // Bid details
+  document.getElementById('bid-amount').textContent = `$${bid.proposed_amount || '0'}`;
+  document.getElementById('bid-vs-budget').textContent = `$${job.budget_min} - $${job.budget_max}`;
+  document.getElementById('bid-message').textContent = bid.message || 'No message provided';
+
+  // Bid status
+  const statusColor = bid.status === 'pending' ? 'var(--orange)' :
+                     bid.status === 'accepted' ? 'var(--teal-light)' :
+                     bid.status === 'rejected' ? 'var(--text-muted)' :
+                     'var(--border)';
+  const statusDisplay = document.getElementById('bid-status-display');
+  statusDisplay.textContent = bid.status.toUpperCase();
+  statusDisplay.style.background = statusColor;
+
+  // Status info
+  const statusInfo = document.getElementById('bid-status-info');
+  if (bid.status === 'pending') {
+    statusInfo.innerHTML = '<div style="padding:16px;background:rgba(249,115,22,0.05);border-radius:6px;color:var(--text-secondary)">Waiting for customer response...</div>';
+  } else if (bid.status === 'accepted') {
+    statusInfo.innerHTML = '<div style="padding:16px;background:rgba(13,148,136,0.05);border-radius:6px;color:var(--text-secondary);font-weight:600">✓ Bid accepted! Customer will contact you soon.</div>';
+  } else if (bid.status === 'rejected') {
+    statusInfo.innerHTML = '<div style="padding:16px;background:rgba(255,0,0,0.05);border-radius:6px;color:var(--text-secondary)">This bid was rejected by the customer.</div>';
+  }
+
+  // Hide withdraw button if not pending
+  if (bid.status !== 'pending') {
+    document.getElementById('withdraw-btn').style.display = 'none';
+  }
+}
+
+function viewJob() {
+  const jobId = new URLSearchParams(window.location.search).get('id');
+  // Note: You'd need to get the job ID from the bid details
+  alert('Full job view coming soon');
+}
+
+async function withdrawBid() {
+  if (!confirm('Withdraw this bid? The customer will see the action.')) return;
+
+  const bidId = new URLSearchParams(window.location.search).get('id');
+  const { error } = await API.withdrawBid(bidId);
+
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
+  alert('Bid withdrawn');
+  window.location.href = 'my-bids.html';
+}
+</script>
+</body>
+</html>
