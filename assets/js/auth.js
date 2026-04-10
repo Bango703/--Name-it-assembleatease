@@ -1,94 +1,202 @@
-const supabaseClient = window.supabaseClient || window.supabase;
+// ============================================
+//  ASSEMBLEATEASE — auth.js
+//  Handles signup + login form submissions
+//  Depends on: supabaseClient (from config.js),
+//              APP (from app.js)
+// ============================================
 
-if (!supabaseClient) {
-  console.error('Supabase client is not initialized. Ensure the CDN script and config.js are loaded before auth.js.');
-}
-
-// SIGNUP
-const signupForm = document.getElementById('signup-form');
-signupForm?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const role = document.getElementById('role').value;
-
-  if (!email || !password || !role) {
-    alert('Please fill in all fields.');
+(function () {
+  // ── Guard ──────────────────────────────────────────────
+  if (typeof supabaseClient === 'undefined') {
+    console.error('[auth.js] supabaseClient is not defined. Make sure config.js is loaded first.');
     return;
   }
 
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { role }
+  // ── Helpers ────────────────────────────────────────────
+  function showAlert(type, message) {
+    if (typeof APP !== 'undefined') {
+      APP.showAlert('auth-alert', message, type);
+    } else {
+      // Fallback if APP isn't loaded yet
+      const el = document.getElementById('auth-alert');
+      if (el) {
+        el.className = `alert alert-${type}`;
+        el.textContent = message;
+      }
     }
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
   }
 
-  const user = data.user;
+  function hideAlert() {
+    if (typeof APP !== 'undefined') {
+      APP.hideAlert('auth-alert');
+    }
+  }
 
-  if (user) {
-    const { error: profileError } = await supabaseClient.from('profiles').insert({
-      id: user.id,
-      full_name: '',
-      role,
-      email
+  function setLoading(btnId, isLoading, label) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = isLoading;
+    btn.textContent = label;
+  }
+
+  function fieldError(inputId, message) {
+    const input = document.getElementById(inputId);
+    const errEl = document.getElementById(`${inputId}-error`);
+    input?.classList.add('error');
+    if (errEl) { errEl.textContent = message; errEl.classList.add('visible'); }
+  }
+
+  function clearFieldErrors() {
+    document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = ''; el.classList.remove('visible');
     });
-
-    if (profileError) {
-      alert(profileError.message);
-      return;
-    }
   }
 
-  alert('Account created! Please check your email to confirm your account.');
-  window.location.href = 'login.html';
-});
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
 
-// LOGIN
-const loginForm = document.getElementById('login-form');
-loginForm?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+  // ── SIGNUP ─────────────────────────────────────────────
+  const signupForm = document.getElementById('signup-form');
+  signupForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideAlert();
+    clearFieldErrors();
 
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+    const firstName = document.getElementById('first-name')?.value.trim() || '';
+    const lastName  = document.getElementById('last-name')?.value.trim()  || '';
+    const email     = document.getElementById('email')?.value.trim()      || '';
+    const password  = document.getElementById('password')?.value          || '';
+    const confirm   = document.getElementById('confirm-password')?.value  || '';
+    const role      = document.querySelector('input[name="role"]:checked')?.value || 'customer';
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
+    // Validation
+    let hasError = false;
+    if (!firstName) { fieldError('first-name', 'First name is required.');         hasError = true; }
+    if (!lastName)  { fieldError('last-name',  'Last name is required.');           hasError = true; }
+    if (!email) {
+      fieldError('email', 'Email is required.');                                     hasError = true;
+    } else if (!isValidEmail(email)) {
+      fieldError('email', 'Please enter a valid email address.');                    hasError = true;
+    }
+    if (!password) {
+      fieldError('password', 'Password is required.');                               hasError = true;
+    } else if (password.length < 8) {
+      fieldError('password', 'Password must be at least 8 characters.');             hasError = true;
+    }
+    if (!confirm) {
+      fieldError('confirm-password', 'Please confirm your password.');               hasError = true;
+    } else if (password !== confirm) {
+      fieldError('confirm-password', 'Passwords do not match.');                     hasError = true;
+    }
+    if (hasError) return;
+
+    setLoading('signup-btn', true, 'Creating account…');
+
+    try {
+      const fullName = `${firstName} ${lastName}`.trim();
+
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: { data: { role, full_name: fullName } }
+      });
+
+      if (error) {
+        showAlert('error', error.message || 'Sign up failed. Please try again.');
+        setLoading('signup-btn', false, 'Create Free Account');
+        return;
+      }
+
+      // Email confirmation required — session will be null
+      if (!data.session) {
+        showAlert('success', 'Account created! Please check your email to confirm before logging in.');
+        setLoading('signup-btn', false, 'Create Free Account');
+        return;
+      }
+
+      // Upsert profile — safe even if a DB trigger already created the row
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .upsert({
+          id:        data.user.id,
+          full_name: fullName,
+          email,
+          role,
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+        // Non-fatal — user is authenticated, log and continue
+        console.error('[auth.js] Profile upsert error:', profileError);
+      }
+
+      window.location.href = role === 'assembler'
+        ? '../assembler/index.html'
+        : '../customer/index.html';
+
+    } catch (err) {
+      console.error('[auth.js] Signup error:', err);
+      showAlert('error', 'Something went wrong. Please try again.');
+      setLoading('signup-btn', false, 'Create Free Account');
+    }
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  // ── LOGIN ──────────────────────────────────────────────
+  const loginForm = document.getElementById('login-form');
+  loginForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideAlert();
+    clearFieldErrors();
 
-  const user = data.user;
-  if (!user) {
-    alert('Login successful, but no user returned.');
-    return;
-  }
+    const email    = document.getElementById('email')?.value.trim()    || '';
+    const password = document.getElementById('password')?.value        || '';
 
-  const { data: profile, error: profileError } = await supabaseClient
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // Validation
+    let hasError = false;
+    if (!email) {
+      fieldError('email', 'Email is required.');                         hasError = true;
+    } else if (!isValidEmail(email)) {
+      fieldError('email', 'Please enter a valid email address.');        hasError = true;
+    }
+    if (!password) {
+      fieldError('password', 'Password is required.');                   hasError = true;
+    }
+    if (hasError) return;
 
-  if (profileError) {
-    alert(profileError.message);
-    return;
-  }
+    setLoading('login-btn', true, 'Logging in…');
 
-  if (profile?.role === 'customer') {
-    window.location.href = '../customer/index.html';
-  } else {
-    window.location.href = '../assembler/index.html';
-  }
-});
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        showAlert('error', error.message || 'Login failed. Please try again.');
+        setLoading('login-btn', false, 'Log in');
+        return;
+      }
+
+      // Fetch profile role
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        showAlert('error', 'Could not load your profile. Please try again.');
+        setLoading('login-btn', false, 'Log in');
+        return;
+      }
+
+      window.location.href = profile.role === 'assembler'
+        ? '../assembler/index.html'
+        : '../customer/index.html';
+
+    } catch (err) {
+      console.error('[auth.js] Login error:', err);
+      showAlert('error', 'Something went wrong. Please try again.');
+      setLoading('login-btn', false, 'Log in');
+    }
+  });
+
+})();

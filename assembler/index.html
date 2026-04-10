@@ -5,17 +5,327 @@
   <title>Assembler Dashboard — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --white: #ffffff;
+      --off-white: #f8f7f4;
+      --paper: #f2f0eb;
+      --border: #e4e1d9;
+      --muted: #9b9789;
+      --ink: #1a1916;
+      --ink-soft: #3d3b35;
+      --accent: #e86a2e;
+      --accent-light: #fdf0e8;
+      --accent-dark: #c45520;
+      --teal: #1d9e75;
+      --teal-light: #e8f5ef;
+      --teal-dark: #157a5a;
+      --amber: #f59e0b;
+      --amber-light: #fffbeb;
+      --red: #ef4444;
+      --red-light: #fef2f2;
+      --sidebar-w: 240px;
+      --nav-h: 60px;
+      --r: 10px;
+      --r-lg: 14px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      color: var(--ink);
+      background: var(--off-white);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── LAYOUT ── */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--ink);
+      text-decoration: none;
+      padding: 0 1.25rem 1.5rem;
+      display: block;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+    .sidebar-logo span { color: var(--accent); }
+
+    .sidebar-section { margin-bottom: 1.5rem; padding: 0 0.75rem; }
+
+    .sidebar-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .sidebar-nav { list-style: none; }
+    .sidebar-nav li { margin-bottom: 2px; }
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .sidebar-nav a:hover { background: var(--off-white); color: var(--ink); }
+    .sidebar-nav a.active {
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+    /* ── MAIN ── */
+    .dashboard-main {
+      padding: 2.5rem;
+      max-width: 1100px;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      gap: 1rem;
+    }
+    .page-header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.75rem;
+      color: var(--ink);
+      margin-bottom: 0.25rem;
+    }
+    .page-header p { font-size: 0.9rem; color: var(--muted); }
+
+    /* ── PROFILE BANNER ── */
+    .profile-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: var(--amber-light);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--r-lg);
+      padding: 1.1rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .profile-banner.hidden { display: none; }
+    .banner-left { display: flex; align-items: center; gap: 14px; }
+    .banner-icon { font-size: 1.5rem; }
+    .banner-title { font-weight: 500; color: #92400e; font-size: 0.95rem; }
+    .banner-sub { font-size: 0.82rem; color: #b45309; margin-top: 2px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.55rem 1.2rem;
+      border-radius: 999px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .btn-ghost { background: transparent; color: var(--ink-soft); border-color: var(--border); }
+    .btn-ghost:hover { background: var(--off-white); color: var(--ink); }
+    .btn-warm { background: #f97316; color: #fff; border-color: #f97316; }
+    .btn-warm:hover { background: #ea6b10; }
+    .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8rem; }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.25rem 1.5rem;
+    }
+    .stat-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.8rem;
+      color: var(--ink);
+      margin-bottom: 0.2rem;
+    }
+    .stat-label { font-size: 0.82rem; color: var(--muted); }
+    .stat-accent { border-top: 3px solid var(--accent); }
+    .stat-teal { border-top: 3px solid var(--teal); }
+
+    /* ── GRID ── */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .section-header h3 { font-size: 1rem; font-weight: 500; color: var(--ink); }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .card:hover { border-color: #c8c4bb; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .card:last-child { margin-bottom: 0; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+      gap: 0.5rem;
+    }
+    .card h4 { font-size: 0.92rem; font-weight: 500; color: var(--ink); line-height: 1.3; }
+    .card-meta { font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
+    .card-desc { font-size: 0.875rem; color: var(--ink-soft); line-height: 1.55; margin-top: 0.35rem; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-pending  { background: var(--amber-light);  color: #92400e; border: 1px solid rgba(245,158,11,0.25); }
+    .badge-accepted { background: var(--teal-light);   color: #0f5b3f; border: 1px solid rgba(29,158,117,0.25); }
+    .badge-rejected { background: var(--red-light);    color: #991b1b; border: 1px solid rgba(239,68,68,0.2); }
+    .badge-default  { background: var(--paper);        color: var(--muted); border: 1px solid var(--border); }
+    .bid-count { font-size: 0.8rem; color: var(--muted); flex-shrink: 0; }
+
+    /* ── EMPTY / ERROR STATES ── */
+    .empty-state {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+    }
+    .empty-state p { font-size: 0.9rem; color: var(--muted); margin-bottom: 1rem; }
+    .error-state {
+      background: var(--red-light);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--r-lg);
+      padding: 1.25rem 1.5rem;
+      font-size: 0.875rem;
+      color: #991b1b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── SKELETON ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--paper) 25%, var(--border) 50%, var(--paper) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .skeleton-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 24px; height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 2rem auto;
+      display: block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .dashboard-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+      .dashboard-main { padding: 1.5rem; }
+    }
+  </style>
 </head>
 <body>
+
 <nav class="nav" id="main-nav"></nav>
 
 <div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
@@ -25,6 +335,7 @@
         <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
       </ul>
     </div>
+
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
@@ -34,142 +345,212 @@
     </div>
   </aside>
 
+  <!-- MAIN CONTENT -->
   <main class="dashboard-main">
-    <div class="page-header flex-between">
+
+    <!-- Page header -->
+    <div class="page-header">
       <div>
         <h1 id="welcome-msg">Welcome back 👋</h1>
-        <p>Here's your activity overview for today.</p>
+        <p id="welcome-sub">Here's your activity overview for today.</p>
       </div>
-      <a href="browse-jobs.html" class="btn btn-primary">🔍 &nbsp; Browse Jobs</a>
+      <a href="browse-jobs.html" class="btn btn-primary">🔍 &nbsp;Browse Jobs</a>
     </div>
 
-    <!-- Profile completion banner -->
-    <div id="profile-banner" class="hidden" style="background:linear-gradient(135deg,rgba(249,115,22,0.1),rgba(251,191,36,0.05));border:1px solid rgba(249,115,22,0.25);border-radius:var(--radius-md);padding:18px 24px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:16px">
-      <div style="display:flex;align-items:center;gap:14px">
-        <span style="font-size:1.8rem">⚡</span>
+    <!-- Profile completion banner — hidden by default, shown via JS if needed -->
+    <div id="profile-banner" class="profile-banner hidden">
+      <div class="banner-left">
+        <span class="banner-icon">⚡</span>
         <div>
-          <div style="font-weight:600;color:var(--orange)">Complete your profile to get more jobs</div>
-          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px">Add your skills, hourly rate, and bio to appear in customer searches.</div>
+          <div class="banner-title">Complete your profile to get more jobs</div>
+          <div class="banner-sub">Add your skills, hourly rate, and bio to appear in customer searches.</div>
         </div>
       </div>
       <a href="profile.html" class="btn btn-warm btn-sm" style="flex-shrink:0">Complete Profile</a>
     </div>
 
-    <!-- STATS -->
-    <div class="grid-4 mb-32" id="stats-grid">
-      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
-      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
-      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
-      <div class="stat-card"><div class="skeleton" style="height:80px;border-radius:8px"></div></div>
+    <!-- Stats grid — skeleton while loading -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="skeleton" style="height:72px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:72px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:72px"></div></div>
+      <div class="stat-card"><div class="skeleton" style="height:72px"></div></div>
     </div>
 
-    <div class="grid-2">
+    <!-- Two-column content -->
+    <div class="content-grid">
+
       <!-- Recent bids -->
       <div>
-        <div class="flex-between mb-16">
+        <div class="section-header">
           <h3>Recent Bids</h3>
           <a href="my-bids.html" class="btn btn-ghost btn-sm">View all →</a>
         </div>
         <div id="bids-list">
-          <div class="loading-overlay"><div class="spinner spinner-lg"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:64px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:64px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:64px"></div></div>
         </div>
       </div>
 
-      <!-- Available jobs -->
+      <!-- New jobs near you -->
       <div>
-        <div class="flex-between mb-16">
+        <div class="section-header">
           <h3>New Jobs Near You</h3>
           <a href="browse-jobs.html" class="btn btn-ghost btn-sm">Browse all →</a>
         </div>
         <div id="jobs-list">
-          <div class="loading-overlay"><div class="spinner spinner-lg"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:64px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:64px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:64px"></div></div>
         </div>
       </div>
+
     </div>
   </main>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['assembler']);
-  if (!auth) return;
-  const { user, profile } = auth;
-  await APP.buildNav('assembler');
-  APP.setActiveSidebarLink();
-
-  document.getElementById('welcome-msg').textContent =
-    `Welcome back, ${profile.full_name?.split(' ')[0] || 'there'} 👋`;
-
-  // Show profile completion banner if needed
-  if (!profile.hourly_rate || !profile.city) {
-    document.getElementById('profile-banner').classList.remove('hidden');
+  // ── Helpers ──────────────────────────────────────────────
+  function getBadgeClass(status) {
+    const map = { pending: 'badge-pending', accepted: 'badge-accepted', rejected: 'badge-rejected' };
+    return map[status] || 'badge-default';
   }
 
-  // Logout handler
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
+  function truncate(str, len = 80) {
+    if (!str) return 'Assembly job';
+    return str.length > len ? str.substring(0, len) + '…' : str;
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return `${days}d ago`;
+  }
+
+  function renderError(msg) {
+    return `<div class="error-state"><span>⚠️</span>${msg}</div>`;
+  }
+
+  function renderEmpty(msg, linkHref, linkText) {
+    return `
+      <div class="empty-state">
+        <p>${msg}</p>
+        <a href="${linkHref}" class="btn btn-ghost btn-sm">${linkText}</a>
+      </div>`;
+  }
+
+  // ── Main ─────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+
+    // Auth guard — redirect if not assembler
+    const auth = await APP.requireAuth(['assembler']);
+    if (!auth) return;
+    const { user, profile } = auth;
+
+    await APP.buildNav('assembler');
+    APP.setActiveSidebarLink();
+
+    // Welcome message
+    const firstName = profile.full_name?.split(' ')[0] || 'there';
+    document.getElementById('welcome-msg').textContent = `Welcome back, ${firstName} 👋`;
+
+    // Profile completion banner — only show if key fields missing
+    const profileIncomplete = !profile.hourly_rate || !profile.city || !profile.bio;
+    if (profileIncomplete) {
+      document.getElementById('profile-banner').classList.remove('hidden');
+    }
+
+    // Logout
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    // ── Stats ──
+    try {
+      const stats = await API.getAssemblerStats(user.id);
+      const s = stats || {};
+      document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card stat-accent">
+          <div class="stat-value">${s.totalBids ?? 0}</div>
+          <div class="stat-label">Total Bids</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${s.pendingBids ?? 0}</div>
+          <div class="stat-label">Pending Bids</div>
+        </div>
+        <div class="stat-card stat-teal">
+          <div class="stat-value">${s.acceptedBids ?? 0}</div>
+          <div class="stat-label">Accepted</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">$${Number(s.totalEarned || 0).toFixed(0)}</div>
+          <div class="stat-label">Total Earned</div>
+        </div>
+      `;
+    } catch (err) {
+      console.error('Stats error:', err);
+      document.getElementById('stats-grid').innerHTML = `
+        <div style="grid-column:1/-1">${renderError('Could not load stats. Please refresh.')}</div>`;
+    }
+
+    // ── Recent bids ──
+    try {
+      const { data: bids, error } = await API.getMyBids(user.id);
+      if (error) throw error;
+
+      const bidsList = document.getElementById('bids-list');
+      if (bids?.length) {
+        bidsList.innerHTML = bids.slice(0, 5).map(bid => `
+          <div class="card" onclick="window.location.href='bid-detail.html?id=${bid.id}'">
+            <div class="card-top">
+              <h4>${bid.job?.title || 'Untitled Job'}</h4>
+              <span class="badge ${getBadgeClass(bid.status)}">${bid.status}</span>
+            </div>
+            <div class="card-desc">${truncate(bid.job?.description)}</div>
+            <div class="card-meta">${bid.job?.customer?.full_name || 'Customer'} · ${timeAgo(bid.created_at)}</div>
+          </div>
+        `).join('');
+      } else {
+        bidsList.innerHTML = renderEmpty("You haven't placed any bids yet.", 'browse-jobs.html', 'Browse jobs →');
+      }
+    } catch (err) {
+      console.error('Bids error:', err);
+      document.getElementById('bids-list').innerHTML = renderError('Could not load bids. Please refresh.');
+    }
+
+    // ── Available jobs ──
+    try {
+      const { data: jobs, error } = await API.getOpenJobs({ limit: 5 });
+      if (error) throw error;
+
+      const jobsList = document.getElementById('jobs-list');
+      if (jobs?.length) {
+        jobsList.innerHTML = jobs.map(job => {
+          const bidCount = job.bids?.[0]?.count ?? job.bid_count ?? 0;
+          return `
+            <div class="card" onclick="window.location.href='job-detail.html?id=${job.id}'">
+              <div class="card-top">
+                <h4>${job.title}</h4>
+                <span class="bid-count">${bidCount} bid${bidCount !== 1 ? 's' : ''}</span>
+              </div>
+              <div class="card-desc">${truncate(job.description)}</div>
+              <div class="card-meta">${job.customer?.city || 'Location TBD'} · Posted ${timeAgo(job.created_at)}</div>
+            </div>`;
+        }).join('');
+      } else {
+        jobsList.innerHTML = renderEmpty('No new jobs in your area yet.', 'browse-jobs.html', 'Browse all jobs →');
+      }
+    } catch (err) {
+      console.error('Jobs error:', err);
+      document.getElementById('jobs-list').innerHTML = renderError('Could not load jobs. Please refresh.');
+    }
+
   });
-
-  // Load stats
-  const stats = await API.getAssemblerStats(user.id);
-  const statsGrid = document.getElementById('stats-grid');
-  statsGrid.innerHTML = `
-    <div class="stat-card">
-      <div class="stat-value">${stats.totalBids}</div>
-      <div class="stat-label">Total Bids</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${stats.pendingBids}</div>
-      <div class="stat-label">Pending Bids</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${stats.acceptedBids}</div>
-      <div class="stat-label">Accepted</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">$${stats.totalEarned?.toFixed(0) || 0}</div>
-      <div class="stat-label">Total Earned</div>
-    </div>
-  `;
-
-  // Load recent bids
-  const { data: bids } = await API.getMyBids(user.id);
-  const bidsList = document.getElementById('bids-list');
-  if (bids?.length) {
-    bidsList.innerHTML = bids.slice(0, 5).map(bid => `
-      <div class="card" style="padding:16px;margin-bottom:12px;cursor:pointer" onclick="window.location.href='bid-detail.html?id=${bid.id}'">
-        <div class="flex-between mb-8">
-          <h4>${bid.job?.title || 'Job'}</h4>
-          <span class="badge" style="background:${bid.status === 'pending' ? 'var(--orange)' : bid.status === 'accepted' ? 'var(--teal-light)' : 'var(--text-muted)'}">${bid.status}</span>
-        </div>
-        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">${bid.job?.customer?.full_name || 'Customer'}</div>
-        <p style="font-size:0.9rem;color:var(--text-secondary)">${bid.job?.description?.substring(0, 80) || 'Assembly job'}...</p>
-      </div>
-    `).join('');
-  } else {
-    bidsList.innerHTML = '<div class="card text-center" style="padding:32px"><p>No bids yet. <a href="browse-jobs.html">Browse jobs →</a></p></div>';
-  }
-
-  // Load available jobs
-  const { data: jobs } = await API.getOpenJobs({ limit: 5 });
-  const jobsList = document.getElementById('jobs-list');
-  if (jobs?.length) {
-    jobsList.innerHTML = jobs.map(job => `
-      <div class="card" style="padding:16px;margin-bottom:12px;cursor:pointer" onclick="window.location.href='job-detail.html?id=${job.id}'">
-        <div class="flex-between mb-8">
-          <h4>${job.title}</h4>
-          <div style="font-weight:600;color:var(--text-secondary)">${job.bids?.[0]?.count || 0} bids</div>
-        </div>
-        <p style="font-size:0.9rem;color:var(--text-secondary)">${job.description?.substring(0, 80)}...</p>
-        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:8px">${job.customer?.city || 'Location TBD'} • Posted ${new Date(job.created_at).toLocaleDateString()}</div>
-      </div>
-    `).join('');
-  } else {
-    jobsList.innerHTML = '<div class="card text-center" style="padding:32px"><p><a href="browse-jobs.html">Browse available jobs →</a></p></div>';
-  }
-});
 </script>
 </body>
 </html>
