@@ -5,16 +5,18 @@
   <title>AssembleAtEase — Assembly Services Marketplace</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Find skilled assemblers near you or post your job and get competitive bids. Furniture, gym equipment, flat-pack and more." />
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="assets/js/app.js" defer></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <script src="../assets/js/supabase.js" defer></script>
 </head>
 <body>
-
+ 
   <!-- NAV -->
   <nav class="nav" id="main-nav"></nav>
-
+ 
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg"></div>
@@ -34,21 +36,21 @@
           and more — or post a job and let professionals come to you.
         </p>
         <div class="hero-actions animate-fadeInUp animate-delay-3">
-          <a href="auth/signup.html?role=customer" class="btn btn-warm btn-lg">
+          <a href="../auth/signup.html?role=customer" class="btn btn-warm btn-lg">
             🔧 &nbsp; Post a Job
           </a>
-          <a href="auth/signup.html?role=assembler" class="btn btn-outline btn-lg">
+          <a href="../auth/signup.html?role=assembler" class="btn btn-outline btn-lg">
             💼 &nbsp; Become an Assembler
           </a>
         </div>
-
+ 
         <!-- Search bar -->
         <div class="search-bar animate-fadeInUp animate-delay-4" style="margin-bottom: 48px;">
           <span style="font-size:1.1rem">🔍</span>
           <input type="text" id="hero-search" placeholder="What needs assembling? (e.g. IKEA wardrobe, treadmill...)" />
           <button class="btn btn-primary" onclick="handleHeroSearch()">Search</button>
         </div>
-
+ 
         <!-- Stats -->
         <div class="hero-stats animate-fadeInUp animate-delay-4">
           <div>
@@ -74,7 +76,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- CATEGORIES -->
   <section class="section" id="categories">
     <div class="container">
@@ -116,7 +118,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- HOW IT WORKS -->
   <section class="section" id="how-it-works" style="background: linear-gradient(180deg, transparent, rgba(13,148,136,0.03), transparent);">
     <div class="container">
@@ -124,7 +126,7 @@
         <h2>How AssembleAtEase works</h2>
         <p class="mt-8" style="max-width:480px;margin:8px auto 0">Simple, transparent, and designed around your convenience.</p>
       </div>
-
+ 
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:64px;">
         <div class="card step-card animate-fadeInUp animate-delay-1">
           <span class="step-icon">📋</span>
@@ -145,17 +147,17 @@
           <p class="mt-8">Pick your assembler, schedule the visit, and relax. Rate and review when complete.</p>
         </div>
       </div>
-
+ 
       <!-- OR browse assemblers -->
       <div class="card card-glow text-center" style="max-width:640px;margin:0 auto;padding:36px;">
         <div style="font-size:2.5rem;margin-bottom:12px">🔍</div>
         <h3>Prefer to browse first?</h3>
         <p class="mt-8 mb-24">Browse our vetted assemblers directly. Filter by skill, rate, and location — then book instantly.</p>
-        <a href="auth/signup.html" class="btn btn-primary btn-lg">Browse Assemblers</a>
+        <a href="../auth/signup.html" class="btn btn-primary btn-lg">Browse Assemblers</a>
       </div>
     </div>
   </section>
-
+ 
   <!-- WHY US -->
   <section class="section">
     <div class="container">
@@ -196,7 +198,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- CTA BANNER -->
   <section class="section">
     <div class="container">
@@ -211,14 +213,14 @@
             Join thousands of customers and assemblers already using AssembleAtEase.
           </p>
           <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-            <a href="auth/signup.html?role=customer" class="btn btn-warm btn-lg">Post a Job Free</a>
-            <a href="auth/signup.html?role=assembler" class="btn btn-outline btn-lg">Start Earning</a>
+            <a href="../auth/signup.html?role=customer" class="btn btn-warm btn-lg">Post a Job Free</a>
+            <a href="../auth/signup.html?role=assembler" class="btn btn-outline btn-lg">Start Earning</a>
           </div>
         </div>
       </div>
     </div>
   </section>
-
+ 
   <!-- FOOTER -->
   <footer class="footer">
     <div class="container">
@@ -233,17 +235,17 @@
         <div class="footer-col">
           <h4>For Customers</h4>
           <ul>
-            <li><a href="auth/signup.html?role=customer">Post a Job</a></li>
-            <li><a href="auth/signup.html">Browse Assemblers</a></li>
+            <li><a href="../auth/signup.html?role=customer">Post a Job</a></li>
+            <li><a href="../auth/signup.html">Browse Assemblers</a></li>
             <li><a href="#how-it-works">How it works</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h4>For Assemblers</h4>
           <ul>
-            <li><a href="auth/signup.html?role=assembler">Join as Assembler</a></li>
-            <li><a href="auth/signup.html?role=assembler">Browse Jobs</a></li>
-            <li><a href="auth/signup.html?role=assembler">Start Earning</a></li>
+            <li><a href="../auth/signup.html?role=assembler">Join as Assembler</a></li>
+            <li><a href="../auth/signup.html?role=assembler">Browse Jobs</a></li>
+            <li><a href="../auth/signup.html?role=assembler">Start Earning</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -263,25 +265,25 @@
       </div>
     </div>
   </footer>
-
+ 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       await APP.buildNav();
     });
-
+ 
     function handleHeroSearch() {
       const q = document.getElementById('hero-search').value.trim();
       window.location.href = `auth/signup.html${q ? '?search=' + encodeURIComponent(q) : ''}`;
     }
-
+ 
     document.getElementById('hero-search')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleHeroSearch();
     });
-
+ 
     function browseCategory(cat) {
       window.location.href = `auth/signup.html?category=${cat}`;
     }
-
+ 
     // Scroll animations
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -291,7 +293,7 @@
         }
       });
     }, { threshold: 0.1 });
-
+ 
     document.querySelectorAll('.card, .category-pill').forEach(el => {
       el.style.opacity = '0';
       el.style.transform = 'translateY(20px)';
@@ -301,3 +303,4 @@
   </script>
 </body>
 </html>
+ 

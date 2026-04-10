@@ -187,6 +187,7 @@ p  { color: var(--text-secondary); }
   font-family: var(--font-body);
   transition: all var(--transition);
   outline: none;
+  appearance: none;
   -webkit-appearance: none;
 }
 .form-control:focus {
