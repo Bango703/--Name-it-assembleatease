@@ -5,37 +5,205 @@
   <title>Sign Up — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
-
-  <!-- Supabase + global config -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
-  <script src="../assets/js/auth.js" defer></script>
 </head>
 <body>
 
-  <h1>Sign Up</h1>
+<div class="auth-page">
 
-  <form id="signup-form">
-    <label>Email</label>
-    <input type="email" id="email" required />
+  <!-- LEFT BRAND PANEL -->
+  <div class="auth-brand-panel">
+    <a href="../index.html" class="auth-brand-logo">
+      <div class="auth-brand-logo-icon">⬡</div>
+      AssembleAtEase
+    </a>
 
-    <label>Password</label>
-    <input type="password" id="password" required />
+    <div class="auth-brand-content">
+      <h2>Join the <span>assembly community</span> today</h2>
+      <p>Whether you need something assembled or you're ready to earn money with your skills — you're in the right place.</p>
+    </div>
 
-    <label>Role</label>
-    <select id="role" required>
-      <option value="customer">Customer</option>
-      <option value="assembler">Assembler</option>
-    </select>
+    <ul class="auth-features">
+      <li><span class="check">✓</span> Free to join — no subscription fees</li>
+      <li><span class="check">✓</span> Post jobs or browse in minutes</li>
+      <li><span class="check">✓</span> Verified and rated professionals</li>
+      <li><span class="check">✓</span> Assemblers keep the majority of earnings</li>
+    </ul>
+  </div>
 
-    <button class="btn primary" type="submit">Create Account</button>
-  </form>
+  <!-- RIGHT FORM PANEL -->
+  <div class="auth-form-panel">
+    <div class="auth-form-box">
 
-  <p>
-    Already have an account?
-    <a href="login.html">Login</a>
-  </p>
+      <h1>Create account</h1>
+      <p class="subtitle">Already have an account? <a href="login.html" style="color:var(--teal-light);font-weight:600">Log in</a></p>
 
+      <div id="auth-alert" class="alert hidden" style="margin-bottom:16px"></div>
+
+      <form class="auth-form" id="signup-form" novalidate>
+
+        <!-- Role selector -->
+        <div class="form-group">
+          <label>I want to...</label>
+          <div class="role-selector">
+            <div class="role-option">
+              <input type="radio" name="role" id="role-customer" value="customer" checked />
+              <label for="role-customer">
+                <span class="role-icon">🛋️</span>
+                <strong>Hire an Assembler</strong>
+                <span style="font-size:0.78rem;opacity:0.7">I need something assembled</span>
+              </label>
+            </div>
+            <div class="role-option">
+              <input type="radio" name="role" id="role-assembler" value="assembler" />
+              <label for="role-assembler">
+                <span class="role-icon">🔧</span>
+                <strong>Earn as Assembler</strong>
+                <span style="font-size:0.78rem;opacity:0.7">I want to offer my skills</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first-name">First name</label>
+            <input type="text" id="first-name" class="form-control"
+              placeholder="Jane" autocomplete="given-name" required />
+          </div>
+          <div class="form-group">
+            <label for="last-name">Last name</label>
+            <input type="text" id="last-name" class="form-control"
+              placeholder="Smith" autocomplete="family-name" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉</span>
+            <input type="email" id="email" class="form-control"
+              placeholder="you@example.com" autocomplete="email" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" class="form-control"
+              placeholder="At least 8 characters" autocomplete="new-password" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm-password">Confirm password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="confirm-password" class="form-control"
+              placeholder="Repeat your password" autocomplete="new-password" required />
+          </div>
+        </div>
+
+        <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.5">
+          By creating an account you agree to our
+          <a href="#" style="color:var(--teal-light)">Terms of Service</a> and
+          <a href="#" style="color:var(--teal-light)">Privacy Policy</a>.
+        </p>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="signup-btn">
+          Create Free Account
+        </button>
+
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Log in</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    await APP.redirectIfLoggedIn();
+
+    // Pre-select role from URL param
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = params.get('role');
+    if (roleParam === 'assembler') {
+      document.getElementById('role-assembler').checked = true;
+    }
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    APP.hideAlert('auth-alert');
+
+    const firstName = document.getElementById('first-name').value.trim();
+    const lastName  = document.getElementById('last-name').value.trim();
+    const email     = document.getElementById('email').value.trim();
+    const password  = document.getElementById('password').value;
+    const confirm   = document.getElementById('confirm-password').value;
+    const role      = document.querySelector('input[name="role"]:checked')?.value || 'customer';
+
+    // Validate
+    if (!firstName || !lastName || !email || !password || !confirm) {
+      APP.showAlert('auth-alert', 'Please fill in all fields.', 'error');
+      return;
+    }
+    if (password.length < 8) {
+      APP.showAlert('auth-alert', 'Password must be at least 8 characters.', 'error');
+      return;
+    }
+    if (password !== confirm) {
+      APP.showAlert('auth-alert', 'Passwords do not match.', 'error');
+      return;
+    }
+
+    APP.setLoading('signup-btn', true, 'Creating account...');
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: { data: { role, full_name: `${firstName} ${lastName}` } }
+    });
+
+    if (error) {
+      APP.showAlert('auth-alert', error.message, 'error');
+      APP.setLoading('signup-btn', false, 'Create Free Account');
+      return;
+    }
+
+    if (data.user) {
+      const { error: profileError } = await supabaseClient.from('profiles').insert({
+        id:        data.user.id,
+        full_name: `${firstName} ${lastName}`,
+        email:     email,
+        role:      role,
+      });
+
+      if (profileError) {
+        APP.showAlert('auth-alert', profileError.message, 'error');
+        APP.setLoading('signup-btn', false, 'Create Free Account');
+        return;
+      }
+
+      // Redirect based on role
+      if (role === 'assembler') {
+        window.location.href = '../assembler/index.html';
+      } else {
+        window.location.href = '../customer/index.html';
+      }
+    } else {
+      // Email confirmation required
+      APP.showAlert('auth-alert', 'Account created! Please check your email to confirm.', 'success');
+      APP.setLoading('signup-btn', false, 'Create Free Account');
+    }
+  });
+</script>
 </body>
 </html>
