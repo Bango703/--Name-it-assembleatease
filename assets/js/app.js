@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 //  ASSEMBLEATEASE — app.js
 //  Auth helpers, nav builder, UI utilities
 // ============================================
@@ -10,17 +10,8 @@ const APP = {
   // Get the current session and profile. Returns null if not logged in.
   async getAuth() {
     try {
-      if (!supabaseClient) {
-        console.error('ERROR: supabaseClient is not initialized. Check config.js and Supabase CDN.');
-        return null;
-      }
-      
       const { data: { session }, error } = await supabaseClient.auth.getSession();
-      if (error) {
-        console.error('Auth session error:', error);
-        return null;
-      }
-      if (!session) return null;
+      if (error || !session) return null;
 
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
@@ -28,17 +19,9 @@ const APP = {
         .eq('id', session.user.id)
         .single();
 
-      if (profileError) {
-        console.error('Profile query error:', profileError);
-        return null;
-      }
-      if (!profile) {
-        console.error('No profile found for user:', session.user.id);
-        return null;
-      }
+      if (profileError || !profile) return null;
       return { user: session.user, session, profile };
-    } catch (err) {
-      console.error('getAuth error:', err);
+    } catch {
       return null;
     }
   },
@@ -272,13 +255,13 @@ const APP = {
 
   // ── AVATAR ──────────────────────────────────────────────
 
-  // Returns initials avatar HTML or an <img> if avatar_url is set
+  // Returns initials avatar HTML or an <img> if profile_photo is set
   renderAvatar(profile, size = 40) {
     const initials = (profile?.full_name || '?')
       .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-    if (profile?.avatar_url) {
-      return `<img src="${profile.avatar_url}" alt="${initials}"
+    if (profile?.profile_photo) {
+      return `<img src="${profile.profile_photo}" alt="${initials}"
         style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;" />`;
     }
 
@@ -288,34 +271,6 @@ const APP = {
       display:flex;align-items:center;justify-content:center;
       font-size:${Math.round(size * 0.35)}px;font-weight:500;
       flex-shrink:0;">${initials}</div>`;
-  },
-
-  // ── MOBILE MENU TOGGLE ──────────────────────────────────
-
-  initMobileMenu() {
-    const toggle = document.getElementById('sidebar-toggle-btn');
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    if (!toggle || !sidebar) return;
-
-    const toggleMenu = () => {
-      sidebar.classList.toggle('active');
-      toggle.classList.toggle('active');
-      overlay.classList.toggle('active');
-    };
-
-    toggle.addEventListener('click', toggleMenu);
-    overlay.addEventListener('click', toggleMenu);
-
-    // Close menu when sidebar link is clicked
-    sidebar.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => {
-        sidebar.classList.remove('active');
-        toggle.classList.remove('active');
-        overlay.classList.remove('active');
-      });
-    });
   },
 
   // ── TOAST NOTIFICATIONS ─────────────────────────────────
@@ -372,3 +327,9 @@ const APP = {
 };
 
 window.APP = APP;
+
+// ── Footer year — runs on every page ──────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+});

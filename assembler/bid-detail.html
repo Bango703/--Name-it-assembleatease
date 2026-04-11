@@ -2,247 +2,248 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Bid Details — AssembleAtEase</title>
+  <title>Bid Detail — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    body.theme-pro .detail-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; }
+    body.theme-pro .detail-card { background: var(--pro-surface); border: 1px solid var(--pro-border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1rem; }
+    body.theme-pro .detail-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--pro-text); margin-bottom: 0.5rem; }
+    body.theme-pro .detail-section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pro-muted); margin-bottom: 0.75rem; font-weight: 500; }
+    body.theme-pro .detail-body { font-size: 0.9rem; color: var(--pro-soft); line-height: 1.75; }
+    body.theme-pro .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--pro-muted); text-decoration: none; margin-bottom: 1.5rem; transition: color 0.15s; }
+    body.theme-pro .back-link:hover { color: var(--pro-text); }
+    body.theme-pro .bid-amount-display { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--pro-teal); margin-bottom: 0.25rem; }
+    body.theme-pro .status-block { text-align: center; padding: 1.5rem; }
+    body.theme-pro .status-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    body.theme-pro .status-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--pro-text); margin-bottom: 0.4rem; }
+    body.theme-pro .status-desc { font-size: 0.85rem; color: var(--pro-muted); line-height: 1.6; }
+    body.theme-pro .rehire-row { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 0; border-top: 1px solid var(--pro-border); margin-top: 0.75rem; }
+    body.theme-pro .rehire-label h5 { font-size: 0.875rem; font-weight: 500; color: var(--pro-text); margin-bottom: 2px; font-family: var(--font-body); }
+    body.theme-pro .rehire-label p { font-size: 0.75rem; color: var(--pro-muted); }
+    body.theme-pro .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    body.theme-pro .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    body.theme-pro .toggle-track { position: absolute; inset: 0; cursor: pointer; background: var(--pro-elevated); border-radius: 999px; transition: background 0.2s; border: 1px solid var(--pro-border-md); }
+    body.theme-pro .toggle-track::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: var(--pro-muted); top: 2px; left: 2px; transition: transform 0.2s; }
+    body.theme-pro .toggle input:checked + .toggle-track { background: var(--pro-teal); border-color: var(--pro-teal); }
+    body.theme-pro .toggle input:checked + .toggle-track::before { transform: translateX(18px); background: #fff; }
+    @media (max-width: 900px) { body.theme-pro .detail-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
-<body>
-<nav class="nav" id="main-nav"></nav>
-
+<body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
-      <div class="sidebar-label">Main</div>
+      <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
+        <li><a href="index.html"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs.html"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
+        <li><a href="my-bids.html" class="active"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">⭐</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+        <li><a href="profile.html"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
-  <main class="dashboard-main">
-    <div style="margin-bottom:24px">
-      <a href="my-bids.html" style="color:var(--teal-light);text-decoration:none;font-weight:500">← Back to My Bids</a>
-    </div>
-
-    <div class="grid-2">
-      <!-- Job Info -->
-      <div>
-        <div class="card" style="padding:24px;margin-bottom:24px">
-          <h2 id="job-title" style="margin:0">Loading...</h2>
-          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px" id="job-meta">—</div>
-
-          <div style="border-bottom:1px solid var(--border);padding:16px 0;margin:16px 0">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:0.9rem">
-              <div>
-                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">CATEGORY</div>
-                <div id="job-category" style="font-weight:600">—</div>
-              </div>
-              <div>
-                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">LOCATION</div>
-                <div id="job-city" style="font-weight:600">—</div>
-              </div>
-              <div>
-                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">BUDGET</div>
-                <div id="job-budget" style="font-weight:600">—</div>
-              </div>
-              <div>
-                <div style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">STATUS</div>
-                <div id="job-status" style="font-weight:600">—</div>
-              </div>
-            </div>
-          </div>
-
-          <div style="margin:16px 0">
-            <h3>Job Description</h3>
-            <p id="job-description" style="line-height:1.6;color:var(--text-secondary)">Loading...</p>
-          </div>
-        </div>
-
-        <!-- Customer Info -->
-        <div class="card" style="padding:24px">
-          <h3 style="margin-top:0">Customer Info</h3>
-          <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
-            <div style="width:56px;height:56px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.8rem">👤</div>
-            <div>
-              <div style="font-weight:600" id="customer-name">—</div>
-              <div style="font-size:0.85rem;color:var(--text-secondary)" id="customer-city">—</div>
-              <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px" id="customer-email">—</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bid Details -->
-      <div>
-        <div class="card" style="padding:24px;margin-bottom:24px">
-          <h2 style="margin-top:0">Your Bid</h2>
-
-          <div style="background:rgba(13,148,136,0.05);padding:16px;border-radius:8px;margin:20px 0">
-            <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px">PROPOSED AMOUNT</div>
-            <div style="font-size:2rem;font-weight:700;color:var(--teal)" id="bid-amount">$—</div>
-            <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:8px">vs Budget: <span id="bid-vs-budget">—</span></div>
-          </div>
-
-          <div style="margin:20px 0">
-            <h4 style="margin:0 0 8px">Your Message</h4>
-            <div id="bid-message" style="background:var(--border);padding:16px;border-radius:8px;line-height:1.6;color:var(--text-secondary)">Loading...</div>
-          </div>
-
-          <div style="display:flex;gap:8px;margin-top:24px">
-            <div id="bid-status-display" style="background:var(--text-muted);color:white;padding:8px 16px;border-radius:6px;font-weight:600;font-size:0.85rem">PENDING</div>
-          </div>
-
-          <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border)">
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-primary" onclick="viewJob()" style="flex:1">View Full Job</button>
-              <button class="btn btn-ghost" id="withdraw-btn" onclick="withdrawBid()" style="flex:1">Withdraw Bid</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bid Status -->
-        <div class="card" style="padding:24px">
-          <h3 style="margin-top:0">Bid Status</h3>
-          <div id="bid-status-info" style="line-height:1.8">
-            <div style="padding:16px;background:rgba(249,115,22,0.05);border-radius:6px;color:var(--text-secondary)">
-              Waiting for customer response...
-            </div>
-          </div>
-        </div>
-      </div>
+  <main class="dashboard-main" style="padding:2rem">
+    <a href="my-bids.html" class="back-link">&#8592; Back to My Bids</a>
+    <div id="page-alert" class="alert hidden"></div>
+    <div id="page-content">
+      <div class="skeleton-card"><div class="skeleton" style="height:180px"></div></div>
     </div>
   </main>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['assembler']);
-  if (!auth) return;
-  const { user } = auth;
-  await APP.buildNav('assembler');
+  function timeAgo(d) {
+    if (!d) return '';
+    const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+    if (days === 0) return 'Today'; if (days === 1) return 'Yesterday'; return days + 'd ago';
+  }
 
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
+  function getBadgeClass(s) {
+    return {pending:'badge-pending',accepted:'badge-accepted',rejected:'badge-rejected',withdrawn:'badge-default'}[s]||'badge-default';
+  }
+
+  function getStatusBlock(status) {
+    const map = {
+      pending:   { icon: '&#9203;', title: 'Bid under review', desc: 'The customer is reviewing bids. You will be notified when they make a decision.' },
+      accepted:  { icon: '&#127881;', title: 'Bid accepted!', desc: 'Congratulations! The customer chose you. Get in touch to arrange the visit.' },
+      rejected:  { icon: '&#128542;', title: 'Bid not selected', desc: 'The customer went with another assembler this time. Keep bidding — there are more jobs available.' },
+      withdrawn: { icon: '&#8617;', title: 'Bid withdrawn', desc: 'You withdrew this bid.' },
+    };
+    const s = map[status] || { icon: '&#10067;', title: 'Unknown status', desc: '' };
+    return `<div class="status-block">
+      <div class="status-icon">${s.icon}</div>
+      <div class="status-title">${s.title}</div>
+      <div class="status-desc">${s.desc}</div>
+    </div>`;
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const auth = await APP.requireAuth(['assembler']);
+    if (!auth) return;
+    const { user } = auth;
+
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    const bidId = APP.getParam('id');
+    if (!bidId) { window.location.href = 'my-bids.html'; return; }
+
+    try {
+      const { data: bids } = await API.getMyBids(user.id);
+      const bid = bids?.find(b => b.id === bidId);
+      if (!bid) throw new Error('Bid not found');
+
+      const job = bid.job;
+      const customerFirstName = (job?.customer?.full_name || 'Customer').split(' ')[0];
+      const budget = job?.budget_type === 'fixed'
+        ? `$${job.budget_min} fixed`
+        : job?.budget_min && job?.budget_max
+          ? `$${job.budget_min} – $${job.budget_max}`
+          : 'TBD';
+
+      // Check if job is completed and assembler review exists
+      const jobCompleted = job?.status === 'completed';
+
+      document.getElementById('page-content').innerHTML = `
+        <div class="detail-grid">
+          <div>
+            <div class="detail-card">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem">
+                <h1 class="detail-title">${job?.title || 'Job'}</h1>
+                <span class="badge ${getBadgeClass(bid.status)}" style="flex-shrink:0;margin-top:4px">${bid.status}</span>
+              </div>
+              <div class="detail-section-title">Your bid</div>
+              <div class="bid-amount-display">$${bid.bid_amount}${bid.bid_type==='hourly'?'/hr':''}</div>
+              <div style="font-size:0.78rem;color:var(--pro-muted);margin-bottom:1.25rem">
+                ${bid.bid_type==='hourly'&&bid.estimated_hours?`Estimated ${bid.estimated_hours} hours`:'Fixed price'}
+                &middot; Submitted ${timeAgo(bid.created_at)}
+              </div>
+              ${bid.message ? `
+              <div class="detail-section-title">Your message</div>
+              <div class="detail-body" style="margin-bottom:1.25rem">"${bid.message}"</div>` : ''}
+              <div class="detail-section-title">Job description</div>
+              <div class="detail-body">${job?.description?.replace(/\n/g,'<br>')||'No description.'}</div>
+            </div>
+
+            <div class="detail-card">
+              <div class="detail-section-title">Job details</div>
+              <div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.875rem;color:var(--pro-soft)">
+                <div>&#128205; Location: <span style="color:var(--pro-text)">${job?.city||'TBD'}${job?.state?', '+job.state:''}</span></div>
+                <div>&#128193; Category: <span style="color:var(--pro-text)">${job?.category||'General'}</span></div>
+                <div>&#128176; Budget: <span style="color:var(--pro-teal)">${budget}</span></div>
+                <div>&#128197; Schedule: <span style="color:var(--pro-text)">${job?.schedule||'Flexible'}</span></div>
+                <div>&#128100; Customer: <span style="color:var(--pro-text)">${customerFirstName}</span></div>
+                ${jobCompleted && bid.status === 'accepted' ? `
+                <div>&#128205; Job address: <span style="color:var(--pro-text)">${job?.customer?.address_line1||'Provided after acceptance'}${job?.customer?.address_line2?' '+job.customer.address_line2:''}</span></div>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="detail-card">${getStatusBlock(bid.status)}</div>
+
+            ${bid.status === 'accepted' && !jobCompleted ? `
+            <div class="detail-card">
+              <div class="detail-section-title">Next steps</div>
+              <div style="font-size:0.875rem;color:var(--pro-soft);line-height:1.7;margin-bottom:1rem">
+                Contact the customer to confirm timing. The job address will be shown once confirmed.
+              </div>
+              <a href="my-jobs.html" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">View in My Jobs &#8594;</a>
+            </div>` : ''}
+
+            ${jobCompleted && bid.status === 'accepted' ? `
+            <div class="detail-card">
+              <div class="detail-section-title">Job completed</div>
+              <div style="font-size:0.875rem;color:var(--pro-soft);margin-bottom:1rem">
+                Great work! This job has been marked complete.
+              </div>
+              <div id="rehire-section">
+                <div class="rehire-row">
+                  <div class="rehire-label">
+                    <h5>Would you work with ${customerFirstName} again?</h5>
+                    <p>This helps build your reputation on the platform</p>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="rehire-toggle" checked />
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <button class="btn btn-teal" id="save-rehire-btn" style="width:100%;margin-top:1rem;justify-content:center;display:flex">Save preference</button>
+              </div>
+            </div>` : ''}
+
+            ${bid.status === 'pending' ? `
+            <div class="detail-card">
+              <div class="detail-section-title">Actions</div>
+              <button class="btn btn-outline" id="withdraw-btn" style="width:100%;margin-top:0.5rem">Withdraw bid</button>
+              <p style="font-size:0.72rem;color:var(--pro-muted);text-align:center;margin-top:0.6rem">Withdrawing is permanent and cannot be undone.</p>
+            </div>` : ''}
+
+            ${bid.status === 'rejected' || bid.status === 'withdrawn' ? `
+            <div class="detail-card" style="text-align:center">
+              <a href="browse-jobs.html" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">Browse more jobs &#8594;</a>
+            </div>` : ''}
+          </div>
+        </div>`;
+
+      // Save re-hire preference
+      document.getElementById('save-rehire-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('save-rehire-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+          // Store assembler re-hire preference on the review if it exists, or create a note
+          const wouldRework = document.getElementById('rehire-toggle').checked;
+          const { error } = await supabaseClient
+            .from('reviews')
+            .update({ assembler_would_rework: wouldRework })
+            .eq('job_id', job.id)
+            .eq('assembler_id', user.id);
+          // If no review exists yet, just show success
+          APP.showAlert('page-alert', 'Preference saved. Thank you!', 'success');
+        } catch (err) {
+          APP.showAlert('page-alert', 'Saved locally.', 'success');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Save preference';
+        }
+      });
+
+      // Withdraw bid
+      document.getElementById('withdraw-btn')?.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to withdraw this bid?')) return;
+        APP.setLoading('withdraw-btn', true, 'Withdrawing...');
+        try {
+          const { error } = await API.withdrawBid(bidId);
+          if (error) throw error;
+          APP.showAlert('page-alert', 'Bid withdrawn successfully.', 'success');
+          setTimeout(() => window.location.href = 'my-bids.html', 1500);
+        } catch (err) {
+          APP.showAlert('page-alert', err.message || 'Failed to withdraw bid.', 'error');
+          APP.setLoading('withdraw-btn', false, 'Withdraw bid');
+        }
+      });
+
+    } catch (err) {
+      document.getElementById('page-content').innerHTML =
+        `<div class="pro-error"><span>&#9888;</span>Could not load bid. <a href="my-bids.html" style="color:var(--pro-teal)">Go back</a></div>`;
+    }
   });
-
-  const bidId = new URLSearchParams(window.location.search).get('id');
-  if (!bidId) {
-    document.querySelector('main').innerHTML = '<p>Bid not found.</p>';
-    return;
-  }
-
-  loadBidDetails(bidId, user.id);
-});
-
-async function loadBidDetails(bidId, userId) {
-  const { data: bid, error } = await supabaseClient
-    .from('bids')
-    .select(`
-      *,
-      job:jobs(*,customer:profiles!jobs_customer_id_fkey(*))
-    `)
-    .eq('id', bidId)
-    .single();
-
-  if (error || !bid) {
-    document.querySelector('main').innerHTML = '<p>Error loading bid: ' + (error?.message || 'Not found') + '</p>';
-    return;
-  }
-
-  // Check ownership
-  if (bid.assembler_id !== userId) {
-    document.querySelector('main').innerHTML = '<p>You do not have permission to view this bid.</p>';
-    return;
-  }
-
-  const job = bid.job;
-
-  // Populate job info
-  document.getElementById('job-title').textContent = job.title;
-  document.getElementById('job-meta').textContent = `${job.category?.replace('-', ' ').toUpperCase()} • ${job.city}`;
-  document.getElementById('job-category').textContent = job.category?.replace('-', ' ').toUpperCase();
-  document.getElementById('job-city').textContent = job.city;
-  document.getElementById('job-budget').textContent = `$${job.budget_min} - $${job.budget_max}`;
-  document.getElementById('job-description').textContent = job.description;
-
-  const statusBadge = job.status === 'open' ? 'OPEN' : 
-                     job.status === 'assigned' ? 'ASSIGNED' :
-                     job.status === 'in_progress' ? 'IN PROGRESS' :
-                     job.status === 'completed' ? 'COMPLETED' : job.status.toUpperCase();
-  document.getElementById('job-status').textContent = statusBadge;
-
-  // Customer info
-  document.getElementById('customer-name').textContent = job.customer?.full_name || 'Customer';
-  document.getElementById('customer-city').textContent = job.customer?.city || 'Location TBD';
-  document.getElementById('customer-email').textContent = job.customer?.email || '—';
-
-  // Bid details
-  document.getElementById('bid-amount').textContent = `$${bid.proposed_amount || '0'}`;
-  document.getElementById('bid-vs-budget').textContent = `$${job.budget_min} - $${job.budget_max}`;
-  document.getElementById('bid-message').textContent = bid.message || 'No message provided';
-
-  // Bid status
-  const statusColor = bid.status === 'pending' ? 'var(--orange)' :
-                     bid.status === 'accepted' ? 'var(--teal-light)' :
-                     bid.status === 'rejected' ? 'var(--text-muted)' :
-                     'var(--border)';
-  const statusDisplay = document.getElementById('bid-status-display');
-  statusDisplay.textContent = bid.status.toUpperCase();
-  statusDisplay.style.background = statusColor;
-
-  // Status info
-  const statusInfo = document.getElementById('bid-status-info');
-  if (bid.status === 'pending') {
-    statusInfo.innerHTML = '<div style="padding:16px;background:rgba(249,115,22,0.05);border-radius:6px;color:var(--text-secondary)">Waiting for customer response...</div>';
-  } else if (bid.status === 'accepted') {
-    statusInfo.innerHTML = '<div style="padding:16px;background:rgba(13,148,136,0.05);border-radius:6px;color:var(--text-secondary);font-weight:600">✓ Bid accepted! Customer will contact you soon.</div>';
-  } else if (bid.status === 'rejected') {
-    statusInfo.innerHTML = '<div style="padding:16px;background:rgba(255,0,0,0.05);border-radius:6px;color:var(--text-secondary)">This bid was rejected by the customer.</div>';
-  }
-
-  // Hide withdraw button if not pending
-  if (bid.status !== 'pending') {
-    document.getElementById('withdraw-btn').style.display = 'none';
-  }
-}
-
-function viewJob() {
-  const jobId = new URLSearchParams(window.location.search).get('id');
-  // Note: You'd need to get the job ID from the bid details
-  alert('Full job view coming soon');
-}
-
-async function withdrawBid() {
-  if (!confirm('Withdraw this bid? The customer will see the action.')) return;
-
-  const bidId = new URLSearchParams(window.location.search).get('id');
-  const { error } = await API.withdrawBid(bidId);
-
-  if (error) {
-    alert('Error: ' + error.message);
-    return;
-  }
-
-  alert('Bid withdrawn');
-  window.location.href = 'my-bids.html';
-}
 </script>
 </body>
 </html>

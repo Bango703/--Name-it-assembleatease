@@ -1,549 +1,318 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AssembleAtEase — Assembly done right, on your schedule</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="assets/js/app.js" defer></script>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --white: #ffffff;
-    --off-white: #f8f7f4;
-    --paper: #f2f0eb;
-    --border: #e4e1d9;
-    --muted: #9b9789;
-    --ink: #1a1916;
-    --ink-soft: #3d3b35;
-    --accent: #e86a2e;
-    --accent-dark: #c45520;
-    --accent-light: #fdf0e8;
-    --teal: #1d9e75;
-    --teal-dark: #157a5a;
-    --teal-light: #e8f5ef;
-    --nav-h: 72px;
-    --max: 1280px;
-  }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 400;
-    color: var(--ink);
-    background: var(--white);
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-
-  /* NAV */
-  .nav {
-    position: sticky; top: 0; z-index: 200;
-    height: var(--nav-h);
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center;
-  }
-  .nav-inner {
-    max-width: var(--max); width: 100%; margin: 0 auto;
-    padding: 0 3rem;
-    display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
-  }
-  .nav-logo { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--ink); text-decoration: none; flex-shrink: 0; }
-  .nav-logo span { color: var(--accent); }
-  .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; flex: 1; justify-content: center; }
-  .nav-links a { font-size: 0.875rem; color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
-  .nav-links a:hover { color: var(--ink); }
-  .nav-actions { display: flex; gap: 0.75rem; align-items: center; flex-shrink: 0; }
-
-  /* BUTTONS */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 0.6rem 1.3rem; border-radius: 999px;
-    font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500;
-    cursor: pointer; text-decoration: none; transition: all 0.18s ease;
-    white-space: nowrap; border: 1px solid transparent;
-  }
-  .btn-ghost { background: transparent; border-color: var(--border); color: var(--ink-soft); }
-  .btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
-  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
-  .btn-outline { background: transparent; border-color: var(--border); color: var(--ink); }
-  .btn-outline:hover { background: var(--off-white); }
-  .btn-teal { background: var(--teal); border-color: var(--teal); color: #fff; }
-  .btn-teal:hover { background: var(--teal-dark); }
-  .btn-white { background: var(--white); border-color: var(--white); color: var(--ink); }
-  .btn-white:hover { background: var(--off-white); }
-  .btn-transparent { background: transparent; border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.85); }
-  .btn-transparent:hover { border-color: rgba(255,255,255,0.7); color: #fff; }
-  .btn-lg { padding: 0.875rem 2.1rem; font-size: 1.025rem; }
-
-  /* TICKER */
-  .ticker-wrap { background: var(--accent); overflow: hidden; padding: 0.55rem 0; }
-  .ticker-track { display: flex; animation: ticker 32s linear infinite; width: max-content; }
-  .ticker-track:hover { animation-play-state: paused; }
-  .ticker-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 500; color: rgba(255,255,255,0.92); padding: 0 2rem; white-space: nowrap; }
-  .ticker-dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.4); flex-shrink: 0; }
-  @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
-  /* HERO */
-  .hero { padding: 7rem 3rem 6rem; background: var(--white); }
-  .hero-inner { max-width: var(--max); margin: 0 auto; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 5rem; align-items: center; }
-  .hero-eyebrow {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 0.75rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 1.25rem;
-    background: var(--accent-light); padding: 0.35rem 0.85rem;
-    border-radius: 999px; border: 1px solid rgba(232,106,46,0.2);
-  }
-  .hero h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(2.8rem, 5.5vw, 4.5rem);
-    line-height: 1.06; color: var(--ink); margin-bottom: 1.35rem; letter-spacing: -0.02em;
-  }
-  .hero h1 em { font-style: italic; color: var(--accent); }
-  .hero-sub { font-size: 1.15rem; color: var(--ink-soft); line-height: 1.75; max-width: 520px; margin-bottom: 2rem; }
-  .hero-actions { display: flex; gap: 0.85rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
-  .hero-note { font-size: 0.82rem; color: var(--muted); margin-bottom: 2.5rem; }
-  .hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; padding-top: 2.25rem; border-top: 1px solid var(--border); }
-  .stat-num { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: var(--ink); margin-bottom: 0.25rem; line-height: 1; }
-  .stat-label { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
-
-  /* HERO CARD */
-  .hero-card { background: var(--off-white); border: 1px solid var(--border); border-radius: 20px; padding: 1.75rem; box-shadow: 0 8px 40px rgba(0,0,0,0.06); }
-  .hero-card-title { font-size: 0.85rem; font-weight: 500; color: var(--ink-soft); margin-bottom: 0.75rem; }
-  .search-row { display: flex; border: 1px solid var(--border); border-radius: 999px; background: var(--white); overflow: hidden; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-  .search-row input { flex: 1; border: none; outline: none; padding: 0.75rem 1.2rem; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: var(--ink); background: transparent; }
-  .search-row button { background: var(--accent); color: #fff; border: none; padding: 0.65rem 1.35rem; border-radius: 999px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; cursor: pointer; margin: 4px; transition: background 0.18s; }
-  .search-row button:hover { background: var(--accent-dark); }
-  .cat-label { font-size: 0.72rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.6rem; }
-  .categories-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; max-height: 280px; overflow-y: auto; }
-  .categories-grid::-webkit-scrollbar { width: 3px; }
-  .categories-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .cat-chip { display: flex; align-items: center; gap: 7px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.8rem; color: var(--ink-soft); cursor: pointer; transition: all 0.15s; text-decoration: none; }
-  .cat-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-  .cat-icon { font-size: 13px; flex-shrink: 0; }
-
-  /* SERVICES */
-  .services { background: var(--ink); padding: 6rem 3rem; }
-  .services .container { max-width: var(--max); margin: 0 auto; }
-  .services-header { text-align: center; margin-bottom: 3.5rem; }
-  .services-header h2 { font-family: 'DM Serif Display', serif; font-size: clamp(2rem, 3.5vw, 2.8rem); color: var(--white); margin-bottom: 0.6rem; }
-  .services-header p { color: rgba(255,255,255,0.5); font-size: 1rem; }
-  .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; }
-  .service-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 1.5rem; cursor: pointer; transition: all 0.2s; text-decoration: none; display: block; }
-  .service-card:hover { background: rgba(232,106,46,0.12); border-color: rgba(232,106,46,0.3); transform: translateY(-3px); }
-  .service-emoji { font-size: 1.8rem; margin-bottom: 0.75rem; display: block; }
-  .service-name { font-size: 0.9rem; font-weight: 500; color: var(--white); line-height: 1.3; }
-  .service-desc { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
-
-  /* HOW IT WORKS */
-  .how { background: var(--off-white); padding: 7rem 3rem; }
-  .how .container { max-width: var(--max); margin: 0 auto; }
-  .section-eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; }
-  .section-title { font-family: 'DM Serif Display', serif; font-size: clamp(2rem, 3.5vw, 2.8rem); line-height: 1.15; margin-bottom: 0.6rem; color: var(--ink); }
-  .section-sub { font-size: 1rem; color: var(--muted); max-width: 480px; line-height: 1.7; }
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3.5rem; }
-  .step { background: var(--white); border: 1px solid var(--border); border-radius: 18px; padding: 2.25rem; transition: box-shadow 0.2s; }
-  .step:hover { box-shadow: 0 6px 28px rgba(0,0,0,0.08); }
-  .step-num { width: 38px; height: 38px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 500; margin-bottom: 1.35rem; font-family: 'DM Serif Display', serif; }
-  .step h3 { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.6rem; color: var(--ink); font-family: 'DM Sans', sans-serif; }
-  .step p { font-size: 0.925rem; color: var(--muted); line-height: 1.7; }
-  .dual-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
-  .dual-cta-card { border-radius: 16px; padding: 2rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-  .dual-cta-card.customer { background: var(--accent-light); border: 1px solid rgba(232,106,46,0.2); }
-  .dual-cta-card.assembler { background: var(--teal-light); border: 1px solid rgba(29,158,117,0.2); }
-  .dual-cta-card h3 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--ink); }
-  .dual-cta-card p { font-size: 0.875rem; color: var(--ink-soft); line-height: 1.6; }
-
-  /* TRUST */
-  .trust { background: var(--white); padding: 7rem 3rem; }
-  .trust .container { max-width: var(--max); margin: 0 auto; }
-  .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3.5rem; }
-  .trust-card { border: 1px solid var(--border); border-radius: 18px; padding: 2rem; transition: border-color 0.2s; }
-  .trust-card:hover { border-color: #c8c4bb; }
-  .trust-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--off-white); display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 1.1rem; }
-  .trust-card h4 { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink); font-family: 'DM Sans', sans-serif; }
-  .trust-card p { font-size: 0.9rem; color: var(--muted); line-height: 1.7; }
-
-  /* PRICING */
-  .pricing { background: var(--off-white); padding: 7rem 3rem; }
-  .pricing .container { max-width: var(--max); margin: 0 auto; }
-  .pricing-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3rem; }
-  .pricing-card { background: var(--white); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; }
-  .pricing-card.featured { border-color: var(--accent); border-width: 2px; position: relative; }
-  .pricing-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 0.72rem; font-weight: 500; padding: 0.28rem 0.9rem; border-radius: 999px; white-space: nowrap; }
-  .pricing-range { font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: var(--ink); margin-bottom: 0.25rem; }
-  .pricing-type { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
-  .pricing-card h4 { font-size: 1.05rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--ink); font-family: 'DM Sans', sans-serif; }
-  .pricing-card p { font-size: 0.9rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.25rem; }
-  .pricing-includes { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
-  .pricing-includes li { font-size: 0.875rem; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
-  .pricing-includes li::before { content: '✓'; color: var(--teal); font-weight: 600; flex-shrink: 0; }
-
-  /* CTA BAND */
-  .cta-band { background: var(--ink); padding: 7rem 3rem; text-align: center; position: relative; overflow: hidden; }
-  .cta-band::before { content: ''; position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(232,106,46,0.12) 0%, transparent 70%); pointer-events: none; }
-  .cta-band h2 { font-family: 'DM Serif Display', serif; font-size: clamp(2.2rem, 4.5vw, 3.4rem); color: var(--white); margin-bottom: 0.75rem; position: relative; }
-  .cta-band p { font-size: 1.05rem; color: rgba(255,255,255,0.5); margin-bottom: 2.5rem; position: relative; }
-  .cta-band-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
-
-  /* FOOTER */
-  footer { background: var(--off-white); border-top: 1px solid var(--border); padding: 5rem 3rem 2.5rem; }
-  .footer-inner { max-width: var(--max); margin: 0 auto; }
-  .footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 4rem; padding-bottom: 3rem; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
-  .footer-logo { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--ink); text-decoration: none; display: block; margin-bottom: 0.75rem; }
-  .footer-logo span { color: var(--accent); }
-  .footer-brand p { font-size: 0.84rem; color: var(--muted); line-height: 1.7; max-width: 260px; }
-  .footer-col h5 { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); margin-bottom: 1rem; }
-  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
-  .footer-col a { font-size: 0.84rem; color: var(--muted); text-decoration: none; transition: color 0.15s; }
-  .footer-col a:hover { color: var(--ink); }
-  .footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 0.79rem; color: var(--muted); }
-
-  /* ANIMATIONS */
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .hero-left { animation: fadeUp 0.55s ease both; }
-  .hero-right { animation: fadeUp 0.55s ease 0.12s both; }
-
-  /* RESPONSIVE */
-  @media (max-width: 1024px) { .services-grid { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 900px) {
-    .hero-inner { grid-template-columns: 1fr; }
-    .hero-stats { grid-template-columns: repeat(2, 1fr); }
-    .steps { grid-template-columns: 1fr; }
-    .trust-grid { grid-template-columns: 1fr 1fr; }
-    .footer-top { grid-template-columns: 1fr 1fr; }
-    .nav-links { display: none; }
-    .services-grid { grid-template-columns: repeat(2, 1fr); }
-    .pricing-cards { grid-template-columns: 1fr; }
-    .dual-cta { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 560px) {
-    .trust-grid { grid-template-columns: 1fr; }
-    .categories-grid { grid-template-columns: 1fr; }
-    .hero-stats { grid-template-columns: repeat(2, 1fr); }
-    .footer-top { grid-template-columns: 1fr; }
-    .footer-bottom { flex-direction: column; gap: 0.5rem; text-align: center; }
-    .services-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>AssembleAtEase - The smarter way to get things assembled</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Connect with vetted local assemblers for furniture, gym equipment, flat-pack and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #1a1916; --ink-soft: #3d3b35; --muted: #9b9789;
+      --border: #e4e1d9; --off-white: #f8f7f4; --white: #ffffff;
+      --accent: #e86a2e; --accent-dark: #c45520; --accent-light: #fdf0e8;
+      --teal: #1d9e75; --teal-light: #edfaf4; --teal-dark: #0d6e50;
+      --radius: 12px; --radius-lg: 16px;
+      --font-display: 'DM Serif Display', serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+    body { font-family: var(--font-body); background: var(--white); color: var(--ink); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .nav-logo { font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
+    .nav-links a { font-size: 0.875rem; color: var(--ink-soft); text-decoration: none; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0.6rem 1.25rem; border-radius: 999px; font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; cursor: pointer; text-decoration: none; border: none; transition: all 0.18s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--off-white); }
+    .btn-teal { background: var(--teal); color: #fff; }
+    .btn-teal:hover { background: var(--teal-dark); }
+    .btn-lg { padding: 0.85rem 2rem; font-size: 1rem; }
+    .btn-ghost { background: transparent; color: var(--muted); }
+    .btn-ghost:hover { color: var(--ink); }
+    .hero { max-width: 1200px; margin: 0 auto; padding: 6rem 2rem 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--accent); font-weight: 500; margin-bottom: 1.25rem; }
+    .hero-title { font-family: var(--font-display); font-size: clamp(2.5rem, 5vw, 3.5rem); color: var(--ink); line-height: 1.1; margin-bottom: 1.25rem; }
+    .hero-title em { color: var(--accent); font-style: normal; }
+    .hero-desc { font-size: 1.05rem; color: var(--ink-soft); line-height: 1.75; margin-bottom: 2rem; }
+    .hero-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .hero-search { display: flex; background: var(--white); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); max-width: 420px; margin-bottom: 2.5rem; }
+    .hero-search input { flex: 1; padding: 0.85rem 1.25rem; border: none; outline: none; font-family: var(--font-body); font-size: 0.9rem; color: var(--ink); background: transparent; }
+    .hero-search input::placeholder { color: var(--muted); }
+    .hero-search button { padding: 0.75rem 1.5rem; background: var(--accent); color: #fff; border: none; cursor: pointer; font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; transition: background 0.15s; border-radius: 0 999px 999px 0; }
+    .hero-search button:hover { background: var(--accent-dark); }
+    .hero-stats { display: flex; gap: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .hero-stat-value { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
+    .hero-stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .hero-visual { background: var(--off-white); border-radius: var(--radius-lg); padding: 2rem; border: 1px solid var(--border); }
+    .hero-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .hero-card:last-child { margin-bottom: 0; }
+    .hero-card-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .hero-card-icon.orange { background: var(--accent-light); }
+    .hero-card-icon.teal { background: var(--teal-light); }
+    .hero-card-title { font-size: 0.875rem; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+    .hero-card-sub { font-size: 0.75rem; color: var(--muted); }
+    .hero-card-badge { margin-left: auto; font-size: 0.72rem; font-weight: 500; padding: 0.2rem 0.6rem; border-radius: 999px; flex-shrink: 0; }
+    .badge-green { background: var(--teal-light); color: var(--teal-dark); }
+    .badge-orange { background: var(--accent-light); color: var(--accent-dark); }
+    .section { padding: 5rem 2rem; }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 500; margin-bottom: 0.75rem; }
+    .section-title { font-family: var(--font-display); font-size: clamp(1.8rem, 3vw, 2.5rem); color: var(--ink); margin-bottom: 1rem; }
+    .section-desc { font-size: 1rem; color: var(--ink-soft); line-height: 1.75; max-width: 560px; }
+    .section-alt { background: var(--off-white); }
+    .categories-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 3rem; }
+    .category-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.15s; text-decoration: none; display: block; }
+    .category-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(232,106,46,0.1); transform: translateY(-2px); }
+    .category-icon { font-size: 2rem; margin-bottom: 0.75rem; display: block; }
+    .category-name { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 3rem; }
+    .step-card { text-align: center; }
+    .step-num { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-light); color: var(--accent); font-family: var(--font-display); font-size: 1.2rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+    .step-title { font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; }
+    .step-desc { font-size: 0.9rem; color: var(--ink-soft); line-height: 1.7; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3rem; }
+    .feature-card { padding: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--white); }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 0.75rem; display: block; }
+    .feature-title { font-size: 0.95rem; font-weight: 500; color: var(--ink); margin-bottom: 0.5rem; }
+    .feature-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.65; }
+    .cta-section { background: var(--ink); padding: 5rem 2rem; text-align: center; }
+    .cta-inner { max-width: 640px; margin: 0 auto; }
+    .cta-title { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem); color: var(--white); margin-bottom: 1rem; }
+    .cta-desc { font-size: 1rem; color: rgba(255,255,255,0.6); line-height: 1.75; margin-bottom: 2.5rem; }
+    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .footer { background: var(--ink); border-top: 1px solid rgba(255,255,255,0.08); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; }
+    .footer-brand { font-family: var(--font-display); font-size: 1.1rem; color: var(--white); margin-bottom: 0.75rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.65; }
+    .footer-col-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 1rem; font-weight: 500; }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+    .footer-links a { font-size: 0.875rem; color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.15s; }
+    .footer-links a:hover { color: var(--white); }
+    .footer-bottom { max-width: 1200px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); }
+    .footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
+    .nav-user { display: none; align-items: center; gap: 0.75rem; }
+    .nav-user.visible { display: flex; }
+    .nav-auth { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-auth.hidden { display: none; }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding: 3rem 1.5rem 2rem; gap: 2rem; }
+      .hero-visual { display: none; }
+      .categories-grid { grid-template-columns: repeat(2, 1fr); }
+      .steps-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .footer-inner { grid-template-columns: 1fr 1fr; gap: 2rem; }
+      .nav-links { display: none; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav class="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">Assemble<span>AtEase</span></a>
     <ul class="nav-links">
-      <li><a href="#how">How it works</a></li>
-      <li><a href="#services">Services</a></li>
-      <li><a href="#trust">Why us</a></li>
-      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#categories">Services</a></li>
+      <li><a href="customer/browse-assemblers.html">Browse Assemblers</a></li>
     </ul>
-    <div class="nav-actions" id="nav-actions">
-      <a href="auth/login.html" class="btn btn-ghost">Log in</a>
-      <a href="auth/signup.html" class="btn btn-primary">Get started free</a>
+    <div class="nav-actions">
+      <div class="nav-auth" id="nav-auth">
+        <a href="auth/login.html" class="btn btn-ghost">Log in</a>
+        <a href="auth/signup.html" class="btn btn-primary">Get started</a>
+      </div>
+      <div class="nav-user" id="nav-user">
+        <a href="#" class="btn btn-outline" id="nav-dashboard">My Dashboard</a>
+        <a href="#" class="btn btn-ghost" id="nav-logout-btn">Log out</a>
+      </div>
     </div>
   </div>
 </nav>
 
-<!-- TICKER -->
-<div class="ticker-wrap">
-  <div class="ticker-track">
-    <span class="ticker-item"><span class="ticker-dot"></span>🪑 Furniture Assembly</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>📺 TV Mounting</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🏋️ Gym Equipment</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>📦 Flat-Pack / IKEA</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>💡 Smart Home Install</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🗄️ Shelving & Storage</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🖥️ Office Furniture</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🖼️ Picture & Mirror Hanging</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🛏️ Beds & Bedroom</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🌿 Outdoor & Garden</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🧸 Kids Furniture</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🍳 Appliances</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🪑 Furniture Assembly</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>📺 TV Mounting</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🏋️ Gym Equipment</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>📦 Flat-Pack / IKEA</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>💡 Smart Home Install</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🗄️ Shelving & Storage</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🖥️ Office Furniture</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🖼️ Picture & Mirror Hanging</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🛏️ Beds & Bedroom</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🌿 Outdoor & Garden</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🧸 Kids Furniture</span>
-    <span class="ticker-item"><span class="ticker-dot"></span>🍳 Appliances</span>
-  </div>
-</div>
-
-<!-- HERO -->
 <section class="hero">
-  <div class="hero-inner">
-    <div class="hero-left">
-      <span class="hero-eyebrow">✦ The smarter way to get things done</span>
-      <h1>Assembly done <em>right</em>,<br>on your schedule.</h1>
-      <p class="hero-sub">Connect with vetted local professionals for furniture, gym equipment, TV mounting, smart home installs and more — or earn money with your skills.</p>
-      <div class="hero-actions">
-        <a href="auth/signup.html?role=customer" class="btn btn-primary btn-lg">Post a job free</a>
-        <a href="auth/signup.html?role=assembler" class="btn btn-outline btn-lg">Start earning →</a>
-      </div>
-      <p class="hero-note">✓ Free to join &nbsp;·&nbsp; No subscription &nbsp;·&nbsp; Pay only when hired</p>
-      <div class="hero-stats">
-        <div><div class="stat-num">2.4k+</div><div class="stat-label">Vetted professionals</div></div>
-        <div><div class="stat-num">18k+</div><div class="stat-label">Jobs completed</div></div>
-        <div><div class="stat-num">4.9★</div><div class="stat-label">Average rating</div></div>
-        <div><div class="stat-num">98%</div><div class="stat-label">Satisfaction rate</div></div>
-      </div>
+  <div>
+    <div class="hero-eyebrow">&#9733; The smarter way to get things assembled</div>
+    <h1 class="hero-title">Assembly done right,<br /><em>on your schedule</em></h1>
+    <p class="hero-desc">Connect with vetted local assemblers for furniture, gym equipment, flat-pack and more — or post a job and let professionals come to you.</p>
+    <div class="hero-actions">
+      <a href="auth/signup.html" class="btn btn-primary btn-lg">Post a Job</a>
+      <a href="auth/signup.html" class="btn btn-outline btn-lg">Start Earning</a>
     </div>
-
-    <div class="hero-right">
-      <div class="hero-card">
-        <p class="hero-card-title">What needs doing?</p>
-        <div class="search-row">
-          <input type="text" id="hero-search" placeholder="e.g. IKEA wardrobe, treadmill, TV..." />
-          <button onclick="handleSearch()">Search</button>
-        </div>
-        <p class="cat-label">Browse by category</p>
-        <div class="categories-grid">
-          <a href="auth/signup.html?role=customer&category=Furniture+Assembly" class="cat-chip"><span class="cat-icon">🪑</span> Furniture Assembly</a>
-          <a href="auth/signup.html?role=customer&category=Flat-Pack" class="cat-chip"><span class="cat-icon">📦</span> Flat-Pack / IKEA</a>
-          <a href="auth/signup.html?role=customer&category=TV+Mounting" class="cat-chip"><span class="cat-icon">📺</span> TV Mounting & AV</a>
-          <a href="auth/signup.html?role=customer&category=Gym" class="cat-chip"><span class="cat-icon">🏋️</span> Gym & Fitness</a>
-          <a href="auth/signup.html?role=customer&category=Office+Furniture" class="cat-chip"><span class="cat-icon">🖥️</span> Office Furniture</a>
-          <a href="auth/signup.html?role=customer&category=Smart+Home" class="cat-chip"><span class="cat-icon">💡</span> Smart Home & Tech</a>
-          <a href="auth/signup.html?role=customer&category=Shelving" class="cat-chip"><span class="cat-icon">🗄️</span> Shelving & Storage</a>
-          <a href="auth/signup.html?role=customer&category=Beds" class="cat-chip"><span class="cat-icon">🛏️</span> Beds & Bedroom</a>
-          <a href="auth/signup.html?role=customer&category=Outdoor" class="cat-chip"><span class="cat-icon">🌿</span> Outdoor & Garden</a>
-          <a href="auth/signup.html?role=customer&category=Picture+Hanging" class="cat-chip"><span class="cat-icon">🖼️</span> Picture & Mirror</a>
-          <a href="auth/signup.html?role=customer&category=Kids" class="cat-chip"><span class="cat-icon">🧸</span> Kids Furniture</a>
-          <a href="auth/signup.html?role=customer&category=Other" class="cat-chip"><span class="cat-icon">🔧</span> Other / Custom</a>
-        </div>
-      </div>
+    <div class="hero-search">
+      <input type="text" placeholder="What needs assembling? ie. IKEA PAX..." id="hero-search-input" />
+      <button onclick="document.location.href='auth/signup.html'">Search</button>
+    </div>
+    <div class="hero-stats">
+      <div><div class="hero-stat-value">2.4k+</div><div class="hero-stat-label">Vetted assemblers</div></div>
+      <div><div class="hero-stat-value">18k+</div><div class="hero-stat-label">Jobs completed</div></div>
+      <div><div class="hero-stat-value">4.9&#9733;</div><div class="hero-stat-label">Average rating</div></div>
+      <div><div class="hero-stat-value">98%</div><div class="hero-stat-label">Satisfaction rate</div></div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-card">
+      <div class="hero-card-icon orange">&#128295;</div>
+      <div><div class="hero-card-title">IKEA PAX Wardrobe x2</div><div class="hero-card-sub">Pflugerville, TX &middot; Today</div></div>
+      <span class="hero-card-badge badge-orange">3 bids</span>
+    </div>
+    <div class="hero-card">
+      <div class="hero-card-icon teal">&#9989;</div>
+      <div><div class="hero-card-title">TV Mounting 75in</div><div class="hero-card-sub">Austin, TX &middot; Completed</div></div>
+      <span class="hero-card-badge badge-green">Done</span>
+    </div>
+    <div class="hero-card">
+      <div class="hero-card-icon orange">&#127947;</div>
+      <div><div class="hero-card-title">Peloton Bike Assembly</div><div class="hero-card-sub">Round Rock, TX &middot; Tomorrow</div></div>
+      <span class="hero-card-badge badge-orange">2 bids</span>
     </div>
   </div>
 </section>
 
-<!-- SERVICES -->
-<section class="services" id="services">
-  <div class="container">
-    <div class="services-header">
-      <h2>Every home service, one platform</h2>
-      <p>From a single shelf to a full home office setup — we've got you covered.</p>
-    </div>
-    <div class="services-grid">
-      <a href="auth/signup.html?role=customer&category=Furniture+Assembly" class="service-card"><span class="service-emoji">🪑</span><div class="service-name">Furniture Assembly</div><div class="service-desc">Any brand, any style</div></a>
-      <a href="auth/signup.html?role=customer&category=Flat-Pack" class="service-card"><span class="service-emoji">📦</span><div class="service-name">Flat-Pack / IKEA</div><div class="service-desc">PAX, KALLAX, MALM & more</div></a>
-      <a href="auth/signup.html?role=customer&category=TV+Mounting" class="service-card"><span class="service-emoji">📺</span><div class="service-name">TV Mounting & AV</div><div class="service-desc">Wall mount, cable management</div></a>
-      <a href="auth/signup.html?role=customer&category=Gym" class="service-card"><span class="service-emoji">🏋️</span><div class="service-name">Gym Equipment</div><div class="service-desc">Treadmills, racks, bikes</div></a>
-      <a href="auth/signup.html?role=customer&category=Smart+Home" class="service-card"><span class="service-emoji">💡</span><div class="service-name">Smart Home & Tech</div><div class="service-desc">Nest, Ring, Sonos & more</div></a>
-      <a href="auth/signup.html?role=customer&category=Office" class="service-card"><span class="service-emoji">🖥️</span><div class="service-name">Office Furniture</div><div class="service-desc">Desks, chairs, storage</div></a>
-      <a href="auth/signup.html?role=customer&category=Shelving" class="service-card"><span class="service-emoji">🗄️</span><div class="service-name">Shelving & Storage</div><div class="service-desc">Wall units, wardrobes</div></a>
-      <a href="auth/signup.html?role=customer&category=Picture+Hanging" class="service-card"><span class="service-emoji">🖼️</span><div class="service-name">Picture & Mirror Hanging</div><div class="service-desc">Gallery walls, heavy mirrors</div></a>
-      <a href="auth/signup.html?role=customer&category=Beds" class="service-card"><span class="service-emoji">🛏️</span><div class="service-name">Beds & Bedroom</div><div class="service-desc">Frames, headboards, wardrobes</div></a>
-      <a href="auth/signup.html?role=customer&category=Outdoor" class="service-card"><span class="service-emoji">🌿</span><div class="service-name">Outdoor & Garden</div><div class="service-desc">BBQs, garden furniture</div></a>
-      <a href="auth/signup.html?role=customer&category=Kids" class="service-card"><span class="service-emoji">🧸</span><div class="service-name">Kids Furniture & Toys</div><div class="service-desc">Cribs, playsets, bunk beds</div></a>
-      <a href="auth/signup.html?role=customer&category=Other" class="service-card"><span class="service-emoji">🔧</span><div class="service-name">Other / Custom</div><div class="service-desc">Something else? Post it</div></a>
+<section class="section section-alt" id="categories">
+  <div class="section-inner">
+    <div class="section-label">What we assemble</div>
+    <h2 class="section-title">What can we assemble for you?</h2>
+    <p class="section-desc">From flat-pack furniture to complex gym equipment, our assemblers handle it all.</p>
+    <div class="categories-grid">
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#128763;</span><div class="category-name">Furniture</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#127947;</span><div class="category-name">Gym Equipment</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#128230;</span><div class="category-name">Flat-Pack / IKEA</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#128188;</span><div class="category-name">Office Furniture</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#127981;</span><div class="category-name">Outdoor &amp; Garden</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#128250;</span><div class="category-name">TV Mounting</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#128065;</span><div class="category-name">Shelving &amp; Storage</div></a>
+      <a href="auth/signup.html" class="category-card"><span class="category-icon">&#128704;</span><div class="category-name">Kids Furniture &amp; Toys</div></a>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how" id="how">
-  <div class="container">
-    <p class="section-eyebrow">Simple process</p>
-    <h2 class="section-title">How AssembleAtEase works</h2>
-    <p class="section-sub">Three steps to get anything assembled — no hassle, no surprises.</p>
-    <div class="steps">
-      <div class="step">
+<section class="section" id="how-it-works">
+  <div class="section-inner">
+    <div style="text-align:center;margin-bottom:1rem"><div class="section-label" style="display:inline-block">Simple process</div></div>
+    <h2 class="section-title" style="text-align:center">How AssembleAtEase works</h2>
+    <p class="section-desc" style="text-align:center;margin:0 auto 0">Simple, transparent, and designed around your convenience.</p>
+    <div class="steps-grid">
+      <div class="step-card">
         <div class="step-num">1</div>
-        <h3>Post your job</h3>
-        <p>Describe what needs doing, set your budget range and preferred schedule. Takes under 2 minutes.</p>
+        <div class="step-title">Post your job</div>
+        <p class="step-desc">Describe what needs assembling, set your budget and schedule. Takes under 2 minutes.</p>
       </div>
-      <div class="step">
+      <div class="step-card">
         <div class="step-num">2</div>
-        <h3>Receive bids</h3>
-        <p>Local professionals see your job and submit competitive bids. Compare profiles, ratings, and prices side by side.</p>
+        <div class="step-title">Receive bids</div>
+        <p class="step-desc">Local assemblers see your job and submit competitive bids. Compare profiles, ratings, and prices.</p>
       </div>
-      <div class="step">
+      <div class="step-card">
         <div class="step-num">3</div>
-        <h3>Get it done</h3>
-        <p>Pick your assembler, confirm the visit, and relax. Rate and review when the job is complete.</p>
+        <div class="step-title">Get it done</div>
+        <p class="step-desc">Pick your assembler, schedule the visit, and relax. Rate and review when complete.</p>
       </div>
     </div>
-    <div class="dual-cta">
-      <div class="dual-cta-card customer">
-        <div style="font-size:2rem">🛋️</div>
-        <h3>Need something assembled?</h3>
-        <p>Post a job for free and get competitive bids from vetted local professionals within hours.</p>
-        <a href="auth/signup.html?role=customer" class="btn btn-primary">Post a job free →</a>
-      </div>
-      <div class="dual-cta-card assembler">
-        <div style="font-size:2rem">🔧</div>
-        <h3>Have assembly skills?</h3>
-        <p>Join thousands of professionals earning money on their own schedule. Free to join, you keep most of what you earn.</p>
-        <a href="auth/signup.html?role=assembler" class="btn btn-teal">Start earning →</a>
-      </div>
+    <div style="text-align:center;margin-top:2.5rem;padding:1.5rem;background:var(--off-white);border-radius:var(--radius-lg);max-width:500px;margin-left:auto;margin-right:auto">
+      <div style="font-size:1.5rem;margin-bottom:0.75rem">&#128269;</div>
+      <div style="font-size:0.95rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem">Prefer to browse first?</div>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Browse our vetted assemblers directly. Filter by skill, rate, and location.</p>
+      <a href="customer/browse-assemblers.html" class="btn btn-outline">Browse Assemblers</a>
     </div>
   </div>
 </section>
 
-<!-- WHY US -->
-<section class="trust" id="trust">
-  <div class="container">
-    <p class="section-eyebrow">Why thousands choose us</p>
-    <h2 class="section-title">Built different from the rest</h2>
-    <p class="section-sub">Not TaskRabbit. Not IKEA. A platform built specifically for assembly — faster, fairer, better.</p>
-    <div class="trust-grid">
-      <div class="trust-card"><div class="trust-icon">🛡️</div><h4>Vetted professionals only</h4><p>Every assembler goes through identity verification and review checks before joining. No random strangers.</p></div>
-      <div class="trust-card"><div class="trust-icon">💰</div><h4>Competitive bidding</h4><p>Multiple assemblers bid on your job — you always get the best price, not an inflated fixed rate.</p></div>
-      <div class="trust-card"><div class="trust-icon">⭐</div><h4>Verified reviews only</h4><p>Every review comes from a real completed job. No fake ratings, no paid placements. Ever.</p></div>
-      <div class="trust-card"><div class="trust-icon">💬</div><h4>Direct messaging</h4><p>Talk directly with your assembler before, during and after the job. No middleman, no call centres.</p></div>
-      <div class="trust-card"><div class="trust-icon">📅</div><h4>Your schedule, your rules</h4><p>Book same-day, next-day, or weeks ahead. Morning, evening, weekend — whatever works for you.</p></div>
-      <div class="trust-card"><div class="trust-icon">🔒</div><h4>Secure platform</h4><p>Your data and payments are protected. We use industry-standard encryption on everything.</p></div>
+<section class="section section-alt">
+  <div class="section-inner">
+    <div style="text-align:center;margin-bottom:1rem"><div class="section-label" style="display:inline-block">Why us</div></div>
+    <h2 class="section-title" style="text-align:center">Why thousands choose AssembleAtEase</h2>
+    <div class="features-grid">
+      <div class="feature-card"><span class="feature-icon">&#128737;</span><div class="feature-title">Vetted Professionals</div><p class="feature-desc">Every assembler goes through identity verification and review checks before joining.</p></div>
+      <div class="feature-card"><span class="feature-icon">&#128172;</span><div class="feature-title">Real-Time Messaging</div><p class="feature-desc">Communicate directly with your assembler before, during and after the job.</p></div>
+      <div class="feature-card"><span class="feature-icon">&#11088;</span><div class="feature-title">Verified Reviews</div><p class="feature-desc">All reviews come from real completed jobs. No fake ratings, ever.</p></div>
+      <div class="feature-card"><span class="feature-icon">&#128176;</span><div class="feature-title">Competitive Pricing</div><p class="feature-desc">Multiple assemblers bid on your job, driving the best price for you.</p></div>
+      <div class="feature-card"><span class="feature-icon">&#128197;</span><div class="feature-title">Flexible Scheduling</div><p class="feature-desc">Book same-day, next-day, or schedule weeks ahead.</p></div>
+      <div class="feature-card"><span class="feature-icon">&#128274;</span><div class="feature-title">Secure Platform</div><p class="feature-desc">Your data is protected and payments will be secured through our trusted platform.</p></div>
     </div>
   </div>
 </section>
 
-<!-- PRICING -->
-<section class="pricing" id="pricing">
-  <div class="container">
-    <p class="section-eyebrow">Transparent pricing</p>
-    <h2 class="section-title">What does it typically cost?</h2>
-    <p class="section-sub">Prices vary by job complexity. Here's what most customers pay — always competitive because assemblers bid for your job.</p>
-    <div class="pricing-cards">
-      <div class="pricing-card">
-        <div class="pricing-range">$40–$80</div>
-        <div class="pricing-type">Typical range</div>
-        <h4>Small jobs</h4>
-        <p>Single item assembly, picture hanging, small shelving units.</p>
-        <ul class="pricing-includes">
-          <li>1–2 items</li>
-          <li>Under 1 hour</li>
-          <li>TV mounting (basic)</li>
-          <li>Single flatpack item</li>
-        </ul>
-      </div>
-      <div class="pricing-card featured">
-        <span class="pricing-badge">Most popular</span>
-        <div class="pricing-range">$80–$200</div>
-        <div class="pricing-type">Typical range</div>
-        <h4>Medium jobs</h4>
-        <p>Multiple items, gym equipment, bedroom furniture sets.</p>
-        <ul class="pricing-includes">
-          <li>2–5 items</li>
-          <li>1–3 hours</li>
-          <li>Full wardrobe assembly</li>
-          <li>Treadmill or gym equipment</li>
-        </ul>
-      </div>
-      <div class="pricing-card">
-        <div class="pricing-range">$200+</div>
-        <div class="pricing-type">Typical range</div>
-        <h4>Large jobs</h4>
-        <p>Full room setups, multi-unit installs, complex tech setups.</p>
-        <ul class="pricing-includes">
-          <li>5+ items</li>
-          <li>Half day or more</li>
-          <li>Full home office setup</li>
-          <li>Smart home installation</li>
-        </ul>
-      </div>
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2 class="cta-title">Ready to get started?</h2>
+    <p class="cta-desc">Join thousands of customers and assemblers already using AssembleAtEase.</p>
+    <div class="cta-actions">
+      <a href="auth/signup.html" class="btn btn-primary btn-lg">Post a Job</a>
+      <a href="auth/signup.html" class="btn btn-teal btn-lg">Start Earning</a>
     </div>
-    <p style="text-align:center;font-size:0.82rem;color:var(--muted);margin-top:1.25rem">
-      💡 Post your job free — assemblers bid and you pick the best price. No obligation until you accept.
-    </p>
   </div>
 </section>
 
-<!-- CTA BAND -->
-<div class="cta-band">
-  <div class="container">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of customers and assemblers already using AssembleAtEase.</p>
-    <div class="cta-band-btns">
-      <a href="auth/signup.html?role=customer" class="btn btn-white btn-lg">Post a job free</a>
-      <a href="auth/signup.html?role=assembler" class="btn btn-transparent btn-lg">Start earning →</a>
-    </div>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<footer>
+<footer class="footer">
   <div class="footer-inner">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <a href="index.html" class="footer-logo">Assemble<span>AtEase</span></a>
-        <p>The marketplace connecting skilled assembly professionals with people who need them. Simple, reliable, and local.</p>
-      </div>
-      <div class="footer-col">
-        <h5>For customers</h5>
-        <ul>
-          <li><a href="auth/signup.html?role=customer">Post a job</a></li>
-          <li><a href="auth/signup.html?role=customer">Browse assemblers</a></li>
-          <li><a href="#how">How it works</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>For assemblers</h5>
-        <ul>
-          <li><a href="auth/signup.html?role=assembler">Join as assembler</a></li>
-          <li><a href="auth/signup.html?role=assembler">Browse jobs</a></li>
-          <li><a href="auth/signup.html?role=assembler">Start earning</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Company</h5>
-        <ul>
-          <li><a href="#">About us</a></li>
-          <li><a href="#">Safety</a></li>
-          <li><a href="#">Terms</a></li>
-          <li><a href="#">Privacy</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </div>
+    <div>
+      <div class="footer-brand">Assemble<span>AtEase</span></div>
+      <p class="footer-tagline">The marketplace connecting skilled assemblers with people who need them. Simple, reliable, and local.</p>
     </div>
-    <div class="footer-bottom">
-      <span>© <span id="year"></span> AssembleAtEase. All rights reserved.</span>
-      <span>Built for people who deserve better assembly services.</span>
+    <div>
+      <div class="footer-col-title">For Customers</div>
+      <ul class="footer-links">
+        <li><a href="auth/signup.html">Post a Job</a></li>
+        <li><a href="customer/browse-assemblers.html">Browse Assemblers</a></li>
+        <li><a href="#how-it-works">How it works</a></li>
+      </ul>
     </div>
+    <div>
+      <div class="footer-col-title">For Assemblers</div>
+      <ul class="footer-links">
+        <li><a href="auth/signup.html">Join as Assembler</a></li>
+        <li><a href="assembler/browse-jobs.html">Browse Jobs</a></li>
+        <li><a href="auth/signup.html">Start Earning</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Safety</a></li>
+        <li><a href="#">Terms</a></li>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved.</div>
   </div>
 </footer>
 
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // Smart nav — show Dashboard if already logged in
   document.addEventListener('DOMContentLoaded', async () => {
-    if (typeof APP !== 'undefined' && typeof supabaseClient !== 'undefined') {
-      try {
-        const auth = await APP.getAuth();
-        if (auth) {
-          const dashUrl = auth.profile.role === 'assembler'
-            ? 'assembler/index.html'
-            : 'customer/index.html';
-          document.getElementById('nav-actions').innerHTML = `
-            <a href="${dashUrl}" class="btn btn-ghost">Dashboard</a>
-            <a href="${dashUrl}" class="btn btn-primary">Go to Dashboard →</a>
-          `;
+    try {
+      if (!window.supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
+        if (profile) {
+          document.getElementById('nav-auth').classList.add('hidden');
+          document.getElementById('nav-user').classList.add('visible');
+          document.getElementById('nav-dashboard').href = profile.role === 'assembler' ? 'assembler/index.html' : 'customer/index.html';
+          document.getElementById('nav-logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+          });
         }
-      } catch (e) { /* not logged in, default nav stays */ }
-    }
-  });
-
-  // Hero search
-  function handleSearch() {
-    const q = document.getElementById('hero-search').value.trim();
-    if (q) window.location.href = `auth/signup.html?role=customer&q=${encodeURIComponent(q)}`;
-  }
-  document.getElementById('hero-search')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleSearch();
+      }
+    } catch(e) {}
   });
 </script>
 </body>

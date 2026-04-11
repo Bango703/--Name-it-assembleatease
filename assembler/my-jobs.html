@@ -10,24 +10,26 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <style>
-    body.theme-pro .job-card {
-      background: var(--pro-surface); border: 1px solid var(--pro-border);
-      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
-      cursor: pointer; transition: all 0.15s; display: block; text-decoration: none;
-    }
-    body.theme-pro .job-card:hover { border-color: var(--pro-border-md); background: var(--pro-elevated); }
-    body.theme-pro .job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.4rem; }
+    body.theme-pro .job-card { background: var(--pro-surface); border: 1px solid var(--pro-border); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem; transition: all 0.15s; }
+    body.theme-pro .job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
     body.theme-pro .job-card h3 { font-size: 0.95rem; font-weight: 500; color: var(--pro-text); }
     body.theme-pro .job-card-desc { font-size: 0.85rem; color: var(--pro-muted); line-height: 1.55; margin-bottom: 0.6rem; }
-    body.theme-pro .job-card-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--pro-muted); }
-    body.theme-pro .earned-tag { font-size: 0.9rem; font-weight: 500; color: var(--pro-teal); }
-    body.theme-pro .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
-    body.theme-pro .filter-tab {
-      padding: 0.4rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 500;
-      border: 1px solid var(--pro-border-md); background: var(--pro-elevated);
-      color: var(--pro-soft); cursor: pointer; transition: all 0.15s;
-    }
-    body.theme-pro .filter-tab.active { background: var(--pro-teal-glow); color: var(--pro-teal); border-color: rgba(29,158,117,0.3); }
+    body.theme-pro .job-card-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--pro-muted); margin-bottom: 0.6rem; }
+    body.theme-pro .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    body.theme-pro .filter-tab { padding: 0.4rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 500; border: 1px solid var(--pro-border-md); background: var(--pro-elevated); color: var(--pro-soft); cursor: pointer; transition: all 0.15s; }
+    body.theme-pro .filter-tab.active { background: rgba(29,158,117,0.15); color: #1d9e75; border-color: rgba(29,158,117,0.3); }
+    body.theme-pro .job-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; padding-top: 0.6rem; border-top: 1px solid var(--pro-border); }
+    body.theme-pro .badge { display: inline-flex; align-items: center; padding: 0.18rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+    body.theme-pro .badge-assigned    { background: rgba(29,158,117,0.15);  color: #1d9e75; border: 1px solid rgba(29,158,117,0.2); }
+    body.theme-pro .badge-in_progress { background: rgba(59,130,246,0.15);  color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    body.theme-pro .badge-completed   { background: rgba(245,158,11,0.15);  color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+    body.theme-pro .badge-cancelled   { background: rgba(239,68,68,0.1);    color: #ef4444; border: 1px solid rgba(239,68,68,0.15); }
+    body.theme-pro .skeleton { background: linear-gradient(90deg, var(--pro-elevated) 25%, var(--pro-border) 50%, var(--pro-elevated) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+    body.theme-pro .skeleton-card { background: var(--pro-surface); border: 1px solid var(--pro-border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.6rem; }
+    body.theme-pro .empty-state { background: var(--pro-surface); border: 1px solid var(--pro-border); border-radius: 12px; padding: 2.5rem; text-align: center; }
+    body.theme-pro .empty-state p { font-size: 0.875rem; color: var(--pro-muted); margin-bottom: 1rem; }
+    body.theme-pro .pro-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 1rem; font-size: 0.875rem; color: #ef4444; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   </style>
 </head>
 <body class="theme-pro">
@@ -37,36 +39,32 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">⚡</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html"><span class="nav-icon">💬</span> My Bids</a></li>
-        <li><a href="my-jobs.html" class="active"><span class="nav-icon">🔧</span> My Jobs</a></li>
+        <li><a href="index.html"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs.html"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
+        <li><a href="my-bids.html"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs.html" class="active"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">👤</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+        <li><a href="profile.html"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main" style="padding:2rem">
     <div class="page-header" style="margin-bottom:1.5rem">
-      <div>
-        <h1>My Jobs</h1>
-        <p>Jobs where your bid was accepted.</p>
-      </div>
+      <div><h1>My Jobs</h1><p>Jobs where your bid was accepted.</p></div>
     </div>
-
+    <div id="page-alert" class="alert hidden"></div>
     <div class="filter-tabs" id="filter-tabs">
       <button class="filter-tab active" data-status="">All</button>
       <button class="filter-tab" data-status="assigned">Assigned</button>
       <button class="filter-tab" data-status="in_progress">In Progress</button>
       <button class="filter-tab" data-status="completed">Completed</button>
     </div>
-
     <div id="jobs-list">
       <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
       <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
@@ -77,47 +75,106 @@
 
 <script>
   let allJobs = [];
+  let currentUser = null;
 
   function timeAgo(d) {
-    if (!d) return '';
-    const diff=Date.now()-new Date(d).getTime(), m=Math.floor(diff/60000), h=Math.floor(diff/3600000), days=Math.floor(diff/86400000);
-    if (m<1) return 'Just now'; if (m<60) return m+'m ago'; if (h<24) return h+'h ago'; if (days===1) return 'Yesterday'; return days+'d ago';
+    if(!d)return'';
+    const days=Math.floor((Date.now()-new Date(d).getTime())/86400000);
+    if(days===0)return'Today'; if(days===1)return'Yesterday'; return days+'d ago';
   }
 
   function getBadgeClass(s) {
-    return {assigned:'badge-accepted',in_progress:'badge-accepted',completed:'badge-complete',cancelled:'badge-rejected'}[s]||'badge-default';
+    return {assigned:'badge-assigned',in_progress:'badge-in_progress',completed:'badge-completed',cancelled:'badge-cancelled'}[s]||'badge-assigned';
   }
 
   function renderJobs(jobs) {
     const list = document.getElementById('jobs-list');
     if (!jobs?.length) {
-      list.innerHTML = `<div class="empty-state"><p>No jobs here yet. Win some bids first!</p><a href="browse-jobs.html" class="btn btn-teal btn-sm">Browse jobs →</a></div>`;
+      list.innerHTML = `<div class="empty-state"><p>No jobs here yet.</p><a href="browse-jobs.html" class="btn btn-teal btn-sm">Browse jobs</a></div>`;
       return;
     }
-    list.innerHTML = jobs.map(job => `
-      <a class="job-card" href="job-detail.html?id=${job.id}">
-        <div class="job-card-top">
-          <h3>${job.title}</h3>
-          <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
-            ${job.agreed_amount ? `<span class="earned-tag">$${job.agreed_amount}</span>` : ''}
-            <span class="badge ${getBadgeClass(job.status)}">${job.status.replace('_',' ')}</span>
+    list.innerHTML = jobs.map(job => {
+      const customerFirstName = (job.customer?.full_name||'Customer').split(' ')[0];
+      const canProgress = job.status === 'assigned';
+      const canComplete = job.status === 'in_progress';
+      const isDone      = job.status === 'completed';
+
+      // Address: full address only when assigned or in_progress
+      // After completed — city only, no street
+      let locationHtml = '';
+      if ((canProgress || canComplete) && job.customer?.address_line1) {
+        locationHtml = `<span style="color:var(--pro-teal)">&#128205; ${job.customer.address_line1}${job.customer.address_line2?' '+job.customer.address_line2:''}${job.customer.zip_code?', '+job.customer.zip_code:''}</span>`;
+      } else if (isDone && job.city) {
+        locationHtml = `<span>&#128205; ${job.city}${job.state?', '+job.state:''}</span>`;
+      }
+
+      return `
+        <div class="job-card">
+          <div class="job-card-top">
+            <h3>${job.title}</h3>
+            <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
+              ${job.agreed_amount?`<span style="font-size:0.9rem;font-weight:500;color:var(--pro-teal)">$${job.agreed_amount}</span>`:''}
+              <span class="badge ${getBadgeClass(job.status)}">${job.status.replace('_',' ')}</span>
+            </div>
           </div>
-        </div>
-        <div class="job-card-desc">${APP.truncate(job.description, 100)}</div>
-        <div class="job-card-footer">
-          <span>📍 ${job.city||'Location TBD'}${job.state?', '+job.state:''}</span>
-          <span>👤 ${job.customer?.full_name||'Customer'}</span>
-          <span>⏱ ${timeAgo(job.created_at)}</span>
-        </div>
-      </a>`).join('');
+          <div class="job-card-desc">${APP.truncate(job.description,100)}</div>
+          <div class="job-card-footer">
+            <span>&#128100; ${customerFirstName}</span>
+            <span>&#128197; ${job.schedule||'Flexible'}</span>
+            <span>&#8987; ${timeAgo(job.created_at)}</span>
+            ${locationHtml}
+          </div>
+          ${canProgress||canComplete||isDone?`
+          <div class="job-actions">
+            ${canProgress?`<button class="btn btn-teal btn-sm" onclick="markProgress('${job.id}')">Mark in progress</button>`:''}
+            ${canComplete?`<button class="btn btn-teal btn-sm" onclick="markComplete('${job.id}')">Mark complete</button>`:''}
+            ${isDone?`<span style="font-size:0.78rem;color:var(--pro-teal)">&#10003; Completed</span>`:''}
+          </div>`:''}
+        </div>`;
+    }).join('');
+  }
+
+  async function markProgress(jobId) {
+    try {
+      const { error } = await API.updateJob(jobId, { status: 'in_progress' });
+      if (error) throw error;
+      APP.showAlert('page-alert', 'Job marked as in progress.', 'success');
+      await loadJobs();
+    } catch(err) { APP.showAlert('page-alert', err.message||'Failed to update.', 'error'); }
+  }
+
+  async function markComplete(jobId) {
+    try {
+      const { error } = await API.updateJob(jobId, { status: 'completed' });
+      if (error) throw error;
+      APP.showAlert('page-alert', '&#127881; Job complete! Your completed count updated.', 'success');
+      await loadJobs();
+    } catch(err) { APP.showAlert('page-alert', err.message||'Failed to update.', 'error'); }
+  }
+
+  async function loadJobs() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('jobs')
+        .select(`*, customer:profiles!jobs_customer_id_fkey(id, full_name, address_line1, address_line2, zip_code)`)
+        .eq('assembler_id', currentUser.id)
+        .in('status', ['assigned','in_progress','completed','cancelled'])
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      allJobs = data || [];
+      const activeTab = document.querySelector('.filter-tab.active')?.dataset.status || '';
+      renderJobs(activeTab ? allJobs.filter(j=>j.status===activeTab) : allJobs);
+    } catch(err) {
+      document.getElementById('jobs-list').innerHTML = `<div class="pro-error">&#9888; Could not load jobs. Please refresh.</div>`;
+    }
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['assembler']);
     if (!auth) return;
-    const { user } = auth;
+    currentUser = auth.user;
 
-    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+    document.getElementById('sidebar-logout')?.addEventListener('click', async(e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
       window.location.href = '../index.html';
@@ -126,21 +183,12 @@
     document.getElementById('filter-tabs').addEventListener('click', (e) => {
       const tab = e.target.closest('.filter-tab');
       if (!tab) return;
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
       tab.classList.add('active');
-      const status = tab.dataset.status;
-      renderJobs(status ? allJobs.filter(j => j.status === status) : allJobs);
+      renderJobs(tab.dataset.status ? allJobs.filter(j=>j.status===tab.dataset.status) : allJobs);
     });
 
-    try {
-      const { data: jobs, error } = await API.getJobs({ assemblerId: user.id });
-      if (error) throw error;
-      allJobs = jobs || [];
-      renderJobs(allJobs);
-    } catch (err) {
-      document.getElementById('jobs-list').innerHTML =
-        `<div class="error-state"><span>⚠</span>Could not load jobs. Please refresh.</div>`;
-    }
+    await loadJobs();
   });
 </script>
 </body>

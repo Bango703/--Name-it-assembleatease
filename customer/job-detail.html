@@ -11,24 +11,15 @@
   <script src="../assets/js/api.js" defer></script>
   <style>
     .detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; }
-    .detail-card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1rem;
-    }
+    .detail-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1rem; }
     .detail-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; font-weight: 500; }
     .detail-title { font-family: var(--font-display); font-size: 1.6rem; color: var(--ink); margin-bottom: 0.5rem; }
     .detail-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.25rem 0; padding: 1.25rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
     .detail-meta-item label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 4px; }
     .detail-meta-item span { font-size: 0.9rem; font-weight: 500; color: var(--ink); }
-    .detail-body { font-size: 0.9rem; color: var(--ink-soft); line-height: 1.75; }
     .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); text-decoration: none; margin-bottom: 1.5rem; transition: color 0.15s; }
     .back-link:hover { color: var(--ink); }
-
-    .bid-card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
-      margin-bottom: 0.75rem; transition: border-color 0.15s;
-    }
+    .bid-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 0.75rem; transition: border-color 0.15s; }
     .bid-card:hover { border-color: #c8c4bb; }
     .bid-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.6rem; }
     .bid-assembler-name { font-size: 0.95rem; font-weight: 500; color: var(--ink); }
@@ -36,25 +27,31 @@
     .bid-amount { font-family: var(--font-display); font-size: 1.4rem; color: var(--teal); }
     .bid-message { font-size: 0.875rem; color: var(--ink-soft); line-height: 1.6; margin: 0.6rem 0; font-style: italic; }
     .bid-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-    .avatar {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: var(--accent-light); color: var(--accent);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 500; flex-shrink: 0;
-    }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 500; flex-shrink: 0; }
 
-    .job-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    /* Review modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.hidden { display: none; }
+    .modal { background: var(--white); border-radius: var(--radius-lg); padding: 2rem; max-width: 520px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal h2 { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); margin-bottom: 0.35rem; }
+    .modal-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .star-row { display: flex; gap: 6px; margin-bottom: 1.25rem; }
+    .star-btn { font-size: 1.6rem; background: none; border: none; cursor: pointer; color: var(--border); transition: color 0.15s; line-height: 1; padding: 0; }
+    .star-btn.active { color: #f59e0b; }
+    .rehire-row { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 0; border-top: 1px solid var(--border); margin-top: 0.5rem; }
+    .rehire-label h5 { font-size: 0.875rem; font-weight: 500; color: var(--ink); margin-bottom: 2px; font-family: var(--font-body); }
+    .rehire-label p { font-size: 0.78rem; color: var(--muted); }
+    .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track { position: absolute; inset: 0; cursor: pointer; background: var(--border); border-radius: 999px; transition: background 0.2s; }
+    .toggle-track::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: var(--white); top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+    .toggle input:checked + .toggle-track { background: var(--teal); }
+    .toggle input:checked + .toggle-track::before { transform: translateX(18px); }
 
     @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
-  <span></span>
-  <span></span>
-  <span></span>
-</button>
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
     <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
@@ -62,9 +59,9 @@
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
         <li><a href="index.html"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
         <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
         <li><a href="my-jobs.html" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -85,15 +82,92 @@
   </main>
 </div>
 
+<!-- Review Modal -->
+<div class="modal-overlay hidden" id="review-modal">
+  <div class="modal">
+    <h2>Leave a review</h2>
+    <p class="modal-sub" id="review-modal-sub">How was your experience?</p>
+    <div class="detail-card-title">Rating</div>
+    <div class="star-row" id="star-row">
+      <button class="star-btn" data-val="1">&#9733;</button>
+      <button class="star-btn" data-val="2">&#9733;</button>
+      <button class="star-btn" data-val="3">&#9733;</button>
+      <button class="star-btn" data-val="4">&#9733;</button>
+      <button class="star-btn" data-val="5">&#9733;</button>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label for="review-comment">Comment <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <textarea id="review-comment" class="form-control" rows="3" placeholder="Describe your experience with this assembler..."></textarea>
+    </div>
+    <div class="rehire-row">
+      <div class="rehire-label">
+        <h5>Would you hire this assembler again?</h5>
+        <p>This helps other customers make better decisions</p>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="rehire-toggle" checked />
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button class="btn btn-primary btn-lg" id="submit-review-btn" style="flex:1">Submit Review</button>
+      <button class="btn btn-outline btn-lg" id="cancel-review-btn" style="flex:1">Skip</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  let selectedRating = 0;
+  let currentJobId   = null;
+  let currentJob     = null;
+
+  // Star rating
+  document.getElementById('star-row')?.addEventListener('click', e => {
+    const btn = e.target.closest('.star-btn');
+    if (!btn) return;
+    selectedRating = parseInt(btn.dataset.val);
+    document.querySelectorAll('.star-btn').forEach((b, i) => {
+      b.classList.toggle('active', i < selectedRating);
+    });
+  });
+
+  document.getElementById('cancel-review-btn')?.addEventListener('click', () => {
+    document.getElementById('review-modal').classList.add('hidden');
+  });
+
+  document.getElementById('submit-review-btn')?.addEventListener('click', async () => {
+    if (!selectedRating) {
+      APP.showAlert('page-alert', 'Please select a star rating.', 'error');
+      document.getElementById('review-modal').classList.add('hidden');
+      return;
+    }
+    const btn = document.getElementById('submit-review-btn');
+    btn.disabled = true; btn.textContent = 'Submitting...';
+    try {
+      const { error } = await API.createReview({
+        job_id:                   currentJobId,
+        assembler_id:             currentJob.assembler_id,
+        reviewer_id:              currentJob.customer_id,
+        rating:                   selectedRating,
+        comment:                  document.getElementById('review-comment').value.trim() || null,
+        customer_would_rehire:    document.getElementById('rehire-toggle').checked,
+      });
+      if (error) throw error;
+      document.getElementById('review-modal').classList.add('hidden');
+      APP.showAlert('page-alert', 'Review submitted! Thank you for your feedback.', 'success');
+    } catch (err) {
+      APP.showAlert('page-alert', err.message || 'Failed to submit review.', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Submit Review';
+    }
+  });
+
   function timeAgo(d) {
-    if (!d) return '';
-    const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+    const diff = Date.now() - new Date(d).getTime(), days = Math.floor(diff / 86400000);
     if (days === 0) return 'Today'; if (days === 1) return 'Yesterday'; return days + 'd ago';
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    APP.initMobileMenu();
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
     const { user } = auth;
@@ -104,23 +178,26 @@
       window.location.href = '../index.html';
     });
 
-    const jobId = APP.getParam('id');
-    if (!jobId) { window.location.href = 'my-jobs.html'; return; }
+    currentJobId = APP.getParam('id');
+    if (!currentJobId) { window.location.href = 'my-jobs.html'; return; }
 
     try {
-      const { data: job, error } = await API.getJob(jobId);
+      const { data: job, error } = await API.getJob(currentJobId);
       if (error || !job) throw error || new Error('Not found');
-
       if (job.customer_id !== user.id) {
-        document.getElementById('page-content').innerHTML =
-          `<div class="error-state"><span>&#9888;</span>You don't have permission to view this job.</div>`;
+        document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>You don't have permission to view this job.</div>`;
         return;
       }
 
+      currentJob = job;
       const badgeClass = APP.getBadgeClass(job.status);
-      const budget = job.budget_min && job.budget_max ? `$${job.budget_min} – $${job.budget_max}` : 'TBD';
+      const budget = job.budget_type === 'fixed'
+        ? `$${job.budget_min} fixed price`
+        : job.budget_min && job.budget_max
+          ? `$${job.budget_min} – $${job.budget_max}`
+          : 'TBD';
 
-      // Job action buttons based on status
+      // Action buttons
       let actionsHtml = '';
       if (job.status === 'open') {
         actionsHtml = `<button class="btn btn-outline btn-sm" id="close-job-btn">Close job</button>`;
@@ -128,6 +205,8 @@
         actionsHtml = `<button class="btn btn-primary btn-sm" id="progress-btn">Mark in progress</button>`;
       } else if (job.status === 'in_progress') {
         actionsHtml = `<button class="btn btn-teal btn-sm" id="complete-btn">Mark complete</button>`;
+      } else if (job.status === 'completed') {
+        actionsHtml = `<button class="btn btn-outline btn-sm" id="review-btn">&#9733; Leave a review</button>`;
       }
 
       document.getElementById('page-content').innerHTML = `
@@ -136,23 +215,23 @@
             <div class="detail-card">
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.75rem">
                 <h1 class="detail-title">${job.title}</h1>
-                <span class="badge ${badgeClass}" style="flex-shrink:0;margin-top:6px">${job.status.replace('_', ' ')}</span>
+                <span class="badge ${badgeClass}" style="flex-shrink:0;margin-top:6px">${job.status.replace('_',' ')}</span>
               </div>
               <div class="detail-meta-grid">
-                <div class="detail-meta-item"><label>Category</label><span>${job.category || '—'}</span></div>
-                <div class="detail-meta-item"><label>Location</label><span>${job.city || '—'}${job.state ? ', ' + job.state : ''}</span></div>
-                <div class="detail-meta-item"><label>Budget</label><span style="color:var(--teal)">${budget}</span></div>
-                <div class="detail-meta-item"><label>Schedule</label><span>${job.schedule || 'Flexible'}</span></div>
+                <div class="detail-meta-item"><label>Category</label><span>${job.category||'—'}</span></div>
+                <div class="detail-meta-item"><label>Location</label><span>${job.city||'—'}${job.state?', '+job.state:''}</span></div>
+                <div class="detail-meta-item"><label>${job.budget_type === 'fixed' ? 'Fixed Price' : 'Budget'}</label><span style="color:var(--teal)">${budget}</span></div>
+                <div class="detail-meta-item"><label>Schedule</label><span>${job.schedule||'Flexible'}</span></div>
               </div>
               <div class="detail-card-title">Description</div>
-              <div class="detail-body">${job.description?.replace(/\n/g, '<br>') || 'No description.'}</div>
+              <div style="font-size:0.9rem;color:var(--ink-soft);line-height:1.75">${job.description?.replace(/\n/g,'<br>')||'No description.'}</div>
               <div style="margin-top:1.25rem;font-size:0.78rem;color:var(--muted)">Posted ${timeAgo(job.created_at)}</div>
             </div>
 
             ${actionsHtml ? `
             <div class="detail-card">
-              <div class="detail-card-title">Job actions</div>
-              <div class="job-actions" id="job-actions">${actionsHtml}</div>
+              <div class="detail-card-title">Actions</div>
+              <div style="display:flex;gap:0.5rem" id="job-actions">${actionsHtml}</div>
             </div>` : ''}
           </div>
 
@@ -161,69 +240,70 @@
               <div class="detail-card-title">Bids received (<span id="bid-count">0</span>)</div>
               <div id="bids-list">
                 <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
-                <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
               </div>
             </div>
           </div>
         </div>`;
 
-      // Wire up action buttons
+      // Action button wiring
       document.getElementById('close-job-btn')?.addEventListener('click', async () => {
         if (!confirm('Close this job? Assemblers will no longer be able to bid.')) return;
-        APP.setLoading('close-job-btn', true, 'Closing…');
+        APP.setLoading('close-job-btn', true, 'Closing...');
         try {
-          const { error } = await API.updateJob(jobId, { status: 'cancelled' });
+          const { error } = await API.updateJob(currentJobId, { status: 'cancelled' });
           if (error) throw error;
-          APP.showAlert('page-alert', 'Job closed successfully.', 'success');
+          APP.showAlert('page-alert', 'Job closed.', 'success');
           setTimeout(() => location.reload(), 1200);
-        } catch (err) {
-          APP.showAlert('page-alert', err.message || 'Failed to close job.', 'error');
-          APP.setLoading('close-job-btn', false, 'Close job');
-        }
+        } catch (err) { APP.showAlert('page-alert', err.message, 'error'); APP.setLoading('close-job-btn', false, 'Close job'); }
       });
 
       document.getElementById('progress-btn')?.addEventListener('click', async () => {
-        APP.setLoading('progress-btn', true, 'Updating…');
+        APP.setLoading('progress-btn', true, 'Updating...');
         try {
-          const { error } = await API.updateJob(jobId, { status: 'in_progress' });
+          const { error } = await API.updateJob(currentJobId, { status: 'in_progress' });
           if (error) throw error;
           APP.showAlert('page-alert', 'Job marked as in progress.', 'success');
           setTimeout(() => location.reload(), 1200);
-        } catch (err) {
-          APP.showAlert('page-alert', err.message || 'Failed to update.', 'error');
-          APP.setLoading('progress-btn', false, 'Mark in progress');
-        }
+        } catch (err) { APP.showAlert('page-alert', err.message, 'error'); APP.setLoading('progress-btn', false, 'Mark in progress'); }
       });
 
       document.getElementById('complete-btn')?.addEventListener('click', async () => {
-        APP.setLoading('complete-btn', true, 'Completing…');
+        APP.setLoading('complete-btn', true, 'Completing...');
         try {
-          const { error } = await API.updateJob(jobId, { status: 'completed' });
+          const { error } = await API.updateJob(currentJobId, { status: 'completed' });
           if (error) throw error;
           APP.showAlert('page-alert', 'Job marked as complete!', 'success');
-          setTimeout(() => location.reload(), 1200);
-        } catch (err) {
-          APP.showAlert('page-alert', err.message || 'Failed to update.', 'error');
-          APP.setLoading('complete-btn', false, 'Mark complete');
-        }
+          setTimeout(() => {
+            location.reload();
+            // Show review modal after reload handled via status check above
+          }, 1200);
+        } catch (err) { APP.showAlert('page-alert', err.message, 'error'); APP.setLoading('complete-btn', false, 'Mark complete'); }
+      });
+
+      document.getElementById('review-btn')?.addEventListener('click', () => {
+        const assemblerFirstName = job.bids?.find(b => b.assembler_id === job.assembler_id)?.assembler?.full_name?.split(' ')[0] || 'the assembler';
+        document.getElementById('review-modal-sub').textContent = `How was your experience with ${assemblerFirstName}?`;
+        document.getElementById('review-modal').classList.remove('hidden');
       });
 
       // Load bids
       try {
-        const { data: bids, error: bidsError } = await API.getBidsForJob(jobId);
+        const { data: bids, error: bidsError } = await API.getBidsForJob(currentJobId);
         if (bidsError) throw bidsError;
-
         document.getElementById('bid-count').textContent = bids?.length || 0;
         const bidsList = document.getElementById('bids-list');
 
         if (!bids?.length) {
-          bidsList.innerHTML = `<div class="empty-state" style="padding:1.5rem"><p style="margin:0">No bids yet. Assemblers will see your job and submit bids soon.</p></div>`;
+          bidsList.innerHTML = `<div class="empty-state" style="padding:1.5rem"><p style="margin:0">No bids yet. Your job is visible to assemblers.</p></div>`;
           return;
         }
 
         bidsList.innerHTML = bids.map(bid => {
-          const initials = (bid.assembler?.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-          const badgeCls = APP.getBadgeClass(bid.status);
+          // Show only first name to customer
+          const firstName = (bid.assembler?.full_name || 'Assembler').split(' ')[0];
+          const initials  = firstName[0]?.toUpperCase() || '?';
+          const badgeCls  = APP.getBadgeClass(bid.status);
+          const isFixed   = job.budget_type === 'fixed';
           return `
             <div class="bid-card">
               <div class="bid-card-top">
@@ -231,24 +311,25 @@
                   <div class="avatar">${initials}</div>
                   <div>
                     <div class="bid-assembler-name">
-                      <a href="assembler-detail.html?id=${bid.assembler_id}" style="color:var(--ink);text-decoration:none">${bid.assembler?.full_name || 'Assembler'}</a>
+                      <a href="assembler-detail.html?id=${bid.assembler_id}" style="color:var(--ink);text-decoration:none">${firstName}</a>
                     </div>
                     <div class="bid-assembler-meta">
-                      ${bid.assembler?.city || 'Location TBD'} &middot;
-                      ${bid.assembler?.rating ? '&#9733; ' + Number(bid.assembler.rating).toFixed(1) : 'New'} &middot;
-                      ${bid.assembler?.completed_jobs || 0} jobs
+                      ${bid.assembler?.city||'Location TBD'} &middot;
+                      ${bid.assembler?.rating ? '&#9733; '+Number(bid.assembler.rating).toFixed(1)+' &middot; ' : ''}
+                      ${bid.assembler?.completed_jobs||0} jobs
                     </div>
                   </div>
                 </div>
                 <div style="text-align:right;flex-shrink:0">
-                  <div class="bid-amount">$${bid.bid_amount}${bid.bid_type === 'hourly' ? '/hr' : ''}</div>
+                  <div class="bid-amount">$${bid.bid_amount}${bid.bid_type==='hourly'?'/hr':''}</div>
                   <span class="badge ${badgeCls}" style="margin-top:4px">${bid.status}</span>
                 </div>
               </div>
               ${bid.message ? `<div class="bid-message">"${bid.message}"</div>` : ''}
-              ${bid.status === 'pending' ? `
+              ${isFixed ? `<div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem">Your fixed price: $${job.budget_min} &middot; Assembler bid: $${bid.bid_amount}</div>` : ''}
+              ${bid.status === 'pending' && job.status === 'open' ? `
                 <div class="bid-actions">
-                  <button class="btn btn-primary btn-sm" onclick="acceptBid('${bid.id}', '${bid.assembler_id}', ${bid.bid_amount})">Accept bid</button>
+                  <button class="btn btn-primary btn-sm" onclick="acceptBid('${bid.id}','${bid.assembler_id}',${bid.bid_amount})">Accept bid</button>
                   <button class="btn btn-outline btn-sm" onclick="rejectBid('${bid.id}')">Decline</button>
                   <a href="assembler-detail.html?id=${bid.assembler_id}" class="btn btn-ghost btn-sm">View profile</a>
                 </div>` : ''}
@@ -256,27 +337,22 @@
         }).join('');
 
       } catch (err) {
-        document.getElementById('bids-list').innerHTML =
-          `<div class="error-state"><span>&#9888;</span>Could not load bids.</div>`;
+        document.getElementById('bids-list').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load bids.</div>`;
       }
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML =
-        `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-jobs.html">Go back</a></div>`;
+      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-jobs.html">Go back</a></div>`;
     }
   });
 
   async function acceptBid(bidId, assemblerId, amount) {
     if (!confirm('Accept this bid? All other bids will be declined.')) return;
-    const jobId = APP.getParam('id');
     try {
-      const { error } = await API.acceptBid(bidId, jobId, assemblerId, amount);
+      const { error } = await API.acceptBid(bidId, currentJobId, assemblerId, amount);
       if (error) throw error;
       APP.showAlert('page-alert', 'Bid accepted! The assembler has been notified.', 'success');
       setTimeout(() => location.reload(), 1500);
-    } catch (err) {
-      APP.showAlert('page-alert', err.message || 'Failed to accept bid.', 'error');
-    }
+    } catch (err) { APP.showAlert('page-alert', err.message || 'Failed to accept bid.', 'error'); }
   }
 
   async function rejectBid(bidId) {
@@ -285,9 +361,7 @@
       const { error } = await supabaseClient.from('bids').update({ status: 'rejected' }).eq('id', bidId);
       if (error) throw error;
       location.reload();
-    } catch (err) {
-      APP.showAlert('page-alert', err.message || 'Failed to decline bid.', 'error');
-    }
+    } catch (err) { APP.showAlert('page-alert', err.message || 'Failed to decline bid.', 'error'); }
   }
 </script>
 </body>

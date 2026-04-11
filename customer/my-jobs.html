@@ -38,12 +38,6 @@
   </style>
 </head>
 <body>
-<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
-  <span></span>
-  <span></span>
-  <span></span>
-</button>
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
     <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
@@ -137,7 +131,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    APP.initMobileMenu();
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
     const { user } = auth;
@@ -163,9 +156,8 @@
       allJobs = data || [];
       renderJobs(allJobs);
     } catch (err) {
-      console.error('my-jobs load error:', err);
       document.getElementById('jobs-list').innerHTML =
-        `<div class="error-state"><span>&#9888;</span>Could not load jobs. See console. (${err?.message || 'Unknown error'})</div>`;
+        `<div class="error-state"><span>&#9888;</span>Could not load jobs. Please refresh.</div>`;
     }
   });
 </script>

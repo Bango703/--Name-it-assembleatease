@@ -10,31 +10,24 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <style>
-    .post-job-wrap { max-width: 680px; margin: 0 auto; }
-    .form-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      margin-bottom: 1.25rem;
-    }
-    .form-card-title {
-      font-size: 1rem; font-weight: 500; color: var(--ink);
-      margin-bottom: 1.5rem; padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    .post-job-wrap { max-width: 640px; }
+    .form-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem 2rem; margin-bottom: 1rem; }
+    .form-card-title { font-size: 0.95rem; font-weight: 500; color: var(--ink); margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+    .form-fields { display: flex; flex-direction: column; gap: 1rem; }
     .char-count { font-size: 0.72rem; color: var(--muted); text-align: right; margin-top: 3px; }
-    .budget-note { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
+    .budget-type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; }
+    .budget-type-option input[type="radio"] { display: none; }
+    .budget-type-option label { display: flex; flex-direction: column; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s; background: var(--white); }
+    .budget-type-option label:hover { border-color: var(--accent); background: var(--accent-light); }
+    .budget-type-option input:checked + label { border: 2px solid var(--accent); background: var(--accent-light); }
+    .budget-type-option strong { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
+    .budget-type-option span { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .budget-hint { font-size: 0.78rem; color: var(--muted); line-height: 1.55; padding: 0.75rem; background: var(--off-white); border-radius: var(--radius-md); border: 1px solid var(--border); }
+    .form-actions { display: flex; gap: 0.75rem; margin-bottom: 2.5rem; }
+    .form-actions .btn { flex: 1; justify-content: center; }
   </style>
 </head>
 <body>
-<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
-  <span></span>
-  <span></span>
-  <span></span>
-</button>
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
     <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
@@ -60,31 +53,27 @@
     <div class="page-header">
       <div>
         <h1>Post a Job</h1>
-        <p>Describe what needs doing and get competitive bids from vetted professionals.</p>
+        <p>Describe what needs doing and receive competitive bids from vetted professionals.</p>
       </div>
     </div>
 
     <div class="post-job-wrap">
       <div id="page-alert" class="alert hidden"></div>
 
-      <form id="post-job-form">
+      <form id="post-job-form" novalidate>
 
         <!-- Job details -->
         <div class="form-card">
           <div class="form-card-title">Job details</div>
           <div class="form-fields">
-
             <div class="form-group">
-              <label for="title">Job title</label>
-              <input type="text" id="title" class="form-control"
-                placeholder="e.g. Assemble IKEA PAX wardrobe x2"
-                maxlength="120" required />
+              <label for="title">Job title <span style="color:var(--accent)">*</span></label>
+              <input type="text" id="title" class="form-control" placeholder="e.g. Assemble IKEA PAX wardrobe x2" maxlength="120" />
               <span class="field-error" id="title-error"></span>
             </div>
-
             <div class="form-group">
-              <label for="category">Category</label>
-              <select id="category" class="form-control" required>
+              <label for="category">Category <span style="color:var(--accent)">*</span></label>
+              <select id="category" class="form-control">
                 <option value="">Select a category</option>
                 <option value="Furniture Assembly">Furniture Assembly</option>
                 <option value="Flat-Pack / IKEA">Flat-Pack / IKEA</option>
@@ -102,16 +91,14 @@
               </select>
               <span class="field-error" id="category-error"></span>
             </div>
-
             <div class="form-group">
-              <label for="description">Description</label>
+              <label for="description">Description <span style="color:var(--accent)">*</span></label>
               <textarea id="description" class="form-control" rows="5"
-                placeholder="Describe what needs doing — include brand, model, number of items, any access notes (e.g. stairs, no elevator)..."
-                maxlength="1000" required></textarea>
+                placeholder="Describe what needs assembling — brand, model, number of items, access details (e.g. 3rd floor, no elevator)..."
+                maxlength="1000"></textarea>
               <div class="char-count"><span id="desc-count">0</span> / 1000</div>
               <span class="field-error" id="description-error"></span>
             </div>
-
           </div>
         </div>
 
@@ -119,76 +106,88 @@
         <div class="form-card">
           <div class="form-card-title">Location &amp; schedule</div>
           <div class="form-fields">
-
             <div class="form-row">
               <div class="form-group">
-                <label for="city">City</label>
-                <input type="text" id="city" class="form-control" placeholder="e.g. Austin" required />
+                <label for="city">City <span style="color:var(--accent)">*</span></label>
+                <input type="text" id="city" class="form-control" placeholder="e.g. Austin" />
                 <span class="field-error" id="city-error"></span>
               </div>
               <div class="form-group">
                 <label for="state">State</label>
-                <input type="text" id="state" class="form-control" placeholder="e.g. TX" maxlength="2" />
+                <input type="text" id="state" class="form-control" placeholder="TX" maxlength="2" style="text-transform:uppercase" />
               </div>
             </div>
-
             <div class="form-group">
               <label for="schedule">When do you need this done?</label>
               <select id="schedule" class="form-control">
-                <option value="ASAP">ASAP</option>
+                <option value="ASAP">ASAP — as soon as possible</option>
                 <option value="Today">Today</option>
                 <option value="Tomorrow">Tomorrow</option>
                 <option value="This week">This week</option>
-                <option value="Flexible">Flexible — I'm not in a rush</option>
+                <option value="This weekend">This weekend</option>
+                <option value="Next week">Next week</option>
+                <option value="Flexible">Flexible — no rush</option>
               </select>
             </div>
-
           </div>
         </div>
 
         <!-- Budget -->
         <div class="form-card">
           <div class="form-card-title">Budget</div>
-          <div class="form-fields">
 
+          <!-- Budget type selector -->
+          <div class="budget-type-toggle">
+            <div class="budget-type-option">
+              <input type="radio" name="budget_type" id="bt-range" value="range" checked />
+              <label for="bt-range">
+                <strong>Budget range</strong>
+                <span>Set a min and max — assemblers bid within it</span>
+              </label>
+            </div>
+            <div class="budget-type-option">
+              <input type="radio" name="budget_type" id="bt-fixed" value="fixed" />
+              <label for="bt-fixed">
+                <strong>Fixed price</strong>
+                <span>Name your price — assemblers can accept or counter</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Range fields -->
+          <div id="range-fields" class="form-fields">
             <div class="form-row">
               <div class="form-group">
-                <label for="budget-min">Minimum ($)</label>
-                <input type="number" id="budget-min" class="form-control"
-                  placeholder="e.g. 50" min="0" step="1" required />
+                <label for="budget-min">Minimum ($) <span style="color:var(--accent)">*</span></label>
+                <input type="number" id="budget-min" class="form-control" placeholder="50" min="1" step="1" />
                 <span class="field-error" id="budget-min-error"></span>
               </div>
               <div class="form-group">
-                <label for="budget-max">Maximum ($)</label>
-                <input type="number" id="budget-max" class="form-control"
-                  placeholder="e.g. 200" min="0" step="1" required />
+                <label for="budget-max">Maximum ($) <span style="color:var(--accent)">*</span></label>
+                <input type="number" id="budget-max" class="form-control" placeholder="200" min="1" step="1" />
                 <span class="field-error" id="budget-max-error"></span>
               </div>
             </div>
+          </div>
 
+          <!-- Fixed price field -->
+          <div id="fixed-fields" class="form-fields" style="display:none">
             <div class="form-group">
-              <label for="budget-type">Budget type</label>
-              <select id="budget-type" class="form-control">
-                <option value="fixed">Fixed price — total for the job</option>
-                <option value="hourly">Hourly rate — per hour worked</option>
-              </select>
+              <label for="budget-fixed">Your price ($) <span style="color:var(--accent)">*</span></label>
+              <input type="number" id="budget-fixed" class="form-control" placeholder="e.g. 120" min="1" step="1" style="max-width:200px" />
+              <p style="font-size:0.75rem;color:var(--muted);margin-top:4px">Assemblers will see this price and can bid to accept it or propose a different amount.</p>
+              <span class="field-error" id="budget-fixed-error"></span>
             </div>
+          </div>
 
-            <p class="budget-note">
-              &#128161; Assemblers will bid within or below your range. You are not locked in — you choose who to hire and at what price.
-            </p>
-
+          <div class="budget-hint" style="margin-top:1rem">
+            &#128161; You are never locked in — you review all bids and choose who to hire at what price.
           </div>
         </div>
 
-        <!-- Actions -->
-        <div style="display:flex;gap:0.75rem;margin-bottom:2rem">
-          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" style="flex:1">
-            Post Job
-          </button>
-          <a href="my-jobs.html" class="btn btn-outline btn-lg" style="flex:1;text-align:center">
-            Cancel
-          </a>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Post Job</button>
+          <a href="my-jobs.html" class="btn btn-outline btn-lg">Cancel</a>
         </div>
 
       </form>
@@ -197,13 +196,24 @@
 </div>
 
 <script>
-  // Character counter
+  // Char counter
   document.getElementById('description')?.addEventListener('input', function () {
     document.getElementById('desc-count').textContent = this.value.length;
   });
 
+  // Budget type toggle
+  document.querySelectorAll('input[name="budget_type"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const isFixed = document.querySelector('input[name="budget_type"]:checked')?.value === 'fixed';
+      document.getElementById('range-fields').style.display = isFixed ? 'none' : 'flex';
+      document.getElementById('fixed-fields').style.display = isFixed ? 'flex' : 'none';
+    });
+  });
+
+  // Pre-select assembler if coming from assembler detail page
+  const targetAssembler = new URLSearchParams(window.location.search).get('assembler');
+
   document.addEventListener('DOMContentLoaded', async () => {
-    APP.initMobileMenu();
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
     const { user } = auth;
@@ -218,61 +228,46 @@
       e.preventDefault();
       APP.hideAlert('page-alert');
 
-      // Clear previous errors
-      document.querySelectorAll('.field-error').forEach(el => {
-        el.textContent = ''; el.classList.remove('visible');
-      });
+      // Clear errors
+      document.querySelectorAll('.field-error').forEach(el => { el.textContent = ''; el.classList.remove('visible'); });
       document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
 
-      // Get values
       const title       = document.getElementById('title').value.trim();
       const category    = document.getElementById('category').value;
       const description = document.getElementById('description').value.trim();
       const city        = document.getElementById('city').value.trim();
-      const state       = document.getElementById('state').value.trim();
+      const state       = document.getElementById('state').value.trim().toUpperCase();
       const schedule    = document.getElementById('schedule').value;
-      const budgetMin   = parseInt(document.getElementById('budget-min').value);
-      const budgetMax   = parseInt(document.getElementById('budget-max').value);
-      const budgetType  = document.getElementById('budget-type').value;
+      const budgetType  = document.querySelector('input[name="budget_type"]:checked')?.value;
+      const isFixed     = budgetType === 'fixed';
 
-      // Validate
+      let budgetMin, budgetMax, dbBudgetType;
       let hasError = false;
 
-      if (!title) {
-        APP.fieldError('title', 'Please add a job title.');
-        hasError = true;
-      }
-      if (!category) {
-        APP.fieldError('category', 'Please select a category.');
-        hasError = true;
-      }
-      if (!description || description.length < 20) {
-        APP.fieldError('description', 'Please describe the job in at least 20 characters.');
-        hasError = true;
-      }
-      if (!city) {
-        APP.fieldError('city', 'Please enter your city.');
-        hasError = true;
-      }
-      if (!budgetMin || budgetMin < 0) {
-        APP.fieldError('budget-min', 'Please enter a minimum budget.');
-        hasError = true;
-      }
-      if (!budgetMax || budgetMax < 0) {
-        APP.fieldError('budget-max', 'Please enter a maximum budget.');
-        hasError = true;
-      }
-      if (!hasError && budgetMin > budgetMax) {
-        APP.fieldError('budget-max', 'Maximum must be greater than minimum.');
-        hasError = true;
+      if (!title)       { APP.fieldError('title', 'Please add a job title.'); hasError = true; }
+      if (!category)    { APP.fieldError('category', 'Please select a category.'); hasError = true; }
+      if (!description || description.length < 20) { APP.fieldError('description', 'Please describe the job in at least 20 characters.'); hasError = true; }
+      if (!city)        { APP.fieldError('city', 'Please enter your city.'); hasError = true; }
+
+      if (isFixed) {
+        const fixed = parseFloat(document.getElementById('budget-fixed').value);
+        if (!fixed || fixed < 1) { APP.fieldError('budget-fixed', 'Please enter your price.'); hasError = true; }
+        else { budgetMin = fixed; budgetMax = fixed; dbBudgetType = 'fixed'; }
+      } else {
+        budgetMin = parseFloat(document.getElementById('budget-min').value);
+        budgetMax = parseFloat(document.getElementById('budget-max').value);
+        if (!budgetMin || budgetMin < 1) { APP.fieldError('budget-min', 'Please enter a minimum.'); hasError = true; }
+        if (!budgetMax || budgetMax < 1) { APP.fieldError('budget-max', 'Please enter a maximum.'); hasError = true; }
+        if (!hasError && budgetMin > budgetMax) { APP.fieldError('budget-max', 'Maximum must be greater than minimum.'); hasError = true; }
+        dbBudgetType = 'range';
       }
 
       if (hasError) return;
 
-      APP.setLoading('submit-btn', true, 'Posting job...');
+      APP.setLoading('submit-btn', true, 'Posting...');
 
       try {
-        const { data, error } = await API.createJob({
+        const jobData = {
           customer_id:  user.id,
           title,
           description,
@@ -282,26 +277,23 @@
           schedule,
           budget_min:   budgetMin,
           budget_max:   budgetMax,
-          budget_type:  budgetType,
+          budget_type:  dbBudgetType,
           status:       'open',
-        });
+        };
 
+        // If coming from assembler profile — tag the job
+        if (targetAssembler) {
+          jobData.target_assembler_id = targetAssembler;
+        }
+
+        const { data, error } = await API.createJob(jobData);
         if (error) throw error;
 
-        APP.showAlert('page-alert', 'Job posted successfully! Assemblers can now bid on your job.', 'success');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // Redirect to job detail after short delay
-        setTimeout(() => {
-          window.location.href = 'job-detail.html?id=' + data.id;
-        }, 1500);
+        APP.showAlert('page-alert', 'Job posted! Redirecting...', 'success');
+        setTimeout(() => { window.location.href = 'job-detail.html?id=' + data.id; }, 1200);
 
       } catch (err) {
-        console.error('Post job error:', err);
-        APP.showAlert('page-alert',
-          err.message || 'Failed to post job. Please try again.',
-          'error'
-        );
+        APP.showAlert('page-alert', err.message || 'Failed to post job. Please try again.', 'error');
         APP.setLoading('submit-btn', false, 'Post Job');
       }
     });

@@ -10,61 +10,35 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <style>
-    .profile-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; }
-    .profile-card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1rem;
-    }
+    .profile-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; }
+    .profile-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1rem; }
     .profile-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; font-weight: 500; }
-
     .profile-header { display: flex; align-items: flex-start; gap: 1.5rem; }
-    .profile-avatar {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: var(--accent-light); color: var(--accent);
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-display); font-size: 1.5rem;
-      flex-shrink: 0;
-    }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 1.5rem; flex-shrink: 0; overflow: hidden; }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .profile-name { font-family: var(--font-display); font-size: 1.6rem; color: var(--ink); margin-bottom: 0.3rem; }
     .profile-rating { font-size: 0.9rem; color: var(--muted); }
-    .profile-rating strong { color: var(--amber, #f59e0b); }
-
     .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
     .stat-item label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 4px; }
     .stat-item span { font-size: 1rem; font-weight: 500; color: var(--ink); }
-
-    .skill-chip {
-      display: inline-flex; padding: 0.25rem 0.75rem;
-      border-radius: 999px; font-size: 0.78rem; font-weight: 500;
-      background: var(--teal-light); color: var(--teal-dark);
-      border: 1px solid rgba(29,158,117,0.2);
-    }
-
+    .skill-chip { display: inline-flex; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 500; background: var(--teal-light); color: var(--teal-dark); border: 1px solid rgba(29,158,117,0.2); }
     .review-item { padding: 1rem 0; border-bottom: 1px solid var(--border); }
     .review-item:last-child { border-bottom: none; padding-bottom: 0; }
     .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
     .reviewer-name { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
-    .review-rating { font-size: 0.82rem; color: var(--amber, #f59e0b); font-weight: 500; }
+    .review-rating { font-size: 0.82rem; color: #f59e0b; font-weight: 500; }
     .review-text { font-size: 0.875rem; color: var(--ink-soft); line-height: 1.6; }
     .review-date { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
-
+    .rehire-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--teal-dark); background: var(--teal-light); border-radius: 999px; padding: 0.15rem 0.6rem; margin-top: 0.35rem; border: 1px solid rgba(29,158,117,0.2); }
     .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); text-decoration: none; margin-bottom: 1.5rem; transition: color 0.15s; }
     .back-link:hover { color: var(--ink); }
-
     .hire-card { background: var(--white); border: 2px solid var(--accent); border-radius: var(--radius-lg); padding: 1.75rem; }
     .hire-rate { font-family: var(--font-display); font-size: 2rem; color: var(--ink); margin-bottom: 0.2rem; }
     .hire-label { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
-
     @media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
-  <span></span>
-  <span></span>
-  <span></span>
-</button>
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
     <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
@@ -72,9 +46,9 @@
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
         <li><a href="index.html"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
         <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
         <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -97,7 +71,6 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    APP.initMobileMenu();
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
 
@@ -114,61 +87,52 @@
       const { data: assembler, error } = await API.getProfile(assemblerId);
       if (error || !assembler || assembler.role !== 'assembler') throw new Error('Profile not found');
 
-      const initials = (assembler.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-      const skills   = Array.isArray(assembler.skills)
-        ? assembler.skills
-        : (typeof assembler.skills === 'string' && assembler.skills
-            ? assembler.skills.split(',').map(s => s.trim()).filter(Boolean)
-            : []);
-      const joinedDate = assembler.created_at ? new Date(assembler.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
+      // Show only first name to customer
+      const firstName = (assembler.full_name || 'Assembler').split(' ')[0];
+      const initials  = firstName[0]?.toUpperCase() || '?';
+      const skills    = Array.isArray(assembler.skills) ? assembler.skills
+        : (typeof assembler.skills === 'string' && assembler.skills ? assembler.skills.split(',').map(s => s.trim()).filter(Boolean) : []);
+      const joinedDate = assembler.created_at
+        ? new Date(assembler.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
       document.getElementById('page-content').innerHTML = `
         <div class="profile-grid">
           <div>
-            <!-- Header -->
             <div class="profile-card">
               <div class="profile-header">
-                <div class="profile-avatar">${initials}</div>
+                <div class="profile-avatar">
+                  ${assembler.profile_photo
+                    ? `<img src="${assembler.profile_photo}" alt="${firstName}" />`
+                    : initials}
+                </div>
                 <div style="flex:1">
-                  <div class="profile-name">${assembler.full_name || 'Assembler'}</div>
+                  <div class="profile-name">${firstName}</div>
                   <div class="profile-rating">
-                    <strong>&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</strong>
-                    &nbsp;&middot;&nbsp; ${assembler.completed_jobs || 0} completed jobs
-                    &nbsp;&middot;&nbsp; ${assembler.city || 'Location TBD'}${assembler.state ? ', ' + assembler.state : ''}
+                    <strong style="color:#f59e0b">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</strong>
+                    &nbsp;&middot;&nbsp; ${assembler.completed_jobs || 0} jobs completed
+                    ${assembler.city ? ' &middot; ' + assembler.city : ''}
                   </div>
                   <div class="stats-row">
-                    <div class="stat-item">
-                      <label>Hourly rate</label>
-                      <span style="color:var(--teal)">${assembler.hourly_rate ? '$' + assembler.hourly_rate + '/hr' : 'Contact'}</span>
-                    </div>
-                    <div class="stat-item">
-                      <label>Jobs done</label>
-                      <span>${assembler.completed_jobs || 0}</span>
-                    </div>
-                    <div class="stat-item">
-                      <label>Member since</label>
-                      <span>${joinedDate}</span>
-                    </div>
+                    <div class="stat-item"><label>Hourly rate</label><span style="color:var(--teal)">${assembler.hourly_rate ? '$' + assembler.hourly_rate + '/hr' : 'Varies'}</span></div>
+                    <div class="stat-item"><label>Jobs done</label><span>${assembler.completed_jobs || 0}</span></div>
+                    <div class="stat-item"><label>Member since</label><span>${joinedDate}</span></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- About -->
             <div class="profile-card">
               <div class="profile-card-title">About</div>
               <p style="font-size:0.9rem;color:var(--ink-soft);line-height:1.75">${assembler.bio || 'No bio provided.'}</p>
             </div>
 
-            <!-- Skills -->
             <div class="profile-card">
-              <div class="profile-card-title">Skills & specialties</div>
+              <div class="profile-card-title">Skills &amp; specialties</div>
               ${skills.length
                 ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${skills.map(s => `<span class="skill-chip">${s}</span>`).join('')}</div>`
                 : `<p style="font-size:0.875rem;color:var(--muted)">No skills listed yet.</p>`}
             </div>
 
-            <!-- Reviews -->
             <div class="profile-card">
               <div class="profile-card-title">Reviews</div>
               <div id="reviews-list">
@@ -177,32 +141,28 @@
             </div>
           </div>
 
-          <!-- Hire panel -->
           <div>
             <div class="hire-card">
               <div class="hire-rate">${assembler.hourly_rate ? '$' + assembler.hourly_rate : 'Custom'}</div>
-              <div class="hire-label">${assembler.hourly_rate ? 'per hour · negotiate on your job' : 'Price negotiated per job'}</div>
-              <a href="post-job.html" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem">Post a job for this type</a>
-              <p style="font-size:0.78rem;color:var(--muted);text-align:center;line-height:1.55">
-                Post your job and this assembler can submit a bid. You choose who to hire.
+              <div class="hire-label">${assembler.hourly_rate ? 'per hour &middot; negotiate on your job' : 'Price negotiated per job'}</div>
+              <a href="post-job.html?assembler=${assemblerId}" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem;display:flex;justify-content:center">
+                Send a job to ${firstName}
+              </a>
+              <a href="post-job.html" class="btn btn-outline btn-full" style="margin-bottom:1rem;display:flex;justify-content:center">
+                Post a general job
+              </a>
+              <p style="font-size:0.75rem;color:var(--muted);text-align:center;line-height:1.55">
+                Sending directly posts your job and notifies ${firstName}. Other assemblers can also bid unless you make it private.
               </p>
             </div>
 
             <div class="profile-card" style="margin-top:1rem">
               <div class="profile-card-title">Quick stats</div>
               <div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.875rem">
-                <div style="display:flex;justify-content:space-between">
-                  <span style="color:var(--muted)">Rating</span>
-                  <span style="font-weight:500;color:var(--amber,#f59e0b)">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between">
-                  <span style="color:var(--muted)">Jobs completed</span>
-                  <span style="font-weight:500">${assembler.completed_jobs || 0}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between">
-                  <span style="color:var(--muted)">Location</span>
-                  <span style="font-weight:500">${assembler.city || '—'}</span>
-                </div>
+                <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Rating</span><span style="font-weight:500;color:#f59e0b">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Jobs completed</span><span style="font-weight:500">${assembler.completed_jobs || 0}</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Location</span><span style="font-weight:500">${assembler.city || '—'}</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Hourly rate</span><span style="font-weight:500;color:var(--teal)">${assembler.hourly_rate ? '$' + assembler.hourly_rate + '/hr' : 'Varies'}</span></div>
               </div>
             </div>
           </div>
@@ -216,23 +176,22 @@
           reviewsList.innerHTML = reviews.slice(0, 6).map(r => `
             <div class="review-item">
               <div class="review-header">
-                <div class="reviewer-name">${r.reviewer?.full_name || 'Customer'}</div>
+                <div class="reviewer-name">${(r.reviewer?.full_name || 'Customer').split(' ')[0]}</div>
                 <div class="review-rating">&#9733; ${r.rating || 5}</div>
               </div>
               <div class="review-text">${r.comment || 'Great work!'}</div>
+              ${r.customer_would_rehire ? '<div class="rehire-tag">&#10003; Would hire again</div>' : ''}
               <div class="review-date">${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
             </div>`).join('');
         } else {
           reviewsList.innerHTML = `<p style="font-size:0.875rem;color:var(--muted);padding:0.5rem 0">No reviews yet. Be the first to hire and review!</p>`;
         }
       } catch {
-        document.getElementById('reviews-list').innerHTML =
-          `<div class="error-state"><span>&#9888;</span>Could not load reviews.</div>`;
+        document.getElementById('reviews-list').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load reviews.</div>`;
       }
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML =
-        `<div class="error-state"><span>&#9888;</span>Could not load profile. <a href="browse-assemblers.html">Go back</a></div>`;
+      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load profile. <a href="browse-assemblers.html">Go back</a></div>`;
     }
   });
 </script>
