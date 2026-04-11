@@ -156,7 +156,7 @@
 
     // Recent jobs
     try {
-      const { data: jobs } = await API.getCustomerJobs(user.id, { limit: 6 });
+      const { data: jobs } = await API.getJobs({ customerId: user.id, limit: 6 });
       const list = document.getElementById('jobs-list');
       if (jobs?.length) {
         list.innerHTML = jobs.map(job => {
