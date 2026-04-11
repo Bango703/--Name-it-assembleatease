@@ -9,152 +9,405 @@
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    .profile-wrap { max-width: 680px; margin: 0 auto; }
+    .form-section {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 1.25rem;
+    }
+    .form-section-title {
+      font-size: 1rem; font-weight: 500; color: var(--ink);
+      margin-bottom: 1.5rem; padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    .info-row { display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid var(--border); }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size:0.85rem; color:var(--muted); }
+    .info-value { font-size:0.875rem; color:var(--ink); font-weight:500; }
+
+    /* Payment */
+    .payment-empty {
+      border: 2px dashed var(--border); border-radius: var(--radius-lg);
+      padding: 2rem; text-align: center; background: var(--off-white);
+    }
+    .payment-empty-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: var(--white); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin: 0 auto 0.85rem;
+    }
+    .payment-empty h4 { font-size:0.95rem; font-weight:500; color:var(--ink); margin-bottom:0.35rem; font-family:var(--font-body); }
+    .payment-empty p { font-size:0.82rem; color:var(--muted); line-height:1.6; margin-bottom:1rem; }
+    .stripe-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--off-white); border:1px solid var(--border);
+      border-radius:999px; padding:0.3rem 0.85rem;
+      font-size:0.72rem; font-weight:600; color:var(--muted);
+    }
+    .payment-card-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0.85rem 1rem; border:1px solid var(--border);
+      border-radius:var(--radius-md); margin-bottom:0.5rem;
+    }
+    .payment-card-left { display:flex; align-items:center; gap:12px; }
+    .card-icon {
+      width:42px; height:28px; border-radius:5px;
+      background:var(--ink); display:flex; align-items:center;
+      justify-content:center; font-size:0.6rem; font-weight:700;
+      color:rgba(255,255,255,0.8); letter-spacing:0.05em; flex-shrink:0;
+    }
+    .card-info-name { font-size:0.875rem; font-weight:500; color:var(--ink); }
+    .card-info-sub { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+    /* Notification toggles */
+    .pref-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0.85rem 0; border-bottom:1px solid var(--border);
+    }
+    .pref-row:last-child { border-bottom:none; }
+    .pref-text h5 { font-size:0.875rem; font-weight:500; color:var(--ink); margin-bottom:2px; font-family:var(--font-body); }
+    .pref-text p { font-size:0.78rem; color:var(--muted); line-height:1.4; }
+    .toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; position:absolute; }
+    .toggle-track {
+      position:absolute; inset:0; cursor:pointer;
+      background:var(--border); border-radius:999px; transition:background 0.2s;
+    }
+    .toggle-track::before {
+      content:''; position:absolute; width:16px; height:16px;
+      border-radius:50%; background:var(--white); top:3px; left:3px;
+      transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.15);
+    }
+    .toggle input:checked + .toggle-track { background:var(--teal); }
+    .toggle input:checked + .toggle-track::before { transform:translateX(18px); }
+
+    /* Danger */
+    .danger-zone { border-color:rgba(239,68,68,0.2); background:#fef2f2; }
+    .danger-zone .form-section-title { color:#991b1b; border-color:rgba(239,68,68,0.15); }
+    .danger-text { font-size:0.875rem; color:#991b1b; margin-bottom:1rem; line-height:1.6; }
+  </style>
 </head>
 <body>
-<nav class="nav" id="main-nav"></nav>
-
+<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+        <li><a href="index.html"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html" class="active"><span class="nav-icon">⚙️</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+        <li><a href="profile.html" class="active"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main">
     <div class="page-header">
-      <h1>My Profile</h1>
-      <p>Manage your account and information.</p>
+      <div>
+        <h1>My Profile</h1>
+        <p>Manage your account, payment methods, and preferences.</p>
+      </div>
     </div>
 
-    <div style="max-width:900px">
-      <form id="profile-form" class="card" style="padding:32px">
-        <!-- Full Name -->
-        <div class="form-group mb-24">
-          <label for="full-name">Full Name *</label>
-          <input type="text" id="full-name" class="form-control" required />
+    <div class="profile-wrap">
+      <div id="page-alert" class="alert hidden"></div>
+
+      <!-- Personal info -->
+      <form id="profile-form">
+        <div class="form-section">
+          <div class="form-section-title">Personal information</div>
+          <div class="form-fields">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="first-name">First name</label>
+                <input type="text" id="first-name" class="form-control" placeholder="Jane" />
+                <span class="field-error" id="first-name-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="last-name">Last name</label>
+                <input type="text" id="last-name" class="form-control" placeholder="Smith" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" class="form-control" placeholder="e.g. Austin" />
+              </div>
+              <div class="form-group">
+                <label for="state">State</label>
+                <input type="text" id="state" class="form-control" placeholder="e.g. TX" maxlength="2" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone number <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+              <input type="tel" id="phone" class="form-control" placeholder="+1 (555) 000-0000" />
+              <p style="font-size:0.75rem;color:var(--muted);margin-top:4px">Used for job updates and assembler contact. Never shared publicly.</p>
+            </div>
+          </div>
         </div>
 
-        <!-- City -->
-        <div class="form-group mb-24">
-          <label for="city">City/Location *</label>
-          <input type="text" id="city" class="form-control" placeholder="e.g. San Francisco, CA" required />
-        </div>
-
-        <!-- State -->
-        <div class="form-group mb-24">
-          <label for="state">State/Province</label>
-          <input type="text" id="state" class="form-control" placeholder="e.g. CA" />
-        </div>
-
-        <!-- Phone -->
-        <div class="form-group mb-24">
-          <label for="phone">Phone Number</label>
-          <input type="tel" id="phone" class="form-control" placeholder="+1 (555) 000-0000" />
-        </div>
-
-        <!-- Submit Button -->
-        <div style="display:flex;gap:12px;margin-top:32px">
-          <button type="submit" class="btn btn-primary btn-lg" style="flex:1">Save Profile</button>
-          <a href="index.html" class="btn btn-ghost btn-lg" style="flex:1;text-align:center">Cancel</a>
+        <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem">
+          <button type="submit" class="btn btn-primary btn-lg" id="save-btn" style="flex:1">Save changes</button>
+          <a href="index.html" class="btn btn-outline btn-lg" style="flex:1;text-align:center">Cancel</a>
         </div>
       </form>
 
-      <!-- Account Settings -->
-      <div class="card" style="padding:32px;margin-top:24px">
-        <h2 style="margin-top:0">Account Settings</h2>
-        
-        <div style="margin-bottom:24px">
-          <h4 style="margin:0 0 8px">Email</h4>
-          <div id="email-display" style="color:var(--text-secondary);font-size:0.9rem">Loading...</div>
+      <!-- Account info -->
+      <div class="form-section">
+        <div class="form-section-title">Account information</div>
+        <div class="info-row">
+          <span class="info-label">Email address</span>
+          <span class="info-value" id="email-display">—</span>
         </div>
-
-        <div style="margin-bottom:24px">
-          <h4 style="margin:0 0 8px">Account Status</h4>
-          <div style="color:var(--text-secondary);font-size:0.9rem">Active</div>
+        <div class="info-row">
+          <span class="info-label">Account type</span>
+          <span class="info-value">Customer</span>
         </div>
-
-        <div>
-          <h4 style="margin:0 0 8px">Change Password</h4>
-          <button class="btn btn-outline" onclick="changePassword()" type="button">Update Password</button>
+        <div class="info-row">
+          <span class="info-label">Member since</span>
+          <span class="info-value" id="member-since">—</span>
         </div>
-
-        <div style="margin-top:32px;padding-top:32px;border-top:1px solid var(--border)">
-          <h4 style="margin:0 0 8px;color:var(--text-muted)">Danger Zone</h4>
-          <button class="btn btn-ghost" onclick="deleteAccount()" type="button" style="color:var(--text-muted)">Delete Account</button>
+        <div class="info-row">
+          <span class="info-label">Account status</span>
+          <span class="badge badge-accepted">Active</span>
+        </div>
+        <div style="margin-top:1.25rem">
+          <button class="btn btn-outline" id="change-password-btn" type="button">Send password reset email</button>
         </div>
       </div>
+
+      <!-- Payment methods -->
+      <div class="form-section">
+        <div class="form-section-title">Payment methods</div>
+        <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.65;margin-bottom:1.25rem">
+          Your payment method is charged only when you accept an assembler's bid.
+          We never charge you until you confirm a hire.
+        </p>
+
+        <!-- Payment placeholder — wire up Stripe later -->
+        <div class="payment-empty" id="payment-section">
+          <div class="payment-empty-icon">&#128179;</div>
+          <h4>No payment method added</h4>
+          <p>Add a card to pay assemblers when you accept a bid. Your card details are encrypted and never stored on our servers.</p>
+          <button class="btn btn-outline btn-sm" id="add-card-btn" type="button" disabled>
+            Add a card
+          </button>
+          <div style="margin-top:1rem">
+            <span class="stripe-badge">&#128274; Secured by Stripe — coming soon</span>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <p style="font-size:0.78rem;color:var(--muted);line-height:1.6">
+            &#128274; Payments are processed securely through Stripe. We never store your full card number.
+            All transactions are encrypted with industry-standard SSL.
+          </p>
+        </div>
+      </div>
+
+      <!-- Notification preferences -->
+      <div class="form-section">
+        <div class="form-section-title">Notification preferences</div>
+
+        <div class="pref-row">
+          <div class="pref-text">
+            <h5>New bid received</h5>
+            <p>Get notified when an assembler bids on your job</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-bids" checked />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="pref-row">
+          <div class="pref-text">
+            <h5>Job status updates</h5>
+            <p>Updates when your job moves to in progress or complete</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-status" checked />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="pref-row">
+          <div class="pref-text">
+            <h5>Messages from assemblers</h5>
+            <p>Email alerts when an assembler sends you a message</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-messages" checked />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="pref-row">
+          <div class="pref-text">
+            <h5>Promotions and tips</h5>
+            <p>Platform updates, money-saving tips, and new features</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-promo" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <div style="margin-top:1.25rem">
+          <button class="btn btn-outline btn-sm" id="save-notifs-btn" type="button">Save preferences</button>
+        </div>
+      </div>
+
+      <!-- Security -->
+      <div class="form-section">
+        <div class="form-section-title">Security</div>
+        <div class="info-row">
+          <div>
+            <div style="font-size:0.875rem;font-weight:500;color:var(--ink)">Password</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Last changed — unknown</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="change-password-btn-2" type="button">Change password</button>
+        </div>
+        <div class="info-row">
+          <div>
+            <div style="font-size:0.875rem;font-weight:500;color:var(--ink)">Two-factor authentication</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Add an extra layer of security — coming soon</div>
+          </div>
+          <button class="btn btn-outline btn-sm" disabled type="button">Enable 2FA</button>
+        </div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="form-section danger-zone">
+        <div class="form-section-title">Danger zone</div>
+        <p class="danger-text">
+          Permanently delete your account and all associated data including jobs, reviews, and messages.
+          This action cannot be undone.
+        </p>
+        <button class="btn btn-danger" id="delete-account-btn" type="button">Delete my account</button>
+      </div>
+
     </div>
   </main>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['customer']);
-  if (!auth) return;
-  const { user, profile } = auth;
-  await APP.buildNav('customer');
-  APP.setActiveSidebarLink();
+  document.addEventListener('DOMContentLoaded', async () => {
+    APP.initMobileMenu();
+    const auth = await APP.requireAuth(['customer']);
+    if (!auth) return;
+    const { user, profile } = auth;
 
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
-  });
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
 
-  // Load current profile
-  document.getElementById('full-name').value = profile.full_name || '';
-  document.getElementById('city').value = profile.city || '';
-  document.getElementById('state').value = profile.state || '';
-  document.getElementById('phone').value = profile.phone || '';
-  document.getElementById('email-display').textContent = user.email;
+    // Populate fields
+    const nameParts = (profile.full_name || '').split(' ');
+    document.getElementById('first-name').value = nameParts[0] || '';
+    document.getElementById('last-name').value  = nameParts.slice(1).join(' ') || '';
+    document.getElementById('city').value        = profile.city  || '';
+    document.getElementById('state').value       = profile.state || '';
+    document.getElementById('phone').value       = profile.phone || '';
+    document.getElementById('email-display').textContent = user.email;
+    document.getElementById('member-since').textContent  = profile.created_at
+      ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : '—';
 
-  // Form submission
-  document.getElementById('profile-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    // Save profile
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      APP.hideAlert('page-alert');
 
-    const updates = {
-      full_name: document.getElementById('full-name').value.trim(),
-      city: document.getElementById('city').value.trim(),
-      state: document.getElementById('state').value.trim(),
-      phone: document.getElementById('phone').value.trim()
-    };
+      const firstName = document.getElementById('first-name').value.trim();
+      if (!firstName) {
+        APP.fieldError('first-name', 'First name is required.');
+        return;
+      }
 
-    const { data, error } = await API.updateProfile(user.id, updates);
+      APP.setLoading('save-btn', true, 'Saving…');
+      try {
+        const lastName = document.getElementById('last-name').value.trim();
+        const { error } = await API.updateProfile(user.id, {
+          full_name: [firstName, lastName].filter(Boolean).join(' '),
+          city:  document.getElementById('city').value.trim(),
+          state: document.getElementById('state').value.trim(),
+          phone: document.getElementById('phone').value.trim() || null,
+        });
+        if (error) throw error;
+        APP.showAlert('page-alert', 'Profile updated successfully.', 'success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        APP.showAlert('page-alert', err.message || 'Failed to save. Please try again.', 'error');
+      } finally {
+        APP.setLoading('save-btn', false, 'Save changes');
+      }
+    });
 
-    if (error) {
-      alert('Error updating profile: ' + error.message);
-      return;
+    // Password reset — both buttons
+    async function sendPasswordReset(btnId) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, {
+          redirectTo: window.location.origin + '/auth/login.html',
+        });
+        if (error) throw error;
+        APP.showAlert('page-alert', 'Password reset email sent to ' + user.email + '. Check your inbox.', 'success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        APP.showAlert('page-alert', err.message || 'Failed to send reset email.', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = btnId === 'change-password-btn' ? 'Send password reset email' : 'Change password';
+      }
     }
+    document.getElementById('change-password-btn')?.addEventListener('click', () => sendPasswordReset('change-password-btn'));
+    document.getElementById('change-password-btn-2')?.addEventListener('click', () => sendPasswordReset('change-password-btn-2'));
 
-    alert('Profile updated successfully!');
-    window.location.href = 'index.html';
+    // Notification preferences save (UI only for now — wire to DB later)
+    document.getElementById('save-notifs-btn')?.addEventListener('click', () => {
+      APP.showAlert('page-alert', 'Notification preferences saved.', 'success');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Add card — placeholder for Stripe
+    document.getElementById('add-card-btn')?.addEventListener('click', () => {
+      APP.showAlert('page-alert', 'Stripe payments are coming soon. You will be able to add a card here.', 'info');
+    });
+
+    // Delete account
+    document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
+      if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+      if (!window.confirm('This will permanently delete all your jobs, data, and history. Continue?')) return;
+      APP.setLoading('delete-account-btn', true, 'Deleting…');
+      try {
+        await supabaseClient.from('profiles').delete().eq('id', user.id);
+        await supabaseClient.auth.signOut();
+        window.location.href = '../index.html';
+      } catch (err) {
+        APP.showAlert('page-alert', 'Failed to delete account. Please contact support.', 'error');
+        APP.setLoading('delete-account-btn', false, 'Delete my account');
+      }
+    });
   });
-});
-
-function changePassword() {
-  alert('Password change feature coming soon');
-}
-
-function deleteAccount() {
-  if (!confirm('Are you sure? This action cannot be undone.')) return;
-  if (!confirm('This will permanently delete your account and all data. Confirm again?')) return;
-  
-  alert('Account deletion feature coming soon');
-}
 </script>
 </body>
 </html>

@@ -9,17 +9,50 @@
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    body.theme-pro .filters-bar {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      margin-bottom: 1.5rem; align-items: center;
+    }
+    body.theme-pro .filter-select {
+      padding: 0.5rem 0.9rem; border-radius: 8px;
+      background: var(--pro-elevated); border: 1px solid var(--pro-border-md);
+      color: var(--pro-soft); font-family: var(--font-body); font-size: 0.85rem;
+      cursor: pointer; outline: none; transition: border-color 0.15s;
+    }
+    body.theme-pro .filter-select:focus { border-color: var(--pro-teal); }
+    body.theme-pro .search-input {
+      flex: 1; min-width: 200px; padding: 0.5rem 0.9rem; border-radius: 8px;
+      background: var(--pro-elevated); border: 1px solid var(--pro-border-md);
+      color: var(--pro-text); font-family: var(--font-body); font-size: 0.875rem;
+      outline: none; transition: border-color 0.15s;
+    }
+    body.theme-pro .search-input::placeholder { color: var(--pro-muted); }
+    body.theme-pro .search-input:focus { border-color: var(--pro-teal); }
+    body.theme-pro .job-card {
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
+      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
+      cursor: pointer; transition: all 0.15s; text-decoration: none; display: block;
+    }
+    body.theme-pro .job-card:hover { border-color: var(--pro-border-md); background: var(--pro-elevated); }
+    body.theme-pro .job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+    body.theme-pro .job-card h3 { font-size: 1rem; font-weight: 500; color: var(--pro-text); }
+    body.theme-pro .job-card-desc { font-size: 0.875rem; color: var(--pro-muted); line-height: 1.6; margin-bottom: 0.75rem; }
+    body.theme-pro .job-card-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    body.theme-pro .job-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--pro-muted); }
+    body.theme-pro .budget-tag { font-size: 0.82rem; font-weight: 500; color: var(--pro-teal); }
+    body.theme-pro .results-count { font-size: 0.82rem; color: var(--pro-muted); margin-bottom: 1rem; }
+    body.theme-pro .load-more-wrap { text-align: center; margin-top: 1.5rem; }
+  </style>
 </head>
-<body>
-<nav class="nav" id="main-nav"></nav>
-
+<body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
-      <div class="sidebar-label">Main</div>
+      <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="index.html"><span class="nav-icon">⚡</span> Dashboard</a></li>
         <li><a href="browse-jobs.html" class="active"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
         <li><a href="my-bids.html"><span class="nav-icon">💬</span> My Bids</a></li>
         <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
@@ -28,212 +61,160 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">⭐</span> My Profile</a></li>
+        <li><a href="profile.html"><span class="nav-icon">👤</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
-  <main class="dashboard-main">
-    <div class="page-header">
-      <h1>Browse Jobs</h1>
-      <p>Find and bid on jobs that match your skills.</p>
+  <main class="dashboard-main" style="padding:2rem">
+    <div class="page-header" style="margin-bottom:1.5rem">
+      <div>
+        <h1>Browse Jobs</h1>
+        <p>Find assembly jobs near you and submit your best bid.</p>
+      </div>
     </div>
+
+    <div id="page-alert" class="alert hidden"></div>
 
     <!-- Filters -->
-    <div class="card" style="padding:20px;margin-bottom:24px">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
-        <div class="form-group" style="margin:0">
-          <label style="font-size:0.8rem">Search</label>
-          <input type="text" id="search-filter" class="form-control" placeholder="Search jobs..." />
-        </div>
-        <div class="form-group" style="margin:0">
-          <label style="font-size:0.8rem">Category</label>
-          <select id="category-filter" class="form-control">
-            <option value="">All Categories</option>
-            <option value="furniture">Furniture</option>
-            <option value="gym-equipment">Gym Equipment</option>
-            <option value="flat-pack">Flat-Pack</option>
-            <option value="office">Office</option>
-            <option value="outdoor">Outdoor</option>
-            <option value="kids">Kids</option>
-            <option value="appliances">Appliances</option>
-            <option value="shelving">Shelving</option>
-            <option value="beds">Beds</option>
-          </select>
-        </div>
-        <div class="form-group" style="margin:0">
-          <label style="font-size:0.8rem">Budget</label>
-          <select id="budget-filter" class="form-control">
-            <option value="">Any Budget</option>
-            <option value="0-100">$0 - $100</option>
-            <option value="100-500">$100 - $500</option>
-            <option value="500+">$500+</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset Filters</button>
+    <div class="filters-bar">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍  Search jobs…" />
+      <select class="filter-select" id="category-filter">
+        <option value="">All categories</option>
+        <option>Furniture Assembly</option>
+        <option>Flat-Pack / IKEA</option>
+        <option>TV Mounting & AV Setup</option>
+        <option>Gym & Fitness Equipment</option>
+        <option>Office Furniture</option>
+        <option>Smart Home & Tech Install</option>
+        <option>Shelving & Storage</option>
+        <option>Beds & Bedroom</option>
+        <option>Outdoor & Garden Furniture</option>
+        <option>Picture & Mirror Hanging</option>
+        <option>Kids Furniture & Toys</option>
+        <option>Appliances</option>
+        <option>Other / Custom</option>
+      </select>
+      <button class="btn btn-teal btn-sm" id="search-btn">Search</button>
     </div>
 
-    <!-- Jobs Grid -->
-    <div id="jobs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:20px">
-      <div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--text-secondary)">
-        <div class="spinner spinner-lg" style="margin:0 auto 16px"></div>
-        <p>Loading jobs...</p>
-      </div>
+    <div id="results-count" class="results-count"></div>
+    <div id="jobs-list">
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
     </div>
-
-    <!-- Pagination -->
-    <div style="text-align:center;margin-top:40px;padding:20px" id="pagination">
+    <div class="load-more-wrap">
+      <button class="btn btn-ghost btn-sm" id="load-more-btn" style="display:none">Load more</button>
     </div>
   </main>
 </div>
 
 <script>
-let allJobs = [];
-let currentPage = 0;
-const itemsPerPage = 12;
+  let offset = 0;
+  const LIMIT = 12;
+  let currentSearch = '';
+  let currentCategory = '';
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['assembler']);
-  if (!auth) return;
-  await APP.buildNav('assembler');
-  APP.setActiveSidebarLink();
+  function timeAgo(d) {
+    if (!d) return '';
+    const diff=Date.now()-new Date(d).getTime(), m=Math.floor(diff/60000), h=Math.floor(diff/3600000), days=Math.floor(diff/86400000);
+    if (m<1) return 'Just now'; if (m<60) return m+'m ago'; if (h<24) return h+'h ago'; if (days===1) return 'Yesterday'; return days+'d ago';
+  }
 
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
+  function formatBudget(job) {
+    if (!job.budget_min && !job.budget_max) return 'Budget TBD';
+    if (job.budget_min && job.budget_max) return `$${job.budget_min}–$${job.budget_max}`;
+    if (job.budget_max) return `Up to $${job.budget_max}`;
+    return `From $${job.budget_min}`;
+  }
+
+  function renderJobs(jobs, append = false) {
+    const list = document.getElementById('jobs-list');
+    const html = jobs.map(job => {
+      const bidCount = job.bids?.[0]?.count ?? 0;
+      return `
+        <a class="job-card" href="job-detail.html?id=${job.id}">
+          <div class="job-card-top">
+            <h3>${job.title}</h3>
+            <span class="badge badge-new" style="flex-shrink:0">Open</span>
+          </div>
+          <div class="job-card-desc">${APP.truncate(job.description, 120)}</div>
+          <div class="job-card-footer">
+            <span class="budget-tag">${formatBudget(job)}</span>
+            <span class="job-tag">📍 ${job.city || 'Location TBD'}${job.state ? ', '+job.state : ''}</span>
+            <span class="job-tag">🗂️ ${job.category || 'General'}</span>
+            <span class="job-tag">💬 ${bidCount} bid${bidCount!==1?'s':''}</span>
+            <span class="job-tag">⏱ ${timeAgo(job.created_at)}</span>
+          </div>
+        </a>`;
+    }).join('');
+    if (append) list.innerHTML += html;
+    else list.innerHTML = html || `<div class="empty-state"><p>No jobs found matching your search.</p></div>`;
+  }
+
+  async function loadJobs(append = false) {
+    if (!append) {
+      offset = 0;
+      document.getElementById('jobs-list').innerHTML =
+        '<div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>'.repeat(4);
+    }
+    try {
+      const { data: jobs, count } = await API.getOpenJobs({
+        search: currentSearch || undefined,
+        category: currentCategory || undefined,
+        limit: LIMIT, offset
+      });
+      if (!append) {
+        document.getElementById('results-count').textContent =
+          count != null ? `${count} job${count !== 1 ? 's' : ''} found` : '';
+      }
+      renderJobs(jobs || [], append);
+      offset += LIMIT;
+      const loadMore = document.getElementById('load-more-btn');
+      loadMore.style.display = (jobs?.length === LIMIT) ? 'inline-flex' : 'none';
+    } catch (err) {
+      document.getElementById('jobs-list').innerHTML =
+        `<div class="error-state"><span>⚠</span>Could not load jobs. Please refresh.</div>`;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const auth = await APP.requireAuth(['assembler']);
+    if (!auth) return;
+
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    // Pre-fill search from URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('q')) { document.getElementById('search-input').value = params.get('q'); currentSearch = params.get('q'); }
+
+    await loadJobs();
+
+    document.getElementById('search-btn').addEventListener('click', () => {
+      currentSearch   = document.getElementById('search-input').value.trim();
+      currentCategory = document.getElementById('category-filter').value;
+      loadJobs();
+    });
+
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('search-btn').click();
+    });
+
+    document.getElementById('category-filter').addEventListener('change', () => {
+      currentCategory = document.getElementById('category-filter').value;
+      loadJobs();
+    });
+
+    document.getElementById('load-more-btn').addEventListener('click', () => loadJobs(true));
   });
-
-  // Filter event listeners
-  document.getElementById('search-filter').addEventListener('input', () => { currentPage = 0; renderJobs(); });
-  document.getElementById('category-filter').addEventListener('change', () => { currentPage = 0; renderJobs(); });
-  document.getElementById('budget-filter').addEventListener('change', () => { currentPage = 0; renderJobs(); });
-
-  loadJobs();
-});
-
-async function loadJobs() {
-  const { data, error } = await API.getOpenJobs({ limit: 100 });
-
-  if (error) {
-    document.getElementById('jobs-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center"><p>Error loading jobs: ' + error.message + '</p></div>';
-    return;
-  }
-
-  allJobs = data || [];
-  renderJobs();
-}
-
-function renderJobs() {
-  // Apply filters
-  let filtered = allJobs;
-
-  const searchTerm = document.getElementById('search-filter').value.toLowerCase();
-  if (searchTerm) {
-    filtered = filtered.filter(j => 
-      j.title.toLowerCase().includes(searchTerm) || 
-      j.description.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  const category = document.getElementById('category-filter').value;
-  if (category) {
-    filtered = filtered.filter(j => j.category === category);
-  }
-
-  const budgetFilter = document.getElementById('budget-filter').value;
-  if (budgetFilter) {
-    const [min, max] = budgetFilter === '500+' 
-      ? [500, Infinity] 
-      : budgetFilter.split('-').map(Number);
-    filtered = filtered.filter(j => j.budget_max >= min && j.budget_min <= max);
-  }
-
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const start = currentPage * itemsPerPage;
-  const end = start + itemsPerPage;
-  const paged = filtered.slice(start, end);
-
-  // Render cards
-  const jobsGrid = document.getElementById('jobs-grid');
-  
-  if (!paged.length) {
-    jobsGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:64px"><p>No jobs found matching your filters.</p></div>';
-    document.getElementById('pagination').innerHTML = '';
-    return;
-  }
-
-  jobsGrid.innerHTML = paged.map(job => `
-    <div class="card" style="padding:20px;cursor:pointer;transition:all 0.3s" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''" onclick="window.location.href='job-detail.html?id=${job.id}'">
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-        <h3 style="margin:0;flex:1">${job.title}</h3>
-        <span style="background:var(--teal-light);padding:4px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;color:white;white-space:nowrap;margin-left:8px">OPEN</span>
-      </div>
-
-      <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">${job.category?.replace('-', ' ').toUpperCase()} • ${job.city}</div>
-
-      <p style="line-height:1.5;color:var(--text-secondary);margin:12px 0;min-height:60px">${job.description?.substring(0, 100)}...</p>
-
-      <div style="background:rgba(13,148,136,0.05);padding:12px;border-radius:6px;margin:12px 0">
-        <div style="font-size:0.8rem;color:var(--text-secondary)">Budget</div>
-        <div style="font-weight:700;color:var(--teal)">$${job.budget_min} - $${job.budget_max}</div>
-      </div>
-
-      <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--text-muted);padding-top:12px;border-top:1px solid var(--border);margin-top:12px">
-        <div>${job.bids?.length || 0} bids</div>
-        <div>Posted ${new Date(job.created_at).toLocaleDateString()}</div>
-      </div>
-    </div>
-  `).join('');
-
-  // Pagination controls
-  let paginationHtml = '';
-  if (totalPages > 1) {
-    paginationHtml = '<div style="display:flex;gap:8px;justify-content:center">';
-    
-    if (currentPage > 0) {
-      paginationHtml += `<button class="btn btn-ghost btn-sm" onclick="previousPage()">← Previous</button>`;
-    }
-    
-    paginationHtml += `<div style="padding:8px 12px;color:var(--text-secondary)">Page ${currentPage + 1} of ${totalPages}</div>`;
-    
-    if (currentPage < totalPages - 1) {
-      paginationHtml += `<button class="btn btn-ghost btn-sm" onclick="nextPage()">Next →</button>`;
-    }
-    
-    paginationHtml += '</div>';
-  }
-
-  document.getElementById('pagination').innerHTML = paginationHtml;
-}
-
-function previousPage() {
-  if (currentPage > 0) {
-    currentPage--;
-    renderJobs();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-}
-
-function nextPage() {
-  const totalPages = Math.ceil(allJobs.length / itemsPerPage);
-  if (currentPage < totalPages - 1) {
-    currentPage++;
-    renderJobs();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-}
-
-function resetFilters() {
-  document.getElementById('search-filter').value = '';
-  document.getElementById('category-filter').value = '';
-  document.getElementById('budget-filter').value = '';
-  currentPage = 0;
-  renderJobs();
-}
 </script>
 </body>
 </html>

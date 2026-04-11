@@ -9,166 +9,303 @@
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    .post-job-wrap { max-width: 680px; margin: 0 auto; }
+    .form-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 1.25rem;
+    }
+    .form-card-title {
+      font-size: 1rem; font-weight: 500; color: var(--ink);
+      margin-bottom: 1.5rem; padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    .char-count { font-size: 0.72rem; color: var(--muted); text-align: right; margin-top: 3px; }
+    .budget-note { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.5; }
+  </style>
 </head>
 <body>
-<nav class="nav" id="main-nav"></nav>
-
+<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
-        <li><a href="post-job.html" class="active"><span class="nav-icon">📝</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+        <li><a href="index.html"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job.html" class="active"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main">
     <div class="page-header">
-      <h1>Post a Job</h1>
-      <p>Describe what needs assembling and get competitive bids from vetted professionals.</p>
+      <div>
+        <h1>Post a Job</h1>
+        <p>Describe what needs doing and get competitive bids from vetted professionals.</p>
+      </div>
     </div>
 
-    <div style="max-width:900px">
-      <form id="post-job-form" class="card" style="padding:32px">
-        <!-- Job Title -->
-        <div class="form-group mb-24">
-          <label for="title">Job Title *</label>
-          <input type="text" id="title" class="form-control" placeholder="e.g. Assemble IKEA Billy Bookshelf" required />
+    <div class="post-job-wrap">
+      <div id="page-alert" class="alert hidden"></div>
+
+      <form id="post-job-form">
+
+        <!-- Job details -->
+        <div class="form-card">
+          <div class="form-card-title">Job details</div>
+          <div class="form-fields">
+
+            <div class="form-group">
+              <label for="title">Job title</label>
+              <input type="text" id="title" class="form-control"
+                placeholder="e.g. Assemble IKEA PAX wardrobe x2"
+                maxlength="120" required />
+              <span class="field-error" id="title-error"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="category">Category</label>
+              <select id="category" class="form-control" required>
+                <option value="">Select a category</option>
+                <option value="Furniture Assembly">Furniture Assembly</option>
+                <option value="Flat-Pack / IKEA">Flat-Pack / IKEA</option>
+                <option value="TV Mounting &amp; AV Setup">TV Mounting &amp; AV Setup</option>
+                <option value="Gym &amp; Fitness Equipment">Gym &amp; Fitness Equipment</option>
+                <option value="Office Furniture">Office Furniture</option>
+                <option value="Smart Home &amp; Tech Install">Smart Home &amp; Tech Install</option>
+                <option value="Shelving &amp; Storage">Shelving &amp; Storage</option>
+                <option value="Beds &amp; Bedroom">Beds &amp; Bedroom</option>
+                <option value="Outdoor &amp; Garden Furniture">Outdoor &amp; Garden Furniture</option>
+                <option value="Picture &amp; Mirror Hanging">Picture &amp; Mirror Hanging</option>
+                <option value="Kids Furniture &amp; Toys">Kids Furniture &amp; Toys</option>
+                <option value="Appliances">Appliances</option>
+                <option value="Other / Custom">Other / Custom</option>
+              </select>
+              <span class="field-error" id="category-error"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea id="description" class="form-control" rows="5"
+                placeholder="Describe what needs doing — include brand, model, number of items, any access notes (e.g. stairs, no elevator)..."
+                maxlength="1000" required></textarea>
+              <div class="char-count"><span id="desc-count">0</span> / 1000</div>
+              <span class="field-error" id="description-error"></span>
+            </div>
+
+          </div>
         </div>
 
-        <!-- Category -->
-        <div class="form-group mb-24">
-          <label for="category">Category *</label>
-          <select id="category" class="form-control" required>
-            <option value="">Select a category</option>
-            <option value="furniture">Furniture</option>
-            <option value="gym-equipment">Gym Equipment</option>
-            <option value="flat-pack">Flat-Pack (IKEA etc)</option>
-            <option value="office">Office Furniture</option>
-            <option value="outdoor">Outdoor & Garden</option>
-            <option value="kids">Kids Furniture & Toys</option>
-            <option value="appliances">Appliances</option>
-            <option value="shelving">Shelving & Storage</option>
-            <option value="beds">Beds & Bedroom</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
+        <!-- Location & schedule -->
+        <div class="form-card">
+          <div class="form-card-title">Location &amp; schedule</div>
+          <div class="form-fields">
 
-        <!-- Description -->
-        <div class="form-group mb-24">
-          <label for="description">Description *</label>
-          <textarea id="description" class="form-control" rows="6" placeholder="Provide details about what needs to be assembled, any specific requirements, or materials you have..." required></textarea>
-        </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" class="form-control" placeholder="e.g. Austin" required />
+                <span class="field-error" id="city-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="state">State</label>
+                <input type="text" id="state" class="form-control" placeholder="e.g. TX" maxlength="2" />
+              </div>
+            </div>
 
-        <!-- Location -->
-        <div class="form-group mb-24">
-          <label for="city">City/Location *</label>
-          <input type="text" id="city" class="form-control" placeholder="e.g. San Francisco, CA" required />
+            <div class="form-group">
+              <label for="schedule">When do you need this done?</label>
+              <select id="schedule" class="form-control">
+                <option value="ASAP">ASAP</option>
+                <option value="Today">Today</option>
+                <option value="Tomorrow">Tomorrow</option>
+                <option value="This week">This week</option>
+                <option value="Flexible">Flexible — I'm not in a rush</option>
+              </select>
+            </div>
+
+          </div>
         </div>
 
         <!-- Budget -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-          <div class="form-group">
-            <label for="budget_min">Budget Min ($) *</label>
-            <input type="number" id="budget_min" class="form-control" placeholder="50" min="0" required />
+        <div class="form-card">
+          <div class="form-card-title">Budget</div>
+          <div class="form-fields">
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="budget-min">Minimum ($)</label>
+                <input type="number" id="budget-min" class="form-control"
+                  placeholder="e.g. 50" min="0" step="1" required />
+                <span class="field-error" id="budget-min-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="budget-max">Maximum ($)</label>
+                <input type="number" id="budget-max" class="form-control"
+                  placeholder="e.g. 200" min="0" step="1" required />
+                <span class="field-error" id="budget-max-error"></span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="budget-type">Budget type</label>
+              <select id="budget-type" class="form-control">
+                <option value="fixed">Fixed price — total for the job</option>
+                <option value="hourly">Hourly rate — per hour worked</option>
+              </select>
+            </div>
+
+            <p class="budget-note">
+              &#128161; Assemblers will bid within or below your range. You are not locked in — you choose who to hire and at what price.
+            </p>
+
           </div>
-          <div class="form-group">
-            <label for="budget_max">Budget Max ($) *</label>
-            <input type="number" id="budget_max" class="form-control" placeholder="500" min="0" required />
-          </div>
         </div>
 
-        <!-- Budget Type -->
-        <div class="form-group mb-24">
-          <label for="budget_type">Budget Type *</label>
-          <select id="budget_type" class="form-control" required>
-            <option value="">Select type</option>
-            <option value="fixed">Fixed Price</option>
-            <option value="hourly">Hourly Rate</option>
-            <option value="negotiable">Negotiable</option>
-          </select>
+        <!-- Actions -->
+        <div style="display:flex;gap:0.75rem;margin-bottom:2rem">
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" style="flex:1">
+            Post Job
+          </button>
+          <a href="my-jobs.html" class="btn btn-outline btn-lg" style="flex:1;text-align:center">
+            Cancel
+          </a>
         </div>
 
-        <!-- Timeline -->
-        <div class="form-group mb-24">
-          <label for="timeline">When do you need this done? *</label>
-          <select id="timeline" class="form-control" required>
-            <option value="">Select timeline</option>
-            <option value="urgent">ASAP / Same Day</option>
-            <option value="this-week">This Week</option>
-            <option value="next-week">Next Week</option>
-            <option value="flexible">Flexible</option>
-          </select>
-        </div>
-
-        <!-- Submit Button -->
-        <div style="display:flex;gap:12px;margin-top:32px">
-          <button type="submit" class="btn btn-primary btn-lg" style="flex:1">Post Job</button>
-          <a href="my-jobs.html" class="btn btn-ghost btn-lg" style="flex:1;text-align:center">Cancel</a>
-        </div>
       </form>
     </div>
   </main>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['customer']);
-  if (!auth) return;
-  const { user } = auth;
-  await APP.buildNav('customer');
-  APP.setActiveSidebarLink();
-
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
+  // Character counter
+  document.getElementById('description')?.addEventListener('input', function () {
+    document.getElementById('desc-count').textContent = this.value.length;
   });
 
-  document.getElementById('post-job-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  document.addEventListener('DOMContentLoaded', async () => {
+    APP.initMobileMenu();
+    const auth = await APP.requireAuth(['customer']);
+    if (!auth) return;
+    const { user } = auth;
 
-    const jobData = {
-      customer_id: user.id,
-      title: document.getElementById('title').value.trim(),
-      description: document.getElementById('description').value.trim(),
-      category: document.getElementById('category').value,
-      city: document.getElementById('city').value.trim(),
-      budget_min: parseInt(document.getElementById('budget_min').value),
-      budget_max: parseInt(document.getElementById('budget_max').value),
-      budget_type: document.getElementById('budget_type').value,
-      timeline: document.getElementById('timeline').value,
-      status: 'open'
-    };
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
 
-    if (jobData.budget_min > jobData.budget_max) {
-      alert('Minimum budget cannot be greater than maximum budget');
-      return;
-    }
+    document.getElementById('post-job-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      APP.hideAlert('page-alert');
 
-    const { data, error } = await API.createJob(jobData);
+      // Clear previous errors
+      document.querySelectorAll('.field-error').forEach(el => {
+        el.textContent = ''; el.classList.remove('visible');
+      });
+      document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
 
-    if (error) {
-      alert('Error posting job: ' + error.message);
-      return;
-    }
+      // Get values
+      const title       = document.getElementById('title').value.trim();
+      const category    = document.getElementById('category').value;
+      const description = document.getElementById('description').value.trim();
+      const city        = document.getElementById('city').value.trim();
+      const state       = document.getElementById('state').value.trim();
+      const schedule    = document.getElementById('schedule').value;
+      const budgetMin   = parseInt(document.getElementById('budget-min').value);
+      const budgetMax   = parseInt(document.getElementById('budget-max').value);
+      const budgetType  = document.getElementById('budget-type').value;
 
-    alert('Job posted successfully!');
-    window.location.href = `job-detail.html?id=${data.id}`;
+      // Validate
+      let hasError = false;
+
+      if (!title) {
+        APP.fieldError('title', 'Please add a job title.');
+        hasError = true;
+      }
+      if (!category) {
+        APP.fieldError('category', 'Please select a category.');
+        hasError = true;
+      }
+      if (!description || description.length < 20) {
+        APP.fieldError('description', 'Please describe the job in at least 20 characters.');
+        hasError = true;
+      }
+      if (!city) {
+        APP.fieldError('city', 'Please enter your city.');
+        hasError = true;
+      }
+      if (!budgetMin || budgetMin < 0) {
+        APP.fieldError('budget-min', 'Please enter a minimum budget.');
+        hasError = true;
+      }
+      if (!budgetMax || budgetMax < 0) {
+        APP.fieldError('budget-max', 'Please enter a maximum budget.');
+        hasError = true;
+      }
+      if (!hasError && budgetMin > budgetMax) {
+        APP.fieldError('budget-max', 'Maximum must be greater than minimum.');
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      APP.setLoading('submit-btn', true, 'Posting job...');
+
+      try {
+        const { data, error } = await API.createJob({
+          customer_id:  user.id,
+          title,
+          description,
+          category,
+          city,
+          state:        state || null,
+          schedule,
+          budget_min:   budgetMin,
+          budget_max:   budgetMax,
+          budget_type:  budgetType,
+          status:       'open',
+        });
+
+        if (error) throw error;
+
+        APP.showAlert('page-alert', 'Job posted successfully! Assemblers can now bid on your job.', 'success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Redirect to job detail after short delay
+        setTimeout(() => {
+          window.location.href = 'job-detail.html?id=' + data.id;
+        }, 1500);
+
+      } catch (err) {
+        console.error('Post job error:', err);
+        APP.showAlert('page-alert',
+          err.message || 'Failed to post job. Please try again.',
+          'error'
+        );
+        APP.setLoading('submit-btn', false, 'Post Job');
+      }
+    });
   });
-});
 </script>
 </body>
 </html>

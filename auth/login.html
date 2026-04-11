@@ -1,1 +1,463 @@
-<
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Log In — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/auth.js" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --white: #ffffff;
+      --off-white: #f8f7f4;
+      --border: #e4e1d9;
+      --muted: #9b9789;
+      --ink: #1a1916;
+      --ink-soft: #3d3b35;
+      --accent: #e86a2e;
+      --accent-dark: #c45520;
+      --accent-light: #fdf0e8;
+      --teal: #1d9e75;
+      --teal-dark: #157a5a;
+      --teal-light: #e8f5ef;
+      --red: #ef4444;
+      --red-light: #fef2f2;
+      --green: #22c55e;
+      --green-light: #f0fdf4;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--ink);
+      background: var(--white);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ── LAYOUT ── */
+    .auth-page {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── LEFT BRAND PANEL ── */
+    .auth-brand-panel {
+      background: var(--ink);
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-brand-panel::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(232, 106, 46, 0.08);
+      pointer-events: none;
+    }
+
+    .auth-brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.2rem;
+      color: var(--white);
+    }
+    .auth-brand-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+
+    .auth-brand-content { margin: auto 0; }
+    .auth-brand-content h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .auth-brand-content h2 span { color: var(--accent); font-style: italic; }
+    .auth-brand-content p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.7;
+      max-width: 380px;
+    }
+
+    .auth-features {
+      list-style: none;
+      margin-top: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .auth-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.7);
+    }
+    .check {
+      width: 20px; height: 20px;
+      background: rgba(29,158,117,0.2);
+      color: var(--teal);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+    }
+
+    /* ── RIGHT FORM PANEL ── */
+    .auth-form-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      background: var(--white);
+    }
+
+    .auth-form-box {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .auth-form-box h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      color: var(--ink);
+      margin-bottom: 0.4rem;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .subtitle a {
+      color: var(--teal);
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .subtitle a:hover { color: var(--teal-dark); text-decoration: underline; }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert.hidden { display: none; }
+    .alert-error   { background: var(--red-light);   color: #991b1b; border: 1px solid rgba(239,68,68,0.2); }
+    .alert-success { background: var(--green-light);  color: #166534; border: 1px solid rgba(34,197,94,0.2); }
+
+    /* ── FORM ── */
+    .auth-form { display: flex; flex-direction: column; gap: 1.1rem; }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .label-row a {
+      font-size: 0.8rem;
+      color: var(--teal);
+      text-decoration: none;
+    }
+    .label-row a:hover { text-decoration: underline; }
+
+    .input-with-icon {
+      position: relative;
+    }
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.9rem 0.65rem 2.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--ink);
+      background: var(--white);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(29,158,117,0.1);
+    }
+    .form-control.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+    .form-control::placeholder { color: var(--muted); }
+
+    .field-error {
+      font-size: 0.78rem;
+      color: var(--red);
+      margin-top: 2px;
+      display: none;
+    }
+    .field-error.visible { display: block; }
+
+    /* ── BUTTON ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0.65rem 1.25rem;
+      border-radius: 999px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-full { width: 100%; }
+    .btn-lg { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+
+    /* ── AUTH FOOTER ── */
+    .auth-footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .auth-footer a {
+      color: var(--teal);
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .auth-footer a:hover { text-decoration: underline; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .auth-page { grid-template-columns: 1fr; }
+      .auth-brand-panel { display: none; }
+      .auth-form-panel { padding: 2.5rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-page">
+
+  <!-- LEFT BRAND PANEL -->
+  <div class="auth-brand-panel">
+    <a href="../index.html" class="auth-brand-logo">
+      <div class="auth-brand-logo-icon">⬡</div>
+      AssembleAtEase
+    </a>
+
+    <div class="auth-brand-content">
+      <h2>Welcome back to your <span>assembly hub</span></h2>
+      <p>Manage your jobs, track bids, and connect with the best assemblers in your area — all from one place.</p>
+
+      <ul class="auth-features">
+        <li><span class="check">✓</span> Post jobs and receive competitive bids</li>
+        <li><span class="check">✓</span> Browse 2,400+ verified assemblers</li>
+        <li><span class="check">✓</span> Track progress in real time</li>
+        <li><span class="check">✓</span> Secure and transparent platform</li>
+      </ul>
+    </div>
+
+    <p style="font-size:0.78rem;color:rgba(255,255,255,0.25)">© 2025 AssembleAtEase</p>
+  </div>
+
+  <!-- RIGHT FORM PANEL -->
+  <div class="auth-form-panel">
+    <div class="auth-form-box">
+
+      <h1>Log in</h1>
+      <p class="subtitle">Don't have an account? <a href="signup.html">Sign up free</a></p>
+
+      <div id="auth-alert" class="alert hidden"></div>
+
+      <form class="auth-form" id="login-form" novalidate>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉</span>
+            <input type="email" id="email" class="form-control"
+              placeholder="you@example.com" autocomplete="email" required />
+          </div>
+          <span class="field-error" id="email-error"></span>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label for="password">Password</label>
+            <a href="forgot-password.html">Forgot password?</a>
+          </div>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" class="form-control"
+              placeholder="Enter your password" autocomplete="current-password" required />
+          </div>
+          <span class="field-error" id="password-error"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
+          Log in
+        </button>
+
+      </form>
+
+      <div class="auth-footer">
+        New to AssembleAtEase? <a href="signup.html">Create a free account</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function showAlert(type, message) {
+    const el = document.getElementById('auth-alert');
+    el.className = `alert alert-${type}`;
+    el.textContent = message;
+  }
+
+  function hideAlert() {
+    const el = document.getElementById('auth-alert');
+    el.className = 'alert hidden';
+    el.textContent = '';
+  }
+
+  function fieldError(id, message) {
+    const input = document.getElementById(id);
+    const errEl = document.getElementById(`${id}-error`);
+    input?.classList.add('error');
+    if (errEl) { errEl.textContent = message; errEl.classList.add('visible'); }
+  }
+
+  function clearFieldErrors() {
+    document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = ''; el.classList.remove('visible');
+    });
+  }
+
+  function setLoading(btnId, loading, label) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.textContent = label;
+  }
+
+  // ── Init ─────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Redirect if already logged in
+    await APP.redirectIfLoggedIn();
+
+    // ── Form submit ──
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert();
+      clearFieldErrors();
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      // Client-side validation
+      let hasError = false;
+      if (!email) {
+        fieldError('email', 'Email is required.'); hasError = true;
+      } else if (!isValidEmail(email)) {
+        fieldError('email', 'Please enter a valid email address.'); hasError = true;
+      }
+      if (!password) {
+        fieldError('password', 'Password is required.'); hasError = true;
+      }
+      if (hasError) return;
+
+      setLoading('login-btn', true, 'Logging in…');
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        if (error) {
+          showAlert('error', error.message || 'Login failed. Please try again.');
+          setLoading('login-btn', false, 'Log in');
+          return;
+        }
+
+        // Fetch profile role and redirect
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          showAlert('error', 'Could not load your profile. Please try again.');
+          setLoading('login-btn', false, 'Log in');
+          return;
+        }
+
+        window.location.href = profile.role === 'assembler'
+          ? '../assembler/index.html'
+          : '../customer/index.html';
+
+      } catch (err) {
+        console.error('Login error:', err);
+        showAlert('error', 'Something went wrong. Please try again.');
+        setLoading('login-btn', false, 'Log in');
+      }
+    });
+  });
+</script>
+</body>
+</html>

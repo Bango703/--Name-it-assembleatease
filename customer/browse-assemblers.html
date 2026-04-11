@@ -9,216 +9,239 @@
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    .filters-bar {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: grid; grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 0.75rem; align-items: flex-end;
+    }
+    .assemblers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .assembler-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.5rem;
+      text-align: center; transition: border-color 0.15s, box-shadow 0.15s;
+      cursor: pointer; text-decoration: none; display: block;
+    }
+    .assembler-card:hover { border-color: #c8c4bb; box-shadow: var(--shadow-sm); }
+    .assembler-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--accent-light); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; font-weight: 500;
+      margin: 0 auto 0.85rem; font-family: var(--font-display);
+    }
+    .assembler-name { font-size: 0.95rem; font-weight: 500; color: var(--ink); margin-bottom: 0.25rem; }
+    .assembler-rating { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .assembler-rating span { color: var(--amber, #f59e0b); font-weight: 500; }
+    .assembler-tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 0.85rem; }
+    .assembler-tag {
+      font-size: 0.72rem; padding: 0.2rem 0.6rem;
+      border-radius: 999px; border: 1px solid var(--border);
+      background: var(--off-white); color: var(--ink-soft);
+    }
+    .assembler-bio { font-size: 0.82rem; color: var(--muted); line-height: 1.55; margin-bottom: 1rem; }
+    .results-meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .pagination { display: flex; align-items: center; gap: 0.75rem; justify-content: center; margin-top: 2rem; }
+    .page-info { font-size: 0.82rem; color: var(--muted); }
+
+    @media (max-width: 900px) {
+      .assemblers-grid { grid-template-columns: repeat(2, 1fr); }
+      .filters-bar { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .assemblers-grid { grid-template-columns: 1fr; }
+      .filters-bar { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-<nav class="nav" id="main-nav"></nav>
-
+<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+        <li><a href="index.html"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main">
     <div class="page-header">
-      <h1>Browse Assemblers</h1>
-      <p>Find vetted professionals by skills, location, and rates.</p>
-    </div>
-
-    <!-- Filters -->
-    <div class="card" style="padding:20px;margin-bottom:24px">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
-        <div class="form-group" style="margin:0">
-          <label style="font-size:0.8rem">Search by Name</label>
-          <input type="text" id="search-filter" class="form-control" placeholder="Search..." />
-        </div>
-        <div class="form-group" style="margin:0">
-          <label style="font-size:0.8rem">City/Location</label>
-          <input type="text" id="city-filter" class="form-control" placeholder="e.g. San Francisco" />
-        </div>
-        <div class="form-group" style="margin:0">
-          <label style="font-size:0.8rem">Min Rating</label>
-          <select id="rating-filter" class="form-control">
-            <option value="">Any Rating</option>
-            <option value="5">⭐ 5 stars</option>
-            <option value="4">⭐ 4+ stars</option>
-            <option value="3">⭐ 3+ stars</option>
-          </select>
-        </div>
+      <div>
+        <h1>Browse Assemblers</h1>
+        <p>Find vetted professionals by skills, location, and rating.</p>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset Filters</button>
+      <a href="post-job.html" class="btn btn-primary">Post a job instead</a>
     </div>
 
-    <!-- Assemblers Grid -->
-    <div id="assemblers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
-      <div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--text-secondary)">
-        <div class="spinner spinner-lg" style="margin:0 auto 16px"></div>
-        <p>Loading assemblers...</p>
+    <div class="filters-bar">
+      <div class="form-group" style="margin:0">
+        <label for="search-filter">Search</label>
+        <input type="text" id="search-filter" class="form-control" placeholder="Name or keyword…" />
+      </div>
+      <div class="form-group" style="margin:0">
+        <label for="city-filter">City</label>
+        <input type="text" id="city-filter" class="form-control" placeholder="e.g. Austin" />
+      </div>
+      <div class="form-group" style="margin:0">
+        <label for="rate-filter">Max hourly rate ($)</label>
+        <input type="number" id="rate-filter" class="form-control" placeholder="e.g. 75" min="0" />
+      </div>
+      <button class="btn btn-outline btn-sm" id="reset-btn" style="align-self:flex-end">Reset</button>
+    </div>
+
+    <div id="results-meta" class="results-meta"></div>
+    <div id="assemblers-grid" class="assemblers-grid">
+      <div style="grid-column:1/-1">
+        <div class="skeleton-card"><div class="skeleton" style="height:180px"></div></div>
       </div>
     </div>
-
-    <!-- Pagination -->
-    <div style="text-align:center;margin-top:40px;padding:20px" id="pagination">
+    <div class="pagination" id="pagination" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="prev-btn">&#8592; Previous</button>
+      <span class="page-info" id="page-info"></span>
+      <button class="btn btn-ghost btn-sm" id="next-btn">Next &#8594;</button>
     </div>
   </main>
 </div>
 
 <script>
-let allAssemblers = [];
-let currentPage = 0;
-const itemsPerPage = 12;
+  let allAssemblers = [];
+  let filtered = [];
+  let currentPage = 0;
+  const PER_PAGE = 12;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['customer']);
-  if (!auth) return;
-  await APP.buildNav('customer');
-  APP.setActiveSidebarLink();
+  function getInitials(name) {
+    return (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  }
 
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
+  function applyFilters() {
+    const search  = document.getElementById('search-filter').value.toLowerCase().trim();
+    const city    = document.getElementById('city-filter').value.toLowerCase().trim();
+    const maxRate = parseFloat(document.getElementById('rate-filter').value) || null;
+
+    filtered = allAssemblers.filter(a => {
+      if (search && !a.full_name?.toLowerCase().includes(search) && !a.bio?.toLowerCase().includes(search)) return false;
+      if (city && !a.city?.toLowerCase().includes(city)) return false;
+      if (maxRate && a.hourly_rate > maxRate) return false;
+      return true;
+    });
+
+    currentPage = 0;
+    renderPage();
+  }
+
+  function renderPage() {
+    const start  = currentPage * PER_PAGE;
+    const paged  = filtered.slice(start, start + PER_PAGE);
+    const total  = filtered.length;
+    const pages  = Math.ceil(total / PER_PAGE);
+
+    document.getElementById('results-meta').textContent =
+      total > 0 ? `${total} assembler${total !== 1 ? 's' : ''} found` : '';
+
+    const grid = document.getElementById('assemblers-grid');
+
+    if (!paged.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>No assemblers found matching your search.</p><a href="post-job.html" class="btn btn-primary btn-sm">Post a job instead</a></div>`;
+      document.getElementById('pagination').style.display = 'none';
+      return;
+    }
+
+    grid.innerHTML = paged.map(a => {
+      const skills = Array.isArray(a.skills) ? a.skills : (typeof a.skills === 'string' && a.skills ? a.skills.split(',').map(s => s.trim()) : []);
+      return `
+        <a class="assembler-card" href="assembler-detail.html?id=${a.id}">
+          <div class="assembler-avatar">${getInitials(a.full_name)}</div>
+          <div class="assembler-name">${a.full_name || 'Assembler'}</div>
+          <div class="assembler-rating">
+            <span>&#9733; ${a.rating ? Number(a.rating).toFixed(1) : 'New'}</span>
+            &nbsp;&middot;&nbsp; ${a.completed_jobs || 0} jobs
+          </div>
+          <div class="assembler-tags">
+            ${a.city ? `<span class="assembler-tag">&#128205; ${a.city}</span>` : ''}
+            ${a.hourly_rate ? `<span class="assembler-tag" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(29,158,117,0.2)">$${a.hourly_rate}/hr</span>` : ''}
+          </div>
+          ${skills.length ? `<div class="assembler-tags">${skills.slice(0, 3).map(s => `<span class="assembler-tag">${s}</span>`).join('')}${skills.length > 3 ? `<span class="assembler-tag">+${skills.length - 3}</span>` : ''}</div>` : ''}
+          <div class="assembler-bio">${APP.truncate(a.bio || 'Professional assembler', 80)}</div>
+          <div class="btn btn-outline btn-sm" style="width:100%">View profile</div>
+        </a>`;
+    }).join('');
+
+    // Pagination
+    const pag = document.getElementById('pagination');
+    if (pages > 1) {
+      pag.style.display = 'flex';
+      document.getElementById('page-info').textContent = `Page ${currentPage + 1} of ${pages}`;
+      document.getElementById('prev-btn').disabled = currentPage === 0;
+      document.getElementById('next-btn').disabled = currentPage >= pages - 1;
+    } else {
+      pag.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    APP.initMobileMenu();
+    const auth = await APP.requireAuth(['customer']);
+    if (!auth) return;
+
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    ['search-filter', 'city-filter', 'rate-filter'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', applyFilters);
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      document.getElementById('search-filter').value = '';
+      document.getElementById('city-filter').value = '';
+      document.getElementById('rate-filter').value = '';
+      applyFilters();
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentPage > 0) { currentPage--; renderPage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    });
+    document.getElementById('next-btn').addEventListener('click', () => {
+      currentPage++; renderPage(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    try {
+      const { data, error } = await API.getAssemblers({ limit: 200 });
+      if (error) throw error;
+      allAssemblers = data || [];
+      filtered = allAssemblers;
+      renderPage();
+    } catch (err) {
+      document.getElementById('assemblers-grid').innerHTML =
+        `<div class="error-state" style="grid-column:1/-1"><span>&#9888;</span>Could not load assemblers. Please refresh.</div>`;
+    }
   });
-
-  // Filter event listeners
-  document.getElementById('search-filter').addEventListener('input', () => { currentPage = 0; renderAssemblers(); });
-  document.getElementById('city-filter').addEventListener('input', () => { currentPage = 0; renderAssemblers(); });
-  document.getElementById('rating-filter').addEventListener('change', () => { currentPage = 0; renderAssemblers(); });
-
-  loadAssemblers();
-});
-
-async function loadAssemblers() {
-  const { data, error } = await API.getAssemblers({ limit: 100 });
-
-  if (error) {
-    document.getElementById('assemblers-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center"><p>Error loading assemblers: ' + error.message + '</p></div>';
-    return;
-  }
-
-  allAssemblers = data || [];
-  renderAssemblers();
-}
-
-function renderAssemblers() {
-  // Apply filters
-  let filtered = allAssemblers;
-
-  const searchTerm = document.getElementById('search-filter').value.toLowerCase();
-  if (searchTerm) {
-    filtered = filtered.filter(a => 
-      a.full_name?.toLowerCase().includes(searchTerm) || 
-      a.bio?.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  const city = document.getElementById('city-filter').value.toLowerCase();
-  if (city) {
-    filtered = filtered.filter(a => a.city?.toLowerCase().includes(city));
-  }
-
-  const minRating = parseFloat(document.getElementById('rating-filter').value);
-  if (minRating) {
-    filtered = filtered.filter(a => (a.rating || 0) >= minRating);
-  }
-
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const start = currentPage * itemsPerPage;
-  const end = start + itemsPerPage;
-  const paged = filtered.slice(start, end);
-
-  // Render cards
-  const assemblersGrid = document.getElementById('assemblers-grid');
-
-  if (!paged.length) {
-    assemblersGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:64px"><p>No assemblers found matching your filters.</p></div>';
-    document.getElementById('pagination').innerHTML = '';
-    return;
-  }
-
-  assemblersGrid.innerHTML = paged.map(assembler => `
-    <div class="card" style="padding:24px;text-align:center;cursor:pointer;transition:all 0.3s" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''" onclick="window.location.href='assembler-detail.html?id=${assembler.id}'">
-      <div style="width:80px;height:80px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin:0 auto 16px">👤</div>
-      
-      <h3 style="margin:0 0 4px">${assembler.full_name || 'Assembler'}</h3>
-      
-      <div style="margin-bottom:12px">
-        <div style="font-size:1.2rem;color:var(--orange);margin:0">⭐ ${(assembler.rating || 0).toFixed(1)}</div>
-        <div style="font-size:0.85rem;color:var(--text-secondary)">${assembler.completed_jobs || 0} completed jobs</div>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:12px;justify-content:center;flex-wrap:wrap">
-        ${assembler.city ? `<span style="background:var(--border);padding:4px 8px;border-radius:4px;font-size:0.8rem">${assembler.city}</span>` : ''}
-        ${assembler.hourly_rate ? `<span style="background:var(--teal-light);color:white;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:600">$${assembler.hourly_rate}/hr</span>` : ''}
-      </div>
-
-      <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.5;margin:12px 0">${assembler.bio ? assembler.bio.substring(0, 80) + '...' : 'Professional assembler'}</p>
-
-      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:16px">View Profile</button>
-    </div>
-  `).join('');
-
-  // Pagination controls
-  let paginationHtml = '';
-  if (totalPages > 1) {
-    paginationHtml = '<div style="display:flex;gap:8px;justify-content:center">';
-    
-    if (currentPage > 0) {
-      paginationHtml += `<button class="btn btn-ghost btn-sm" onclick="previousPage()">← Previous</button>`;
-    }
-    
-    paginationHtml += `<div style="padding:8px 12px;color:var(--text-secondary)">Page ${currentPage + 1} of ${totalPages}</div>`;
-    
-    if (currentPage < totalPages - 1) {
-      paginationHtml += `<button class="btn btn-ghost btn-sm" onclick="nextPage()">Next →</button>`;
-    }
-    
-    paginationHtml += '</div>';
-  }
-
-  document.getElementById('pagination').innerHTML = paginationHtml;
-}
-
-function previousPage() {
-  if (currentPage > 0) {
-    currentPage--;
-    renderAssemblers();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-}
-
-function nextPage() {
-  const totalPages = Math.ceil(allAssemblers.length / itemsPerPage);
-  if (currentPage < totalPages - 1) {
-    currentPage++;
-    renderAssemblers();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-}
-
-function resetFilters() {
-  document.getElementById('search-filter').value = '';
-  document.getElementById('city-filter').value = '';
-  document.getElementById('rating-filter').value = '';
-  currentPage = 0;
-  renderAssemblers();
-}
 </script>
 </body>
 </html>

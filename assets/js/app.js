@@ -1,0 +1,374 @@
+// ============================================
+//  ASSEMBLEATEASE — app.js
+//  Auth helpers, nav builder, UI utilities
+// ============================================
+
+const APP = {
+
+  // ── AUTH ────────────────────────────────────────────────
+
+  // Get the current session and profile. Returns null if not logged in.
+  async getAuth() {
+    try {
+      if (!supabaseClient) {
+        console.error('ERROR: supabaseClient is not initialized. Check config.js and Supabase CDN.');
+        return null;
+      }
+      
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error) {
+        console.error('Auth session error:', error);
+        return null;
+      }
+      if (!session) return null;
+
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile query error:', profileError);
+        return null;
+      }
+      if (!profile) {
+        console.error('No profile found for user:', session.user.id);
+        return null;
+      }
+      return { user: session.user, session, profile };
+    } catch (err) {
+      console.error('getAuth error:', err);
+      return null;
+    }
+  },
+
+  // Require auth + optional role check. Redirects to login if not authenticated.
+  // Usage: const auth = await APP.requireAuth(['assembler']);
+  async requireAuth(allowedRoles = []) {
+    const auth = await this.getAuth();
+
+    if (!auth) {
+      window.location.href = this._authPath('login.html');
+      return null;
+    }
+
+    if (allowedRoles.length && !allowedRoles.includes(auth.profile.role)) {
+      // Redirect to their correct dashboard
+      window.location.href = auth.profile.role === 'assembler'
+        ? this._rootPath('assembler/index.html')
+        : this._rootPath('customer/index.html');
+      return null;
+    }
+
+    return auth;
+  },
+
+  // Redirect already-logged-in users away from auth pages
+  async redirectIfLoggedIn() {
+    const auth = await this.getAuth();
+    if (!auth) return;
+    window.location.href = auth.profile.role === 'assembler'
+      ? this._rootPath('assembler/index.html')
+      : this._rootPath('customer/index.html');
+  },
+
+  // ── PATH HELPERS ────────────────────────────────────────
+
+  // Resolve paths relative to the site root regardless of current directory depth
+  _rootPath(path) {
+    const depth = window.location.pathname.split('/').filter(Boolean).length - 1;
+    const prefix = depth > 0 ? '../'.repeat(depth) : '';
+    return prefix + path;
+  },
+
+  _authPath(page) {
+    return this._rootPath('auth/' + page);
+  },
+
+  // ── NAV BUILDER ─────────────────────────────────────────
+
+  // Builds the top nav bar and injects it into #main-nav.
+  // role: 'assembler' | 'customer' | null (public)
+  async buildNav(role = null) {
+    const navEl = document.getElementById('main-nav');
+    if (!navEl) return;
+
+    const root = this._rootPath('');
+    const logoHref = role ? root + (role === 'assembler' ? 'assembler/index.html' : 'customer/index.html') : root + 'index.html';
+
+    let links = '';
+    let actions = '';
+
+    if (role === 'assembler') {
+      links = `
+        <li><a href="${root}assembler/browse-jobs.html">Browse Jobs</a></li>
+        <li><a href="${root}assembler/my-bids.html">My Bids</a></li>
+        <li><a href="${root}assembler/my-jobs.html">My Jobs</a></li>
+      `;
+      actions = `
+        <a href="${root}assembler/profile.html" class="btn btn-ghost btn-sm">Profile</a>
+        <button class="btn btn-outline btn-sm" id="nav-logout">Log out</button>
+      `;
+    } else if (role === 'customer') {
+      links = `
+        <li><a href="${root}customer/post-job.html">Post a Job</a></li>
+        <li><a href="${root}customer/my-jobs.html">My Jobs</a></li>
+        <li><a href="${root}customer/browse-assemblers.html">Browse Assemblers</a></li>
+      `;
+      actions = `
+        <a href="${root}customer/profile.html" class="btn btn-ghost btn-sm">Profile</a>
+        <button class="btn btn-outline btn-sm" id="nav-logout">Log out</button>
+      `;
+    } else {
+      actions = `
+        <a href="${root}auth/login.html" class="btn btn-ghost btn-sm">Log in</a>
+        <a href="${root}auth/signup.html" class="btn btn-primary btn-sm">Sign up free</a>
+      `;
+    }
+
+    navEl.innerHTML = `
+      <div class="nav-inner">
+        <a href="${logoHref}" class="nav-logo">Assemble<span>AtEase</span></a>
+        <ul class="nav-links">${links}</ul>
+        <div class="nav-actions">${actions}</div>
+      </div>
+    `;
+
+    // Logout handler
+    document.getElementById('nav-logout')?.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = root + 'index.html';
+    });
+
+    this._highlightActiveNavLink();
+  },
+
+  // Highlight nav link that matches current URL
+  _highlightActiveNavLink() {
+    const current = window.location.pathname;
+    document.querySelectorAll('.nav-links a, .sidebar-nav a').forEach(link => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+      const isActive = current.endsWith(href) || current.endsWith(href.replace('../', ''));
+      if (isActive) link.classList.add('active');
+    });
+  },
+
+  // Alias kept for backward compatibility with existing pages
+  setActiveSidebarLink() {
+    this._highlightActiveNavLink();
+  },
+
+  // ── ALERTS ──────────────────────────────────────────────
+
+  // showAlert('auth-alert', 'Something went wrong', 'error')
+  showAlert(id, message, type = 'error') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = `alert alert-${type}`;
+    el.textContent = message;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+
+  hideAlert(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'alert hidden';
+    el.textContent = '';
+  },
+
+  // ── LOADING STATE ───────────────────────────────────────
+
+  // setLoading('submit-btn', true, 'Saving...')
+  setLoading(btnId, isLoading, label) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = isLoading;
+    btn.textContent = label;
+  },
+
+  // ── FORM VALIDATION HELPERS ─────────────────────────────
+
+  fieldError(inputId, message) {
+    const input = document.getElementById(inputId);
+    const errEl = document.getElementById(`${inputId}-error`);
+    input?.classList.add('error');
+    if (errEl) { errEl.textContent = message; errEl.classList.add('visible'); }
+  },
+
+  clearFieldErrors(formId) {
+    const scope = formId ? document.getElementById(formId) : document;
+    scope?.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+    scope?.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = ''; el.classList.remove('visible');
+    });
+  },
+
+  isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  },
+
+  // ── STRING / DATE HELPERS ───────────────────────────────
+
+  truncate(str, len = 80) {
+    if (!str) return '';
+    return str.length > len ? str.substring(0, len) + '…' : str;
+  },
+
+  timeAgo(dateStr) {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days  = Math.floor(diff / 86400000);
+    if (mins < 1)   return 'Just now';
+    if (mins < 60)  return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 30)  return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  },
+
+  formatCurrency(amount, currency = 'USD') {
+    if (amount == null) return '—';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+  },
+
+  // ── RENDER HELPERS ──────────────────────────────────────
+
+  renderError(message) {
+    return `<div class="error-state"><span>⚠️</span>${message}</div>`;
+  },
+
+  renderEmpty(message, linkHref, linkText) {
+    return `
+      <div class="empty-state">
+        <p>${message}</p>
+        ${linkHref ? `<a href="${linkHref}" class="btn btn-ghost btn-sm">${linkText || 'View all'}</a>` : ''}
+      </div>`;
+  },
+
+  getBadgeClass(status) {
+    const map = {
+      pending:   'badge-pending',
+      accepted:  'badge-accepted',
+      rejected:  'badge-rejected',
+      withdrawn: 'badge-default',
+      open:      'badge-pending',
+      assigned:  'badge-accepted',
+      in_progress: 'badge-accepted',
+      completed: 'badge-complete',
+      cancelled: 'badge-rejected',
+    };
+    return map[status] || 'badge-default';
+  },
+
+  renderBadge(status, label) {
+    const cls = this.getBadgeClass(status);
+    const text = label || status?.replace('_', ' ') || '—';
+    return `<span class="badge ${cls}">${text}</span>`;
+  },
+
+  // ── AVATAR ──────────────────────────────────────────────
+
+  // Returns initials avatar HTML or an <img> if avatar_url is set
+  renderAvatar(profile, size = 40) {
+    const initials = (profile?.full_name || '?')
+      .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+    if (profile?.avatar_url) {
+      return `<img src="${profile.avatar_url}" alt="${initials}"
+        style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;" />`;
+    }
+
+    return `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:var(--accent-light);color:var(--accent);
+      display:flex;align-items:center;justify-content:center;
+      font-size:${Math.round(size * 0.35)}px;font-weight:500;
+      flex-shrink:0;">${initials}</div>`;
+  },
+
+  // ── MOBILE MENU TOGGLE ──────────────────────────────────
+
+  initMobileMenu() {
+    const toggle = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (!toggle || !sidebar) return;
+
+    const toggleMenu = () => {
+      sidebar.classList.toggle('active');
+      toggle.classList.toggle('active');
+      overlay.classList.toggle('active');
+    };
+
+    toggle.addEventListener('click', toggleMenu);
+    overlay.addEventListener('click', toggleMenu);
+
+    // Close menu when sidebar link is clicked
+    sidebar.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        toggle.classList.remove('active');
+        overlay.classList.remove('active');
+      });
+    });
+  },
+
+  // ── TOAST NOTIFICATIONS ─────────────────────────────────
+
+  toast(message, type = 'success', duration = 3500) {
+    const existing = document.getElementById('app-toast');
+    if (existing) existing.remove();
+
+    const colors = {
+      success: { bg: 'var(--green-light)',  color: '#166534', border: 'rgba(34,197,94,0.2)'  },
+      error:   { bg: 'var(--red-light)',    color: '#991b1b', border: 'rgba(239,68,68,0.2)'  },
+      info:    { bg: 'var(--blue-light)',   color: '#1e40af', border: 'rgba(59,130,246,0.2)' },
+      warning: { bg: 'var(--amber-light)',  color: '#92400e', border: 'rgba(245,158,11,0.25)'},
+    };
+    const c = colors[type] || colors.info;
+
+    const toast = document.createElement('div');
+    toast.id = 'app-toast';
+    toast.textContent = message;
+    Object.assign(toast.style, {
+      position:     'fixed',
+      bottom:       '24px',
+      right:        '24px',
+      zIndex:       '9999',
+      padding:      '12px 18px',
+      borderRadius: 'var(--radius-lg)',
+      background:   c.bg,
+      color:        c.color,
+      border:       `1px solid ${c.border}`,
+      fontSize:     '0.875rem',
+      fontFamily:   'var(--font-body)',
+      fontWeight:   '500',
+      boxShadow:    'var(--shadow-md)',
+      animation:    'slideUp 0.2s ease',
+      maxWidth:     '320px',
+    });
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
+  },
+
+  // ── URL HELPERS ─────────────────────────────────────────
+
+  getParam(key) {
+    return new URLSearchParams(window.location.search).get(key);
+  },
+
+  setParam(key, value) {
+    const params = new URLSearchParams(window.location.search);
+    if (value) { params.set(key, value); } else { params.delete(key); }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+  },
+};
+
+window.APP = APP;

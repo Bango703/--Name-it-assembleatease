@@ -9,175 +9,232 @@
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    .profile-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; }
+    .profile-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1rem;
+    }
+    .profile-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; font-weight: 500; }
+
+    .profile-header { display: flex; align-items: flex-start; gap: 1.5rem; }
+    .profile-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--accent-light); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .profile-name { font-family: var(--font-display); font-size: 1.6rem; color: var(--ink); margin-bottom: 0.3rem; }
+    .profile-rating { font-size: 0.9rem; color: var(--muted); }
+    .profile-rating strong { color: var(--amber, #f59e0b); }
+
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+    .stat-item label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 4px; }
+    .stat-item span { font-size: 1rem; font-weight: 500; color: var(--ink); }
+
+    .skill-chip {
+      display: inline-flex; padding: 0.25rem 0.75rem;
+      border-radius: 999px; font-size: 0.78rem; font-weight: 500;
+      background: var(--teal-light); color: var(--teal-dark);
+      border: 1px solid rgba(29,158,117,0.2);
+    }
+
+    .review-item { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+    .review-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+    .reviewer-name { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
+    .review-rating { font-size: 0.82rem; color: var(--amber, #f59e0b); font-weight: 500; }
+    .review-text { font-size: 0.875rem; color: var(--ink-soft); line-height: 1.6; }
+    .review-date { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+    .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); text-decoration: none; margin-bottom: 1.5rem; transition: color 0.15s; }
+    .back-link:hover { color: var(--ink); }
+
+    .hire-card { background: var(--white); border: 2px solid var(--accent); border-radius: var(--radius-lg); padding: 1.75rem; }
+    .hire-rate { font-family: var(--font-display); font-size: 2rem; color: var(--ink); margin-bottom: 0.2rem; }
+    .hire-label { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+
+    @media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-<nav class="nav" id="main-nav"></nav>
-
+<button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle menu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">👥</span> Browse Assemblers</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">📝</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">📋</span> My Jobs</a></li>
+        <li><a href="index.html"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">⚙️</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
+        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main">
-    <div style="margin-bottom:24px">
-      <a href="browse-assemblers.html" style="color:var(--teal-light);text-decoration:none;font-weight:500">← Back to Assemblers</a>
-    </div>
-
-    <!-- Profile Header -->
-    <div class="card" style="padding:32px;margin-bottom:24px">
-      <div style="display:flex;gap:24px;align-items:start">
-        <div style="width:120px;height:120px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:4rem;flex-shrink:0">👤</div>
-        
-        <div style="flex:1">
-          <h1 id="assembler-name" style="margin:0">Loading...</h1>
-          <div style="font-size:1.1rem;color:var(--orange);margin:8px 0">⭐ <span id="assembler-rating">—</span> <span id="assembler-reviews" style="color:var(--text-secondary);font-size:0.85rem">—</span></div>
-          
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px">
-            <div>
-              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">HOURLY RATE</div>
-              <div id="assembler-rate" style="font-size:1.3rem;font-weight:700">—</div>
-            </div>
-            <div>
-              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">COMPLETED JOBS</div>
-              <div id="assembler-jobs" style="font-size:1.3rem;font-weight:700">—</div>
-            </div>
-            <div>
-              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">LOCATION</div>
-              <div id="assembler-city" style="font-size:1.1rem;font-weight:600">—</div>
-            </div>
-            <div>
-              <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:4px">MEMBER SINCE</div>
-              <div id="assembler-joined" style="font-size:0.95rem">—</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:8px;flex-direction:column">
-          <a href="post-job.html" class="btn btn-primary">Post a Job</a>
-          <button class="btn btn-outline" onclick="contactAssembler()">Contact</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <!-- Bio & Skills -->
-      <div>
-        <div class="card" style="padding:24px;margin-bottom:24px">
-          <h2 style="margin-top:0">About</h2>
-          <p id="assembler-bio" style="line-height:1.6;color:var(--text-secondary)">Loading...</p>
-        </div>
-
-        <div class="card" style="padding:24px">
-          <h2 style="margin-top:0">Skills</h2>
-          <div id="assembler-skills" style="display:flex;flex-wrap:wrap;gap:8px">
-            <div class="spinner spinner-sm"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reviews -->
-      <div>
-        <div class="card" style="padding:24px">
-          <h2 style="margin-top:0">Recent Reviews</h2>
-          <div id="reviews-list">
-            <div style="text-align:center;padding:32px;color:var(--text-secondary)">
-              <div class="spinner spinner-sm" style="margin:0 auto 12px"></div>
-              <p>Loading reviews...</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <a href="browse-assemblers.html" class="back-link">&#8592; Back to Browse Assemblers</a>
+    <div id="page-alert" class="alert hidden"></div>
+    <div id="page-content">
+      <div class="skeleton-card"><div class="skeleton" style="height:200px"></div></div>
     </div>
   </main>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['customer']);
-  if (!auth) return;
-  await APP.buildNav('customer');
+  document.addEventListener('DOMContentLoaded', async () => {
+    APP.initMobileMenu();
+    const auth = await APP.requireAuth(['customer']);
+    if (!auth) return;
 
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    const assemblerId = APP.getParam('id');
+    if (!assemblerId) { window.location.href = 'browse-assemblers.html'; return; }
+
+    try {
+      const { data: assembler, error } = await API.getProfile(assemblerId);
+      if (error || !assembler || assembler.role !== 'assembler') throw new Error('Profile not found');
+
+      const initials = (assembler.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      const skills   = Array.isArray(assembler.skills)
+        ? assembler.skills
+        : (typeof assembler.skills === 'string' && assembler.skills
+            ? assembler.skills.split(',').map(s => s.trim()).filter(Boolean)
+            : []);
+      const joinedDate = assembler.created_at ? new Date(assembler.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
+
+      document.getElementById('page-content').innerHTML = `
+        <div class="profile-grid">
+          <div>
+            <!-- Header -->
+            <div class="profile-card">
+              <div class="profile-header">
+                <div class="profile-avatar">${initials}</div>
+                <div style="flex:1">
+                  <div class="profile-name">${assembler.full_name || 'Assembler'}</div>
+                  <div class="profile-rating">
+                    <strong>&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</strong>
+                    &nbsp;&middot;&nbsp; ${assembler.completed_jobs || 0} completed jobs
+                    &nbsp;&middot;&nbsp; ${assembler.city || 'Location TBD'}${assembler.state ? ', ' + assembler.state : ''}
+                  </div>
+                  <div class="stats-row">
+                    <div class="stat-item">
+                      <label>Hourly rate</label>
+                      <span style="color:var(--teal)">${assembler.hourly_rate ? '$' + assembler.hourly_rate + '/hr' : 'Contact'}</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Jobs done</label>
+                      <span>${assembler.completed_jobs || 0}</span>
+                    </div>
+                    <div class="stat-item">
+                      <label>Member since</label>
+                      <span>${joinedDate}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- About -->
+            <div class="profile-card">
+              <div class="profile-card-title">About</div>
+              <p style="font-size:0.9rem;color:var(--ink-soft);line-height:1.75">${assembler.bio || 'No bio provided.'}</p>
+            </div>
+
+            <!-- Skills -->
+            <div class="profile-card">
+              <div class="profile-card-title">Skills & specialties</div>
+              ${skills.length
+                ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${skills.map(s => `<span class="skill-chip">${s}</span>`).join('')}</div>`
+                : `<p style="font-size:0.875rem;color:var(--muted)">No skills listed yet.</p>`}
+            </div>
+
+            <!-- Reviews -->
+            <div class="profile-card">
+              <div class="profile-card-title">Reviews</div>
+              <div id="reviews-list">
+                <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hire panel -->
+          <div>
+            <div class="hire-card">
+              <div class="hire-rate">${assembler.hourly_rate ? '$' + assembler.hourly_rate : 'Custom'}</div>
+              <div class="hire-label">${assembler.hourly_rate ? 'per hour · negotiate on your job' : 'Price negotiated per job'}</div>
+              <a href="post-job.html" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem">Post a job for this type</a>
+              <p style="font-size:0.78rem;color:var(--muted);text-align:center;line-height:1.55">
+                Post your job and this assembler can submit a bid. You choose who to hire.
+              </p>
+            </div>
+
+            <div class="profile-card" style="margin-top:1rem">
+              <div class="profile-card-title">Quick stats</div>
+              <div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.875rem">
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:var(--muted)">Rating</span>
+                  <span style="font-weight:500;color:var(--amber,#f59e0b)">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:var(--muted)">Jobs completed</span>
+                  <span style="font-weight:500">${assembler.completed_jobs || 0}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:var(--muted)">Location</span>
+                  <span style="font-weight:500">${assembler.city || '—'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+      // Load reviews
+      try {
+        const { data: reviews } = await API.getReviews(assemblerId);
+        const reviewsList = document.getElementById('reviews-list');
+        if (reviews?.length) {
+          reviewsList.innerHTML = reviews.slice(0, 6).map(r => `
+            <div class="review-item">
+              <div class="review-header">
+                <div class="reviewer-name">${r.reviewer?.full_name || 'Customer'}</div>
+                <div class="review-rating">&#9733; ${r.rating || 5}</div>
+              </div>
+              <div class="review-text">${r.comment || 'Great work!'}</div>
+              <div class="review-date">${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+            </div>`).join('');
+        } else {
+          reviewsList.innerHTML = `<p style="font-size:0.875rem;color:var(--muted);padding:0.5rem 0">No reviews yet. Be the first to hire and review!</p>`;
+        }
+      } catch {
+        document.getElementById('reviews-list').innerHTML =
+          `<div class="error-state"><span>&#9888;</span>Could not load reviews.</div>`;
+      }
+
+    } catch (err) {
+      document.getElementById('page-content').innerHTML =
+        `<div class="error-state"><span>&#9888;</span>Could not load profile. <a href="browse-assemblers.html">Go back</a></div>`;
+    }
   });
-
-  const assemblerId = new URLSearchParams(window.location.search).get('id');
-  if (!assemblerId) {
-    document.querySelector('main').innerHTML = '<p>Assembler not found.</p>';
-    return;
-  }
-
-  loadAssemblerProfile(assemblerId);
-});
-
-async function loadAssemblerProfile(assemblerId) {
-  const { data: assembler, error } = await API.getProfile(assemblerId);
-
-  if (error || !assembler || assembler.role !== 'assembler') {
-    document.querySelector('main').innerHTML = '<p>Error loading profile: ' + (error?.message || 'Not found') + '</p>';
-    return;
-  }
-
-  // Populate profile
-  document.getElementById('assembler-name').textContent = assembler.full_name || 'Assembler';
-  document.getElementById('assembler-rating').textContent = (assembler.rating || 0).toFixed(1);
-  document.getElementById('assembler-reviews').textContent = `(${assembler.completed_jobs || 0} jobs)`;
-  document.getElementById('assembler-rate').textContent = assembler.hourly_rate ? `$${assembler.hourly_rate}/hr` : 'Contact for rates';
-  document.getElementById('assembler-jobs').textContent = assembler.completed_jobs || 0;
-  document.getElementById('assembler-city').textContent = assembler.city || 'Location TBD';
-  document.getElementById('assembler-joined').textContent = assembler.created_at ? new Date(assembler.created_at).toLocaleDateString() : '—';
-  document.getElementById('assembler-bio').textContent = assembler.bio || 'No bio provided';
-
-  // Skills
-  const skillsHtml = assembler.skills 
-    ? typeof assembler.skills === 'string' 
-      ? assembler.skills.split(',').map(s => `<span style="background:var(--teal-light);color:white;padding:6px 12px;border-radius:20px;font-size:0.85rem;font-weight:600">${s.trim()}</span>`).join('')
-      : '<span style="color:var(--text-secondary);font-size:0.9rem">No skills listed</span>'
-    : '<span style="color:var(--text-secondary);font-size:0.9rem">No skills listed</span>';
-  
-  document.getElementById('assembler-skills').innerHTML = skillsHtml;
-
-  // Load reviews
-  const { data: reviews, error: reviewsError } = await API.getReviews(assemblerId);
-  
-  const reviewsList = document.getElementById('reviews-list');
-  if (reviews?.length) {
-    reviewsList.innerHTML = reviews.slice(0, 5).map(review => `
-      <div style="padding:16px;border-bottom:1px solid var(--border)">
-        <div class="flex-between mb-8">
-          <h4 style="margin:0">${review.reviewer?.full_name || 'Customer'}</h4>
-          <div style="color:var(--orange)">⭐ ${review.rating || 5}</div>
-        </div>
-        <p style="margin:8px 0;color:var(--text-secondary);font-size:0.9rem">${review.comment || 'Great work!'}</p>
-        <div style="font-size:0.8rem;color:var(--text-muted)">${new Date(review.created_at).toLocaleDateString()}</div>
-      </div>
-    `).join('');
-  } else {
-    reviewsList.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-secondary)">No reviews yet</div>';
-  }
-}
-
-function contactAssembler() {
-  alert('Messaging feature coming soon');
-}
 </script>
 </body>
 </html>

@@ -9,17 +9,36 @@
   <script src="../config.js"></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <script src="../assets/js/supabase.js" defer></script>
+  <style>
+    body.theme-pro .bid-card {
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
+      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
+      cursor: pointer; transition: all 0.15s; display: block; text-decoration: none;
+    }
+    body.theme-pro .bid-card:hover { border-color: var(--pro-border-md); background: var(--pro-elevated); }
+    body.theme-pro .bid-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.4rem; }
+    body.theme-pro .bid-card h3 { font-size: 0.95rem; font-weight: 500; color: var(--pro-text); }
+    body.theme-pro .bid-card-desc { font-size: 0.85rem; color: var(--pro-muted); line-height: 1.55; margin-bottom: 0.6rem; }
+    body.theme-pro .bid-card-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--pro-muted); }
+    body.theme-pro .bid-amount { font-size: 0.9rem; font-weight: 500; color: var(--pro-teal); }
+    body.theme-pro .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    body.theme-pro .filter-tab {
+      padding: 0.4rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 500;
+      border: 1px solid var(--pro-border-md); background: var(--pro-elevated);
+      color: var(--pro-soft); cursor: pointer; transition: all 0.15s;
+    }
+    body.theme-pro .filter-tab:hover { color: var(--pro-text); }
+    body.theme-pro .filter-tab.active { background: var(--pro-teal-glow); color: var(--pro-teal); border-color: rgba(29,158,117,0.3); }
+  </style>
 </head>
-<body>
-<nav class="nav" id="main-nav"></nav>
-
+<body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
-      <div class="sidebar-label">Main</div>
+      <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="index.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+        <li><a href="index.html"><span class="nav-icon">⚡</span> Dashboard</a></li>
         <li><a href="browse-jobs.html"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
         <li><a href="my-bids.html" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
         <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
@@ -28,128 +47,108 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">⭐</span> My Profile</a></li>
+        <li><a href="profile.html"><span class="nav-icon">👤</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
-  <main class="dashboard-main">
-    <div class="page-header flex-between">
+  <main class="dashboard-main" style="padding:2rem">
+    <div class="page-header" style="margin-bottom:1.5rem">
       <div>
         <h1>My Bids</h1>
-        <p>Track all your submitted bids and responses.</p>
+        <p>Track all the bids you've submitted.</p>
       </div>
-      <a href="browse-jobs.html" class="btn btn-primary">🔍 &nbsp; Browse Jobs</a>
+      <a href="browse-jobs.html" class="btn btn-teal">🔍 Find more jobs</a>
     </div>
 
-    <!-- Filters -->
-    <div class="card" style="padding:16px;margin-bottom:24px;display:flex;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm filter-btn active" data-status="all">All</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-status="pending">Pending</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-status="accepted">Accepted</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-status="rejected">Rejected</button>
-      <button class="btn btn-ghost btn-sm filter-btn" data-status="withdrawn">Withdrawn</button>
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" data-status="">All bids</button>
+      <button class="filter-tab" data-status="pending">Pending</button>
+      <button class="filter-tab" data-status="accepted">Accepted</button>
+      <button class="filter-tab" data-status="rejected">Rejected</button>
+      <button class="filter-tab" data-status="withdrawn">Withdrawn</button>
     </div>
 
-    <!-- Bids List -->
     <div id="bids-list">
-      <div class="text-center" style="padding:64px;color:var(--text-secondary)">
-        <div class="spinner spinner-lg" style="margin:0 auto 16px"></div>
-        <p>Loading your bids...</p>
-      </div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
     </div>
   </main>
 </div>
 
 <script>
-let allBids = [];
-let currentFilter = 'all';
+  let allBids = [];
+  let activeStatus = '';
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await APP.requireAuth(['assembler']);
-  if (!auth) return;
-  const { user } = auth;
-  await APP.buildNav('assembler');
-  APP.setActiveSidebarLink();
-
-  document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await supabaseClient.auth.signOut();
-    window.location.href = '../index.html';
-  });
-
-  // Filter buttons
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.status;
-      renderBids();
-    });
-  });
-
-  loadBids(user.id);
-});
-
-async function loadBids(assemblerId) {
-  const { data, error } = await API.getMyBids(assemblerId);
-
-  if (error) {
-    document.getElementById('bids-list').innerHTML = '<div class="card text-center" style="padding:64px"><p>Error loading bids: ' + error.message + '</p></div>';
-    return;
+  function timeAgo(d) {
+    if (!d) return '';
+    const diff=Date.now()-new Date(d).getTime(), m=Math.floor(diff/60000), h=Math.floor(diff/3600000), days=Math.floor(diff/86400000);
+    if (m<1) return 'Just now'; if (m<60) return m+'m ago'; if (h<24) return h+'h ago'; if (days===1) return 'Yesterday'; return days+'d ago';
   }
 
-  allBids = data || [];
-  renderBids();
-}
-
-function renderBids() {
-  const filtered = currentFilter === 'all' 
-    ? allBids 
-    : allBids.filter(b => b.status === currentFilter);
-
-  const bidsList = document.getElementById('bids-list');
-
-  if (!filtered.length) {
-    bidsList.innerHTML = '<div class="card text-center" style="padding:64px"><p>No bids yet. <a href="browse-jobs.html">Browse jobs to submit a bid!</a></p></div>';
-    return;
+  function getBadgeClass(s) {
+    return {pending:'badge-pending',accepted:'badge-accepted',rejected:'badge-rejected',withdrawn:'badge-default'}[s]||'badge-default';
   }
 
-  bidsList.innerHTML = filtered.map(bid => `
-    <div class="card" style="padding:20px;margin-bottom:16px;cursor:pointer;transition:all 0.3s" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''" onclick="window.location.href='bid-detail.html?id=${bid.id}'">
-      <div class="flex-between mb-12">
-        <div>
-          <h3 style="margin:0">${bid.job?.title || 'Job'}</h3>
-          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px">
-            by ${bid.job?.customer?.full_name || 'Customer'} • ${bid.job?.city || 'Location TBD'}
+  function renderBids(bids) {
+    const list = document.getElementById('bids-list');
+    if (!bids?.length) {
+      list.innerHTML = `<div class="empty-state"><p>No bids found.</p><a href="browse-jobs.html" class="btn btn-teal btn-sm">Browse jobs →</a></div>`;
+      return;
+    }
+    list.innerHTML = bids.map(bid => `
+      <a class="bid-card" href="bid-detail.html?id=${bid.id}">
+        <div class="bid-card-top">
+          <h3>${bid.job?.title || 'Untitled Job'}</h3>
+          <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
+            <span class="bid-amount">$${bid.bid_amount}${bid.bid_type==='hourly'?'/hr':''}</span>
+            <span class="badge ${getBadgeClass(bid.status)}">${bid.status}</span>
           </div>
         </div>
-        <div style="text-align:right">
-          <span class="badge" style="background:${
-            bid.status === 'pending' ? 'var(--orange)' : 
-            bid.status === 'accepted' ? 'var(--teal-light)' : 
-            bid.status === 'rejected' ? 'var(--text-muted)' :
-            'var(--border)'
-          };padding:6px 12px;border-radius:4px;font-weight:600;font-size:0.85rem;color:white">
-            ${bid.status.toUpperCase()}
-          </span>
+        <div class="bid-card-desc">${APP.truncate(bid.job?.description, 100)}</div>
+        <div class="bid-card-footer">
+          <span>📍 ${bid.job?.city||'Location TBD'}</span>
+          <span>👤 ${bid.job?.customer?.full_name||'Customer'}</span>
+          <span>⏱ ${timeAgo(bid.created_at)}</span>
+          ${bid.status==='accepted' ? '<span style="color:var(--pro-teal)">✓ Accepted — view job details</span>' : ''}
         </div>
-      </div>
+      </a>`).join('');
+  }
 
-      <div style="background:rgba(13,148,136,0.05);padding:12px;border-radius:6px;margin:12px 0">
-        <div style="font-size:0.8rem;color:var(--text-secondary)">Your bid</div>
-        <div style="font-size:1.2rem;font-weight:700;color:var(--teal)">$${bid.proposed_amount || 'TBD'}</div>
-      </div>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const auth = await APP.requireAuth(['assembler']);
+    if (!auth) return;
+    const { user } = auth;
 
-      <p style="color:var(--text-secondary);margin:12px 0;font-size:0.9rem">${bid.message?.substring(0, 100) || 'No message'}...</p>
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
 
-      <div style="font-size:0.85rem;color:var(--text-muted);padding-top:12px;border-top:1px solid var(--border);margin-top:12px">
-        Submitted ${new Date(bid.created_at).toLocaleDateString()}
-      </div>
-    </div>
-  `).join('');
-}
+    // Filter tabs
+    document.getElementById('filter-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.filter-tab');
+      if (!tab) return;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeStatus = tab.dataset.status;
+      const filtered = activeStatus ? allBids.filter(b => b.status === activeStatus) : allBids;
+      renderBids(filtered);
+    });
+
+    try {
+      const { data: bids, error } = await API.getMyBids(user.id);
+      if (error) throw error;
+      allBids = bids || [];
+      renderBids(allBids);
+    } catch (err) {
+      document.getElementById('bids-list').innerHTML =
+        `<div class="error-state"><span>⚠</span>Could not load bids. Please refresh.</div>`;
+    }
+  });
 </script>
 </body>
 </html>
