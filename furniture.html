@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Furniture Assembly — AssembleAtEase Austin TX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content="Professional furniture assembly services in Austin, TX. IKEA, Wayfair, Amazon and more. Same-day availability."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00bcd4;--cyan-dark:#0097a7;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;
+  --ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;
+  --border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;
+  --radius:12px;--radius-lg:18px;--radius-xl:24px;
+  --font-display:'DM Serif Display',serif;--font-body:'DM Sans',sans-serif;
+  --shadow:0 4px 20px rgba(0,0,0,0.08);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:68px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
+.nav-logo-text{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
+.nav-logo-text span{color:var(--cyan)}
+.nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
+.nav-links a{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
+.nav-links a:hover{color:var(--cyan-dark)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
+.btn-cyan{background:var(--cyan);color:#fff}
+.btn-cyan:hover{background:var(--cyan-dark);box-shadow:0 4px 16px rgba(0,188,212,0.35);transform:translateY(-1px)}
+.btn-white{background:#fff;color:var(--cyan-dark);font-weight:700}
+.btn-white:hover{background:var(--cyan-light)}
+.btn-lg{padding:1rem 2.5rem;font-size:1rem}
+.btn-full{width:100%}
+.btn-outline{background:transparent;color:var(--cyan-dark);border:2px solid var(--cyan);font-weight:600}
+.btn-outline:hover{background:var(--cyan-light)}
+.cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:1rem 2rem;z-index:300;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 24px rgba(0,0,0,0.2)}
+.cart-bar.show{display:flex}
+.cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cart-bar-text{font-size:0.9rem;font-weight:500}
+.cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
+.modal-overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem}
+.modal-title{font-family:var(--font-display);font-size:1.6rem;color:var(--ink)}
+.modal-sub{font-size:0.875rem;color:var(--muted);margin-top:0.3rem}
+.modal-close{background:var(--off-white);border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+.modal-close:hover{background:var(--border);color:var(--ink)}
+.cart-summary{background:var(--cyan-light);border:1.5px solid var(--cyan-mid);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem}
+.cart-summary-title{font-size:0.75rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem}
+.cart-item-row{display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--cyan-mid)}
+.cart-item-row:last-child{border-bottom:none}
+.cart-item-name{font-size:0.85rem;font-weight:500;color:var(--ink)}
+.cart-item-price{font-size:0.85rem;font-weight:700;color:var(--cyan-dark)}
+.cart-item-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:0;line-height:1;transition:color 0.15s}
+.cart-item-remove:hover{color:#ef4444}
+.cart-total{display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;padding-top:0.75rem;border-top:2px solid var(--cyan-mid)}
+.cart-total-label{font-size:0.82rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.06em}
+.cart-total-value{font-family:var(--font-display);font-size:1.2rem;color:var(--ink)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{margin-bottom:1.1rem}
+.form-group label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em}
+.form-group label .req{color:var(--cyan)}
+.form-control{width:100%;padding:0.8rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:var(--white);outline:none;transition:border-color 0.15s}
+.form-control:focus{border-color:var(--cyan)}
+.form-err{font-size:0.82rem;color:#ef4444;margin-bottom:1rem;display:none;padding:0.6rem 0.85rem;background:#fef2f2;border-radius:var(--radius);border:1px solid #fecaca}
+.success-state{text-align:center;padding:2.5rem 0;display:none}
+.success-state.show{display:block}
+.success-icon{width:72px;height:72px;background:var(--cyan-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
+.success-icon svg{width:36px;height:36px;fill:var(--cyan-dark)}
+.success-title{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);margin-bottom:0.75rem}
+.success-desc{font-size:0.9rem;color:var(--muted);line-height:1.75}
+.footer{background:#0a1628;padding:3rem 2rem 2rem}
+.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
+.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
+.footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
+.footer-logo-text{font-family:var(--font-display);font-size:1.05rem;color:#fff}
+.footer-logo-text span{color:var(--cyan)}
+.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-bottom:1rem}
+.footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
+.footer-contact a:hover{color:var(--cyan)}
+.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;font-weight:700}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
+.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s}
+.footer-links a:hover{color:#fff}
+.footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2)}
+.section{padding:5rem 2rem}
+.section-alt{background:var(--off-white)}
+.section-inner{max-width:1100px;margin:0 auto}
+.section-header{text-align:center;margin-bottom:3rem}
+.section-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.75rem}
+.section-title{font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.5rem);color:var(--ink);margin-bottom:1rem}
+.section-desc{font-size:1rem;color:var(--muted);line-height:1.75;max-width:520px;margin:0 auto}
+.cta-section{background:linear-gradient(140deg,#00bcd4,#00838f);padding:5rem 2rem;text-align:center}
+.cta-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
+.cta-desc{font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2.5rem;line-height:1.7}
+.page-hero{position:relative;padding:4rem 2rem;text-align:center;overflow:hidden}
+.page-hero-bg{position:absolute;inset:0;background-image:url('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1800&q=80');background-size:cover;background-position:center;filter:brightness(0.3)}
+.page-hero-overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,80,90,0.8) 0%,rgba(0,150,180,0.5) 100%)}
+.page-hero-inner{position:relative;z-index:1;max-width:700px;margin:0 auto}
+.page-hero-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);color:#fff;margin-bottom:0.75rem}
+.page-hero-desc{font-size:1rem;color:rgba(255,255,255,0.82);line-height:1.7}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:rgba(255,255,255,0.7);text-decoration:none;margin-bottom:1.5rem;transition:color 0.15s}
+.back-link:hover{color:#fff}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem}
+.pricing-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;transition:all 0.15s}
+.pricing-card:hover{border-color:var(--cyan);box-shadow:var(--shadow)}
+.pricing-info{flex:1}
+.pricing-name{font-weight:600;color:var(--ink);margin-bottom:0.25rem}
+.pricing-desc{font-size:0.8rem;color:var(--muted);line-height:1.5}
+.pricing-right{text-align:right;flex-shrink:0}
+.pricing-price{font-family:var(--font-display);font-size:1.2rem;color:var(--ink);margin-bottom:0.5rem}
+.pricing-add{display:inline-flex;align-items:center;gap:4px;padding:0.5rem 1.1rem;border-radius:999px;font-family:var(--font-body);font-size:0.8rem;font-weight:600;cursor:pointer;border:2px solid var(--cyan);background:transparent;color:var(--cyan-dark);transition:all 0.15s}
+.pricing-add:hover{background:var(--cyan);color:#fff}
+@media(max-width:900px){.nav-links{display:none}.pricing-grid{grid-template-columns:1fr}.footer-inner{grid-template-columns:1fr;gap:2rem}.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'%3E%3Crect width='42' height='42' rx='21' fill='%2300bcd4'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='18' font-weight='bold' fill='white'%3EA%3C/text%3E%3C/svg%3E" alt="AAE" />
+      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html#services">Services</a></li>
+      <li><a href="index.html#how-it-works">How it works</a></li>
+      <li><a href="index.html#reviews">Reviews</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now</button>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-overlay"></div>
+  <div class="page-hero-inner">
+    <a href="index.html#services" class="back-link">&larr; All Services</a>
+    <h1 class="page-hero-title">Furniture Assembly</h1>
+    <p class="page-hero-desc">IKEA, Wayfair, Amazon, beds, desks, wardrobes, outdoor furniture and more. Select items below and add them to your booking.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-label">Select your items</div>
+      <h2 class="section-title">Furniture Assembly Pricing</h2>
+      <p class="section-desc">Pick one or more items. Final price confirmed after assessment.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-info">
+          <div class="pricing-name">Small Item</div>
+          <div class="pricing-desc">End table, nightstand, bar stool, small shelf, side table</div>
+        </div>
+        <div class="pricing-right">
+          <div class="pricing-price">$65</div>
+          <button class="pricing-add" data-item-name="Small Furniture" onclick="AAE.addItem('Small Furniture','$65')">+ Add</button>
+        </div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-info">
+          <div class="pricing-name">Medium Item</div>
+          <div class="pricing-desc">Desk, office chair, bookshelf, TV stand, coffee table</div>
+        </div>
+        <div class="pricing-right">
+          <div class="pricing-price">$85</div>
+          <button class="pricing-add" data-item-name="Medium Furniture" onclick="AAE.addItem('Medium Furniture','$85')">+ Add</button>
+        </div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-info">
+          <div class="pricing-name">Large Item</div>
+          <div class="pricing-desc">Bed frame, dresser, dining table, large desk, entertainment center</div>
+        </div>
+        <div class="pricing-right">
+          <div class="pricing-price">$115</div>
+          <button class="pricing-add" data-item-name="Large Furniture" onclick="AAE.addItem('Large Furniture','$115')">+ Add</button>
+        </div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-info">
+          <div class="pricing-name">XL / Complex Item</div>
+          <div class="pricing-desc">Wardrobe, sectional sofa, bunk bed, wall unit, murphy bed</div>
+        </div>
+        <div class="pricing-right">
+          <div class="pricing-price">$150</div>
+          <button class="pricing-add" data-item-name="XL Furniture" onclick="AAE.addItem('XL Furniture','$150')">+ Add</button>
+        </div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-info">
+          <div class="pricing-name">Outdoor Furniture</div>
+          <div class="pricing-desc">Patio set, gazebo, pergola kit, outdoor dining set, swing</div>
+        </div>
+        <div class="pricing-right">
+          <div class="pricing-price">$125</div>
+          <button class="pricing-add" data-item-name="Outdoor Furniture" onclick="AAE.addItem('Outdoor Furniture','$125')">+ Add</button>
+        </div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-info">
+          <div class="pricing-name">Disassembly / Moving Prep</div>
+          <div class="pricing-desc">Take apart furniture for moving or disposal. Per item pricing.</div>
+        </div>
+        <div class="pricing-right">
+          <div class="pricing-price">$55</div>
+          <button class="pricing-add" data-item-name="Disassembly" onclick="AAE.addItem('Disassembly','$55')">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div style="max-width:640px;margin:0 auto">
+    <h2 class="cta-title">Ready to get started?</h2>
+    <p class="cta-desc">Select your items above and book in minutes. Same-day availability. Payment after job completion.</p>
+    <button class="btn btn-white btn-lg" onclick="AAE.openBooking()">Book Now &rarr;</button>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'%3E%3Crect width='42' height='42' rx='21' fill='%2300bcd4'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='18' font-weight='bold' fill='white'%3EA%3C/text%3E%3C/svg%3E" alt="AAE" /><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
+      <div class="footer-contact"><a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a></div>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <ul class="footer-links">
+        <li><a href="furniture.html">Furniture Assembly</a></li>
+        <li><a href="mounting.html">TV &amp; Mounting</a></li>
+        <li><a href="repairs.html">Home Repairs</a></li>
+        <li><a href="smarthome.html">Smart Home</a></li>
+        <li><a href="junk.html">Junk Removal</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a href="index.html#how-it-works">How it works</a></li>
+        <li><a href="index.html#reviews">Reviews</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="#" onclick="AAE.openBooking()">Book Now</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
+    <div class="footer-copy">Pay after job completion &bull; Same-day availability</div>
+  </div>
+</footer>
+
+<div class="cart-bar" id="cart-bar">
+  <div style="display:flex;align-items:center;gap:1rem">
+    <div class="cart-count" id="cart-count">0</div>
+    <div><div class="cart-bar-text">Items in your booking</div><div class="cart-bar-services" id="cart-bar-services"></div></div>
+  </div>
+  <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
+</div>
+
+<div class="modal-overlay" id="booking-modal">
+  <div class="modal">
+    <div id="form-state">
+      <div class="modal-header">
+        <div><div class="modal-title">Complete Your Booking</div><div class="modal-sub">Fill out your details once for all selected services.</div></div>
+        <button class="modal-close" onclick="AAE.closeBooking()">&times;</button>
+      </div>
+      <div class="cart-summary">
+        <div class="cart-summary-title">&#128722; Your Selected Services</div>
+        <div id="modal-cart-items"></div>
+        <div class="cart-total" id="modal-cart-total"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
+        <div class="form-group"><label>Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="(512) 000-0000" /></div>
+      </div>
+      <div class="form-group"><label>Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
+      <div class="form-group"><label>Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="123 Main St, Austin, TX 78701" /></div>
+      <div class="form-row">
+        <div class="form-group"><label>Preferred date <span class="req">*</span></label><input type="date" id="f-date" class="form-control" /></div>
+        <div class="form-group"><label>Preferred time <span class="req">*</span></label>
+          <select id="f-time" class="form-control">
+            <option value="">Select a time</option>
+            <option>8:00 AM - 10:00 AM</option><option>10:00 AM - 12:00 PM</option>
+            <option>12:00 PM - 2:00 PM</option><option>2:00 PM - 4:00 PM</option>
+            <option>4:00 PM - 6:00 PM</option><option>Flexible</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
+      <div class="form-err" id="form-err"></div>
+      <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
+      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Payment after job completion.</p>
+    </div>
+    <div class="success-state" id="success-state">
+      <div class="success-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
+      <div class="success-title">Booking Request Sent!</div>
+      <p class="success-desc" id="success-desc">We received your request and will contact you within 1 hour to confirm.</p>
+      <p style="margin-top:0.75rem;font-size:0.875rem;color:var(--muted)">Questions? Email <strong>service@assembleatease.com</strong></p>
+      <button class="btn btn-cyan" style="margin-top:1.5rem" onclick="AAE.closeBooking()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.AAE=window.AAE||{};AAE.cart=JSON.parse(sessionStorage.getItem('aae_cart')||'[]');
+AAE.saveCart=function(){sessionStorage.setItem('aae_cart',JSON.stringify(AAE.cart))};
+AAE.addItem=function(n,p){if(!AAE.cart.find(function(i){return i.name===n})){AAE.cart.push({name:n,price:p});AAE.saveCart();AAE.updateCartBar();AAE.flashBtn(n)}};
+AAE.removeItem=function(n){AAE.cart=AAE.cart.filter(function(i){return i.name!==n});AAE.saveCart();AAE.updateCartBar();AAE.updateModalCart()};
+AAE.clearCart=function(){AAE.cart=[];AAE.saveCart();AAE.updateCartBar()};
+AAE.getTotal=function(){return AAE.cart.reduce(function(s,i){var p=parseFloat(String(i.price).replace(/[^0-9.]/g,''));return s+(isNaN(p)?0:p)},0)};
+AAE.updateCartBar=function(){var b=document.getElementById('cart-bar'),c=document.getElementById('cart-count'),s=document.getElementById('cart-bar-services');if(!b)return;if(AAE.cart.length>0){b.classList.add('show');if(c)c.textContent=AAE.cart.length;if(s)s.textContent=AAE.cart.map(function(i){return i.name}).join(' · ')}else{b.classList.remove('show')}};
+AAE.updateModalCart=function(){var c=document.getElementById('modal-cart-items'),t=document.getElementById('modal-cart-total');if(!c)return;if(AAE.cart.length===0){c.innerHTML='<div style="font-size:0.85rem;color:var(--cyan-dark)">No services selected yet. Describe what you need below.</div>';if(t)t.textContent='';return}c.innerHTML=AAE.cart.map(function(i){return'<div class="cart-item-row"><span class="cart-item-name">'+i.name+'</span><div style="display:flex;align-items:center;gap:0.75rem"><span class="cart-item-price">'+i.price+'</span><button class="cart-item-remove" onclick="AAE.removeItem(\''+i.name.replace(/'/g,"\\'")+'\')" title="Remove">&times;</button></div></div>'}).join('');var total=AAE.getTotal();if(t){t.innerHTML=total>0?'<span class="cart-total-label">Estimated total</span><span class="cart-total-value">$'+total.toFixed(0)+'</span>':'<span style="font-size:0.78rem;color:var(--muted)">Final price confirmed after assessment</span>'}};
+AAE.flashBtn=function(n){document.querySelectorAll('[data-item-name]').forEach(function(b){if(b.dataset.itemName===n){b.textContent='✓ Added';b.style.background='var(--cyan)';b.style.color='#fff'}})};
+AAE.openBooking=function(){AAE.updateModalCart();document.getElementById('booking-modal').classList.add('open');document.body.style.overflow='hidden'};
+AAE.closeBooking=function(){document.getElementById('booking-modal').classList.remove('open');document.body.style.overflow=''};
+AAE.submitBooking=async function(){var n=document.getElementById('f-name').value.trim(),ph=document.getElementById('f-phone').value.trim(),em=document.getElementById('f-email').value.trim(),ad=document.getElementById('f-address').value.trim(),dt=document.getElementById('f-date').value,tm=document.getElementById('f-time').value,de=document.getElementById('f-details').value.trim(),sv=AAE.cart.length>0?AAE.cart.map(function(i){return i.name+' ('+i.price+')'}).join(', '):'See details below',er=document.getElementById('form-err');er.style.display='none';if(!n){er.textContent='Please enter your name.';er.style.display='block';return}if(!ph){er.textContent='Please enter your phone number.';er.style.display='block';return}if(!em||!em.includes('@')){er.textContent='Please enter a valid email.';er.style.display='block';return}if(!ad){er.textContent='Please enter your service address.';er.style.display='block';return}if(!dt){er.textContent='Please select a date.';er.style.display='block';return}if(!tm){er.textContent='Please select a time.';er.style.display='block';return}if(!de){er.textContent='Please describe what needs to be done.';er.style.display='block';return}var btn=document.getElementById('submit-btn');btn.disabled=true;btn.textContent='Sending...';try{await fetch('/api/booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service:sv,name:n,phone:ph,email:em,address:ad,date:dt,time:tm,details:de})})}catch(e){}document.getElementById('success-desc').textContent='We received your booking for: '+sv+'. We will contact you within 1 hour to confirm your appointment at '+ad+' on '+dt+' at '+tm+'.';document.getElementById('form-state').style.display='none';document.getElementById('success-state').classList.add('show');btn.disabled=false;btn.textContent='Send Booking Request \u2192';AAE.clearCart()};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')AAE.closeBooking()});
+document.addEventListener('DOMContentLoaded',function(){AAE.updateCartBar();var d=document.getElementById('f-date');if(d)d.min=new Date().toISOString().split('T')[0];var o=document.getElementById('booking-modal');if(o)o.addEventListener('click',function(e){if(e.target===o)AAE.closeBooking()});document.getElementById('year')&&(document.getElementById('year').textContent=new Date().getFullYear())});
+</script>
+</body>
+</html>
