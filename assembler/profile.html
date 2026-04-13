@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Profile â€” AssembleAtEase</title>
+  <title>My Profile — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -144,7 +144,7 @@
               <div class="skills-wrap" id="skills-wrap">
                 <input class="skills-input" id="skills-input" placeholder="Type a skill and press Enter..." />
               </div>
-              <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:4px">e.g. IKEA assembly, TV mounting, Gym equipment â€” press Enter after each</p>
+              <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:4px">e.g. IKEA assembly, TV mounting, Gym equipment — press Enter after each</p>
             </div>
             <div class="form-group">
               <label for="bio">Bio</label>
@@ -162,9 +162,9 @@
       <!-- Account settings -->
       <div class="form-section">
         <div class="form-section-title">Account settings</div>
-        <div class="info-row"><span class="info-label">Email address</span><span class="info-value" id="email-display">â€”</span></div>
+        <div class="info-row"><span class="info-label">Email address</span><span class="info-value" id="email-display">—</span></div>
         <div class="info-row"><span class="info-label">Account type</span><span class="info-value">Professional Assembler</span></div>
-        <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">â€”</span></div>
+        <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">—</span></div>
         <div class="info-row"><span class="info-label">Jobs completed</span><span class="info-value" id="jobs-done">0</span></div>
         <div class="info-row"><span class="info-label">Rating</span><span class="info-value" id="rating-display">New</span></div>
         <div style="margin-top:1.25rem">
@@ -183,12 +183,12 @@
           <h4>No payout method added</h4>
           <p>Connect your bank account or debit card to receive payments directly. We use Stripe to process all payouts securely.</p>
           <button class="btn btn-outline btn-sm" type="button" disabled>Connect bank account</button>
-          <div style="margin-top:0.75rem"><span style="font-size:0.72rem;color:var(--pro-muted)">&#128274; Secured by Stripe â€” coming soon</span></div>
+          <div style="margin-top:0.75rem"><span style="font-size:0.72rem;color:var(--pro-muted)">&#128274; Secured by Stripe — coming soon</span></div>
         </div>
         <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--pro-border)">
           <div class="info-row"><span class="info-label">Total earned</span><span class="info-value" id="total-earned">$0</span></div>
           <div class="info-row"><span class="info-label">Pending payout</span><span class="info-value">$0</span></div>
-          <div class="info-row"><span class="info-label">Payout schedule</span><span class="info-value">Weekly â€” coming soon</span></div>
+          <div class="info-row"><span class="info-label">Payout schedule</span><span class="info-value">Weekly — coming soon</span></div>
         </div>
       </div>
 
@@ -295,7 +295,7 @@
     document.getElementById('rating-display').textContent = profile.rating ? Number(profile.rating).toFixed(1) + ' â˜…' : 'New';
     document.getElementById('total-earned').textContent   = '$' + (profile.total_earned || 0);
     document.getElementById('member-since').textContent   = profile.created_at
-      ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'â€”';
+      ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
     if (profile.profile_photo) {
       document.getElementById('photo-preview').innerHTML = `<img src="${profile.profile_photo}" alt="Profile" />`;
@@ -353,7 +353,7 @@
 
     document.getElementById('delete-account-btn').addEventListener('click', async () => {
       if (!confirm('Delete your account? This cannot be undone.')) return;
-      if (!confirm('Last warning â€” all bids, jobs, reviews, and earnings history will be deleted.')) return;
+      if (!confirm('Last warning — all bids, jobs, reviews, and earnings history will be deleted.')) return;
       APP.setLoading('delete-account-btn', true, 'Deleting...');
       try {
         await supabaseClient.from('profiles').delete().eq('id', user.id);

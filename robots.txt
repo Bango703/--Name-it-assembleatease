@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /auth/
+Disallow: /customer/
+Disallow: /assembler/
+Disallow: /api/
+Disallow: /functions/
+
+Sitemap: https://www.assembleatease.com/sitemap.xml
