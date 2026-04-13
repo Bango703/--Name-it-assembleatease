@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'AssembleAtEase Contact <service@assembleatease.com>',
+        from: 'AssembleAtEase Contact <contact@assembleatease.com>',
         to: [TO],
         subject: 'Contact Form — ' + (subject || 'New message') + ' from ' + name,
         html: ownerHtml,

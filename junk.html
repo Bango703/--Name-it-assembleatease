@@ -569,8 +569,18 @@ document.addEventListener('DOMContentLoaded', function() {
   window.handleWaitlist = function(e) {
     e.preventDefault();
     var email = e.target.querySelector('.waitlist-input').value;
-    var inner = e.target.closest('.waitlist-inner');
-    inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ll reach out to <strong>' + email + '</strong> when spots open up in your area.</p></div>';
+    var btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Joining...';
+    fetch('/api/waitlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:email}) })
+      .then(function(r){ return r.json(); })
+      .then(function(){
+        var inner = e.target.closest('.waitlist-inner');
+        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
+      })
+      .catch(function(){
+        btn.disabled = false; btn.textContent = 'Join Waitlist';
+        alert('Something went wrong. Please try again.');
+      });
     return false;
   };
 

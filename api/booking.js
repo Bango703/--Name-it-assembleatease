@@ -72,9 +72,9 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'AssembleAtEase Bookings <service@assembleatease.com>',
+        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         to: [TO],
-        subject: 'New Booking — ' + service + ' from ' + name,
+        subject: 'New Booking ï¿½ ' + service + ' from ' + name,
         html: ownerHtml,
         reply_to: email,
       }),
@@ -83,9 +83,9 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'AssembleAtEase <service@assembleatease.com>',
+        from: 'AssembleAtEase <booking@assembleatease.com>',
         to: [email],
-        subject: 'Booking Confirmed — We received your request!',
+        subject: 'Booking Confirmed ï¿½ We received your request!',
         html: customerHtml,
       }),
     });
