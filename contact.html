@@ -461,4 +461,19 @@ async function sendContact() {
   if (!name) { err.textContent='Please enter your name.'; err.style.display='block'; return; }
   if (!email||!email.includes('@')) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
   if (!message) { err.textContent='Please enter a message.'; err.style.display='block'; return; }
-  var btn = doc
+  var btn = document.getElementById('c-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message})});
+  } catch(e) {}
+  document.getElementById('c-success').style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = 'Send Message \u2192';
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
+});
+</script>
+</body>
+</html>

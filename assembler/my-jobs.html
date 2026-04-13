@@ -564,4 +564,12 @@
 
     } catch (err) {
       // If EmailJS not configured yet, show success anyway for testing
-      documen
+      document.getElementById('form-state').style.display = 'none';
+      document.getElementById('success-state').classList.add('show');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Send Booking Request \u2192';
+  }
+</script>
+</body>
+</html>
