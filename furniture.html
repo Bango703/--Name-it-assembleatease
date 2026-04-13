@@ -101,6 +101,19 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .footer-links a:hover{color:#fff}
 .footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
 .footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2)}
+.footer-legal{display:flex;gap:1.25rem}
+.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.25);text-decoration:none;transition:color 0.15s}
+.footer-legal a:hover{color:rgba(255,255,255,0.6)}
+.assembler-waitlist{background:linear-gradient(135deg,#0a1628 0%,#132744 100%);padding:4rem 2rem;text-align:center}
+.waitlist-inner{max-width:600px;margin:0 auto}
+.waitlist-title{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2.25rem);color:#fff;margin-bottom:0.75rem}
+.waitlist-desc{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.75;margin-bottom:1.5rem}
+.waitlist-form{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem}
+.waitlist-input{padding:0.65rem 1.25rem;border-radius:999px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-family:var(--font-body);font-size:0.9rem;width:280px;outline:none;transition:border 0.15s}
+.waitlist-input::placeholder{color:rgba(255,255,255,0.35)}
+.waitlist-input:focus{border-color:var(--cyan)}
+.waitlist-note{font-size:0.78rem;color:rgba(255,255,255,0.3);margin-top:0.5rem}
+.waitlist-success{animation:waitlistFadeIn .4s ease}.waitlist-success svg{margin-bottom:1rem}.waitlist-success h3{font-family:var(--font-display);font-size:1.5rem;color:#fff;margin-bottom:0.5rem}.waitlist-success p{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.6}.waitlist-success strong{color:var(--cyan)}@keyframes waitlistFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 .page-hero{background:linear-gradient(135deg,#00bcd4,#00838f);padding:3.5rem 2rem;text-align:center}
 .page-hero-inner{max-width:700px;margin:0 auto}
@@ -336,6 +349,18 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
   <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
 </div>
+<section class="assembler-waitlist">
+  <div class="waitlist-inner">
+    <h2 class="waitlist-title">Are You a Skilled Handyman?</h2>
+    <p class="waitlist-desc">Join our growing network of professional assemblers and handymen in Austin. Get matched with customers, set your own schedule, and grow your business.</p>
+    <form class="waitlist-form" onsubmit="return handleWaitlist(event)">
+      <input type="email" class="waitlist-input" placeholder="Enter your email" required />
+      <button type="submit" class="btn btn-cyan">Join Waitlist</button>
+    </form>
+    <p class="waitlist-note">We'll reach out when spots open up in your area.</p>
+  </div>
+</section>
+
 <footer class="footer">
   <div class="footer-inner">
     <div>
@@ -362,11 +387,14 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <li><a href="index.html#faq">FAQ</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="contact.html">Get a Quote</a></li>
+        <li><a href="privacy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms &amp; Conditions</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
     <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
+    <div class="footer-legal"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div>
     <div class="footer-copy">Licensed &bull; Insured &bull; Background Checked</div>
   </div>
 </footer>
@@ -642,6 +670,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.target === overlay) AAE.closeBooking();
   });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
+
+  window.handleWaitlist = function(e) {
+    e.preventDefault();
+    var email = e.target.querySelector('.waitlist-input').value;
+    var inner = e.target.closest('.waitlist-inner');
+    inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ll reach out to <strong>' + email + '</strong> when spots open up in your area.</p></div>';
+    return false;
+  };
+
   // Init address autocomplete & phone formatter
   AAE.initAddressAutocomplete();
   var phoneInput = document.getElementById('f-phone');
