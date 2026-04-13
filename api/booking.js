@@ -1,4 +1,4 @@
-ï»¿export default async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { service, name, phone, email, address, date, time, details } = req.body;
   const KEY = process.env.RESEND_API_KEY;
@@ -72,9 +72,9 @@
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'AssembleAtEase Bookings <bookings@assembleatease.com>',
+        from: 'AssembleAtEase Bookings <service@assembleatease.com>',
         to: [TO],
-        subject: 'New Booking â€” ' + service + ' from ' + name,
+        subject: 'New Booking — ' + service + ' from ' + name,
         html: ownerHtml,
         reply_to: email,
       }),
@@ -85,7 +85,7 @@
       body: JSON.stringify({
         from: 'AssembleAtEase <service@assembleatease.com>',
         to: [email],
-        subject: 'Booking Confirmed â€” We received your request!',
+        subject: 'Booking Confirmed — We received your request!',
         html: customerHtml,
       }),
     });
