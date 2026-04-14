@@ -140,7 +140,28 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .form-control:focus{border-color:var(--cyan)}
 @media(max-width:900px){.nav-links{display:none}.contact-inner{grid-template-columns:1fr}.footer-inner{grid-template-columns:1fr;gap:2rem}}
 </style>
-</head>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "AssembleAtEase",
+  "description": "Professional furniture assembly and handyman services in Austin, Texas.",
+  "url": "https://www.assembleatease.com",
+  "email": "service@assembleatease.com",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Austin",
+    "addressRegion": "TX",
+    "addressCountry": "US"
+  },
+  "areaServed": {"@type": "City", "name": "Austin", "addressRegion": "TX"},
+  "priceRange": "$",
+  "openingHoursSpecification": [
+    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "07:00", "closes": "17:00"},
+    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday"], "opens": "07:00", "closes": "13:00"}
+  ]
+}
+</script></head>
 <body>
 <nav class="nav">
   <div class="nav-inner">
@@ -574,6 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
 
 
 
