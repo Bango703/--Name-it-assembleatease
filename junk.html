@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --cyan:#00bcd4;--cyan-dark:#0097a7;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;
+  --cyan:#0097a7;--cyan-dark:#0097a7;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;
   --ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;
   --border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;
   --radius:12px;--radius-lg:18px;--radius-xl:24px;
@@ -307,14 +307,14 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="cart-total" id="modal-cart-total"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
-        <div class="form-group"><label>Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="512-000-0000" /></div>
+        <div class="form-group"><label for="f-name">Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
+        <div class="form-group"><label for="f-phone">Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="512-000-0000" /></div>
       </div>
-      <div class="form-group"><label>Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
-      <div class="form-group"><label>Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="Start typing your address..." autocomplete="off" /></div>
+      <div class="form-group"><label for="f-email">Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
+      <div class="form-group"><label for="f-address">Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="Start typing your address..." autocomplete="off" /></div>
       <div class="form-row">
-        <div class="form-group"><label>Preferred date <span class="req">*</span></label><input type="date" id="f-date" class="form-control" /></div>
-        <div class="form-group"><label>Preferred time <span class="req">*</span></label>
+        <div class="form-group"><label for="f-date">Preferred date <span class="req">*</span></label><input type="date" id="f-date" class="form-control" /></div>
+        <div class="form-group"><label for="f-time">Preferred time <span class="req">*</span></label>
           <select id="f-time" class="form-control">
             <option value="">Select a time</option>
             <option>8:00 AM - 10:00 AM</option><option>10:00 AM - 12:00 PM</option>
@@ -323,7 +323,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
           </select>
         </div>
       </div>
-      <div class="form-group"><label>Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
+      <div class="form-group"><label for="f-details">Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
       <div class="form-err" id="form-err"></div>
       <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
       <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Payment after job completion.</p>

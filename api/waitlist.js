@@ -43,8 +43,8 @@ export default async function handler(req, res) {
       <p style="margin:0 0 0.4rem;font-size:0.9rem;font-weight:700;color:#166534">&#127775; Why join AssembleAtEase?</p>
       <ul style="margin:0;padding-left:1.25rem;color:#166534;font-size:0.85rem;line-height:2">
         <li>Get matched with customers in your area</li>
-        <li>Set your own schedule and rates</li>
-        <li>Grow your business with our platform</li>
+        <li>Earn competitive pay on every job</li>
+        <li>We handle the customer booking for you</li>
         <li>No upfront fees to join</li>
       </ul>
     </div>
