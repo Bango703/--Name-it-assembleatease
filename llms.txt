@@ -1,0 +1,13 @@
+# AssembleAtEase
+> Professional furniture assembly and handyman services in Austin, TX.
+
+## Services
+- Furniture Assembly: https://www.assembleatease.com/furniture.html
+- TV Mounting: https://www.assembleatease.com/mounting.html
+- Home Repairs: https://www.assembleatease.com/repairs.html
+- Smart Home: https://www.assembleatease.com/smarthome.html
+- Junk Removal: https://www.assembleatease.com/junk.html
+
+## Contact
+- Email: service@assembleatease.com
+- Website: https://www.assembleatease.com
