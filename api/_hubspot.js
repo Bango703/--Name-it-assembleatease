@@ -80,7 +80,7 @@ async function createDeal({ contactId, dealName, amount, service, date, time, de
   const properties = {
     dealname: dealName,
     pipeline: 'default',
-    dealstage: 'appointmentscheduled',
+    dealstage: 'newlead',
   };
   if (amount) properties.amount = String(amount);
   if (service) properties.description = 'Services: ' + service;
@@ -132,3 +132,4 @@ async function addNote({ contactId, body }) {
 }
 
 export { upsertContact, createDeal, addNote };
+
