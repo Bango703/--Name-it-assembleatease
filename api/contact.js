@@ -10,25 +10,44 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const ownerHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f9fafb;font-family:Arial,sans-serif">
-<div style="max-width:600px;margin:0 auto;padding:2rem 1rem">
-  <div style="background:#00bcd4;border-radius:16px 16px 0 0;padding:2rem;text-align:center">
-    <h1 style="color:#fff;margin:0;font-size:1.5rem">&#9993; New Contact Message</h1>
-    <p style="color:rgba(255,255,255,0.85);margin:0.4rem 0 0;font-size:0.9rem">AssembleAtEase &bull; Austin TX</p>
-  </div>
-  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:0 0 16px 16px;padding:2rem">
-    <table style="width:100%;border-collapse:collapse">
-      <tr style="border-bottom:1px solid #f3f4f6"><td style="padding:0.65rem 0;color:#6b7280;font-size:0.82rem;width:120px;font-weight:600">From</td><td style="padding:0.65rem 0;font-weight:700;color:#0d1117">${name}</td></tr>
-      <tr style="border-bottom:1px solid #f3f4f6"><td style="padding:0.65rem 0;color:#6b7280;font-size:0.82rem;font-weight:600">Email</td><td style="padding:0.65rem 0"><a href="mailto:${email}" style="color:#00bcd4;font-weight:600;text-decoration:none">${email}</a></td></tr>
-      <tr style="border-bottom:1px solid #f3f4f6"><td style="padding:0.65rem 0;color:#6b7280;font-size:0.82rem;font-weight:600">Subject</td><td style="padding:0.65rem 0;font-weight:600;color:#0d1117">${subject || 'No subject'}</td></tr>
-      <tr><td style="padding:0.65rem 0;color:#6b7280;font-size:0.82rem;font-weight:600;vertical-align:top">Message</td><td style="padding:0.65rem 0;color:#374151;line-height:1.7">${message}</td></tr>
+  const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
+
+  const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <!-- Header -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #0097a7"><tr><td style="padding:20px 24px">
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td><img src="${LOGO}" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
+      <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
+    </tr></table>
+  </td><td style="padding:20px 24px;text-align:right;font-size:12px;color:#71717a">Internal Notification</td></tr></table>
+
+  <!-- Body -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Contact Form Submission</p>
+    <p style="margin:0 0 24px;font-size:22px;font-weight:700;color:#1a1a1a">${subject || 'New Message'}</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px">From</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${name}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><a href="mailto:${email}" style="color:#0097a7;text-decoration:none;font-weight:600">${email}</a></td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Subject</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${subject || 'No subject'}</td></tr>
     </table>
-    <div style="margin-top:1.5rem;padding:1rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0">
-      <p style="margin:0;font-size:0.875rem;color:#166534;font-weight:700">&#128205; Reply to this customer</p>
-      <p style="margin:0.3rem 0 0;font-size:0.85rem;color:#166534">Reply directly to this email or contact ${name} at <a href="mailto:${email}" style="color:#166534">${email}</a>.</p>
-    </div>
-  </div>
-  <p style="text-align:center;font-size:0.72rem;color:#9ca3af;margin-top:1rem">AssembleAtEase &bull; Austin, TX &bull; service@assembleatease.com</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
+      <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Message</p>
+      <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${message}</p>
+    </td></tr></table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
+      <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Reply Required</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reply directly to this email or contact <strong>${name}</strong> at <a href="mailto:${email}" style="color:#1e40af">${email}</a>.</p>
+    </td></tr></table>
+  </td></tr></table>
+
+  <!-- Footer -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa;line-height:1.6">
+    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a><br/>Licensed &bull; Insured &bull; Background Checked
+  </td></tr></table>
 </div></body></html>`;
 
   try {
