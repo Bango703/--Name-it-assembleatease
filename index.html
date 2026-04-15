@@ -73,9 +73,10 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .cart-item-price{font-size:0.85rem;font-weight:700;color:var(--cyan-dark)}
 .cart-item-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:0;line-height:1;transition:color 0.15s}
 .cart-item-remove:hover{color:#ef4444}
-.cart-total{display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;padding-top:0.75rem;border-top:2px solid var(--cyan-mid)}
-.cart-total-label{font-size:0.82rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.06em}
-.cart-total-value{font-family:var(--font-display);font-size:1.2rem;color:var(--ink)}
+.cart-total{display:none}
+.cart-estimate{background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center}
+.cart-estimate-label{font-size:0.82rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em}
+.cart-estimate-value{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 .form-group{margin-bottom:1.1rem}
 .form-group label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em}
@@ -83,6 +84,30 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .form-control{width:100%;padding:0.8rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:var(--white);outline:none;transition:border-color 0.15s}
 .form-control:focus{border-color:var(--cyan)}
 .form-err{font-size:0.82rem;color:#ef4444;margin-bottom:1rem;display:none;padding:0.6rem 0.85rem;background:#fef2f2;border-radius:var(--radius);border:1px solid #fecaca}
+.dt-picker{margin-bottom:1.1rem}
+.dt-picker-label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em}
+.dt-picker-label .req{color:var(--cyan)}
+.dt-cal{border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--white)}
+.dt-cal-header{display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.5rem;background:var(--bg)}
+.dt-cal-title{font-size:0.8rem;font-weight:700;color:var(--ink);font-family:var(--font-display)}
+.dt-cal-nav{background:none;border:1.5px solid var(--border);border-radius:var(--radius);width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:0.85rem;transition:all 0.15s}
+.dt-cal-nav:hover{border-color:var(--cyan);color:var(--cyan)}
+.dt-cal-nav:disabled{opacity:0.3;cursor:default}
+.dt-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.dt-cal-dow{font-size:0.6rem;font-weight:700;color:var(--muted);padding:0.25rem 0;text-transform:uppercase;letter-spacing:0.04em}
+.dt-cal-day{padding:0.3rem 0;font-size:0.78rem;cursor:pointer;border:none;background:none;color:var(--ink);font-family:var(--font-body);transition:all 0.12s;border-radius:var(--radius);margin:1px}
+.dt-cal-day:hover:not(:disabled):not(.active){background:var(--bg);color:var(--cyan-dark)}
+.dt-cal-day.active{background:var(--cyan);color:#fff;font-weight:700}
+.dt-cal-day.today:not(.active){color:var(--cyan);font-weight:700}
+.dt-cal-day:disabled{color:var(--border);cursor:default}
+.dt-cal-day.empty{visibility:hidden}
+.dt-times{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dt-time-btn{padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);cursor:pointer;font-size:0.75rem;font-family:var(--font-body);color:var(--ink);transition:all 0.15s}
+.dt-time-btn:hover{border-color:var(--cyan);background:var(--cyan-light)}
+.dt-time-btn.active{border-color:var(--cyan);background:var(--cyan);color:#fff}
+.dt-selected{margin-top:8px;font-size:0.8rem;color:var(--cyan-dark);font-weight:600}
+.add-more-btn{display:inline-flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:600;color:var(--cyan-dark);background:none;border:1.5px dashed var(--cyan-mid);border-radius:var(--radius);padding:0.5rem 1rem;cursor:pointer;margin-top:0.75rem;transition:all 0.15s}
+.add-more-btn:hover{background:var(--cyan-light);border-color:var(--cyan)}
 .success-state{text-align:center;padding:2.5rem 0;display:none}
 .success-state.show{display:block}
 .success-icon{width:72px;height:72px;background:var(--cyan-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
@@ -142,7 +167,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .section-desc{font-size:1rem;color:var(--muted);line-height:1.75;max-width:520px;margin:0 auto}
 /* SERVICES */
 .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
-.service-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem 1.75rem;transition:all 0.2s;text-decoration:none;display:block;position:relative;overflow:hidden}
+.service-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem 1.75rem;transition:all 0.2s;text-decoration:none;display:block;position:relative;overflow:hidden;cursor:pointer}
 .service-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--cyan);transform:scaleX(0);transition:transform 0.2s;transform-origin:left}
 .service-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--cyan)}
 .service-card:hover::before{transform:scaleX(1)}
@@ -183,6 +208,8 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .faq-item.open .faq-chevron{transform:rotate(180deg)}
 .faq-a{max-height:0;overflow:hidden;transition:max-height 0.25s ease,padding 0.2s;padding:0 1.25rem;font-size:0.875rem;color:var(--muted);line-height:1.75}
 .faq-item.open .faq-a{max-height:200px;padding:0 1.25rem 1rem}
+.faq-toggle-btn{display:block;margin:1rem auto 0;background:none;border:1.5px solid var(--border);border-radius:999px;padding:0.55rem 1.5rem;font-family:var(--font-body);font-size:0.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s}
+.faq-toggle-btn:hover{border-color:var(--cyan);color:var(--cyan-dark)}
 /* CTA */
 .cta-section{background:linear-gradient(140deg,#00bcd4,#00838f);padding:5rem 2rem;text-align:center}
 .cta-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
@@ -241,6 +268,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><a href="index.html#services">Services</a></li>
       <li><a href="index.html#how-it-works">How it works</a></li>
       <li><a href="about.html">About Us</a></li>
+      <li><a href="/blog/">Blog</a></li>
       <li><a href="contact.html">Contact</a></li>
     </ul>
     <a href="contact.html" class="btn btn-cyan">Get a Quote</a>
@@ -249,9 +277,9 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &amp; Surrounding Areas</div>
+    <div class="hero-badge"><span class="hero-dot"></span> Licensed &amp; Insured Professionals</div>
     <h1 class="hero-title">Professional Assembly &amp; Handyman Services</h1>
-    <p class="hero-desc">Licensed, insured, and background-checked. We handle furniture assembly, TV mounting, home repairs, smart home installs and more — so you don't have to.</p>
+    <p class="hero-desc">We come to you. Fast, professional, and done right. Furniture assembly, TV mounting, home repairs, smart home installs and more — so you don't have to.</p>
     <div class="hero-actions">
       <button class="btn btn-white btn-lg" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})">See Our Services &darr;</button>
     </div>
@@ -294,23 +322,15 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <p class="section-desc">Click any service to see all options and upfront pricing. Add items and book — we confirm within 1 hour.</p>
     </div>
     <div class="services-grid">
-      <a class="service-card" href="furniture.html"><div class="svc-icon c1"><svg viewBox="0 0 24 24"><path d="M7 13c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v1H7v-1zm-2 2h14v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1zm1-6V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4H6zm2-3v2h8V8H8zM5 19h1v2H5v-2zm13 0h1v2h-1v-2z"/></svg></div><div class="svc-name">Furniture Assembly</div><div class="svc-desc">IKEA, Wayfair, Amazon, beds, sofas, desks, wardrobes, outdoor furniture and more.</div><div class="svc-from">From $65</div><div class="svc-arrow">View pricing &rarr;</div></a>
-      <a class="service-card" href="mounting.html"><div class="svc-icon c2"><svg viewBox="0 0 24 24"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6v2H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM4 15V5h16v10H4z"/></svg></div><div class="svc-name">TV &amp; Mounting</div><div class="svc-desc">TV mounting by size, floating shelves, curtain rods, art hanging, cord concealment.</div><div class="svc-from">From $55</div><div class="svc-arrow">View pricing &rarr;</div></a>
-      <a class="service-card" href="repairs.html"><div class="svc-icon c3"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="svc-name">Home Repairs</div><div class="svc-desc">Drywall, doors, faucets, leaks, gutters and general home repair services.</div><div class="svc-from">From $75</div><div class="svc-arrow">View pricing &rarr;</div></a>
-      <a class="service-card" href="smarthome.html"><div class="svc-icon c4"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div class="svc-name">Smart Home Install</div><div class="svc-desc">Smart thermostats, cameras, door locks, lighting, doorbells and motion sensors.</div><div class="svc-from">From $65</div><div class="svc-arrow">View pricing &rarr;</div></a>
-      <a class="service-card" href="junk.html"><div class="svc-icon c5"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div><div class="svc-name">Junk Removal</div><div class="svc-desc">Appliances, furniture, electronics, mattresses, office and storage cleanouts.</div><div class="svc-from">From $75</div><div class="svc-arrow">View pricing &rarr;</div></a>
-      <a class="service-card" href="contact.html"><div class="svc-icon c6"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="svc-name">Other Services</div><div class="svc-desc">Don't see what you need? Describe your project and we'll send a custom quote.</div><div class="svc-from">Custom quote</div><div class="svc-arrow">Get a quote &rarr;</div></a>
+      <div class="service-card" onclick="AAE.quickBook('Furniture Assembly','From $65')"><div class="svc-icon c1"><svg viewBox="0 0 24 24"><path d="M7 13c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v1H7v-1zm-2 2h14v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1zm1-6V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4H6zm2-3v2h8V8H8zM5 19h1v2H5v-2zm13 0h1v2h-1v-2z"/></svg></div><div class="svc-name">Furniture Assembly</div><div class="svc-desc">IKEA, Wayfair, Amazon, beds, sofas, desks, wardrobes, outdoor furniture and more.</div><div class="svc-from">From $65</div><a class="svc-arrow" href="furniture.html" onclick="event.stopPropagation()">View pricing &rarr;</a></div>
+      <div class="service-card" onclick="AAE.quickBook('TV &amp; Mounting','From $55')"><div class="svc-icon c2"><svg viewBox="0 0 24 24"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6v2H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM4 15V5h16v10H4z"/></svg></div><div class="svc-name">TV &amp; Mounting</div><div class="svc-desc">TV mounting by size, floating shelves, curtain rods, art hanging, cord concealment.</div><div class="svc-from">From $55</div><a class="svc-arrow" href="mounting.html" onclick="event.stopPropagation()">View pricing &rarr;</a></div>
+      <div class="service-card" onclick="AAE.quickBook('Home Repairs','From $75')"><div class="svc-icon c3"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="svc-name">Home Repairs</div><div class="svc-desc">Drywall, doors, faucets, leaks, gutters and general home repair services.</div><div class="svc-from">From $75</div><a class="svc-arrow" href="repairs.html" onclick="event.stopPropagation()">View pricing &rarr;</a></div>
+      <div class="service-card" onclick="AAE.quickBook('Smart Home Install','From $65')"><div class="svc-icon c4"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div class="svc-name">Smart Home Install</div><div class="svc-desc">Smart thermostats, cameras, door locks, lighting, doorbells and motion sensors.</div><div class="svc-from">From $65</div><a class="svc-arrow" href="smarthome.html" onclick="event.stopPropagation()">View pricing &rarr;</a></div>
+      <div class="service-card" onclick="AAE.quickBook('Junk Removal','From $75')"><div class="svc-icon c5"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div><div class="svc-name">Junk Removal</div><div class="svc-desc">Appliances, furniture, electronics, mattresses, office and storage cleanouts.</div><div class="svc-from">From $75</div><a class="svc-arrow" href="junk.html" onclick="event.stopPropagation()">View pricing &rarr;</a></div>
+      <div class="service-card" onclick="AAE.quickBook('Other / Custom Service','Custom quote')"><div class="svc-icon c6"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="svc-name">Other Services</div><div class="svc-desc">Don't see what you need? Describe your project and we'll send a custom quote.</div><div class="svc-from">Custom quote</div><a class="svc-arrow" href="contact.html" onclick="event.stopPropagation()">Get a quote &rarr;</a></div>
     </div>
   </div>
 </section>
-
-<div class="cart-bar" id="cart-bar">
-  <div style="display:flex;align-items:center;gap:1rem">
-    <div class="cart-count" id="cart-count">0</div>
-    <div><div class="cart-bar-text">Items in your booking</div><div class="cart-bar-services" id="cart-bar-services"></div></div>
-  </div>
-  <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
-</div>
 
 <section class="section section-alt" id="how-it-works">
   <div class="section-inner">
@@ -414,6 +434,12 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <div class="faq-q"><span>How quickly can you come?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We offer same-day and next-day availability for most services. Once you submit a request we'll confirm your appointment within 1 hour.</div>
 </div><div class="faq-item" onclick="toggleFaq(this)">
+  <div class="faq-q"><span>What's your cancellation policy?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+  <div class="faq-a">We ask for 24 hours' notice to cancel or reschedule. Same-day cancellations affect our ability to serve other customers.</div>
+</div>
+
+<div id="faq-more" style="display:none">
+<div class="faq-item" onclick="toggleFaq(this)">
   <div class="faq-q"><span>When do I pay?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Payment is only required after the job is fully completed to your satisfaction. We accept cash, Zelle, Venmo, and all major credit cards.</div>
 </div><div class="faq-item" onclick="toggleFaq(this)">
@@ -428,7 +454,17 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </div><div class="faq-item" onclick="toggleFaq(this)">
   <div class="faq-q"><span>What's your minimum charge?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Our minimum service fee is $65. This covers the first hour of labor for most small jobs.</div>
-</div></div>
+</div><div class="faq-item" onclick="toggleFaq(this)">
+  <div class="faq-q"><span>Are your technicians background checked?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+  <div class="faq-a">Yes — every technician is licensed, insured, and background checked before joining our team.</div>
+</div><div class="faq-item" onclick="toggleFaq(this)">
+  <div class="faq-q"><span>Do you offer warranties on your work?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+  <div class="faq-a">Absolutely. If you're not satisfied with the completed service, contact us within 7 days and we'll make it right at no extra charge.</div>
+</div>
+</div>
+
+<button class="faq-toggle-btn" onclick="toggleFaqMore(this)">Show more questions &darr;</button>
+</div>
   </div>
 </section>
 
@@ -475,9 +511,11 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="about.html">About Us</a></li>
+        <li><a href="/blog/">Blog</a></li>
         <li><a href="index.html#faq">FAQ</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="contact.html">Get a Quote</a></li>
+        <li><a href="business.html">Business Services</a></li>
         <li><a href="privacy.html">Privacy Policy</a></li>
         <li><a href="terms.html">Terms &amp; Conditions</a></li>
       </ul>
@@ -501,6 +539,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="cart-summary-title">&#128722; Your Selected Services</div>
         <div id="modal-cart-items"></div>
         <div class="cart-total" id="modal-cart-total"></div>
+        <button class="add-more-btn" onclick="AAE.closeBooking();document.getElementById('services').scrollIntoView({behavior:'smooth'})">+ Add more services</button>
       </div>
       <div class="form-row">
         <div class="form-group"><label for="f-name">Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
@@ -508,18 +547,24 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       </div>
       <div class="form-group"><label for="f-email">Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
       <div class="form-group"><label for="f-address">Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="Start typing your address..." autocomplete="off" /></div>
-      <div class="form-row">
-        <div class="form-group"><label for="f-date">Preferred date <span class="req">*</span></label><input type="date" id="f-date" class="form-control" /></div>
-        <div class="form-group"><label for="f-time">Preferred time <span class="req">*</span></label>
-          <select id="f-time" class="form-control">
-            <option value="">Select a time</option>
-            <option>8:00 AM - 10:00 AM</option><option>10:00 AM - 12:00 PM</option>
-            <option>12:00 PM - 2:00 PM</option><option>2:00 PM - 4:00 PM</option>
-            <option>4:00 PM - 6:00 PM</option><option>Flexible</option>
-          </select>
+      <div class="dt-picker" id="dt-picker">
+        <label class="dt-picker-label">Preferred date &amp; time <span class="req">*</span></label>
+        <div class="dt-cal" id="dt-cal">
+          <div class="dt-cal-header">
+            <button type="button" class="dt-cal-nav" id="dt-prev">&lsaquo;</button>
+            <span class="dt-cal-title" id="dt-cal-title"></span>
+            <button type="button" class="dt-cal-nav" id="dt-next">&rsaquo;</button>
+          </div>
+          <div class="dt-cal-grid" id="dt-cal-grid"></div>
         </div>
+        <div class="dt-times" id="dt-times" style="display:none"></div>
+        <div class="dt-selected" id="dt-selected"></div>
+        <input type="hidden" id="f-date" />
+        <input type="hidden" id="f-time" />
       </div>
       <div class="form-group"><label for="f-details">Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
+      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job — I'd like a custom quote</label></div>
+      <div class="cart-estimate" id="cart-estimate"></div>
       <div class="form-err" id="form-err"></div>
       <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
       <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Payment after job completion.</p>
@@ -592,6 +637,7 @@ AAE.toggleItem = function(name, price, btn) {
       var card2 = btn.closest('.item-card, .service-card');
       if (card2) card2.classList.add('selected', 'in-cart');
     }
+    AAE.openBooking();
   }
 };
 
@@ -599,6 +645,11 @@ AAE.clearCart = function() {
   AAE.cart = [];
   AAE.saveCart();
   AAE.updateCartBar();
+};
+
+AAE.quickBook = function(name, price) {
+  if (!AAE.hasItem(name)) AAE.addItem(name, price);
+  AAE.openBooking();
 };
 
 AAE.getTotal = function() {
@@ -625,20 +676,27 @@ AAE.updateCartBar = function() {
 AAE.updateModalCart = function() {
   var container = document.getElementById('modal-cart-items');
   var totalEl = document.getElementById('modal-cart-total');
+  var estimateEl = document.getElementById('cart-estimate');
   if (!container) return;
   if (AAE.cart.length === 0) {
     container.innerHTML = '<div style="font-size:0.85rem;color:var(--cyan-dark)">No services selected yet. Describe what you need in the details field below.</div>';
     if (totalEl) totalEl.innerHTML = '';
+    if (estimateEl) estimateEl.style.display = 'none';
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><div style="display:flex;align-items:center;gap:0.75rem"><span class="cart-item-price">'+item.price+'</span><button class="cart-item-remove" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div></div>';
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
+  if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
-  if (totalEl) {
-    totalEl.innerHTML = total > 0
-      ? '<span class="cart-total-label">Estimated total</span><span class="cart-total-value">$'+total.toFixed(0)+'</span>'
-      : '<span style="font-size:0.78rem;color:var(--muted)">Final price confirmed after assessment</span>';
+  if (estimateEl) {
+    if (total > 0) {
+      estimateEl.style.display = 'flex';
+      estimateEl.innerHTML = '<span class="cart-estimate-label">Estimated from</span><span class="cart-estimate-value">$'+total.toFixed(0)+'</span>';
+    } else {
+      estimateEl.style.display = 'flex';
+      estimateEl.innerHTML = '<span style="font-size:0.82rem;color:var(--muted)">Final price confirmed after assessment</span>';
+    }
   }
 };
 
@@ -707,7 +765,9 @@ AAE.submitBooking = async function() {
   var date    = document.getElementById('f-date').value;
   var time    = document.getElementById('f-time').value;
   var details = document.getElementById('f-details').value.trim();
+  var customQuote = document.getElementById('f-custom-quote') && document.getElementById('f-custom-quote').checked;
   var services = AAE.cart.length > 0 ? AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
+  if (customQuote) services = '[CUSTOM QUOTE REQUESTED] ' + services;
   var errEl = document.getElementById('form-err');
   errEl.style.display = 'none';
 
@@ -753,8 +813,42 @@ document.addEventListener('DOMContentLoaded', function() {
       if (card) card.classList.add('selected', 'in-cart');
     });
   });
-  var dateInput = document.getElementById('f-date');
-  if (dateInput) dateInput.min = new Date().toISOString().split('T')[0];
+  (function initDateTimePicker(){
+    var grid=document.getElementById('dt-cal-grid'),titleEl=document.getElementById('dt-cal-title'),prevBtn=document.getElementById('dt-prev'),nextBtn=document.getElementById('dt-next'),timesEl=document.getElementById('dt-times'),selEl=document.getElementById('dt-selected');
+    if(!grid)return;
+    var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var monthsShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var slots=['8:00 AM - 10:00 AM','10:00 AM - 12:00 PM','12:00 PM - 2:00 PM','2:00 PM - 4:00 PM','4:00 PM - 6:00 PM','Flexible'];
+    var today=new Date();today.setHours(0,0,0,0);
+    var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
+    function pad(n){return n<10?'0'+n:n;}
+    function render(){
+      titleEl.textContent=months[curMonth]+' '+curYear;
+      prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());
+      grid.innerHTML='';
+      dows.forEach(function(d){var el=document.createElement('div');el.className='dt-cal-dow';el.textContent=d;grid.appendChild(el);});
+      var first=new Date(curYear,curMonth,1),startDay=first.getDay(),daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+      for(var e=0;e<startDay;e++){var emp=document.createElement('button');emp.type='button';emp.className='dt-cal-day empty';emp.disabled=true;emp.textContent='\u00A0';grid.appendChild(emp);}
+      for(var i=1;i<=daysInMonth;i++){
+        var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
+        var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
+        btn.textContent=i;btn.setAttribute('data-date',iso);
+        if(dd<today){btn.disabled=true;}
+        else{
+          if(dd.getTime()===today.getTime())btn.classList.add('today');
+          if(iso===selectedDate)btn.classList.add('active');
+          btn.addEventListener('click',function(){var me=this;selectedDate=me.getAttribute('data-date');document.getElementById('f-date').value=selectedDate;document.getElementById('f-time').value='';grid.querySelectorAll('.dt-cal-day').forEach(function(b){b.classList.remove('active');});me.classList.add('active');timesEl.innerHTML='';timesEl.style.display='flex';selEl.textContent='';
+            slots.forEach(function(s){var tb=document.createElement('button');tb.type='button';tb.className='dt-time-btn';tb.textContent=s;tb.addEventListener('click',function(){timesEl.querySelectorAll('.dt-time-btn').forEach(function(b){b.classList.remove('active');});tb.classList.add('active');document.getElementById('f-time').value=s;var p=selectedDate.split('-');selEl.textContent='\u2714 '+monthsShort[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0]+' \u2022 '+s;});timesEl.appendChild(tb);});
+          });
+        }
+        grid.appendChild(btn);
+      }
+    }
+    prevBtn.addEventListener('click',function(){curMonth--;if(curMonth<0){curMonth=11;curYear--;}render();});
+    nextBtn.addEventListener('click',function(){curMonth++;if(curMonth>11){curMonth=0;curYear++;}render();});
+    render();
+  })();
   var overlay = document.getElementById('booking-modal');
   if (overlay) overlay.addEventListener('click', function(e) {
     if (e.target === overlay) AAE.closeBooking();
@@ -789,9 +883,21 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleFaq(el) {
   el.classList.toggle('open');
 }
+function toggleFaqMore(btn) {
+  var more = document.getElementById('faq-more');
+  if (more.style.display === 'none') {
+    more.style.display = 'block';
+    btn.innerHTML = 'Show fewer questions &uarr;';
+  } else {
+    more.style.display = 'none';
+    btn.innerHTML = 'Show more questions &darr;';
+  }
+}
 </script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
 
 
 

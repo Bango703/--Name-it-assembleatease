@@ -123,6 +123,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><a href="index.html#services">Services</a></li>
       <li><a href="index.html#how-it-works">How it works</a></li>
       <li><a href="about.html">About Us</a></li>
+      <li><a href="/blog/">Blog</a></li>
       <li><a href="contact.html">Contact</a></li>
     </ul>
     <a href="contact.html" class="btn btn-cyan">Get a Quote</a>
@@ -245,6 +246,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="about.html">About Us</a></li>
+        <li><a href="/blog/">Blog</a></li>
         <li><a href="index.html#faq">FAQ</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="privacy.html">Privacy Policy</a></li>
@@ -262,8 +264,10 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 document.getElementById('year').textContent=new Date().getFullYear();
 function handleWaitlist(e){e.preventDefault();var email=e.target.querySelector('.waitlist-input').value;var btn=e.target.querySelector('button');btn.disabled=true;btn.textContent='Joining...';fetch('/api/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})}).then(function(r){return r.json();}).then(function(){var inner=e.target.closest('.waitlist-inner');inner.innerHTML='<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>'+email+'</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';}).catch(function(){btn.disabled=false;btn.textContent='Join Waitlist';alert('Something went wrong. Please try again.');});return false;}
 </script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
 
 
 

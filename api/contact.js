@@ -1,3 +1,5 @@
+import { upsertContact, addNote } from './_hubspot.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { name, email, subject, message } = req.body;
@@ -46,6 +48,16 @@ export default async function handler(req, res) {
       console.error('Resend error:', err);
       return res.status(500).json({ error: 'Failed to send email' });
     }
+    // HubSpot CRM — non-blocking
+    if (process.env.HUBSPOT_ACCESS_TOKEN) {
+      try {
+        const contactId = await upsertContact({ email, name, lifecycleStage: 'lead' });
+        if (contactId) {
+          await addNote({ contactId, body: '<strong>Contact Form</strong><br>Subject: ' + (subject || 'N/A') + '<br>Message: ' + message });
+        }
+      } catch (err) { console.error('HubSpot contact error:', err); }
+    }
+
     return res.status(200).json({ success: true });
   } catch (e) {
     console.error(e);

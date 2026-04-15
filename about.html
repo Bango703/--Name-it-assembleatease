@@ -83,6 +83,30 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .form-control{width:100%;padding:0.8rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:var(--white);outline:none;transition:border-color 0.15s}
 .form-control:focus{border-color:var(--cyan)}
 .form-err{font-size:0.82rem;color:#ef4444;margin-bottom:1rem;display:none;padding:0.6rem 0.85rem;background:#fef2f2;border-radius:var(--radius);border:1px solid #fecaca}
+.dt-picker{margin-bottom:1.1rem}
+.dt-picker-label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em}
+.dt-picker-label .req{color:var(--cyan)}
+.dt-cal{border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--white)}
+.dt-cal-header{display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.5rem;background:var(--bg)}
+.dt-cal-title{font-size:0.8rem;font-weight:700;color:var(--ink);font-family:var(--font-display)}
+.dt-cal-nav{background:none;border:1.5px solid var(--border);border-radius:var(--radius);width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:0.85rem;transition:all 0.15s}
+.dt-cal-nav:hover{border-color:var(--cyan);color:var(--cyan)}
+.dt-cal-nav:disabled{opacity:0.3;cursor:default}
+.dt-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.dt-cal-dow{font-size:0.6rem;font-weight:700;color:var(--muted);padding:0.25rem 0;text-transform:uppercase;letter-spacing:0.04em}
+.dt-cal-day{padding:0.3rem 0;font-size:0.78rem;cursor:pointer;border:none;background:none;color:var(--ink);font-family:var(--font-body);transition:all 0.12s;border-radius:var(--radius);margin:1px}
+.dt-cal-day:hover:not(:disabled):not(.active){background:var(--bg);color:var(--cyan-dark)}
+.dt-cal-day.active{background:var(--cyan);color:#fff;font-weight:700}
+.dt-cal-day.today:not(.active){color:var(--cyan);font-weight:700}
+.dt-cal-day:disabled{color:var(--border);cursor:default}
+.dt-cal-day.empty{visibility:hidden}
+.dt-times{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dt-time-btn{padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);cursor:pointer;font-size:0.75rem;font-family:var(--font-body);color:var(--ink);transition:all 0.15s}
+.dt-time-btn:hover{border-color:var(--cyan);background:var(--cyan-light)}
+.dt-time-btn.active{border-color:var(--cyan);background:var(--cyan);color:#fff}
+.dt-selected{margin-top:8px;font-size:0.8rem;color:var(--cyan-dark);font-weight:600}
+.add-more-btn{display:inline-flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:600;color:var(--cyan-dark);background:none;border:1.5px dashed var(--cyan-mid);border-radius:var(--radius);padding:0.5rem 1rem;cursor:pointer;margin-top:0.75rem;transition:all 0.15s}
+.add-more-btn:hover{background:var(--cyan-light);border-color:var(--cyan)}
 .success-state{text-align:center;padding:2.5rem 0;display:none}
 .success-state.show{display:block}
 .success-icon{width:72px;height:72px;background:var(--cyan-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
@@ -170,6 +194,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><a href="index.html#services">Services</a></li>
       <li><a href="index.html#how-it-works">How it works</a></li>
       <li><a href="about.html">About Us</a></li>
+      <li><a href="/blog/">Blog</a></li>
       <li><a href="contact.html">Contact</a></li>
     </ul>
     <a href="contact.html" class="btn btn-cyan">Get a Quote</a>
@@ -278,9 +303,11 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="about.html">About Us</a></li>
+        <li><a href="/blog/">Blog</a></li>
         <li><a href="index.html#faq">FAQ</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="contact.html">Get a Quote</a></li>
+        <li><a href="business.html">Business Services</a></li>
         <li><a href="privacy.html">Privacy Policy</a></li>
         <li><a href="terms.html">Terms &amp; Conditions</a></li>
       </ul>
@@ -350,6 +377,7 @@ AAE.toggleItem = function(name, price, btn) {
       var card2 = btn.closest('.item-card, .service-card');
       if (card2) card2.classList.add('selected', 'in-cart');
     }
+    AAE.openBooking();
   }
 };
 
@@ -357,6 +385,11 @@ AAE.clearCart = function() {
   AAE.cart = [];
   AAE.saveCart();
   AAE.updateCartBar();
+};
+
+AAE.quickBook = function(name, price) {
+  if (!AAE.hasItem(name)) AAE.addItem(name, price);
+  AAE.openBooking();
 };
 
 AAE.getTotal = function() {
@@ -511,8 +544,42 @@ document.addEventListener('DOMContentLoaded', function() {
       if (card) card.classList.add('selected', 'in-cart');
     });
   });
-  var dateInput = document.getElementById('f-date');
-  if (dateInput) dateInput.min = new Date().toISOString().split('T')[0];
+  (function initDateTimePicker(){
+    var grid=document.getElementById('dt-cal-grid'),titleEl=document.getElementById('dt-cal-title'),prevBtn=document.getElementById('dt-prev'),nextBtn=document.getElementById('dt-next'),timesEl=document.getElementById('dt-times'),selEl=document.getElementById('dt-selected');
+    if(!grid)return;
+    var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var monthsShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var slots=['8:00 AM - 10:00 AM','10:00 AM - 12:00 PM','12:00 PM - 2:00 PM','2:00 PM - 4:00 PM','4:00 PM - 6:00 PM','Flexible'];
+    var today=new Date();today.setHours(0,0,0,0);
+    var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
+    function pad(n){return n<10?'0'+n:n;}
+    function render(){
+      titleEl.textContent=months[curMonth]+' '+curYear;
+      prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());
+      grid.innerHTML='';
+      dows.forEach(function(d){var el=document.createElement('div');el.className='dt-cal-dow';el.textContent=d;grid.appendChild(el);});
+      var first=new Date(curYear,curMonth,1),startDay=first.getDay(),daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+      for(var e=0;e<startDay;e++){var emp=document.createElement('button');emp.type='button';emp.className='dt-cal-day empty';emp.disabled=true;emp.textContent='\u00A0';grid.appendChild(emp);}
+      for(var i=1;i<=daysInMonth;i++){
+        var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
+        var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
+        btn.textContent=i;btn.setAttribute('data-date',iso);
+        if(dd<today){btn.disabled=true;}
+        else{
+          if(dd.getTime()===today.getTime())btn.classList.add('today');
+          if(iso===selectedDate)btn.classList.add('active');
+          btn.addEventListener('click',function(){var me=this;selectedDate=me.getAttribute('data-date');document.getElementById('f-date').value=selectedDate;document.getElementById('f-time').value='';grid.querySelectorAll('.dt-cal-day').forEach(function(b){b.classList.remove('active');});me.classList.add('active');timesEl.innerHTML='';timesEl.style.display='flex';selEl.textContent='';
+            slots.forEach(function(s){var tb=document.createElement('button');tb.type='button';tb.className='dt-time-btn';tb.textContent=s;tb.addEventListener('click',function(){timesEl.querySelectorAll('.dt-time-btn').forEach(function(b){b.classList.remove('active');});tb.classList.add('active');document.getElementById('f-time').value=s;var p=selectedDate.split('-');selEl.textContent='\u2714 '+monthsShort[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0]+' \u2022 '+s;});timesEl.appendChild(tb);});
+          });
+        }
+        grid.appendChild(btn);
+      }
+    }
+    prevBtn.addEventListener('click',function(){curMonth--;if(curMonth<0){curMonth=11;curYear--;}render();});
+    nextBtn.addEventListener('click',function(){curMonth++;if(curMonth>11){curMonth=0;curYear++;}render();});
+    render();
+  })();
   var overlay = document.getElementById('booking-modal');
   if (overlay) overlay.addEventListener('click', function(e) {
     if (e.target === overlay) AAE.closeBooking();
@@ -543,8 +610,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (phoneInput) phoneInput.addEventListener('input', AAE.formatPhone);
 });
 </script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
 
 
 

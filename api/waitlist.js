@@ -1,3 +1,5 @@
+import { upsertContact, addNote } from './_hubspot.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { email } = req.body;
@@ -86,6 +88,16 @@ export default async function handler(req, res) {
       const err = await assemblerResp.text();
       console.error('Resend assembler error:', err);
       // Still return success since owner was notified
+    }
+
+    // HubSpot CRM — non-blocking
+    if (process.env.HUBSPOT_ACCESS_TOKEN) {
+      try {
+        const contactId = await upsertContact({ email, lifecycleStage: 'subscriber' });
+        if (contactId) {
+          await addNote({ contactId, body: '<strong>Assembler Waitlist Signup</strong><br>Interested in joining the AssembleAtEase handyman network.' });
+        }
+      } catch (err) { console.error('HubSpot waitlist error:', err); }
     }
 
     return res.status(200).json({ success: true });

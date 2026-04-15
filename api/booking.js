@@ -1,3 +1,5 @@
+import { upsertContact, createDeal } from './_hubspot.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { service, name, phone, email, address, date, time, details } = req.body;
@@ -89,6 +91,16 @@ export default async function handler(req, res) {
         html: customerHtml,
       }),
     });
+    // HubSpot CRM — non-blocking
+    if (process.env.HUBSPOT_ACCESS_TOKEN) {
+      try {
+        const contactId = await upsertContact({ email, name, phone, address, lifecycleStage: 'opportunity' });
+        if (contactId) {
+          await createDeal({ contactId, dealName: service + ' — ' + name, service, date, time, details });
+        }
+      } catch (err) { console.error('HubSpot booking error:', err); }
+    }
+
     return res.status(200).json({ success: true });
   } catch (e) {
     console.error(e);
