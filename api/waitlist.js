@@ -10,6 +10,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email is required' });
   }
 
+  const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const sEmail = esc(email);
+
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
 
@@ -30,12 +33,12 @@ export default async function handler(req, res) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Applicant Email</p>
-      <p style="margin:0;font-size:15px;font-weight:700"><a href="mailto:${email}" style="color:#0097a7;text-decoration:none">${email}</a></p>
+      <p style="margin:0;font-size:15px;font-weight:700"><a href="mailto:${sEmail}" style="color:#0097a7;text-decoration:none">${sEmail}</a></p>
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Follow Up Required</p>
-      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reach out to this handyman at <a href="mailto:${email}" style="color:#1e40af">${email}</a> to begin the onboarding process.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reach out to this handyman at <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to begin the onboarding process.</p>
     </td></tr></table>
   </td></tr></table>
 

@@ -555,12 +555,18 @@ AAE.submitBooking = async function() {
   btn.disabled = true; btn.textContent = 'Sending...';
 
   try {
-    await fetch('/api/booking', {
+    var resp = await fetch('/api/booking', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({service:services,name:name,phone:phone,email:email,address:address,date:date,time:time,details:details})
     });
-  } catch(e) {}
+    if (!resp.ok) throw new Error('Server error');
+  } catch(e) {
+    errEl.textContent='Something went wrong. Please try again or call us directly.';
+    errEl.style.display='block';
+    btn.disabled = false; btn.textContent = 'Send Booking Request →';
+    return;
+  }
 
   document.getElementById('success-desc').textContent = 'We received your request for: '+services+'. We will contact you within 1 hour to confirm your appointment at '+address+' on '+date+' at '+time+'.';
   document.getElementById('form-state').style.display = 'none';
@@ -666,8 +672,14 @@ async function sendContact() {
   btn.disabled = true;
   btn.textContent = 'Sending...';
   try {
-    await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message})});
-  } catch(e) {}
+    var resp = await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message})});
+    if (!resp.ok) throw new Error('Server error');
+  } catch(e) {
+    err.textContent='Something went wrong. Please try again or call us directly.';
+    err.style.display='block';
+    btn.disabled = false; btn.textContent = 'Send Message →';
+    return;
+  }
   document.getElementById('c-success').style.display = 'block';
   btn.disabled = false;
   btn.textContent = 'Send Message \u2192';

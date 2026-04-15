@@ -10,6 +10,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const sName = esc(name);
+  const sEmail = esc(email);
+  const sSubject = esc(subject);
+  const sMessage = esc(message);
+
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
@@ -25,22 +31,22 @@ export default async function handler(req, res) {
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Contact Form Submission</p>
-    <p style="margin:0 0 24px;font-size:22px;font-weight:700;color:#1a1a1a">${subject || 'New Message'}</p>
+    <p style="margin:0 0 24px;font-size:22px;font-weight:700;color:#1a1a1a">${sSubject || 'New Message'}</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px">From</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${name}</td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><a href="mailto:${email}" style="color:#0097a7;text-decoration:none;font-weight:600">${email}</a></td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Subject</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${subject || 'No subject'}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px">From</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sName}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><a href="mailto:${sEmail}" style="color:#0097a7;text-decoration:none;font-weight:600">${sEmail}</a></td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Subject</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${sSubject || 'No subject'}</td></tr>
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
       <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Message</p>
-      <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${message}</p>
+      <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sMessage}</p>
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Reply Required</p>
-      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reply directly to this email or contact <strong>${name}</strong> at <a href="mailto:${email}" style="color:#1e40af">${email}</a>.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reply directly to this email or contact <strong>${sName}</strong> at <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a>.</p>
     </td></tr></table>
   </td></tr></table>
 

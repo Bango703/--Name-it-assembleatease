@@ -229,7 +229,7 @@ async function sendB2B() {
   btn.disabled = true;
   btn.textContent = 'Sending...';
   try {
-    await fetch('/api/contact', {
+    var resp = await fetch('/api/contact', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -239,7 +239,13 @@ async function sendB2B() {
         message: 'Company: ' + (company || 'N/A') + '\nPhone: ' + (phone || 'N/A') + '\nType: ' + (type || 'N/A') + '\n\n' + details
       })
     });
-  } catch(e) {}
+    if (!resp.ok) throw new Error('Server error');
+  } catch(e) {
+    document.getElementById('b-err').textContent='Something went wrong. Please try again or call us directly.';
+    document.getElementById('b-err').style.display='block';
+    btn.disabled = false; btn.textContent = 'Send Quote Request →';
+    return;
+  }
   document.getElementById('b-success').style.display = 'block';
   btn.disabled = false;
   btn.textContent = 'Send Quote Request \u2192';
