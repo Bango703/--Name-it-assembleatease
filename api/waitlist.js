@@ -2,16 +2,20 @@ import { upsertContact, addNote } from './_hubspot.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { email } = req.body;
+  const { name, email, phone, city, state } = req.body;
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
 
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
+  if (!name || !email || !phone || !city || !state) {
+    return res.status(400).json({ error: 'All fields are required' });
   }
 
   const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const sName = esc(name);
   const sEmail = esc(email);
+  const sPhone = esc(phone);
+  const sCity = esc(city);
+  const sState = esc(state);
 
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
@@ -32,13 +36,17 @@ export default async function handler(req, res) {
     <p style="margin:0 0 24px;font-size:22px;font-weight:700;color:#1a1a1a">New Signup</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
-      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Applicant Email</p>
-      <p style="margin:0;font-size:15px;font-weight:700"><a href="mailto:${sEmail}" style="color:#0097a7;text-decoration:none">${sEmail}</a></p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Name</span><br/><span style="font-size:15px;font-weight:700;color:#1a1a1a">${sName}</span></td></tr>
+      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Email</span><br/><span style="font-size:15px;font-weight:700"><a href="mailto:${sEmail}" style="color:#0097a7;text-decoration:none">${sEmail}</a></span></td></tr>
+      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Phone</span><br/><span style="font-size:15px;font-weight:700"><a href="tel:${sPhone}" style="color:#0097a7;text-decoration:none">${sPhone}</a></span></td></tr>
+      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Location</span><br/><span style="font-size:15px;font-weight:700;color:#1a1a1a">${sCity}, ${sState}</span></td></tr>
+      </table>
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Follow Up Required</p>
-      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reach out to this handyman at <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to begin the onboarding process.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reach out to <strong>${sName}</strong> at <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> or <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> to begin the onboarding process.</p>
     </td></tr></table>
   </td></tr></table>
 
@@ -58,8 +66,8 @@ export default async function handler(req, res) {
 
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">You're on the waitlist.</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for your interest in joining AssembleAtEase. We're building a trusted network of skilled professionals in <strong>Austin, TX</strong>, and we're glad you want to be part of it.</p>
+    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">You're on the waitlist, ${sName}.</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for your interest in joining AssembleAtEase. We're building a trusted network of skilled professionals in <strong>${sCity}, ${sState}</strong>, and we're glad you want to be part of it.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
@@ -106,7 +114,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'AssembleAtEase Waitlist <waitlist@assembleatease.com>',
         to: [TO],
-        subject: 'New Assembler Waitlist Signup — ' + email,
+        subject: 'New Assembler Waitlist Signup - ' + name + ' (' + city + ', ' + state + ')',
         html: ownerHtml,
         reply_to: email,
       }),
@@ -137,9 +145,9 @@ export default async function handler(req, res) {
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
-        const contactId = await upsertContact({ email, lifecycleStage: 'subscriber' });
+        const contactId = await upsertContact({ email, firstname: name, phone, city, state, lifecycleStage: 'subscriber' });
         if (contactId) {
-          await addNote({ contactId, body: '<strong>Assembler Waitlist Signup</strong><br>Interested in joining the AssembleAtEase handyman network.' });
+          await addNote({ contactId, body: `<strong>Assembler Waitlist Signup</strong><br>Name: ${esc(name)}<br>Phone: ${esc(phone)}<br>Location: ${esc(city)}, ${esc(state)}<br>Interested in joining the AssembleAtEase handyman network.` });
         }
       } catch (err) { console.error('HubSpot waitlist error:', err); }
     }
