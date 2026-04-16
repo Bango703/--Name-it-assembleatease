@@ -192,24 +192,24 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <body>
 <nav class="nav">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <img src="/images/logo.jpg" alt="AssembleAtEase Logo" />
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
       <li><a href="index.html#services">Services</a></li>
       <li><a href="index.html#how-it-works">How it works</a></li>
-      <li><a href="about.html">About Us</a></li>
+      <li><a href="/about">About Us</a></li>
       <li><a href="/blog/">Blog</a></li>
-      <li><a href="contact.html">Contact</a></li>
+      <li><a href="/contact">Contact</a></li>
     </ul>
-    <a href="contact.html" class="btn btn-cyan">Get a Quote</a>
+    <a href="/contact" class="btn btn-cyan">Get a Quote</a>
   </div>
 </nav>
 
 <section class="page-hero">
   <div class="page-hero-inner">
-    <a href="index.html" class="page-back">&larr; Back to Services</a>
+    <a href="/" class="page-back">&larr; Back to Services</a>
     <h1 class="page-title">Junk Removal</h1>
     <p class="page-desc">Fast, reliable junk removal in Austin. Appliances, furniture, electronics, mattresses and more.</p>
   </div>
@@ -309,33 +309,40 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div>
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
-        <li><a href="furniture.html">Furniture Assembly</a></li>
-        <li><a href="mounting.html">TV &amp; Mounting</a></li>
-        <li><a href="repairs.html">Home Repairs</a></li>
-        <li><a href="smarthome.html">Smart Home</a></li>
-        <li><a href="junk.html">Junk Removal</a></li>
+        <li><a href="/furniture">Furniture Assembly</a></li>
+        <li><a href="/mounting">TV &amp; Mounting</a></li>
+        <li><a href="/repairs">Home Repairs</a></li>
+        <li><a href="/smarthome">Smart Home</a></li>
+        <li><a href="/junk">Junk Removal</a></li>
       </ul>
     </div>
     <div>
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
-        <li><a href="about.html">About Us</a></li>
+        <li><a href="/about">About Us</a></li>
         <li><a href="/blog/">Blog</a></li>
         <li><a href="index.html#faq">FAQ</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li><a href="contact.html">Get a Quote</a></li>
-        <li><a href="business.html">Business Services</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms &amp; Conditions</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/contact">Get a Quote</a></li>
+        <li><a href="/business">Business Services</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms &amp; Conditions</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
     <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
-    <div class="footer-legal"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
     <div class="footer-copy">Licensed &bull; Insured &bull; Background Checked</div>
   </div>
 </footer>
+
+<!-- Cart Bar -->
+<div class="cart-bar" id="cart-bar">
+  <span class="cart-count" id="cart-count">0</span>
+  <div><span class="cart-bar-text">Services selected</span><div class="cart-bar-services" id="cart-bar-services"></div></div>
+  <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
+</div>
 
 <div class="modal-overlay" id="booking-modal">
   <div class="modal">
@@ -684,7 +691,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
       .then(function(){
         var inner = f.closest('.waitlist-inner');
-        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
+        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
       })
       .catch(function(){
         btn.disabled = false; btn.textContent = 'Join Waitlist';
@@ -702,6 +709,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
+
+
 
 
 

@@ -73,9 +73,10 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .cart-item-price{font-size:0.85rem;font-weight:700;color:var(--cyan-dark)}
 .cart-item-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:0;line-height:1;transition:color 0.15s}
 .cart-item-remove:hover{color:#ef4444}
-.cart-total{display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;padding-top:0.75rem;border-top:2px solid var(--cyan-mid)}
-.cart-total-label{font-size:0.82rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.06em}
-.cart-total-value{font-family:var(--font-display);font-size:1.2rem;color:var(--ink)}
+.cart-total{display:none}
+.cart-estimate{background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center}
+.cart-estimate-label{font-size:0.82rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em}
+.cart-estimate-value{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 .form-group{margin-bottom:1.1rem}
 .form-group label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em}
@@ -189,23 +190,23 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <body>
 <nav class="nav">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <img src="/images/logo.jpg" alt="AssembleAtEase Logo" />
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
       <li><a href="index.html#services">Services</a></li>
       <li><a href="index.html#how-it-works">How it works</a></li>
-      <li><a href="about.html">About Us</a></li>
+      <li><a href="/about">About Us</a></li>
       <li><a href="/blog/">Blog</a></li>
-      <li><a href="contact.html">Contact</a></li>
+      <li><a href="/contact">Contact</a></li>
     </ul>
-    <a href="contact.html" class="btn btn-cyan">Get a Quote</a>
+    <a href="/contact" class="btn btn-cyan">Get a Quote</a>
   </div>
 </nav>
 <section class="page-hero">
   <div class="page-hero-inner">
-    <a href="index.html" class="page-back">&larr; Back to Home</a>
+    <a href="/" class="page-back">&larr; Back to Home</a>
     <h1 class="page-title">About AssembleAtEase</h1>
     <p class="page-desc">Austin-based. Locally owned. Built on doing good work and treating people right.</p>
   </div>
@@ -299,39 +300,400 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div>
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
-        <li><a href="furniture.html">Furniture Assembly</a></li>
-        <li><a href="mounting.html">TV &amp; Mounting</a></li>
-        <li><a href="repairs.html">Home Repairs</a></li>
-        <li><a href="smarthome.html">Smart Home</a></li>
-        <li><a href="junk.html">Junk Removal</a></li>
+        <li><a href="/furniture">Furniture Assembly</a></li>
+        <li><a href="/mounting">TV &amp; Mounting</a></li>
+        <li><a href="/repairs">Home Repairs</a></li>
+        <li><a href="/smarthome">Smart Home</a></li>
+        <li><a href="/junk">Junk Removal</a></li>
       </ul>
     </div>
     <div>
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
-        <li><a href="about.html">About Us</a></li>
+        <li><a href="/about">About Us</a></li>
         <li><a href="/blog/">Blog</a></li>
         <li><a href="index.html#faq">FAQ</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li><a href="contact.html">Get a Quote</a></li>
-        <li><a href="business.html">Business Services</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms &amp; Conditions</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/contact">Get a Quote</a></li>
+        <li><a href="/business">Business Services</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms &amp; Conditions</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
     <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
-    <div class="footer-legal"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
     <div class="footer-copy">Licensed &bull; Insured &bull; Background Checked</div>
   </div>
 </footer>
+
+<!-- Cart Bar -->
+<div class="cart-bar" id="cart-bar">
+  <span class="cart-count" id="cart-count">0</span>
+  <div><span class="cart-bar-text">Services selected</span><div class="cart-bar-services" id="cart-bar-services"></div></div>
+  <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
+</div>
+
+<div class="modal-overlay" id="booking-modal">
+  <div class="modal">
+    <div id="form-state">
+      <div class="modal-header">
+        <div><div class="modal-title">Complete Your Booking</div><div class="modal-sub">Fill out your details once for all selected services.</div></div>
+        <button class="modal-close" onclick="AAE.closeBooking()">&times;</button>
+      </div>
+      <div class="cart-summary">
+        <div class="cart-summary-title">&#128722; Your Selected Services</div>
+        <div id="modal-cart-items"></div>
+        <div class="cart-total" id="modal-cart-total"></div>
+        <button class="add-more-btn" onclick="AAE.closeBooking();window.scrollTo({top:0,behavior:'smooth'})">+ Add more services</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label for="f-name">Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
+        <div class="form-group"><label for="f-phone">Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="512-000-0000" /></div>
+      </div>
+      <div class="form-group"><label for="f-email">Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
+      <div class="form-group"><label for="f-address">Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="Start typing your address..." autocomplete="off" /></div>
+      <div class="dt-picker" id="dt-picker">
+        <label class="dt-picker-label">Preferred date &amp; time <span class="req">*</span></label>
+        <div class="dt-cal" id="dt-cal">
+          <div class="dt-cal-header">
+            <button type="button" class="dt-cal-nav" id="dt-prev">&lsaquo;</button>
+            <span class="dt-cal-title" id="dt-cal-title"></span>
+            <button type="button" class="dt-cal-nav" id="dt-next">&rsaquo;</button>
+          </div>
+          <div class="dt-cal-grid" id="dt-cal-grid"></div>
+        </div>
+        <div class="dt-times" id="dt-times" style="display:none"></div>
+        <div class="dt-selected" id="dt-selected"></div>
+        <input type="hidden" id="f-date" />
+        <input type="hidden" id="f-time" />
+      </div>
+      <div class="form-group"><label for="f-details">Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
+      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job — I'd like a custom quote</label></div>
+      <div class="cart-estimate" id="cart-estimate"></div>
+      <div class="form-err" id="form-err"></div>
+      <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
+      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Payment after job completion.</p>
+    </div>
+    <div class="success-state" id="success-state">
+      <div class="success-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
+      <div class="success-title">Booking Request Sent!</div>
+      <p class="success-desc" id="success-desc">We received your request and will contact you within 1 hour to confirm.</p>
+      <p style="margin-top:0.75rem;font-size:0.875rem;color:var(--muted)">Questions? Email <strong><a href="mailto:service@assembleatease.com">service@assembleatease.com</a></strong></p>
+      <button class="btn btn-cyan" style="margin-top:1.5rem" onclick="AAE.closeBooking()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>// Shared cart — all pages
 window.AAE = window.AAE || {};
 AAE.cart = JSON.parse(sessionStorage.getItem('aae_cart') || '[]');
 
 AAE.saveCart = function() {
   sessionStorage.setItem('aae_cart', JSON.stringify(AAE.cart));
+};
+
+AAE.hasItem = function(name) {
+  return AAE.cart.some(function(i) { return i.name === name; });
+};
+
+AAE.addItem = function(name, price) {
+  if (!AAE.hasItem(name)) {
+    AAE.cart.push({ name: name, price: price });
+    AAE.saveCart();
+    AAE.updateCartBar();
+  }
+};
+
+AAE.removeItem = function(name) {
+  AAE.cart = AAE.cart.filter(function(i) { return i.name !== name; });
+  AAE.saveCart();
+  AAE.updateCartBar();
+  AAE.updateModalCart();
+  document.querySelectorAll('[data-item-name="'+name+'"]').forEach(function(btn) {
+    btn.textContent = '+ Add to booking';
+    btn.style.background = '';
+    btn.style.color = '';
+    var card = btn.closest('.item-card');
+    if (card) card.classList.remove('selected');
+  });
+};
+
+AAE.removeByIndex = function(idx) {
+  if (AAE.cart[idx]) AAE.removeItem(AAE.cart[idx].name);
+};
+
+AAE.toggleItem = function(name, price, btn) {
+  if (AAE.hasItem(name)) {
+    AAE.removeItem(name);
+    if (btn) {
+      btn.textContent = '+ Add to booking';
+      btn.style.background = '';
+      btn.style.color = '';
+      var card = btn.closest('.item-card, .service-card');
+      if (card) card.classList.remove('selected', 'in-cart');
+    }
+  } else {
+    AAE.addItem(name, price);
+    if (btn) {
+      btn.textContent = '\u2713 Added \u2014 click to remove';
+      btn.style.background = 'var(--cyan)';
+      btn.style.color = '#fff';
+      var card2 = btn.closest('.item-card, .service-card');
+      if (card2) card2.classList.add('selected', 'in-cart');
+    }
+  }
+};
+
+AAE.clearCart = function() {
+  AAE.cart = [];
+  AAE.saveCart();
+  AAE.updateCartBar();
+};
+
+AAE.quickBook = function(name, price) {
+  if (!AAE.hasItem(name)) AAE.addItem(name, price);
+  AAE.openBooking();
+};
+
+AAE.getTotal = function() {
+  return AAE.cart.reduce(function(sum, i) {
+    var p = parseFloat(String(i.price).replace(/[^0-9.]/g,''));
+    return sum + (isNaN(p) ? 0 : p);
+  }, 0);
+};
+
+AAE.updateCartBar = function() {
+  var bar = document.getElementById('cart-bar');
+  var countEl = document.getElementById('cart-count');
+  var servicesEl = document.getElementById('cart-bar-services');
+  if (!bar) return;
+  if (AAE.cart.length > 0) {
+    bar.classList.add('show');
+    if (countEl) countEl.textContent = AAE.cart.length;
+    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' \u00b7 ');
+  } else {
+    bar.classList.remove('show');
+  }
+};
+
+AAE.updateModalCart = function() {
+  var container = document.getElementById('modal-cart-items');
+  var totalEl = document.getElementById('modal-cart-total');
+  var estimateEl = document.getElementById('cart-estimate');
+  if (!container) return;
+  if (AAE.cart.length === 0) {
+    container.innerHTML = '<div style="font-size:0.85rem;color:var(--cyan-dark)">No services selected yet. Describe what you need in the details field below.</div>';
+    if (totalEl) totalEl.innerHTML = '';
+    if (estimateEl) estimateEl.style.display = 'none';
+    return;
+  }
+  container.innerHTML = AAE.cart.map(function(item, idx) {
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+  }).join('');
+  if (totalEl) totalEl.innerHTML = '';
+  var total = AAE.getTotal();
+  if (estimateEl) {
+    if (total > 0) {
+      estimateEl.style.display = 'flex';
+      estimateEl.innerHTML = '<span class="cart-estimate-label">Estimated from</span><span class="cart-estimate-value">$'+total.toFixed(0)+'</span>';
+    } else {
+      estimateEl.style.display = 'flex';
+      estimateEl.innerHTML = '<span style="font-size:0.82rem;color:var(--muted)">Final price confirmed after assessment</span>';
+    }
+  }
+};
+
+AAE.openBooking = function() {
+  AAE.updateModalCart();
+  document.getElementById('booking-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+AAE.closeBooking = function() {
+  document.getElementById('booking-modal').classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+AAE.formatPhone = function(e) {
+  var input = e.target;
+  var pos = input.selectionStart;
+  var oldLen = input.value.length;
+  var digits = input.value.replace(/\D/g, '').substring(0, 10);
+  if (digits.length > 6) input.value = digits.substring(0,3) + '-' + digits.substring(3,6) + '-' + digits.substring(6);
+  else if (digits.length > 3) input.value = digits.substring(0,3) + '-' + digits.substring(3);
+  else input.value = digits;
+  var newLen = input.value.length;
+  input.setSelectionRange(pos + (newLen - oldLen), pos + (newLen - oldLen));
+};
+
+AAE.initAddressAutocomplete = function() {
+  var input = document.getElementById('f-address');
+  if (!input) return;
+  var wrap = input.parentNode;
+  if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+  var dropdown = document.createElement('div');
+  dropdown.style.cssText = 'display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid #e5e7eb;border-radius:0 0 12px 12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto';
+  wrap.appendChild(dropdown);
+  var debounce;
+  input.addEventListener('input', function() {
+    clearTimeout(debounce);
+    var q = input.value.trim();
+    if (q.length < 4) { dropdown.style.display = 'none'; return; }
+    debounce = setTimeout(function() {
+      fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&addressdetails=1&limit=5&q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(results) {
+          if (!results.length) { dropdown.style.display = 'none'; return; }
+          dropdown.innerHTML = results.map(function(r) {
+            var addr = r.display_name.replace(/, United States$/, '');
+            return '<div style="padding:0.65rem 1rem;cursor:pointer;font-size:0.85rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s" onmouseenter="this.style.background=\'#e0f7fa\'" onmouseleave="this.style.background=\'#fff\'">' + addr + '</div>';
+          }).join('');
+          dropdown.querySelectorAll('div').forEach(function(opt) {
+            opt.addEventListener('mousedown', function(ev) { ev.preventDefault(); input.value = opt.textContent; dropdown.style.display = 'none'; });
+          });
+          dropdown.style.display = 'block';
+        }).catch(function() { dropdown.style.display = 'none'; });
+    }, 350);
+  });
+  input.addEventListener('blur', function() { setTimeout(function(){ dropdown.style.display = 'none'; }, 200); });
+};
+
+AAE.submitBooking = async function() {
+  var name    = document.getElementById('f-name').value.trim();
+  var phone   = document.getElementById('f-phone').value.trim();
+  var email   = document.getElementById('f-email').value.trim();
+  var address = document.getElementById('f-address').value.trim();
+  var date    = document.getElementById('f-date').value;
+  var time    = document.getElementById('f-time').value;
+  var details = document.getElementById('f-details').value.trim();
+  var customQuote = document.getElementById('f-custom-quote') && document.getElementById('f-custom-quote').checked;
+  var services = AAE.cart.length > 0 ? AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
+  if (customQuote) services = '[CUSTOM QUOTE REQUESTED] ' + services;
+  var errEl = document.getElementById('form-err');
+  errEl.style.display = 'none';
+
+  if (!name)   { errEl.textContent='Please enter your name.';errEl.style.display='block';return; }
+  if (!phone)  { errEl.textContent='Please enter your phone number.';errEl.style.display='block';return; }
+  if (!email||!email.includes('@')) { errEl.textContent='Please enter a valid email.';errEl.style.display='block';return; }
+  if (!address){ errEl.textContent='Please enter your service address.';errEl.style.display='block';return; }
+  if (!date)   { errEl.textContent='Please select a date.';errEl.style.display='block';return; }
+  if (!time)   { errEl.textContent='Please select a time.';errEl.style.display='block';return; }
+  if (!details){ errEl.textContent='Please describe what needs to be done.';errEl.style.display='block';return; }
+
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+
+  try {
+    var resp = await fetch('/api/booking', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({service:services,name:name,phone:phone,email:email,address:address,date:date,time:time,details:details})
+    });
+    if (!resp.ok) throw new Error('Server error');
+  } catch(e) {
+    errEl.textContent='Something went wrong. Please try again or call us directly.';
+    errEl.style.display='block';
+    btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
+    return;
+  }
+
+  document.getElementById('success-desc').textContent = 'We received your request for: '+services+'. We will contact you within 1 hour to confirm your appointment at '+address+' on '+date+' at '+time+'.';
+  document.getElementById('form-state').style.display = 'none';
+  document.getElementById('success-state').classList.add('show');
+  btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
+  AAE.clearCart();
+};
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') AAE.closeBooking();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  AAE.updateCartBar();
+  AAE.cart.forEach(function(item) {
+    document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
+      btn.textContent = '\u2713 Added \u2014 click to remove';
+      btn.style.background = 'var(--cyan)';
+      btn.style.color = '#fff';
+      var card = btn.closest('.item-card, .service-card');
+      if (card) card.classList.add('selected', 'in-cart');
+    });
+  });
+  (function initDateTimePicker(){
+    var grid=document.getElementById('dt-cal-grid'),titleEl=document.getElementById('dt-cal-title'),prevBtn=document.getElementById('dt-prev'),nextBtn=document.getElementById('dt-next'),timesEl=document.getElementById('dt-times'),selEl=document.getElementById('dt-selected');
+    if(!grid)return;
+    var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var monthsShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var slots=['8:00 AM - 10:00 AM','10:00 AM - 12:00 PM','12:00 PM - 2:00 PM','2:00 PM - 4:00 PM','4:00 PM - 6:00 PM','Flexible'];
+    var today=new Date();today.setHours(0,0,0,0);
+    var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
+    function pad(n){return n<10?'0'+n:n;}
+    function render(){
+      titleEl.textContent=months[curMonth]+' '+curYear;
+      prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());
+      grid.innerHTML='';
+      dows.forEach(function(d){var el=document.createElement('div');el.className='dt-cal-dow';el.textContent=d;grid.appendChild(el);});
+      var first=new Date(curYear,curMonth,1),startDay=first.getDay(),daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+      for(var e=0;e<startDay;e++){var emp=document.createElement('button');emp.type='button';emp.className='dt-cal-day empty';emp.disabled=true;emp.textContent='\u00A0';grid.appendChild(emp);}
+      for(var i=1;i<=daysInMonth;i++){
+        var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
+        var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
+        btn.textContent=i;btn.setAttribute('data-date',iso);
+        if(dd<today){btn.disabled=true;}
+        else{
+          if(dd.getTime()===today.getTime())btn.classList.add('today');
+          if(iso===selectedDate)btn.classList.add('active');
+          btn.addEventListener('click',function(){var me=this;selectedDate=me.getAttribute('data-date');document.getElementById('f-date').value=selectedDate;document.getElementById('f-time').value='';grid.querySelectorAll('.dt-cal-day').forEach(function(b){b.classList.remove('active');});me.classList.add('active');timesEl.innerHTML='';timesEl.style.display='flex';selEl.textContent='';
+            slots.forEach(function(s){var tb=document.createElement('button');tb.type='button';tb.className='dt-time-btn';tb.textContent=s;tb.addEventListener('click',function(){timesEl.querySelectorAll('.dt-time-btn').forEach(function(b){b.classList.remove('active');});tb.classList.add('active');document.getElementById('f-time').value=s;var p=selectedDate.split('-');selEl.textContent='\u2714 '+monthsShort[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0]+' \u2022 '+s;});timesEl.appendChild(tb);});
+          });
+        }
+        grid.appendChild(btn);
+      }
+    }
+    prevBtn.addEventListener('click',function(){curMonth--;if(curMonth<0){curMonth=11;curYear--;}render();});
+    nextBtn.addEventListener('click',function(){curMonth++;if(curMonth>11){curMonth=0;curYear++;}render();});
+    render();
+  })();
+  var overlay = document.getElementById('booking-modal');
+  if (overlay) overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) AAE.closeBooking();
+  });
+  document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
+
+  window.handleWaitlist = function(e) {
+    e.preventDefault();
+    var f = e.target;
+    var name = f.querySelector('[name="name"]').value;
+    var email = f.querySelector('[name="email"]').value;
+    var phone = f.querySelector('[name="phone"]').value;
+    var city = f.querySelector('[name="city"]').value;
+    var state = f.querySelector('[name="state"]').value;
+    var btn = f.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Joining...';
+    fetch('/api/waitlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name,email:email,phone:phone,city:city,state:state}) })
+      .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
+      .then(function(){
+        var inner = f.closest('.waitlist-inner');
+        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
+      })
+      .catch(function(){
+        btn.disabled = false; btn.textContent = 'Join Waitlist';
+        alert('Something went wrong. Please try again.');
+      });
+    return false;
+  };
+
+  AAE.initAddressAutocomplete();
+  var phoneInput = document.getElementById('f-phone');
+  if (phoneInput) phoneInput.addEventListener('input', AAE.formatPhone);
+});
+</script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>
 };
 
 AAE.hasItem = function(name) {
@@ -612,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
       .then(function(){
         var inner = f.closest('.waitlist-inner');
-        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
+        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
       })
       .catch(function(){
         btn.disabled = false; btn.textContent = 'Join Waitlist';
@@ -630,6 +992,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
+
+
 
 
 
