@@ -145,7 +145,7 @@ export default async function handler(req, res) {
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
-        const contactId = await upsertContact({ email, firstname: name, phone, city, state, lifecycleStage: 'subscriber' });
+        const contactId = await upsertContact({ email, name, phone, address: city + ', ' + state, lifecycleStage: 'subscriber' });
         if (contactId) {
           await addNote({ contactId, body: `<strong>Assembler Waitlist Signup</strong><br>Name: ${esc(name)}<br>Phone: ${esc(phone)}<br>Location: ${esc(city)}, ${esc(state)}<br>Interested in joining the AssembleAtEase handyman network.` });
         }
