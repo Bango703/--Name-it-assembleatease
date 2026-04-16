@@ -94,7 +94,18 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 .waitlist-note{font-size:0.78rem;color:rgba(255,255,255,0.3);margin-top:0.5rem}
 .waitlist-success{animation:waitlistFadeIn .4s ease}.waitlist-success svg{margin-bottom:1rem}.waitlist-success h3{font-family:var(--font-display);font-size:1.5rem;color:#fff;margin-bottom:0.5rem}.waitlist-success p{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.6}.waitlist-success strong{color:var(--cyan)}@keyframes waitlistFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-@media(max-width:900px){.nav-links{display:none}.footer-inner{grid-template-columns:1fr;gap:2rem}}
+@media(max-width:900px){.nav-links{display:none}
+.nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;background:none;border:none;z-index:300}
+.nav-hamburger span{display:block;width:24px;height:2px;background:var(--ink);border-radius:2px;transition:all 0.3s}
+.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.nav-hamburger.open span:nth-child(2){opacity:0}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.nav-mobile{display:none;position:fixed;top:68px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:199;flex-direction:column;gap:1rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.nav-mobile.open{display:flex}
+.nav-mobile a{font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
+.nav-mobile a:last-child{border-bottom:none}
+.nav-mobile .btn{margin-top:0.5rem;text-align:center}
+@media(max-width:900px){.nav-hamburger{display:flex}}.footer-inner{grid-template-columns:1fr;gap:2rem}}
 </style>
 <script type="application/ld+json">
 {
@@ -129,9 +140,23 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <li><a href="/blog/">Blog</a></li>
       <li><a href="/contact">Contact</a></li>
     </ul>
-    <a href="/contact" class="btn btn-cyan">Get a Quote</a>
+        <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+<div class="nav-mobile" id="mobileNav">
+  <a href="/#services">Services</a>
+  <a href="/about">About Us</a>
+  <a href="/furniture">Furniture Assembly</a>
+  <a href="/mounting">TV &amp; Mounting</a>
+  <a href="/repairs">Home Repairs</a>
+  <a href="/smarthome">Smart Home</a>
+  <a href="/junk">Junk Removal</a>
+  <a href="/blog">Blog</a>
+  <a href="/contact">Contact</a>
+  <a href="/contact" class="btn btn-cyan btn-full">Get a Quote</a>
+</div>
 
 <section class="page-hero">
   <div class="page-hero-inner">
@@ -274,6 +299,7 @@ function handleWaitlist(e){e.preventDefault();var f=e.target;var name=f.querySel
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
 
 
 
