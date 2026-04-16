@@ -1,7 +1,10 @@
 import { upsertContact, createDeal } from './_hubspot.js';
+import { rateLimit } from './_ratelimit.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  if (!rateLimit(ip, 5, 60000)) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
   const { service, name, phone, email, address, date, time, details } = req.body;
 
   if (!service || !name || !phone || !email || !address || !date || !time) {
@@ -168,3 +171,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed' });
   }
 }
+

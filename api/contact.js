@@ -1,7 +1,10 @@
 import { upsertContact, addNote } from './_hubspot.js';
+import { rateLimit } from './_ratelimit.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  if (!rateLimit(ip, 5, 60000)) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
   const { name, email, subject, message } = req.body;
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
@@ -137,7 +140,8 @@ export default async function handler(req, res) {
       try {
         const contactId = await upsertContact({ email, name, lifecycleStage: 'lead' });
         if (contactId) {
-          await addNote({ contactId, body: '<strong>Contact Form</strong><br>Subject: ' + (subject || 'N/A') + '<br>Message: ' + message });
+          const escHtml = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        await addNote({ contactId, body: '<strong>Contact Form</strong><br>Subject: ' + escHtml(subject || 'N/A') + '<br>Message: ' + escHtml(message) });
         }
       } catch (err) { console.error('HubSpot contact error:', err); }
     }
@@ -148,3 +152,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed' });
   }
 }
+
+
+
