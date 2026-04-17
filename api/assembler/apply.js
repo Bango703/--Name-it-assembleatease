@@ -62,8 +62,8 @@ export default async function handler(req, res) {
 
   const userId = authData.user.id;
 
-  // ── Upsert profile (tier = pending) ──
-  const profileData = {
+  // ── Upsert profile (core fields first, then assembler-specific) ──
+  const coreProfile = {
     id: userId,
     full_name: cleanName,
     email: cleanEmail,
@@ -71,28 +71,27 @@ export default async function handler(req, res) {
     phone: phone.trim(),
     city: city.trim(),
     zip: zip.trim(),
-    services_offered: validServices,
-    has_tools: hasTools,
-    has_transport: hasTransport,
-    years_experience: parseInt(yearsExperience, 10),
-    bio: bio?.trim() || null,
-    tier: 'pending',
   };
 
-  let { error: profileError } = await sb.from('profiles').upsert(profileData, { onConflict: 'id' });
+  let { error: profileError } = await sb.from('profiles').upsert(coreProfile, { onConflict: 'id' });
 
   if (profileError) {
     console.error('Profile upsert error:', JSON.stringify(profileError));
     return res.status(500).json({ error: 'Failed to save application. ' + (profileError.message || '') });
   }
 
-  // Set optional columns (may not exist yet — non-blocking)
-  try {
-    await sb.from('profiles').update({
-      persona_verified: false,
-      code_of_conduct_agreed_at: new Date().toISOString(),
-    }).eq('id', userId);
-  } catch (_) { /* columns may not exist yet */ }
+  // Assembler-specific columns — may not exist in schema yet, non-blocking
+  const { error: extError } = await sb.from('profiles').update({
+    services_offered: validServices,
+    has_tools: hasTools,
+    has_transport: hasTransport,
+    years_experience: parseInt(yearsExperience, 10),
+    bio: bio?.trim() || null,
+    tier: 'pending',
+    persona_verified: false,
+    code_of_conduct_agreed_at: new Date().toISOString(),
+  }).eq('id', userId);
+  if (extError) console.warn('Assembler columns update skipped:', extError.message);
 
   // ── If invite token, validate and update waitlist ──
   if (inviteToken) {
