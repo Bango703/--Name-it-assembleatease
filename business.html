@@ -276,7 +276,7 @@ async function sendB2B() {
     });
     if (!resp.ok) throw new Error('Server error');
   } catch(e) {
-    document.getElementById('b-err').textContent='Something went wrong. Please try again or call us directly.';
+    document.getElementById('b-err').textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     document.getElementById('b-err').style.display='block';
     btn.disabled = false; btn.textContent = 'Send Quote Request ?';
     return;

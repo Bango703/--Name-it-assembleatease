@@ -629,7 +629,7 @@ AAE.submitBooking = async function() {
     });
     if (!resp.ok) throw new Error('Server error');
   } catch(e) {
-    errEl.textContent='Something went wrong. Please try again or call us directly.';
+    errEl.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
     return;
@@ -937,7 +937,7 @@ AAE.submitBooking = async function() {
     });
     if (!resp.ok) throw new Error('Server error');
   } catch(e) {
-    errEl.textContent='Something went wrong. Please try again or call us directly.';
+    errEl.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Booking Request →';
     return;

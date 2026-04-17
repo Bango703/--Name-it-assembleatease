@@ -1,5 +1,6 @@
-import { upsertContact, createDeal } from './_hubspot.js';
-import { rateLimit } from './_ratelimit.js';
+import { upsertContact, createDeal } from '../_hubspot.js';
+import { rateLimit } from '../_ratelimit.js';
+import { getSupabase } from '../_supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -81,7 +82,7 @@ export default async function handler(req, res) {
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">We received your booking,&nbsp;${sName}.</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for choosing AssembleAtEase. A member of our team will contact you within <strong>1 hour</strong> to confirm your appointment.</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for choosing AssembleAtEase. A member of our team will email you within <strong>1 hour</strong> to confirm your appointment.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
 
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What Happens Next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
-      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Confirmation call</strong> — We'll call or text within 1 hour to confirm date, time, and scope.</td></tr>
+      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll email you within 1 hour to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a licensed, insured professional will arrive with all tools needed.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Pay after completion</strong> — No upfront payment. You pay only when you're 100% satisfied with the work.</td></tr>
     </table>
@@ -150,22 +151,57 @@ export default async function handler(req, res) {
         to: [email],
         subject: 'Booking Confirmed - We received your request!',
         html: customerHtml,
+        reply_to: TO,
       }),
     });
     if (!customerResp.ok) {
       console.error('Resend customer error:', await customerResp.text());
     }
+
+    // Save to Supabase bookings table
+    let bookingId = null;
+    try {
+      const sb = getSupabase();
+      const { data: booking, error: sbErr } = await sb
+        .from('bookings')
+        .insert({
+          ref,
+          status: 'pending',
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phone,
+          service,
+          address,
+          date,
+          time,
+          details: details || null,
+        })
+        .select('id')
+        .single();
+      if (sbErr) console.error('Supabase booking insert error:', sbErr);
+      else bookingId = booking.id;
+    } catch (sbEx) {
+      console.error('Supabase booking error:', sbEx);
+    }
+
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
         const contactId = await upsertContact({ email, name, phone, address, lifecycleStage: 'opportunity' });
         if (contactId) {
-          await createDeal({ contactId, dealName: service + ' — ' + name, service, date, time, details });
+          const dealId = await createDeal({ contactId, dealName: service + ' — ' + name, service, date, time, details });
+          // Link HubSpot deal to booking row
+          if (dealId && bookingId) {
+            try {
+              const sb = getSupabase();
+              await sb.from('bookings').update({ hubspot_deal_id: dealId }).eq('id', bookingId);
+            } catch (_) { /* non-critical */ }
+          }
         }
       } catch (err) { console.error('HubSpot booking error:', err); }
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, ref });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Failed' });

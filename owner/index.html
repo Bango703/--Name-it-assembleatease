@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Owner Dashboard — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#111827;--surface:#1e2433;--elevated:#28304a;--border:rgba(255,255,255,0.09);--border-md:rgba(255,255,255,0.15);--text:#f0f2f8;--muted:#6b7280;--soft:#9ca3af;--teal:#1d9e75;--teal-glow:rgba(29,158,117,0.15);--orange:#e86a2e;--orange-glow:rgba(232,106,46,0.15);--amber:#f59e0b;--red:#ef4444;--sidebar-w:260px}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+    /* ── Login gate ── */
+    .login-gate{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+    .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:380px;text-align:center}
+    .login-box h1{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.3rem}
+    .login-box h1 span{color:var(--teal)}
+    .login-box p{font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem}
+    .login-input{width:100%;padding:0.65rem 1rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;margin-bottom:1rem}
+    .login-input:focus{border-color:var(--teal)}
+    .login-btn{width:100%;padding:0.7rem;background:var(--teal);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:0.9rem;font-weight:500;cursor:pointer;transition:background 0.15s}
+    .login-btn:hover{background:#17845f}
+    .login-error{color:var(--red);font-size:0.82rem;margin-bottom:0.75rem;display:none}
+
+    /* ── Main layout ── */
+    .layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+    .layout.hidden{display:none}
+
+    /* ── Sidebar ── */
+    .sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar-brand{padding:1.5rem 1.5rem 1.25rem;border-bottom:1px solid var(--border)}
+    .sidebar-brand a{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);text-decoration:none}
+    .sidebar-brand span{color:var(--teal)}
+    .sidebar-section{padding:1.25rem 1rem 0}
+    .sidebar-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);padding:0 0.5rem;margin-bottom:4px;font-weight:500}
+    .sidebar-nav{list-style:none}
+    .sidebar-nav li{margin-bottom:1px}
+    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:0 0.75rem;height:40px;border-radius:8px;font-size:0.875rem;color:var(--soft);text-decoration:none;transition:background 0.15s,color 0.15s;border:1px solid transparent;cursor:pointer}
+    .sidebar-nav a:hover{background:var(--elevated);color:var(--text)}
+    .sidebar-nav a.active{background:var(--teal-glow);color:var(--teal);border-color:rgba(29,158,117,0.2)}
+    .nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+    .nav-count{margin-left:auto;background:var(--orange);color:#fff;font-size:0.65rem;font-weight:500;padding:1px 6px;border-radius:999px;min-width:20px;text-align:center}
+    .sidebar-footer{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--border)}
+    .sidebar-footer a{font-size:0.78rem;color:var(--muted);text-decoration:none;cursor:pointer}
+    .sidebar-footer a:hover{color:var(--red)}
+
+    /* ── Topbar ── */
+    .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+    .topbar-title{font-size:0.95rem;font-weight:500}
+    .topbar-right{display:flex;align-items:center;gap:0.75rem}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 1rem;border-radius:8px;font-family:inherit;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid var(--border-md);background:var(--elevated);color:var(--soft);text-decoration:none;transition:all 0.15s}
+    .btn:hover{background:rgba(255,255,255,0.06);color:var(--text)}
+    .btn-teal{background:var(--teal);border-color:var(--teal);color:#fff}
+    .btn-teal:hover{background:#17845f}
+    .btn-red{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:var(--red)}
+    .btn-red:hover{background:rgba(239,68,68,0.25)}
+    .btn-amber{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:var(--amber)}
+    .btn-amber:hover{background:rgba(245,158,11,0.25)}
+    .btn:disabled{opacity:0.4;cursor:not-allowed}
+
+    /* ── Content ── */
+    .main{display:flex;flex-direction:column;min-height:100vh}
+    .content{padding:2rem;flex:1}
+
+    /* ── Stats ── */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden}
+    .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+    .stat.teal::before{background:var(--teal)}
+    .stat.orange::before{background:var(--orange)}
+    .stat.amber::before{background:var(--amber)}
+    .stat.neutral::before{background:var(--border-md)}
+    .stat-value{font-family:'DM Serif Display',serif;font-size:1.9rem;line-height:1;margin-bottom:0.3rem}
+    .stat-label{font-size:0.78rem;color:var(--muted)}
+
+    /* ── Status tabs ── */
+    .tabs{display:flex;gap:4px;margin-bottom:1.5rem;flex-wrap:wrap}
+    .tab{padding:0.4rem 1rem;border-radius:8px;font-size:0.82rem;font-weight:500;color:var(--soft);background:transparent;border:1px solid transparent;cursor:pointer;transition:all 0.15s;font-family:inherit}
+    .tab:hover{background:var(--elevated);color:var(--text)}
+    .tab.active{background:var(--teal-glow);color:var(--teal);border-color:rgba(29,158,117,0.2)}
+    .tab .tab-count{margin-left:6px;font-size:0.7rem;opacity:0.7}
+
+    /* ── Booking cards ── */
+    .booking-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.6rem;cursor:pointer;transition:border-color 0.15s,background 0.15s}
+    .booking-card:hover{border-color:var(--border-md);background:var(--elevated)}
+    .booking-card.selected{border-color:var(--teal);background:var(--teal-glow)}
+    .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.35rem}
+    .card-top h4{font-size:0.9rem;font-weight:500;line-height:1.3}
+    .card-desc{font-size:0.82rem;color:var(--muted);line-height:1.55;margin-bottom:0.4rem}
+    .card-meta{font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .meta-dot{width:3px;height:3px;border-radius:50%;background:var(--muted);flex-shrink:0}
+    .badge{display:inline-flex;align-items:center;padding:0.18rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:500;white-space:nowrap;flex-shrink:0}
+    .badge-pending{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25)}
+    .badge-confirmed{background:rgba(29,158,117,0.15);color:#1d9e75;border:1px solid rgba(29,158,117,0.25)}
+    .badge-completed{background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.25)}
+    .badge-declined{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.25)}
+    .badge-cancelled{background:rgba(107,114,128,0.15);color:#6b7280;border:1px solid rgba(107,114,128,0.25)}
+
+    /* ── Detail panel ── */
+    .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;display:none}
+    .detail-panel.open{display:block}
+    .detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem}
+    .detail-header h2{font-family:'DM Serif Display',serif;font-size:1.25rem}
+    .detail-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px}
+    .detail-close:hover{color:var(--text)}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem 2rem;margin-bottom:1.5rem}
+    .detail-field label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:2px}
+    .detail-field span{font-size:0.9rem;color:var(--text)}
+    .detail-actions{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+    .detail-section-title{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.75rem}
+
+    /* ── Messages thread ── */
+    .msg-thread{max-height:320px;overflow-y:auto;margin-bottom:1rem;display:flex;flex-direction:column;gap:0.5rem}
+    .msg{padding:0.65rem 1rem;border-radius:10px;max-width:85%;font-size:0.85rem;line-height:1.5}
+    .msg.owner{background:var(--teal-glow);border:1px solid rgba(29,158,117,0.2);align-self:flex-end;color:var(--text)}
+    .msg.customer{background:var(--elevated);border:1px solid var(--border-md);align-self:flex-start;color:var(--text)}
+    .msg-time{font-size:0.68rem;color:var(--muted);margin-top:3px}
+    .msg-empty{font-size:0.85rem;color:var(--muted);text-align:center;padding:2rem 0}
+    .msg-compose{display:flex;gap:0.5rem}
+    .msg-input{flex:1;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:none;min-height:40px;max-height:100px}
+    .msg-input:focus{border-color:var(--teal)}
+
+    /* ── Modals ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;padding:1rem}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:420px}
+    .modal h3{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.5rem}
+    .modal p{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
+    .modal textarea{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:vertical;min-height:80px;margin-bottom:1rem}
+    .modal-actions{display:flex;gap:0.5rem;justify-content:flex-end}
+
+    /* ── Empty / loading / error ── */
+    .empty{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;color:var(--muted);font-size:0.875rem}
+    .loading-text{color:var(--muted);font-size:0.85rem;padding:2rem;text-align:center}
+    .toast{position:fixed;bottom:2rem;right:2rem;padding:0.75rem 1.25rem;border-radius:10px;font-size:0.85rem;font-weight:500;z-index:9999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(10px)}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.success{background:#065f46;color:#d1fae5;border:1px solid rgba(29,158,117,0.3)}
+    .toast.error{background:#7f1d1d;color:#fecaca;border:1px solid rgba(239,68,68,0.3)}
+
+    /* ── Responsive ── */
+    @media(max-width:1100px){.content-grid{grid-template-columns:1fr !important}}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:500px){.stats-row{grid-template-columns:1fr}.content{padding:1.25rem}}
+  </style>
+</head>
+<body>
+
+<!-- ─── LOGIN GATE ─── -->
+<div class="login-gate" id="login-gate">
+  <div class="login-box">
+    <h1>Assemble<span>AtEase</span></h1>
+    <p>Owner Dashboard</p>
+    <div class="login-error" id="login-error">Invalid password</div>
+    <input type="password" class="login-input" id="login-pw" placeholder="Enter owner password" autocomplete="current-password" />
+    <button class="login-btn" id="login-btn">Sign In</button>
+  </div>
+</div>
+
+<!-- ─── MAIN LAYOUT ─── -->
+<div class="layout hidden" id="layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <a href="../index.html">Assemble<span>AtEase</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Management</div>
+      <ul class="sidebar-nav">
+        <li><a class="active" data-view="bookings"><span class="nav-icon">&#128197;</span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a id="logout-btn">&#8594; Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Bookings</div>
+      <div class="topbar-right">
+        <button class="btn" id="refresh-btn">&#8635; Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Stats -->
+      <div class="stats-row" id="stats-row">
+        <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
+        <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
+        <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
+        <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
+      </div>
+
+      <!-- Status tabs -->
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-status="all">All</button>
+        <button class="tab" data-status="pending">Pending</button>
+        <button class="tab" data-status="confirmed">Confirmed</button>
+        <button class="tab" data-status="completed">Completed</button>
+        <button class="tab" data-status="declined">Declined</button>
+        <button class="tab" data-status="cancelled">Cancelled</button>
+      </div>
+
+      <!-- Content grid: list + detail -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="content-grid">
+        <div>
+          <div id="bookings-list"></div>
+        </div>
+        <div>
+          <div class="detail-panel" id="detail-panel">
+            <div class="detail-header">
+              <h2 id="detail-ref">—</h2>
+              <button class="detail-close" id="detail-close">&times;</button>
+            </div>
+            <div class="detail-grid" id="detail-grid"></div>
+            <div class="detail-actions" id="detail-actions"></div>
+            <div class="detail-section-title">Messages</div>
+            <div class="msg-thread" id="msg-thread"></div>
+            <div class="msg-compose">
+              <textarea class="msg-input" id="msg-input" placeholder="Type a message..." rows="1"></textarea>
+              <button class="btn btn-teal" id="msg-send">Send</button>
+            </div>
+          </div>
+          <div class="empty" id="detail-placeholder" style="margin-top:0">Select a booking to view details</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Decline/Cancel reason modal ─── -->
+<div class="modal-overlay" id="reason-modal">
+  <div class="modal">
+    <h3 id="reason-modal-title">Reason</h3>
+    <p id="reason-modal-desc">Optionally provide a reason.</p>
+    <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="reason-cancel">Cancel</button>
+      <button class="btn btn-red" id="reason-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const API = '/api/booking';
+  let password = sessionStorage.getItem('owner_pw') || '';
+  let allBookings = [];
+  let selectedId = null;
+  let currentStatus = 'all';
+
+  // ─── DOM refs ───
+  const $gate      = document.getElementById('login-gate');
+  const $layout    = document.getElementById('layout');
+  const $loginPw   = document.getElementById('login-pw');
+  const $loginBtn  = document.getElementById('login-btn');
+  const $loginErr  = document.getElementById('login-error');
+  const $list      = document.getElementById('bookings-list');
+  const $detail    = document.getElementById('detail-panel');
+  const $detailPh  = document.getElementById('detail-placeholder');
+  const $detailRef = document.getElementById('detail-ref');
+  const $detailGrid= document.getElementById('detail-grid');
+  const $detailAct = document.getElementById('detail-actions');
+  const $msgThread = document.getElementById('msg-thread');
+  const $msgInput  = document.getElementById('msg-input');
+  const $toast     = document.getElementById('toast');
+  const $reasonModal = document.getElementById('reason-modal');
+  const $reasonText  = document.getElementById('reason-text');
+
+  // ─── Auth helpers ───
+  function headers(extra) {
+    return Object.assign({ 'Content-Type': 'application/json', 'x-owner-password': password }, extra || {});
+  }
+
+  async function apiGet(path) {
+    const r = await fetch(API + path, { headers: headers() });
+    if (r.status === 401) { logout(); throw new Error('Unauthorized'); }
+    return r.json();
+  }
+
+  async function apiPost(path, body) {
+    const r = await fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+    if (r.status === 401) { logout(); throw new Error('Unauthorized'); }
+    return r.json();
+  }
+
+  // ─── Login / Logout ───
+  function showDashboard() {
+    $gate.style.display = 'none';
+    $layout.classList.remove('hidden');
+    loadBookings();
+  }
+
+  async function tryLogin() {
+    password = $loginPw.value.trim();
+    if (!password) return;
+    $loginBtn.disabled = true;
+    try {
+      const r = await fetch(API + '/list', { headers: headers() });
+      if (r.status === 401) {
+        $loginErr.style.display = 'block';
+        password = '';
+        return;
+      }
+      sessionStorage.setItem('owner_pw', password);
+      showDashboard();
+    } catch {
+      $loginErr.textContent = 'Connection error';
+      $loginErr.style.display = 'block';
+    } finally {
+      $loginBtn.disabled = false;
+    }
+  }
+
+  function logout() {
+    password = '';
+    sessionStorage.removeItem('owner_pw');
+    $layout.classList.add('hidden');
+    $gate.style.display = 'flex';
+    $loginPw.value = '';
+    $loginErr.style.display = 'none';
+  }
+
+  $loginBtn.addEventListener('click', tryLogin);
+  $loginPw.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryLogin(); });
+  document.getElementById('logout-btn').addEventListener('click', logout);
+  document.getElementById('refresh-btn').addEventListener('click', function() { loadBookings(); });
+
+  // Auto-login if password in session
+  if (password) showDashboard();
+
+  // ─── Load bookings ───
+  async function loadBookings() {
+    $list.innerHTML = '<div class="loading-text">Loading bookings...</div>';
+    try {
+      const data = await apiGet('/list');
+      allBookings = data.bookings || [];
+      updateStats();
+      renderList();
+    } catch (e) {
+      $list.innerHTML = '<div class="empty">Failed to load bookings</div>';
+    }
+  }
+
+  // ─── Stats ───
+  function updateStats() {
+    const counts = { pending: 0, confirmed: 0, completed: 0 };
+    allBookings.forEach(function(b) { if (counts[b.status] !== undefined) counts[b.status]++; });
+    document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
+    document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
+    document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
+    document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
+    // Pending badge in sidebar
+    var $navP = document.getElementById('nav-pending');
+    if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
+    else $navP.style.display = 'none';
+    // Tab counts
+    document.querySelectorAll('.tab').forEach(function(t) {
+      var s = t.dataset.status;
+      var c = s === 'all' ? allBookings.length : allBookings.filter(function(b){return b.status===s}).length;
+      var span = t.querySelector('.tab-count');
+      if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
+      span.textContent = c;
+    });
+  }
+
+  // ─── Tabs ───
+  document.getElementById('tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+    tab.classList.add('active');
+    currentStatus = tab.dataset.status;
+    renderList();
+  });
+
+  // ─── Render booking list ───
+  function renderList() {
+    var filtered = currentStatus === 'all' ? allBookings : allBookings.filter(function(b){return b.status===currentStatus});
+    if (!filtered.length) {
+      $list.innerHTML = '<div class="empty">No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings</div>';
+      return;
+    }
+    $list.innerHTML = filtered.map(function(b) {
+      var msgCount = 0;
+      if (b.messages && b.messages.length) msgCount = b.messages[0].count || 0;
+      return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
+        + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4><span class="badge badge-' + b.status + '">' + b.status + '</span></div>'
+        + '<div class="card-desc">' + esc(b.service) + '</div>'
+        + '<div class="card-meta">'
+          + '<span>' + esc(b.ref) + '</span>'
+          + '<span class="meta-dot"></span>'
+          + '<span>' + formatDate(b.date) + (b.time ? ' ' + esc(b.time) : '') + '</span>'
+          + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
+        + '</div></div>';
+    }).join('');
+  }
+
+  // ─── Click a booking card ───
+  $list.addEventListener('click', function(e) {
+    var card = e.target.closest('.booking-card');
+    if (!card) return;
+    var id = card.dataset.id;
+    selectBooking(id);
+  });
+
+  async function selectBooking(id) {
+    selectedId = id;
+    renderList();
+    var b = allBookings.find(function(x){return x.id === id});
+    if (!b) return;
+
+    $detailPh.style.display = 'none';
+    $detail.classList.add('open');
+    $detailRef.textContent = b.ref;
+
+    // Detail fields
+    $detailGrid.innerHTML = [
+      field('Customer', b.customer_name),
+      field('Email', b.customer_email),
+      field('Service', b.service),
+      field('Status', '<span class="badge badge-' + b.status + '">' + b.status + '</span>'),
+      field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
+      field('Address', b.address || '—'),
+      field('Details', b.details || '—'),
+      field('Created', formatDateTime(b.created_at)),
+    ].join('');
+
+    // Action buttons
+    renderActions(b);
+
+    // Load messages
+    loadMessages(b.id);
+  }
+
+  function field(label, value) {
+    return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
+  }
+
+  function renderActions(b) {
+    var btns = [];
+    if (b.status === 'pending') {
+      btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">&#10003; Confirm</button>');
+      btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">&#10007; Decline</button>');
+    }
+    if (b.status === 'confirmed') {
+      btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">&#10003; Mark Complete</button>');
+      btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
+    }
+    if (b.status === 'pending') {
+      btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
+    }
+    $detailAct.innerHTML = btns.join('');
+    $detailAct.style.display = btns.length ? '' : 'none';
+  }
+
+  // ─── Action buttons ───
+  var pendingAction = null;
+
+  $detailAct.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.dataset.action;
+    var id = btn.dataset.id;
+
+    if (action === 'confirm') {
+      doAction('/confirm', { bookingId: id });
+    } else if (action === 'complete') {
+      doAction('/complete', { bookingId: id });
+    } else if (action === 'decline') {
+      pendingAction = { path: '/decline', id: id };
+      document.getElementById('reason-modal-title').textContent = 'Decline Booking';
+      document.getElementById('reason-modal-desc').textContent = 'Optionally explain why this booking is being declined.';
+      document.getElementById('reason-confirm').textContent = 'Decline';
+      document.getElementById('reason-confirm').className = 'btn btn-red';
+      $reasonText.value = '';
+      $reasonModal.classList.add('open');
+    } else if (action === 'cancel') {
+      pendingAction = { path: '/cancel', id: id };
+      document.getElementById('reason-modal-title').textContent = 'Cancel Booking';
+      document.getElementById('reason-modal-desc').textContent = 'Optionally explain why this booking is being cancelled.';
+      document.getElementById('reason-confirm').textContent = 'Cancel Booking';
+      document.getElementById('reason-confirm').className = 'btn btn-amber';
+      $reasonText.value = '';
+      $reasonModal.classList.add('open');
+    }
+  });
+
+  document.getElementById('reason-cancel').addEventListener('click', function() {
+    $reasonModal.classList.remove('open');
+    pendingAction = null;
+  });
+
+  document.getElementById('reason-confirm').addEventListener('click', function() {
+    if (!pendingAction) return;
+    var body = { bookingId: pendingAction.id };
+    var reason = $reasonText.value.trim();
+    if (reason) body.reason = reason;
+    doAction(pendingAction.path, body);
+    $reasonModal.classList.remove('open');
+    pendingAction = null;
+  });
+
+  async function doAction(path, body) {
+    try {
+      var data = await apiPost(path, body);
+      if (data.error) { toast(data.error, 'error'); return; }
+      toast('Booking updated', 'success');
+      await loadBookings();
+      if (selectedId) selectBooking(selectedId);
+    } catch (e) {
+      toast('Action failed', 'error');
+    }
+  }
+
+  // ─── Messages ───
+  async function loadMessages(bookingId) {
+    $msgThread.innerHTML = '<div class="msg-empty">Loading...</div>';
+    try {
+      var data = await apiGet('/message?bookingId=' + bookingId);
+      var msgs = data.messages || [];
+      if (!msgs.length) {
+        $msgThread.innerHTML = '<div class="msg-empty">No messages yet</div>';
+        return;
+      }
+      $msgThread.innerHTML = msgs.map(function(m) {
+        return '<div class="msg ' + (m.sender === 'owner' ? 'owner' : 'customer') + '">'
+          + '<div>' + esc(m.body) + '</div>'
+          + '<div class="msg-time">' + (m.sender === 'owner' ? 'You' : 'Customer') + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
+          + '</div>';
+      }).join('');
+      $msgThread.scrollTop = $msgThread.scrollHeight;
+    } catch {
+      $msgThread.innerHTML = '<div class="msg-empty">Failed to load messages</div>';
+    }
+  }
+
+  document.getElementById('msg-send').addEventListener('click', sendMessage);
+  $msgInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+  async function sendMessage() {
+    var body = $msgInput.value.trim();
+    if (!body || !selectedId) return;
+    $msgInput.value = '';
+    try {
+      var data = await apiPost('/message', { bookingId: selectedId, body: body, sender: 'owner' });
+      if (data.error) { toast(data.error, 'error'); return; }
+      loadMessages(selectedId);
+    } catch {
+      toast('Failed to send message', 'error');
+    }
+  }
+
+  // ─── Close detail panel ───
+  document.getElementById('detail-close').addEventListener('click', function() {
+    $detail.classList.remove('open');
+    $detailPh.style.display = '';
+    selectedId = null;
+    renderList();
+  });
+
+  // ─── Helpers ───
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  function formatDate(d) {
+    if (!d) return '—';
+    try {
+      var dt = new Date(d);
+      if (isNaN(dt)) return esc(d);
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return esc(d); }
+  }
+
+  function formatDateTime(d) {
+    if (!d) return '—';
+    try {
+      var dt = new Date(d);
+      if (isNaN(dt)) return esc(d);
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    } catch { return esc(d); }
+  }
+
+  function toast(msg, type) {
+    $toast.textContent = msg;
+    $toast.className = 'toast ' + (type || 'success') + ' show';
+    setTimeout(function() { $toast.classList.remove('show'); }, 3000);
+  }
+})();
+</script>
+</body>
+</html>

@@ -56,7 +56,7 @@ const API = {
     return { data, error };
   },
 
-  async getJobs({ status, customerId, search, category, limit = 12, offset = 0 } = {}) {
+  async getJobs({ status, customerId, assemblerId, search, category, limit = 12, offset = 0 } = {}) {
     let query = supabaseClient
       .from('jobs')
       .select(`
@@ -67,9 +67,10 @@ const API = {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (status)     query = query.eq('status', status);
-    if (customerId) query = query.eq('customer_id', customerId);
-    if (category)   query = query.eq('category', category);
+    if (status)      query = query.eq('status', status);
+    if (customerId)  query = query.eq('customer_id', customerId);
+    if (assemblerId) query = query.eq('assembler_id', assemblerId);
+    if (category)    query = query.eq('category', category);
     if (search) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }

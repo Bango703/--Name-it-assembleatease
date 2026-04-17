@@ -611,7 +611,7 @@ AAE.submitBooking = async function() {
     });
     if (!resp.ok) throw new Error('Server error');
   } catch(e) {
-    errEl.textContent='Something went wrong. Please try again or call us directly.';
+    errEl.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Booking Request →';
     return;
@@ -729,7 +729,7 @@ async function sendContact() {
     var resp = await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message})});
     if (!resp.ok) throw new Error('Server error');
   } catch(e) {
-    err.textContent='Something went wrong. Please try again or call us directly.';
+    err.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     err.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Message →';
     return;

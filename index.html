@@ -324,8 +324,8 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <button class="btn btn-white btn-lg" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})">See Our Services &darr;</button>
     </div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-value">600+</div><div class="hero-stat-label">Jobs completed</div></div>
-      <div class="hero-stat"><div class="hero-stat-value">4.9&#9733;</div><div class="hero-stat-label">Avg rating</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">Austin</div><div class="hero-stat-label">Based locally</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">5&#9733;</div><div class="hero-stat-label">Our standard</div></div>
       <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Availability</div></div>
       <div class="hero-stat"><div class="hero-stat-value">Pay after</div><div class="hero-stat-label">Job is done</div></div>
     </div>
@@ -441,7 +441,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.7;font-style:italic">"Cleared out my garage which had years of accumulated junk. Took everything I needed gone in one trip. Only reason for 4 stars is I had to wait an extra day but they communicated about it and got it done well."</p>
 </div></div>
     <div style="text-align:center;margin-top:2rem">
-      <p style="font-size:0.875rem;color:var(--muted)">Average rating: <strong style="color:var(--ink)">4.9 / 5.0</strong> &bull; Based on 600+ completed jobs</p>
+      <p style="font-size:0.875rem;color:var(--muted)">Licensed &bull; Insured &bull; Background Checked &bull; Austin, TX</p>
     </div>
   </div>
 </section>
@@ -840,7 +840,7 @@ AAE.submitBooking = async function() {
     });
     if (!resp.ok) throw new Error('Server error');
   } catch(e) {
-    errEl.textContent='Something went wrong. Please try again or call us directly.';
+    errEl.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Booking Request →';
     return;
@@ -970,6 +970,8 @@ window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("
 </script>
 </body>
 </html>
+
+
 
 
 

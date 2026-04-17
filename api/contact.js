@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
 
-  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? false : !email || !message) {
+  if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !message) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -86,11 +86,11 @@ export default async function handler(req, res) {
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
-      <strong style="color:#1a1a1a">Need immediate help?</strong> Call or text us directly and we'll get back to you right away.
+      <strong style="color:#1a1a1a">Need immediate help?</strong> Email us at <a href="mailto:service@assembleatease.com" style="color:#0097a7;font-weight:600">service@assembleatease.com</a> and we'll get back to you right away.
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
-      <a href="tel:+15127018878" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Call Us</a>
+      <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Email Us</a>
     </td></tr></table>
   </td></tr></table>
 
@@ -130,6 +130,7 @@ export default async function handler(req, res) {
         to: [email],
         subject: 'We received your message - AssembleAtEase',
         html: customerHtml,
+        reply_to: TO,
       }),
     });
     if (!customerResp.ok) {
