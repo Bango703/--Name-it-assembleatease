@@ -511,7 +511,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div id="form-state">
       <div class="modal-header">
         <div><div class="modal-title">Complete Your Booking</div><div class="modal-sub">Fill out your details once for all selected services.</div></div>
-        <button class="modal-close" onclick="AAE.closeBooking()">&times;</button>
+        <button class="modal-close" aria-label="Close booking form" onclick="AAE.closeBooking()">&times;</button>
       </div>
       <div class="cart-summary">
         <div class="cart-summary-title">&#128722; Your Selected Services</div>
@@ -663,7 +663,7 @@ AAE.updateModalCart = function() {
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
   if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
@@ -883,6 +883,7 @@ window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("
 </script>
 </body>
 </html>
+
 
 
 
