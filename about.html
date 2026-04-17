@@ -203,7 +203,8 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday"], "opens": "07:00", "closes": "13:00"}
   ]
 }
-</script></head>
+</script><style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#0097a7;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#0097a7;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
+</head>
 <body>
 <nav class="nav">
   <div class="nav-inner">
@@ -723,6 +724,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+<div id="cookie-banner" class="hidden">
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button class="cookie-btn cookie-decline" onclick="declineCookies()">Decline</button>
+    <button class="cookie-btn cookie-accept" onclick="acceptCookies()">Accept</button>
+  </div>
+</div>
+<script>
+function acceptCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","accepted");}
+function declineCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","declined");}
+window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}});
+</script>
 </body>
 </html>
 };
@@ -1021,8 +1034,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+<div id="cookie-banner" class="hidden">
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button class="cookie-btn cookie-decline" onclick="declineCookies()">Decline</button>
+    <button class="cookie-btn cookie-accept" onclick="acceptCookies()">Accept</button>
+  </div>
+</div>
+<script>
+function acceptCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","accepted");}
+function declineCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","declined");}
+window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}});
+</script>
 </body>
 </html>
+
 
 
 
