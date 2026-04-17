@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 
@@ -19,13 +20,24 @@ function getCheckName(templateId) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Verify Persona webhook secret if configured
+  // Verify Persona webhook signature via HMAC
   const webhookSecret = process.env.PERSONA_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const sig = req.headers['persona-signature'];
-    if (!sig || sig !== webhookSecret) {
-      return res.status(401).json({ error: 'Invalid webhook signature' });
-    }
+  if (!webhookSecret) {
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  const signature = req.headers['persona-signature'] || '';
+  const body = JSON.stringify(req.body);
+  const expected = crypto
+    .createHmac('sha256', webhookSecret)
+    .update(body)
+    .digest('hex');
+
+  const sigBuffer = Buffer.from(signature, 'utf8');
+  const expBuffer = Buffer.from(expected, 'utf8');
+
+  if (sigBuffer.length !== expBuffer.length || !crypto.timingSafeEqual(sigBuffer, expBuffer)) {
+    return res.status(401).json({ error: 'Invalid signature' });
   }
 
   const event = req.body;
