@@ -255,7 +255,7 @@ async function sendB2B() {
   var err = document.getElementById('b-err');
   err.style.display = 'none';
   if (!name) { err.textContent='Please enter your name.'; err.style.display='block'; return; }
-  if (!email||!email.includes('@')) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
+  if (!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
   if (!details) { err.textContent='Please describe your project.'; err.style.display='block'; return; }
   var btn = document.getElementById('b-btn');
   btn.disabled = true;
@@ -315,6 +315,7 @@ window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("
 </script>
 </body>
 </html>
+
 
 
 

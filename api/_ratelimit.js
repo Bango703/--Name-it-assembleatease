@@ -17,3 +17,4 @@ export function rateLimit(ip, maxRequests = 5, windowMs = 60000) {
   }
   return true;
 }
+

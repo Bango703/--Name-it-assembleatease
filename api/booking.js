@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (!rateLimit(ip, 5, 60000)) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
   const { service, name, phone, email, address, date, time, details } = req.body;
 
-  if (!service || !name || !phone || !email || !address || !date || !time) {
+  if (!service || !name || !phone || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !address || !date || !time) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -171,4 +171,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed' });
   }
 }
+
+
+
 

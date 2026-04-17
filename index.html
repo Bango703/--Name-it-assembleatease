@@ -820,7 +820,7 @@ AAE.submitBooking = async function() {
 
   if (!name)   { errEl.textContent='Please enter your name.';errEl.style.display='block';return; }
   if (!phone)  { errEl.textContent='Please enter your phone number.';errEl.style.display='block';return; }
-  if (!email||!email.includes('@')) { errEl.textContent='Please enter a valid email.';errEl.style.display='block';return; }
+  if (!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { errEl.textContent='Please enter a valid email.';errEl.style.display='block';return; }
   if (!address){ errEl.textContent='Please enter your service address.';errEl.style.display='block';return; }
   if (!date)   { errEl.textContent='Please select a date.';errEl.style.display='block';return; }
   if (!time)   { errEl.textContent='Please select a time.';errEl.style.display='block';return; }
@@ -967,6 +967,7 @@ window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("
 </script>
 </body>
 </html>
+
 
 
 

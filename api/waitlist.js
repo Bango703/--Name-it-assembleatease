@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
 
-  if (!name || !email || !phone || !city || !state) {
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? false : !email || !phone || !city || !state) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -161,6 +161,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed' });
   }
 }
+
+
 
 
 
