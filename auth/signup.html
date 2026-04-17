@@ -466,6 +466,12 @@
       const confirm   = document.getElementById('confirm-password').value;
       const role      = document.querySelector('input[name="role"]:checked')?.value || 'customer';
 
+      // Assemblers must apply through the application form
+      if (role === 'assembler') {
+        window.location.href = '../assembler/apply.html';
+        return;
+      }
+
       // Client-side validation
       let hasError = false;
       if (!firstName) { fieldError('first-name', 'First name is required.'); hasError = true; }

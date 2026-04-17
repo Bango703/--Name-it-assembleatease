@@ -168,6 +168,7 @@
       <div class="sidebar-label">Management</div>
       <ul class="sidebar-nav">
         <li><a class="active" data-view="bookings"><span class="nav-icon">&#128197;</span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
+        <li><a data-view="assemblers"><span class="nav-icon">&#128101;</span> Assemblers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
       </ul>
     </div>
     <div class="sidebar-footer">
@@ -184,6 +185,8 @@
     </div>
 
     <div class="content">
+      <!-- ─── BOOKINGS VIEW ─── -->
+      <div id="bookings-view">
       <!-- Stats -->
       <div class="stats-row" id="stats-row">
         <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
@@ -215,6 +218,17 @@
             </div>
             <div class="detail-grid" id="detail-grid"></div>
             <div class="detail-actions" id="detail-actions"></div>
+            <!-- Assignment section -->
+            <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+              <div class="detail-section-title">Assembler Assignment</div>
+              <div id="assign-status" style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"></div>
+              <div id="assign-controls" style="display:flex;gap:0.5rem;align-items:center">
+                <select id="assign-select" style="flex:1;padding:0.5rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;cursor:pointer">
+                  <option value="">Select an assembler...</option>
+                </select>
+                <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
+              </div>
+            </div>
             <div class="detail-section-title">Messages</div>
             <div class="msg-thread" id="msg-thread"></div>
             <div class="msg-compose">
@@ -225,6 +239,52 @@
           <div class="empty" id="detail-placeholder" style="margin-top:0">Select a booking to view details</div>
         </div>
       </div>
+      </div><!-- /bookings-view -->
+
+      <!-- ─── ASSEMBLERS VIEW ─── -->
+      <div id="assemblers-view" style="display:none">
+        <div class="stats-row" id="asm-stats-row">
+          <div class="stat neutral"><div class="stat-value" id="asm-total">—</div><div class="stat-label">Total</div></div>
+          <div class="stat amber"><div class="stat-value" id="asm-pending">—</div><div class="stat-label">Pending</div></div>
+          <div class="stat teal"><div class="stat-value" id="asm-active">—</div><div class="stat-label">Active</div></div>
+          <div class="stat orange"><div class="stat-value" id="asm-elite">—</div><div class="stat-label">Elite</div></div>
+        </div>
+        <div class="tabs" id="asm-tabs">
+          <button class="tab active" data-tier="all">All</button>
+          <button class="tab" data-tier="pending">Pending</button>
+          <button class="tab" data-tier="starter">Starter</button>
+          <button class="tab" data-tier="verified">Verified</button>
+          <button class="tab" data-tier="elite">Elite</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="asm-table">
+            <thead>
+              <tr style="text-align:left">
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Name</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Tier</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Persona</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Jobs</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rating</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Applied</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="asm-tbody"></tbody>
+          </table>
+        </div>
+      </div><!-- /assemblers-view -->
+    </div>
+  </div>
+</div>
+
+<!-- ─── Assembler Detail Modal ─── -->
+<div class="modal-overlay" id="asm-detail-modal">
+  <div class="modal" style="max-width:540px">
+    <h3 id="asm-detail-name">Assembler</h3>
+    <div id="asm-detail-body" style="font-size:0.85rem;color:var(--soft);line-height:1.7;margin-bottom:1rem"></div>
+    <div class="modal-actions">
+      <button class="btn" id="asm-detail-close">Close</button>
     </div>
   </div>
 </div>
@@ -293,6 +353,15 @@
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
     loadBookings();
+    // Load pending assembler count for sidebar badge
+    fetch('/api/assembler/list?tier=pending', { headers: headers() })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var ct = (d.assemblers || []).length;
+        var $navApps = document.getElementById('nav-pending-apps');
+        if (ct > 0) { $navApps.textContent = ct; $navApps.style.display = ''; }
+        else $navApps.style.display = 'none';
+      }).catch(function(){});
   }
 
   async function tryLogin() {
@@ -328,7 +397,10 @@
   $loginBtn.addEventListener('click', tryLogin);
   $loginPw.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryLogin(); });
   document.getElementById('logout-btn').addEventListener('click', logout);
-  document.getElementById('refresh-btn').addEventListener('click', function() { loadBookings(); });
+  document.getElementById('refresh-btn').addEventListener('click', function() {
+    if (currentView === 'assemblers') loadAssemblerList();
+    else loadBookings();
+  });
 
   // Auto-login if password in session
   if (password) showDashboard();
@@ -432,6 +504,9 @@
 
     // Action buttons
     renderActions(b);
+
+    // Assignment section
+    renderAssignSection(b);
 
     // Load messages
     loadMessages(b.id);
@@ -589,6 +664,284 @@
     $toast.className = 'toast ' + (type || 'success') + ' show';
     setTimeout(function() { $toast.classList.remove('show'); }, 3000);
   }
+
+  // ─── Assembler assignment ───
+  var eligibleAssemblers = [];
+
+  async function loadAssemblers() {
+    try {
+      var r = await fetch('/api/booking/assemblers', { headers: headers() });
+      if (!r.ok) return;
+      var data = await r.json();
+      eligibleAssemblers = data.assemblers || [];
+    } catch (e) {
+      console.error('Failed to load assemblers:', e);
+    }
+  }
+
+  // Load assemblers on dashboard open
+  loadAssemblers();
+
+  function renderAssignSection(b) {
+    var section = document.getElementById('assign-section');
+    var status = document.getElementById('assign-status');
+    var controls = document.getElementById('assign-controls');
+    var select = document.getElementById('assign-select');
+
+    // Only show for confirmed bookings
+    if (b.status !== 'confirmed') {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = '';
+
+    if (b.assembler_id) {
+      // Already assigned
+      var aName = '(assigned assembler)';
+      var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; });
+      if (a) aName = a.full_name;
+      var accepted = b.assembler_accepted_at ? ' &bull; <span style="color:#1d9e75">Accepted</span>' : ' &bull; <span style="color:#f59e0b">Pending response</span>';
+      status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted;
+      controls.style.display = 'none';
+    } else {
+      // Not yet assigned
+      status.textContent = 'No assembler assigned yet.';
+      controls.style.display = 'flex';
+      select.innerHTML = '<option value="">Select an assembler...</option>';
+      eligibleAssemblers.forEach(function(a) {
+        var tierBadge = a.tier === 'elite' ? ' ★' : a.tier === 'verified' ? ' ✓' : '';
+        select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';
+      });
+    }
+  }
+
+  document.getElementById('assign-select').addEventListener('change', function() {
+    document.getElementById('assign-btn').disabled = !this.value;
+  });
+
+  document.getElementById('assign-btn').addEventListener('click', async function() {
+    var assemblerId = document.getElementById('assign-select').value;
+    if (!assemblerId || !selectedId) return;
+    this.disabled = true;
+    this.textContent = 'Assigning...';
+    try {
+      var data = await apiPost('/assign', { bookingId: selectedId, assemblerId: assemblerId });
+      if (data.error) { toast(data.error, 'error'); return; }
+      toast('Assigned to ' + (data.assignedTo || 'assembler'), 'success');
+      await loadBookings();
+      if (selectedId) selectBooking(selectedId);
+    } catch (e) {
+      toast('Failed to assign', 'error');
+    } finally {
+      this.disabled = false;
+      this.textContent = 'Assign';
+    }
+  });
+  // ─── View switching (bookings ↔ assemblers) ───
+  var currentView = 'bookings';
+  var $bookingsView = document.getElementById('bookings-view');
+  var $assemblersView = document.getElementById('assemblers-view');
+  var $topbarTitle = document.querySelector('.topbar-title');
+
+  document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
+    var link = e.target.closest('[data-view]');
+    if (!link) return;
+    e.preventDefault();
+    var view = link.dataset.view;
+    if (view === currentView) return;
+    currentView = view;
+    document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
+    link.classList.add('active');
+
+    if (view === 'bookings') {
+      $bookingsView.style.display = '';
+      $assemblersView.style.display = 'none';
+      $topbarTitle.textContent = 'Bookings';
+    } else if (view === 'assemblers') {
+      $bookingsView.style.display = 'none';
+      $assemblersView.style.display = '';
+      $topbarTitle.textContent = 'Assemblers';
+      loadAssemblerList();
+    }
+  });
+
+  // ─── Assembler Management ───
+  var allAssemblerProfiles = [];
+  var currentTierFilter = 'all';
+
+  async function loadAssemblerList() {
+    document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading assemblers...</td></tr>';
+    try {
+      var r = await fetch('/api/assembler/list', { headers: headers() });
+      if (!r.ok) throw new Error('Failed');
+      var data = await r.json();
+      allAssemblerProfiles = data.assemblers || [];
+      var stats = data.stats || {};
+      document.getElementById('asm-total').textContent = stats.total || 0;
+      document.getElementById('asm-pending').textContent = stats.pending || 0;
+      document.getElementById('asm-active').textContent = (stats.starter || 0) + (stats.verified || 0);
+      document.getElementById('asm-elite').textContent = stats.elite || 0;
+
+      // Pending apps badge
+      var $navApps = document.getElementById('nav-pending-apps');
+      if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
+      else $navApps.style.display = 'none';
+
+      renderAssemblerTable();
+    } catch (e) {
+      document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load assemblers</td></tr>';
+    }
+  }
+
+  // Tier filter tabs
+  document.getElementById('asm-tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('#asm-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    currentTierFilter = tab.dataset.tier;
+    renderAssemblerTable();
+  });
+
+  function tierBadge(tier) {
+    var colors = {
+      pending: 'badge-pending',
+      starter: 'badge-confirmed',
+      verified: 'badge-completed',
+      elite: 'badge-pending',
+    };
+    var icons = { pending: '&#9679;', starter: '&#10003;', verified: '&#10003;', elite: '&#9733;' };
+    return '<span class="badge ' + (colors[tier]||'') + '">' + (icons[tier]||'') + ' ' + (tier||'—') + '</span>';
+  }
+
+  function personaStatus(a) {
+    if (a.persona_verified) return '<span style="color:#1d9e75">&#10003; Verified</span>';
+    var checks = a.persona_checks || {};
+    var passed = [checks.gov === true, checks.selfie === true, checks.db === true].filter(Boolean).length;
+    var failed = [checks.gov === 'failed', checks.selfie === 'failed', checks.db === 'failed'].filter(Boolean).length;
+    if (failed > 0) return '<span style="color:var(--red)">' + failed + ' failed</span>';
+    if (passed > 0) return '<span style="color:var(--amber)">' + passed + '/3 done</span>';
+    return '<span style="color:var(--muted)">Not started</span>';
+  }
+
+  function renderAssemblerTable() {
+    var filtered = currentTierFilter === 'all' ? allAssemblerProfiles : allAssemblerProfiles.filter(function(a){ return a.tier === currentTierFilter; });
+    var tbody = document.getElementById('asm-tbody');
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No assemblers found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.map(function(a) {
+      var rowStyle = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
+      return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
+        + '<td style="' + rowStyle + '"><strong>' + esc(a.full_name) + '</strong><br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span></td>'
+        + '<td style="' + rowStyle + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
+        + '<td style="' + rowStyle + '">' + tierBadge(a.tier) + '</td>'
+        + '<td style="' + rowStyle + '">' + personaStatus(a) + '</td>'
+        + '<td style="' + rowStyle + '">' + (a.completed_jobs||0) + '</td>'
+        + '<td style="' + rowStyle + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
+        + '<td style="' + rowStyle + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
+        + '<td style="' + rowStyle + '">'
+          + (a.tier === 'pending' ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> ' : '')
+          + '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
+        + '</td></tr>';
+    }).join('');
+  }
+
+  // Approve button → set tier to starter
+  document.getElementById('asm-tbody').addEventListener('click', async function(e) {
+    var approveBtn = e.target.closest('[data-approve]');
+    if (approveBtn) {
+      var aId = approveBtn.dataset.approve;
+      approveBtn.disabled = true;
+      approveBtn.textContent = '...';
+      try {
+        var r = await fetch('/api/assembler/update', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ assemblerId: aId, tier: 'starter' }),
+        });
+        var data = await r.json();
+        if (data.error) { toast(data.error, 'error'); return; }
+        toast('Assembler approved', 'success');
+        loadAssemblerList();
+        loadAssemblers(); // refresh eligible list for bookings
+      } catch { toast('Failed to approve', 'error'); }
+      return;
+    }
+
+    var viewBtn = e.target.closest('[data-view-asm]');
+    if (viewBtn) {
+      var aId2 = viewBtn.dataset.viewAsm;
+      var a = allAssemblerProfiles.find(function(x){ return x.id === aId2; });
+      if (!a) return;
+      showAssemblerDetail(a);
+    }
+  });
+
+  function showAssemblerDetail(a) {
+    document.getElementById('asm-detail-name').textContent = a.full_name;
+    var checks = a.persona_checks || {};
+    var checkHtml = ['gov','selfie','db'].map(function(k) {
+      var label = { gov: 'Gov ID', selfie: 'Selfie', db: 'Database' }[k];
+      var val = checks[k] === true ? '<span style="color:#1d9e75">&#10003; Passed</span>'
+              : checks[k] === 'failed' ? '<span style="color:var(--red)">&#10007; Failed</span>'
+              : '<span style="color:var(--muted)">Pending</span>';
+      return label + ': ' + val;
+    }).join(' &bull; ');
+
+    document.getElementById('asm-detail-body').innerHTML = [
+      '<strong>Email:</strong> ' + esc(a.email),
+      '<strong>Phone:</strong> ' + esc(a.phone||'—'),
+      '<strong>Location:</strong> ' + esc(a.city||'—') + ', ' + esc(a.zip||''),
+      '<strong>Tier:</strong> ' + tierBadge(a.tier),
+      '<strong>Persona:</strong> ' + (a.persona_verified ? '<span style="color:#1d9e75">Fully verified</span>' : checkHtml),
+      '<strong>Services:</strong> ' + (a.services_offered||[]).join(', '),
+      '<strong>Experience:</strong> ' + (a.years_experience||0) + ' year(s)',
+      '<strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &bull; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
+      '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &bull; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) : 'N/A'),
+      '<strong>Applied:</strong> ' + formatDate(a.created_at),
+      a.persona_verified_at ? '<strong>Verified:</strong> ' + formatDate(a.persona_verified_at) : '',
+      '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">'
+        + (a.tier === 'pending' ? '<button class="btn btn-teal" onclick="document.getElementById(\'asm-detail-modal\').classList.remove(\'open\');document.querySelector(\'[data-approve=\\\'' + a.id + '\\\']\')?.click()">Approve → Starter</button>' : '')
+        + '<select id="tier-change-select" style="padding:0.4rem 0.6rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:6px;color:var(--text);font-size:0.82rem">'
+          + '<option value="">Change tier...</option>'
+          + '<option value="pending">Pending</option>'
+          + '<option value="starter">Starter</option>'
+          + '<option value="verified">Verified</option>'
+          + '<option value="elite">Elite</option>'
+        + '</select>'
+        + '<button class="btn btn-teal" onclick="changeTierFromModal(\'' + a.id + '\')" style="font-size:0.78rem">Set Tier</button>'
+      + '</div>',
+    ].filter(Boolean).join('<br>');
+
+    document.getElementById('asm-detail-modal').classList.add('open');
+  }
+
+  document.getElementById('asm-detail-close').addEventListener('click', function() {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+  });
+
+  // Expose tier change for modal
+  window.changeTierFromModal = async function(assemblerId) {
+    var select = document.getElementById('tier-change-select');
+    var newTier = select ? select.value : '';
+    if (!newTier) { toast('Select a tier first', 'error'); return; }
+    try {
+      var r = await fetch('/api/assembler/update', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ assemblerId: assemblerId, tier: newTier }),
+      });
+      var data = await r.json();
+      if (data.error) { toast(data.error, 'error'); return; }
+      toast('Tier updated to ' + newTier, 'success');
+      document.getElementById('asm-detail-modal').classList.remove('open');
+      loadAssemblerList();
+      loadAssemblers();
+    } catch { toast('Failed to update tier', 'error'); }
+  };
 })();
 </script>
 </body>

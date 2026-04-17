@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Apply as Assembler — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Join the AssembleAtEase team. Apply to become a professional assembler in Austin, TX." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <style>
+    .apply-wrap { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    .apply-logo { text-align: center; margin-bottom: 2rem; }
+    .apply-logo a { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); text-decoration: none; }
+    .apply-logo span { color: var(--teal); }
+    .apply-heading { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--ink); text-align: center; margin-bottom: 0.4rem; }
+    .apply-sub { text-align: center; font-size: 0.95rem; color: var(--muted); margin-bottom: 2rem; }
+    .section { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1.25rem; }
+    .section-title { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 1.25rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.9rem; color: var(--ink); background: var(--white); outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+    .form-control:focus { border-color: var(--teal); }
+    .form-control.error { border-color: #ef4444; }
+    .field-error { font-size: 0.78rem; color: #ef4444; margin-top: 3px; display: block; }
+    .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+
+    /* Checkboxes */
+    .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .check-item:hover { border-color: var(--teal); background: rgba(29,158,117,0.04); }
+    .check-item.checked { border-color: var(--teal); background: rgba(29,158,117,0.08); }
+    .check-item input { width: 16px; height: 16px; accent-color: var(--teal); margin: 0; flex-shrink: 0; }
+    .check-item span { font-size: 0.85rem; color: var(--ink); }
+
+    /* Radio group */
+    .radio-row { display: flex; gap: 1rem; }
+    .radio-option { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: border-color 0.15s; }
+    .radio-option:hover { border-color: var(--teal); }
+    .radio-option.selected { border-color: var(--teal); background: rgba(29,158,117,0.08); }
+    .radio-option input { width: 16px; height: 16px; accent-color: var(--teal); margin: 0; }
+    .radio-option span { font-size: 0.85rem; color: var(--ink); }
+
+    /* Conduct checkbox */
+    .conduct-check { display: flex; align-items: flex-start; gap: 10px; padding: 1rem; background: var(--off-white); border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .conduct-check input { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--teal); flex-shrink: 0; }
+    .conduct-check-text { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.55; }
+    .conduct-check-text a { color: var(--teal); text-decoration: none; }
+
+    .btn-apply { width: 100%; padding: 0.85rem; background: var(--teal); border: none; border-radius: var(--radius-md); color: #fff; font-family: inherit; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-apply:hover { background: #17845f; }
+    .btn-apply:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .alert { padding: 0.85rem 1rem; border-radius: var(--radius-md); font-size: 0.875rem; margin-bottom: 1rem; }
+    .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    .alert.hidden { display: none; }
+
+    /* Success state */
+    .success-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; }
+    .success-box h2 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.5rem; }
+    .success-box p { font-size: 0.95rem; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
+    .success-box .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+    .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--muted); }
+    .login-link a { color: var(--teal); text-decoration: none; font-weight: 500; }
+
+    @media (max-width: 600px) { .form-row, .check-grid { grid-template-columns: 1fr; } .radio-row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<div class="apply-wrap">
+  <div class="apply-logo"><a href="../index.html">Assemble<span>AtEase</span></a></div>
+  <h1 class="apply-heading">Join Our Team</h1>
+  <p class="apply-sub">Apply to become an AssembleAtEase professional assembler in Austin, TX.</p>
+
+  <div id="alert" class="alert hidden"></div>
+
+  <form id="apply-form">
+    <!-- Personal Info -->
+    <div class="section">
+      <div class="section-title">Personal Information</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="full-name">Full name *</label>
+          <input type="text" id="full-name" class="form-control" placeholder="Jane Smith" autocomplete="name" required />
+          <span class="field-error" id="full-name-error"></span>
+        </div>
+        <div class="form-group">
+          <label for="email">Email address *</label>
+          <input type="email" id="email" class="form-control" placeholder="you@example.com" autocomplete="email" required />
+          <span class="field-error" id="email-error"></span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="phone">Phone number *</label>
+          <input type="tel" id="phone" class="form-control" placeholder="(512) 555-0123" autocomplete="tel" required />
+          <span class="field-error" id="phone-error"></span>
+        </div>
+        <div class="form-group">
+          <label for="city">City *</label>
+          <input type="text" id="city" class="form-control" placeholder="Austin" autocomplete="address-level2" required />
+          <span class="field-error" id="city-error"></span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="zip">Zip code *</label>
+          <input type="text" id="zip" class="form-control" placeholder="78701" autocomplete="postal-code" maxlength="10" required />
+          <span class="field-error" id="zip-error"></span>
+        </div>
+        <div class="form-group">
+          <label for="years">Years of experience *</label>
+          <input type="number" id="years" class="form-control" placeholder="e.g. 3" min="0" max="50" required />
+          <span class="field-error" id="years-error"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account -->
+    <div class="section">
+      <div class="section-title">Account Setup</div>
+      <div class="form-group">
+        <label for="password">Password *</label>
+        <input type="password" id="password" class="form-control" placeholder="At least 8 characters" autocomplete="new-password" required />
+        <span class="field-hint">Min 8 characters. This creates your login account.</span>
+        <span class="field-error" id="password-error"></span>
+      </div>
+      <div class="form-group">
+        <label for="confirm-password">Confirm password *</label>
+        <input type="password" id="confirm-password" class="form-control" placeholder="Repeat password" autocomplete="new-password" required />
+        <span class="field-error" id="confirm-password-error"></span>
+      </div>
+    </div>
+
+    <!-- Services -->
+    <div class="section">
+      <div class="section-title">Services You Offer *</div>
+      <p class="field-hint" style="margin:-0.75rem 0 0.75rem">Select all that apply</p>
+      <div class="check-grid" id="services-grid">
+        <label class="check-item"><input type="checkbox" value="Furniture Assembly" /><span>Furniture Assembly</span></label>
+        <label class="check-item"><input type="checkbox" value="TV & Display Mounting" /><span>TV &amp; Display Mounting</span></label>
+        <label class="check-item"><input type="checkbox" value="Smart Home Installation" /><span>Smart Home Installation</span></label>
+        <label class="check-item"><input type="checkbox" value="Home Repairs" /><span>Home Repairs</span></label>
+        <label class="check-item"><input type="checkbox" value="Junk Removal" /><span>Junk Removal</span></label>
+      </div>
+      <span class="field-error" id="services-error"></span>
+    </div>
+
+    <!-- Qualifications -->
+    <div class="section">
+      <div class="section-title">Qualifications</div>
+      <div class="form-group">
+        <label>Do you have your own tools? *</label>
+        <div class="radio-row">
+          <label class="radio-option"><input type="radio" name="tools" value="yes" /><span>Yes</span></label>
+          <label class="radio-option"><input type="radio" name="tools" value="no" /><span>No</span></label>
+        </div>
+        <span class="field-error" id="tools-error"></span>
+      </div>
+      <div class="form-group">
+        <label>Do you have reliable transportation? *</label>
+        <div class="radio-row">
+          <label class="radio-option"><input type="radio" name="transport" value="yes" /><span>Yes</span></label>
+          <label class="radio-option"><input type="radio" name="transport" value="no" /><span>No</span></label>
+        </div>
+        <span class="field-error" id="transport-error"></span>
+      </div>
+      <div class="form-group">
+        <label for="bio">Tell us about yourself</label>
+        <textarea id="bio" class="form-control" rows="4" placeholder="Briefly describe your experience, skills, and why you'd be a great fit..."></textarea>
+        <span class="field-hint">Optional but helps your application stand out.</span>
+      </div>
+    </div>
+
+    <!-- Code of Conduct -->
+    <div class="section">
+      <div class="conduct-check">
+        <input type="checkbox" id="conduct" />
+        <div class="conduct-check-text">
+          I agree to the AssembleAtEase <a href="../terms.html" target="_blank">Code of Conduct</a> and
+          <a href="../terms.html" target="_blank">Terms of Service</a>. I understand that a background check
+          may be required as part of the application process, and that I must maintain professional
+          standards while representing AssembleAtEase.
+        </div>
+      </div>
+      <span class="field-error" id="conduct-error"></span>
+    </div>
+
+    <button type="submit" class="btn-apply" id="submit-btn">Submit Application</button>
+  </form>
+
+  <div class="login-link">Already have an account? <a href="../auth/login.html">Log in</a></div>
+</div>
+
+<!-- Success state (hidden by default) -->
+<div class="apply-wrap" id="success-state" style="display:none">
+  <div class="apply-logo"><a href="../index.html">Assemble<span>AtEase</span></a></div>
+  <div class="success-box">
+    <div class="icon">&#10003;</div>
+    <h2>Application Submitted!</h2>
+    <p>Thank you for applying to join AssembleAtEase. We've sent a confirmation to your email address.</p>
+    <div id="persona-section" style="display:none">
+      <p style="margin-bottom:0.5rem">To complete your application, please verify your identity by completing all 3 steps below:</p>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;max-width:360px;margin:1rem auto 0">
+        <button class="btn-apply persona-step-btn" id="persona-btn-gov" style="display:none">
+          <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span style="font-size:1.2em">&#128196;</span> Step 1: Government ID
+          </span>
+        </button>
+        <button class="btn-apply persona-step-btn" id="persona-btn-selfie" style="display:none">
+          <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span style="font-size:1.2em">&#128247;</span> Step 2: Selfie Verification
+          </span>
+        </button>
+        <button class="btn-apply persona-step-btn" id="persona-btn-db" style="display:none">
+          <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
+            <span style="font-size:1.2em">&#128269;</span> Step 3: Database Check
+          </span>
+        </button>
+      </div>
+      <p style="margin-top:1rem;font-size:0.85rem;color:#71717a">All 3 checks must pass for full verification.</p>
+    </div>
+    <p id="no-persona-msg">Our team is reviewing your application. We'll be in touch within 1–2 business days.</p>
+    <div style="margin-top:1.5rem"><a href="../auth/login.html" style="color:var(--teal);font-weight:500;text-decoration:none">Go to Login &rarr;</a></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Checkbox styling
+  document.querySelectorAll('.check-item input').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      this.closest('.check-item').classList.toggle('checked', this.checked);
+    });
+  });
+  document.querySelectorAll('.radio-option input').forEach(function(rb) {
+    rb.addEventListener('change', function() {
+      this.closest('.radio-row').querySelectorAll('.radio-option').forEach(function(o) {
+        o.classList.toggle('selected', o.querySelector('input').checked);
+      });
+    });
+  });
+
+  function showAlert(type, msg) {
+    var el = document.getElementById('alert');
+    el.className = 'alert alert-' + type;
+    el.textContent = msg;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function fieldError(id, msg) {
+    var el = document.getElementById(id + '-error');
+    if (el) { el.textContent = msg; }
+    var input = document.getElementById(id);
+    if (input) input.classList.add('error');
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.field-error').forEach(function(el) { el.textContent = ''; });
+    document.querySelectorAll('.form-control').forEach(function(el) { el.classList.remove('error'); });
+    document.getElementById('alert').className = 'alert hidden';
+  }
+
+  document.getElementById('apply-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    clearErrors();
+
+    var fullName = document.getElementById('full-name').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var city = document.getElementById('city').value.trim();
+    var zip = document.getElementById('zip').value.trim();
+    var years = document.getElementById('years').value;
+    var password = document.getElementById('password').value;
+    var confirmPw = document.getElementById('confirm-password').value;
+    var bio = document.getElementById('bio').value.trim();
+    var conduct = document.getElementById('conduct').checked;
+
+    var services = [];
+    document.querySelectorAll('#services-grid input:checked').forEach(function(cb) {
+      services.push(cb.value);
+    });
+
+    var toolsVal = document.querySelector('input[name="tools"]:checked')?.value;
+    var transportVal = document.querySelector('input[name="transport"]:checked')?.value;
+
+    // Validate
+    var hasErr = false;
+    if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
+    if (!phone) { fieldError('phone', 'Required'); hasErr = true; }
+    if (!city) { fieldError('city', 'Required'); hasErr = true; }
+    if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
+    if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
+    if (!password || password.length < 8) { fieldError('password', 'Min 8 characters'); hasErr = true; }
+    if (password !== confirmPw) { fieldError('confirm-password', 'Passwords do not match'); hasErr = true; }
+    if (!services.length) { fieldError('services', 'Select at least one'); hasErr = true; }
+    if (!toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
+    if (!transportVal) { fieldError('transport', 'Required'); hasErr = true; }
+    if (!conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
+    if (hasErr) return;
+
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      var resp = await fetch('/api/assembler/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: fullName,
+          email: email,
+          password: password,
+          phone: phone,
+          city: city,
+          zip: zip,
+          servicesOffered: services,
+          hasTools: toolsVal === 'yes',
+          hasTransport: transportVal === 'yes',
+          yearsExperience: parseInt(years, 10),
+          bio: bio || null,
+          codeOfConduct: true,
+        }),
+      });
+
+      var data = await resp.json();
+
+      if (!resp.ok) {
+        showAlert('error', data.error || 'Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Application';
+        return;
+      }
+
+      // Show success state
+      document.getElementById('apply-form').closest('.apply-wrap').style.display = 'none';
+      var successEl = document.getElementById('success-state');
+      successEl.style.display = '';
+
+      // If Persona inquiries were created, show 3-step verification
+      if (data.personaInquiries) {
+        var inqs = data.personaInquiries;
+        document.getElementById('persona-section').style.display = '';
+        document.getElementById('no-persona-msg').style.display = 'none';
+
+        var steps = [
+          { key: 'gov', btnId: 'persona-btn-gov' },
+          { key: 'selfie', btnId: 'persona-btn-selfie' },
+          { key: 'db', btnId: 'persona-btn-db' },
+        ];
+        steps.forEach(function(step) {
+          if (inqs[step.key]) {
+            var btn = document.getElementById(step.btnId);
+            btn.style.display = '';
+            btn.addEventListener('click', function() {
+              window.open('https://withpersona.com/verify?inquiry-id=' + inqs[step.key], '_blank');
+            });
+          }
+        });
+      }
+
+    } catch (err) {
+      showAlert('error', 'Connection error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Submit Application';
+    }
+  });
+})();
+</script>
+</body>
+</html>

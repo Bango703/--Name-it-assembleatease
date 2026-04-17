@@ -172,6 +172,13 @@
         </div>
       </div>
 
+      <!-- Tier & Verification -->
+      <div class="form-section" id="tier-section">
+        <div class="form-section-title">Tier &amp; Verification</div>
+        <div class="info-row"><span class="info-label">Tier</span><span class="info-value" id="tier-value">—</span></div>
+        <div class="info-row"><span class="info-label">Identity verified</span><span class="info-value" id="persona-value">—</span></div>
+      </div>
+
       <!-- My Reviews -->
       <div class="form-section">
         <div class="form-section-title">My Reviews <span id="review-count-label" style="font-weight:400;font-size:0.82rem;color:var(--pro-muted)"></span></div>
@@ -304,6 +311,13 @@
     document.getElementById('total-earned').textContent   = '$' + (profile.total_earned || 0);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
+
+    // Tier & verification
+    var tierLabels = { pending: 'Pending Review', starter: 'Starter', verified: '✓ Verified', elite: '★ Elite', suspended: 'Suspended' };
+    document.getElementById('tier-value').textContent = tierLabels[profile.tier] || profile.tier || '—';
+    document.getElementById('persona-value').innerHTML = profile.persona_verified
+      ? '<span style="color:#1d9e75">✓ Verified</span>'
+      : '<span style="color:#f59e0b">Not yet verified</span>';
 
     if (profile.profile_photo) {
       document.getElementById('photo-preview').innerHTML = `<img src="${profile.profile_photo}" alt="Profile" />`;

@@ -32,6 +32,9 @@
     .rehire-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--teal-dark); background: var(--teal-light); border-radius: 999px; padding: 0.15rem 0.6rem; margin-top: 0.35rem; border: 1px solid rgba(29,158,117,0.2); }
     .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); text-decoration: none; margin-bottom: 1.5rem; transition: color 0.15s; }
     .back-link:hover { color: var(--ink); }
+    .tier-badge{display:inline-flex;align-items:center;gap:3px;padding:0.15rem 0.55rem;border-radius:999px;font-size:0.72rem;font-weight:600;vertical-align:middle;margin-left:6px}
+    .tier-verified{background:rgba(29,158,117,0.12);color:#1d9e75;border:1px solid rgba(29,158,117,0.2)}
+    .tier-elite{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.2)}
     .hire-card { background: var(--white); border: 2px solid var(--accent); border-radius: var(--radius-lg); padding: 1.75rem; }
     .hire-rate { font-family: var(--font-display); font-size: 2rem; color: var(--ink); margin-bottom: 0.2rem; }
     .hire-label { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
@@ -48,6 +51,7 @@
         <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
         <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
         <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
@@ -106,7 +110,7 @@
                     : initials}
                 </div>
                 <div style="flex:1">
-                  <div class="profile-name">${firstName}</div>
+                  <div class="profile-name">${firstName}${assembler.tier === 'elite' ? '<span class="tier-badge tier-elite">★ Elite</span>' : assembler.tier === 'verified' ? '<span class="tier-badge tier-verified">✓ Verified</span>' : ''}</div>
                   <div class="profile-rating">
                     <strong style="color:#f59e0b">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</strong>
                     ${assembler.review_count ? `<span style="color:var(--muted)">(${assembler.review_count} review${assembler.review_count !== 1 ? 's' : ''})</span>` : ''}

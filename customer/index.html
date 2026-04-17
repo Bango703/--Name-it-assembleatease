@@ -51,6 +51,7 @@
         <li><a href="/" class="active"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
         <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
         <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
@@ -94,6 +95,17 @@
           <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
           <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
         </div>
+
+        <!-- Recent Bookings -->
+        <div style="margin-top:1.5rem">
+          <div class="section-header">
+            <div class="section-title">Your Recent Bookings</div>
+            <a href="my-bookings.html" class="section-link">View all &#8594;</a>
+          </div>
+          <div id="bookings-list">
+            <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
+          </div>
+        </div>
       </div>
 
       <!-- Sidebar panel -->
@@ -113,6 +125,7 @@
           <div class="section-title" style="margin-bottom:0.75rem">Quick actions</div>
           <div style="display:flex;flex-direction:column;gap:0.5rem">
             <a href="post-job.html" class="btn btn-primary btn-sm" style="justify-content:center">+ Post a new job</a>
+            <a href="../index.html#booking" class="btn btn-outline btn-sm" style="justify-content:center">Book a service</a>
             <a href="browse-assemblers.html" class="btn btn-outline btn-sm" style="justify-content:center">Browse assemblers</a>
           </div>
         </div>
@@ -142,14 +155,45 @@
       window.location.href = '../index.html';
     });
 
-    // Stats
+    // Stats — combine marketplace jobs + direct bookings
     try {
-      const stats = await API.getCustomerStats(user.id);
+      const [jobStats, bookingResult] = await Promise.all([
+        API.getCustomerStats(user.id),
+        API.getMyBookings().catch(() => ({ bookings: [], stats: {} })),
+      ]);
+      const bs = bookingResult.stats || {};
+      const totalActivity = jobStats.totalJobs + (bs.total || 0);
+      const totalActive = jobStats.inProgress + (bs.confirmed || 0);
+      const totalCompleted = jobStats.completed + (bs.completed || 0);
       document.getElementById('stats-row').innerHTML = `
-        <div class="stat-card orange"><div class="stat-value">${stats.totalJobs}</div><div class="stat-label">Jobs Posted</div></div>
-        <div class="stat-card neutral"><div class="stat-value">${stats.openJobs}</div><div class="stat-label">Open</div></div>
-        <div class="stat-card neutral"><div class="stat-value">${stats.inProgress}</div><div class="stat-label">In Progress</div></div>
-        <div class="stat-card teal"><div class="stat-value">${stats.completed}</div><div class="stat-label">Completed</div></div>`;
+        <div class="stat-card orange"><div class="stat-value">${totalActivity}</div><div class="stat-label">Total Activity</div></div>
+        <div class="stat-card neutral"><div class="stat-value">${jobStats.openJobs}</div><div class="stat-label">Open Jobs</div></div>
+        <div class="stat-card neutral"><div class="stat-value">${totalActive}</div><div class="stat-label">In Progress</div></div>
+        <div class="stat-card teal"><div class="stat-value">${totalCompleted}</div><div class="stat-label">Completed</div></div>`;
+
+      // Render recent bookings
+      const bList = document.getElementById('bookings-list');
+      const bookings = bookingResult.bookings || [];
+      if (bookings.length) {
+        bList.innerHTML = bookings.slice(0, 4).map(b => {
+          const statusMap = { pending:'badge-warning', confirmed:'badge-info', completed:'badge-success', cancelled:'badge-danger', declined:'badge-danger' };
+          const dateStr = b.date ? new Date(b.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+          return `
+            <a class="job-row" href="my-bookings.html">
+              <div class="job-row-top">
+                <div class="job-row-title">${b.service || 'Booking'}</div>
+                <span class="badge ${statusMap[b.status]||'badge-default'}">${b.status}</span>
+              </div>
+              <div class="job-row-meta">
+                <span>${b.ref || ''}</span>
+                ${dateStr ? `<span>${dateStr}</span>` : ''}
+                ${b.assembler_name ? `<span>${b.assembler_name}</span>` : ''}
+              </div>
+            </a>`;
+        }).join('');
+      } else {
+        bList.innerHTML = `<p style="font-size:0.82rem;color:var(--muted)">No bookings yet. <a href="../index.html#booking" style="color:var(--teal)">Book a service</a></p>`;
+      }
     } catch {
       document.getElementById('stats-row').innerHTML = '<div style="grid-column:1/-1" class="error-state"><span>&#9888;</span>Could not load stats.</div>';
     }

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Bookings — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <style>
+    .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .filter-tab {
+      padding: 0.4rem 1rem; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--white); color: var(--ink-soft);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-tab.active { background: var(--accent-light); color: var(--accent); border-color: rgba(232,106,46,0.3); }
+    .booking-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+      margin-bottom: 0.75rem; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .booking-card:hover { border-color: #c8c4bb; box-shadow: var(--shadow-sm); }
+    .booking-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+    .booking-card h3 { font-size: 0.95rem; font-weight: 500; color: var(--ink); margin: 0; }
+    .booking-ref { font-size: 0.75rem; color: var(--muted); font-family: monospace; }
+    .booking-card-meta { font-size: 0.82rem; color: var(--muted); margin-top: 0.3rem; }
+    .booking-card-body { font-size: 0.875rem; color: var(--ink-soft); line-height: 1.6; margin: 0.5rem 0; }
+    .booking-card-footer { display: flex; align-items: center; gap: 1rem; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+    .booking-card-footer .assembler-tag { color: var(--teal); font-weight: 500; }
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; position: relative; overflow: hidden; }
+    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .stat-card.orange::before { background: var(--accent); }
+    .stat-card.teal::before   { background: var(--teal); }
+    .stat-card.neutral::before{ background: var(--border); }
+    .stat-value { font-family: var(--font-display); font-size: 2rem; color: var(--ink); line-height: 1; margin-bottom: 0.3rem; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); }
+    @media (max-width:600px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings.html" class="active"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header">
+      <div>
+        <h1>My Bookings</h1>
+        <p>Track your direct service bookings.</p>
+      </div>
+      <a href="../index.html#booking" class="btn btn-primary">Book a Service</a>
+    </div>
+
+    <div id="page-alert" class="alert hidden"></div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card orange"><div class="skeleton" style="height:50px"></div></div>
+      <div class="stat-card neutral"><div class="skeleton" style="height:50px"></div></div>
+      <div class="stat-card neutral"><div class="skeleton" style="height:50px"></div></div>
+      <div class="stat-card teal"><div class="skeleton" style="height:50px"></div></div>
+    </div>
+
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" data-status="all">All</button>
+      <button class="filter-tab" data-status="pending">Pending</button>
+      <button class="filter-tab" data-status="confirmed">Confirmed</button>
+      <button class="filter-tab" data-status="completed">Completed</button>
+      <button class="filter-tab" data-status="cancelled">Cancelled</button>
+    </div>
+
+    <div id="bookings-list">
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let allBookings = [];
+  let bookingStats = {};
+
+  function formatDate(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function statusBadge(status) {
+    const map = {
+      pending: 'badge-warning',
+      confirmed: 'badge-info',
+      completed: 'badge-success',
+      cancelled: 'badge-danger',
+      declined: 'badge-danger',
+    };
+    return `<span class="badge ${map[status] || 'badge-default'}">${status}</span>`;
+  }
+
+  function renderBookings(bookings) {
+    const list = document.getElementById('bookings-list');
+    if (!bookings?.length) {
+      list.innerHTML = `<div class="empty-state"><p>No bookings found.</p><a href="../index.html#booking" class="btn btn-primary btn-sm">Book a service</a></div>`;
+      return;
+    }
+    list.innerHTML = bookings.map(b => `
+      <div class="booking-card">
+        <div class="booking-card-top">
+          <div>
+            <h3>${b.service || 'Service Booking'}</h3>
+            <span class="booking-ref">${b.ref || ''}</span>
+          </div>
+          ${statusBadge(b.status)}
+        </div>
+        ${b.details ? `<div class="booking-card-body">${b.details.length > 150 ? b.details.substring(0, 150) + '...' : b.details}</div>` : ''}
+        <div class="booking-card-footer">
+          ${b.date ? `<span>&#128197; ${formatDate(b.date)}${b.time ? ' at ' + b.time : ''}</span>` : ''}
+          ${b.address ? `<span>&#128205; ${b.address}</span>` : ''}
+          ${b.assembler_name ? `<span class="assembler-tag">&#128736; ${b.assembler_name}</span>` : ''}
+          <span>Booked ${formatDate(b.created_at)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const auth = await APP.requireAuth(['customer']);
+    if (!auth) return;
+
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    // Filter tabs
+    document.getElementById('filter-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.filter-tab');
+      if (!tab) return;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const status = tab.dataset.status;
+      renderBookings(status === 'all' ? allBookings : allBookings.filter(b => b.status === status));
+    });
+
+    // Load bookings
+    try {
+      const result = await API.getMyBookings();
+      allBookings = result.bookings || [];
+      bookingStats = result.stats || {};
+
+      document.getElementById('stats-row').innerHTML = `
+        <div class="stat-card orange"><div class="stat-value">${bookingStats.total || 0}</div><div class="stat-label">Total Bookings</div></div>
+        <div class="stat-card neutral"><div class="stat-value">${bookingStats.pending || 0}</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card neutral"><div class="stat-value">${bookingStats.confirmed || 0}</div><div class="stat-label">Confirmed</div></div>
+        <div class="stat-card teal"><div class="stat-value">${bookingStats.completed || 0}</div><div class="stat-label">Completed</div></div>`;
+
+      renderBookings(allBookings);
+    } catch (err) {
+      document.getElementById('stats-row').innerHTML = '';
+      document.getElementById('bookings-list').innerHTML =
+        `<div class="error-state"><span>&#9888;</span>Could not load bookings. Please refresh.</div>`;
+    }
+  });
+</script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>

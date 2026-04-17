@@ -244,6 +244,15 @@ const API = {
 
   // ── DASHBOARD STATS ───────────────────────
 
+  async getMyBookings(status) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) return { bookings: [], stats: {} };
+    const url = '/api/booking/customer-bookings' + (status && status !== 'all' ? '?status=' + encodeURIComponent(status) : '');
+    const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + session.access_token } });
+    if (!resp.ok) throw new Error('Failed to load bookings');
+    return resp.json();
+  },
+
   async getCustomerStats(customerId) {
     const [jobsRes, bidsRes] = await Promise.all([
       supabaseClient.from('jobs').select('id, status').eq('customer_id', customerId),

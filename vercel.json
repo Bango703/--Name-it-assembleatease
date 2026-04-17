@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/stale-booking",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/tier-check",
+      "schedule": "0 7 * * *"
     }
   ],
   "headers": [

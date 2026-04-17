@@ -38,6 +38,9 @@
     .assembler-name { font-size: 0.95rem; font-weight: 500; color: var(--ink); margin-bottom: 0.25rem; }
     .assembler-rating { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; }
     .assembler-rating span { color: #f59e0b; font-weight: 500; }
+    .tier-badge{display:inline-flex;align-items:center;gap:3px;padding:0.12rem 0.5rem;border-radius:999px;font-size:0.68rem;font-weight:600;vertical-align:middle;margin-left:4px}
+    .tier-verified{background:rgba(29,158,117,0.12);color:#1d9e75;border:1px solid rgba(29,158,117,0.2)}
+    .tier-elite{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.2)}
     .assembler-tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 0.85rem; }
     .assembler-tag { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--off-white); color: var(--ink-soft); }
     .assembler-bio { font-size: 0.82rem; color: var(--muted); line-height: 1.55; margin-bottom: 1rem; }
@@ -57,6 +60,7 @@
         <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
         <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
         <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
@@ -168,7 +172,7 @@
               ? `<img src="${a.profile_photo}" alt="${firstName}" />`
               : initials}
           </div>
-          <div class="assembler-name">${firstName}</div>
+          <div class="assembler-name">${firstName}${a.tier === 'elite' ? '<span class="tier-badge tier-elite">★ Elite</span>' : a.tier === 'verified' ? '<span class="tier-badge tier-verified">✓ Verified</span>' : ''}</div>
           <div class="assembler-rating">
             <span>&#9733; ${a.rating ? Number(a.rating).toFixed(1) : 'New'}</span>
             ${a.review_count ? `<span>(${a.review_count})</span>` : ''}
