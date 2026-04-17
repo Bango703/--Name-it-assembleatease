@@ -171,6 +171,7 @@
           <div class="assembler-name">${firstName}</div>
           <div class="assembler-rating">
             <span>&#9733; ${a.rating ? Number(a.rating).toFixed(1) : 'New'}</span>
+            ${a.review_count ? `<span>(${a.review_count})</span>` : ''}
             &nbsp;&middot;&nbsp; ${a.completed_jobs || 0} jobs
           </div>
           <div class="assembler-tags">

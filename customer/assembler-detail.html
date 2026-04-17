@@ -109,6 +109,7 @@
                   <div class="profile-name">${firstName}</div>
                   <div class="profile-rating">
                     <strong style="color:#f59e0b">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</strong>
+                    ${assembler.review_count ? `<span style="color:var(--muted)">(${assembler.review_count} review${assembler.review_count !== 1 ? 's' : ''})</span>` : ''}
                     &nbsp;&middot;&nbsp; ${assembler.completed_jobs || 0} jobs completed
                     ${assembler.city ? ' &middot; ' + assembler.city : ''}
                   </div>
@@ -134,7 +135,7 @@
             </div>
 
             <div class="profile-card">
-              <div class="profile-card-title">Reviews</div>
+              <div class="profile-card-title">Reviews${assembler.review_count ? ' (' + assembler.review_count + ')' : ''}</div>
               <div id="reviews-list">
                 <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
               </div>
@@ -159,7 +160,7 @@
             <div class="profile-card" style="margin-top:1rem">
               <div class="profile-card-title">Quick stats</div>
               <div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.875rem">
-                <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Rating</span><span style="font-weight:500;color:#f59e0b">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Rating</span><span style="font-weight:500;color:#f59e0b">&#9733; ${assembler.rating ? Number(assembler.rating).toFixed(1) : 'New'}${assembler.review_count ? ' (' + assembler.review_count + ')' : ''}</span></div>
                 <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Jobs completed</span><span style="font-weight:500">${assembler.completed_jobs || 0}</span></div>
                 <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Location</span><span style="font-weight:500">${assembler.city || '—'}</span></div>
                 <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Hourly rate</span><span style="font-weight:500;color:var(--teal)">${assembler.hourly_rate ? '$' + assembler.hourly_rate + '/hr' : 'Varies'}</span></div>

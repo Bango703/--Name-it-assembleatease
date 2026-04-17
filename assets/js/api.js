@@ -232,6 +232,16 @@ const API = {
     return { data, error };
   },
 
+  async getExistingReview(jobId, reviewerId) {
+    const { data } = await supabaseClient
+      .from('reviews')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('reviewer_id', reviewerId)
+      .maybeSingle();
+    return data;
+  },
+
   // ── DASHBOARD STATS ───────────────────────
 
   async getCustomerStats(customerId) {

@@ -144,6 +144,13 @@
     const btn = document.getElementById('submit-review-btn');
     btn.disabled = true; btn.textContent = 'Submitting...';
     try {
+      // Duplicate guard
+      const existing = await API.getExistingReview(currentJobId, currentJob.customer_id);
+      if (existing) {
+        document.getElementById('review-modal').classList.add('hidden');
+        APP.showAlert('page-alert', 'You have already reviewed this job.', 'error');
+        return;
+      }
       const { error } = await API.createReview({
         job_id:                   currentJobId,
         assembler_id:             currentJob.assembler_id,
@@ -206,7 +213,13 @@
       } else if (job.status === 'in_progress') {
         actionsHtml = `<button class="btn btn-teal btn-sm" id="complete-btn">Mark complete</button>`;
       } else if (job.status === 'completed') {
-        actionsHtml = `<button class="btn btn-outline btn-sm" id="review-btn">&#9733; Leave a review</button>`;
+        // Check for existing review to show correct button
+        const existingReview = await API.getExistingReview(currentJobId, user.id);
+        if (existingReview) {
+          actionsHtml = `<span class="badge badge-teal" style="padding:0.5rem 1rem;font-size:0.85rem">&#10003; Review submitted</span>`;
+        } else {
+          actionsHtml = `<button class="btn btn-outline btn-sm" id="review-btn">&#9733; Leave a review</button>`;
+        }
       }
 
       document.getElementById('page-content').innerHTML = `
@@ -274,8 +287,7 @@
           if (error) throw error;
           APP.showAlert('page-alert', 'Job marked as complete!', 'success');
           setTimeout(() => {
-            location.reload();
-            // Show review modal after reload handled via status check above
+            window.location.href = 'job-detail.html?id=' + currentJobId + '&review=1';
           }, 1200);
         } catch (err) { APP.showAlert('page-alert', err.message, 'error'); APP.setLoading('complete-btn', false, 'Mark complete'); }
       });
@@ -285,6 +297,17 @@
         document.getElementById('review-modal-sub').textContent = `How was your experience with ${assemblerFirstName}?`;
         document.getElementById('review-modal').classList.remove('hidden');
       });
+
+      // Auto-open review modal if redirected after completion
+      if (job.status === 'completed' && APP.getParam('review') === '1') {
+        // Check if already reviewed
+        const existingReview = await API.getExistingReview(currentJobId, user.id);
+        if (!existingReview) {
+          const assemblerFirstName = job.bids?.find(b => b.assembler_id === job.assembler_id)?.assembler?.full_name?.split(' ')[0] || 'the assembler';
+          document.getElementById('review-modal-sub').textContent = `How was your experience with ${assemblerFirstName}?`;
+          document.getElementById('review-modal').classList.remove('hidden');
+        }
+      }
 
       // Load bids
       try {

@@ -172,6 +172,12 @@
         </div>
       </div>
 
+      <!-- My Reviews -->
+      <div class="form-section">
+        <div class="form-section-title">My Reviews <span id="review-count-label" style="font-weight:400;font-size:0.82rem;color:var(--pro-muted)"></span></div>
+        <div id="my-reviews-list" style="font-size:0.875rem;color:var(--pro-muted)">Loading reviews...</div>
+      </div>
+
       <!-- Payout settings -->
       <div class="form-section">
         <div class="form-section-title">Payout settings</div>
@@ -292,7 +298,9 @@
     document.getElementById('bio').value         = profile.bio         || '';
     document.getElementById('email-display').textContent  = user.email;
     document.getElementById('jobs-done').textContent      = profile.completed_jobs || 0;
-    document.getElementById('rating-display').textContent = profile.rating ? Number(profile.rating).toFixed(1) + ' â˜…' : 'New';
+    document.getElementById('rating-display').textContent = profile.rating
+      ? Number(profile.rating).toFixed(1) + ' \u2605' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
+      : 'New';
     document.getElementById('total-earned').textContent   = '$' + (profile.total_earned || 0);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
@@ -361,6 +369,36 @@
         window.location.href = '../index.html';
       } catch (err) { APP.showAlert('page-alert', 'Failed to delete account.', 'error'); APP.setLoading('delete-account-btn', false, 'Delete my account'); }
     });
+
+    // Load reviews for this assembler
+    try {
+      const { data: reviews } = await API.getReviews(user.id);
+      const list = document.getElementById('my-reviews-list');
+      const countLabel = document.getElementById('review-count-label');
+      if (reviews?.length) {
+        countLabel.textContent = '(' + reviews.length + ')';
+        list.innerHTML = reviews.map(function(r) {
+          var name = (r.reviewer?.full_name || 'Customer').split(' ')[0];
+          var stars = '';
+          for (var i = 0; i < 5; i++) stars += i < r.rating ? '&#9733;' : '&#9734;';
+          var date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          return '<div style="padding:0.85rem 0;border-bottom:1px solid var(--pro-border)">'
+            + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem">'
+            + '<span style="font-weight:500;color:var(--pro-text)">' + name + '</span>'
+            + '<span style="color:#f59e0b;font-size:0.85rem">' + stars + '</span>'
+            + '</div>'
+            + '<div style="color:var(--pro-soft);line-height:1.6">' + (r.comment || 'No comment.') + '</div>'
+            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(29,158,117,0.2)">&#10003; Would hire again</div>' : '')
+            + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
+            + '</div>';
+        }).join('');
+      } else {
+        countLabel.textContent = '';
+        list.innerHTML = '<p style="padding:0.5rem 0">No reviews yet. Complete jobs and build your reputation!</p>';
+      }
+    } catch (e) {
+      document.getElementById('my-reviews-list').innerHTML = '<p>Could not load reviews.</p>';
+    }
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
