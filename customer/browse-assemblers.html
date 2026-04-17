@@ -26,7 +26,7 @@
       text-align: center; transition: border-color 0.15s, box-shadow 0.15s;
       cursor: pointer; text-decoration: none; display: block;
     }
-    .assembler-card:hover { border-color: #c8c4bb; box-shadow: var(--shadow-sm); }
+    .assembler-card:hover { border-color: #cbd5e1; box-shadow: var(--shadow-sm); }
     .assembler-avatar {
       width: 64px; height: 64px; border-radius: 50%;
       background: var(--accent-light); color: var(--accent);
@@ -39,7 +39,7 @@
     .assembler-rating { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; }
     .assembler-rating span { color: #f59e0b; font-weight: 500; }
     .tier-badge{display:inline-flex;align-items:center;gap:3px;padding:0.12rem 0.5rem;border-radius:999px;font-size:0.68rem;font-weight:600;vertical-align:middle;margin-left:4px}
-    .tier-verified{background:rgba(29,158,117,0.12);color:#1d9e75;border:1px solid rgba(29,158,117,0.2)}
+    .tier-verified{background:rgba(0,151,167,0.08);color:#0097a7;border:1px solid rgba(0,151,167,0.15)}
     .tier-elite{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.2)}
     .assembler-tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 0.85rem; }
     .assembler-tag { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--off-white); color: var(--ink-soft); }
@@ -180,7 +180,7 @@
           </div>
           <div class="assembler-tags">
             ${a.city ? `<span class="assembler-tag">&#128205; ${a.city}</span>` : ''}
-            ${a.hourly_rate ? `<span class="assembler-tag" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(29,158,117,0.2)">$${a.hourly_rate}/hr</span>` : ''}
+            ${a.hourly_rate ? `<span class="assembler-tag" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(0,151,167,0.15)">$${a.hourly_rate}/hr</span>` : ''}
           </div>
           ${skills.length ? `<div class="assembler-tags">${skills.slice(0,3).map(s=>`<span class="assembler-tag">${s}</span>`).join('')}${skills.length>3?`<span class="assembler-tag">+${skills.length-3}</span>`:''}</div>` : ''}
           <div class="assembler-bio">${APP.truncate(a.bio||'Professional assembler ready to help.',80)}</div>

@@ -15,15 +15,15 @@
       margin-bottom: 1.5rem; align-items: center;
     }
     body.theme-pro .filter-select {
-      padding: 0.5rem 0.9rem; border-radius: 8px;
-      background: var(--pro-elevated); border: 1px solid var(--pro-border-md);
+      padding: 0.5rem 0.9rem; border-radius: 999px;
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
       color: var(--pro-soft); font-family: var(--font-body); font-size: 0.85rem;
       cursor: pointer; outline: none; transition: border-color 0.15s;
     }
     body.theme-pro .filter-select:focus { border-color: var(--pro-teal); }
     body.theme-pro .search-input {
-      flex: 1; min-width: 200px; padding: 0.5rem 0.9rem; border-radius: 8px;
-      background: var(--pro-elevated); border: 1px solid var(--pro-border-md);
+      flex: 1; min-width: 200px; padding: 0.5rem 0.9rem; border-radius: 999px;
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
       color: var(--pro-text); font-family: var(--font-body); font-size: 0.875rem;
       outline: none; transition: border-color 0.15s;
     }
@@ -33,8 +33,9 @@
       background: var(--pro-surface); border: 1px solid var(--pro-border);
       border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
       cursor: pointer; transition: all 0.15s; text-decoration: none; display: block;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    body.theme-pro .job-card:hover { border-color: var(--pro-border-md); background: var(--pro-elevated); }
+    body.theme-pro .job-card:hover { border-color: var(--pro-border-md); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
     body.theme-pro .job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
     body.theme-pro .job-card h3 { font-size: 1rem; font-weight: 500; color: var(--pro-text); }
     body.theme-pro .job-card-desc { font-size: 0.875rem; color: var(--pro-muted); line-height: 1.6; margin-bottom: 0.75rem; }

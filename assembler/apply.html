@@ -9,63 +9,64 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <style>
+    body { background: #ffffff; }
     .apply-wrap { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
     .apply-logo { text-align: center; margin-bottom: 2rem; }
-    .apply-logo a { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); text-decoration: none; }
-    .apply-logo span { color: var(--teal); }
-    .apply-heading { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--ink); text-align: center; margin-bottom: 0.4rem; }
-    .apply-sub { text-align: center; font-size: 0.95rem; color: var(--muted); margin-bottom: 2rem; }
-    .section { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 1.25rem; }
-    .section-title { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 1.25rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+    .apply-logo a { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #0d1117; text-decoration: none; }
+    .apply-logo span { color: #0097a7; }
+    .apply-heading { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: #0d1117; text-align: center; margin-bottom: 0.4rem; }
+    .apply-sub { text-align: center; font-size: 0.95rem; color: #4a5568; margin-bottom: 2rem; }
+    .section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.75rem; margin-bottom: 1.25rem; }
+    .section-title { font-size: 0.95rem; font-weight: 600; color: #0d1117; margin-bottom: 1.25rem; padding-bottom: 0.6rem; border-bottom: 1px solid #e2e8f0; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-size: 0.82rem; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
-    .form-control { width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.9rem; color: var(--ink); background: var(--white); outline: none; transition: border-color 0.15s; box-sizing: border-box; }
-    .form-control:focus { border-color: var(--teal); }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 500; color: #0d1117; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.9rem; color: #0d1117; background: #ffffff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+    .form-control:focus { border-color: #0097a7; }
     .form-control.error { border-color: #ef4444; }
     .field-error { font-size: 0.78rem; color: #ef4444; margin-top: 3px; display: block; }
-    .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+    .field-hint { font-size: 0.72rem; color: #4a5568; margin-top: 3px; }
     textarea.form-control { resize: vertical; min-height: 80px; }
 
     /* Checkboxes */
     .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .check-item { display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-    .check-item:hover { border-color: var(--teal); background: rgba(29,158,117,0.04); }
-    .check-item.checked { border-color: var(--teal); background: rgba(29,158,117,0.08); }
-    .check-item input { width: 16px; height: 16px; accent-color: var(--teal); margin: 0; flex-shrink: 0; }
-    .check-item span { font-size: 0.85rem; color: var(--ink); }
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .check-item:hover { border-color: #0097a7; background: rgba(0,151,167,0.04); }
+    .check-item.checked { border-color: #0097a7; background: rgba(0,151,167,0.08); }
+    .check-item input { width: 16px; height: 16px; accent-color: #0097a7; margin: 0; flex-shrink: 0; }
+    .check-item span { font-size: 0.85rem; color: #0d1117; }
 
     /* Radio group */
     .radio-row { display: flex; gap: 1rem; }
-    .radio-option { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: border-color 0.15s; }
-    .radio-option:hover { border-color: var(--teal); }
-    .radio-option.selected { border-color: var(--teal); background: rgba(29,158,117,0.08); }
-    .radio-option input { width: 16px; height: 16px; accent-color: var(--teal); margin: 0; }
-    .radio-option span { font-size: 0.85rem; color: var(--ink); }
+    .radio-option { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: border-color 0.15s; }
+    .radio-option:hover { border-color: #0097a7; }
+    .radio-option.selected { border-color: #0097a7; background: rgba(0,151,167,0.08); }
+    .radio-option input { width: 16px; height: 16px; accent-color: #0097a7; margin: 0; }
+    .radio-option span { font-size: 0.85rem; color: #0d1117; }
 
     /* Conduct checkbox */
-    .conduct-check { display: flex; align-items: flex-start; gap: 10px; padding: 1rem; background: var(--off-white); border: 1px solid var(--border); border-radius: var(--radius-md); }
-    .conduct-check input { margin-top: 2px; width: 18px; height: 18px; accent-color: var(--teal); flex-shrink: 0; }
-    .conduct-check-text { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.55; }
-    .conduct-check-text a { color: var(--teal); text-decoration: none; }
+    .conduct-check { display: flex; align-items: flex-start; gap: 10px; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
+    .conduct-check input { margin-top: 2px; width: 18px; height: 18px; accent-color: #0097a7; flex-shrink: 0; }
+    .conduct-check-text { font-size: 0.85rem; color: #4a5568; line-height: 1.55; }
+    .conduct-check-text a { color: #0097a7; text-decoration: none; }
 
-    .btn-apply { width: 100%; padding: 0.85rem; background: var(--teal); border: none; border-radius: var(--radius-md); color: #fff; font-family: inherit; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-    .btn-apply:hover { background: #17845f; }
+    .btn-apply { width: 100%; padding: 0.85rem; background: #0097a7; border: none; border-radius: 999px; color: #fff; font-family: inherit; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-apply:hover { background: #00838f; }
     .btn-apply:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .alert { padding: 0.85rem 1rem; border-radius: var(--radius-md); font-size: 0.875rem; margin-bottom: 1rem; }
+    .alert { padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.875rem; margin-bottom: 1rem; }
     .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
     .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
     .alert.hidden { display: none; }
 
     /* Success state */
-    .success-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; }
-    .success-box h2 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--ink); margin-bottom: 0.5rem; }
-    .success-box p { font-size: 0.95rem; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
-    .success-box .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .success-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 2.5rem; text-align: center; }
+    .success-box h2 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #0d1117; margin-bottom: 0.5rem; }
+    .success-box p { font-size: 0.95rem; color: #4a5568; line-height: 1.6; margin-bottom: 1rem; }
+    .success-box .icon { font-size: 3rem; margin-bottom: 1rem; color: #0097a7; }
 
-    .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--muted); }
-    .login-link a { color: var(--teal); text-decoration: none; font-weight: 500; }
+    .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: #4a5568; }
+    .login-link a { color: #0097a7; text-decoration: none; font-weight: 500; }
 
     @media (max-width: 600px) { .form-row, .check-grid { grid-template-columns: 1fr; } .radio-row { flex-direction: column; } }
   </style>
@@ -230,7 +231,7 @@
       <p style="margin-top:1rem;font-size:0.85rem;color:#71717a">All 3 checks must pass for full verification.</p>
     </div>
     <p id="no-persona-msg">Our team is reviewing your application. We'll be in touch within 1–2 business days.</p>
-    <div style="margin-top:1.5rem"><a href="../auth/login" style="color:var(--teal);font-weight:500;text-decoration:none">Go to Login &rarr;</a></div>
+    <div id="post-apply-login" style="margin-top:1.5rem;display:none"><a href="../auth/login" style="color:#0097a7;font-weight:500;text-decoration:none">Go to Login &rarr;</a></div>
   </div>
 </div>
 
@@ -400,6 +401,9 @@
             });
           }
         });
+      } else {
+        // No Persona — show login link
+        document.getElementById('post-apply-login').style.display = '';
       }
 
     } catch (err) {

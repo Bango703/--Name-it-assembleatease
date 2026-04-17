@@ -63,7 +63,7 @@ export default async function handler(req, res) {
   const userId = authData.user.id;
 
   // ── Upsert profile (tier = pending) ──
-  const { error: profileError } = await sb.from('profiles').upsert({
+  const profileData = {
     id: userId,
     full_name: cleanName,
     email: cleanEmail,
@@ -77,14 +77,22 @@ export default async function handler(req, res) {
     years_experience: parseInt(yearsExperience, 10),
     bio: bio?.trim() || null,
     tier: 'pending',
-    persona_verified: false,
-    code_of_conduct_agreed_at: new Date().toISOString(),
-  }, { onConflict: 'id' });
+  };
+
+  let { error: profileError } = await sb.from('profiles').upsert(profileData, { onConflict: 'id' });
 
   if (profileError) {
-    console.error('Profile upsert error:', profileError);
-    return res.status(500).json({ error: 'Failed to save application' });
+    console.error('Profile upsert error:', JSON.stringify(profileError));
+    return res.status(500).json({ error: 'Failed to save application. ' + (profileError.message || '') });
   }
+
+  // Set optional columns (may not exist yet — non-blocking)
+  try {
+    await sb.from('profiles').update({
+      persona_verified: false,
+      code_of_conduct_agreed_at: new Date().toISOString(),
+    }).eq('id', userId);
+  } catch (_) { /* columns may not exist yet */ }
 
   // ── If invite token, validate and update waitlist ──
   if (inviteToken) {
@@ -246,7 +254,7 @@ export default async function handler(req, res) {
         <li>Once approved, you&rsquo;ll start receiving job assignments</li>
       </ol>
     </td></tr></table>
-    <p style="margin:20px 0 0;font-size:13px;color:#52525b;line-height:1.6">If you have any questions, email us at <a href="mailto:service@assembleatease.com" style="color:#1d9e75;text-decoration:none">service@assembleatease.com</a>.</p>
+    <p style="margin:20px 0 0;font-size:13px;color:#52525b;line-height:1.6">If you have any questions, email us at <a href="mailto:service@assembleatease.com" style="color:#0097a7;text-decoration:none">service@assembleatease.com</a>.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>

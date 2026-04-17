@@ -33,7 +33,7 @@
     /* Skills */
     body.theme-pro .skills-wrap { border:1px solid var(--pro-border-md); border-radius:8px; padding:0.5rem 0.75rem; display:flex; flex-wrap:wrap; gap:6px; background:var(--pro-elevated); cursor:text; transition:border-color 0.15s; min-height:46px; align-items:center; }
     body.theme-pro .skills-wrap:focus-within { border-color:var(--pro-teal); }
-    body.theme-pro .skill-tag { display:inline-flex; align-items:center; gap:5px; background:var(--pro-teal-glow); color:var(--pro-teal); border:1px solid rgba(29,158,117,0.2); padding:0.2rem 0.6rem; border-radius:999px; font-size:0.78rem; font-weight:500; }
+    body.theme-pro .skill-tag { display:inline-flex; align-items:center; gap:5px; background:var(--pro-teal-glow); color:var(--pro-teal); border:1px solid rgba(0,151,167,0.15); padding:0.2rem 0.6rem; border-radius:999px; font-size:0.78rem; font-weight:500; }
     body.theme-pro .skill-tag button { background:none; border:none; cursor:pointer; color:var(--pro-teal); font-size:0.9rem; line-height:1; padding:0; opacity:0.7; }
     body.theme-pro .skill-tag button:hover { opacity:1; }
     body.theme-pro .skills-input { border:none; outline:none; font-family:var(--font-body); font-size:0.875rem; color:var(--pro-text); background:transparent; min-width:140px; flex:1; padding:0.2rem 0; }
@@ -46,7 +46,7 @@
     body.theme-pro .completion-fill { height:100%; background:var(--pro-teal); border-radius:999px; transition:width 0.4s ease; }
 
     /* Payout */
-    body.theme-pro .payout-empty { border:2px dashed var(--pro-border-md); border-radius:10px; padding:1.5rem; text-align:center; background:rgba(255,255,255,0.02); }
+    body.theme-pro .payout-empty { border:2px dashed var(--pro-border-md); border-radius:10px; padding:1.5rem; text-align:center; background:var(--pro-elevated); }
     body.theme-pro .payout-empty h4 { font-size:0.9rem; font-weight:500; color:var(--pro-text); margin-bottom:0.35rem; font-family:var(--font-body); }
     body.theme-pro .payout-empty p { font-size:0.78rem; color:var(--pro-muted); margin-bottom:0.85rem; line-height:1.55; }
 
@@ -316,7 +316,7 @@
     var tierLabels = { pending: 'Pending Review', starter: 'Starter', verified: '✓ Verified', elite: '★ Elite', suspended: 'Suspended' };
     document.getElementById('tier-value').textContent = tierLabels[profile.tier] || profile.tier || '—';
     document.getElementById('persona-value').innerHTML = profile.persona_verified
-      ? '<span style="color:#1d9e75">✓ Verified</span>'
+      ? '<span style="color:#0097a7">✓ Verified</span>'
       : '<span style="color:#f59e0b">Not yet verified</span>';
 
     if (profile.profile_photo) {
@@ -402,7 +402,7 @@
             + '<span style="color:#f59e0b;font-size:0.85rem">' + stars + '</span>'
             + '</div>'
             + '<div style="color:var(--pro-soft);line-height:1.6">' + (r.comment || 'No comment.') + '</div>'
-            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(29,158,117,0.2)">&#10003; Would hire again</div>' : '')
+            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,151,167,0.15)">&#10003; Would hire again</div>' : '')
             + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
             + '</div>';
         }).join('');

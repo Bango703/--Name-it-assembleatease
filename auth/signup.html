@@ -15,159 +15,112 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --white: #ffffff;
-      --off-white: #f8f7f4;
-      --border: #e4e1d9;
-      --muted: #9b9789;
-      --ink: #1a1916;
-      --ink-soft: #3d3b35;
-      --accent: #e86a2e;
-      --accent-dark: #c45520;
-      --accent-light: #fdf0e8;
-      --teal: #1d9e75;
-      --teal-dark: #157a5a;
-      --teal-light: #e8f5ef;
-      --red: #ef4444;
-      --red-light: #fef2f2;
-      --green: #22c55e;
-      --green-light: #f0fdf4;
-    }
-
     body {
       font-family: 'DM Sans', sans-serif;
-      color: var(--ink);
-      background: var(--white);
+      color: #0d1117;
+      background: #f8fafc;
       -webkit-font-smoothing: antialiased;
       min-height: 100vh;
     }
 
     /* ── LAYOUT ── */
     .auth-page {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: 100vh;
-    }
-
-    /* ── LEFT BRAND PANEL ── */
-    .auth-brand-panel {
-      background: var(--ink);
-      padding: 3rem;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-      overflow: hidden;
-    }
-    .auth-brand-panel::before {
-      content: '';
-      position: absolute;
-      top: -80px; right: -80px;
-      width: 300px; height: 300px;
-      border-radius: 50%;
-      background: rgba(232,106,46,0.08);
-      pointer-events: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
     }
 
-    .auth-brand-logo {
-      display: flex; align-items: center; gap: 10px;
+    .auth-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-logo a {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: #0d1117;
       text-decoration: none;
+    }
+
+    .auth-logo a span {
+      color: #0097a7;
+    }
+
+    .auth-card h1 {
       font-family: 'DM Serif Display', serif;
-      font-size: 1.2rem; color: var(--white);
-    }
-    .auth-brand-logo-icon {
-      width: 34px; height: 34px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem;
+      font-size: 1.75rem;
+      color: #0d1117;
+      text-align: center;
+      margin-bottom: 0.4rem;
     }
 
-    .auth-brand-content { margin: auto 0; }
-    .auth-brand-content h2 {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(1.6rem, 2.5vw, 2.2rem);
-      color: var(--white); line-height: 1.2; margin-bottom: 1rem;
+    .subtitle {
+      font-size: 0.9rem;
+      color: #64748b;
+      text-align: center;
+      margin-bottom: 2rem;
     }
-    .auth-brand-content h2 span { color: var(--accent); font-style: italic; }
-    .auth-brand-content p {
-      font-size: 0.95rem; color: rgba(255,255,255,0.55);
-      line-height: 1.7; max-width: 380px;
+    .subtitle a {
+      color: #0097a7;
+      font-weight: 500;
+      text-decoration: none;
     }
-
-    .auth-features {
-      list-style: none; margin-top: 2.5rem;
-      display: flex; flex-direction: column; gap: 0.75rem;
-    }
-    .auth-features li {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 0.9rem; color: rgba(255,255,255,0.7);
-    }
-    .check {
-      width: 20px; height: 20px;
-      background: rgba(29,158,117,0.2); color: var(--teal);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.7rem; flex-shrink: 0;
-    }
-
-    /* ── RIGHT FORM PANEL ── */
-    .auth-form-panel {
-      display: flex; align-items: center; justify-content: center;
-      padding: 3rem 2rem;
-      background: var(--white);
-      overflow-y: auto;
-    }
-
-    .auth-form-box { width: 100%; max-width: 420px; }
-
-    .auth-form-box h1 {
-      font-family: 'DM Serif Display', serif;
-      font-size: 2rem; color: var(--ink); margin-bottom: 0.4rem;
-    }
-
-    .subtitle { font-size: 0.9rem; color: var(--muted); margin-bottom: 2rem; }
-    .subtitle a { color: var(--teal); font-weight: 500; text-decoration: none; }
-    .subtitle a:hover { color: var(--teal-dark); text-decoration: underline; }
+    .subtitle a:hover { color: #00838f; text-decoration: underline; }
 
     /* ── ALERT ── */
     .alert {
-      padding: 0.75rem 1rem; border-radius: 8px;
-      font-size: 0.875rem; margin-bottom: 1rem;
-      display: flex; align-items: flex-start; gap: 8px;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
     }
     .alert.hidden { display: none; }
-    .alert-error   { background: var(--red-light);  color: #991b1b; border: 1px solid rgba(239,68,68,0.2); }
-    .alert-success { background: var(--green-light); color: #166534; border: 1px solid rgba(34,197,94,0.2); }
+    .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 
     /* ── FORM ── */
     .auth-form { display: flex; flex-direction: column; gap: 1rem; }
 
     .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-    .form-group label { font-size: 0.85rem; font-weight: 500; color: var(--ink-soft); }
+    .form-group label { font-size: 0.82rem; font-weight: 500; color: #4a5568; }
 
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 
     .input-with-icon { position: relative; }
     .input-icon {
       position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-      font-size: 14px; color: var(--muted); pointer-events: none;
+      font-size: 14px; color: #64748b; pointer-events: none;
     }
 
     .form-control {
       width: 100%; padding: 0.65rem 0.9rem 0.65rem 2.5rem;
-      border: 1px solid var(--border); border-radius: 8px;
+      border: 1px solid #e2e8f0; border-radius: 10px;
       font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
-      color: var(--ink); background: var(--white);
+      color: #0d1117; background: #ffffff;
       transition: border-color 0.15s, box-shadow 0.15s;
       outline: none;
     }
     .form-control.no-icon { padding-left: 0.9rem; }
-    .form-control:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
-    .form-control.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
-    .form-control::placeholder { color: var(--muted); }
+    .form-control:focus { border-color: #0097a7; box-shadow: 0 0 0 3px rgba(0,151,167,0.1); }
+    .form-control.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+    .form-control::placeholder { color: #94a3b8; }
 
-    .field-error { font-size: 0.78rem; color: var(--red); margin-top: 2px; display: none; }
+    .field-error { font-size: 0.78rem; color: #ef4444; margin-top: 2px; display: none; }
     .field-error.visible { display: block; }
 
     /* ── ROLE SELECTOR ── */
@@ -178,24 +131,24 @@
     .role-option label {
       display: flex; flex-direction: column; align-items: center;
       gap: 6px; padding: 1rem 0.75rem;
-      border: 1px solid var(--border); border-radius: 10px;
+      border: 1px solid #e2e8f0; border-radius: 10px;
       cursor: pointer; text-align: center;
-      transition: all 0.15s; background: var(--white);
+      transition: all 0.15s; background: #ffffff;
     }
-    .role-option label:hover { border-color: var(--teal); background: var(--teal-light); }
+    .role-option label:hover { border-color: #0097a7; background: rgba(0,151,167,0.04); }
     .role-option input:checked + label {
-      border-color: var(--teal); border-width: 2px;
-      background: var(--teal-light); color: var(--teal-dark);
+      border-color: #0097a7; border-width: 2px;
+      background: rgba(0,151,167,0.06); color: #00838f;
     }
     .role-icon { font-size: 1.5rem; }
-    .role-option strong { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
-    .role-option span { font-size: 0.75rem; color: var(--muted); }
+    .role-option strong { font-size: 0.875rem; font-weight: 500; color: #0d1117; }
+    .role-option span { font-size: 0.75rem; color: #64748b; }
 
     /* ── PASSWORD STRENGTH ── */
     .password-strength { margin-top: 6px; }
     .strength-bar {
       height: 3px; border-radius: 2px;
-      background: var(--border);
+      background: #e2e8f0;
       overflow: hidden; margin-bottom: 4px;
     }
     .strength-fill {
@@ -203,13 +156,13 @@
       border-radius: 2px;
       transition: width 0.3s, background 0.3s;
     }
-    .strength-label { font-size: 0.75rem; color: var(--muted); }
+    .strength-label { font-size: 0.75rem; color: #64748b; }
 
     /* ── LEGAL ── */
     .legal-text {
-      font-size: 0.78rem; color: var(--muted); line-height: 1.55;
+      font-size: 0.78rem; color: #64748b; line-height: 1.55;
     }
-    .legal-text a { color: var(--teal); text-decoration: none; }
+    .legal-text a { color: #0097a7; text-decoration: none; }
     .legal-text a:hover { text-decoration: underline; }
 
     /* ── BUTTON ── */
@@ -221,154 +174,126 @@
       border: 1px solid transparent; text-decoration: none;
       transition: all 0.15s;
     }
-    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-primary:hover:not(:disabled) { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .btn-primary { background: #0097a7; color: #fff; border-color: #0097a7; }
+    .btn-primary:hover:not(:disabled) { background: #00838f; border-color: #00838f; }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-full { width: 100%; }
     .btn-lg { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
 
     /* ── AUTH FOOTER ── */
-    .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--muted); }
-    .auth-footer a { color: var(--teal); font-weight: 500; text-decoration: none; }
+    .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: #64748b; }
+    .auth-footer a { color: #0097a7; font-weight: 500; text-decoration: none; }
     .auth-footer a:hover { text-decoration: underline; }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      .auth-page { grid-template-columns: 1fr; }
-      .auth-brand-panel { display: none; }
-      .auth-form-panel { padding: 2.5rem 1.5rem; }
+    @media (max-width: 480px) {
+      .auth-card { padding: 2rem 1.5rem; }
+      .form-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
 <div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><a href="../">Assemble<span>AtEase</span></a></div>
 
-  <!-- LEFT BRAND PANEL -->
-  <div class="auth-brand-panel">
-    <a href="../index" class="auth-brand-logo">
-      <div class="auth-brand-logo-icon">⬡</div>
-      AssembleAtEase
-    </a>
+    <h1>Create account</h1>
+    <p class="subtitle">Already have an account? <a href="login">Log in</a></p>
 
-    <div class="auth-brand-content">
-      <h2>Join the <span>assembly community</span> today</h2>
-      <p>Whether you need something assembled or you're ready to earn money with your skills — you're in the right place.</p>
+    <div id="auth-alert" class="alert hidden"></div>
 
-      <ul class="auth-features">
-        <li><span class="check">✓</span> Free to join — no subscription fees</li>
-        <li><span class="check">✓</span> Post jobs or browse in minutes</li>
-        <li><span class="check">✓</span> Verified and rated professionals</li>
-        <li><span class="check">✓</span> Assemblers keep the majority of earnings</li>
-      </ul>
-    </div>
+    <form class="auth-form" id="signup-form" novalidate>
 
-    <p style="font-size:0.78rem;color:rgba(255,255,255,0.25)">© 2025 AssembleAtEase</p>
-  </div>
-
-  <!-- RIGHT FORM PANEL -->
-  <div class="auth-form-panel">
-    <div class="auth-form-box">
-
-      <h1>Create account</h1>
-      <p class="subtitle">Already have an account? <a href="login">Log in</a></p>
-
-      <div id="auth-alert" class="alert hidden"></div>
-
-      <form class="auth-form" id="signup-form" novalidate>
-
-        <!-- Role selector -->
-        <div class="form-group">
-          <label>I want to…</label>
-          <div class="role-selector">
-            <div class="role-option">
-              <input type="radio" name="role" id="role-customer" value="customer" checked />
-              <label for="role-customer">
-                <span class="role-icon">🛋️</span>
-                <strong>Hire an Assembler</strong>
-                <span>I need something assembled</span>
-              </label>
-            </div>
-            <div class="role-option">
-              <input type="radio" name="role" id="role-assembler" value="assembler" />
-              <label for="role-assembler">
-                <span class="role-icon">🔧</span>
-                <strong>Earn as Assembler</strong>
-                <span>I want to offer my skills</span>
-              </label>
-            </div>
+      <!-- Role selector -->
+      <div class="form-group">
+        <label>I want to…</label>
+        <div class="role-selector">
+          <div class="role-option">
+            <input type="radio" name="role" id="role-customer" value="customer" checked />
+            <label for="role-customer">
+              <span class="role-icon">&#128715;</span>
+              <strong>Hire an Assembler</strong>
+              <span>I need something assembled</span>
+            </label>
+          </div>
+          <div class="role-option">
+            <input type="radio" name="role" id="role-assembler" value="assembler" />
+            <label for="role-assembler">
+              <span class="role-icon">&#128295;</span>
+              <strong>Earn as Assembler</strong>
+              <span>I want to offer my skills</span>
+            </label>
           </div>
         </div>
-
-        <!-- Name row -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="first-name">First name</label>
-            <input type="text" id="first-name" class="form-control no-icon"
-              placeholder="Jane" autocomplete="given-name" required />
-            <span class="field-error" id="first-name-error"></span>
-          </div>
-          <div class="form-group">
-            <label for="last-name">Last name</label>
-            <input type="text" id="last-name" class="form-control no-icon"
-              placeholder="Smith" autocomplete="family-name" required />
-            <span class="field-error" id="last-name-error"></span>
-          </div>
-        </div>
-
-        <!-- Email -->
-        <div class="form-group">
-          <label for="email">Email address</label>
-          <div class="input-with-icon">
-            <span class="input-icon">✉</span>
-            <input type="email" id="email" class="form-control"
-              placeholder="you@example.com" autocomplete="email" required />
-          </div>
-          <span class="field-error" id="email-error"></span>
-        </div>
-
-        <!-- Password -->
-        <div class="form-group">
-          <label for="password">Password</label>
-          <div class="input-with-icon">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="password" class="form-control"
-              placeholder="At least 8 characters" autocomplete="new-password" required />
-          </div>
-          <div class="password-strength" id="strength-wrap" style="display:none">
-            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
-            <span class="strength-label" id="strength-label"></span>
-          </div>
-          <span class="field-error" id="password-error"></span>
-        </div>
-
-        <!-- Confirm password -->
-        <div class="form-group">
-          <label for="confirm-password">Confirm password</label>
-          <div class="input-with-icon">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="confirm-password" class="form-control"
-              placeholder="Repeat your password" autocomplete="new-password" required />
-          </div>
-          <span class="field-error" id="confirm-password-error"></span>
-        </div>
-
-        <!-- Legal -->
-        <p class="legal-text">
-          By creating an account you agree to our
-          <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-        </p>
-
-        <button type="submit" class="btn btn-primary btn-full btn-lg" id="signup-btn">
-          Create Free Account
-        </button>
-
-      </form>
-
-      <div class="auth-footer">
-        Already have an account? <a href="login">Log in</a>
       </div>
 
+      <!-- Name row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first-name">First name</label>
+          <input type="text" id="first-name" class="form-control no-icon"
+            placeholder="Jane" autocomplete="given-name" required />
+          <span class="field-error" id="first-name-error"></span>
+        </div>
+        <div class="form-group">
+          <label for="last-name">Last name</label>
+          <input type="text" id="last-name" class="form-control no-icon"
+            placeholder="Smith" autocomplete="family-name" required />
+          <span class="field-error" id="last-name-error"></span>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <div class="input-with-icon">
+          <span class="input-icon">&#9993;</span>
+          <input type="email" id="email" class="form-control"
+            placeholder="you@example.com" autocomplete="email" required />
+        </div>
+        <span class="field-error" id="email-error"></span>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-with-icon">
+          <span class="input-icon">&#128274;</span>
+          <input type="password" id="password" class="form-control"
+            placeholder="At least 8 characters" autocomplete="new-password" required />
+        </div>
+        <div class="password-strength" id="strength-wrap" style="display:none">
+          <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+          <span class="strength-label" id="strength-label"></span>
+        </div>
+        <span class="field-error" id="password-error"></span>
+      </div>
+
+      <!-- Confirm password -->
+      <div class="form-group">
+        <label for="confirm-password">Confirm password</label>
+        <div class="input-with-icon">
+          <span class="input-icon">&#128274;</span>
+          <input type="password" id="confirm-password" class="form-control"
+            placeholder="Repeat your password" autocomplete="new-password" required />
+        </div>
+        <span class="field-error" id="confirm-password-error"></span>
+      </div>
+
+      <!-- Legal -->
+      <p class="legal-text">
+        By creating an account you agree to our
+        <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+      </p>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="signup-btn">
+        Create Free Account
+      </button>
+
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="login">Log in</a>
     </div>
   </div>
 </div>
