@@ -244,8 +244,10 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   .hero-stat:last-child{border-bottom:none}
   .hero-actions .btn{width:100%;max-width:320px}
   .section{padding:3rem 1.25rem}
-  .cart-bar{padding:0.85rem 1.25rem;flex-wrap:wrap}
-  .cart-bar .btn{width:100%}
+  .cart-bar{padding:0.85rem 1.25rem;flex-wrap:nowrap;align-items:center}
+  .cart-bar .btn{width:auto;flex-shrink:0;white-space:nowrap}
+  .cart-bar-text{font-size:0.8rem}
+  .cart-bar-services{max-width:160px;font-size:0.7rem}
   .modal{padding:1.5rem}
 }
 @media(max-width:480px){
@@ -946,6 +948,7 @@ function toggleFaqMore(btn) {
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
+
 
 
 
