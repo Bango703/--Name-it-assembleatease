@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   // GET — list messages for a booking (owner only)
@@ -43,9 +44,16 @@ export default async function handler(req, res) {
     if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
     resolvedSender = 'owner';
   } else {
-    // Customer messages require the customer's email for verification
-    const customerEmail = req.body.customerEmail;
-    if (!customerEmail || customerEmail.toLowerCase() !== booking.customer_email.toLowerCase()) {
+    // Customer messages require JWT authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const { data: { user }, error: authErr } = await userClient.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (user.email.toLowerCase() !== booking.customer_email.toLowerCase()) {
       return res.status(401).json({ error: 'Unauthorized — email does not match booking' });
     }
     resolvedSender = 'customer';

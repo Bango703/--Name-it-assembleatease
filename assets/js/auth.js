@@ -132,8 +132,8 @@
       }
 
       window.location.href = role === 'assembler'
-        ? '../assembler/index.html'
-        : '../customer/index.html';
+        ? '../assembler/'
+        : '../customer/';
 
     } catch (err) {
       console.error('[auth.js] Signup error:', err);
@@ -189,8 +189,8 @@
       }
 
       window.location.href = profile.role === 'assembler'
-        ? '../assembler/index.html'
-        : '../customer/index.html';
+        ? '../assembler/'
+        : '../customer/';
 
     } catch (err) {
       console.error('[auth.js] Login error:', err);

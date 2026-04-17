@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -44,21 +44,21 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/" class="active"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="." class="active"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
@@ -70,7 +70,7 @@
         <h1 id="welcome-heading">Welcome back</h1>
         <p id="welcome-sub">Here is what is happening with your jobs today.</p>
       </div>
-      <a href="post-job.html" class="btn btn-primary">+ Post a Job</a>
+      <a href="post-job" class="btn btn-primary">+ Post a Job</a>
     </div>
 
     <div id="page-alert" class="alert hidden"></div>
@@ -88,7 +88,7 @@
       <div>
         <div class="section-header">
           <div class="section-title">Your Recent Jobs</div>
-          <a href="my-jobs.html" class="section-link">View all &#8594;</a>
+          <a href="my-jobs" class="section-link">View all &#8594;</a>
         </div>
         <div id="jobs-list">
           <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
@@ -100,7 +100,7 @@
         <div style="margin-top:1.5rem">
           <div class="section-header">
             <div class="section-title">Your Recent Bookings</div>
-            <a href="my-bookings.html" class="section-link">View all &#8594;</a>
+            <a href="my-bookings" class="section-link">View all &#8594;</a>
           </div>
           <div id="bookings-list">
             <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
@@ -113,7 +113,7 @@
         <div class="panel">
           <div class="section-header" style="margin-bottom:0.75rem">
             <div class="section-title">Assemblers Near You</div>
-            <a href="browse-assemblers.html" class="section-link">Browse all &#8594;</a>
+            <a href="browse-assemblers" class="section-link">Browse all &#8594;</a>
           </div>
           <div id="assemblers-list">
             <div class="skeleton-card"><div class="skeleton" style="height:44px"></div></div>
@@ -124,9 +124,9 @@
         <div class="panel">
           <div class="section-title" style="margin-bottom:0.75rem">Quick actions</div>
           <div style="display:flex;flex-direction:column;gap:0.5rem">
-            <a href="post-job.html" class="btn btn-primary btn-sm" style="justify-content:center">+ Post a new job</a>
-            <a href="../index.html#booking" class="btn btn-outline btn-sm" style="justify-content:center">Book a service</a>
-            <a href="browse-assemblers.html" class="btn btn-outline btn-sm" style="justify-content:center">Browse assemblers</a>
+            <a href="post-job" class="btn btn-primary btn-sm" style="justify-content:center">+ Post a new job</a>
+            <a href="../#booking" class="btn btn-outline btn-sm" style="justify-content:center">Book a service</a>
+            <a href="browse-assemblers" class="btn btn-outline btn-sm" style="justify-content:center">Browse assemblers</a>
           </div>
         </div>
       </div>
@@ -135,6 +135,7 @@
 </div>
 
 <script>
+  function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
   function timeAgo(d) {
     if(!d)return'';
     const diff=Date.now()-new Date(d).getTime(),m=Math.floor(diff/60000),h=Math.floor(diff/3600000),days=Math.floor(diff/86400000);
@@ -152,7 +153,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     // Stats — combine marketplace jobs + direct bookings
@@ -179,20 +180,20 @@
           const statusMap = { pending:'badge-warning', confirmed:'badge-info', completed:'badge-success', cancelled:'badge-danger', declined:'badge-danger' };
           const dateStr = b.date ? new Date(b.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
           return `
-            <a class="job-row" href="my-bookings.html">
+            <a class="job-row" href="my-bookings">
               <div class="job-row-top">
-                <div class="job-row-title">${b.service || 'Booking'}</div>
-                <span class="badge ${statusMap[b.status]||'badge-default'}">${b.status}</span>
+                <div class="job-row-title">${esc(b.service || 'Booking')}</div>
+                <span class="badge ${statusMap[b.status]||'badge-default'}">${esc(b.status)}</span>
               </div>
               <div class="job-row-meta">
-                <span>${b.ref || ''}</span>
+                <span>${esc(b.ref || '')}</span>
                 ${dateStr ? `<span>${dateStr}</span>` : ''}
-                ${b.assembler_name ? `<span>${b.assembler_name}</span>` : ''}
+                ${b.assembler_name ? `<span>${esc(b.assembler_name)}</span>` : ''}
               </div>
             </a>`;
         }).join('');
       } else {
-        bList.innerHTML = `<p style="font-size:0.82rem;color:var(--muted)">No bookings yet. <a href="../index.html#booking" style="color:var(--teal)">Book a service</a></p>`;
+        bList.innerHTML = `<p style="font-size:0.82rem;color:var(--muted)">No bookings yet. <a href="../#booking" style="color:var(--teal)">Book a service</a></p>`;
       }
     } catch {
       document.getElementById('stats-row').innerHTML = '<div style="grid-column:1/-1" class="error-state"><span>&#9888;</span>Could not load stats.</div>';
@@ -207,20 +208,20 @@
           const badgeClass = APP.getBadgeClass(job.status);
           const bidCount = job.bids?.[0]?.count ?? 0;
           return `
-            <a class="job-row" href="job-detail.html?id=${job.id}">
+            <a class="job-row" href="job-detail?id=${job.id}">
               <div class="job-row-top">
-                <div class="job-row-title">${job.title}</div>
-                <span class="badge ${badgeClass}">${job.status.replace('_',' ')}</span>
+                <div class="job-row-title">${esc(job.title)}</div>
+                <span class="badge ${badgeClass}">${esc(job.status.replace('_',' '))}</span>
               </div>
               <div class="job-row-meta">
                 <span>${bidCount} bid${bidCount!==1?'s':''}</span>
                 <span>${timeAgo(job.created_at)}</span>
-                ${job.city?`<span>${job.city}</span>`:''}
+                ${job.city?`<span>${esc(job.city)}</span>`:''}
               </div>
             </a>`;
         }).join('');
       } else {
-        list.innerHTML = `<div class="empty-state"><p>No jobs posted yet.</p><a href="post-job.html" class="btn btn-primary btn-sm">Post your first job</a></div>`;
+        list.innerHTML = `<div class="empty-state"><p>No jobs posted yet.</p><a href="post-job" class="btn btn-primary btn-sm">Post your first job</a></div>`;
       }
     } catch {
       document.getElementById('jobs-list').innerHTML = '<div class="error-state"><span>&#9888;</span>Could not load jobs.</div>';
@@ -235,13 +236,13 @@
           const firstName = (a.full_name||'Assembler').split(' ')[0];
           const initials  = firstName[0]?.toUpperCase()||'?';
           return `
-            <a class="assembler-row" href="assembler-detail.html?id=${a.id}">
+            <a class="assembler-row" href="assembler-detail?id=${a.id}">
               <div class="assembler-avatar">
-                ${a.profile_photo?`<img src="${a.profile_photo}" alt="${firstName}" />`:initials}
+                ${a.profile_photo?`<img src="${esc(a.profile_photo)}" alt="${esc(firstName)}" />`:esc(initials)}
               </div>
               <div class="assembler-info">
-                <div class="assembler-name">${firstName}</div>
-                <div class="assembler-meta">${a.completed_jobs||0} jobs &middot; ${a.city||'Local'}</div>
+                <div class="assembler-name">${esc(firstName)}</div>
+                <div class="assembler-meta">${a.completed_jobs||0} jobs &middot; ${esc(a.city||'Local')}</div>
               </div>
               ${a.hourly_rate?`<div class="assembler-rate">$${a.hourly_rate}/hr</div>`:''}
             </a>`;

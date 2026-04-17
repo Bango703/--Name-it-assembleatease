@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25"></script>
@@ -291,8 +291,8 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
-      <li><a href="index.html#services">Services</a></li>
-      <li><a href="index.html#how-it-works">How it works</a></li>
+      <li><a href="/#services">Services</a></li>
+      <li><a href="/#how-it-works">How it works</a></li>
       <li><a href="/about">About Us</a></li>
       <li><a href="/blog/">Blog</a></li>
       <li><a href="/contact">Contact</a></li>
@@ -556,7 +556,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
         <li><a href="/blog/">Blog</a></li>
-        <li><a href="index.html#faq">FAQ</a></li>
+        <li><a href="/#faq">FAQ</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/contact">Get a Quote</a></li>
         <li><a href="/business">Business Services</a></li>
@@ -966,7 +966,8 @@ function toggleFaqMore(btn) {
 <script>
 function acceptCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","accepted");}
 function declineCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","declined");}
-window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}});
+window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}
+if(window.location.hash==="#booking"){AAE.openBooking();}});
 </script>
 </body>
 </html>

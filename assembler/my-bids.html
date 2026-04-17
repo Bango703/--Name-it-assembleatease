@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -34,20 +34,20 @@
 <body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">⚡</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
+        <li><a href="."><span class="nav-icon">⚡</span> Dashboard</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
+        <li><a href="my-bids" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">🔧</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">👤</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">👤</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
       </ul>
     </div>
@@ -59,7 +59,7 @@
         <h1>My Bids</h1>
         <p>Track all the bids you've submitted.</p>
       </div>
-      <a href="browse-jobs.html" class="btn btn-teal">🔍 Find more jobs</a>
+      <a href="browse-jobs" class="btn btn-teal">🔍 Find more jobs</a>
     </div>
 
     <div class="filter-tabs" id="filter-tabs">
@@ -95,11 +95,11 @@
   function renderBids(bids) {
     const list = document.getElementById('bids-list');
     if (!bids?.length) {
-      list.innerHTML = `<div class="empty-state"><p>No bids found.</p><a href="browse-jobs.html" class="btn btn-teal btn-sm">Browse jobs →</a></div>`;
+      list.innerHTML = `<div class="empty-state"><p>No bids found.</p><a href="browse-jobs" class="btn btn-teal btn-sm">Browse jobs →</a></div>`;
       return;
     }
     list.innerHTML = bids.map(bid => `
-      <a class="bid-card" href="bid-detail.html?id=${bid.id}">
+      <a class="bid-card" href="bid-detail?id=${bid.id}">
         <div class="bid-card-top">
           <h3>${bid.job?.title || 'Untitled Job'}</h3>
           <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
@@ -125,7 +125,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     // Filter tabs

@@ -60,6 +60,7 @@ export default async function handler(req, res) {
       await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase <booking@assembleatease.com>',
+        replyTo: assembler?.email,
         subject: `Job Accepted — ${esc(booking.ref)}`,
         html: `<p><strong>${esc(assemblerName)}</strong> accepted the assignment for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>`,
       });
@@ -72,6 +73,7 @@ export default async function handler(req, res) {
         await sendEmail({
           to: booking.customer_email,
           from: 'AssembleAtEase <booking@assembleatease.com>',
+          replyTo: ownerEmail(),
           subject: `Your Assembler is Confirmed — ${esc(booking.ref)}`,
           html: buildCustomerNotifyEmail({
             customerFirst,
@@ -111,6 +113,7 @@ export default async function handler(req, res) {
       await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase <booking@assembleatease.com>',
+        replyTo: assembler?.email,
         subject: `Job Declined — ${esc(booking.ref)}`,
         html: `<p><strong>${esc(assemblerName)}</strong> declined the assignment for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}). Booking is now unassigned and available for reassignment.</p>`,
       });
@@ -136,7 +139,7 @@ function sendHtml(res, title, message, isSuccess) {
   <div class="icon">${icon}</div>
   <h1>${title}</h1>
   <p>${message}</p>
-  <a href="https://www.assembleatease.com/auth/login.html" class="btn">Go to Dashboard</a>
+  <a href="https://www.assembleatease.com/auth/login" class="btn">Go to Dashboard</a>
 </div></body></html>`);
 }
 

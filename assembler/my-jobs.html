@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Jobs — AssembleAtEase</title>
+  <title>My Jobs ï¿½ AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -37,20 +37,20 @@
 <body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html"><span class="nav-icon">&#128172;</span> My Bids</a></li>
-        <li><a href="my-jobs.html" class="active"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
+        <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
+        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs" class="active"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#128682;</span> Log out</a></li>
       </ul>
     </div>
@@ -103,14 +103,14 @@
   function renderJobs(jobs) {
     const list = document.getElementById('jobs-list');
     if (!jobs || !jobs.length) {
-      list.innerHTML = '<div class="empty-state"><p>No jobs found. Browse open jobs and submit bids to get started.</p><a href="browse-jobs.html" class="btn btn-teal btn-sm">Browse Jobs</a></div>';
+      list.innerHTML = '<div class="empty-state"><p>No jobs found. Browse open jobs and submit bids to get started.</p><a href="browse-jobs" class="btn btn-teal btn-sm">Browse Jobs</a></div>';
       return;
     }
     list.innerHTML = jobs.map(function(job) {
       const badgeClass = APP.getBadgeClass(job.status);
       const customer = job.customer || {};
       const amount = job.agreed_amount ? '$' + job.agreed_amount : formatBudget(job);
-      return '<a class="job-card" href="job-detail.html?id=' + job.id + '">' +
+      return '<a class="job-card" href="job-detail?id=' + job.id + '">' +
         '<div class="job-card-top">' +
           '<div>' +
             '<h3>' + (job.title || 'Untitled Job') + '</h3>' +
@@ -139,7 +139,7 @@
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     document.getElementById('filter-tabs').addEventListener('click', function(e) {

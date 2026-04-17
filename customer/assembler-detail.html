@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -44,28 +44,28 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main">
-    <a href="browse-assemblers.html" class="back-link">&#8592; Back to Browse Assemblers</a>
+    <a href="browse-assemblers" class="back-link">&#8592; Back to Browse Assemblers</a>
     <div id="page-alert" class="alert hidden"></div>
     <div id="page-content">
       <div class="skeleton-card"><div class="skeleton" style="height:200px"></div></div>
@@ -81,11 +81,11 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     const assemblerId = APP.getParam('id');
-    if (!assemblerId) { window.location.href = 'browse-assemblers.html'; return; }
+    if (!assemblerId) { window.location.href='browse-assemblers'; return; }
 
     try {
       const { data: assembler, error } = await API.getProfile(assemblerId);
@@ -150,10 +150,10 @@
             <div class="hire-card">
               <div class="hire-rate">${assembler.hourly_rate ? '$' + assembler.hourly_rate : 'Custom'}</div>
               <div class="hire-label">${assembler.hourly_rate ? 'per hour &middot; negotiate on your job' : 'Price negotiated per job'}</div>
-              <a href="post-job.html?assembler=${assemblerId}" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem;display:flex;justify-content:center">
+              <a href="post-job?assembler=${assemblerId}" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem;display:flex;justify-content:center">
                 Send a job to ${firstName}
               </a>
-              <a href="post-job.html" class="btn btn-outline btn-full" style="margin-bottom:1rem;display:flex;justify-content:center">
+              <a href="post-job" class="btn btn-outline btn-full" style="margin-bottom:1rem;display:flex;justify-content:center">
                 Post a general job
               </a>
               <p style="font-size:0.75rem;color:var(--muted);text-align:center;line-height:1.55">
@@ -196,7 +196,7 @@
       }
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load profile. <a href="browse-assemblers.html">Go back</a></div>`;
+      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load profile. <a href="browse-assemblers">Go back</a></div>`;
     }
   });
 </script>

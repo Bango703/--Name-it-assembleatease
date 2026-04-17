@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -54,28 +54,28 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main">
-    <a href="my-jobs.html" class="back-link">&#8592; Back to My Jobs</a>
+    <a href="my-jobs" class="back-link">&#8592; Back to My Jobs</a>
     <div id="page-alert" class="alert hidden"></div>
     <div id="page-content">
       <div class="skeleton-card"><div class="skeleton" style="height:200px"></div></div>
@@ -183,11 +183,11 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     currentJobId = APP.getParam('id');
-    if (!currentJobId) { window.location.href = 'my-jobs.html'; return; }
+    if (!currentJobId) { window.location.href='my-jobs'; return; }
 
     try {
       const { data: job, error } = await API.getJob(currentJobId);
@@ -288,7 +288,7 @@
           if (error) throw error;
           APP.showAlert('page-alert', 'Job marked as complete!', 'success');
           setTimeout(() => {
-            window.location.href = 'job-detail.html?id=' + currentJobId + '&review=1';
+            window.location.href='job-detail?id=' + currentJobId + '&review=1';
           }, 1200);
         } catch (err) { APP.showAlert('page-alert', err.message, 'error'); APP.setLoading('complete-btn', false, 'Mark complete'); }
       });
@@ -335,7 +335,7 @@
                   <div class="avatar">${initials}</div>
                   <div>
                     <div class="bid-assembler-name">
-                      <a href="assembler-detail.html?id=${bid.assembler_id}" style="color:var(--ink);text-decoration:none">${firstName}</a>
+                      <a href="assembler-detail?id=${bid.assembler_id}" style="color:var(--ink);text-decoration:none">${firstName}</a>
                     </div>
                     <div class="bid-assembler-meta">
                       ${bid.assembler?.city||'Location TBD'} &middot;
@@ -355,7 +355,7 @@
                 <div class="bid-actions">
                   <button class="btn btn-primary btn-sm" onclick="acceptBid('${bid.id}','${bid.assembler_id}',${bid.bid_amount})">Accept bid</button>
                   <button class="btn btn-outline btn-sm" onclick="rejectBid('${bid.id}')">Decline</button>
-                  <a href="assembler-detail.html?id=${bid.assembler_id}" class="btn btn-ghost btn-sm">View profile</a>
+                  <a href="assembler-detail?id=${bid.assembler_id}" class="btn btn-ghost btn-sm">View profile</a>
                 </div>` : ''}
             </div>`;
         }).join('');
@@ -365,7 +365,7 @@
       }
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-jobs.html">Go back</a></div>`;
+      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-jobs">Go back</a></div>`;
     }
   });
 

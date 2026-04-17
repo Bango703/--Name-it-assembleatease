@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -37,27 +37,27 @@
 <body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html" class="active"><span class="nav-icon">&#128172;</span> My Bids</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
+        <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
+        <li><a href="my-bids" class="active"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main" style="padding:2rem">
-    <a href="my-bids.html" class="back-link">&#8592; Back to My Bids</a>
+    <a href="my-bids" class="back-link">&#8592; Back to My Bids</a>
     <div id="page-alert" class="alert hidden"></div>
     <div id="page-content">
       <div class="skeleton-card"><div class="skeleton" style="height:180px"></div></div>
@@ -99,11 +99,11 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     const bidId = APP.getParam('id');
-    if (!bidId) { window.location.href = 'my-bids.html'; return; }
+    if (!bidId) { window.location.href='my-bids'; return; }
 
     try {
       const { data: bids } = await API.getMyBids(user.id);
@@ -165,7 +165,7 @@
               <div style="font-size:0.875rem;color:var(--pro-soft);line-height:1.7;margin-bottom:1rem">
                 Contact the customer to confirm timing. The job address will be shown once confirmed.
               </div>
-              <a href="my-jobs.html" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">View in My Jobs &#8594;</a>
+              <a href="my-jobs" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">View in My Jobs &#8594;</a>
             </div>` : ''}
 
             ${jobCompleted && bid.status === 'accepted' ? `
@@ -198,7 +198,7 @@
 
             ${bid.status === 'rejected' || bid.status === 'withdrawn' ? `
             <div class="detail-card" style="text-align:center">
-              <a href="browse-jobs.html" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">Browse more jobs &#8594;</a>
+              <a href="browse-jobs" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">Browse more jobs &#8594;</a>
             </div>` : ''}
           </div>
         </div>`;
@@ -232,7 +232,7 @@
           const { error } = await API.withdrawBid(bidId);
           if (error) throw error;
           APP.showAlert('page-alert', 'Bid withdrawn successfully.', 'success');
-          setTimeout(() => window.location.href = 'my-bids.html', 1500);
+          setTimeout(() => window.location.href='my-bids', 1500);
         } catch (err) {
           APP.showAlert('page-alert', err.message || 'Failed to withdraw bid.', 'error');
           APP.setLoading('withdraw-btn', false, 'Withdraw bid');
@@ -241,7 +241,7 @@
 
     } catch (err) {
       document.getElementById('page-content').innerHTML =
-        `<div class="pro-error"><span>&#9888;</span>Could not load bid. <a href="my-bids.html" style="color:var(--pro-teal)">Go back</a></div>`;
+        `<div class="pro-error"><span>&#9888;</span>Could not load bid. <a href="my-bids" style="color:var(--pro-teal)">Go back</a></div>`;
     }
   });
 </script>

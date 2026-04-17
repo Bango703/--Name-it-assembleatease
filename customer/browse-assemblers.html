@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -53,21 +53,21 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers.html" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
@@ -79,7 +79,7 @@
         <h1>Browse Assemblers</h1>
         <p>Find vetted professionals by skill, location, and rating.</p>
       </div>
-      <a href="post-job.html" class="btn btn-primary">+ Post a job</a>
+      <a href="post-job" class="btn btn-primary">+ Post a job</a>
     </div>
 
     <div class="filters-bar">
@@ -154,7 +154,7 @@
     const grid = document.getElementById('assemblers-grid');
 
     if (!paged.length) {
-      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>No assemblers found matching your search.</p><a href="post-job.html" class="btn btn-primary btn-sm">Post a job instead</a></div>`;
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>No assemblers found matching your search.</p><a href="post-job" class="btn btn-primary btn-sm">Post a job instead</a></div>`;
       document.getElementById('pagination').style.display = 'none';
       return;
     }
@@ -166,7 +166,7 @@
         : (typeof a.skills === 'string' && a.skills ? a.skills.split(',').map(s => s.trim()) : []);
 
       return `
-        <a class="assembler-card" href="assembler-detail.html?id=${a.id}">
+        <a class="assembler-card" href="assembler-detail?id=${a.id}">
           <div class="assembler-avatar">
             ${a.profile_photo
               ? `<img src="${a.profile_photo}" alt="${firstName}" />`
@@ -206,7 +206,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     ['search-filter','city-filter','rate-filter'].forEach(id => {

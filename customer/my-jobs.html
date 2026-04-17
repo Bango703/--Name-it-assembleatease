@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -40,21 +40,21 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
@@ -66,7 +66,7 @@
         <h1>My Jobs</h1>
         <p>Manage and track all your posted jobs.</p>
       </div>
-      <a href="post-job.html" class="btn btn-primary">+ &nbsp;Post a New Job</a>
+      <a href="post-job" class="btn btn-primary">+ &nbsp;Post a New Job</a>
     </div>
 
     <div id="page-alert" class="alert hidden"></div>
@@ -102,7 +102,7 @@
   function renderJobs(jobs) {
     const list = document.getElementById('jobs-list');
     if (!jobs?.length) {
-      list.innerHTML = `<div class="empty-state"><p>No jobs found.</p><a href="post-job.html" class="btn btn-primary btn-sm">Post your first job</a></div>`;
+      list.innerHTML = `<div class="empty-state"><p>No jobs found.</p><a href="post-job" class="btn btn-primary btn-sm">Post your first job</a></div>`;
       return;
     }
     list.innerHTML = jobs.map(job => {
@@ -110,7 +110,7 @@
       const badgeClass = APP.getBadgeClass(job.status);
       const budget = job.budget_min && job.budget_max ? `$${job.budget_min}–$${job.budget_max}` : 'Budget TBD';
       return `
-        <a class="job-card" href="job-detail.html?id=${job.id}">
+        <a class="job-card" href="job-detail?id=${job.id}">
           <div class="job-card-top">
             <div>
               <h3>${job.title}</h3>
@@ -139,7 +139,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     document.getElementById('filter-tabs').addEventListener('click', (e) => {

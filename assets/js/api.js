@@ -31,6 +31,8 @@ const API = {
       .from('profiles')
       .select('*')
       .eq('role', 'assembler')
+      .eq('persona_verified', true)
+      .in('tier', ['starter', 'verified', 'elite'])
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

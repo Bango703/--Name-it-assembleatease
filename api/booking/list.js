@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
   let query = sb
     .from('bookings')
-    .select('*, messages(count)')
+    .select('*, messages(count)', { count: 'exact' })
     .order('created_at', { ascending: false });
 
   if (status && status !== 'all') query = query.eq('status', status);

@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Profile — AssembleAtEase</title>
+  <title>My Profile â€” AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -41,21 +41,21 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job.html"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html" class="active"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile" class="active"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
@@ -137,9 +137,9 @@
       <!-- Account info -->
       <div class="form-section">
         <div class="form-section-title">Account information</div>
-        <div class="info-row"><span class="info-label">Email address</span><span class="info-value" id="email-display">—</span></div>
+        <div class="info-row"><span class="info-label">Email address</span><span class="info-value" id="email-display">â€”</span></div>
         <div class="info-row"><span class="info-label">Account type</span><span class="info-value">Customer</span></div>
-        <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">—</span></div>
+        <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">â€”</span></div>
         <div class="info-row"><span class="info-label">Account status</span><span class="badge badge-accepted">Active</span></div>
         <div style="margin-top:1.25rem">
           <button class="btn btn-outline" id="change-password-btn" type="button">Send password reset email</button>
@@ -157,7 +157,7 @@
           <h4>No payment method added</h4>
           <p>Add a card to pay assemblers when you accept a bid. Encrypted and never stored on our servers.</p>
           <button class="btn btn-outline btn-sm" type="button" disabled>Add a card</button>
-          <div style="margin-top:1rem;font-size:0.72rem;color:var(--muted)">&#128274; Secured by Stripe — coming soon</div>
+          <div style="margin-top:1rem;font-size:0.72rem;color:var(--muted)">&#128274; Secured by Stripe â€” coming soon</div>
         </div>
       </div>
 
@@ -189,7 +189,7 @@
       <div class="form-section">
         <div class="form-section-title">Security</div>
         <div class="info-row">
-          <div><div style="font-size:0.875rem;font-weight:500;color:var(--ink)">Password</div><div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Last changed — unknown</div></div>
+          <div><div style="font-size:0.875rem;font-weight:500;color:var(--ink)">Password</div><div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Last changed â€” unknown</div></div>
           <button class="btn btn-outline btn-sm" id="change-password-btn-2" type="button">Change password</button>
         </div>
         <div class="info-row">
@@ -217,7 +217,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href = '../';
     });
 
     const nameParts = (profile.full_name || '').split(' ');
@@ -232,7 +232,7 @@
     document.getElementById('email-display').textContent = user.email;
     document.getElementById('member-since').textContent  = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : '—';
+      : 'â€”';
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -263,7 +263,7 @@
       if (!btn) return;
       btn.disabled = true; btn.textContent = 'Sending...';
       try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/login.html' });
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/login' });
         if (error) throw error;
         APP.showAlert('page-alert', 'Password reset email sent to ' + user.email, 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -276,12 +276,12 @@
 
     document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
       if (!confirm('Delete your account? This cannot be undone.')) return;
-      if (!confirm('Last warning — all jobs and data will be permanently deleted.')) return;
+      if (!confirm('Last warning â€” all jobs and data will be permanently deleted.')) return;
       APP.setLoading('delete-account-btn', true, 'Deleting...');
       try {
         await supabaseClient.from('profiles').delete().eq('id', user.id);
         await supabaseClient.auth.signOut();
-        window.location.href = '../index.html';
+        window.location.href = '../';
       } catch (err) { APP.showAlert('page-alert', 'Failed to delete account.', 'error'); APP.setLoading('delete-account-btn', false, 'Delete my account'); }
     });
   });

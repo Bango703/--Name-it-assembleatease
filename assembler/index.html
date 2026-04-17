@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -108,7 +108,7 @@
 <div class="pro-layout">
   <aside class="pro-sidebar">
     <div class="sidebar-brand">
-      <a href="../index.html" class="sidebar-brand-logo">Assemble<span>AtEase</span></a>
+      <a href="../" class="sidebar-brand-logo">Assemble<span>AtEase</span></a>
       <div class="avail-toggle" id="avail-toggle">
         <div class="avail-pill" id="avail-pill"></div>
         <span id="avail-label">Offline</span>
@@ -129,16 +129,16 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/" class="active"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html"><span class="nav-icon">&#128269;</span> Browse Jobs <span class="nav-badge" id="jobs-badge" style="display:none">0</span></a></li>
-        <li><a href="my-bids.html"><span class="nav-icon">&#128172;</span> My Bids</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
+        <li><a href="." class="active"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs <span class="nav-badge" id="jobs-badge" style="display:none">0</span></a></li>
+        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section" style="margin-top:1rem">
       <div class="sidebar-section-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
@@ -154,8 +154,8 @@
     <div class="pro-topbar">
       <div class="topbar-title" id="topbar-greeting">Dashboard</div>
       <div class="topbar-right">
-        <a href="browse-jobs.html" class="topbar-btn primary">&#128269; Browse Jobs</a>
-        <a href="profile.html" class="topbar-btn">&#9881; Profile</a>
+        <a href="browse-jobs" class="topbar-btn primary">&#128269; Browse Jobs</a>
+        <a href="profile" class="topbar-btn">&#9881; Profile</a>
       </div>
     </div>
 
@@ -182,7 +182,7 @@
             <div class="pro-banner-sub">Add your skills, hourly rate, and bio to appear in searches.</div>
           </div>
         </div>
-        <a href="profile.html" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem">Complete Profile</a>
+        <a href="profile" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem">Complete Profile</a>
       </div>
 
       <div class="stats-row" id="stats-row">
@@ -204,7 +204,7 @@
         <div>
           <div class="pro-section-header">
             <div class="pro-section-title"><span class="dot"></span>Pending Bids</div>
-            <a href="my-bids.html" class="pro-link">View all &#8594;</a>
+            <a href="my-bids" class="pro-link">View all &#8594;</a>
           </div>
           <div id="bids-list">
             <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
@@ -214,7 +214,7 @@
         <div>
           <div class="pro-section-header">
             <div class="pro-section-title"><span class="dot" style="background:var(--orange)"></span>New Jobs Near You</div>
-            <a href="browse-jobs.html" class="pro-link">Browse all &#8594;</a>
+            <a href="browse-jobs" class="pro-link">Browse all &#8594;</a>
           </div>
           <div id="jobs-list">
             <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
@@ -227,6 +227,7 @@
 </div>
 
 <script>
+  function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
   function truncate(str,len){len=len||75;return !str?'':str.length>len?str.substring(0,len)+'...':str;}
   function timeAgo(d){
     if(!d)return'';
@@ -251,6 +252,7 @@
     var auth=await APP.requireAuth(['assembler']);
     if(!auth)return;
     var user=auth.user;
+    var session=auth.session;
     var profile=auth.profile;
     currentUserId=user.id;
 
@@ -264,7 +266,7 @@
 
     var avatarEl=document.getElementById('sidebar-avatar');
     if(profile.profile_photo){
-      avatarEl.innerHTML='<img src="'+profile.profile_photo+'" alt="'+firstName+'" />';
+      avatarEl.innerHTML='<img src="'+esc(profile.profile_photo)+'" alt="'+esc(firstName)+'" />';
     } else {
       avatarEl.textContent=initials;
     }
@@ -308,12 +310,12 @@
     document.getElementById('sidebar-logout').addEventListener('click',async function(e){
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href='../index.html';
+      window.location.href='../';
     });
 
     // Load assigned bookings from server
     try{
-      var bResp=await fetch('/api/booking/my-assignments?assemblerId='+user.id);
+      var bResp=await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+session.access_token}});
       if(bResp.ok){
         var bData=await bResp.json();
         var bookings=bData.bookings||[];
@@ -325,11 +327,11 @@
             var statusBadge=b.assembler_accepted_at?'badge-new':'badge-pending';
             var statusText=b.assembler_accepted_at?'Accepted':'Pending Response';
             return '<div class="booking-card"><div class="booking-card-top"><h4>'+
-              (b.service||'Service')+'</h4><span class="badge '+statusBadge+'">'+statusText+'</span></div>'+
+              esc(b.service||'Service')+'</h4><span class="badge '+statusBadge+'">'+statusText+'</span></div>'+
               '<div class="booking-card-meta">'+
-              (b.customer_name?(b.customer_name.split(' ')[0])+' &bull; ':'')+
-              (b.date||'Date TBD')+(b.time?' at '+b.time:'')+' &bull; '+
-              (b.ref||'')+'</div></div>';
+              (b.customer_name?esc(b.customer_name.split(' ')[0])+' &bull; ':'')+
+              esc(b.date||'Date TBD')+(b.time?' at '+esc(b.time):'')+' &bull; '+
+              esc(b.ref||'')+'</div></div>';
           }).join('');
         }
       }
@@ -355,14 +357,14 @@
       var bidsList=document.getElementById('bids-list');
       if(pending.length){
         bidsList.innerHTML=pending.slice(0,5).map(function(bid){
-          return '<div class="pro-card" onclick="window.location.href=\'bid-detail.html?id='+bid.id+'\'">'+
-            '<div class="pro-card-top"><h4>'+(bid.job&&bid.job.title?bid.job.title:'Untitled Job')+'</h4><span class="badge badge-pending">pending</span></div>'+
-            '<div class="pro-card-desc">'+truncate(bid.job&&bid.job.description?bid.job.description:'')+'</div>'+
-            '<div class="pro-card-meta"><span>'+(bid.job&&bid.job.city?bid.job.city:'Location TBD')+'</span><span class="meta-dot"></span><span>'+timeAgo(bid.created_at)+'</span></div>'+
+          return '<div class="pro-card" onclick="window.location.href=\'bid-detail?id='+bid.id+'\'">'+
+            '<div class="pro-card-top"><h4>'+esc(bid.job&&bid.job.title?bid.job.title:'Untitled Job')+'</h4><span class="badge badge-pending">pending</span></div>'+
+            '<div class="pro-card-desc">'+esc(truncate(bid.job&&bid.job.description?bid.job.description:''))+'</div>'+
+            '<div class="pro-card-meta"><span>'+esc(bid.job&&bid.job.city?bid.job.city:'Location TBD')+'</span><span class="meta-dot"></span><span>'+timeAgo(bid.created_at)+'</span></div>'+
             '</div>';
         }).join('');
       } else {
-        bidsList.innerHTML='<div class="pro-empty"><p>No pending bids. Go find some jobs!</p><a href="browse-jobs.html" class="topbar-btn">Browse Jobs</a></div>';
+        bidsList.innerHTML='<div class="pro-empty"><p>No pending bids. Go find some jobs!</p><a href="browse-jobs" class="topbar-btn">Browse Jobs</a></div>';
       }
     }catch(err){
       document.getElementById('bids-list').innerHTML='<div class="pro-error">Could not load bids.</div>';
@@ -377,14 +379,14 @@
         if(badge){badge.textContent=jobs.length;badge.style.display='inline';}
         jobsList.innerHTML=jobs.map(function(job){
           var bidCount=job.bids&&job.bids[0]?job.bids[0].count:0;
-          return '<div class="pro-card" onclick="window.location.href=\'job-detail.html?id='+job.id+'\'">'+
-            '<div class="pro-card-top"><h4>'+job.title+'</h4><span class="badge badge-new">New</span></div>'+
-            '<div class="pro-card-desc">'+truncate(job.description)+'</div>'+
-            '<div class="pro-card-meta"><span>'+(job.city||'Location TBD')+'</span><span class="meta-dot"></span><span>'+bidCount+' bid'+(bidCount!==1?'s':'')+'</span><span class="meta-dot"></span><span>'+timeAgo(job.created_at)+'</span></div>'+
+          return '<div class="pro-card" onclick="window.location.href=\'job-detail?id='+job.id+'\'">'+
+            '<div class="pro-card-top"><h4>'+esc(job.title)+'</h4><span class="badge badge-new">New</span></div>'+
+            '<div class="pro-card-desc">'+esc(truncate(job.description))+'</div>'+
+            '<div class="pro-card-meta"><span>'+esc(job.city||'Location TBD')+'</span><span class="meta-dot"></span><span>'+bidCount+' bid'+(bidCount!==1?'s':'')+'</span><span class="meta-dot"></span><span>'+timeAgo(job.created_at)+'</span></div>'+
             '</div>';
         }).join('');
       } else {
-        jobsList.innerHTML='<div class="pro-empty"><p>No new jobs yet.</p><a href="browse-jobs.html" class="topbar-btn">Browse all</a></div>';
+        jobsList.innerHTML='<div class="pro-empty"><p>No new jobs yet.</p><a href="browse-jobs" class="topbar-btn">Browse all</a></div>';
       }
     }catch(err){
       document.getElementById('jobs-list').innerHTML='<div class="pro-error">Could not load jobs.</div>';

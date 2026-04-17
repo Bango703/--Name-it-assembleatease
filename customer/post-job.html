@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -30,21 +30,21 @@
 <body>
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job.html" class="active"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
-        <li><a href="my-bookings.html"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers.html"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job" class="active"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
@@ -188,7 +188,7 @@
 
         <div class="form-actions">
           <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Post Job</button>
-          <a href="my-jobs.html" class="btn btn-outline btn-lg">Cancel</a>
+          <a href="my-jobs" class="btn btn-outline btn-lg">Cancel</a>
         </div>
 
       </form>
@@ -222,7 +222,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     document.getElementById('post-job-form').addEventListener('submit', async (e) => {
@@ -291,7 +291,7 @@
         if (error) throw error;
 
         APP.showAlert('page-alert', 'Job posted! Redirecting...', 'success');
-        setTimeout(() => { window.location.href = 'job-detail.html?id=' + data.id; }, 1200);
+        setTimeout(() => { window.location.href='job-detail?id=' + data.id; }, 1200);
 
       } catch (err) {
         APP.showAlert('page-alert', err.message || 'Failed to post job. Please try again.', 'error');

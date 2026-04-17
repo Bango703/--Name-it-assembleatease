@@ -246,7 +246,7 @@
 
   <!-- LEFT BRAND PANEL -->
   <div class="auth-brand-panel">
-    <a href="../index.html" class="auth-brand-logo">
+    <a href="../index" class="auth-brand-logo">
       <div class="auth-brand-logo-icon">⬡</div>
       AssembleAtEase
     </a>
@@ -271,7 +271,7 @@
     <div class="auth-form-box">
 
       <h1>Create account</h1>
-      <p class="subtitle">Already have an account? <a href="login.html">Log in</a></p>
+      <p class="subtitle">Already have an account? <a href="login">Log in</a></p>
 
       <div id="auth-alert" class="alert hidden"></div>
 
@@ -366,7 +366,7 @@
       </form>
 
       <div class="auth-footer">
-        Already have an account? <a href="login.html">Log in</a>
+        Already have an account? <a href="login">Log in</a>
       </div>
 
     </div>
@@ -468,7 +468,7 @@
 
       // Assemblers must apply through the application form
       if (role === 'assembler') {
-        window.location.href = '../assembler/apply.html';
+        window.location.href = '../assembler/apply';
         return;
       }
 
@@ -531,8 +531,8 @@
         }
 
         window.location.href = role === 'assembler'
-          ? '../assembler/index.html'
-          : '../customer/index.html';
+          ? '../assembler/'
+          : '../customer/';
 
       } catch (err) {
         console.error('Signup error:', err);

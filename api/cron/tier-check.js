@@ -13,7 +13,7 @@ import { getSupabase } from '../_supabase.js';
 export default async function handler(req, res) {
   // Verify cron secret
   const secret = req.headers['authorization']?.replace('Bearer ', '');
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

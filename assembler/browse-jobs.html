@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -48,20 +48,20 @@
 <body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">⚡</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html" class="active"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html"><span class="nav-icon">💬</span> My Bids</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">🔧</span> My Jobs</a></li>
+        <li><a href="."><span class="nav-icon">⚡</span> Dashboard</a></li>
+        <li><a href="browse-jobs" class="active"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
+        <li><a href="my-bids"><span class="nav-icon">💬</span> My Bids</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">🔧</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">👤</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">👤</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">🚪</span> Log out</a></li>
       </ul>
     </div>
@@ -137,7 +137,7 @@
     const html = jobs.map(job => {
       const bidCount = job.bids?.[0]?.count ?? 0;
       return `
-        <a class="job-card" href="job-detail.html?id=${job.id}">
+        <a class="job-card" href="job-detail?id=${job.id}">
           <div class="job-card-top">
             <h3>${job.title}</h3>
             <span class="badge badge-new" style="flex-shrink:0">Open</span>
@@ -189,7 +189,7 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     // Pre-fill search from URL params

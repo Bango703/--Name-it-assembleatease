@@ -32,15 +32,15 @@ const APP = {
     const auth = await this.getAuth();
 
     if (!auth) {
-      window.location.href = this._authPath('login.html');
+      window.location.href = this._authPath('login');
       return null;
     }
 
     if (allowedRoles.length && !allowedRoles.includes(auth.profile.role)) {
       // Redirect to their correct dashboard
       window.location.href = auth.profile.role === 'assembler'
-        ? this._rootPath('assembler/index.html')
-        : this._rootPath('customer/index.html');
+        ? this._rootPath('assembler/')
+        : this._rootPath('customer/');
       return null;
     }
 
@@ -52,8 +52,8 @@ const APP = {
     const auth = await this.getAuth();
     if (!auth) return;
     window.location.href = auth.profile.role === 'assembler'
-      ? this._rootPath('assembler/index.html')
-      : this._rootPath('customer/index.html');
+      ? this._rootPath('assembler/')
+      : this._rootPath('customer/');
   },
 
   // ── PATH HELPERS ────────────────────────────────────────
@@ -78,35 +78,35 @@ const APP = {
     if (!navEl) return;
 
     const root = this._rootPath('');
-    const logoHref = role ? root + (role === 'assembler' ? 'assembler/index.html' : 'customer/index.html') : root + 'index.html';
+    const logoHref = role ? root + (role === 'assembler' ? 'assembler/' : 'customer/') : root;
 
     let links = '';
     let actions = '';
 
     if (role === 'assembler') {
       links = `
-        <li><a href="${root}assembler/browse-jobs.html">Browse Jobs</a></li>
-        <li><a href="${root}assembler/my-bids.html">My Bids</a></li>
-        <li><a href="${root}assembler/my-jobs.html">My Jobs</a></li>
+        <li><a href="${root}assembler/browse-jobs">Browse Jobs</a></li>
+        <li><a href="${root}assembler/my-bids">My Bids</a></li>
+        <li><a href="${root}assembler/my-jobs">My Jobs</a></li>
       `;
       actions = `
-        <a href="${root}assembler/profile.html" class="btn btn-ghost btn-sm">Profile</a>
+        <a href="${root}assembler/profile" class="btn btn-ghost btn-sm">Profile</a>
         <button class="btn btn-outline btn-sm" id="nav-logout">Log out</button>
       `;
     } else if (role === 'customer') {
       links = `
-        <li><a href="${root}customer/post-job.html">Post a Job</a></li>
-        <li><a href="${root}customer/my-jobs.html">My Jobs</a></li>
-        <li><a href="${root}customer/browse-assemblers.html">Browse Assemblers</a></li>
+        <li><a href="${root}customer/post-job">Post a Job</a></li>
+        <li><a href="${root}customer/my-jobs">My Jobs</a></li>
+        <li><a href="${root}customer/browse-assemblers">Browse Assemblers</a></li>
       `;
       actions = `
-        <a href="${root}customer/profile.html" class="btn btn-ghost btn-sm">Profile</a>
+        <a href="${root}customer/profile" class="btn btn-ghost btn-sm">Profile</a>
         <button class="btn btn-outline btn-sm" id="nav-logout">Log out</button>
       `;
     } else {
       actions = `
-        <a href="${root}auth/login.html" class="btn btn-ghost btn-sm">Log in</a>
-        <a href="${root}auth/signup.html" class="btn btn-primary btn-sm">Sign up free</a>
+        <a href="${root}auth/login" class="btn btn-ghost btn-sm">Log in</a>
+        <a href="${root}auth/signup" class="btn btn-primary btn-sm">Sign up free</a>
       `;
     }
 
@@ -121,7 +121,7 @@ const APP = {
     // Logout handler
     document.getElementById('nav-logout')?.addEventListener('click', async () => {
       await supabaseClient.auth.signOut();
-      window.location.href = root + 'index.html';
+      window.location.href = root;
     });
 
     this._highlightActiveNavLink();

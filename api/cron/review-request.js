@@ -7,7 +7,7 @@ const REVIEW_DELAY_DAYS = 2; // days after completion to send review request
 export default async function handler(req, res) {
   // Verify cron secret (Vercel sends this header for cron jobs)
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers.authorization !== 'Bearer ' + cronSecret) {
+  if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

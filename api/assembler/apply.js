@@ -194,6 +194,7 @@ export default async function handler(req, res) {
     await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
+      replyTo: cleanEmail,
       subject: 'New Assembler Application — ' + cleanName,
       html: ownerHtml,
     });
@@ -242,7 +243,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     success: true,
-    userId,
     personaInquiries: personaInquiries || null,
   });
 }

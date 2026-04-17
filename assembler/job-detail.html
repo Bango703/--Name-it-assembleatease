@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -34,27 +34,27 @@
 <body class="theme-pro">
 <div class="dashboard-layout">
   <aside class="sidebar">
-    <a href="../index.html" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
     <div class="sidebar-section">
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs.html" class="active"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
-        <li><a href="my-bids.html"><span class="nav-icon">&#128172;</span> My Bids</a></li>
-        <li><a href="my-jobs.html"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
+        <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs" class="active"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
+        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="profile.html"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
       </ul>
     </div>
   </aside>
 
   <main class="dashboard-main" style="padding:2rem">
-    <a href="browse-jobs.html" class="back-link">&#8592; Back to Browse Jobs</a>
+    <a href="browse-jobs" class="back-link">&#8592; Back to Browse Jobs</a>
     <div id="page-alert" class="alert hidden"></div>
     <div id="page-content">
       <div class="skeleton-card"><div class="skeleton" style="height:200px"></div></div>
@@ -77,11 +77,11 @@
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href='../';
     });
 
     const jobId = APP.getParam('id');
-    if (!jobId) { window.location.href = 'browse-jobs.html'; return; }
+    if (!jobId) { window.location.href='browse-jobs'; return; }
 
     try {
       const { data: job, error } = await API.getJob(jobId);
@@ -140,10 +140,10 @@
                 <div class="rejected-notice">
                   &#9888; Your bid was ${myBid.status}. You can browse other open jobs below.
                 </div>
-                <a href="browse-jobs.html" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">Browse more jobs &#8594;</a>
+                <a href="browse-jobs" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">Browse more jobs &#8594;</a>
               ` : alreadyBid ? `
                 <div class="already-bid-notice">&#10003; You have already submitted a bid for this job.</div>
-                <a href="my-bids.html" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">View my bid &#8594;</a>
+                <a href="my-bids" class="btn btn-teal" style="width:100%;justify-content:center;display:flex">View my bid &#8594;</a>
               ` : job.status !== 'open' ? `
                 <div style="font-size:0.875rem;color:var(--pro-muted);text-align:center;padding:1rem 0">This job is no longer accepting bids.</div>
               ` : `
@@ -222,7 +222,7 @@
           });
           if (error) throw error;
           APP.showAlert('page-alert', '&#127881; Bid submitted! The customer will review it shortly.', 'success');
-          setTimeout(() => window.location.href = 'my-bids.html', 1500);
+          setTimeout(() => window.location.href='my-bids', 1500);
         } catch (err) {
           APP.showAlert('bid-alert', err.message || 'Failed to submit bid. Please try again.', 'error');
           APP.setLoading('submit-bid-btn', false, 'Submit Bid');
@@ -230,7 +230,7 @@
       });
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML = `<div class="pro-error"><span>&#9888;</span>Could not load job. <a href="browse-jobs.html" style="color:var(--pro-teal)">Go back</a></div>`;
+      document.getElementById('page-content').innerHTML = `<div class="pro-error"><span>&#9888;</span>Could not load job. <a href="browse-jobs" style="color:var(--pro-teal)">Go back</a></div>`;
     }
   });
 </script>

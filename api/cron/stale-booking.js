@@ -5,7 +5,7 @@ const STALE_DAYS = 7; // auto-decline bookings pending for this many days
 
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers.authorization !== 'Bearer ' + cronSecret) {
+  if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -86,6 +86,7 @@ export default async function handler(req, res) {
         from: 'AssembleAtEase System <booking@assembleatease.com>',
         subject: 'Auto-declined ' + declined + ' stale booking(s)',
         html: '<p>' + declined + ' pending booking(s) were auto-declined after ' + STALE_DAYS + ' days.</p><p>Refs: ' + bookings.map(function(b){return esc(b.ref)}).join(', ') + '</p>',
+        replyTo: ownerEmail(),
       });
     } catch (e) {
       console.error('Owner notification error:', e);

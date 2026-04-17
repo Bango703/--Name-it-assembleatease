@@ -86,6 +86,7 @@ export default async function handler(req, res) {
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Background Check Failed — ${esc(profile.full_name)} (${checkName})`,
         html: `<p><strong>${esc(profile.full_name)}</strong> (${esc(profile.email)}) failed the <strong>${checkName}</strong> check.</p><p>Status: ${esc(status)} &bull; Inquiry: ${esc(inquiryId)}</p><p>Action may be required.</p>`,
+        replyTo: profile.email,
       });
     } catch (e) { console.error('Owner notify error:', e); }
 
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'AssembleAtEase — Verification Update',
         html: buildRejectionEmail(firstName, checkName),
+        replyTo: ownerEmail(),
       });
     } catch (e) { console.error('Rejection email error:', e); }
 
@@ -134,6 +136,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: subj,
       html: body,
+      replyTo: profile.email,
     });
   } catch (e) { console.error('Owner notify error:', e); }
 
@@ -145,6 +148,7 @@ export default async function handler(req, res) {
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Welcome to AssembleAtEase — You\'re Verified!',
         html: buildApprovalEmail(firstName),
+        replyTo: ownerEmail(),
       });
     } catch (e) { console.error('Approval email error:', e); }
   }
@@ -159,7 +163,7 @@ function buildApprovalEmail(firstName) {
     <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
     <p style="margin:12px 0 4px;font-size:22px;font-weight:700;color:#1a1a1a">You're Verified, ${esc(firstName)}!</p>
     <p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.6">Your identity has been verified and your account is now active. You can start browsing and accepting jobs.</p>
-    <a href="https://www.assembleatease.com/auth/login.html" style="display:inline-block;background:#0097a7;color:#fff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Log In &amp; Start Working</a>
+    <a href="https://www.assembleatease.com/auth/login" style="display:inline-block;background:#0097a7;color:#fff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Log In &amp; Start Working</a>
     <p style="margin:24px 0 0;font-size:12px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</p>
   </td></tr></table>
 </div></body></html>`;

@@ -290,7 +290,7 @@
 
   <!-- LEFT BRAND PANEL -->
   <div class="auth-brand-panel">
-    <a href="../index.html" class="auth-brand-logo">
+    <a href="../index" class="auth-brand-logo">
       <div class="auth-brand-logo-icon">⬡</div>
       AssembleAtEase
     </a>
@@ -315,7 +315,7 @@
     <div class="auth-form-box">
 
       <h1>Log in</h1>
-      <p class="subtitle">Don't have an account? <a href="signup.html">Sign up free</a></p>
+      <p class="subtitle">Don't have an account? <a href="signup">Sign up free</a></p>
 
       <div id="auth-alert" class="alert hidden"></div>
 
@@ -334,7 +334,7 @@
         <div class="form-group">
           <div class="label-row">
             <label for="password">Password</label>
-            <a href="forgot-password.html">Forgot password?</a>
+            <a href="forgot-password">Forgot password?</a>
           </div>
           <div class="input-with-icon">
             <span class="input-icon">🔒</span>
@@ -351,7 +351,7 @@
       </form>
 
       <div class="auth-footer">
-        New to AssembleAtEase? <a href="signup.html">Create a free account</a>
+        New to AssembleAtEase? <a href="signup">Create a free account</a>
       </div>
 
     </div>
@@ -448,8 +448,8 @@
         }
 
         window.location.href = profile.role === 'assembler'
-          ? '../assembler/index.html'
-          : '../customer/index.html';
+          ? '../assembler/'
+          : '../customer/';
 
       } catch (err) {
         console.error('Login error:', err);
