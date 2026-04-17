@@ -161,6 +161,16 @@
 
     <div class="pro-content">
       
+      <!-- Tier status banner -->
+      <div id="tier-status-banner" class="pro-banner hidden">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:1.3rem" id="tier-status-icon">&#9202;</span>
+          <div>
+            <div class="pro-banner-title" id="tier-status-title"></div>
+            <div class="pro-banner-sub" id="tier-status-sub"></div>
+          </div>
+        </div>
+      </div>
 
       <!-- Persona verification banner -->
       <div id="persona-banner" class="pro-banner persona hidden">
@@ -282,6 +292,22 @@
       tierEl.innerHTML='<span class="tier-badge tier-'+(profile.tier||'starter')+'">'+(tierLabels[profile.tier]||profile.tier)+'</span>';
     } else if(profile.tier==='pending'){
       tierEl.innerHTML='<span class="tier-badge tier-pending">Pending</span>';
+    }
+
+    // Tier status banner
+    var tsBanner=document.getElementById('tier-status-banner');
+    if(profile.tier==='pending'){
+      tsBanner.classList.remove('hidden');
+      document.getElementById('tier-status-icon').innerHTML='&#9202;';
+      document.getElementById('tier-status-title').textContent='Your application is under review';
+      document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
+    } else if(profile.tier==='starter' && profile.completed_jobs===0){
+      tsBanner.classList.remove('hidden');
+      tsBanner.style.background='rgba(29,158,117,0.08)';
+      tsBanner.style.borderColor='rgba(29,158,117,0.2)';
+      document.getElementById('tier-status-icon').innerHTML='&#127881;';
+      document.getElementById('tier-status-title').textContent='Welcome to AssembleAtEase! You are approved and ready to receive jobs.';
+      document.getElementById('tier-status-sub').textContent='Complete your profile and we will start assigning jobs to you.';
     }
 
     // Persona verification banner

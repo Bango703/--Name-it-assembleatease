@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   const {
     fullName, email, password, phone, city, zip,
     servicesOffered, hasTools, hasTransport,
-    yearsExperience, bio, codeOfConduct,
+    yearsExperience, bio, codeOfConduct, inviteToken,
   } = req.body;
 
   // ── Validation ──
@@ -84,6 +84,29 @@ export default async function handler(req, res) {
   if (profileError) {
     console.error('Profile upsert error:', profileError);
     return res.status(500).json({ error: 'Failed to save application' });
+  }
+
+  // ── If invite token, validate and update waitlist ──
+  if (inviteToken) {
+    try {
+      const { data: wlEntry } = await sb
+        .from('assembler_waitlist')
+        .select('id, status, invite_expires_at')
+        .eq('invite_token', inviteToken)
+        .maybeSingle();
+
+      if (wlEntry && wlEntry.status === 'invited') {
+        const expired = wlEntry.invite_expires_at && new Date(wlEntry.invite_expires_at) < new Date();
+        if (!expired) {
+          await sb.from('assembler_waitlist')
+            .update({ status: 'applied', applied_at: new Date().toISOString() })
+            .eq('id', wlEntry.id);
+        }
+      }
+    } catch (wlErr) {
+      console.error('Waitlist token update error:', wlErr);
+      // Non-blocking — application still proceeds
+    }
   }
 
   // ── Persona integration (3-step verification) ──

@@ -1,5 +1,6 @@
 import { upsertContact, addNote } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
+import { getSupabase } from './_supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -22,6 +23,22 @@ export default async function handler(req, res) {
 
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
+
+  // ── Save to assembler_waitlist table (upsert by email) ──
+  try {
+    const sb = getSupabase();
+    await sb.from('assembler_waitlist').upsert({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      status: 'pending',
+    }, { onConflict: 'email', ignoreDuplicates: false });
+  } catch (dbErr) {
+    console.error('Waitlist DB save error:', dbErr);
+    // Continue — email notifications still matter
+  }
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">

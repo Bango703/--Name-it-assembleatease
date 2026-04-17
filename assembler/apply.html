@@ -77,6 +77,10 @@
   <p class="apply-sub">Apply to become an AssembleAtEase professional assembler in Austin, TX.</p>
 
   <div id="alert" class="alert hidden"></div>
+  <div id="invite-banner" class="alert alert-success hidden" style="display:none">
+    You have been invited to join AssembleAtEase. Complete your application below.
+  </div>
+  <div id="invite-error" class="alert alert-error hidden" style="display:none"></div>
 
   <form id="apply-form">
     <!-- Personal Info -->
@@ -190,6 +194,7 @@
       <span class="field-error" id="conduct-error"></span>
     </div>
 
+    <input type="hidden" id="invite-token" value="" />
     <button type="submit" class="btn-apply" id="submit-btn">Submit Application</button>
   </form>
 
@@ -231,6 +236,38 @@
 
 <script>
 (function() {
+  // ── Invite token detection and pre-fill ──
+  var params = new URLSearchParams(window.location.search);
+  var inviteToken = params.get('invite');
+  if (inviteToken) {
+    document.getElementById('invite-token').value = inviteToken;
+    fetch('/api/assembler/validate-invite?token=' + encodeURIComponent(inviteToken))
+      .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      .then(function(res) {
+        if (res.ok && res.data.valid) {
+          var d = res.data;
+          if (d.name) document.getElementById('full-name').value = d.name;
+          if (d.email) document.getElementById('email').value = d.email;
+          if (d.phone) document.getElementById('phone').value = d.phone;
+          if (d.city) document.getElementById('city').value = d.city;
+          var banner = document.getElementById('invite-banner');
+          banner.style.display = '';
+          banner.classList.remove('hidden');
+        } else {
+          var errEl = document.getElementById('invite-error');
+          errEl.textContent = res.data.error || 'This invitation link has expired or is invalid. Please contact service@assembleatease.com';
+          errEl.style.display = '';
+          errEl.classList.remove('hidden');
+        }
+      })
+      .catch(function() {
+        var errEl = document.getElementById('invite-error');
+        errEl.textContent = 'Could not validate invitation. Please try again or contact service@assembleatease.com';
+        errEl.style.display = '';
+        errEl.classList.remove('hidden');
+      });
+  }
+
   // Checkbox styling
   document.querySelectorAll('.check-item input').forEach(function(cb) {
     cb.addEventListener('change', function() {
@@ -325,6 +362,7 @@
           yearsExperience: parseInt(years, 10),
           bio: bio || null,
           codeOfConduct: true,
+          inviteToken: document.getElementById('invite-token').value || null,
         }),
       });
 
