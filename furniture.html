@@ -60,11 +60,13 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .btn-full{width:100%}
 .btn-outline{background:transparent;color:var(--cyan-dark);border:2px solid var(--cyan);font-weight:600}
 .btn-outline:hover{background:var(--cyan-light)}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:1rem 2rem;z-index:300;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 24px rgba(0,0,0,0.2)}
-.cart-bar.show{display:flex}
+.cart-bar.show{display:flex;animation:slideUp 0.3s ease-out}
 .cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cart-bar-text{font-size:0.9rem;font-weight:500}
 .cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:900px){.cart-bar-services{max-width:200px;font-size:0.78rem}.cart-bar-text{font-size:0.85rem}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
@@ -256,181 +258,181 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div class="category-title">Chairs & Tables</div><div class="items-grid"><div class="item-card" id="card-34623">
   <div class="item-name">Chair / Accent Chair</div>
   <div class="item-desc">Standard accent, dining, or office chair</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$65</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Chair / Accent Chair" onclick="AAE.toggleItem('Chair / Accent Chair','$65',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-39547">
   <div class="item-name">Side Table / End Table</div>
   <div class="item-desc">Small side or end table</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$65</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Side Table / End Table" onclick="AAE.toggleItem('Side Table / End Table','$65',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-89687">
   <div class="item-name">Coffee Table</div>
   <div class="item-desc">Standard or lift-top coffee table</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Coffee Table" onclick="AAE.toggleItem('Coffee Table','$75',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-73825">
   <div class="item-name">Dining Table</div>
   <div class="item-desc">4-6 person dining table</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Dining Table" onclick="AAE.toggleItem('Dining Table','$95',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-2773">
   <div class="item-name">Dining Chairs (set of 4)</div>
   <div class="item-desc">Set of 4 dining chairs</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Dining Chairs (set of 4)" onclick="AAE.toggleItem('Dining Chairs (set of 4)','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-75539">
   <div class="item-name">Kitchen Island</div>
   <div class="item-desc">Freestanding kitchen island</div>
-  <div class="item-price">$140</div>
+  <div class="item-price">$120</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Kitchen Island" onclick="AAE.toggleItem('Kitchen Island','$120',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Sofas & Seating</div><div class="items-grid"><div class="item-card" id="card-59038">
   <div class="item-name">Couch / Sofa</div>
   <div class="item-desc">Standard 3-seat sofa</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$110</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Couch / Sofa" onclick="AAE.toggleItem('Couch / Sofa','$110',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-54994">
   <div class="item-name">Loveseat</div>
   <div class="item-desc">2-seat loveseat or small sofa</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Loveseat" onclick="AAE.toggleItem('Loveseat','$95',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-76096">
   <div class="item-name">Sectional Sofa</div>
   <div class="item-desc">L-shape or U-shape sectional</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$150</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2 hrs</div>
   <button class="item-add-btn" data-item-name="Sectional Sofa" onclick="AAE.toggleItem('Sectional Sofa','$150',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Bedroom</div><div class="items-grid"><div class="item-card" id="card-66703">
   <div class="item-name">Bed Frame (Twin/Full)</div>
   <div class="item-desc">Twin or full size bed frame</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$110</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Bed Frame (Twin/Full)" onclick="AAE.toggleItem('Bed Frame (Twin/Full)','$110',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-48419">
   <div class="item-name">Bed Frame (Queen/King)</div>
   <div class="item-desc">Queen or king size bed frame</div>
-  <div class="item-price">$155</div>
+  <div class="item-price">$135</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Bed Frame (Queen/King)" onclick="AAE.toggleItem('Bed Frame (Queen/King)','$135',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-71673">
   <div class="item-name">Headboard</div>
   <div class="item-desc">Wall-mounted or frame headboard</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Headboard" onclick="AAE.toggleItem('Headboard','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-94940">
   <div class="item-name">Bunk Bed</div>
   <div class="item-desc">Standard bunk bed assembly</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$175</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2 hrs</div>
   <button class="item-add-btn" data-item-name="Bunk Bed" onclick="AAE.toggleItem('Bunk Bed','$175',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-88393">
   <div class="item-name">Dresser / Chest of Drawers</div>
   <div class="item-desc">4-6 drawer dresser</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Dresser / Chest of Drawers" onclick="AAE.toggleItem('Dresser / Chest of Drawers','$95',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-28198">
   <div class="item-name">Nightstand</div>
   <div class="item-desc">Bedside nightstand</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Nightstand" onclick="AAE.toggleItem('Nightstand','$75',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-22681">
   <div class="item-name">Crib / Baby Furniture</div>
   <div class="item-desc">Baby crib or nursery furniture</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Crib / Baby Furniture" onclick="AAE.toggleItem('Crib / Baby Furniture','$95',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Office & Work</div><div class="items-grid"><div class="item-card" id="card-94572">
   <div class="item-name">Desk / Computer Desk</div>
   <div class="item-desc">Standard or L-shape desk</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Desk / Computer Desk" onclick="AAE.toggleItem('Desk / Computer Desk','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-97795">
   <div class="item-name">Office Chair</div>
   <div class="item-desc">Ergonomic or executive chair</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Office Chair" onclick="AAE.toggleItem('Office Chair','$75',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-47300">
   <div class="item-name">TV Stand / Entertainment Center</div>
   <div class="item-desc">TV stand or media console</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="TV Stand / Entertainment Center" onclick="AAE.toggleItem('TV Stand / Entertainment Center','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-35821">
   <div class="item-name">Bookshelf / Shelving Unit</div>
   <div class="item-desc">Standalone bookshelf</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Bookshelf / Shelving Unit" onclick="AAE.toggleItem('Bookshelf / Shelving Unit','$75',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Storage & Wardrobes</div><div class="items-grid"><div class="item-card" id="card-974">
   <div class="item-name">Wardrobe / PAX (single)</div>
   <div class="item-desc">Single IKEA PAX or similar wardrobe</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$150</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2.5 hrs</div>
   <button class="item-add-btn" data-item-name="Wardrobe / PAX (single)" onclick="AAE.toggleItem('Wardrobe / PAX (single)','$150',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-1230">
   <div class="item-name">Wardrobe / PAX (double)</div>
   <div class="item-desc">Double or large wardrobe system</div>
-  <div class="item-price">$260</div>
+  <div class="item-price">$220</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 3.5 hrs</div>
   <button class="item-add-btn" data-item-name="Wardrobe / PAX (double)" onclick="AAE.toggleItem('Wardrobe / PAX (double)','$220',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-50811">
   <div class="item-name">Closet Organizer System</div>
   <div class="item-desc">Custom closet organizer install</div>
-  <div class="item-price">$155</div>
+  <div class="item-price">$135</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2 hrs</div>
   <button class="item-add-btn" data-item-name="Closet Organizer System" onclick="AAE.toggleItem('Closet Organizer System','$135',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-86437">
   <div class="item-name">Cabinet Assembly</div>
   <div class="item-desc">Kitchen, bathroom, or storage cabinet</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Cabinet Assembly" onclick="AAE.toggleItem('Cabinet Assembly','$95',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Outdoor & Specialty</div><div class="items-grid"><div class="item-card" id="card-85259">
   <div class="item-name">Outdoor Furniture Set</div>
   <div class="item-desc">Patio table and chairs set</div>
-  <div class="item-price">$140</div>
+  <div class="item-price">$120</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Outdoor Furniture Set" onclick="AAE.toggleItem('Outdoor Furniture Set','$120',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-2999">
   <div class="item-name">Patio Table & Chairs</div>
   <div class="item-desc">Outdoor dining set</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$110</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Patio Table & Chairs" onclick="AAE.toggleItem('Patio Table & Chairs','$110',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-60630">
   <div class="item-name">Kids Furniture / Toy Sets</div>
   <div class="item-desc">Kids table, chairs, toy storage</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Kids Furniture / Toy Sets" onclick="AAE.toggleItem('Kids Furniture / Toy Sets','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-74716">
   <div class="item-name">Trampoline</div>
   <div class="item-desc">Backyard trampoline assembly</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$150</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2.5 hrs</div>
   <button class="item-add-btn" data-item-name="Trampoline" onclick="AAE.toggleItem('Trampoline','$150',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-96524">
   <div class="item-name">Gym / Exercise Equipment</div>
   <div class="item-desc">Treadmill, bike, weight bench etc.</div>
-  <div class="item-price">$140</div>
+  <div class="item-price">$120</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Gym / Exercise Equipment" onclick="AAE.toggleItem('Gym / Exercise Equipment','$120',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-12605">
   <div class="item-name">Disassembly (any item)</div>
   <div class="item-desc">Take apart any furniture item</div>
-  <div class="item-price">From $75</div>
+  <div class="item-price">From $65</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30–60 min</div>
   <button class="item-add-btn" data-item-name="Disassembly (any item)" onclick="AAE.toggleItem('Disassembly (any item)','From $65',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-72477">
@@ -610,7 +612,7 @@ AAE.toggleItem = function(name, price, btn) {
   } else {
     AAE.addItem(name, price);
     if (btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card2 = btn.closest('.item-card, .service-card');
@@ -645,7 +647,7 @@ AAE.updateCartBar = function() {
   if (AAE.cart.length > 0) {
     bar.classList.add('show');
     if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' Â· ');
+    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' · ');
   } else {
     bar.classList.remove('show');
   }
@@ -663,7 +665,7 @@ AAE.updateModalCart = function() {
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><span class="cart-item-price">'+item.price+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
   if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
@@ -790,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restore button states from cart
   AAE.cart.forEach(function(item) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card = btn.closest('.item-card, .service-card');

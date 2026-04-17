@@ -60,11 +60,13 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .btn-full{width:100%}
 .btn-outline{background:transparent;color:var(--cyan-dark);border:2px solid var(--cyan);font-weight:600}
 .btn-outline:hover{background:var(--cyan-light)}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:1rem 2rem;z-index:300;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 24px rgba(0,0,0,0.2)}
-.cart-bar.show{display:flex}
+.cart-bar.show{display:flex;animation:slideUp 0.3s ease-out}
 .cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cart-bar-text{font-size:0.9rem;font-weight:500}
 .cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:900px){.cart-bar-services{max-width:200px;font-size:0.78rem}.cart-bar-text{font-size:0.85rem}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
@@ -256,55 +258,55 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div class="category-title">Single Items</div><div class="items-grid"><div class="item-card" id="card-39382">
   <div class="item-name">Single Small Item</div>
   <div class="item-desc">Box, small appliance, chair, etc.</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 15 min</div>
   <button class="item-add-btn" data-item-name="Single Small Item" onclick="AAE.toggleItem('Single Small Item','$75',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-16676">
   <div class="item-name">Single Large Item</div>
   <div class="item-desc">Sofa, mattress, refrigerator, washer/dryer</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$110</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 20 min</div>
   <button class="item-add-btn" data-item-name="Single Large Item" onclick="AAE.toggleItem('Single Large Item','$110',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-22712">
   <div class="item-name">Single Extra Large Item</div>
   <div class="item-desc">Sectional, hot tub, piano, safe</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$175</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 20 min</div>
   <button class="item-add-btn" data-item-name="Single Extra Large Item" onclick="AAE.toggleItem('Single Extra Large Item','$175',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Load Based</div><div class="items-grid"><div class="item-card" id="card-11485">
   <div class="item-name">Small Load (1/4 truck)</div>
   <div class="item-desc">Fills about 1/4 of a pickup truck bed</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$175</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Small Load (1/4 truck)" onclick="AAE.toggleItem('Small Load (1/4 truck)','$175',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-70496">
   <div class="item-name">Medium Load (1/2 truck)</div>
   <div class="item-desc">Half truck load of items</div>
-  <div class="item-price">$375</div>
+  <div class="item-price">$225</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Medium Load (1/2 truck)" onclick="AAE.toggleItem('Medium Load (1/2 truck)','$225',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-99780">
   <div class="item-name">Full Load (full truck)</div>
   <div class="item-desc">Full truck bed of junk and debris</div>
-  <div class="item-price">$375</div>
+  <div class="item-price">$275</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Full Load (full truck)" onclick="AAE.toggleItem('Full Load (full truck)','$275',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Specialty Cleanouts</div><div class="items-grid"><div class="item-card" id="card-27924">
   <div class="item-name">Office Cleanout</div>
   <div class="item-desc">Desks, chairs, filing cabinets, tech</div>
-  <div class="item-price">From $275</div>
+  <div class="item-price">From $200</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2.5 hrs</div>
   <button class="item-add-btn" data-item-name="Office Cleanout" onclick="AAE.toggleItem('Office Cleanout','From $200',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-40933">
   <div class="item-name">Storage Unit Cleanout</div>
   <div class="item-desc">Full storage unit cleanout</div>
-  <div class="item-price">From $300</div>
+  <div class="item-price">From $225</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2.5 hrs</div>
   <button class="item-add-btn" data-item-name="Storage Unit Cleanout" onclick="AAE.toggleItem('Storage Unit Cleanout','From $225',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-47196">
   <div class="item-name">Garage Cleanout</div>
   <div class="item-desc">Clear out garage clutter</div>
-  <div class="item-price">From $250</div>
+  <div class="item-price">From $175</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 3 hrs</div>
   <button class="item-add-btn" data-item-name="Garage Cleanout" onclick="AAE.toggleItem('Garage Cleanout','From $175',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-3586">
@@ -484,7 +486,7 @@ AAE.toggleItem = function(name, price, btn) {
   } else {
     AAE.addItem(name, price);
     if (btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card2 = btn.closest('.item-card, .service-card');
@@ -519,7 +521,7 @@ AAE.updateCartBar = function() {
   if (AAE.cart.length > 0) {
     bar.classList.add('show');
     if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' Â· ');
+    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' · ');
   } else {
     bar.classList.remove('show');
   }
@@ -537,7 +539,7 @@ AAE.updateModalCart = function() {
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><span class="cart-item-price">'+item.price+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
   if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
@@ -664,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restore button states from cart
   AAE.cart.forEach(function(item) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card = btn.closest('.item-card, .service-card');

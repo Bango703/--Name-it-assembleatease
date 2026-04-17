@@ -60,11 +60,13 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .btn-full{width:100%}
 .btn-outline{background:transparent;color:var(--cyan-dark);border:2px solid var(--cyan);font-weight:600}
 .btn-outline:hover{background:var(--cyan-light)}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:1rem 2rem;z-index:300;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 24px rgba(0,0,0,0.2)}
-.cart-bar.show{display:flex}
+.cart-bar.show{display:flex;animation:slideUp 0.3s ease-out}
 .cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cart-bar-text{font-size:0.9rem;font-weight:500}
 .cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:900px){.cart-bar-services{max-width:200px;font-size:0.78rem}.cart-bar-text{font-size:0.85rem}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
@@ -256,91 +258,91 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div class="category-title">TV Mounting — by Size</div><div class="items-grid"><div class="item-card" id="card-30200">
   <div class="item-name">TV Mounting (up to 49in)</div>
   <div class="item-desc">Flat or tilt mount on drywall</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="TV Mounting (up to 49in)" onclick="AAE.toggleItem('TV Mounting (up to 49in)','$95',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-63750">
   <div class="item-name">TV Mounting (50—65in)</div>
   <div class="item-desc">Most popular TV size range</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$130</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="TV Mounting (50—65in)" onclick="AAE.toggleItem('TV Mounting (50—65in)','$130',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-22457">
   <div class="item-name">TV Mounting (66—75in)</div>
   <div class="item-desc">Large TV, includes stud finder</div>
-  <div class="item-price">$185</div>
+  <div class="item-price">$160</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="TV Mounting (66—75in)" onclick="AAE.toggleItem('TV Mounting (66—75in)','$160',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-22788">
   <div class="item-name">TV Mounting (76—85in)</div>
   <div class="item-desc">Extra large TV mounting</div>
-  <div class="item-price">$225</div>
+  <div class="item-price">$195</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="TV Mounting (76—85in)" onclick="AAE.toggleItem('TV Mounting (76—85in)','$195',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-92305">
   <div class="item-name">TV Mounting (86in+)</div>
   <div class="item-desc">Commercial size or projector screen</div>
-  <div class="item-price">$260</div>
+  <div class="item-price">$229</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="TV Mounting (86in+)" onclick="AAE.toggleItem('TV Mounting (86in+)','$229',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">TV Add-Ons</div><div class="items-grid"><div class="item-card" id="card-41857">
   <div class="item-name">Above Fireplace</div>
   <div class="item-desc">Add-on for fireplace mounting (heat clearance)</div>
-  <div class="item-price">Add $60</div>
+  <div class="item-price">Add $50</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Above Fireplace" onclick="AAE.toggleItem('Above Fireplace','Add $50',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-95974">
   <div class="item-name">In-Wall Cord Concealment</div>
   <div class="item-desc">Hide all cables inside the wall</div>
-  <div class="item-price">Add $90</div>
+  <div class="item-price">Add $75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="In-Wall Cord Concealment" onclick="AAE.toggleItem('In-Wall Cord Concealment','Add $75',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-15767">
   <div class="item-name">Cord Cover / Raceway</div>
   <div class="item-desc">Surface-mount cord cover</div>
-  <div class="item-price">Add $45</div>
+  <div class="item-price">Add $35</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Cord Cover / Raceway" onclick="AAE.toggleItem('Cord Cover / Raceway','Add $35',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Shelving & Hanging</div><div class="items-grid"><div class="item-card" id="card-13067">
   <div class="item-name">Floating Shelf Installation</div>
   <div class="item-desc">Single floating shelf with studs</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Floating Shelf Installation" onclick="AAE.toggleItem('Floating Shelf Installation','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-5989">
   <div class="item-name">Shelf Set (2—3 shelves)</div>
   <div class="item-desc">Multiple floating shelves, same wall</div>
-  <div class="item-price">$155</div>
+  <div class="item-price">$135</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Shelf Set (2—3 shelves)" onclick="AAE.toggleItem('Shelf Set (2—3 shelves)','$135',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-47032">
   <div class="item-name">High-End Shelf & Rack Install</div>
   <div class="item-desc">Heavy duty shelving, garage racks</div>
-  <div class="item-price">$140</div>
+  <div class="item-price">$120</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="High-End Shelf & Rack Install" onclick="AAE.toggleItem('High-End Shelf & Rack Install','$120',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-15370">
   <div class="item-name">Curtain Rod Installation</div>
   <div class="item-desc">Single window curtain rod</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$65</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Curtain Rod Installation" onclick="AAE.toggleItem('Curtain Rod Installation','$65',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-8630">
   <div class="item-name">Curtain Rods (multiple windows)</div>
   <div class="item-desc">2-4 windows, same visit</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$110</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Curtain Rods (multiple windows)" onclick="AAE.toggleItem('Curtain Rods (multiple windows)','$110',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-5303">
   <div class="item-name">Art / Mirror Hanging (1 piece)</div>
   <div class="item-desc">Single large art or mirror</div>
-  <div class="item-price">$85</div>
+  <div class="item-price">$55</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 20 min</div>
   <button class="item-add-btn" data-item-name="Art / Mirror Hanging (1 piece)" onclick="AAE.toggleItem('Art / Mirror Hanging (1 piece)','$55',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-22795">
   <div class="item-name">Art / Mirror Hanging (set)</div>
   <div class="item-desc">3-5 pieces, gallery wall</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Art / Mirror Hanging (set)" onclick="AAE.toggleItem('Art / Mirror Hanging (set)','$95',this)">&plus; Add to booking</button>
 </div></div>
@@ -514,7 +516,7 @@ AAE.toggleItem = function(name, price, btn) {
   } else {
     AAE.addItem(name, price);
     if (btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card2 = btn.closest('.item-card, .service-card');
@@ -549,7 +551,7 @@ AAE.updateCartBar = function() {
   if (AAE.cart.length > 0) {
     bar.classList.add('show');
     if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' Â· ');
+    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' · ');
   } else {
     bar.classList.remove('show');
   }
@@ -567,7 +569,7 @@ AAE.updateModalCart = function() {
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><span class="cart-item-price">'+item.price+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
   if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
@@ -694,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restore button states from cart
   AAE.cart.forEach(function(item) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card = btn.closest('.item-card, .service-card');

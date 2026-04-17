@@ -60,11 +60,13 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .btn-full{width:100%}
 .btn-outline{background:transparent;color:var(--cyan-dark);border:2px solid var(--cyan);font-weight:600}
 .btn-outline:hover{background:var(--cyan-light)}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:1rem 2rem;z-index:300;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 24px rgba(0,0,0,0.2)}
-.cart-bar.show{display:flex}
+.cart-bar.show{display:flex;animation:slideUp 0.3s ease-out}
 .cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cart-bar-text{font-size:0.9rem;font-weight:500}
 .cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:900px){.cart-bar-services{max-width:200px;font-size:0.78rem}.cart-bar-text{font-size:0.85rem}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
@@ -256,85 +258,85 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div class="category-title">Drywall & Walls</div><div class="items-grid"><div class="item-card" id="card-42111">
   <div class="item-name">Drywall Patch (small)</div>
   <div class="item-desc">Nail holes, small dings, single patch</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Drywall Patch (small)" onclick="AAE.toggleItem('Drywall Patch (small)','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-70291">
   <div class="item-name">Drywall Patch (medium)</div>
   <div class="item-desc">3-6 inch hole repair</div>
-  <div class="item-price">$140</div>
+  <div class="item-price">$120</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Drywall Patch (medium)" onclick="AAE.toggleItem('Drywall Patch (medium)','$120',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-37407">
   <div class="item-name">Drywall Patch (large)</div>
   <div class="item-desc">Large section repair or multiple areas</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$150</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Drywall Patch (large)" onclick="AAE.toggleItem('Drywall Patch (large)','$150',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-52227">
   <div class="item-name">Hole Repair</div>
   <div class="item-desc">Door handle holes, anchors, misc</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 30 min</div>
   <button class="item-add-btn" data-item-name="Hole Repair" onclick="AAE.toggleItem('Hole Repair','$75',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Doors & Windows</div><div class="items-grid"><div class="item-card" id="card-15342">
   <div class="item-name">Door Repair / Adjustment</div>
   <div class="item-desc">Fix sticking, squeaking, or misaligned door</div>
-  <div class="item-price">$110</div>
+  <div class="item-price">$90</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Door Repair / Adjustment" onclick="AAE.toggleItem('Door Repair / Adjustment','$90',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-89647">
   <div class="item-name">Door Handle / Lock Replace</div>
   <div class="item-desc">Replace door handle or deadbolt</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$85</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Door Handle / Lock Replace" onclick="AAE.toggleItem('Door Handle / Lock Replace','$85',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-17108">
   <div class="item-name">Weatherstripping Install</div>
   <div class="item-desc">Door or window seal replacement</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Weatherstripping Install" onclick="AAE.toggleItem('Weatherstripping Install','$75',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Plumbing Fixes</div><div class="items-grid"><div class="item-card" id="card-10309">
   <div class="item-name">Faucet Replacement</div>
   <div class="item-desc">Kitchen or bathroom faucet swap</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Faucet Replacement" onclick="AAE.toggleItem('Faucet Replacement','$95',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-31080">
   <div class="item-name">Showerhead Replacement</div>
   <div class="item-desc">Standard showerhead swap</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$75</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Showerhead Replacement" onclick="AAE.toggleItem('Showerhead Replacement','$75',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-63324">
   <div class="item-name">Leak Repair (minor)</div>
   <div class="item-desc">Fix dripping faucet or minor leak</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$110</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Leak Repair (minor)" onclick="AAE.toggleItem('Leak Repair (minor)','$110',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-35195">
   <div class="item-name">Toilet Flapper / Handle Fix</div>
   <div class="item-desc">Running toilet repair</div>
-  <div class="item-price">$95</div>
+  <div class="item-price">$80</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 45 min</div>
   <button class="item-add-btn" data-item-name="Toilet Flapper / Handle Fix" onclick="AAE.toggleItem('Toilet Flapper / Handle Fix','$80',this)">&plus; Add to booking</button>
 </div></div><div class="category-title">Exterior & Gutters</div><div class="items-grid"><div class="item-card" id="card-80518">
   <div class="item-name">Gutter Cleaning</div>
   <div class="item-desc">Single story gutter clean and flush</div>
-  <div class="item-price">$140</div>
+  <div class="item-price">$120</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1.5 hrs</div>
   <button class="item-add-btn" data-item-name="Gutter Cleaning" onclick="AAE.toggleItem('Gutter Cleaning','$120',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-56024">
   <div class="item-name">Gutter Cleaning (2 story)</div>
   <div class="item-desc">Two story home gutters</div>
-  <div class="item-price">$210</div>
+  <div class="item-price">$175</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 2 hrs</div>
   <button class="item-add-btn" data-item-name="Gutter Cleaning (2 story)" onclick="AAE.toggleItem('Gutter Cleaning (2 story)','$175',this)">&plus; Add to booking</button>
 </div><div class="item-card" id="card-79926">
   <div class="item-name">Gutter Repair (minor)</div>
   <div class="item-desc">Reattach or seal small section</div>
-  <div class="item-price">$125</div>
+  <div class="item-price">$95</div>
   <div class="item-time"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Approx. 1 hr</div>
   <button class="item-add-btn" data-item-name="Gutter Repair (minor)" onclick="AAE.toggleItem('Gutter Repair (minor)','$95',this)">&plus; Add to booking</button>
 </div></div>
@@ -508,7 +510,7 @@ AAE.toggleItem = function(name, price, btn) {
   } else {
     AAE.addItem(name, price);
     if (btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card2 = btn.closest('.item-card, .service-card');
@@ -543,7 +545,7 @@ AAE.updateCartBar = function() {
   if (AAE.cart.length > 0) {
     bar.classList.add('show');
     if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' Â· ');
+    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' · ');
   } else {
     bar.classList.remove('show');
   }
@@ -561,7 +563,7 @@ AAE.updateModalCart = function() {
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><span class="cart-item-price">'+item.price+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
   if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
@@ -688,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restore button states from cart
   AAE.cart.forEach(function(item) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card = btn.closest('.item-card, .service-card');
