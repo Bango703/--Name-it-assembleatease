@@ -194,6 +194,7 @@
         <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
         <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
         <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
+        <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Revenue</div></div>
       </div>
 
       <!-- Status tabs -->
@@ -288,6 +289,7 @@
           <button class="tab" data-tier="starter">Starter</button>
           <button class="tab" data-tier="verified">Verified</button>
           <button class="tab" data-tier="elite">Elite</button>
+          <button class="tab" data-tier="suspended">Suspended</button>
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="asm-table">
@@ -341,7 +343,9 @@
 <script>
 (function(){
   const API = '/api/booking';
-  let password = sessionStorage.getItem('owner_pw') || '';
+  const _ownerSession = JSON.parse(sessionStorage.getItem('owner_pw') || 'null');
+  let password = (_ownerSession && _ownerSession.expires > Date.now()) ? _ownerSession.password : '';
+  if (_ownerSession && _ownerSession.expires <= Date.now()) sessionStorage.removeItem('owner_pw');
   let allBookings = [];
   let selectedId = null;
   let currentStatus = 'all';
@@ -408,7 +412,7 @@
         password = '';
         return;
       }
-      sessionStorage.setItem('owner_pw', password);
+      sessionStorage.setItem('owner_pw', JSON.stringify({ password, expires: Date.now() + 86400000 }));
       showDashboard();
     } catch {
       $loginErr.textContent = 'Connection error';
@@ -454,11 +458,17 @@
   // ─── Stats ───
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
-    allBookings.forEach(function(b) { if (counts[b.status] !== undefined) counts[b.status]++; });
+    let revenue = 0;
+    allBookings.forEach(function(b) {
+      if (counts[b.status] !== undefined) counts[b.status]++;
+      if (b.status === 'completed' && b.total_price) revenue += Number(b.total_price) || 0;
+    });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
     document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
+    var revenueEl = document.querySelector('#stat-revenue .stat-value');
+    if (revenueEl) revenueEl.textContent = revenue > 0 ? '$' + revenue.toLocaleString('en-US', {maximumFractionDigits:0}) : '—';
     // Pending badge in sidebar
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
@@ -527,6 +537,7 @@
     $detailGrid.innerHTML = [
       field('Customer', b.customer_name),
       field('Email', b.customer_email),
+      field('Phone', b.customer_phone || '—'),
       field('Service', b.service),
       field('Status', '<span class="badge badge-' + b.status + '">' + b.status + '</span>'),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
@@ -871,7 +882,9 @@
         actions = '<button class="btn btn-amber" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Re-invite</button> '
           + '<button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
       } else if (w.status === 'invited') {
-        actions = '<span style="font-size:0.78rem;color:var(--muted)">Invite sent</span>';
+        var sentStr = w.invite_sent_at ? formatDate(w.invite_sent_at) : '';
+        var expiresStr = w.invite_expires_at ? formatDate(w.invite_expires_at) : '';
+        actions = '<span style="font-size:0.78rem;color:var(--muted)">Sent ' + sentStr + (expiresStr ? ' &bull; Expires ' + expiresStr : '') + '</span>';
       } else if (w.status === 'applied') {
         actions = '<span style="font-size:0.78rem;color:var(--teal)">View in Assemblers tab</span>';
       }
@@ -891,6 +904,7 @@
     var inviteBtn = e.target.closest('[data-wl-invite]');
     if (inviteBtn) {
       var wId = inviteBtn.dataset.wlInvite;
+      var wEntry = allWaitlistEntries.find(function(w){ return String(w.id) === String(wId); });
       inviteBtn.disabled = true;
       inviteBtn.textContent = '...';
       try {
@@ -901,7 +915,8 @@
         });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
-        toast('Invite sent', 'success');
+        var toastMsg = wEntry ? 'Invitation sent to ' + wEntry.name + ' at ' + wEntry.email : 'Invite sent';
+        toast(toastMsg, 'success');
         loadWaitlist();
       } catch { toast('Failed to send invite', 'error'); }
       return;
@@ -1017,7 +1032,11 @@
         + '<td style="' + rowStyle + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
         + '<td style="' + rowStyle + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
         + '<td style="' + rowStyle + '">'
-          + (a.tier === 'pending' ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> ' : '')
+          + (a.tier === 'pending'
+              ? (a.persona_verified
+                  ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
+                  : '<button class="btn" disabled title="Identity verification incomplete. Assembler must complete all 3 Persona checks before approval." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
+              : '')
           + '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
         + '</td></tr>';
     }).join('');
@@ -1078,7 +1097,11 @@
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.persona_verified_at ? '<strong>Verified:</strong> ' + formatDate(a.persona_verified_at) : '',
       '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">'
-        + (a.tier === 'pending' ? '<button class="btn btn-teal" onclick="document.getElementById(\'asm-detail-modal\').classList.remove(\'open\');document.querySelector(\'[data-approve=\\\'' + a.id + '\\\']\')?.click()">Approve → Starter</button>' : '')
+        + (a.tier === 'pending'
+            ? (a.persona_verified
+                ? '<button class="btn btn-teal" onclick="document.getElementById(\'asm-detail-modal\').classList.remove(\'open\');document.querySelector(\'[data-approve=\\\'' + a.id + '\\\']\')?.click()">Approve → Starter</button>'
+                : '<button class="btn" disabled title="Identity verification incomplete. Assembler must complete all 3 Persona checks before approval." style="opacity:0.45;cursor:not-allowed">Approve → Starter</button>')
+            : '')
         + '<select id="tier-change-select" style="padding:0.4rem 0.6rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:6px;color:var(--text);font-size:0.82rem">'
           + '<option value="">Change tier...</option>'
           + '<option value="pending">Pending</option>'

@@ -131,7 +131,24 @@ async function addNote({ contactId, body }) {
   }
 }
 
-export { upsertContact, createDeal, addNote };
+export { upsertContact, createDeal, addNote, updateDealStage };
+
+/**
+ * Update the pipeline stage of an existing HubSpot deal.
+ * stage should be a valid HubSpot dealstage internal value.
+ */
+async function updateDealStage(dealId, stage) {
+  if (!dealId || !stage) return;
+  const resp = await fetch(HUBSPOT_API + '/crm/v3/objects/deals/' + dealId, {
+    method: 'PATCH',
+    headers: headers(),
+    body: JSON.stringify({ properties: { dealstage: stage } }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    console.error('HubSpot updateDealStage error:', err);
+  }
+}
 
 
 

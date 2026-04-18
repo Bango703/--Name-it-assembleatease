@@ -134,6 +134,7 @@
         <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs <span class="nav-badge" id="jobs-badge" style="display:none">0</span></a></li>
         <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
         <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
+        <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
       </ul>
     </div>
     <div class="sidebar-section" style="margin-top:1rem">
@@ -206,9 +207,19 @@
       <!-- Assigned Bookings Section -->
       <div id="bookings-section" style="display:none;margin-bottom:2rem">
         <div class="pro-section-header">
-          <div class="pro-section-title"><span class="dot" style="background:var(--teal)"></span>Assigned Bookings</div>
+          <div class="pro-section-title"><span class="dot" style="background:var(--teal)"></span>Active Assignments</div>
+          <a href="my-assignments" class="pro-link">View all &#8594;</a>
         </div>
         <div id="bookings-list"></div>
+      </div>
+
+      <!-- Completed Assignments Section -->
+      <div id="completed-assignments-section" style="display:none;margin-bottom:2rem">
+        <div class="pro-section-header">
+          <div class="pro-section-title"><span class="dot" style="background:#1d9e75"></span>Completed Assignments</div>
+          <a href="my-assignments" class="pro-link">View all &#8594;</a>
+        </div>
+        <div id="completed-assignments-list"></div>
       </div>
 
       <div class="pro-grid">
@@ -372,9 +383,9 @@
       return;
     }
 
-    // Load assigned bookings from server
+    // Load assigned bookings from server (active = confirmed only)
     try{
-      var bResp=await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+session.access_token}});
+      var bResp=await fetch('/api/booking/my-assignments?status=confirmed',{headers:{'Authorization':'Bearer '+session.access_token}});
       if(bResp.ok){
         var bData=await bResp.json();
         var bookings=bData.bookings||[];
@@ -395,6 +406,28 @@
         }
       }
     }catch(e){console.error('Bookings load error:',e);}
+
+    // Load completed assignments
+    try{
+      var cResp=await fetch('/api/booking/my-assignments?status=completed',{headers:{'Authorization':'Bearer '+session.access_token}});
+      if(cResp.ok){
+        var cData=await cResp.json();
+        var completed=cData.bookings||[];
+        var cSection=document.getElementById('completed-assignments-section');
+        var cList=document.getElementById('completed-assignments-list');
+        if(completed.length&&cSection){
+          cSection.style.display='';
+          cList.innerHTML=completed.slice(0,5).map(function(b){
+            return '<div class="booking-card"><div class="booking-card-top"><h4>'+
+              esc(b.service||'Service')+'</h4><span class="badge badge-complete">Completed</span></div>'+
+              '<div class="booking-card-meta">'+
+              (b.customer_name?esc(b.customer_name.split(' ')[0])+' &bull; ':'')+
+              esc(b.date||'')+(b.completed_at?' &bull; Done '+timeAgo(b.completed_at):'')+
+              '</div></div>';
+          }).join('');
+        }
+      }
+    }catch(e){console.error('Completed assignments load error:',e);}
 
     try{
       var s=await API.getAssemblerStats(user.id)||{};

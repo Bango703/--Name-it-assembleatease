@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { updateDealStage } from '../_hubspot.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -59,6 +60,11 @@ export default async function handler(req, res) {
     });
   } catch (emailErr) {
     console.error('Decline email error:', emailErr);
+  }
+
+  // Non-blocking HubSpot stage update
+  if (booking.hubspot_deal_id) {
+    updateDealStage(booking.hubspot_deal_id, 'closedlost').catch(e => console.error('HubSpot decline stage error:', e));
   }
 
   return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'declined' } });

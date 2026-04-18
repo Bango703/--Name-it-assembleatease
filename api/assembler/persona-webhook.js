@@ -4,6 +4,9 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
+// Required for raw body access — Vercel must not parse the body
+export const config = { api: { bodyParser: false } };
+
 // Map Persona template env vars → check keys
 function getCheckName(templateId) {
   if (templateId === process.env.PERSONA_TEMPLATE_GOV_ID)  return 'gov';
@@ -13,34 +16,70 @@ function getCheckName(templateId) {
 }
 
 /**
+ * Read the raw request body as a string (needed for HMAC verification).
+ */
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+}
+
+/**
  * POST /api/assembler/persona-webhook
  * Receives webhook from Persona when a background check inquiry completes.
  * Tracks 3 separate checks (gov, selfie, db). All 3 must pass for full verification.
+ *
+ * Persona signature header format:  t=TIMESTAMP,v1=HEXSIG
+ * HMAC is computed over:            timestamp + '.' + rawBody
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Verify Persona webhook signature via HMAC
+  // ── 1. Read raw body before any parsing ──
+  const rawBody = await getRawBody(req);
+
+  // ── 2. Verify Persona webhook signature ──
   const webhookSecret = process.env.PERSONA_WEBHOOK_SECRET;
   if (!webhookSecret) {
     return res.status(500).json({ error: 'Webhook secret not configured' });
   }
 
-  const signature = req.headers['persona-signature'] || '';
-  const body = JSON.stringify(req.body);
+  const sigHeader = req.headers['persona-signature'] || '';
+  // Header format: t=TIMESTAMP,v1=HEXSIG
+  const tPart  = sigHeader.split(',').find(p => p.startsWith('t='));
+  const v1Part = sigHeader.split(',').find(p => p.startsWith('v1='));
+
+  if (!tPart || !v1Part) {
+    console.error('Persona webhook: malformed signature header', sigHeader);
+    return res.status(401).json({ error: 'Invalid signature header' });
+  }
+
+  const timestamp = tPart.split('=')[1];
+  const v1sig     = v1Part.split('=')[1];
+
+  // Persona signs over: timestamp + '.' + rawBody
   const expected = crypto
     .createHmac('sha256', webhookSecret)
-    .update(body)
+    .update(timestamp + '.' + rawBody)
     .digest('hex');
 
-  const sigBuffer = Buffer.from(signature, 'utf8');
-  const expBuffer = Buffer.from(expected, 'utf8');
-
-  if (sigBuffer.length !== expBuffer.length || !crypto.timingSafeEqual(sigBuffer, expBuffer)) {
+  if (v1sig.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(v1sig, 'utf8'), Buffer.from(expected, 'utf8'))) {
+    console.error('Persona webhook: signature mismatch');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const event = req.body;
+  // ── 3. Parse body now that signature is verified ──
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+
   const payload = event?.data?.attributes?.payload?.data;
   const attrs = payload?.attributes || {};
   const inquiryId = payload?.id;

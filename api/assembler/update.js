@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   const { assemblerId, tier, suspended } = req.body;
   if (!assemblerId) return res.status(400).json({ error: 'assemblerId is required' });
 
-  const validTiers = ['pending', 'starter', 'verified', 'elite'];
+  const validTiers = ['pending', 'starter', 'verified', 'elite', 'suspended'];
   if (tier && !validTiers.includes(tier)) {
     return res.status(400).json({ error: 'Invalid tier' });
   }
@@ -25,13 +25,20 @@ export default async function handler(req, res) {
   // Verify assembler exists
   const { data: profile, error: lookupErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, tier')
+    .select('id, full_name, email, tier, persona_verified')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
 
   if (lookupErr || !profile) {
     return res.status(404).json({ error: 'Assembler not found' });
+  }
+
+  // Block approval of unverified assemblers
+  if (tier && tier !== 'pending' && profile.tier === 'pending' && !profile.persona_verified) {
+    return res.status(400).json({
+      error: 'Assembler must complete identity verification before approval',
+    });
   }
 
   const updates = {};

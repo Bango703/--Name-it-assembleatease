@@ -20,12 +20,21 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
 
-  const { data, error } = await sb
+  // Optional status filter via ?status=confirmed or ?status=completed
+  // Default: return all assigned bookings (all statuses)
+  const statusFilter = req.query?.status || null;
+
+  let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, date, time, address, details, status, assigned_at, assembler_accepted_at')
+    .select('id, ref, service, customer_name, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at')
     .eq('assembler_id', user.id)
-    .eq('status', 'confirmed')
     .order('assigned_at', { ascending: false });
+
+  if (statusFilter) {
+    query = query.eq('status', statusFilter);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('My assignments error:', error);

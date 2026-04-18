@@ -92,6 +92,13 @@
     }
     if (hasError) return;
 
+    // Assemblers must go through the proper apply form (not general signup)
+    if (role === 'assembler') {
+      showAlert('info', 'To join as an assembler, please complete our application form.');
+      setTimeout(() => { window.location.href = '../assembler/apply'; }, 1800);
+      return;
+    }
+
     setLoading('signup-btn', true, 'Creating account…');
 
     try {

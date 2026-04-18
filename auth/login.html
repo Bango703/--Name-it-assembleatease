@@ -289,6 +289,11 @@
     // Redirect if already logged in
     await APP.redirectIfLoggedIn();
 
+    // Show success message if arriving from password reset
+    if (new URLSearchParams(window.location.search).get('reset') === 'success') {
+      showAlert('success', 'Password updated successfully. Please log in with your new password.');
+    }
+
     // ── Form submit ──
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
