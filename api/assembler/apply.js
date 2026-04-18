@@ -172,12 +172,13 @@ export default async function handler(req, res) {
     // Store all inquiry IDs and initialize checks tracker
     const anyCreated = Object.values(personaInquiries).some(Boolean);
     if (anyCreated) {
-      await sb.from('profiles')
+      const { error: pStoreErr } = await sb.from('profiles')
         .update({
           persona_inquiry_id: JSON.stringify(personaInquiries),
           persona_checks: { gov: false, selfie: false, db: false },
         })
         .eq('id', userId);
+      if (pStoreErr) console.warn('Persona inquiry storage skipped (columns may not exist):', pStoreErr.message);
     }
   }
 

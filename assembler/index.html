@@ -316,9 +316,22 @@
       var pBanner=document.getElementById('persona-banner');
       pBanner.classList.remove('hidden');
       var pBtn=document.getElementById('persona-verify-btn');
-      if(profile.persona_inquiry_id){
-        pBtn.href='https://withpersona.com/verify?inquiry-id='+profile.persona_inquiry_id;
-        pBtn.target='_blank';
+      // persona_inquiry_id is a JSON string like {"gov":"inq_1","selfie":"inq_2","db":"inq_3"}
+      var pInqs=null;
+      try { pInqs=typeof profile.persona_inquiry_id==='string'?JSON.parse(profile.persona_inquiry_id):profile.persona_inquiry_id; } catch(e){}
+      if(pInqs && typeof pInqs==='object'){
+        // Find first incomplete check to link to
+        var checks=profile.persona_checks||{};
+        var nextKey=['gov','selfie','db'].find(function(k){return checks[k]!==true && pInqs[k];});
+        if(nextKey){
+          pBtn.href='https://withpersona.com/verify?inquiry-id='+pInqs[nextKey];
+          pBtn.target='_blank';
+          var stepLabels={gov:'Step 1: Gov ID',selfie:'Step 2: Selfie',db:'Step 3: Database'};
+          pBtn.textContent='Continue: '+stepLabels[nextKey];
+        } else {
+          pBtn.textContent='Contact Support';
+          pBtn.href='mailto:service@assembleatease.com';
+        }
       } else {
         pBtn.textContent='Contact Support';
         pBtn.href='mailto:service@assembleatease.com';
@@ -339,6 +352,25 @@
       await supabaseClient.auth.signOut();
       window.location.href='../';
     });
+
+    // ── VERIFICATION GATE ──
+    // If assembler is pending or not background-checked, show only status banners
+    if(profile.tier==='pending' || profile.persona_verified!==true){
+      // Hide functional sections
+      document.getElementById('stats-row').style.display='none';
+      document.querySelector('.pro-grid').style.display='none';
+      // Hide Browse Jobs topbar button
+      document.querySelectorAll('.topbar-btn.primary').forEach(function(el){el.style.display='none';});
+      // Disable sidebar nav links except Dashboard and Profile
+      document.querySelectorAll('.sidebar-nav a').forEach(function(a){
+        var href=a.getAttribute('href')||'';
+        if(href!=='.'&&href!=='profile'&&!a.id){
+          a.style.opacity='0.4';
+          a.style.pointerEvents='none';
+        }
+      });
+      return;
+    }
 
     // Load assigned bookings from server
     try{

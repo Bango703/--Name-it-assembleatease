@@ -92,7 +92,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    const auth = await APP.requireAuth(['assembler']);
+    const auth = await APP.requireVerifiedAssembler();
     if (!auth) return;
     const { user } = auth;
 
