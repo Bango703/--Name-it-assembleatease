@@ -473,8 +473,8 @@
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
     else $navP.style.display = 'none';
-    // Tab counts
-    document.querySelectorAll('.tab').forEach(function(t) {
+    // Tab counts — scoped to booking tabs only
+    document.querySelectorAll('#tabs .tab').forEach(function(t) {
       var s = t.dataset.status;
       var c = s === 'all' ? allBookings.length : allBookings.filter(function(b){return b.status===s}).length;
       var span = t.querySelector('.tab-count');
@@ -487,7 +487,7 @@
   document.getElementById('tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tab');
     if (!tab) return;
-    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+    document.querySelectorAll('#tabs .tab').forEach(function(t){t.classList.remove('active')});
     tab.classList.add('active');
     currentStatus = tab.dataset.status;
     renderList();
@@ -866,6 +866,14 @@
 
   function renderWaitlistTable() {
     var filtered = currentWlFilter === 'all' ? allWaitlistEntries : allWaitlistEntries.filter(function(w){ return w.status === currentWlFilter; });
+    // Update tab counts
+    document.querySelectorAll('#wl-tabs .tab').forEach(function(t) {
+      var s = t.dataset.wlStatus;
+      var c = s === 'all' ? allWaitlistEntries.length : allWaitlistEntries.filter(function(w){ return w.status === s; }).length;
+      var span = t.querySelector('.tab-count');
+      if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
+      span.textContent = c;
+    });
     var tbody = document.getElementById('wl-tbody');
     if (!filtered.length) {
       tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--muted)">No waitlist entries found</td></tr>';
@@ -886,7 +894,7 @@
         var expiresStr = w.invite_expires_at ? formatDate(w.invite_expires_at) : '';
         actions = '<span style="font-size:0.78rem;color:var(--muted)">Sent ' + sentStr + (expiresStr ? ' &bull; Expires ' + expiresStr : '') + '</span>';
       } else if (w.status === 'applied') {
-        actions = '<span style="font-size:0.78rem;color:var(--teal)">View in Assemblers tab</span>';
+        actions = '<button class="btn" data-wl-goto-asm="1" style="font-size:0.75rem;padding:0.3rem 0.6rem">View in Assemblers</button>';
       }
       return '<tr>'
         + '<td style="' + rs + '"><strong>' + esc(w.name) + '</strong></td>'
@@ -901,6 +909,12 @@
   }
 
   document.getElementById('wl-tbody').addEventListener('click', async function(e) {
+    var gotoAsm = e.target.closest('[data-wl-goto-asm]');
+    if (gotoAsm) {
+      document.querySelector('.sidebar-nav a[data-view="assemblers"]').click();
+      return;
+    }
+
     var inviteBtn = e.target.closest('[data-wl-invite]');
     if (inviteBtn) {
       var wId = inviteBtn.dataset.wlInvite;
