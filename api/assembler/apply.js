@@ -158,7 +158,9 @@ export default async function handler(req, res) {
 
         if (pResp.ok) {
           const pData = await pResp.json();
-          personaInquiries[key] = pData.data?.id || null;
+          const inquiryId = pData.data?.id || null;
+          const sessionToken = pData.data?.attributes?.sessionToken || null;
+          personaInquiries[key] = inquiryId ? { id: inquiryId, sessionToken } : null;
         } else {
           console.error(`Persona ${key} API error:`, await pResp.text());
           personaInquiries[key] = null;
@@ -169,12 +171,15 @@ export default async function handler(req, res) {
       }
     }
 
-    // Store all inquiry IDs and initialize checks tracker
+    // Store only inquiry IDs (session tokens are short-lived, not worth persisting)
     const anyCreated = Object.values(personaInquiries).some(Boolean);
     if (anyCreated) {
+      const idMap = Object.fromEntries(
+        Object.entries(personaInquiries).map(([k, v]) => [k, v?.id || null])
+      );
       const { error: pStoreErr } = await sb.from('profiles')
         .update({
-          persona_inquiry_id: JSON.stringify(personaInquiries),
+          persona_inquiry_id: JSON.stringify(idMap),
           persona_checks: { gov: false, selfie: false, db: false },
         })
         .eq('id', userId);

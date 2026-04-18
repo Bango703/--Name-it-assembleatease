@@ -382,7 +382,10 @@
       successEl.style.display = '';
 
       // If Persona inquiries were created, show 3-step verification
-      if (data.personaInquiries) {
+      var anyInquiry = data.personaInquiries &&
+        Object.values(data.personaInquiries).some(function(v) { return v && v.id; });
+
+      if (anyInquiry) {
         var inqs = data.personaInquiries;
         document.getElementById('persona-section').style.display = '';
         document.getElementById('no-persona-msg').style.display = 'none';
@@ -393,12 +396,17 @@
           { key: 'db', btnId: 'persona-btn-db' },
         ];
         steps.forEach(function(step) {
-          if (inqs[step.key]) {
+          var inq = inqs[step.key];
+          if (inq && inq.id) {
             var btn = document.getElementById(step.btnId);
             btn.style.display = '';
-            btn.addEventListener('click', function() {
-              window.open('https://withpersona.com/verify?inquiry-id=' + inqs[step.key], '_blank');
-            });
+            btn.addEventListener('click', (function(capturedInq) {
+              return function() {
+                var url = 'https://withpersona.com/verify?inquiry-id=' + encodeURIComponent(capturedInq.id);
+                if (capturedInq.sessionToken) url += '&session-token=' + encodeURIComponent(capturedInq.sessionToken);
+                window.open(url, '_blank');
+              };
+            })(inq));
           }
         });
       } else {
