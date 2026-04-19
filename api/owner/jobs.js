@@ -2,11 +2,38 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const sb = getSupabase();
   const { id, status } = req.query;
+
+  // ── DELETE a job ──────────────────────────────────────────
+  if (req.method === 'DELETE') {
+    if (!id) return res.status(400).json({ error: 'Job ID required' });
+    // Delete bids first (FK constraint)
+    await sb.from('bids').delete().eq('job_id', id);
+    const { error } = await sb.from('jobs').delete().eq('id', id);
+    if (error) {
+      console.error('Owner delete job error:', error);
+      return res.status(500).json({ error: 'Failed to delete job' });
+    }
+    return res.status(200).json({ success: true });
+  }
+
+  // ── PATCH — close/update job status ───────────────────────
+  if (req.method === 'PATCH') {
+    if (!id) return res.status(400).json({ error: 'Job ID required' });
+    const newStatus = req.body?.status;
+    if (!newStatus) return res.status(400).json({ error: 'Status required' });
+    const { error } = await sb.from('jobs').update({ status: newStatus }).eq('id', id);
+    if (error) {
+      console.error('Owner patch job error:', error);
+      return res.status(500).json({ error: 'Failed to update job' });
+    }
+    return res.status(200).json({ success: true });
+  }
+
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── Single job detail with all bids ──────────────────────
   if (id) {

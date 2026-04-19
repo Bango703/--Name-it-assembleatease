@@ -353,6 +353,7 @@
           <div class="detail-grid" id="mkt-detail-grid"></div>
           <div class="detail-section-title" style="margin-top:1rem;margin-bottom:0.75rem">Bids</div>
           <div id="mkt-bids-list" style="font-size:0.85rem"></div>
+          <div id="mkt-detail-actions" style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap"></div>
         </div>
       </div><!-- /marketplace-view -->
 
@@ -1407,6 +1408,22 @@
             + '</div>';
         }).join('');
       }
+
+      // Action buttons
+      var $actions = document.getElementById('mkt-detail-actions');
+      $actions.innerHTML = '';
+      if (j.status === 'open') {
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-amber';
+        cancelBtn.textContent = 'Close Job';
+        cancelBtn.onclick = function() { closeMarketplaceJob(j.id, 'cancelled'); };
+        $actions.appendChild(cancelBtn);
+      }
+      var deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-red';
+      deleteBtn.textContent = '🗑 Delete Job';
+      deleteBtn.onclick = function() { deleteMarketplaceJob(j.id); };
+      $actions.appendChild(deleteBtn);
     } catch (e) {
       $title.textContent = 'Error';
       $bids.innerHTML = '<div style="color:var(--red);padding:1rem 0">Failed to load job detail</div>';
@@ -1416,6 +1433,32 @@
   document.getElementById('mkt-detail-close').addEventListener('click', function() {
     document.getElementById('mkt-detail').classList.remove('open');
   });
+
+  async function closeMarketplaceJob(jobId, newStatus) {
+    if (!confirm('Change this job to "' + newStatus + '"?')) return;
+    try {
+      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), {
+        method: 'PATCH', headers: headers(), body: JSON.stringify({ status: newStatus })
+      });
+      if (!r.ok) throw new Error();
+      showToast('Job updated to ' + newStatus);
+      document.getElementById('mkt-detail').classList.remove('open');
+      await loadMarketplaceJobs();
+    } catch(e) { showToast('Failed to update job', 'error'); }
+  }
+
+  async function deleteMarketplaceJob(jobId) {
+    if (!confirm('Permanently delete this job and all its bids? This cannot be undone.')) return;
+    try {
+      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), {
+        method: 'DELETE', headers: headers()
+      });
+      if (!r.ok) throw new Error();
+      showToast('Job deleted');
+      document.getElementById('mkt-detail').classList.remove('open');
+      await loadMarketplaceJobs();
+    } catch(e) { showToast('Failed to delete job', 'error'); }
+  }
 
 })();
 </script>
