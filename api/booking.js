@@ -1,24 +1,100 @@
-import { upsertContact, createDeal } from '../_hubspot.js';
-import { rateLimit } from '../_ratelimit.js';
-import { getSupabase } from '../_supabase.js';
+import Stripe from 'stripe';
+import { getSupabase } from './_supabase.js';
+import { upsertContact, createDeal } from './_hubspot.js';
+import { rateLimit } from './_ratelimit.js';
+import { sendEmail, ownerEmail, esc } from './_email.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
-  const { service, name, phone, email, address, date, time, details } = req.body;
+
+  const { service, name, phone, email, address, date, time, details, totalCents } = req.body;
 
   if (!service || !name || !phone || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !address || !date || !time) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
   const KEY = process.env.RESEND_API_KEY;
-  const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
+  const TO  = ownerEmail();
   const ref = 'AAE-' + Date.now().toString(36).toUpperCase();
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
+
+  // ── Supabase: save booking ──────────────────────────────────
+  const sb = getSupabase();
+  const amount = Math.max(parseInt(totalCents) || 0, 0); // keep 0 if no price (custom quote)
+  const isDeposit = amount >= 20000; // $200+ → deposit flow
+  const depositAmountCents = isDeposit ? Math.round(amount * 0.25) : null;
+
+  const { data: savedBooking, error: insertErr } = await sb.from('bookings').insert({
+    ref,
+    service,
+    customer_name: name,
+    customer_phone: phone,
+    customer_email: email,
+    address,
+    date,
+    time,
+    details,
+    status: 'pending',
+    payment_status: amount > 0 ? 'pending' : 'not_required',
+    total_price: amount,
+    is_deposit: isDeposit,
+    deposit_amount: depositAmountCents,
+  }).select('id').single();
+
+  if (insertErr) {
+    console.error('Booking insert error:', insertErr);
+    return res.status(500).json({ error: 'Failed to save booking. Please try again.' });
+  }
+
+  const bookingId = savedBooking.id;
+
+  // ── Stripe: create customer + PaymentIntent (skip if no price) ──
+  let clientSecret = null;
+
+  if (amount > 0 && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      // Find or create Stripe customer
+      const existing = await stripe.customers.list({ email, limit: 1 });
+      const customer = existing.data[0] || await stripe.customers.create({
+        email,
+        name,
+        metadata: { bookingRef: ref },
+      });
+
+      // Create PaymentIntent — hold card, charge after job completion
+      const pi = await stripe.paymentIntents.create({
+        amount,
+        currency: 'usd',
+        customer: customer.id,
+        capture_method: 'manual',
+        setup_future_usage: 'off_session',
+        metadata: {
+          bookingRef: ref,
+          bookingId,
+          type: 'customer_booking',
+          isDeposit: isDeposit ? 'true' : 'false',
+          depositAmountCents: depositAmountCents ? String(depositAmountCents) : '0',
+        },
+        description: `${service} — ${name}`,
+      });
+
+      // Save Stripe IDs to booking record
+      await sb.from('bookings').update({
+        stripe_customer_id: customer.id,
+        stripe_payment_intent_id: pi.id,
+      }).eq('id', bookingId);
+
+      clientSecret = pi.client_secret;
+    } catch (stripeErr) {
+      console.error('Stripe setup error:', stripeErr);
+      // Non-fatal: booking saved, payment setup failed — owner notified via email
+    }
+  }
 
   const sService = esc(service);
   const sName = esc(name);
@@ -57,6 +133,8 @@ export default async function handler(req, res) {
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sDate}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sTime}</td></tr>
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Details</td><td style="padding:10px 0;line-height:1.6">${sDetails || 'None provided'}</td></tr>
+      ${amount > 0 ? `<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}${isDeposit ? ` <span style="font-weight:400;color:#71717a;font-size:12px">(25% deposit = $${(depositAmountCents/100).toFixed(2)} collected at booking)</span>` : ''}</td></tr>` : ''}
+      ${clientSecret ? '<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-top:1px solid #f0f0f0"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CARD PENDING AUTHORIZATION</span></td></tr>' : ''}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
@@ -104,11 +182,11 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll email you within 1 hour to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a licensed, insured professional will arrive with all tools needed.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Pay after completion</strong> — No upfront payment. You pay only when you're 100% satisfied with the work.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${clientSecret ? 'Card authorized — charged after completion' : 'Pay after completion'}</strong> — ${clientSecret ? `Your card is securely held and will only be charged once the job is complete.${isDeposit ? ` A 25% deposit ($${(depositAmountCents/100).toFixed(2)}) will be collected now to confirm your appointment.` : ''}` : "No upfront payment. You pay only when you're 100% satisfied with the work."}</td></tr>
     </table>
 
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
-      <strong style="color:#1a1a1a">Cancellation policy:</strong> We ask for at least 24 hours' notice to cancel or reschedule. Same-day cancellations affect our ability to serve other customers.
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
+      <strong>Cancellation policy:</strong> Cancel at least 24 hours before your appointment for a full release of any hold. Cancellations within 24 hours may incur a 50% fee. No-shows will be charged the full amount.
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
@@ -157,51 +235,24 @@ export default async function handler(req, res) {
     if (!customerResp.ok) {
       console.error('Resend customer error:', await customerResp.text());
     }
-
-    // Save to Supabase bookings table
-    let bookingId = null;
-    try {
-      const sb = getSupabase();
-      const { data: booking, error: sbErr } = await sb
-        .from('bookings')
-        .insert({
-          ref,
-          status: 'pending',
-          customer_name: name,
-          customer_email: email,
-          customer_phone: phone,
-          service,
-          address,
-          date,
-          time,
-          details: details || null,
-        })
-        .select('id')
-        .single();
-      if (sbErr) console.error('Supabase booking insert error:', sbErr);
-      else bookingId = booking.id;
-    } catch (sbEx) {
-      console.error('Supabase booking error:', sbEx);
-    }
-
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
         const contactId = await upsertContact({ email, name, phone, address, lifecycleStage: 'opportunity' });
         if (contactId) {
-          const dealId = await createDeal({ contactId, dealName: service + ' — ' + name, service, date, time, details });
-          // Link HubSpot deal to booking row
-          if (dealId && bookingId) {
-            try {
-              const sb = getSupabase();
-              await sb.from('bookings').update({ hubspot_deal_id: dealId }).eq('id', bookingId);
-            } catch (_) { /* non-critical */ }
-          }
+          await createDeal({ contactId, dealName: service + ' — ' + name, service, date, time, details });
         }
       } catch (err) { console.error('HubSpot booking error:', err); }
     }
 
-    return res.status(200).json({ success: true, ref });
+    return res.status(200).json({
+      success: true,
+      ref,
+      bookingId,
+      clientSecret,
+      isDeposit,
+      depositAmountCents,
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Failed' });

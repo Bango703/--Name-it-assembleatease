@@ -170,6 +170,7 @@
         <li><a class="active" data-view="bookings"><span class="nav-icon">&#128197;</span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
         <li><a data-view="waitlist"><span class="nav-icon">&#128203;</span> Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
         <li><a data-view="assemblers"><span class="nav-icon">&#128101;</span> Assemblers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
+        <li><a data-view="marketplace"><span class="nav-icon">&#127981;</span> Marketplace <span class="nav-count" id="nav-marketplace" style="display:none">0</span></a></li>
       </ul>
     </div>
     <div class="sidebar-footer">
@@ -309,6 +310,52 @@
           </table>
         </div>
       </div><!-- /assemblers-view -->
+
+      <!-- ─── MARKETPLACE VIEW ─── -->
+      <div id="marketplace-view" style="display:none">
+        <div class="stats-row">
+          <div class="stat neutral"><div class="stat-value" id="mkt-total">—</div><div class="stat-label">All Jobs</div></div>
+          <div class="stat teal"><div class="stat-value" id="mkt-open">—</div><div class="stat-label">Open</div></div>
+          <div class="stat amber"><div class="stat-value" id="mkt-assigned">—</div><div class="stat-label">Assigned</div></div>
+          <div class="stat orange"><div class="stat-value" id="mkt-completed">—</div><div class="stat-label">Completed</div></div>
+        </div>
+        <div class="tabs" id="mkt-tabs">
+          <button class="tab active" data-mkt-status="all">All</button>
+          <button class="tab" data-mkt-status="open">Open</button>
+          <button class="tab" data-mkt-status="assigned">Assigned</button>
+          <button class="tab" data-mkt-status="in_progress">In Progress</button>
+          <button class="tab" data-mkt-status="completed">Completed</button>
+          <button class="tab" data-mkt-status="cancelled">Cancelled</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem">
+            <thead>
+              <tr style="text-align:left">
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Title</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Category</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:center">Bids</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Budget</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Posted</th>
+              </tr>
+            </thead>
+            <tbody id="mkt-tbody"></tbody>
+          </table>
+        </div>
+        <!-- Job Detail Panel -->
+        <div class="detail-panel" id="mkt-detail" style="margin-top:1.5rem">
+          <div class="detail-header">
+            <h2 id="mkt-detail-title">Job Detail</h2>
+            <button class="detail-close" id="mkt-detail-close">&#10005;</button>
+          </div>
+          <div class="detail-grid" id="mkt-detail-grid"></div>
+          <div class="detail-section-title" style="margin-top:1rem;margin-bottom:0.75rem">Bids</div>
+          <div id="mkt-bids-list" style="font-size:0.85rem"></div>
+        </div>
+      </div><!-- /marketplace-view -->
+
     </div>
   </div>
 </div>
@@ -436,6 +483,8 @@
   document.getElementById('logout-btn').addEventListener('click', logout);
   document.getElementById('refresh-btn').addEventListener('click', function() {
     if (currentView === 'assemblers') loadAssemblerList();
+    else if (currentView === 'waitlist') loadWaitlist();
+    else if (currentView === 'marketplace') loadMarketplaceJobs();
     else loadBookings();
   });
 
@@ -614,10 +663,33 @@
     pendingAction = null;
   });
 
-  document.getElementById('reason-confirm').addEventListener('click', function() {
+  document.getElementById('reason-confirm').addEventListener('click', async function() {
     if (!pendingAction) return;
-    var body = { bookingId: pendingAction.id };
     var reason = $reasonText.value.trim();
+
+    // Handle assembler rejection separately
+    if (pendingAction.type === 'reject-assembler') {
+      $reasonModal.classList.remove('open');
+      var aIdRej = pendingAction.assemblerId;
+      pendingAction = null;
+      try {
+        var body = { assemblerId: aIdRej, action: 'reject' };
+        if (reason) body.rejectionReason = reason;
+        var r = await fetch('/api/assembler/update', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify(body),
+        });
+        var data = await r.json();
+        if (data.error) { toast(data.error, 'error'); return; }
+        toast('Assembler rejected and notified', 'success');
+        loadAssemblerList();
+      } catch { toast('Failed to reject assembler', 'error'); }
+      return;
+    }
+
+    // Booking actions
+    var body = { bookingId: pendingAction.id };
     if (reason) body.reason = reason;
     doAction(pendingAction.path, body);
     $reasonModal.classList.remove('open');
@@ -782,11 +854,12 @@
       this.textContent = 'Assign';
     }
   });
-  // ─── View switching (bookings ↔ waitlist ↔ assemblers) ───
+  // ─── View switching (bookings ↔ waitlist ↔ assemblers ↔ marketplace) ───
   var currentView = 'bookings';
   var $bookingsView = document.getElementById('bookings-view');
   var $waitlistView = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
+  var $marketplaceView = document.getElementById('marketplace-view');
   var $topbarTitle = document.querySelector('.topbar-title');
 
   document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
@@ -802,6 +875,7 @@
     $bookingsView.style.display = 'none';
     $waitlistView.style.display = 'none';
     $assemblersView.style.display = 'none';
+    $marketplaceView.style.display = 'none';
 
     if (view === 'bookings') {
       $bookingsView.style.display = '';
@@ -814,6 +888,10 @@
       $assemblersView.style.display = '';
       $topbarTitle.textContent = 'Assemblers';
       loadAssemblerList();
+    } else if (view === 'marketplace') {
+      $marketplaceView.style.display = '';
+      $topbarTitle.textContent = 'Marketplace Jobs';
+      loadMarketplaceJobs();
     }
   });
 
@@ -1048,6 +1126,9 @@
                   ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
                   : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
               : '')
+          + (a.tier === 'pending'
+              ? '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> '
+              : '')
           + '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
         + '</td></tr>';
     }).join('');
@@ -1082,11 +1163,32 @@
       if (!a) return;
       showAssemblerDetail(a);
     }
+
+    var rejectAsmBtn = e.target.closest('[data-reject-asm]');
+    if (rejectAsmBtn) {
+      var aIdR = rejectAsmBtn.dataset.rejectAsm;
+      pendingAction = { type: 'reject-assembler', assemblerId: aIdR };
+      document.getElementById('reason-modal-title').textContent = 'Reject Application';
+      document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback to the assembler. They will receive an email.';
+      document.getElementById('reason-confirm').textContent = 'Reject';
+      document.getElementById('reason-confirm').className = 'btn btn-red';
+      $reasonText.value = '';
+      $reasonModal.classList.add('open');
+    }
   });
 
   function showAssemblerDetail(a) {
     document.getElementById('asm-detail-name').textContent = a.full_name;
-    
+
+    var approveBtn = (a.tier === 'pending')
+      ? (a.identity_verified
+          ? '<button class="btn btn-teal" onclick="approveFromDetail(\'' + a.id + '\')">&#10003; Approve → Starter</button>'
+          : '<button class="btn" disabled title="Identity verification required" style="opacity:0.45;cursor:not-allowed">&#10003; Approve → Starter</button>')
+      : '';
+
+    var rejectBtn = (a.tier === 'pending')
+      ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">&#10007; Reject</button>'
+      : '';
 
     document.getElementById('asm-detail-body').innerHTML = [
       '<strong>Email:</strong> ' + esc(a.email),
@@ -1094,55 +1196,227 @@
       '<strong>Location:</strong> ' + esc(a.city||'—') + ', ' + esc(a.zip||''),
       '<strong>Tier:</strong> ' + tierBadge(a.tier),
       '<strong>ID Verification:</strong> ' + identityStatus(a),
-      '<strong>Services:</strong> ' + (a.services_offered||[]).join(', '),
+      '<strong>Payment:</strong> ' + (a.payment_confirmed ? '<span style="color:#1d9e75">&#10003; Confirmed</span>' : '<span style="color:var(--muted)">Not confirmed</span>'),
+      '<strong>Services:</strong> ' + esc((a.services_offered||[]).join(', ')||'—'),
       '<strong>Experience:</strong> ' + (a.years_experience||0) + ' year(s)',
-      '<strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &bull; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
-      '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &bull; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) : 'N/A'),
+      '<strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
+      a.bio ? '<strong>Bio:</strong> ' + esc(a.bio) : '',
+      '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
-      a.identity_verified_at ? '<strong>Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">'
-        + (a.tier === 'pending'
-            ? (a.identity_verified
-                ? '<button class="btn btn-teal" onclick="document.getElementById(\'asm-detail-modal\').classList.remove(\'open\');document.querySelector(\'[data-approve=\\\'' + a.id + '\\\']\')?.click()">Approve → Starter</button>'
-                : '<button class="btn" disabled title="Identity verification not yet complete." style="opacity:0.45;cursor:not-allowed">Approve → Starter</button>')
-            : '')
-        + '<select id="tier-change-select" style="padding:0.4rem 0.6rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:6px;color:var(--text);font-size:0.82rem">'
-          + '<option value="">Change tier...</option>'
-          + '<option value="pending">Pending</option>'
-          + '<option value="starter">Starter</option>'
-          + '<option value="verified">Verified</option>'
-          + '<option value="elite">Elite</option>'
-        + '</select>'
-        + '<button class="btn btn-teal" onclick="changeTierFromModal(\'' + a.id + '\')" style="font-size:0.78rem">Set Tier</button>'
-      + '</div>',
+      a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">'
+        + approveBtn + rejectBtn
+        + '</div>',
     ].filter(Boolean).join('<br>');
 
     document.getElementById('asm-detail-modal').classList.add('open');
   }
 
-  document.getElementById('asm-detail-close').addEventListener('click', function() {
+  window.approveFromDetail = async function(assemblerId) {
     document.getElementById('asm-detail-modal').classList.remove('open');
-  });
-
-  // Expose tier change for modal
-  window.changeTierFromModal = async function(assemblerId) {
-    var select = document.getElementById('tier-change-select');
-    var newTier = select ? select.value : '';
-    if (!newTier) { toast('Select a tier first', 'error'); return; }
     try {
       var r = await fetch('/api/assembler/update', {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ assemblerId: assemblerId, tier: newTier }),
+        body: JSON.stringify({ assemblerId: assemblerId, tier: 'starter' }),
       });
       var data = await r.json();
       if (data.error) { toast(data.error, 'error'); return; }
-      toast('Tier updated to ' + newTier, 'success');
-      document.getElementById('asm-detail-modal').classList.remove('open');
+      toast('Assembler approved — welcome email sent', 'success');
       loadAssemblerList();
       loadAssemblers();
-    } catch { toast('Failed to update tier', 'error'); }
+    } catch { toast('Failed to approve', 'error'); }
   };
+
+  window.rejectFromDetail = function(assemblerId) {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    pendingAction = { type: 'reject-assembler', assemblerId: assemblerId };
+    document.getElementById('reason-modal-title').textContent = 'Reject Application';
+    document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback to the assembler. They will receive an email.';
+    document.getElementById('reason-confirm').textContent = 'Reject';
+    document.getElementById('reason-confirm').className = 'btn btn-red';
+    $reasonText.value = '';
+    $reasonModal.classList.add('open');
+  };
+
+  document.getElementById('asm-detail-close').addEventListener('click', function() {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+  });
+
+  // ─── Marketplace Jobs ───
+  var allMarketplaceJobs = [];
+  var currentMktStatus = 'all';
+
+  async function loadMarketplaceJobs() {
+    document.getElementById('mkt-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading marketplace jobs...</td></tr>';
+    document.getElementById('mkt-detail').classList.remove('open');
+    try {
+      var r = await fetch('/api/owner/jobs', { headers: headers() });
+      if (!r.ok) throw new Error('Failed');
+      var data = await r.json();
+      allMarketplaceJobs = data.jobs || [];
+
+      // Stats
+      var total = allMarketplaceJobs.length;
+      var open = allMarketplaceJobs.filter(function(j){ return j.status === 'open'; }).length;
+      var assigned = allMarketplaceJobs.filter(function(j){ return j.status === 'assigned' || j.status === 'in_progress'; }).length;
+      var completed = allMarketplaceJobs.filter(function(j){ return j.status === 'completed'; }).length;
+      document.getElementById('mkt-total').textContent = total;
+      document.getElementById('mkt-open').textContent = open;
+      document.getElementById('mkt-assigned').textContent = assigned;
+      document.getElementById('mkt-completed').textContent = completed;
+
+      // Sidebar badge — show open job count
+      var $navMkt = document.getElementById('nav-marketplace');
+      if (open > 0) { $navMkt.textContent = open; $navMkt.style.display = ''; }
+      else $navMkt.style.display = 'none';
+
+      renderMarketplaceTable();
+    } catch (e) {
+      document.getElementById('mkt-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load marketplace jobs</td></tr>';
+    }
+  }
+
+  document.getElementById('mkt-tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.tab');
+    if (!tab) return;
+    document.querySelectorAll('#mkt-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    currentMktStatus = tab.dataset.mktStatus;
+    renderMarketplaceTable();
+  });
+
+  function mktStatusBadge(status) {
+    var map = {
+      open:        'badge-pending',
+      assigned:    'badge-confirmed',
+      in_progress: 'badge-confirmed',
+      completed:   'badge-completed',
+      cancelled:   'badge-cancelled',
+    };
+    return '<span class="badge ' + (map[status] || '') + '">' + esc(status || '—') + '</span>';
+  }
+
+  function formatBudget(job) {
+    if (job.budget_type === 'fixed' && job.fixed_price) return '$' + job.fixed_price;
+    if (job.budget_type === 'range' && (job.budget_min || job.budget_max)) {
+      return '$' + (job.budget_min || 0) + '–$' + (job.budget_max || '?');
+    }
+    return '—';
+  }
+
+  function renderMarketplaceTable() {
+    var filtered = currentMktStatus === 'all'
+      ? allMarketplaceJobs
+      : allMarketplaceJobs.filter(function(j){ return j.status === currentMktStatus; });
+
+    // Update tab counts
+    document.querySelectorAll('#mkt-tabs .tab').forEach(function(t) {
+      var s = t.dataset.mktStatus;
+      var c = s === 'all' ? allMarketplaceJobs.length : allMarketplaceJobs.filter(function(j){ return j.status === s; }).length;
+      var span = t.querySelector('.tab-count');
+      if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
+      span.textContent = c;
+    });
+
+    var tbody = document.getElementById('mkt-tbody');
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No ' + (currentMktStatus === 'all' ? '' : currentMktStatus + ' ') + 'jobs found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.map(function(j) {
+      var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
+      var bidCount = (j.bids && j.bids.length) ? (j.bids[0].count || 0) : 0;
+      var customerName = j.customer ? esc(j.customer.full_name) : '—';
+      var customerCity = j.customer ? esc(j.customer.city || '—') : '—';
+      return '<tr style="cursor:pointer" data-mkt-job-id="' + j.id + '">'
+        + '<td style="' + rs + '"><strong>' + esc(j.title) + '</strong></td>'
+        + '<td style="' + rs + '">' + customerName + '</td>'
+        + '<td style="' + rs + '">' + esc(j.category || '—') + '</td>'
+        + '<td style="' + rs + '">' + customerCity + (j.state ? ', ' + esc(j.state) : '') + '</td>'
+        + '<td style="' + rs + '">' + mktStatusBadge(j.status) + '</td>'
+        + '<td style="' + rs + ';text-align:center">' + bidCount + '</td>'
+        + '<td style="' + rs + '">' + formatBudget(j) + '</td>'
+        + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(j.created_at) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('mkt-tbody').addEventListener('click', async function(e) {
+    var row = e.target.closest('[data-mkt-job-id]');
+    if (!row) return;
+    await loadMarketplaceJobDetail(row.dataset.mktJobId);
+  });
+
+  async function loadMarketplaceJobDetail(jobId) {
+    var $panel  = document.getElementById('mkt-detail');
+    var $grid   = document.getElementById('mkt-detail-grid');
+    var $title  = document.getElementById('mkt-detail-title');
+    var $bids   = document.getElementById('mkt-bids-list');
+
+    $panel.classList.add('open');
+    $title.textContent = 'Loading…';
+    $grid.innerHTML = '';
+    $bids.innerHTML = '<div style="color:var(--muted);padding:1rem 0">Loading bids…</div>';
+    $panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    try {
+      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { headers: headers() });
+      if (!r.ok) throw new Error('Failed');
+      var data = await r.json();
+      var j = data.job;
+      if (!j) throw new Error('No job');
+
+      $title.textContent = j.title;
+      $grid.innerHTML = [
+        field('Customer',       j.customer ? esc(j.customer.full_name) : '—'),
+        field('Customer Email', j.customer ? esc(j.customer.email)     : '—'),
+        field('Category',       esc(j.category  || '—')),
+        field('Location',       esc((j.city || '') + (j.state ? ', ' + j.state : '') || '—')),
+        field('Status',         mktStatusBadge(j.status)),
+        field('Budget',         formatBudget(j)),
+        field('Description',    '<span style="white-space:pre-wrap">' + esc(j.description || '—') + '</span>'),
+        field('Posted',         formatDateTime(j.created_at)),
+        j.assigned_at  ? field('Assigned',  formatDateTime(j.assigned_at))  : '',
+        j.completed_at ? field('Completed', formatDateTime(j.completed_at)) : '',
+      ].filter(Boolean).join('');
+
+      var bids = j.bids || [];
+      if (!bids.length) {
+        $bids.innerHTML = '<div style="color:var(--muted);padding:0.75rem 0">No bids yet</div>';
+      } else {
+        $bids.innerHTML = bids.map(function(b) {
+          var asmName  = b.assembler ? esc(b.assembler.full_name) : 'Unknown';
+          var asmCity  = b.assembler ? esc(b.assembler.city || '') : '';
+          var bidAmt   = b.bid_type === 'fixed' ? '$' + (b.amount || '?') : '$' + (b.amount || '?') + '/hr';
+          var statusColor = b.status === 'accepted' ? '#1d9e75' : b.status === 'rejected' ? 'var(--red)' : 'var(--muted)';
+          return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center">'
+            + '<strong>' + asmName + '</strong>'
+            + '<span style="font-weight:600;color:var(--teal)">' + bidAmt + '</span>'
+            + '</div>'
+            + '<div style="font-size:0.8rem;color:var(--muted);margin-top:2px">'
+            + asmCity
+            + (b.assembler && b.assembler.rating     ? ' &bull; ' + Number(b.assembler.rating).toFixed(1) + ' &#9733;' : '')
+            + (b.assembler && b.assembler.completed_jobs ? ' &bull; ' + b.assembler.completed_jobs + ' jobs' : '')
+            + '</div>'
+            + (b.note ? '<div style="font-size:0.8rem;color:var(--soft);margin-top:4px;font-style:italic">' + esc(b.note) + '</div>' : '')
+            + '<div style="font-size:0.75rem;color:' + statusColor + ';margin-top:4px;font-weight:600">'
+            + (b.status || 'pending').toUpperCase() + ' &bull; ' + formatDate(b.created_at)
+            + '</div>'
+            + '</div>';
+        }).join('');
+      }
+    } catch (e) {
+      $title.textContent = 'Error';
+      $bids.innerHTML = '<div style="color:var(--red);padding:1rem 0">Failed to load job detail</div>';
+    }
+  }
+
+  document.getElementById('mkt-detail-close').addEventListener('click', function() {
+    document.getElementById('mkt-detail').classList.remove('open');
+  });
+
 })();
 </script>
 </body>

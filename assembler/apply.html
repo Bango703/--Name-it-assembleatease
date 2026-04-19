@@ -125,22 +125,6 @@
       </div>
     </div>
 
-    <!-- Account -->
-    <div class="section">
-      <div class="section-title">Account Setup</div>
-      <div class="form-group">
-        <label for="password">Password *</label>
-        <input type="password" id="password" class="form-control" placeholder="At least 8 characters" autocomplete="new-password" required />
-        <span class="field-hint">Min 8 characters. This creates your login account.</span>
-        <span class="field-error" id="password-error"></span>
-      </div>
-      <div class="form-group">
-        <label for="confirm-password">Confirm password *</label>
-        <input type="password" id="confirm-password" class="form-control" placeholder="Repeat password" autocomplete="new-password" required />
-        <span class="field-error" id="confirm-password-error"></span>
-      </div>
-    </div>
-
     <!-- Services -->
     <div class="section">
       <div class="section-title">Services You Offer *</div>
@@ -210,8 +194,6 @@
     <input type="hidden" id="invite-token" value="" />
     <button type="submit" class="btn-apply" id="submit-btn">Pay $30 &amp; Submit Application</button>
   </form>
-
-  <div class="login-link">Already have an account? <a href="../auth/login">Log in</a></div>
 </div>
 
 <!-- Success state (hidden by default) -->
@@ -231,10 +213,7 @@
     </div>
     <!-- Verification complete message -->
     <div id="verification-complete-section" style="display:none;margin-top:1.25rem">
-      <p style="font-size:0.9rem;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.85rem">&#127881; Verification submitted! Our team will review your application shortly.</p>
-    </div>
-    <div style="margin-top:1.5rem">
-      <a href="../auth/login" style="color:#0097a7;font-weight:500;text-decoration:none;font-size:0.875rem">Go to Login &rarr;</a>
+      <p style="font-size:0.9rem;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.85rem">&#127881; Verification submitted! Our team will review your application shortly. You will receive an email when approved.</p>
     </div>
   </div>
 </div>
@@ -364,8 +343,6 @@
     var city = document.getElementById('city').value.trim();
     var zip = document.getElementById('zip').value.trim();
     var years = document.getElementById('years').value;
-    var password = document.getElementById('password').value;
-    var confirmPw = document.getElementById('confirm-password').value;
     var bio = document.getElementById('bio').value.trim();
     var conduct = document.getElementById('conduct').checked;
 
@@ -384,8 +361,6 @@
     if (!city) { fieldError('city', 'Required'); hasErr = true; }
     if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
     if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
-    if (!password || password.length < 8) { fieldError('password', 'Min 8 characters'); hasErr = true; }
-    if (password !== confirmPw) { fieldError('confirm-password', 'Passwords do not match'); hasErr = true; }
     if (!services.length) { fieldError('services', 'Select at least one'); hasErr = true; }
     if (!toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
     if (!transportVal) { fieldError('transport', 'Required'); hasErr = true; }
@@ -414,7 +389,6 @@
         body: JSON.stringify({
           fullName: fullName,
           email: email,
-          password: password,
           city: city,
           zip: zip,
           servicesOffered: services,

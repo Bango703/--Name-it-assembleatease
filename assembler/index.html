@@ -132,6 +132,7 @@
       <ul class="sidebar-nav">
         <li><a href="." class="active"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
         <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs <span class="nav-badge" id="jobs-badge" style="display:none">0</span></a></li>
+        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
         <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
         <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
         <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
@@ -468,6 +469,76 @@
     }catch(err){
       document.getElementById('jobs-list').innerHTML='<div class="pro-error">Could not load jobs.</div>';
     }
+
+    // ── Realtime: new open job posted ──
+    var jobsFeedChannel = supabaseClient
+      .channel('assembler-dash-jobs-feed')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'jobs' },
+        async function(payload) {
+          if (payload.new && payload.new.status === 'open') {
+            // Refresh the open jobs panel
+            try {
+              var r2 = await API.getOpenJobs({ limit: 5 });
+              var freshJobs = r2.data || [];
+              var badge = document.getElementById('jobs-badge');
+              if (badge) { badge.textContent = freshJobs.length; badge.style.display = 'inline'; }
+              var jList = document.getElementById('jobs-list');
+              if (freshJobs.length) {
+                jList.innerHTML = freshJobs.map(function(job){
+                  var bidCount = job.bids && job.bids[0] ? job.bids[0].count : 0;
+                  return '<div class="pro-card" onclick="window.location.href=\'job-detail?id='+job.id+'\'">'
+                    + '<div class="pro-card-top"><h4>'+esc(job.title)+'</h4><span class="badge badge-new">New</span></div>'
+                    + '<div class="pro-card-desc">'+esc(truncate(job.description))+'</div>'
+                    + '<div class="pro-card-meta"><span>'+esc(job.city||'Location TBD')+'</span><span class="meta-dot"></span><span>'+bidCount+' bid'+(bidCount!==1?'s':'')+'</span><span class="meta-dot"></span><span>'+timeAgo(job.created_at)+'</span></div>'
+                    + '</div>';
+                }).join('');
+              }
+            } catch(e) {}
+          }
+        }
+      )
+      .subscribe();
+
+    // ── Realtime: bid status update (accepted / rejected) ──
+    var bidStatusChannel = supabaseClient
+      .channel('assembler-dash-bid-status-'+user.id)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bids', filter: 'assembler_id=eq.'+user.id },
+        async function(payload) {
+          if (!payload.new) return;
+          var newStatus = payload.new.status;
+          if (newStatus === 'accepted') {
+            APP.showAlert('page-alert', '&#127881; Your bid was accepted! Check My Jobs for next steps.', 'success');
+          } else if (newStatus === 'rejected') {
+            APP.showAlert('page-alert', 'One of your bids was declined by the customer.', 'info');
+          }
+          // Refresh pending bids panel
+          try {
+            var bidsRes2 = await API.getMyBids(user.id);
+            var bids2 = bidsRes2.data || [];
+            var pending2 = bids2.filter(function(b){ return b.status === 'pending'; });
+            var bList2 = document.getElementById('bids-list');
+            if (pending2.length) {
+              bList2.innerHTML = pending2.slice(0, 5).map(function(bid){
+                return '<div class="pro-card" onclick="window.location.href=\'bid-detail?id='+bid.id+'\'">'
+                  + '<div class="pro-card-top"><h4>'+esc(bid.job&&bid.job.title?bid.job.title:'Untitled Job')+'</h4><span class="badge badge-pending">pending</span></div>'
+                  + '<div class="pro-card-desc">'+esc(truncate(bid.job&&bid.job.description?bid.job.description:''))+'</div>'
+                  + '<div class="pro-card-meta"><span>'+esc(bid.job&&bid.job.city?bid.job.city:'Location TBD')+'</span><span class="meta-dot"></span><span>'+timeAgo(bid.created_at)+'</span></div>'
+                  + '</div>';
+              }).join('');
+            } else {
+              bList2.innerHTML = '<div class="pro-empty"><p>No pending bids. Go find some jobs!</p><a href="browse-jobs" class="topbar-btn">Browse Jobs</a></div>';
+            }
+          } catch(e) {}
+        }
+      )
+      .subscribe();
+
+    window.addEventListener('beforeunload', function() {
+      jobsFeedChannel.unsubscribe();
+      bidStatusChannel.unsubscribe();
+    });
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

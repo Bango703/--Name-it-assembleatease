@@ -1,3 +1,4 @@
+import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
@@ -17,13 +18,63 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
+  if (booking.status === 'completed') {
+    return res.status(400).json({ error: 'Booking already completed. Payment already captured.' });
+  }
+  if (booking.payment_status === 'captured') {
+    return res.status(400).json({ error: 'Payment already captured for this booking.' });
+  }
   if (booking.status !== 'confirmed') {
     return res.status(400).json({ error: 'Only confirmed bookings can be completed. Current status: ' + booking.status });
   }
 
+  // ── Stripe: capture payment (or charge balance for deposit jobs) ──
+  let amountCharged = 0;
+  if (process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+        // Capture the full held amount
+        const captured = await stripe.paymentIntents.capture(booking.stripe_payment_intent_id);
+        amountCharged = captured.amount_received;
+
+      } else if (booking.payment_status === 'deposit_paid' && booking.stripe_customer_id && booking.stripe_payment_method_id) {
+        // Deposit already taken — charge the remaining 75% off-session
+        const balanceCents = (booking.total_price || 0) - (booking.deposit_amount || 0);
+        if (balanceCents > 0) {
+          const balancePI = await stripe.paymentIntents.create({
+            amount: balanceCents,
+            currency: 'usd',
+            customer: booking.stripe_customer_id,
+            payment_method: booking.stripe_payment_method_id,
+            confirm: true,
+            off_session: true,
+            metadata: { bookingRef: booking.ref, bookingId: booking.id, type: 'customer_booking_balance' },
+            description: `Balance — ${booking.service} — ${booking.customer_name}`,
+          });
+          amountCharged = (booking.deposit_amount || 0) + (balancePI.amount_received || balanceCents);
+        } else {
+          amountCharged = booking.deposit_amount || 0;
+        }
+      }
+    } catch (stripeErr) {
+      console.error('Stripe capture error:', stripeErr);
+      // Continue — don't block job completion on payment error; owner can resolve manually
+    }
+  }
+
+  const finalAmountCharged = amountCharged || booking.total_price || 0;
+
   const { error: updateErr } = await sb
     .from('bookings')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      payment_status: 'captured',
+      payment_captured_at: new Date().toISOString(),
+      amount_charged: finalAmountCharged,
+    })
     .eq('id', booking.id);
 
   if (updateErr) {
@@ -43,6 +94,7 @@ export default async function handler(req, res) {
       headline: `Job complete! Thank you, ${esc(booking.customer_name)}.`,
       bodyHtml: `
         <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service has been completed. We hope you're happy with the work!</p>
+        ${finalAmountCharged > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px;color:#065f46;line-height:1.6"><strong>Amount charged: $${(finalAmountCharged/100).toFixed(2)}</strong> — This has been processed to your card on file. You will receive a Stripe receipt at ${esc(booking.customer_email)}.</td></tr></table>` : ''}
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
           <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#1e40af">Enjoyed the service?</p>
           <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick review helps other Austin homeowners find reliable help.</p>

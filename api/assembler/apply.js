@@ -1,4 +1,5 @@
 ﻿import Stripe from 'stripe';
+import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
@@ -18,10 +19,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
-  if (!rateLimit(ip, 3, 300000)) return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  if (!await rateLimit(ip, 'apply')) return res.status(429).json({ error: 'Too many requests. Please try again later.' });
 
   const {
-    fullName, email, password, city, zip,
+    fullName, email, city, zip,
     servicesOffered, hasTools, hasTransport,
     yearsExperience, bio, codeOfConduct, inviteToken,
     paymentMethodId,
@@ -30,7 +31,6 @@ export default async function handler(req, res) {
   // â”€â”€ Validation â”€â”€
   if (!fullName?.trim()) return res.status(400).json({ error: 'Full name is required' });
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
-  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
   if (!zip?.trim()) return res.status(400).json({ error: 'Zip code is required' });
   if (!Array.isArray(servicesOffered) || !servicesOffered.length) return res.status(400).json({ error: 'Select at least one service' });
@@ -46,10 +46,13 @@ export default async function handler(req, res) {
   const cleanName = fullName.trim();
   const cleanEmail = email.trim().toLowerCase();
 
-  // â”€â”€ Create Supabase auth user â”€â”€
+  // Generate a random temporary password — assembler sets their real password via the approval email link
+  const tempPassword = randomUUID() + randomUUID();
+
+  // ── Create Supabase auth user ──
   const { data: authData, error: authError } = await sb.auth.admin.createUser({
     email: cleanEmail,
-    password,
+    password: tempPassword,
     email_confirm: true,
     user_metadata: { role: 'assembler', full_name: cleanName },
   });
@@ -90,6 +93,7 @@ export default async function handler(req, res) {
     bio: bio?.trim() || null,
     tier: 'pending',
     identity_verified: false,
+    application_status: 'applied',
     code_of_conduct_agreed_at: new Date().toISOString(),
   }).eq('id', userId);
   if (extError) console.warn('Assembler columns update skipped:', extError.message);

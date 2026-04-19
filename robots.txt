@@ -3,6 +3,7 @@ Allow: /
 Disallow: /auth/
 Disallow: /customer/
 Disallow: /assembler/
+Disallow: /owner/
 Disallow: /api/
 Disallow: /functions/
 

@@ -1,3 +1,4 @@
+import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 
@@ -20,6 +21,33 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Cannot cancel a ' + booking.status + ' booking' });
   }
 
+  // ── Stripe: release hold or refund deposit ──────────────
+  let refundAmount = 0;
+  if (process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+        // Cancel the uncaptured PaymentIntent — no charge to customer
+        await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+
+      } else if (booking.payment_status === 'deposit_paid') {
+        // Refund the deposit that was already captured
+        const depositIntentId = booking.stripe_deposit_intent_id || booking.stripe_payment_intent_id;
+        if (depositIntentId) {
+          const refund = await stripe.refunds.create({
+            payment_intent: depositIntentId,
+            metadata: { bookingRef: booking.ref, reason: 'owner_cancelled' },
+          });
+          refundAmount = refund.amount;
+        }
+      }
+    } catch (stripeErr) {
+      console.error('Stripe cancel/refund error:', stripeErr);
+      // Log but do not block cancellation — owner can handle payment manually
+    }
+  }
+
   const { error: updateErr } = await sb
     .from('bookings')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: reason || null })
@@ -39,6 +67,12 @@ export default async function handler(req, res) {
          </td></tr></table>`
       : '';
 
+    const refundHtml = refundAmount > 0
+      ? `<p style="margin:0 0 20px;font-size:14px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;">
+           A full refund of <strong>$${(refundAmount / 100).toFixed(2)}</strong> has been processed and will appear on your card within 5–10 business days.
+         </p>`
+      : '';
+
     const html = buildStatusEmail({
       customerName: booking.customer_name,
       ref: booking.ref,
@@ -48,6 +82,7 @@ export default async function handler(req, res) {
       headline: `Your booking has been cancelled, ${esc(booking.customer_name)}.`,
       bodyHtml: `
         <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong> has been cancelled.</p>
+        ${refundHtml}
         ${reasonHtml}
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">If you'd like to rebook or have any questions, please don't hesitate to reach out.</p>`,
     });
@@ -63,5 +98,5 @@ export default async function handler(req, res) {
     console.error('Cancel email error:', emailErr);
   }
 
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'cancelled' } });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'cancelled' }, refundAmount });
 }

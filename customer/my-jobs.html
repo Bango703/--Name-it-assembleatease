@@ -49,6 +49,7 @@
         <li><a href="my-jobs" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -160,6 +161,44 @@
       document.getElementById('jobs-list').innerHTML =
         `<div class="error-state"><span>&#9888;</span>Could not load jobs. Please refresh.</div>`;
     }
+
+    // ── Realtime: live updates when job status changes or a bid arrives ──
+    const jobsChannel = supabaseClient
+      .channel(`customer-my-jobs-${user.id}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `customer_id=eq.${user.id}` },
+        async () => {
+          try {
+            const { data: fresh } = await API.getJobs({ customerId: user.id, limit: 100 });
+            allJobs = fresh || [];
+            const activeTab = document.querySelector('.filter-tab.active');
+            const s = activeTab?.dataset.status || 'all';
+            renderJobs(s === 'all' ? allJobs : allJobs.filter(j => j.status === s));
+          } catch {}
+        }
+      )
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bids' },
+        async (payload) => {
+          if (!payload.new?.job_id) return;
+          const job = allJobs.find(j => j.id === payload.new.job_id);
+          if (!job) return;
+          APP.showAlert('page-alert',
+            `&#128276; New bid on &ldquo;${job.title}&rdquo; &mdash; <a href="job-detail?id=${job.id}" style="color:inherit;font-weight:600;text-decoration:underline">View</a>`,
+            'success'
+          );
+          // Refresh list to update bid count
+          try {
+            const { data: fresh } = await API.getJobs({ customerId: user.id, limit: 100 });
+            allJobs = fresh || [];
+            const activeTab = document.querySelector('.filter-tab.active');
+            const s = activeTab?.dataset.status || 'all';
+            renderJobs(s === 'all' ? allJobs : allJobs.filter(j => j.status === s));
+          } catch {}
+        }
+      )
+      .subscribe();
+    window.addEventListener('beforeunload', () => jobsChannel.unsubscribe());
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

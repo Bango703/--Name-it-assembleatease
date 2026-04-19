@@ -53,6 +53,7 @@
         <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -134,7 +135,7 @@
   </main>
 </div>
 
-<script>
+ <script>
   function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
   function timeAgo(d) {
     if(!d)return'';
@@ -177,7 +178,7 @@
       const bookings = bookingResult.bookings || [];
       if (bookings.length) {
         bList.innerHTML = bookings.slice(0, 4).map(b => {
-          const statusMap = { pending:'badge-warning', confirmed:'badge-info', completed:'badge-success', cancelled:'badge-danger', declined:'badge-danger' };
+            const statusMap = { pending:'badge-pending', confirmed:'badge-accepted', completed:'badge-complete', cancelled:'badge-rejected', declined:'badge-rejected' };
           const dateStr = b.date ? new Date(b.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
           return `
             <a class="job-row" href="my-bookings">
@@ -253,6 +254,30 @@
     } catch {
       document.getElementById('assemblers-list').innerHTML = '<div class="error-state"><span>&#9888;</span>Could not load.</div>';
     }
+
+    // ── Realtime: notify customer when a new bid arrives on any of their jobs ──
+    const bidsChannel = supabaseClient
+      .channel(`customer-dash-bids-${user.id}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bids' },
+        async (payload) => {
+          if (!payload.new?.job_id) return;
+          // Verify the bid is for one of this customer's jobs
+          const { data: job } = await supabaseClient
+            .from('jobs')
+            .select('id, title')
+            .eq('id', payload.new.job_id)
+            .eq('customer_id', user.id)
+            .single();
+          if (!job) return;
+          APP.showAlert('page-alert',
+            `&#128276; New bid received on &ldquo;${job.title}&rdquo; &mdash; <a href="job-detail?id=${job.id}" style="color:inherit;font-weight:600;text-decoration:underline">View bids</a>`,
+            'success'
+          );
+        }
+      )
+      .subscribe();
+    window.addEventListener('beforeunload', () => bidsChannel.unsubscribe());
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

@@ -42,8 +42,7 @@
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
-        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
         <li><a href="my-jobs" class="active"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
         <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
       </ul>
@@ -161,6 +160,24 @@
       document.getElementById('jobs-list').innerHTML =
         '<div class="error-state"><span>&#9888;</span>Could not load jobs. Please refresh.</div>';
     }
+
+    // ── Realtime: live status updates for this assembler's assigned jobs ──
+    const jobsChannel = supabaseClient
+      .channel(`assembler-my-jobs-${user.id}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `assembler_id=eq.${user.id}` },
+        async () => {
+          try {
+            const r = await API.getJobs({ assemblerId: user.id, limit: 100 });
+            allJobs = r.data || [];
+            const activeTab = document.querySelector('.filter-tab.active');
+            const activeStatus = activeTab?.dataset.status || 'all';
+            renderJobs(activeStatus === 'all' ? allJobs : allJobs.filter(j => j.status === activeStatus));
+          } catch {}
+        }
+      )
+      .subscribe();
+    window.addEventListener('beforeunload', () => jobsChannel.unsubscribe());
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

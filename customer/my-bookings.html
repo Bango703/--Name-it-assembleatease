@@ -56,6 +56,7 @@
         <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings" class="active"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -116,13 +117,14 @@
 
   function statusBadge(status) {
     const map = {
-      pending: 'badge-warning',
-      confirmed: 'badge-info',
-      completed: 'badge-success',
-      cancelled: 'badge-danger',
-      declined: 'badge-danger',
+      pending:   'badge-pending',
+      confirmed: 'badge-accepted',
+      completed: 'badge-complete',
+      cancelled: 'badge-rejected',
+      declined:  'badge-rejected',
     };
-    return `<span class="badge ${map[status] || 'badge-default'}">${status}</span>`;
+    const labels = { pending: 'Pending', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled', declined: 'Declined' };
+    return `<span class="badge ${map[status] || 'badge-default'}">${labels[status] || status}</span>`;
   }
 
   function renderBookings(bookings) {

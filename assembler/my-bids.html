@@ -39,8 +39,7 @@
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">⚡</span> Dashboard</a></li>
-        <li><a href="browse-jobs"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
-        <li><a href="my-bids" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">🔍</span> Browse Jobs</a></li>        <li><a href="marketplace"><span class="nav-icon">🏪</span> Marketplace</a></li>        <li><a href="my-bids" class="active"><span class="nav-icon">💬</span> My Bids</a></li>
         <li><a href="my-jobs"><span class="nav-icon">🔧</span> My Jobs</a></li>
         <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
       </ul>
@@ -149,6 +148,33 @@
       document.getElementById('bids-list').innerHTML =
         `<div class="error-state"><span>⚠</span>Could not load bids. Please refresh.</div>`;
     }
+
+    // ── Realtime: show live notification when a bid status changes ──
+    const bidsChannel = supabaseClient
+      .channel(`assembler-my-bids-${user.id}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bids', filter: `assembler_id=eq.${user.id}` },
+        async (payload) => {
+          if (!payload.new) return;
+          const newStatus = payload.new.status;
+          const msg = newStatus === 'accepted'
+            ? '🎉 Your bid was accepted! Check My Jobs for next steps.'
+            : newStatus === 'rejected'
+              ? 'Your bid on a job was declined.'
+              : 'A bid status has been updated.';
+          const type = newStatus === 'accepted' ? 'success' : 'info';
+          APP.showAlert('page-alert', msg, type);
+          // Refresh bids list
+          try {
+            const { data: bids } = await API.getMyBids(user.id);
+            allBids = bids || [];
+            const filtered = activeStatus ? allBids.filter(b => b.status === activeStatus) : allBids;
+            renderBids(filtered);
+          } catch {}
+        }
+      )
+      .subscribe();
+    window.addEventListener('beforeunload', () => bidsChannel.unsubscribe());
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

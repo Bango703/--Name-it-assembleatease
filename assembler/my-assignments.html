@@ -48,8 +48,7 @@
       <div class="sidebar-label">Workspace</div>
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
-        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
         <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
         <li><a href="my-assignments" class="active"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
       </ul>
@@ -184,6 +183,34 @@
       document.getElementById('assignments-list').innerHTML =
         '<div class="pro-error">&#9888; Could not load assignments. Please refresh.</div>';
     }
+
+    // ── Realtime: live updates when a booking is assigned or status changes ──
+    const assignmentsChannel = supabaseClient
+      .channel('assembler-assignments-' + auth.user.id)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings', filter: 'assembler_id=eq.' + auth.user.id },
+        async (payload) => {
+          // Refresh the full assignments list
+          try {
+            const r = await fetch('/api/booking/my-assignments', {
+              headers: { 'Authorization': 'Bearer ' + session.access_token },
+            });
+            if (!r.ok) return;
+            const d = await r.json();
+            allAssignments = d.bookings || [];
+            const activeTab = document.querySelector('.filter-tab.active');
+            const cf = activeTab?.dataset.filter || 'all';
+            const filtered = cf === 'all' ? allAssignments : allAssignments.filter(b => b.status === cf);
+            renderAssignments(filtered);
+            // Alert on new assignment
+            if (payload.eventType === 'INSERT' || (payload.eventType === 'UPDATE' && payload.old?.assembler_id !== payload.new?.assembler_id)) {
+              APP.showAlert('page-alert', '&#128276; You have been assigned a new booking!', 'success');
+            }
+          } catch {}
+        }
+      )
+      .subscribe();
+    window.addEventListener('beforeunload', () => assignmentsChannel.unsubscribe());
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

@@ -119,10 +119,44 @@ export default async function handler(req, res) {
       });
     } catch (e) { console.error('Decline notify error:', e); }
 
+    // #16 — Send assembler confirmation that they declined
+    if (assembler?.email) {
+      try {
+        await sendEmail({
+          to: assembler.email,
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          replyTo: ownerEmail(),
+          subject: `Assignment Declined — ${esc(booking.ref)}`,
+          html: buildAssemblerDeclineEmail(assemblerFirstName, booking.service, booking.date),
+        });
+      } catch (e) { console.error('Assembler decline email error:', e); }
+    }
+
     return sendHtml(res, 'Job Declined',
       `You've declined this assignment. No worries — other jobs will come your way.`,
       false);
   }
+}
+
+function buildAssemblerDeclineEmail(firstName, service, date) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
+    <div style="text-align:center;margin-bottom:20px">
+      <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+      <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
+    </div>
+    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;text-align:center">Assignment Declined</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#52525b;text-align:center;line-height:1.6">Hi ${esc(firstName)}, we've noted that you declined the following assignment.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px">
+      <table width="100%">
+        <tr><td style="padding:5px 0;color:#71717a;width:110px">Service</td><td style="padding:5px 0;font-weight:600">${esc(service)}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Date</td><td style="padding:5px 0">${esc(date || 'TBD')}</td></tr>
+      </table>
+    </td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a;text-align:center;line-height:1.6">Other jobs will come your way. Questions? Email <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+  </td></tr></table>
+</div></body></html>`;
 }
 
 function sendHtml(res, title, message, isSuccess) {

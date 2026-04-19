@@ -55,6 +55,7 @@
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">⚡</span> Dashboard</a></li>
         <li><a href="browse-jobs" class="active"><span class="nav-icon">🔍</span> Browse Jobs</a></li>
+        <li><a href="marketplace"><span class="nav-icon">🏪</span> Marketplace</a></li>
         <li><a href="my-bids"><span class="nav-icon">💬</span> My Bids</a></li>
         <li><a href="my-jobs"><span class="nav-icon">🔧</span> My Jobs</a></li>
       </ul>
@@ -98,6 +99,12 @@
         <option>Other / Custom</option>
       </select>
       <button class="btn btn-teal btn-sm" id="search-btn">Search</button>
+    </div>
+
+    <!-- Live new-job notification banner -->
+    <div id="new-jobs-banner" style="display:none;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:0.65rem 1rem;margin-bottom:1rem;align-items:center;gap:0.75rem;font-size:0.875rem;color:#065f46">
+      <span>&#128276; <strong><span id="new-jobs-count">1</span> new job</strong> posted &mdash; refresh to see it</span>
+      <button onclick="document.getElementById('new-jobs-banner').style.display='none';loadJobs();" style="background:#059669;color:#fff;border:none;padding:0.35rem 0.8rem;border-radius:6px;cursor:pointer;font-size:0.8rem;font-family:inherit">Refresh now</button>
     </div>
 
     <div id="results-count" class="results-count"></div>
@@ -215,6 +222,24 @@
     });
 
     document.getElementById('load-more-btn').addEventListener('click', () => loadJobs(true));
+
+    // ── Realtime: notify when a new open job is posted ──
+    const jobsChannel = supabaseClient
+      .channel('assembler-open-jobs-feed')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'jobs' },
+        (payload) => {
+          if (payload.new?.status !== 'open') return;
+          const banner = document.getElementById('new-jobs-banner');
+          if (!banner) return;
+          const countEl = document.getElementById('new-jobs-count');
+          const prev = parseInt(countEl.textContent) || 0;
+          countEl.textContent = prev + 1;
+          banner.style.display = 'flex';
+        }
+      )
+      .subscribe();
+    window.addEventListener('beforeunload', () => jobsChannel.unsubscribe());
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

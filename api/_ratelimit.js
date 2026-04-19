@@ -1,20 +1,32 @@
-const rateLimitMap = new Map();
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
-export function rateLimit(ip, maxRequests = 5, windowMs = 60000) {
-  const now = Date.now();
-  const windowStart = now - windowMs;
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
-  if (!rateLimitMap.has(ip)) {
-    rateLimitMap.set(ip, []);
-  }
+const limiters = {
+  default: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, '60 s'),
+    prefix: 'rl:default',
+  }),
+  booking: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, '60 s'),
+    prefix: 'rl:booking',
+  }),
+  apply: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(3, '300 s'),
+    prefix: 'rl:apply',
+  }),
+};
 
-  const requests = rateLimitMap.get(ip).filter(time => time > windowStart);
-  requests.push(now);
-  rateLimitMap.set(ip, requests);
-
-  if (requests.length > maxRequests) {
-    return false;
-  }
-  return true;
+export async function rateLimit(ip, type = 'default') {
+  const limiter = limiters[type] || limiters.default;
+  const { success } = await limiter.limit(ip);
+  return success;
 }
 

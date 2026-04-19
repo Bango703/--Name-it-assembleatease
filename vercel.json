@@ -17,6 +17,14 @@
     {
       "path": "/api/cron/reminders",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-summary",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-summary",
+      "schedule": "0 14 * * 1"
     }
   ],
   "headers": [
@@ -45,5 +53,9 @@
         }
       ]
     }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/404.html", "status": 404 }
   ]
 }

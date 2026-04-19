@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Marketplace — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <style>
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; position: relative; overflow: hidden; }
+    .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .stat-card.orange::before { background: var(--accent); }
+    .stat-card.teal::before   { background: var(--teal); }
+    .stat-card.green::before  { background: #10b981; }
+    .stat-card.neutral::before{ background: var(--border); }
+    .stat-value { font-family: var(--font-display); font-size: 2rem; color: var(--ink); line-height: 1; margin-bottom: 0.3rem; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); }
+    .mkt-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .section-title { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
+    .section-link { font-size: 0.78rem; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .section-link:hover { color: var(--ink); }
+    .job-row { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 0.6rem; cursor: pointer; transition: border-color 0.15s; text-decoration: none; display: block; }
+    .job-row:hover { border-color: #cbd5e1; }
+    .job-row-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.3rem; }
+    .job-row-title { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
+    .job-row-meta { font-size: 0.75rem; color: var(--muted); display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .bid-pill { display: inline-flex; align-items: center; gap: 4px; background: rgba(0,151,167,0.06); color: var(--teal); border: 1px solid rgba(0,151,167,0.15); border-radius: 999px; font-size: 0.72rem; font-weight: 500; padding: 0.12rem 0.55rem; }
+    .bid-pill.has-bids { background: rgba(16,185,129,0.06); color: #059669; border-color: rgba(16,185,129,0.2); }
+    .assembler-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 0; border-bottom: 1px solid var(--border); cursor: pointer; text-decoration: none; transition: opacity 0.15s; }
+    .assembler-row:last-child { border-bottom: none; }
+    .assembler-row:hover { opacity: 0.75; }
+    .assembler-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 500; flex-shrink: 0; overflow: hidden; }
+    .assembler-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+    .assembler-info { flex: 1; }
+    .assembler-name { font-size: 0.875rem; font-weight: 500; color: var(--ink); }
+    .assembler-meta { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+    .assembler-rate { font-size: 0.875rem; font-weight: 500; color: var(--teal); }
+    .panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+    .quick-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .tier-badge{display:inline-flex;align-items:center;gap:3px;padding:0.12rem 0.5rem;border-radius:999px;font-size:0.68rem;font-weight:600;vertical-align:middle;margin-left:4px}
+    .tier-verified{background:rgba(0,151,167,0.08);color:#0097a7;border:1px solid rgba(0,151,167,0.15)}
+    .tier-elite{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.2)}
+    .activity-feed { max-height: 280px; overflow-y: auto; }
+    .activity-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .badge { display:inline-flex;align-items:center;padding:0.18rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:500;white-space:nowrap;flex-shrink:0 }
+    .badge-pending{background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.2)}
+    .badge-accepted{background:rgba(0,151,167,0.08);color:#0097a7;border:1px solid rgba(0,151,167,0.15)}
+    .badge-complete{background:rgba(16,185,129,0.08);color:#059669;border:1px solid rgba(16,185,129,0.2)}
+    .badge-rejected{background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+    .badge-default{background:var(--off-white);color:var(--muted);border:1px solid var(--border)}
+    @media(max-width:900px){.mkt-grid{grid-template-columns:1fr}.stats-row{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Main</div>
+      <ul class="sidebar-nav">
+        <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
+        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
+        <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="marketplace" class="active"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile"><span class="nav-icon">&#9881;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="page-header">
+      <div>
+        <h1 id="page-heading">Marketplace</h1>
+        <p>Your jobs, top assemblers, and platform activity at a glance.</p>
+      </div>
+      <a href="post-job" class="btn btn-primary">+ Post a Job</a>
+    </div>
+
+    <div id="page-alert" class="alert hidden"></div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card orange"><div class="skeleton" style="height:50px"></div></div>
+      <div class="stat-card neutral"><div class="skeleton" style="height:50px"></div></div>
+      <div class="stat-card neutral"><div class="skeleton" style="height:50px"></div></div>
+      <div class="stat-card teal"><div class="skeleton" style="height:50px"></div></div>
+    </div>
+
+    <div class="mkt-grid">
+
+      <!-- Left column: Your Open Jobs -->
+      <div>
+        <div class="section-header">
+          <div class="section-title">Your Open Jobs &amp; Bids</div>
+          <a href="my-jobs" class="section-link">View all jobs &#8594;</a>
+        </div>
+        <div id="open-jobs-list">
+          <div class="skeleton-card"><div class="skeleton" style="height:70px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:70px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:70px"></div></div>
+        </div>
+
+        <!-- Recent activity -->
+        <div style="margin-top:2rem">
+          <div class="section-header">
+            <div class="section-title">Recent Bid Activity</div>
+          </div>
+          <div class="panel" style="padding:0.25rem 1.25rem">
+            <div class="activity-feed" id="activity-feed">
+              <div class="skeleton-card" style="margin:0.5rem 0"><div class="skeleton" style="height:40px"></div></div>
+              <div class="skeleton-card" style="margin:0.5rem 0"><div class="skeleton" style="height:40px"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: sidebar panels -->
+      <div>
+
+        <!-- Quick Actions -->
+        <div class="panel">
+          <div class="section-title" style="margin-bottom:0.85rem">Quick Actions</div>
+          <div class="quick-actions">
+            <a href="post-job" class="btn btn-primary btn-sm" style="justify-content:center">+ Post a new job</a>
+            <a href="../#booking" class="btn btn-outline btn-sm" style="justify-content:center">&#128197; Book a direct service</a>
+            <a href="browse-assemblers" class="btn btn-outline btn-sm" style="justify-content:center">&#128101; Browse assemblers</a>
+          </div>
+        </div>
+
+        <!-- Top Assemblers Available -->
+        <div class="panel">
+          <div class="section-header" style="margin-bottom:0.75rem">
+            <div class="section-title">Top Assemblers Available</div>
+            <a href="browse-assemblers" class="section-link">All &#8594;</a>
+          </div>
+          <div id="top-assemblers">
+            <div class="skeleton-card"><div class="skeleton" style="height:44px"></div></div>
+            <div class="skeleton-card"><div class="skeleton" style="height:44px"></div></div>
+            <div class="skeleton-card"><div class="skeleton" style="height:44px"></div></div>
+          </div>
+        </div>
+
+        <!-- Market Insights -->
+        <div class="panel">
+          <div class="section-title" style="margin-bottom:0.85rem">Market Insights</div>
+          <div id="market-insights">
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+  function timeAgo(d){if(!d)return'';const diff=Date.now()-new Date(d).getTime(),m=Math.floor(diff/60000),h=Math.floor(diff/3600000),days=Math.floor(diff/86400000);if(m<1)return'Just now';if(m<60)return m+'m ago';if(h<24)return h+'h ago';if(days===1)return'Yesterday';return days+'d ago';}
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const auth = await APP.requireAuth(['customer']);
+    if (!auth) return;
+    const { user, profile } = auth;
+
+    const firstName = profile.full_name?.split(' ')[0] || '';
+    document.getElementById('page-heading').textContent = firstName ? `Marketplace — Hello, ${firstName}` : 'Marketplace';
+
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../';
+    });
+
+    // ── Load open jobs for this customer ──
+    async function loadOpenJobs() {
+      try {
+        const { data: jobs } = await API.getJobs({ customerId: user.id, status: 'open', limit: 10 });
+        const list = document.getElementById('open-jobs-list');
+        if (!jobs?.length) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <p>No open jobs right now.</p>
+              <a href="post-job" class="btn btn-primary btn-sm">Post your first job</a>
+            </div>`;
+          return [];
+        }
+        list.innerHTML = jobs.map(job => {
+          const bidCount = job.bids?.[0]?.count ?? 0;
+          const pillCls = bidCount > 0 ? 'bid-pill has-bids' : 'bid-pill';
+          return `
+            <a class="job-row" href="job-detail?id=${esc(job.id)}">
+              <div class="job-row-top">
+                <div class="job-row-title">${esc(job.title)}</div>
+                <span class="${pillCls}">&#128172; ${bidCount} bid${bidCount!==1?'s':''}</span>
+              </div>
+              <div class="job-row-meta">
+                <span>${esc(job.category||'General')}</span>
+                <span>${timeAgo(job.created_at)}</span>
+                ${job.city?`<span>&#128205; ${esc(job.city)}</span>`:''}
+              </div>
+            </a>`;
+        }).join('');
+        return jobs;
+      } catch {
+        document.getElementById('open-jobs-list').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load jobs.</div>`;
+        return [];
+      }
+    }
+
+    // ── Recent bid activity ──
+    async function loadBidActivity() {
+      try {
+        const { data: jobs } = await API.getJobs({ customerId: user.id, limit: 20 });
+        const feed = document.getElementById('activity-feed');
+        if (!jobs?.length) { feed.innerHTML = `<div style="padding:0.75rem 0;font-size:0.82rem;color:var(--muted)">No activity yet.</div>`; return; }
+
+        // Gather all bids across the customer's recent jobs
+        const jobIds = jobs.map(j => j.id);
+        const { data: bids } = await supabaseClient
+          .from('bids')
+          .select('*, job:jobs(id,title), assembler:profiles!bids_assembler_id_fkey(full_name)')
+          .in('job_id', jobIds)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (!bids?.length) {
+          feed.innerHTML = `<div style="padding:0.75rem 0;font-size:0.82rem;color:var(--muted)">No bids received yet. <a href="post-job" style="color:var(--teal)">Post a job</a> to start getting bids.</div>`;
+          return;
+        }
+
+        const statusColor = { pending:'#f59e0b', accepted:'#0097a7', rejected:'#ef4444', withdrawn:'#94a3b8' };
+        feed.innerHTML = bids.map(b => {
+          const color = statusColor[b.status] || '#94a3b8';
+          const jobTitle = b.job?.title || 'Job';
+          const assemblerName = b.assembler?.full_name?.split(' ')[0] || 'Assembler';
+          const amountStr = b.amount ? ` for $${b.amount}` : '';
+          return `
+            <div class="activity-item">
+              <div class="activity-dot" style="background:${color}"></div>
+              <div style="flex:1">
+                <span style="color:var(--ink);font-weight:500">${esc(assemblerName)}</span>
+                bid on <a href="job-detail?id=${esc(b.job_id)}" style="color:var(--teal);text-decoration:none">${esc(jobTitle)}</a>${amountStr}
+                <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${timeAgo(b.created_at)} &middot; ${b.status}</div>
+              </div>
+            </div>`;
+        }).join('');
+      } catch {
+        document.getElementById('activity-feed').innerHTML = `<div style="padding:0.75rem 0;font-size:0.82rem;color:var(--muted)">Could not load activity.</div>`;
+      }
+    }
+
+    // ── Top assemblers ──
+    async function loadTopAssemblers() {
+      try {
+        const { data: assemblers } = await API.getAssemblers({ limit: 4 });
+        const list = document.getElementById('top-assemblers');
+        if (!assemblers?.length) { list.innerHTML = `<div style="font-size:0.82rem;color:var(--muted)">No assemblers found.</div>`; return; }
+        list.innerHTML = assemblers.map(a => {
+          const name = a.full_name || 'Assembler';
+          const initial = name[0]?.toUpperCase() || '?';
+          const tierMap = { verified:'tier-verified', elite:'tier-elite' };
+          const tierCls = tierMap[a.tier] || '';
+          const tierLabel = a.tier === 'elite' ? '&#11088; Elite' : a.tier === 'verified' ? '&#10003; Verified' : '';
+          return `
+            <a class="assembler-row" href="assembler-detail?id=${esc(a.id)}">
+              <div class="assembler-avatar">
+                ${a.profile_photo ? `<img src="${esc(a.profile_photo)}" alt="${esc(name)}" />` : esc(initial)}
+              </div>
+              <div class="assembler-info">
+                <div class="assembler-name">${esc(name)}${tierCls?`<span class="tier-badge ${tierCls}">${tierLabel}</span>`:''}</div>
+                <div class="assembler-meta">${a.completed_jobs||0} jobs &middot; ${esc(a.city||'Austin')}</div>
+              </div>
+              ${a.hourly_rate?`<div class="assembler-rate">$${a.hourly_rate}/hr</div>`:''}
+            </a>`;
+        }).join('');
+      } catch {
+        document.getElementById('top-assemblers').innerHTML = `<div style="font-size:0.82rem;color:var(--muted)">Could not load assemblers.</div>`;
+      }
+    }
+
+    // ── Market Insights ──
+    async function loadMarketInsights() {
+      try {
+        const { data: openJobs } = await supabaseClient
+          .from('jobs')
+          .select('id, bids(count), created_at')
+          .eq('status', 'open');
+
+        const { data: activeAssemblers } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('role', 'assembler')
+          .eq('is_available', true);
+
+        const totalOpen = openJobs?.length ?? 0;
+        const totalActive = activeAssemblers?.length ?? 0;
+        const avgBids = totalOpen
+          ? Math.round((openJobs.reduce((s,j) => s + (j.bids?.[0]?.count ?? 0), 0)) / totalOpen * 10) / 10
+          : 0;
+        const noCompetition = (openJobs||[]).filter(j => (j.bids?.[0]?.count ?? 0) === 0).length;
+
+        document.getElementById('market-insights').innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div style="text-align:center;padding:0.75rem;background:var(--off-white);border-radius:8px">
+              <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--ink)">${totalOpen}</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Open Jobs</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--off-white);border-radius:8px">
+              <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--teal)">${totalActive}</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Assemblers Available</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--off-white);border-radius:8px">
+              <div style="font-family:var(--font-display);font-size:1.5rem;color:var(--ink)">${avgBids}</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Avg Bids / Job</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--off-white);border-radius:8px">
+              <div style="font-family:var(--font-display);font-size:1.5rem;color:#10b981">${noCompetition}</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Jobs with 0 Bids</div>
+            </div>
+          </div>`;
+      } catch {
+        document.getElementById('market-insights').innerHTML = `<div style="font-size:0.82rem;color:var(--muted)">Could not load insights.</div>`;
+      }
+    }
+
+    // ── Stats ──
+    async function loadStats() {
+      try {
+        const [jobResult, bookingResult, assemblerResult] = await Promise.all([
+          API.getJobs({ customerId: user.id, limit: 50 }),
+          API.getMyBookings().catch(() => ({ bookings: [], stats: {} })),
+          API.getAssemblers({ limit: 1 }),
+        ]);
+
+        const jobs = jobResult.data || [];
+        const openJobs = jobs.filter(j => j.status === 'open').length;
+        const totalBids = jobs.reduce((s,j) => s + (j.bids?.[0]?.count ?? 0), 0);
+        const bs = bookingResult.stats || {};
+        const activeBookings = (bs.confirmed || 0) + (bs.pending || 0);
+
+        // Total assemblers (count from full query)
+        const { count: assemblerCount } = await supabaseClient
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'assembler')
+          .in('tier', ['starter','verified','elite']);
+
+        document.getElementById('stats-row').innerHTML = `
+          <div class="stat-card teal">
+            <div class="stat-value">${assemblerCount || 0}</div>
+            <div class="stat-label">Assemblers Available</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-value">${openJobs}</div>
+            <div class="stat-label">Your Open Jobs</div>
+          </div>
+          <div class="stat-card neutral">
+            <div class="stat-value">${totalBids}</div>
+            <div class="stat-label">Total Bids Received</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-value">${activeBookings}</div>
+            <div class="stat-label">Active Bookings</div>
+          </div>`;
+      } catch {
+        document.getElementById('stats-row').innerHTML = `<div style="grid-column:1/-1" class="error-state"><span>&#9888;</span>Could not load stats.</div>`;
+      }
+    }
+
+    // Run all loads in parallel
+    await Promise.all([
+      loadOpenJobs(),
+      loadBidActivity(),
+      loadTopAssemblers(),
+      loadMarketInsights(),
+      loadStats(),
+    ]);
+
+    // Realtime: notify when a new bid comes in on customer's jobs
+    const { data: myJobs } = await API.getJobs({ customerId: user.id, limit: 50 });
+    const myJobIds = (myJobs || []).map(j => j.id);
+
+    if (myJobIds.length) {
+      const bidsChannel = supabaseClient
+        .channel('cust-marketplace-bids')
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'bids' },
+          async (payload) => {
+            if (!myJobIds.includes(payload.new?.job_id)) return;
+            const alert = document.getElementById('page-alert');
+            alert.textContent = '&#128276; A new bid was submitted on one of your jobs!';
+            alert.className = 'alert alert-info';
+            // Refresh open jobs + activity
+            await Promise.all([loadOpenJobs(), loadBidActivity()]);
+          }
+        )
+        .subscribe();
+      window.addEventListener('beforeunload', () => bidsChannel.unsubscribe());
+    }
+  });
+</script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>

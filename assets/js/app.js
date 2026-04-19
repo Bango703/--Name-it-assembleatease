@@ -336,6 +336,55 @@ const APP = {
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newUrl);
   },
+
+  // ── MOBILE SIDEBAR ──────────────────────────────────────
+
+  _mobileSidebarOpen: false,
+
+  openMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    this._mobileSidebarOpen = true;
+    document.body.style.overflow = 'hidden';
+  },
+
+  closeMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar) return;
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    this._mobileSidebarOpen = false;
+    document.body.style.overflow = '';
+  },
+
+  toggleMobileSidebar() {
+    this._mobileSidebarOpen ? this.closeMobileSidebar() : this.openMobileSidebar();
+  },
+
+  // Inject mobile header + overlay into portal pages that have a sidebar
+  _initMobileNav() {
+    if (!document.querySelector('.sidebar')) return;
+
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    overlay.addEventListener('click', () => APP.closeMobileSidebar());
+    document.body.appendChild(overlay);
+
+    // Mobile header bar
+    const header = document.createElement('div');
+    header.className = 'mobile-portal-header';
+    header.innerHTML = `
+      <strong>Assemble<span>AtEase</span></strong>
+      <button class="mobile-toggle-btn" aria-label="Open navigation" onclick="APP.toggleMobileSidebar()">
+        <span></span><span></span><span></span>
+      </button>`;
+    document.body.prepend(header);
+  },
 };
 
 window.APP = APP;
@@ -344,4 +393,7 @@ window.APP = APP;
 document.addEventListener('DOMContentLoaded', () => {
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  // Inject mobile nav for portal/dashboard pages
+  APP._initMobileNav();
 });

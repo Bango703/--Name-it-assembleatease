@@ -326,16 +326,33 @@
           return;
         }
 
-        // Fetch profile role and redirect
+        // Fetch profile role + tier and redirect
         const { data: profile, error: profileError } = await supabaseClient
           .from('profiles')
-          .select('role')
+          .select('role, tier')
           .eq('id', data.user.id)
           .single();
 
         if (profileError || !profile) {
           showAlert('error', 'Could not load your profile. Please try again.');
           setLoading('login-btn', false, 'Log in');
+          return;
+        }
+
+        // Block pending assemblers — they must wait for owner approval
+        if (profile.role === 'assembler' && profile.tier === 'pending') {
+          await supabaseClient.auth.signOut();
+          const card = document.querySelector('.auth-card');
+          card.innerHTML = `
+            <div style="text-align:center;padding:1rem 0">
+              <div style="font-size:2.5rem;margin-bottom:1rem">&#9203;</div>
+              <h2 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:0.75rem;color:#0d1117">Application Under Review</h2>
+              <p style="color:#64748b;font-size:0.925rem;line-height:1.6;margin-bottom:1.5rem">
+                Your application is being reviewed by our team.<br>
+                You will receive an email with next steps once a decision is made.
+              </p>
+              <p style="font-size:0.82rem;color:#94a3b8">Questions? <a href="mailto:service@assembleatease.com" style="color:#0097a7;text-decoration:none">service@assembleatease.com</a></p>
+            </div>`;
           return;
         }
 

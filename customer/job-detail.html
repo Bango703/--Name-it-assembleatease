@@ -63,6 +63,7 @@
         <li><a href="my-jobs" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
         <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
+        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -311,63 +312,83 @@
       }
 
       // Load bids
-      try {
-        const { data: bids, error: bidsError } = await API.getBidsForJob(currentJobId);
-        if (bidsError) throw bidsError;
-        document.getElementById('bid-count').textContent = bids?.length || 0;
-        const bidsList = document.getElementById('bids-list');
-
-        if (!bids?.length) {
-          bidsList.innerHTML = `<div class="empty-state" style="padding:1.5rem"><p style="margin:0">No bids yet. Your job is visible to assemblers.</p></div>`;
-          return;
-        }
-
-        bidsList.innerHTML = bids.map(bid => {
-          // Show only first name to customer
-          const firstName = (bid.assembler?.full_name || 'Assembler').split(' ')[0];
-          const initials  = firstName[0]?.toUpperCase() || '?';
-          const badgeCls  = APP.getBadgeClass(bid.status);
-          const isFixed   = job.budget_type === 'fixed';
-          return `
-            <div class="bid-card">
-              <div class="bid-card-top">
-                <div style="display:flex;align-items:center;gap:10px">
-                  <div class="avatar">${initials}</div>
-                  <div>
-                    <div class="bid-assembler-name">
-                      <a href="assembler-detail?id=${bid.assembler_id}" style="color:var(--ink);text-decoration:none">${firstName}</a>
-                    </div>
-                    <div class="bid-assembler-meta">
-                      ${bid.assembler?.city||'Location TBD'} &middot;
-                      ${bid.assembler?.rating ? '&#9733; '+Number(bid.assembler.rating).toFixed(1)+' &middot; ' : ''}
-                      ${bid.assembler?.completed_jobs||0} jobs
-                    </div>
-                  </div>
-                </div>
-                <div style="text-align:right;flex-shrink:0">
-                  <div class="bid-amount">$${bid.bid_amount}${bid.bid_type==='hourly'?'/hr':''}</div>
-                  <span class="badge ${badgeCls}" style="margin-top:4px">${bid.status}</span>
-                </div>
-              </div>
-              ${bid.message ? `<div class="bid-message">"${bid.message}"</div>` : ''}
-              ${isFixed ? `<div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem">Your fixed price: $${job.budget_min} &middot; Assembler bid: $${bid.bid_amount}</div>` : ''}
-              ${bid.status === 'pending' && job.status === 'open' ? `
-                <div class="bid-actions">
-                  <button class="btn btn-primary btn-sm" onclick="acceptBid('${bid.id}','${bid.assembler_id}',${bid.bid_amount})">Accept bid</button>
-                  <button class="btn btn-outline btn-sm" onclick="rejectBid('${bid.id}')">Decline</button>
-                  <a href="assembler-detail?id=${bid.assembler_id}" class="btn btn-ghost btn-sm">View profile</a>
-                </div>` : ''}
-            </div>`;
-        }).join('');
-
-      } catch (err) {
-        document.getElementById('bids-list').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load bids.</div>`;
-      }
+      await renderBids();
 
     } catch (err) {
       document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-jobs">Go back</a></div>`;
     }
+
+    // ── Realtime: live bid updates for this job ──────────────────
+    if (currentJobId) {
+      const bidChannel = supabaseClient
+        .channel(`customer-job-bids-${currentJobId}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'bids', filter: `job_id=eq.${currentJobId}` },
+          async () => {
+            await renderBids();
+            APP.showAlert('page-alert', '🎉 A new bid was just received on your job!', 'success');
+          }
+        )
+        .subscribe();
+      window.addEventListener('beforeunload', () => bidChannel.unsubscribe());
+    }
   });
+
+  // ── renderBids: fetch & render the bids section ─────────────────
+  async function renderBids() {
+    try {
+      const { data: bids, error: bidsError } = await API.getBidsForJob(currentJobId);
+      if (bidsError) throw bidsError;
+      document.getElementById('bid-count').textContent = bids?.length || 0;
+      const bidsList = document.getElementById('bids-list');
+
+      if (!bids?.length) {
+        bidsList.innerHTML = `<div class="empty-state" style="padding:1.5rem"><p style="margin:0">No bids yet. Your job is visible to assemblers.</p></div>`;
+        return;
+      }
+
+      bidsList.innerHTML = bids.map(bid => {
+        // Show only first name to customer
+        const firstName = (bid.assembler?.full_name || 'Assembler').split(' ')[0];
+        const initials  = firstName[0]?.toUpperCase() || '?';
+        const badgeCls  = APP.getBadgeClass(bid.status);
+        const isFixed   = currentJob?.budget_type === 'fixed';
+        return `
+          <div class="bid-card">
+            <div class="bid-card-top">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar">${initials}</div>
+                <div>
+                  <div class="bid-assembler-name">
+                    <a href="assembler-detail?id=${bid.assembler_id}" style="color:var(--ink);text-decoration:none">${firstName}</a>
+                  </div>
+                  <div class="bid-assembler-meta">
+                    ${bid.assembler?.city||'Location TBD'} &middot;
+                    ${bid.assembler?.rating ? '&#9733; '+Number(bid.assembler.rating).toFixed(1)+' &middot; ' : ''}
+                    ${bid.assembler?.completed_jobs||0} jobs
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div class="bid-amount">$${bid.bid_amount}${bid.bid_type==='hourly'?'/hr':''}</div>
+                <span class="badge ${badgeCls}" style="margin-top:4px">${bid.status}</span>
+              </div>
+            </div>
+            ${bid.message ? `<div class="bid-message">"${bid.message}"</div>` : ''}
+            ${isFixed ? `<div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem">Your fixed price: $${currentJob?.budget_min} &middot; Assembler bid: $${bid.bid_amount}</div>` : ''}
+            ${bid.status === 'pending' && currentJob?.status === 'open' ? `
+              <div class="bid-actions">
+                <button class="btn btn-primary btn-sm" onclick="acceptBid('${bid.id}','${bid.assembler_id}',${bid.bid_amount})">Accept bid</button>
+                <button class="btn btn-outline btn-sm" onclick="rejectBid('${bid.id}')">Decline</button>
+                <a href="assembler-detail?id=${bid.assembler_id}" class="btn btn-ghost btn-sm">View profile</a>
+              </div>` : ''}
+          </div>`;
+      }).join('');
+
+    } catch (err) {
+      document.getElementById('bids-list').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load bids.</div>`;
+    }
+  }
 
   async function acceptBid(bidId, assemblerId, amount) {
     if (!confirm('Accept this bid? All other bids will be declined.')) return;

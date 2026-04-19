@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Job Marketplace — AssembleAtEase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="../config.js"></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/api.js" defer></script>
+  <link rel="stylesheet" href="../assets/css/dashboard.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#4a5568;--teal:#0097a7;--teal-glow:rgba(0,151,167,0.08);--teal-dark:#00838f;--orange:#e86a2e;--orange-glow:rgba(232,106,46,0.06);--amber:#f59e0b;--green:#10b981;--sidebar-w:260px}
+    body{font-family:'DM Sans',sans-serif;background:var(--pro-bg);color:var(--pro-text);min-height:100vh;-webkit-font-smoothing:antialiased}
+    .pro-layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+    .pro-sidebar{background:var(--pro-surface);border-right:1px solid var(--pro-border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar-brand{padding:1.5rem 1.5rem 1.25rem;border-bottom:1px solid var(--pro-border);display:flex;align-items:center;justify-content:space-between}
+    .sidebar-brand-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--pro-text);text-decoration:none}
+    .sidebar-brand-logo span{color:var(--teal)}
+    .avail-toggle{display:flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:500;color:var(--pro-muted);cursor:pointer;user-select:none}
+    .avail-pill{width:32px;height:18px;background:var(--pro-elevated);border:1px solid var(--pro-border-md);border-radius:999px;position:relative;transition:background 0.2s;flex-shrink:0}
+    .avail-pill::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--pro-muted);transition:all 0.2s}
+    .avail-pill.on{background:var(--teal);border-color:var(--teal)}
+    .avail-pill.on::after{left:16px;background:#fff}
+    .avail-toggle.on{color:var(--teal)}
+    .sidebar-profile{padding:1.25rem 1.5rem;border-bottom:1px solid var(--pro-border);display:flex;align-items:center;gap:10px}
+    .sidebar-avatar{width:38px;height:38px;border-radius:50%;background:var(--teal-glow);border:2px solid rgba(0,151,167,0.2);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;color:var(--teal);flex-shrink:0;overflow:hidden}
+    .sidebar-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .sidebar-name{font-size:0.875rem;font-weight:500;color:var(--pro-text);line-height:1.2}
+    .sidebar-role{font-size:0.72rem;color:var(--pro-muted);margin-top:2px}
+    .sidebar-section{padding:1rem 1rem 0}
+    .sidebar-section-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--pro-muted);padding:0 0.5rem;margin-bottom:4px;font-weight:500}
+    .sidebar-nav{list-style:none}
+    .sidebar-nav li{margin-bottom:1px}
+    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:0 0.75rem;height:40px;min-height:40px;border-radius:8px;font-size:0.875rem;font-weight:400;color:var(--pro-soft);text-decoration:none;transition:background 0.15s,color 0.15s;border:1px solid transparent;box-sizing:border-box}
+    .sidebar-nav a:hover{background:var(--pro-elevated);color:var(--pro-text)}
+    .sidebar-nav a.active{background:var(--teal-glow);color:var(--teal);border-color:rgba(0,151,167,0.15)}
+    .nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+    .nav-badge{margin-left:auto;background:var(--teal);color:#fff;font-size:0.65rem;font-weight:500;padding:1px 6px;border-radius:999px}
+    .sidebar-footer{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--pro-border)}
+    .pro-main{display:flex;flex-direction:column;min-height:100vh}
+    .pro-topbar{background:var(--pro-surface);border-bottom:1px solid var(--pro-border);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:0;z-index:100}
+    .topbar-title{font-size:0.95rem;font-weight:500;color:var(--pro-text)}
+    .topbar-btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 1rem;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid var(--pro-border);background:var(--pro-surface);color:var(--pro-soft);text-decoration:none;transition:all 0.15s}
+    .topbar-btn:hover{background:var(--pro-elevated);color:var(--pro-text)}
+    .topbar-btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+    .topbar-btn.primary:hover{background:var(--teal-dark)}
+    .pro-content{padding:2rem;flex:1}
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+    .pro-stat{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+    .pro-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+    .pro-stat.teal::before{background:var(--teal)}
+    .pro-stat.orange::before{background:var(--orange)}
+    .pro-stat.amber::before{background:var(--amber)}
+    .pro-stat.green::before{background:var(--green)}
+    .pro-stat.neutral::before{background:var(--pro-border-md)}
+    .pro-stat-value{font-family:'DM Serif Display',serif;font-size:1.9rem;color:var(--pro-text);line-height:1;margin-bottom:0.3rem}
+    .pro-stat-label{font-size:0.78rem;color:var(--pro-muted)}
+    .pro-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+    .pro-section-title{font-size:0.875rem;font-weight:500;color:var(--pro-text);display:flex;align-items:center;gap:8px}
+    .pro-section-title .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0}
+    .pro-link{font-size:0.78rem;color:var(--pro-muted);text-decoration:none;transition:color 0.15s}
+    .pro-link:hover{color:var(--teal)}
+    .badge{display:inline-flex;align-items:center;padding:0.18rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:500;white-space:nowrap;flex-shrink:0}
+    .badge-new{background:rgba(0,151,167,0.08);color:var(--teal);border:1px solid rgba(0,151,167,0.2)}
+    .badge-hot{background:rgba(232,106,46,0.1);color:var(--orange);border:1px solid rgba(232,106,46,0.2)}
+    .badge-fresh{background:rgba(16,185,129,0.08);color:#059669;border:1px solid rgba(16,185,129,0.2)}
+    .skeleton{background:linear-gradient(90deg,var(--pro-elevated) 25%,var(--pro-border) 50%,var(--pro-elevated) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .skeleton-card{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.6rem}
+    .job-card{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:0.75rem;cursor:pointer;transition:all 0.15s;text-decoration:none;display:block;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+    .job-card:hover{border-color:var(--pro-border-md);box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+    .job-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.5rem}
+    .job-card h3{font-size:1rem;font-weight:500;color:var(--pro-text)}
+    .job-card-desc{font-size:0.875rem;color:var(--pro-muted);line-height:1.55;margin-bottom:0.75rem}
+    .job-card-footer{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .job-tag{display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;color:var(--pro-muted)}
+    .budget-tag{font-size:0.82rem;font-weight:500;color:var(--teal)}
+    .opportunity-label{font-size:0.7rem;font-weight:500;background:rgba(16,185,129,0.08);color:#059669;border:1px solid rgba(16,185,129,0.2);padding:0.15rem 0.5rem;border-radius:999px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+    .category-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-top:0.25rem}
+    .category-chip{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:10px;padding:0.75rem 1rem;cursor:pointer;transition:all 0.15s;text-decoration:none;display:block}
+    .category-chip:hover{border-color:var(--teal);background:var(--teal-glow)}
+    .category-chip-name{font-size:0.8rem;font-weight:500;color:var(--pro-text)}
+    .category-chip-count{font-size:0.7rem;color:var(--pro-muted);margin-top:2px}
+    .pro-empty{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:2rem 1.5rem;text-align:center}
+    .pro-empty p{font-size:0.875rem;color:var(--pro-muted);margin-bottom:1rem}
+    .new-jobs-banner{display:none;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:0.65rem 1rem;margin-bottom:1.25rem;align-items:center;gap:0.75rem;font-size:0.875rem;color:#065f46}
+    .new-jobs-banner.show{display:flex}
+    @media(max-width:900px){.pro-layout{grid-template-columns:1fr}.pro-sidebar{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}.category-grid{grid-template-columns:repeat(2,1fr)}.pro-content{padding:1.25rem}}
+  </style>
+</head>
+<body>
+<div class="pro-layout">
+
+  <aside class="pro-sidebar">
+    <div class="sidebar-brand">
+      <a href="../" class="sidebar-brand-logo">Assemble<span>AtEase</span></a>
+      <div class="avail-toggle" id="avail-toggle">
+        <div class="avail-pill" id="avail-pill"></div>
+        <span id="avail-label">Offline</span>
+      </div>
+    </div>
+    <div class="sidebar-profile">
+      <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+      <div>
+        <div class="sidebar-name" id="sidebar-name">Loading...</div>
+        <div class="sidebar-role">Professional Assembler</div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Workspace</div>
+      <ul class="sidebar-nav">
+        <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs</a></li>
+        <li><a href="marketplace" class="active"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
+        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
+        <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
+        <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section" style="margin-top:1rem">
+      <div class="sidebar-section-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#8594;</span> Log out</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div style="font-size:0.72rem;color:var(--pro-muted);line-height:1.7">
+        <div>Win rate: <span id="sidebar-winrate" style="color:var(--teal)">—</span></div>
+        <div>Active bids: <span id="sidebar-active-bids" style="color:var(--pro-soft)">0</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="pro-main">
+    <div class="pro-topbar">
+      <div class="topbar-title">Job Marketplace</div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <a href="browse-jobs" class="topbar-btn primary">&#128269; Browse All Jobs</a>
+      </div>
+    </div>
+
+    <div class="pro-content">
+
+      <div id="new-jobs-banner" class="new-jobs-banner">
+        &#128276; <strong><span id="new-jobs-count">1</span> new job</strong> just posted &mdash;
+        <button onclick="document.getElementById('new-jobs-banner').classList.remove('show');reloadAll();" style="background:#059669;color:#fff;border:none;padding:0.3rem 0.75rem;border-radius:6px;cursor:pointer;font-size:0.8rem;font-family:inherit;margin-left:4px">Refresh now</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" id="stats-row">
+        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
+        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
+        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
+        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
+      </div>
+
+      <!-- Best Opportunities + High Value -->
+      <div class="two-col" style="margin-bottom:2rem">
+
+        <div>
+          <div class="pro-section-header">
+            <div class="pro-section-title">
+              <span class="dot" style="background:#10b981"></span>
+              Best Opportunities
+              <span style="font-size:0.72rem;color:var(--pro-muted);font-weight:400">Fewest bids — least competition</span>
+            </div>
+            <a href="browse-jobs" class="pro-link">Browse all &#8594;</a>
+          </div>
+          <div id="opportunities-list">
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="pro-section-header">
+            <div class="pro-section-title">
+              <span class="dot" style="background:var(--orange)"></span>
+              High Value Jobs
+              <span style="font-size:0.72rem;color:var(--pro-muted);font-weight:400">Highest budget on the board</span>
+            </div>
+            <a href="browse-jobs" class="pro-link">Browse all &#8594;</a>
+          </div>
+          <div id="highvalue-list">
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+            <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Breakdown -->
+      <div style="margin-bottom:2rem">
+        <div class="pro-section-header">
+          <div class="pro-section-title">
+            <span class="dot"></span>
+            Open Jobs by Category
+          </div>
+          <span style="font-size:0.78rem;color:var(--pro-muted)" id="category-total">Loading...</span>
+        </div>
+        <div class="category-grid" id="category-grid">
+          <div class="skeleton-card" style="height:56px;margin:0"></div>
+          <div class="skeleton-card" style="height:56px;margin:0"></div>
+          <div class="skeleton-card" style="height:56px;margin:0"></div>
+          <div class="skeleton-card" style="height:56px;margin:0"></div>
+          <div class="skeleton-card" style="height:56px;margin:0"></div>
+          <div class="skeleton-card" style="height:56px;margin:0"></div>
+        </div>
+      </div>
+
+      <!-- Your Bid Activity -->
+      <div>
+        <div class="pro-section-header">
+          <div class="pro-section-title">
+            <span class="dot" style="background:var(--amber)"></span>
+            Your Pending Bids
+          </div>
+          <a href="my-bids" class="pro-link">View all &#8594;</a>
+        </div>
+        <div id="my-bids-list">
+          <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
+          <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+  function timeAgo(d){if(!d)return'';const diff=Date.now()-new Date(d).getTime(),m=Math.floor(diff/60000),h=Math.floor(diff/3600000),days=Math.floor(diff/86400000);if(m<1)return'Just now';if(m<60)return m+'m ago';if(h<24)return h+'h ago';if(days===1)return'Yesterday';return days+'d ago';}
+  function formatBudget(job){if(!job.budget_min&&!job.budget_max)return'Budget TBD';if(job.budget_min&&job.budget_max)return`$${job.budget_min}–$${job.budget_max}`;if(job.budget_max)return`Up to $${job.budget_max}`;return`From $${job.budget_min}`;}
+
+  const CATEGORIES = [
+    'Furniture Assembly','Flat-Pack / IKEA','TV Mounting & AV Setup','Gym & Fitness Equipment',
+    'Office Furniture','Smart Home & Tech Install','Shelving & Storage','Beds & Bedroom',
+    'Outdoor & Garden Furniture','Picture & Mirror Hanging','Kids Furniture & Toys','Appliances','Other / Custom'
+  ];
+
+  function renderJobCard(job, badge) {
+    const bidCount = job.bids?.[0]?.count ?? 0;
+    return `
+      <a class="job-card" href="job-detail?id=${esc(job.id)}">
+        <div class="job-card-top">
+          <h3>${esc(job.title)}</h3>
+          ${badge ? `<span class="${badge.cls}">${badge.text}</span>` : `<span class="badge badge-new">Open</span>`}
+        </div>
+        <div class="job-card-desc">${esc(APP.truncate ? APP.truncate(job.description,100) : (job.description||'').slice(0,100))}</div>
+        <div class="job-card-footer">
+          <span class="budget-tag">${formatBudget(job)}</span>
+          <span class="job-tag">&#128205; ${esc(job.city||'Remote')}${job.state?', '+esc(job.state):''}</span>
+          <span class="job-tag">&#128172; ${bidCount} bid${bidCount!==1?'s':''}</span>
+          <span class="job-tag">&#9200; ${timeAgo(job.created_at)}</span>
+        </div>
+      </a>`;
+  }
+
+  async function loadOpportunities() {
+    // Fetch open jobs sorted by created_at desc, then pick ones with fewest bids
+    const { data: jobs } = await supabaseClient
+      .from('jobs')
+      .select('*, bids(count)')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!jobs?.length) {
+      document.getElementById('opportunities-list').innerHTML = `<div class="pro-empty"><p>No open jobs right now. Check back soon!</p></div>`;
+      return jobs || [];
+    }
+
+    // Sort by bid count ascending — fewest bids = most opportunity
+    const sorted = [...jobs].sort((a, b) => (a.bids?.[0]?.count ?? 0) - (b.bids?.[0]?.count ?? 0));
+    const top = sorted.slice(0, 5);
+    document.getElementById('opportunities-list').innerHTML = top.map(job => {
+      const count = job.bids?.[0]?.count ?? 0;
+      const badge = count === 0
+        ? { cls: 'badge badge-fresh', text: '0 bids' }
+        : { cls: 'badge badge-new', text: `${count} bid${count!==1?'s':''}` };
+      return renderJobCard(job, badge);
+    }).join('') || `<div class="pro-empty"><p>No open jobs right now.</p></div>`;
+
+    return jobs;
+  }
+
+  async function loadHighValue() {
+    const { data: jobs } = await supabaseClient
+      .from('jobs')
+      .select('*, bids(count)')
+      .eq('status', 'open')
+      .not('budget_max', 'is', null)
+      .order('budget_max', { ascending: false })
+      .limit(5);
+
+    const list = document.getElementById('highvalue-list');
+    if (!jobs?.length) {
+      list.innerHTML = `<div class="pro-empty"><p>No jobs with budgets listed yet.</p></div>`;
+      return;
+    }
+    list.innerHTML = jobs.map(job => {
+      const badge = { cls:'badge badge-hot', text: `Up to $${job.budget_max}` };
+      return renderJobCard(job, badge);
+    }).join('');
+  }
+
+  async function loadCategories(allJobs) {
+    if (!allJobs?.length) {
+      document.getElementById('category-grid').innerHTML = `<div style="grid-column:1/-1;font-size:0.82rem;color:var(--pro-muted)">No open jobs found.</div>`;
+      document.getElementById('category-total').textContent = '0 open jobs';
+      return;
+    }
+
+    const counts = {};
+    allJobs.forEach(j => {
+      const cat = j.category || 'Other / Custom';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
+    document.getElementById('category-total').textContent = `${allJobs.length} open job${allJobs.length!==1?'s':''}`;
+
+    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    document.getElementById('category-grid').innerHTML = sorted.map(([cat, count]) =>
+      `<a class="category-chip" href="browse-jobs?category=${encodeURIComponent(cat)}">
+        <div class="category-chip-name">${esc(cat)}</div>
+        <div class="category-chip-count">${count} open job${count!==1?'s':''}</div>
+      </a>`
+    ).join('') || `<div style="grid-column:1/-1;font-size:0.82rem;color:var(--pro-muted)">No categories loaded.</div>`;
+  }
+
+  async function loadMyBids(userId) {
+    const { data: bids } = await API.getMyBids(userId);
+    const pending = (bids || []).filter(b => b.status === 'pending');
+    document.getElementById('sidebar-active-bids').textContent = pending.length;
+
+    const total = (bids || []).length;
+    const accepted = (bids || []).filter(b => b.status === 'accepted').length;
+    document.getElementById('sidebar-winrate').textContent = total ? `${Math.round((accepted/total)*100)}%` : '—';
+
+    const list = document.getElementById('my-bids-list');
+    if (!pending.length) {
+      list.innerHTML = `<div class="pro-empty"><p>No pending bids. Find a job to bid on!</p><a href="browse-jobs" class="topbar-btn primary" style="display:inline-flex;text-decoration:none">Browse Jobs</a></div>`;
+      return { total, accepted };
+    }
+    list.innerHTML = pending.slice(0, 4).map(b => {
+      const job = b.job;
+      return `<a class="job-card" href="job-detail?id=${esc(job?.id)}">
+        <div class="job-card-top">
+          <h3>${esc(job?.title||'Job')}</h3>
+          <span class="badge" style="background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.2)">Pending</span>
+        </div>
+        <div class="job-card-footer">
+          ${b.amount?`<span class="budget-tag">Your bid: $${b.amount}</span>`:''}
+          <span class="job-tag">&#9200; ${timeAgo(b.created_at)}</span>
+          ${job?.city?`<span class="job-tag">&#128205; ${esc(job.city)}</span>`:''}
+        </div>
+      </a>`;
+    }).join('');
+    return { total, accepted };
+  }
+
+  async function loadStats(userId, allJobs) {
+    const openCount = allJobs?.length ?? 0;
+    const todayJobs = (allJobs||[]).filter(j => {
+      const d = new Date(j.created_at);
+      const now = new Date();
+      return d.toDateString() === now.toDateString();
+    }).length;
+
+    const { data: myBids } = await API.getMyBids(userId);
+    const activeBids = (myBids||[]).filter(b=>b.status==='pending').length;
+    const totalBids = (myBids||[]).length;
+    const accepted = (myBids||[]).filter(b=>b.status==='accepted').length;
+    const winRate = totalBids ? `${Math.round((accepted/totalBids)*100)}%` : '—';
+
+    document.getElementById('stats-row').innerHTML = `
+      <div class="pro-stat teal">
+        <div class="pro-stat-value">${openCount}</div>
+        <div class="pro-stat-label">Open Jobs</div>
+      </div>
+      <div class="pro-stat green">
+        <div class="pro-stat-value">${todayJobs}</div>
+        <div class="pro-stat-label">New Today</div>
+      </div>
+      <div class="pro-stat amber">
+        <div class="pro-stat-value">${activeBids}</div>
+        <div class="pro-stat-label">Active Bids</div>
+      </div>
+      <div class="pro-stat orange">
+        <div class="pro-stat-value">${winRate}</div>
+        <div class="pro-stat-label">Win Rate</div>
+      </div>`;
+  }
+
+  async function reloadAll() {
+    document.getElementById('new-jobs-banner').classList.remove('show');
+    const [allJobsResult] = await Promise.all([
+      loadOpportunities(),
+      loadHighValue()
+    ]);
+    await loadCategories(allJobsResult);
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const auth = await APP.requireVerifiedAssembler();
+    if (!auth) return;
+    const { user, profile } = auth;
+
+    // Sidebar profile
+    const firstName = profile.full_name?.split(' ')[0] || 'Assembler';
+    document.getElementById('sidebar-name').textContent = profile.full_name || 'Assembler';
+    if (profile.profile_photo) {
+      document.getElementById('sidebar-avatar').innerHTML = `<img src="${esc(profile.profile_photo)}" alt="${esc(firstName)}" />`;
+    } else {
+      document.getElementById('sidebar-avatar').textContent = firstName[0]?.toUpperCase() || '?';
+    }
+
+    // Availability toggle
+    const pill = document.getElementById('avail-pill');
+    const label = document.getElementById('avail-label');
+    const toggle = document.getElementById('avail-toggle');
+    let available = profile.is_available ?? false;
+    function updateAvailUI() {
+      pill.className = 'avail-pill' + (available ? ' on' : '');
+      label.textContent = available ? 'Available' : 'Offline';
+      toggle.className = 'avail-toggle' + (available ? ' on' : '');
+    }
+    updateAvailUI();
+    toggle.addEventListener('click', async () => {
+      available = !available;
+      updateAvailUI();
+      await API.updateProfile(user.id, { is_available: available });
+    });
+
+    document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../';
+    });
+
+    // Load all data in parallel
+    const [allJobs] = await Promise.all([
+      loadOpportunities(),
+      loadHighValue(),
+    ]);
+    await Promise.all([
+      loadCategories(allJobs),
+      loadMyBids(user.id),
+    ]);
+    await loadStats(user.id, allJobs);
+
+    // Realtime: new jobs notification
+    const jobsChannel = supabaseClient
+      .channel('asm-marketplace-jobs')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'jobs' },
+        (payload) => {
+          if (payload.new?.status !== 'open') return;
+          const banner = document.getElementById('new-jobs-banner');
+          const countEl = document.getElementById('new-jobs-count');
+          countEl.textContent = (parseInt(countEl.textContent) || 0) + 1;
+          banner.classList.add('show');
+        }
+      )
+      .subscribe();
+
+    window.addEventListener('beforeunload', () => jobsChannel.unsubscribe());
+  });
+</script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>
