@@ -2,6 +2,65 @@ import { upsertContact, addNote } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { getSupabase } from './_supabase.js';
 
+// ── Disposable / spam email domain blocklist ──────────────────────────────────
+const BLOCKED_DOMAINS = new Set([
+  'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org',
+  'guerrillamail.biz','guerrillamail.de','guerrillamail.info','sharklasers.com',
+  'guerrillamailblock.com','grr.la','guerrillamail.de','spam4.me','trashmail.at',
+  'trashmail.com','trashmail.io','trashmail.me','trashmail.net','trashmail.org',
+  'trashmail.xyz','yopmail.com','yopmail.fr','yopmail.net','cool.fr.nf',
+  'jetable.fr.nf','nospam.ze.tc','nomail.xl.cx','mega.zik.dj','speed.1s.fr',
+  'courriel.fr.nf','moncourrier.fr.nf','monemail.fr.nf','monmail.fr.nf',
+  'tempmail.com','tempmail.net','tempmail.org','tempr.email','temp-mail.org',
+  'temp-mail.com','throwam.com','throwam.net','mailnull.com','mailnull.net',
+  'spamgourmet.com','spamgourmet.net','spamgourmet.org','spamgourmet.me',
+  'dispostable.com','dispostable.net','mailnesia.com','mailnull.com',
+  'maildrop.cc','mailsac.com','spaml.com','spaml.de','spamto.de',
+  'fakeinbox.com','mailboxy.fun','burnermail.io','throwAwayMail.com',
+  'cock.li','airmail.cc','420blaze.it','nwldx.com','ytnef.com',
+  'getairmail.com','filzmail.com','throwam.com','incognitomail.com',
+  'incognitomail.net','eonjump.com','mailforspam.com','crazymailing.com',
+  'binkmail.com','bobmail.info','dayrep.com','einrot.com','fleckens.hu',
+  'hochsitze.com','hulapla.de','kingsq.ga','lacedmail.com','lazyinbox.us',
+  'letthemeatspam.com','lookugly.com','rppkn.com','sogetthis.com',
+  'stuffitnow.com','sweetxxx.de','thisisnotmyrealemail.com','thinktank.us',
+  'willhackforfood.biz','teleworm.us','dingbone.com','fudgedrinking.com',
+  'onewaymail.com','dontreg.com','dontsendmespam.de','drdrb.com',
+  'dump-email.info','email60.com','emailna.com','emailproxsy.com',
+  'explodemail.com','fast-email.com','fivemail.de','gowikibooks.com',
+  'gowikicampus.com','gowikicars.com','gowikifilms.com','gowikigames.com',
+  'gowikimusic.com','gowikinetwork.com','gowikitravel.com','gowikitv.com',
+  'hasanmail.ml','hissfame.com','hz.ml','ieatspam.eu','ieatspam.info',
+  'inboxalias.com','jnxjn.com','klzlk.com','kyois.com','llogin.com',
+  'mail4trash.com','mailbidon.com','mailimate.com','mailmetrash.com',
+  'mailmoat.com','mailnew.com','mailscrap.com','mailsiphon.com','notmailinator.com',
+  'no-spam.ws','nospam.ze.tc','nus.edu.sg',
+]);
+
+function isDisposableEmail(email) {
+  const domain = email.split('@')[1]?.toLowerCase() || '';
+  if (BLOCKED_DOMAINS.has(domain)) return true;
+  // Catch patterns like "xxxxx@mailinator.net", "xxxxx@yopmail.net" subdomains
+  return [...BLOCKED_DOMAINS].some(d => domain.endsWith('.' + d));
+}
+
+// ── Location gibberish detection ─────────────────────────────────────────────
+function isGibberish(str) {
+  const s = str.trim();
+  if (s.length < 2) return true;
+  // Must contain at least one real letter (not all digits/symbols)
+  if (!/[a-zA-Z]/.test(s)) return true;
+  // Reject strings with 4+ consecutive consonants that form no known pattern
+  const consonants = /[^aeiouAEIOU\s\-'\.]{5,}/;
+  if (consonants.test(s.replace(/[^a-zA-Z]/g, ''))) return true;
+  // Detect keyboard mashing: 3+ repeating chars in a row
+  if (/(.)\1{3,}/.test(s)) return true;
+  // Ratio of unique chars must be reasonable — "asdfgh" → all unique but no vowel → caught above
+  // City names should have at least one vowel
+  if (!/[aeiouAEIOU]/.test(s)) return true;
+  return false;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
@@ -12,6 +71,19 @@ export default async function handler(req, res) {
 
   if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !phone || !city || !state) {
     return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  // ── Email quality checks ──────────────────────────────────────────────────
+  if (isDisposableEmail(email)) {
+    return res.status(400).json({ error: 'Please use a real, permanent email address. Disposable or temporary emails are not accepted.' });
+  }
+
+  // ── Location sanity checks ────────────────────────────────────────────────
+  if (isGibberish(city)) {
+    return res.status(400).json({ error: 'Please enter a valid city name.' });
+  }
+  if (isGibberish(name)) {
+    return res.status(400).json({ error: 'Please enter your real full name.' });
   }
 
   const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
