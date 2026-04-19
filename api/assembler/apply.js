@@ -245,7 +245,7 @@ function buildOwnerEmail({ cleanName, cleanEmail, city, zip, yearsExperience, ha
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0;font-size:13px;color:#166534;font-weight:600">&#10003; $30 application fee paid &bull; Stripe Identity verification initiated</p>
-      ${paymentIntentId ? `<p style="margin:4px 0 0;font-size:12px;color:#15803d">Payment Intent: ${esc(paymentIntentId)}</p>` : ''}
+      ${paymentIntentId ? `<p style="margin:4px 0 0;font-size:12px;color:#15803d">Stripe Payment ID: ${esc(paymentIntentId)}</p>` : ''}
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
