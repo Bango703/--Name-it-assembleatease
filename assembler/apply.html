@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://js.stripe.com/v3/"></script>
   <style>
     body { background: #ffffff; }
     .apply-wrap { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
@@ -68,6 +69,12 @@
     .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: #4a5568; }
     .login-link a { color: #0097a7; text-decoration: none; font-weight: 500; }
 
+    /* Stripe card element */
+    .card-element-wrap { padding: 0.65rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; transition: border-color 0.15s; }
+    .card-element-wrap.StripeElement--focus { border-color: #0097a7; }
+    .card-element-wrap.StripeElement--invalid { border-color: #ef4444; }
+    .card-error { font-size: 0.78rem; color: #ef4444; margin-top: 5px; display: block; }
+    .fee-note { font-size: 0.78rem; color: #4a5568; margin-top: 5px; }
     @media (max-width: 600px) { .form-row, .check-grid { grid-template-columns: 1fr; } .radio-row { flex-direction: column; } }
   </style>
 </head>
@@ -101,17 +108,10 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="phone">Phone number *</label>
-          <input type="tel" id="phone" class="form-control" placeholder="(512) 555-0123" autocomplete="tel" required />
-          <span class="field-error" id="phone-error"></span>
-        </div>
-        <div class="form-group">
           <label for="city">City *</label>
           <input type="text" id="city" class="form-control" placeholder="Austin" autocomplete="address-level2" required />
           <span class="field-error" id="city-error"></span>
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label for="zip">Zip code *</label>
           <input type="text" id="zip" class="form-control" placeholder="78701" autocomplete="postal-code" maxlength="10" required />
@@ -195,8 +195,20 @@
       <span class="field-error" id="conduct-error"></span>
     </div>
 
+    <!-- Payment -->
+    <div class="section">
+      <div class="section-title">Application Fee — $30</div>
+      <p style="font-size:0.875rem;color:#4a5568;margin:0 0 1rem;line-height:1.55">A one-time $30 application fee is required to cover the cost of identity verification. Your card will be charged when you submit.</p>
+      <div class="form-group">
+        <label>Card details *</label>
+        <div id="card-element" class="card-element-wrap"></div>
+        <span class="card-error" id="card-error"></span>
+        <span class="fee-note">Payments processed securely by Stripe. We do not store your card details.</span>
+      </div>
+    </div>
+
     <input type="hidden" id="invite-token" value="" />
-    <button type="submit" class="btn-apply" id="submit-btn">Submit Application</button>
+    <button type="submit" class="btn-apply" id="submit-btn">Pay $30 &amp; Submit Application</button>
   </form>
 
   <div class="login-link">Already have an account? <a href="../auth/login">Log in</a></div>
@@ -207,38 +219,78 @@
   <div class="apply-logo"><a href="../">Assemble<span>AtEase</span></a></div>
   <div class="success-box">
     <div class="icon">&#10003;</div>
-    <h2>Application Submitted!</h2>
-    <p>Thank you for applying to join AssembleAtEase. We've sent a confirmation to your email address.</p>
-    <div id="persona-section" style="display:none">
-      <p style="margin-bottom:0.5rem">To complete your application, please verify your identity by completing all 3 steps below:</p>
-      <div style="display:flex;flex-direction:column;gap:0.75rem;max-width:360px;margin:1rem auto 0">
-        <button class="btn-apply persona-step-btn" id="persona-btn-gov" style="display:none">
-          <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
-            <span style="font-size:1.2em">&#128196;</span> Step 1: Government ID
-          </span>
-        </button>
-        <button class="btn-apply persona-step-btn" id="persona-btn-selfie" style="display:none">
-          <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
-            <span style="font-size:1.2em">&#128247;</span> Step 2: Selfie Verification
-          </span>
-        </button>
-        <button class="btn-apply persona-step-btn" id="persona-btn-db" style="display:none">
-          <span style="display:flex;align-items:center;justify-content:center;gap:0.5rem">
-            <span style="font-size:1.2em">&#128269;</span> Step 3: Database Check
-          </span>
-        </button>
-      </div>
-      <p style="margin-top:1rem;font-size:0.85rem;color:#71717a">All 3 checks must pass for full verification.</p>
+    <h2 id="success-heading">Application Submitted!</h2>
+    <p id="success-msg">Thank you for applying. Your $30 fee has been received and a confirmation has been sent to your email.</p>
+    <!-- Identity verification CTA (shown when verificationUrl returned) -->
+    <div id="identity-section" style="display:none;margin-top:1.25rem">
+      <p style="font-size:0.9rem;color:#374151;margin-bottom:0.75rem">Complete your identity verification to finalize your application:</p>
+      <a id="verify-btn" href="#" class="btn-apply" style="display:inline-block;text-decoration:none;max-width:320px">
+        Verify Identity &rarr;
+      </a>
+      <p style="margin-top:0.75rem;font-size:0.8rem;color:#71717a">You will be redirected to Stripe's secure verification page.</p>
     </div>
-    <p id="no-persona-msg">Our team is reviewing your application. We'll be in touch within 1–2 business days.</p>
-    <div id="post-apply-login" style="margin-top:1.5rem;display:none"><a href="../auth/login" style="color:#0097a7;font-weight:500;text-decoration:none">Go to Login &rarr;</a></div>
+    <!-- Verification complete message -->
+    <div id="verification-complete-section" style="display:none;margin-top:1.25rem">
+      <p style="font-size:0.9rem;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.85rem">&#127881; Verification submitted! Our team will review your application shortly.</p>
+    </div>
+    <div style="margin-top:1.5rem">
+      <a href="../auth/login" style="color:#0097a7;font-weight:500;text-decoration:none;font-size:0.875rem">Go to Login &rarr;</a>
+    </div>
   </div>
 </div>
 
 <script>
 (function() {
-  // ── Invite token detection and pre-fill ──
+  // ── Stripe setup ──
+  var stripe = Stripe(window.__STRIPE_PK__ || 'pk_live_placeholder');
+  var elements = stripe.elements();
+  var cardElement = elements.create('card', {
+    style: {
+      base: { fontFamily: 'DM Sans, -apple-system, sans-serif', fontSize: '15px', color: '#0d1117', '::placeholder': { color: '#a0aec0' } },
+      invalid: { color: '#ef4444' },
+    },
+  });
+  cardElement.mount('#card-element');
+  cardElement.on('change', function(event) {
+    var display = document.getElementById('card-error');
+    display.textContent = event.error ? event.error.message : '';
+  });
+
+  // Load publishable key from API
+  fetch('/api/config/public-key')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) {
+      if (d && d.publishableKey) {
+        stripe = Stripe(d.publishableKey);
+        elements = stripe.elements();
+        cardElement.unmount();
+        cardElement = elements.create('card', {
+          style: {
+            base: { fontFamily: 'DM Sans, -apple-system, sans-serif', fontSize: '15px', color: '#0d1117', '::placeholder': { color: '#a0aec0' } },
+            invalid: { color: '#ef4444' },
+          },
+        });
+        cardElement.mount('#card-element');
+        cardElement.on('change', function(event) {
+          var display = document.getElementById('card-error');
+          display.textContent = event.error ? event.error.message : '';
+        });
+      }
+    })
+    .catch(function() { /* use placeholder */ });
+
+  // ── Handle ?verification=complete return from Stripe Identity ──
   var params = new URLSearchParams(window.location.search);
+  if (params.get('verification') === 'complete') {
+    document.querySelector('.apply-wrap').style.display = 'none';
+    var successEl = document.getElementById('success-state');
+    successEl.style.display = '';
+    document.getElementById('success-heading').textContent = 'Verification Submitted!';
+    document.getElementById('success-msg').textContent = 'Your identity verification has been submitted. Our team will review your application shortly.';
+    document.getElementById('verification-complete-section').style.display = '';
+  }
+
+  // ── Invite token detection and pre-fill ──
   var inviteToken = params.get('invite');
   if (inviteToken) {
     document.getElementById('invite-token').value = inviteToken;
@@ -249,7 +301,6 @@
           var d = res.data;
           if (d.name) document.getElementById('full-name').value = d.name;
           if (d.email) document.getElementById('email').value = d.email;
-          if (d.phone) document.getElementById('phone').value = d.phone;
           if (d.city) document.getElementById('city').value = d.city;
           var banner = document.getElementById('invite-banner');
           banner.style.display = '';
@@ -300,6 +351,7 @@
   function clearErrors() {
     document.querySelectorAll('.field-error').forEach(function(el) { el.textContent = ''; });
     document.querySelectorAll('.form-control').forEach(function(el) { el.classList.remove('error'); });
+    document.getElementById('card-error').textContent = '';
     document.getElementById('alert').className = 'alert hidden';
   }
 
@@ -309,7 +361,6 @@
 
     var fullName = document.getElementById('full-name').value.trim();
     var email = document.getElementById('email').value.trim();
-    var phone = document.getElementById('phone').value.trim();
     var city = document.getElementById('city').value.trim();
     var zip = document.getElementById('zip').value.trim();
     var years = document.getElementById('years').value;
@@ -330,7 +381,6 @@
     var hasErr = false;
     if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
-    if (!phone) { fieldError('phone', 'Required'); hasErr = true; }
     if (!city) { fieldError('city', 'Required'); hasErr = true; }
     if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
     if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
@@ -344,6 +394,17 @@
 
     var btn = document.getElementById('submit-btn');
     btn.disabled = true;
+    btn.textContent = 'Processing payment...';
+
+    // Create Stripe PaymentMethod from card element
+    var pmResult = await stripe.createPaymentMethod({ type: 'card', card: cardElement });
+    if (pmResult.error) {
+      document.getElementById('card-error').textContent = pmResult.error.message;
+      btn.disabled = false;
+      btn.textContent = 'Pay $30 & Submit Application';
+      return;
+    }
+
     btn.textContent = 'Submitting...';
 
     try {
@@ -354,7 +415,6 @@
           fullName: fullName,
           email: email,
           password: password,
-          phone: phone,
           city: city,
           zip: zip,
           servicesOffered: services,
@@ -363,6 +423,7 @@
           yearsExperience: parseInt(years, 10),
           bio: bio || null,
           codeOfConduct: true,
+          paymentMethodId: pmResult.paymentMethod.id,
           inviteToken: document.getElementById('invite-token').value || null,
         }),
       });
@@ -372,7 +433,7 @@
       if (!resp.ok) {
         showAlert('error', data.error || 'Something went wrong. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Submit Application';
+        btn.textContent = 'Pay $30 & Submit Application';
         return;
       }
 
@@ -381,43 +442,16 @@
       var successEl = document.getElementById('success-state');
       successEl.style.display = '';
 
-      // If Persona inquiries were created, show 3-step verification
-      var anyInquiry = data.personaInquiries &&
-        Object.values(data.personaInquiries).some(function(v) { return v && v.id; });
-
-      if (anyInquiry) {
-        var inqs = data.personaInquiries;
-        document.getElementById('persona-section').style.display = '';
-        document.getElementById('no-persona-msg').style.display = 'none';
-
-        var steps = [
-          { key: 'gov', btnId: 'persona-btn-gov' },
-          { key: 'selfie', btnId: 'persona-btn-selfie' },
-          { key: 'db', btnId: 'persona-btn-db' },
-        ];
-        steps.forEach(function(step) {
-          var inq = inqs[step.key];
-          if (inq && inq.id) {
-            var btn = document.getElementById(step.btnId);
-            btn.style.display = '';
-            btn.addEventListener('click', (function(capturedInq) {
-              return function() {
-                var url = 'https://withpersona.com/verify?inquiry-id=' + encodeURIComponent(capturedInq.id);
-                if (capturedInq.sessionToken) url += '&session-token=' + encodeURIComponent(capturedInq.sessionToken);
-                window.open(url, '_blank');
-              };
-            })(inq));
-          }
-        });
-      } else {
-        // No Persona — show login link
-        document.getElementById('post-apply-login').style.display = '';
+      // Show identity verification button if URL was returned
+      if (data.verificationUrl) {
+        document.getElementById('identity-section').style.display = '';
+        document.getElementById('verify-btn').href = data.verificationUrl;
       }
 
     } catch (err) {
       showAlert('error', 'Connection error. Please try again.');
       btn.disabled = false;
-      btn.textContent = 'Submit Application';
+      btn.textContent = 'Pay $30 & Submit Application';
     }
   });
 })();

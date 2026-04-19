@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     .select('id, full_name')
     .eq('role', 'assembler')
     .eq('tier', 'starter')
-    .eq('persona_verified', true)
+    .eq('identity_verified', true)
     .gte('completed_jobs', 10)
     .gte('rating', 4.5);
 
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     .select('id, full_name')
     .eq('role', 'assembler')
     .eq('tier', 'verified')
-    .eq('persona_verified', true)
+    .eq('identity_verified', true)
     .gte('completed_jobs', 30)
     .gte('rating', 4.8);
 

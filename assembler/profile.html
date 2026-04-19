@@ -177,16 +177,11 @@
       <div class="form-section" id="tier-section">
         <div class="form-section-title">Tier &amp; Verification</div>
         <div class="info-row"><span class="info-label">Tier</span><span class="info-value" id="tier-value">—</span></div>
-        <div class="info-row"><span class="info-label">Identity verified</span><span class="info-value" id="persona-value">—</span></div>
-        <!-- Shown only when not yet verified -->
-        <div id="persona-verify-section" style="display:none;margin-top:1.25rem;padding:1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:10px">
-          <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5">&#9888; Complete your 3-step identity verification to be approved for jobs.</p>
-          <div id="persona-link-btns" style="display:flex;flex-direction:column;gap:0.5rem"></div>
-          <p id="persona-link-error" style="display:none;font-size:0.8rem;color:#b91c1c;margin:0.5rem 0 0"></p>
-          <button class="btn btn-primary btn-sm" id="persona-link-btn" type="button"
-            style="margin-top:0.75rem;background:#0097a7;border:none;border-radius:99px;padding:0.55rem 1.4rem;font-size:0.875rem;font-weight:600;color:#fff;cursor:pointer">
-            Load Verification Links
-          </button>
+        <div class="info-row"><span class="info-label">Identity verified</span><span class="info-value" id="identity-value">—</span></div>
+        <!-- Shown when not yet verified -->
+        <div id="identity-verify-section" style="display:none;margin-top:1.25rem;padding:1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:10px">
+          <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5">&#9888; Your identity verification is pending. You will be notified by email once complete.</p>
+          <p style="font-size:0.8rem;color:#92400e;margin:0">Need help? Email <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
         </div>
       </div>
 
@@ -326,69 +321,14 @@
     // Tier & verification
     var tierLabels = { pending: 'Pending Review', starter: 'Starter', verified: '✓ Verified', elite: '★ Elite', suspended: 'Suspended' };
     document.getElementById('tier-value').textContent = tierLabels[profile.tier] || profile.tier || '—';
-    document.getElementById('persona-value').innerHTML = profile.persona_verified
-      ? '<span style="color:#0097a7">✓ Verified</span>'
-      : '<span style="color:#f59e0b">Not yet verified</span>';
+    document.getElementById('identity-value').innerHTML = profile.identity_verified
+      ? '<span style="color:#0097a7">&#10003; Verified</span>'
+      : profile.stripe_verification_id
+        ? '<span style="color:#f59e0b">In progress</span>'
+        : '<span style="color:#9ca3af">Not started</span>';
 
-    // Show verification section if not yet verified
-    if (!profile.persona_verified) {
-      document.getElementById('persona-verify-section').style.display = '';
-
-      document.getElementById('persona-link-btn').addEventListener('click', async function() {
-        var btn = this;
-        btn.disabled = true;
-        btn.textContent = 'Generating links…';
-        document.getElementById('persona-link-error').style.display = 'none';
-        document.getElementById('persona-link-btns').innerHTML = '';
-
-        try {
-          const r = await fetch('/api/assembler/persona-link', {
-            headers: { 'Authorization': 'Bearer ' + auth.session.access_token },
-          });
-          const d = await r.json();
-
-          if (!r.ok) {
-            document.getElementById('persona-link-error').textContent = d.error || 'Failed to load verification links.';
-            document.getElementById('persona-link-error').style.display = '';
-            btn.disabled = false;
-            btn.textContent = 'Try Again';
-            return;
-          }
-          if (d.alreadyVerified) {
-            document.getElementById('persona-verify-section').style.display = 'none';
-            document.getElementById('persona-value').innerHTML = '<span style="color:#0097a7">✓ Verified</span>';
-            return;
-          }
-
-          const labels = { gov: '&#128196; Step 1: Government ID', selfie: '&#128247; Step 2: Selfie Verification', db: '&#128269; Step 3: Database Check' };
-          const container = document.getElementById('persona-link-btns');
-          let anyLink = false;
-          ['gov', 'selfie', 'db'].forEach(function(key) {
-            if (d.links && d.links[key]) {
-              anyLink = true;
-              const a = document.createElement('a');
-              a.href = d.links[key];
-              a.target = '_blank';
-              a.rel = 'noopener noreferrer';
-              a.innerHTML = labels[key];
-              a.style.cssText = 'display:block;padding:0.6rem 1rem;background:#0097a7;color:#fff;text-decoration:none;border-radius:99px;font-size:0.875rem;font-weight:600;text-align:center';
-              container.appendChild(a);
-            }
-          });
-
-          if (!anyLink) {
-            document.getElementById('persona-link-error').textContent = 'No pending verification steps found. Contact support if this is unexpected.';
-            document.getElementById('persona-link-error').style.display = '';
-          }
-
-          btn.style.display = 'none';
-        } catch (e) {
-          document.getElementById('persona-link-error').textContent = 'Connection error. Please try again.';
-          document.getElementById('persona-link-error').style.display = '';
-          btn.disabled = false;
-          btn.textContent = 'Try Again';
-        }
-      });
+    if (!profile.identity_verified) {
+      document.getElementById('identity-verify-section').style.display = '';
     }
 
     if (profile.profile_photo) {

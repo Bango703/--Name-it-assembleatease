@@ -47,12 +47,12 @@ const APP = {
     return auth;
   },
 
-  // Require auth + verified assembler (tier != pending AND persona_verified).
+  // Require auth + verified assembler (tier != pending AND identity_verified).
   // Unverified assemblers are redirected to the dashboard which shows status banners.
   async requireVerifiedAssembler() {
     const auth = await this.requireAuth(['assembler']);
     if (!auth) return null;
-    if (auth.profile.tier === 'pending' || auth.profile.persona_verified !== true) {
+    if (auth.profile.tier === 'pending' || auth.profile.identity_verified !== true) {
       window.location.href = this._rootPath('assembler/');
       return null;
     }

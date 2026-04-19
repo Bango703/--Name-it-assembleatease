@@ -89,9 +89,9 @@
     .pro-banner.hidden{display:none}
     .pro-banner-title{font-size:0.875rem;font-weight:500;color:#d97706}
     .pro-banner-sub{font-size:0.78rem;color:rgba(217,119,6,0.7);margin-top:2px}
-    .pro-banner.persona{background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15)}
-    .pro-banner.persona .pro-banner-title{color:#3b82f6}
-    .pro-banner.persona .pro-banner-sub{color:rgba(59,130,246,0.7)}
+    .pro-banner.identity{background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15)}
+    .pro-banner.identity .pro-banner-title{color:#3b82f6}
+    .pro-banner.identity .pro-banner-sub{color:rgba(59,130,246,0.7)}
     .tier-badge{display:inline-flex;align-items:center;gap:4px;padding:0.15rem 0.55rem;border-radius:999px;font-size:0.68rem;font-weight:600;margin-left:6px}
     .tier-pending{background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.2)}
     .tier-starter{background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2)}
@@ -174,16 +174,16 @@
         </div>
       </div>
 
-      <!-- Persona verification banner -->
-      <div id="persona-banner" class="pro-banner persona hidden">
+      <!-- Identity verification banner -->
+      <div id="identity-banner" class="pro-banner identity hidden">
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:1.3rem">&#128274;</span>
           <div>
-            <div class="pro-banner-title">Identity verification required</div>
-            <div class="pro-banner-sub">Complete your background check to start accepting jobs.</div>
+            <div class="pro-banner-title">Identity verification pending</div>
+            <div class="pro-banner-sub" id="identity-banner-sub">Your identity verification is in progress. We'll notify you once complete.</div>
           </div>
         </div>
-        <a id="persona-verify-btn" href="#" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem">Verify Identity</a>
+        <a id="identity-verify-btn" href="apply" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem;display:none">Complete Verification</a>
       </div>
 
       <div id="profile-banner" class="pro-banner hidden">
@@ -322,30 +322,15 @@
       document.getElementById('tier-status-sub').textContent='Complete your profile and we will start assigning jobs to you.';
     }
 
-    // Persona verification banner
-    if(!profile.persona_verified){
-      var pBanner=document.getElementById('persona-banner');
-      pBanner.classList.remove('hidden');
-      var pBtn=document.getElementById('persona-verify-btn');
-      // persona_inquiry_id is a JSON string like {"gov":"inq_1","selfie":"inq_2","db":"inq_3"}
-      var pInqs=null;
-      try { pInqs=typeof profile.persona_inquiry_id==='string'?JSON.parse(profile.persona_inquiry_id):profile.persona_inquiry_id; } catch(e){}
-      if(pInqs && typeof pInqs==='object'){
-        // Find first incomplete check to link to
-        var checks=profile.persona_checks||{};
-        var nextKey=['gov','selfie','db'].find(function(k){return checks[k]!==true && pInqs[k];});
-        if(nextKey){
-          pBtn.href='https://withpersona.com/verify?inquiry-id='+pInqs[nextKey];
-          pBtn.target='_blank';
-          var stepLabels={gov:'Step 1: Gov ID',selfie:'Step 2: Selfie',db:'Step 3: Database'};
-          pBtn.textContent='Continue: '+stepLabels[nextKey];
-        } else {
-          pBtn.textContent='Contact Support';
-          pBtn.href='mailto:service@assembleatease.com';
-        }
+    // Identity verification banner
+    if(!profile.identity_verified){
+      var iBanner=document.getElementById('identity-banner');
+      iBanner.classList.remove('hidden');
+      var iSub=document.getElementById('identity-banner-sub');
+      if(profile.stripe_verification_id){
+        iSub.textContent='Your identity verification is being processed. We\'ll notify you once complete.';
       } else {
-        pBtn.textContent='Contact Support';
-        pBtn.href='mailto:service@assembleatease.com';
+        iSub.textContent='Identity verification is required to start accepting jobs. Contact support if you need help.';
       }
     }
 
@@ -366,7 +351,7 @@
 
     // ── VERIFICATION GATE ──
     // If assembler is pending or not background-checked, show only status banners
-    if(profile.tier==='pending' || profile.persona_verified!==true){
+    if(profile.tier==='pending' || profile.identity_verified!==true){
       // Hide functional sections
       document.getElementById('stats-row').style.display='none';
       document.querySelector('.pro-grid').style.display='none';

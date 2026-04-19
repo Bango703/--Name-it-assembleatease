@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   let query = sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, tier, persona_verified, persona_checks, persona_verified_at, services_offered, has_tools, has_transport, years_experience, rating, completed_jobs, created_at')
+    .select('id, full_name, email, phone, city, zip, tier, identity_verified, identity_verified_at, stripe_verification_id, stripe_customer_id, payment_confirmed, services_offered, has_tools, has_transport, years_experience, rating, completed_jobs, created_at')
     .eq('role', 'assembler')
     .order('created_at', { ascending: false });
 

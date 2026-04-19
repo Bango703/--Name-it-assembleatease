@@ -298,7 +298,7 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Name</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Tier</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Persona</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">ID Verification</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Jobs</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rating</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Applied</th>
@@ -1018,13 +1018,10 @@
     return '<span class="badge ' + (colors[tier]||'') + '">' + (icons[tier]||'') + ' ' + (tier||'—') + '</span>';
   }
 
-  function personaStatus(a) {
-    if (a.persona_verified) return '<span style="color:#1d9e75">&#10003; Verified</span>';
-    var checks = a.persona_checks || {};
-    var passed = [checks.gov === true, checks.selfie === true, checks.db === true].filter(Boolean).length;
-    var failed = [checks.gov === 'failed', checks.selfie === 'failed', checks.db === 'failed'].filter(Boolean).length;
-    if (failed > 0) return '<span style="color:var(--red)">' + failed + ' failed</span>';
-    if (passed > 0) return '<span style="color:var(--amber)">' + passed + '/3 done</span>';
+  function identityStatus(a) {
+    if (a.identity_verified) return '<span style="color:#1d9e75">&#10003; Verified</span>';
+    if (a.stripe_verification_id) return '<span style="color:var(--amber)">In progress</span>';
+    if (a.payment_confirmed) return '<span style="color:#0097a7">Paid, pending ID</span>';
     return '<span style="color:var(--muted)">Not started</span>';
   }
 
@@ -1041,15 +1038,15 @@
         + '<td style="' + rowStyle + '"><strong>' + esc(a.full_name) + '</strong><br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span></td>'
         + '<td style="' + rowStyle + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
         + '<td style="' + rowStyle + '">' + tierBadge(a.tier) + '</td>'
-        + '<td style="' + rowStyle + '">' + personaStatus(a) + '</td>'
+        + '<td style="' + rowStyle + '">' + identityStatus(a) + '</td>'
         + '<td style="' + rowStyle + '">' + (a.completed_jobs||0) + '</td>'
         + '<td style="' + rowStyle + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
         + '<td style="' + rowStyle + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
         + '<td style="' + rowStyle + '">'
           + (a.tier === 'pending'
-              ? (a.persona_verified
+              ? (a.identity_verified
                   ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
-                  : '<button class="btn" disabled title="Identity verification incomplete. Assembler must complete all 3 Persona checks before approval." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
+                  : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
               : '')
           + '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
         + '</td></tr>';
@@ -1089,32 +1086,25 @@
 
   function showAssemblerDetail(a) {
     document.getElementById('asm-detail-name').textContent = a.full_name;
-    var checks = a.persona_checks || {};
-    var checkHtml = ['gov','selfie','db'].map(function(k) {
-      var label = { gov: 'Gov ID', selfie: 'Selfie', db: 'Database' }[k];
-      var val = checks[k] === true ? '<span style="color:#1d9e75">&#10003; Passed</span>'
-              : checks[k] === 'failed' ? '<span style="color:var(--red)">&#10007; Failed</span>'
-              : '<span style="color:var(--muted)">Pending</span>';
-      return label + ': ' + val;
-    }).join(' &bull; ');
+    
 
     document.getElementById('asm-detail-body').innerHTML = [
       '<strong>Email:</strong> ' + esc(a.email),
       '<strong>Phone:</strong> ' + esc(a.phone||'—'),
       '<strong>Location:</strong> ' + esc(a.city||'—') + ', ' + esc(a.zip||''),
       '<strong>Tier:</strong> ' + tierBadge(a.tier),
-      '<strong>Persona:</strong> ' + (a.persona_verified ? '<span style="color:#1d9e75">Fully verified</span>' : checkHtml),
+      '<strong>ID Verification:</strong> ' + identityStatus(a),
       '<strong>Services:</strong> ' + (a.services_offered||[]).join(', '),
       '<strong>Experience:</strong> ' + (a.years_experience||0) + ' year(s)',
       '<strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &bull; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
       '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &bull; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
-      a.persona_verified_at ? '<strong>Verified:</strong> ' + formatDate(a.persona_verified_at) : '',
+      a.identity_verified_at ? '<strong>Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
       '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">'
         + (a.tier === 'pending'
-            ? (a.persona_verified
+            ? (a.identity_verified
                 ? '<button class="btn btn-teal" onclick="document.getElementById(\'asm-detail-modal\').classList.remove(\'open\');document.querySelector(\'[data-approve=\\\'' + a.id + '\\\']\')?.click()">Approve → Starter</button>'
-                : '<button class="btn" disabled title="Identity verification incomplete. Assembler must complete all 3 Persona checks before approval." style="opacity:0.45;cursor:not-allowed">Approve → Starter</button>')
+                : '<button class="btn" disabled title="Identity verification not yet complete." style="opacity:0.45;cursor:not-allowed">Approve → Starter</button>')
             : '')
         + '<select id="tier-change-select" style="padding:0.4rem 0.6rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:6px;color:var(--text);font-size:0.82rem">'
           + '<option value="">Change tier...</option>'

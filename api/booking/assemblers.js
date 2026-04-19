@@ -3,7 +3,7 @@ import { verifyOwner } from '../_email.js';
 
 /**
  * GET /api/booking/assemblers
- * Returns eligible assemblers (tier starter/verified/elite + persona_verified).
+ * Returns eligible assemblers (tier starter/verified/elite + identity_verified).
  * Owner-only endpoint.
  */
 export default async function handler(req, res) {
@@ -14,9 +14,9 @@ export default async function handler(req, res) {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, full_name, email, city, tier, rating, completed_jobs, is_available, persona_verified')
+    .select('id, full_name, email, city, tier, rating, completed_jobs, is_available, identity_verified')
     .eq('role', 'assembler')
-    .eq('persona_verified', true)
+    .eq('identity_verified', true)
     .in('tier', ['starter', 'verified', 'elite'])
     .order('tier', { ascending: false })
     .order('rating', { ascending: false, nullsFirst: false });

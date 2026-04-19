@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, tier, persona_verified')
+    .select('id, full_name, email, tier, identity_verified')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .single();
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   if (!['starter', 'verified', 'elite'].includes(assembler.tier)) {
     return res.status(400).json({ error: 'Assembler must be at least starter tier' });
   }
-  if (!assembler.persona_verified) {
+  if (!assembler.identity_verified) {
     return res.status(400).json({ error: 'Assembler must be identity verified' });
   }
 

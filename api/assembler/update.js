@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   // Verify assembler exists
   const { data: profile, error: lookupErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, tier, persona_verified')
+    .select('id, full_name, email, tier, identity_verified')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   }
 
   // Block approval of unverified assemblers
-  if (tier && tier !== 'pending' && profile.tier === 'pending' && !profile.persona_verified) {
+  if (tier && tier !== 'pending' && profile.tier === 'pending' && !profile.identity_verified) {
     return res.status(400).json({
       error: 'Assembler must complete identity verification before approval',
     });
