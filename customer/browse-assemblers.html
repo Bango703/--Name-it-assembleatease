@@ -58,11 +58,8 @@
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
-        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
+        <li><a href="browse-assemblers" class="active"><span class="nav-icon">&#128101;</span> Our Team</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -77,10 +74,9 @@
   <main class="dashboard-main">
     <div class="page-header">
       <div>
-        <h1>Browse Assemblers</h1>
-        <p>Find vetted professionals by skill, location, and rating.</p>
+        <h1>Meet Our Team</h1>
+        <p>Vetted professionals ready to handle your assembly and mounting needs.</p>
       </div>
-      <a href="post-job" class="btn btn-primary">+ Post a job</a>
     </div>
 
     <div class="filters-bar">
@@ -155,7 +151,7 @@
     const grid = document.getElementById('assemblers-grid');
 
     if (!paged.length) {
-      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>No assemblers found matching your search.</p><a href="post-job" class="btn btn-primary btn-sm">Post a job instead</a></div>`;
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>No assemblers found matching your search.</p><a href="../contact" class="btn btn-outline btn-sm">Contact us</a></div>`;
       document.getElementById('pagination').style.display = 'none';
       return;
     }

@@ -49,11 +49,8 @@
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers" class="active"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
-        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
+        <li><a href="browse-assemblers" class="active"><span class="nav-icon">&#128101;</span> Our Team</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -150,15 +147,12 @@
           <div>
             <div class="hire-card">
               <div class="hire-rate">${assembler.hourly_rate ? '$' + assembler.hourly_rate : 'Custom'}</div>
-              <div class="hire-label">${assembler.hourly_rate ? 'per hour &middot; negotiate on your job' : 'Price negotiated per job'}</div>
-              <a href="post-job?assembler=${assemblerId}" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem;display:flex;justify-content:center">
-                Send a job to ${firstName}
-              </a>
-              <a href="post-job" class="btn btn-outline btn-full" style="margin-bottom:1rem;display:flex;justify-content:center">
-                Post a general job
+              <div class="hire-label">${assembler.hourly_rate ? 'per hour' : 'Price varies by service'}</div>
+              <a href="../#booking" class="btn btn-primary btn-full btn-lg" style="margin-bottom:0.75rem;display:flex;justify-content:center">
+                Book a Service
               </a>
               <p style="font-size:0.75rem;color:var(--muted);text-align:center;line-height:1.55">
-                Sending directly posts your job and notifies ${firstName}. Other assemblers can also bid unless you make it private.
+                We will assign a verified assembler to your job within 1 hour of booking.
               </p>
             </div>
 

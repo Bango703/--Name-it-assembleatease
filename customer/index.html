@@ -49,11 +49,8 @@
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
         <li><a href="." class="active"><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
-        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Our Team</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -69,9 +66,9 @@
     <div class="page-header">
       <div>
         <h1 id="welcome-heading">Welcome back</h1>
-        <p id="welcome-sub">Here is what is happening with your jobs today.</p>
+        <p id="welcome-sub">Browse our services and book online. We will assign a verified assembler to your job within 1 hour.</p>
       </div>
-      <a href="post-job" class="btn btn-primary">+ Post a Job</a>
+      <a href="../#booking" class="btn btn-primary">Book a Service</a>
     </div>
 
     <div id="page-alert" class="alert hidden"></div>
@@ -85,19 +82,8 @@
     </div>
 
     <div class="dash-grid">
-      <!-- Recent jobs -->
+      <!-- Recent Bookings -->
       <div>
-        <div class="section-header">
-          <div class="section-title">Your Recent Jobs</div>
-          <a href="my-jobs" class="section-link">View all &#8594;</a>
-        </div>
-        <div id="jobs-list">
-          <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
-          <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
-          <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
-        </div>
-
-        <!-- Recent Bookings -->
         <div style="margin-top:1.5rem">
           <div class="section-header">
             <div class="section-title">Your Recent Bookings</div>
@@ -125,8 +111,7 @@
         <div class="panel">
           <div class="section-title" style="margin-bottom:0.75rem">Quick actions</div>
           <div style="display:flex;flex-direction:column;gap:0.5rem">
-            <a href="post-job" class="btn btn-primary btn-sm" style="justify-content:center">+ Post a new job</a>
-            <a href="../#booking" class="btn btn-outline btn-sm" style="justify-content:center">Book a service</a>
+            <a href="../#booking" class="btn btn-primary btn-sm" style="justify-content:center">Book a service</a>
             <a href="browse-assemblers" class="btn btn-outline btn-sm" style="justify-content:center">Browse assemblers</a>
           </div>
         </div>
@@ -157,21 +142,17 @@
       window.location.href='../';
     });
 
-    // Stats — combine marketplace jobs + direct bookings
+    // Stats — bookings only
     try {
-      const [jobStats, bookingResult] = await Promise.all([
-        API.getCustomerStats(user.id),
-        API.getMyBookings().catch(() => ({ bookings: [], stats: {} })),
-      ]);
+      const bookingResult = await API.getMyBookings().catch(() => ({ bookings: [], stats: {} }));
       const bs = bookingResult.stats || {};
       const totalActivity = jobStats.totalJobs + (bs.total || 0);
       const totalActive = jobStats.inProgress + (bs.confirmed || 0);
       const totalCompleted = jobStats.completed + (bs.completed || 0);
       document.getElementById('stats-row').innerHTML = `
-        <div class="stat-card orange"><div class="stat-value">${totalActivity}</div><div class="stat-label">Total Activity</div></div>
-        <div class="stat-card neutral"><div class="stat-value">${jobStats.openJobs}</div><div class="stat-label">Open Jobs</div></div>
-        <div class="stat-card neutral"><div class="stat-value">${totalActive}</div><div class="stat-label">In Progress</div></div>
-        <div class="stat-card teal"><div class="stat-value">${totalCompleted}</div><div class="stat-label">Completed</div></div>`;
+        <div class="stat-card orange"><div class="stat-value">${bs.total||0}</div><div class="stat-label">Total Bookings</div></div>
+        <div class="stat-card neutral"><div class="stat-value">${bs.confirmed||0}</div><div class="stat-label">In Progress</div></div>
+        <div class="stat-card teal"><div class="stat-value">${bs.completed||0}</div><div class="stat-label">Completed</div></div>`;
 
       // Render recent bookings
       const bList = document.getElementById('bookings-list');
@@ -198,34 +179,6 @@
       }
     } catch {
       document.getElementById('stats-row').innerHTML = '<div style="grid-column:1/-1" class="error-state"><span>&#9888;</span>Could not load stats.</div>';
-    }
-
-    // Recent jobs
-    try {
-      const { data: jobs } = await API.getJobs({ customerId: user.id, limit: 6 });
-      const list = document.getElementById('jobs-list');
-      if (jobs?.length) {
-        list.innerHTML = jobs.map(job => {
-          const badgeClass = APP.getBadgeClass(job.status);
-          const bidCount = job.bids?.[0]?.count ?? 0;
-          return `
-            <a class="job-row" href="job-detail?id=${job.id}">
-              <div class="job-row-top">
-                <div class="job-row-title">${esc(job.title)}</div>
-                <span class="badge ${badgeClass}">${esc(job.status.replace('_',' '))}</span>
-              </div>
-              <div class="job-row-meta">
-                <span>${bidCount} bid${bidCount!==1?'s':''}</span>
-                <span>${timeAgo(job.created_at)}</span>
-                ${job.city?`<span>${esc(job.city)}</span>`:''}
-              </div>
-            </a>`;
-        }).join('');
-      } else {
-        list.innerHTML = `<div class="empty-state"><p>No jobs posted yet.</p><a href="post-job" class="btn btn-primary btn-sm">Post your first job</a></div>`;
-      }
-    } catch {
-      document.getElementById('jobs-list').innerHTML = '<div class="error-state"><span>&#9888;</span>Could not load jobs.</div>';
     }
 
     // Assemblers near you — online only
@@ -255,29 +208,7 @@
       document.getElementById('assemblers-list').innerHTML = '<div class="error-state"><span>&#9888;</span>Could not load.</div>';
     }
 
-    // ── Realtime: notify customer when a new bid arrives on any of their jobs ──
-    const bidsChannel = supabaseClient
-      .channel(`customer-dash-bids-${user.id}`)
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bids' },
-        async (payload) => {
-          if (!payload.new?.job_id) return;
-          // Verify the bid is for one of this customer's jobs
-          const { data: job } = await supabaseClient
-            .from('jobs')
-            .select('id, title')
-            .eq('id', payload.new.job_id)
-            .eq('customer_id', user.id)
-            .single();
-          if (!job) return;
-          APP.showAlert('page-alert',
-            `&#128276; New bid received on &ldquo;${job.title}&rdquo; &mdash; <a href="job-detail?id=${job.id}" style="color:inherit;font-weight:600;text-decoration:underline">View bids</a>`,
-            'success'
-          );
-        }
-      )
-      .subscribe();
-    window.addEventListener('beforeunload', () => bidsChannel.unsubscribe());
+
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

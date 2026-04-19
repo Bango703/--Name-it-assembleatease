@@ -151,10 +151,6 @@
       <div class="sidebar-section-label">Workspace</div>
       <ul class="sidebar-nav">
         <li><a href="." class="active"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="browse-jobs"><span class="nav-icon">&#128269;</span> Browse Jobs <span class="nav-badge" id="jobs-badge" style="display:none">0</span></a></li>
-        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
-        <li><a href="my-bids"><span class="nav-icon">&#128172;</span> My Bids</a></li>
-        <li><a href="my-jobs"><span class="nav-icon">&#128295;</span> My Jobs</a></li>
         <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
       </ul>
     </div>
@@ -181,7 +177,7 @@
       </button>
       <div class="topbar-title" id="topbar-greeting">Dashboard</div>
       <div class="topbar-right">
-        <a href="browse-jobs" class="topbar-btn primary">&#128269; <span>Browse Jobs</span></a>
+        <a href="my-assignments" class="topbar-btn primary">&#128197; <span>My Assignments</span></a>
         <a href="profile" class="topbar-btn">&#9881; <span>Profile</span></a>
     </div>
 
@@ -246,28 +242,7 @@
         <div id="completed-assignments-list"></div>
       </div>
 
-      <div class="pro-grid">
-        <div>
-          <div class="pro-section-header">
-            <div class="pro-section-title"><span class="dot"></span>Pending Bids</div>
-            <a href="my-bids" class="pro-link">View all &#8594;</a>
-          </div>
-          <div id="bids-list">
-            <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
-            <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
-          </div>
-        </div>
-        <div>
-          <div class="pro-section-header">
-            <div class="pro-section-title"><span class="dot" style="background:var(--orange)"></span>New Jobs Near You</div>
-            <a href="browse-jobs" class="pro-link">Browse all &#8594;</a>
-          </div>
-          <div id="jobs-list">
-            <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
-            <div class="skeleton-card"><div class="skeleton" style="height:56px"></div></div>
-          </div>
-        </div>
-      </div>
+
     </div>
   </div>
 </div>
@@ -378,9 +353,6 @@
     if(profile.tier==='pending' || profile.identity_verified!==true){
       // Hide functional sections
       document.getElementById('stats-row').style.display='none';
-      document.querySelector('.pro-grid').style.display='none';
-      // Hide Browse Jobs topbar button
-      document.querySelectorAll('.topbar-btn.primary').forEach(function(el){el.style.display='none';});
       // Disable sidebar nav links except Dashboard and Profile
       document.querySelectorAll('.sidebar-nav a').forEach(function(a){
         var href=a.getAttribute('href')||'';
@@ -441,128 +413,14 @@
     try{
       var s=await API.getAssemblerStats(user.id)||{};
       document.getElementById('sidebar-earnings').textContent='$'+Number(s.totalEarned||0).toLocaleString('en-US',{maximumFractionDigits:0});
-      var winRate=s.totalBids>0?Math.round((s.acceptedBids/s.totalBids)*100):0;
+      var winRate=0;
       document.getElementById('stats-row').innerHTML=
         '<div class="pro-stat teal"><div class="pro-stat-value">$'+Number(s.totalEarned||0).toLocaleString('en-US',{maximumFractionDigits:0})+'</div><div class="pro-stat-label">Total Earned</div></div>'+
-        '<div class="pro-stat orange"><div class="pro-stat-value">'+(s.pendingBids||0)+'</div><div class="pro-stat-label">Pending Bids</div></div>'+
         '<div class="pro-stat amber"><div class="pro-stat-value">'+(s.completedJobs||0)+'</div><div class="pro-stat-label">Jobs Completed</div></div>'+
-        '<div class="pro-stat neutral"><div class="pro-stat-value">'+winRate+'%</div><div class="pro-stat-label">Win Rate</div></div>';
+        '<div class="pro-stat neutral"><div class="pro-stat-value">'+(s.assignedJobs||0)+'</div><div class="pro-stat-label">Active Assignments</div></div>';
     }catch(err){
       document.getElementById('stats-row').innerHTML='<div style="grid-column:1/-1" class="pro-error">Could not load stats.</div>';
     }
-
-    try{
-      var bidsRes=await API.getMyBids(user.id);
-      var bids=bidsRes.data||[];
-      var pending=bids.filter(function(b){return b.status==='pending';});
-      var bidsList=document.getElementById('bids-list');
-      if(pending.length){
-        bidsList.innerHTML=pending.slice(0,5).map(function(bid){
-          return '<div class="pro-card" onclick="window.location.href=\'bid-detail?id='+bid.id+'\'">'+
-            '<div class="pro-card-top"><h4>'+esc(bid.job&&bid.job.title?bid.job.title:'Untitled Job')+'</h4><span class="badge badge-pending">pending</span></div>'+
-            '<div class="pro-card-desc">'+esc(truncate(bid.job&&bid.job.description?bid.job.description:''))+'</div>'+
-            '<div class="pro-card-meta"><span>'+esc(bid.job&&bid.job.city?bid.job.city:'Location TBD')+'</span><span class="meta-dot"></span><span>'+timeAgo(bid.created_at)+'</span></div>'+
-            '</div>';
-        }).join('');
-      } else {
-        bidsList.innerHTML='<div class="pro-empty"><p>No pending bids. Go find some jobs!</p><a href="browse-jobs" class="topbar-btn">Browse Jobs</a></div>';
-      }
-    }catch(err){
-      document.getElementById('bids-list').innerHTML='<div class="pro-error">Could not load bids.</div>';
-    }
-
-    try{
-      var jobsRes=await API.getOpenJobs({limit:5});
-      var jobs=jobsRes.data||[];
-      var jobsList=document.getElementById('jobs-list');
-      if(jobs.length){
-        var badge=document.getElementById('jobs-badge');
-        if(badge){badge.textContent=jobs.length;badge.style.display='inline';}
-        jobsList.innerHTML=jobs.map(function(job){
-          var bidCount=job.bids&&job.bids[0]?job.bids[0].count:0;
-          return '<div class="pro-card" onclick="window.location.href=\'job-detail?id='+job.id+'\'">'+
-            '<div class="pro-card-top"><h4>'+esc(job.title)+'</h4><span class="badge badge-new">Open</span></div>'+
-            '<div class="pro-card-desc">'+esc(truncate(job.description))+'</div>'+
-            '<div class="pro-card-meta"><span>'+esc(job.city||'Location TBD')+'</span><span class="meta-dot"></span><span>'+bidCount+' bid'+(bidCount!==1?'s':'')+'</span><span class="meta-dot"></span><span>'+timeAgo(job.created_at)+'</span></div>'+
-            '</div>';
-        }).join('');
-      } else {
-        jobsList.innerHTML='<div class="pro-empty"><p>No open jobs yet.</p><a href="browse-jobs" class="topbar-btn">Browse all</a></div>';
-      }
-    }catch(err){
-      document.getElementById('jobs-list').innerHTML='<div class="pro-error">Could not load jobs.</div>';
-    }
-
-    // ── Realtime: new open job posted ──
-    var jobsFeedChannel = supabaseClient
-      .channel('assembler-dash-jobs-feed')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'jobs' },
-        async function(payload) {
-          if (payload.new && payload.new.status === 'open') {
-            // Refresh the open jobs panel
-            try {
-              var r2 = await API.getOpenJobs({ limit: 5 });
-              var freshJobs = r2.data || [];
-              var badge = document.getElementById('jobs-badge');
-              if (badge) { badge.textContent = freshJobs.length; badge.style.display = 'inline'; }
-              var jList = document.getElementById('jobs-list');
-              if (freshJobs.length) {
-                jList.innerHTML = freshJobs.map(function(job){
-                  var bidCount = job.bids && job.bids[0] ? job.bids[0].count : 0;
-                  return '<div class="pro-card" onclick="window.location.href=\'job-detail?id='+job.id+'\'">'
-                    + '<div class="pro-card-top"><h4>'+esc(job.title)+'</h4><span class="badge badge-new">Open</span></div>'
-                    + '<div class="pro-card-desc">'+esc(truncate(job.description))+'</div>'
-                    + '<div class="pro-card-meta"><span>'+esc(job.city||'Location TBD')+'</span><span class="meta-dot"></span><span>'+bidCount+' bid'+(bidCount!==1?'s':'')+'</span><span class="meta-dot"></span><span>'+timeAgo(job.created_at)+'</span></div>'
-                    + '</div>';
-                }).join('');
-              }
-            } catch(e) {}
-          }
-        }
-      )
-      .subscribe();
-
-    // ── Realtime: bid status update (accepted / rejected) ──
-    var bidStatusChannel = supabaseClient
-      .channel('assembler-dash-bid-status-'+user.id)
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'bids', filter: 'assembler_id=eq.'+user.id },
-        async function(payload) {
-          if (!payload.new) return;
-          var newStatus = payload.new.status;
-          if (newStatus === 'accepted') {
-            APP.showAlert('page-alert', '&#127881; Your bid was accepted! Check My Jobs for next steps.', 'success');
-          } else if (newStatus === 'rejected') {
-            APP.showAlert('page-alert', 'One of your bids was declined by the customer.', 'info');
-          }
-          // Refresh pending bids panel
-          try {
-            var bidsRes2 = await API.getMyBids(user.id);
-            var bids2 = bidsRes2.data || [];
-            var pending2 = bids2.filter(function(b){ return b.status === 'pending'; });
-            var bList2 = document.getElementById('bids-list');
-            if (pending2.length) {
-              bList2.innerHTML = pending2.slice(0, 5).map(function(bid){
-                return '<div class="pro-card" onclick="window.location.href=\'bid-detail?id='+bid.id+'\'">'
-                  + '<div class="pro-card-top"><h4>'+esc(bid.job&&bid.job.title?bid.job.title:'Untitled Job')+'</h4><span class="badge badge-pending">pending</span></div>'
-                  + '<div class="pro-card-desc">'+esc(truncate(bid.job&&bid.job.description?bid.job.description:''))+'</div>'
-                  + '<div class="pro-card-meta"><span>'+esc(bid.job&&bid.job.city?bid.job.city:'Location TBD')+'</span><span class="meta-dot"></span><span>'+timeAgo(bid.created_at)+'</span></div>'
-                  + '</div>';
-              }).join('');
-            } else {
-              bList2.innerHTML = '<div class="pro-empty"><p>No pending bids. Go find some jobs!</p><a href="browse-jobs" class="topbar-btn">Browse Jobs</a></div>';
-            }
-          } catch(e) {}
-        }
-      )
-      .subscribe();
-
-    window.addEventListener('beforeunload', function() {
-      jobsFeedChannel.unsubscribe();
-      bidStatusChannel.unsubscribe();
-    });
-
     // Close sidebar when nav link clicked (mobile)
     document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
       a.addEventListener('click', closeSidebar);

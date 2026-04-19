@@ -59,11 +59,8 @@
       <div class="sidebar-label">Main</div>
       <ul class="sidebar-nav">
         <li><a href="."><span class="nav-icon">&#8962;</span> Dashboard</a></li>
-        <li><a href="post-job"><span class="nav-icon">&#43;</span> Post a Job</a></li>
-        <li><a href="my-jobs" class="active"><span class="nav-icon">&#128203;</span> My Jobs</a></li>
         <li><a href="my-bookings"><span class="nav-icon">&#128197;</span> My Bookings</a></li>
-        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Browse Assemblers</a></li>
-        <li><a href="marketplace"><span class="nav-icon">&#127978;</span> Marketplace</a></li>
+        <li><a href="browse-assemblers"><span class="nav-icon">&#128101;</span> Our Team</a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -76,7 +73,7 @@
   </aside>
 
   <main class="dashboard-main">
-    <a href="my-jobs" class="back-link">&#8592; Back to My Jobs</a>
+    <a href="my-bookings" class="back-link">&#8592; Back to My Bookings</a>
     <div id="page-alert" class="alert hidden"></div>
     <div id="page-content">
       <div class="skeleton-card"><div class="skeleton" style="height:200px"></div></div>
@@ -315,7 +312,7 @@
       await renderBids();
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-jobs">Go back</a></div>`;
+      document.getElementById('page-content').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load job. <a href="my-bookings">Go back</a></div>`;
     }
 
     // ── Realtime: live bid updates for this job ──────────────────
