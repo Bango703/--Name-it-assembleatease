@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto';
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
 
@@ -35,7 +36,13 @@ export function verifyOwner(req) {
   const pw = process.env.OWNER_PASSWORD;
   if (!pw) return false;
   const provided = req.headers['x-owner-password'] || req.body?.ownerPassword;
-  return provided === pw;
+  if (!provided) return false;
+  try {
+    const a = Buffer.from(String(pw));
+    const b = Buffer.from(String(provided));
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch { return false; }
 }
 
 /**

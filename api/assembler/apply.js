@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     paymentMethodId,
   } = req.body;
 
-  // â”€â”€ Validation â”€â”€
+  // ---- Validation ----
   if (!fullName?.trim()) return res.status(400).json({ error: 'Full name is required' });
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
   const userId = authData.user.id;
 
-  // â”€â”€ Upsert profile (core fields first, then assembler-specific) â”€â”€
+  // ---- Upsert profile (core fields first, then assembler-specific) ----
   const coreProfile = {
     id: userId,
     full_name: cleanName,
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to save application. ' + (profileError.message || '') });
   }
 
-  // Assembler-specific columns â€” may not exist in schema yet, non-blocking
+  // Assembler-specific columns - may not exist in schema yet, non-blocking
   const { error: extError } = await sb.from('profiles').update({
     services_offered: validServices,
     has_tools: hasTools,
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
   }).eq('id', userId);
   if (extError) console.warn('Assembler columns update skipped:', extError.message);
 
-  // â”€â”€ If invite token, validate and update waitlist â”€â”€
+  // ---- If invite token, validate and update waitlist ----
   if (inviteToken) {
     try {
       const { data: wlEntry } = await sb
@@ -117,11 +117,11 @@ export default async function handler(req, res) {
       }
     } catch (wlErr) {
       console.error('Waitlist token update error:', wlErr);
-      // Non-blocking â€” application still proceeds
+      // Non-blocking - application still proceeds
     }
   }
 
-  // â”€â”€ Stripe: charge $30 application fee + create Identity session â”€â”€
+  // ---- Stripe: charge $30 application fee + create Identity session ----
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   let verificationUrl = null;
   let paymentIntentId = null;
@@ -186,33 +186,33 @@ export default async function handler(req, res) {
   } catch (stripeErr) {
     console.error('Stripe error:', stripeErr);
     if (!paymentIntentId) {
-      // Payment itself failed â€” clean up auth user
+      // Payment itself failed - clean up auth user
       await sb.auth.admin.deleteUser(userId).catch(() => {});
       const msg = stripeErr?.raw?.message || stripeErr?.message || 'Payment failed. Please check your card details.';
       return res.status(402).json({ error: msg });
     }
-    // Payment succeeded but identity setup failed â€” still proceed
-    console.warn('Stripe Identity session creation failed after payment â€” proceeding without verification URL');
+    // Payment succeeded but identity setup failed - still proceed
+    console.warn('Stripe Identity session creation failed after payment - proceeding without verification URL');
   }
 
-  // â”€â”€ Send owner notification â”€â”€
+  // ---- Send owner notification ----
   try {
     const servicesList = validServices.map(s => `<li style="padding:3px 0">${esc(s)}</li>`).join('');
     await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: cleanEmail,
-      subject: 'New Assembler Application â€” ' + cleanName,
+      subject: 'New Assembler Application - ' + cleanName,
       html: buildOwnerEmail({ cleanName, cleanEmail, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }),
     });
   } catch (e) { console.error('Owner email error:', e); }
 
-  // â”€â”€ Send applicant confirmation â”€â”€
+  // ---- Send applicant confirmation ----
   try {
     await sendEmail({
       to: cleanEmail,
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'Application Received â€” AssembleAtEase',
+      subject: 'Application Received - AssembleAtEase',
       html: buildApplicantEmail(cleanName.split(' ')[0]),
       replyTo: ownerEmail(),
     });
