@@ -65,7 +65,7 @@
     .content{padding:2rem;flex:1}
 
     /* ── Stats ── */
-    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;margin-bottom:2rem}
     .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden}
     .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
     .stat.teal::before{background:var(--teal)}
@@ -423,13 +423,13 @@
 
   async function apiGet(path) {
     const r = await fetch(API + path, { headers: headers() });
-    if (r.status === 401) { logout(); throw new Error('Unauthorized'); }
+    if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
     return r.json();
   }
 
   async function apiPost(path, body) {
     const r = await fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
-    if (r.status === 401) { logout(); throw new Error('Unauthorized'); }
+    if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
     return r.json();
   }
 
@@ -470,23 +470,35 @@
     }
   }
 
-  function logout() {
+  function logout(expired) {
     password = '';
     sessionStorage.removeItem('owner_pw');
-    $layout.classList.add('hidden');
-    $gate.style.display = 'flex';
-    $loginPw.value = '';
-    $loginErr.style.display = 'none';
+    if (expired) toast('Session expired — please log in again', 'error');
+    setTimeout(function() {
+      $layout.classList.add('hidden');
+      $gate.style.display = 'flex';
+      $loginPw.value = '';
+      $loginErr.style.display = 'none';
+    }, expired ? 1800 : 0);
   }
 
   $loginBtn.addEventListener('click', tryLogin);
   $loginPw.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryLogin(); });
   document.getElementById('logout-btn').addEventListener('click', logout);
-  document.getElementById('refresh-btn').addEventListener('click', function() {
-    if (currentView === 'assemblers') loadAssemblerList();
-    else if (currentView === 'waitlist') loadWaitlist();
-    else if (currentView === 'marketplace') loadMarketplaceJobs();
-    else loadBookings();
+  document.getElementById('refresh-btn').addEventListener('click', async function() {
+    var btn = this;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Refreshing…';
+    try {
+      if (currentView === 'assemblers') await loadAssemblerList();
+      else if (currentView === 'waitlist') await loadWaitlist();
+      else if (currentView === 'marketplace') await loadMarketplaceJobs();
+      else await loadBookings();
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '&#8635; Refresh';
+    }
   });
 
   // Auto-login if password in session
@@ -518,7 +530,7 @@
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
     document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
-    if (revenueEl) revenueEl.textContent = revenue > 0 ? '$' + revenue.toLocaleString('en-US', {maximumFractionDigits:0}) : '—';
+    if (revenueEl) revenueEl.textContent = revenue > 0 ? '$' + (revenue / 100).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
     // Pending badge in sidebar
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
@@ -589,6 +601,7 @@
       field('Email', b.customer_email),
       field('Phone', b.customer_phone || '—'),
       field('Service', b.service),
+      field('Total', b.total_price ? '$' + Number(b.total_price / 100).toFixed(2) : '—'),
       field('Status', '<span class="badge badge-' + b.status + '">' + b.status + '</span>'),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
@@ -637,9 +650,9 @@
     var id = btn.dataset.id;
 
     if (action === 'confirm') {
-      doAction('/confirm', { bookingId: id });
+      doAction('/confirm', { bookingId: id }, 'Booking confirmed ✓');
     } else if (action === 'complete') {
-      doAction('/complete', { bookingId: id });
+      doAction('/complete', { bookingId: id }, 'Marked as complete ✓');
     } else if (action === 'decline') {
       pendingAction = { path: '/decline', id: id };
       document.getElementById('reason-modal-title').textContent = 'Decline Booking';
@@ -692,16 +705,17 @@
     // Booking actions
     var body = { bookingId: pendingAction.id };
     if (reason) body.reason = reason;
-    doAction(pendingAction.path, body);
+    var msg = pendingAction.path === '/decline' ? 'Booking declined' : 'Booking cancelled';
+    doAction(pendingAction.path, body, msg);
     $reasonModal.classList.remove('open');
     pendingAction = null;
   });
 
-  async function doAction(path, body) {
+  async function doAction(path, body, msg) {
     try {
       var data = await apiPost(path, body);
       if (data.error) { toast(data.error, 'error'); return; }
-      toast('Booking updated', 'success');
+      toast(msg || 'Booking updated', 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch (e) {
@@ -1191,6 +1205,17 @@
       ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">&#10007; Reject</button>'
       : '';
 
+    var promoteBtn = '';
+    if (a.tier === 'starter') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'verified\')">&#8593; Promote → Verified</button>';
+    if (a.tier === 'verified') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'elite\')">&#8593; Promote → Elite</button>';
+
+    var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended')
+      ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">&#9940; Suspend</button>'
+      : '';
+    var reinstateBtn = (a.tier === 'suspended')
+      ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">&#10003; Reinstate → Starter</button>'
+      : '';
+
     document.getElementById('asm-detail-body').innerHTML = [
       '<strong>Email:</strong> ' + esc(a.email),
       '<strong>Phone:</strong> ' + esc(a.phone||'—'),
@@ -1206,7 +1231,7 @@
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
       '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">'
-        + approveBtn + rejectBtn
+        + approveBtn + rejectBtn + promoteBtn + suspendBtn + reinstateBtn
         + '</div>',
     ].filter(Boolean).join('<br>');
 
@@ -1240,8 +1265,46 @@
     $reasonModal.classList.add('open');
   };
 
+  window.promoteAssembler = async function(assemblerId, newTier) {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    try {
+      var r = await fetch('/api/assembler/update', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ assemblerId: assemblerId, tier: newTier }),
+      });
+      var data = await r.json();
+      if (data.error) { toast(data.error, 'error'); return; }
+      var label = newTier.charAt(0).toUpperCase() + newTier.slice(1);
+      toast('Assembler promoted to ' + label, 'success');
+      loadAssemblerList();
+    } catch { toast('Failed to update tier', 'error'); }
+  };
+
+  window.suspendAssembler = async function(assemblerId) {
+    if (!confirm('Suspend this assembler? They will no longer appear to customers.')) return;
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    try {
+      var r = await fetch('/api/assembler/update', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ assemblerId: assemblerId, tier: 'suspended' }),
+      });
+      var data = await r.json();
+      if (data.error) { toast(data.error, 'error'); return; }
+      toast('Assembler suspended', 'success');
+      loadAssemblerList();
+    } catch { toast('Failed to suspend assembler', 'error'); }
+  };
+
   document.getElementById('asm-detail-close').addEventListener('click', function() {
     document.getElementById('asm-detail-modal').classList.remove('open');
+  });
+  document.getElementById('asm-detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+  $reasonModal.addEventListener('click', function(e) {
+    if (e.target === this) { this.classList.remove('open'); pendingAction = null; }
   });
 
   // ─── Marketplace Jobs ───
