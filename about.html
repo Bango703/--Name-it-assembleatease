@@ -3,25 +3,24 @@
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <meta charset="UTF-8"/>
-<title>About Us � AssembleAtEase Austin TX</title>
+<title>About Us — AssembleAtEase Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="Learn about AssembleAtEase � Austin's trusted handyman service. Licensed, insured professionals for furniture assembly, repairs, mounting, and more."/>
+<meta name="description" content="Learn about AssembleAtEase — Austin's trusted handyman service. Licensed, insured professionals for furniture assembly, repairs, mounting, and more."/>
 <link rel="canonical" href="https://www.assembleatease.com/about"/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="About Us � AssembleAtEase Austin TX"/>
-<meta property="og:description" content="Learn about AssembleAtEase � Austin's trusted handyman service. Licensed, insured professionals for furniture assembly, repairs, mounting, and more."/>
+<meta property="og:title" content="About Us — AssembleAtEase Austin TX"/>
+<meta property="og:description" content="Learn about AssembleAtEase — Austin's trusted handyman service. Licensed, insured professionals for furniture assembly, repairs, mounting, and more."/>
 <meta property="og:url" content="https://www.assembleatease.com/about"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
 <meta property="og:locale" content="en_US"/>
 <meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta property="og:image:width" content="512"/>
 <meta property="og:image:height" content="512"/>
-<meta property="og:image:alt" content="AssembleAtEase ? Professional Assembly &amp; Handyman Services Austin TX"/>
+<meta property="og:image:alt" content="AssembleAtEase — Professional Assembly &amp; Handyman Services Austin TX"/>
 <meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="About Us � AssembleAtEase Austin TX"/>
-<meta name="twitter:description" content="Learn about AssembleAtEase � Austin's trusted handyman service. Licensed, insured professionals."/>
+<meta name="twitter:title" content="About Us — AssembleAtEase Austin TX"/>
+<meta name="twitter:description" content="Learn about AssembleAtEase — Austin's trusted handyman service. Licensed, insured professionals."/>
 <link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="apple-touch-icon" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -207,6 +206,8 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   ]
 }
 </script><style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#0097a7;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#0097a7;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
+<style>#stripe-card-element{border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;background:var(--white);transition:border-color 0.15s}.StripeElement--focus{border-color:var(--cyan) !important}.StripeElement--invalid{border-color:#ef4444 !important}#card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}</style>
+<script src="https://js.stripe.com/v3/" crossorigin="anonymous"></script>
 </head>
 <body>
 <nav class="nav">
@@ -409,7 +410,22 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="cart-estimate" id="cart-estimate"></div>
       <div class="form-err" id="form-err"></div>
       <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
-      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Payment after job completion.</p>
+      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Card authorized at booking &mdash; charged only after the job is done.</p>
+    </div>
+    <div id="card-step" style="display:none">
+      <div class="modal-header">
+        <div><div class="modal-title">Secure Your Booking</div><div class="modal-sub">Your card is authorized &mdash; not charged until the job is done.</div></div>
+        <button class="modal-close" aria-label="Close" onclick="AAE.closeBooking()">&times;</button>
+      </div>
+      <div id="card-step-summary" style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:0.875rem;color:var(--ink)"></div>
+      <div style="margin-bottom:1.25rem">
+        <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);margin-bottom:0.5rem">Card Details</label>
+        <div id="stripe-card-element"></div>
+        <div id="card-errors" role="alert"></div>
+      </div>
+      <button class="btn btn-cyan btn-full btn-lg" id="card-submit-btn" onclick="AAE.confirmCard()">&#128274; Authorize Card &rarr;</button>
+      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secured by <strong>Stripe</strong>. Your card is authorized now &mdash; <strong>no charge until the job is complete.</strong></p>
+      <button onclick="AAE.backToForm()" style="display:block;margin:0.75rem auto 0;background:none;border:none;font-size:0.82rem;color:var(--muted);cursor:pointer;text-decoration:underline">&larr; Go back and edit</button>
     </div>
     <div class="success-state" id="success-state">
       <div class="success-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
@@ -542,6 +558,9 @@ AAE.updateModalCart = function() {
 
 AAE.openBooking = function() {
   AAE.updateModalCart();
+  document.getElementById('form-state').style.display = 'block';
+  document.getElementById('card-step').style.display = 'none';
+  document.getElementById('success-state').classList.remove('show');
   document.getElementById('booking-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 };
@@ -549,6 +568,9 @@ AAE.openBooking = function() {
 AAE.closeBooking = function() {
   document.getElementById('booking-modal').classList.remove('open');
   document.body.style.overflow = '';
+  document.getElementById('card-step').style.display = 'none';
+  document.getElementById('form-state').style.display = 'block';
+  if (AAE._cardElement) { try { AAE._cardElement.destroy(); } catch(e){} AAE._cardElement = null; }
 };
 
 AAE.formatPhone = function(e) {
@@ -620,34 +642,139 @@ AAE.submitBooking = async function() {
   var btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = 'Sending...';
 
+  var totalCents = Math.round(AAE.getTotal() * 100);
+  var _bookingName = name, _bookingEmail = email;
+  var data;
   try {
     var resp = await fetch('/api/booking', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({service:services,name:name,phone:phone,email:email,address:address,date:date,time:time,details:details})
+      body:JSON.stringify({service:services,name:name,phone:phone,email:email,address:address,date:date,time:time,details:details,totalCents:totalCents})
     });
-    if (!resp.ok) throw new Error('Server error');
+    data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Server error');
   } catch(e) {
-    errEl.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
+    errEl.textContent = e.message || 'Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
     return;
   }
 
-  document.getElementById('success-desc').textContent = 'We received your request for: '+services+'. We will contact you within 1 hour to confirm your appointment at '+address+' on '+date+' at '+time+'.';
-  document.getElementById('form-state').style.display = 'none';
-  document.getElementById('success-state').classList.add('show');
-  btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
   AAE.clearCart();
+  btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
+
+  if (data.clientSecret) {
+    AAE._pendingData = { ref: data.ref, services: services, address: address, date: date, time: time, isDeposit: data.isDeposit, depositAmountCents: data.depositAmountCents, totalCents: totalCents, bookingName: _bookingName, bookingEmail: _bookingEmail };
+    document.getElementById('form-state').style.display = 'none';
+    await AAE.showCardStep(data.clientSecret);
+  } else {
+    AAE.showSuccess(data.ref, services, address, date, time);
+  }
+};
+
+// ── Stripe card collection ──────────────────────────────────────────────────
+AAE._stripe = null;
+AAE._cardElement = null;
+AAE._pendingData = null;
+AAE._clientSecret = null;
+
+AAE._initStripe = async function() {
+  if (AAE._stripe) return AAE._stripe;
+  try {
+    if (typeof Stripe === 'undefined') throw new Error('Stripe.js not loaded');
+    var r = await fetch('/api/config/public-key');
+    var d = await r.json();
+    if (!d.publishableKey) throw new Error('No publishable key');
+    AAE._stripe = Stripe(d.publishableKey);
+    return AAE._stripe;
+  } catch(e) { console.error('Stripe init error:', e); return null; }
+};
+
+AAE.showCardStep = async function(clientSecret) {
+  AAE._clientSecret = clientSecret;
+  var d = AAE._pendingData;
+  var amtDollars = (d.totalCents / 100).toFixed(2);
+  var summaryHtml;
+  if (d.isDeposit && d.depositAmountCents) {
+    var depDollars = (d.depositAmountCents / 100).toFixed(2);
+    var balDollars = ((d.totalCents - d.depositAmountCents) / 100).toFixed(2);
+    summaryHtml = '<strong>25% deposit held now:</strong> $' + depDollars + '<br><span style="font-size:0.8rem;color:var(--muted)">Remaining balance ($' + balDollars + ') charged after job is done</span>';
+  } else {
+    summaryHtml = '<strong>Authorization hold:</strong> $' + amtDollars + ' &mdash; held on your card, only charged after the job is complete';
+  }
+  document.getElementById('card-step-summary').innerHTML = summaryHtml;
+  document.getElementById('card-step').style.display = 'block';
+
+  var stripe = await AAE._initStripe();
+  if (!stripe) {
+    document.getElementById('card-step').style.display = 'none';
+    AAE.showSuccess(d.ref, d.services, d.address, d.date, d.time);
+    return;
+  }
+  if (AAE._cardElement) { try { AAE._cardElement.destroy(); } catch(e){} AAE._cardElement = null; }
+  var elements = stripe.elements();
+  AAE._cardElement = elements.create('card', {
+    style: {
+      base: { fontSize: '16px', color: '#0d1117', fontFamily: '"DM Sans", sans-serif', '::placeholder': { color: '#9ca3af' } },
+      invalid: { color: '#ef4444' }
+    },
+    hidePostalCode: false
+  });
+  AAE._cardElement.mount('#stripe-card-element');
+  AAE._cardElement.on('change', function(evt) {
+    var errEl = document.getElementById('card-errors');
+    if (evt.error) { errEl.textContent = evt.error.message; errEl.style.display = 'block'; }
+    else { errEl.style.display = 'none'; errEl.textContent = ''; }
+  });
+};
+
+AAE.confirmCard = async function() {
+  var btn = document.getElementById('card-submit-btn');
+  var errEl = document.getElementById('card-errors');
+  errEl.style.display = 'none'; errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Authorizing\u2026';
+
+  var stripe = await AAE._initStripe();
+  if (!stripe || !AAE._cardElement || !AAE._clientSecret) {
+    errEl.textContent = 'Payment setup error. Please refresh and try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.innerHTML = '&#128274; Authorize Card \u2192';
+    return;
+  }
+
+  var d = AAE._pendingData;
+  var result = await stripe.confirmCardPayment(AAE._clientSecret, {
+    payment_method: {
+      card: AAE._cardElement,
+      billing_details: { name: d.bookingName, email: d.bookingEmail }
+    }
+  });
+
+  if (result.error) {
+    errEl.textContent = result.error.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.innerHTML = '&#128274; Authorize Card \u2192';
+    return;
+  }
+
+  document.getElementById('card-step').style.display = 'none';
+  AAE.showSuccess(d.ref, d.services, d.address, d.date, d.time);
+};
+
+AAE.backToForm = function() {
+  document.getElementById('card-step').style.display = 'none';
+  document.getElementById('form-state').style.display = 'block';
+};
+
+AAE.showSuccess = function(ref, services, address, date, time) {
+  var desc = 'We received your booking' + (ref ? ' (' + ref + ')' : '') + ' for: ' + services + '. We will contact you within 1 hour to confirm your appointment at ' + address + ' on ' + date + ' at ' + time + '.';
+  document.getElementById('success-desc').textContent = desc;
+  document.getElementById('form-state').style.display = 'none';
+  document.getElementById('card-step').style.display = 'none';
+  document.getElementById('success-state').classList.add('show');
 };
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') AAE.closeBooking();
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-  AAE.updateCartBar();
-  AAE.cart.forEach(function(item) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
       btn.textContent = '\u2713 Added \u2014 click to remove';
       btn.style.background = 'var(--cyan)';
