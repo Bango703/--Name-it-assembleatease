@@ -151,46 +151,55 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">Smart Thermostat</div>
         <div class="price-card-desc">Nest, Ecobee, Honeywell, and more. Installed, wired, and connected to your app.</div>
         <div class="price-card-price">$65</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Smart Thermostat" onclick="svcAdd('Smart Thermostat','$65',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Video Doorbell</div>
         <div class="price-card-desc">Ring, Nest Hello, Arlo, and similar. Wired or battery, app configured before we leave.</div>
         <div class="price-card-price">$75</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Video Doorbell" onclick="svcAdd('Video Doorbell','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Smart Lock</div>
         <div class="price-card-desc">August, Schlage, Yale, Kwikset. Installation and app setup with user codes.</div>
         <div class="price-card-price">$75</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Smart Lock" onclick="svcAdd('Smart Lock','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Indoor Camera</div>
         <div class="price-card-desc">Wyze, Arlo, Ring, Blink. Positioned, mounted, and connected to your network.</div>
         <div class="price-card-price">$65</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Indoor Camera" onclick="svcAdd('Indoor Camera','$65',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Outdoor Camera</div>
         <div class="price-card-desc">Weatherproof mounting and wiring. Arlo, Ring, Google Nest, Reolink, and more.</div>
         <div class="price-card-price">$85</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Outdoor Camera" onclick="svcAdd('Outdoor Camera','$85',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Smart Light Switch</div>
         <div class="price-card-desc">Lutron, Leviton, Kasa. Wired installation and app/voice assistant setup.</div>
         <div class="price-card-price">$55</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Smart Light Switch" onclick="svcAdd('Smart Light Switch','$55',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Ceiling Fan (Existing Wiring)</div>
         <div class="price-card-desc">Remove old fan, install new ceiling fan with light kit. Existing electrical required.</div>
         <div class="price-card-price">$95</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Ceiling Fan Install" onclick="svcAdd('Ceiling Fan Install','$95',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Multi-Device Bundle</div>
         <div class="price-card-desc">3 or more smart devices installed in one visit. Substantial savings vs. individual.</div>
         <div class="price-card-price">From $185</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Multi-Device Bundle" onclick="svcAdd('Multi-Device Bundle','$185',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Full Room Smart Install</div>
         <div class="price-card-desc">Complete smart room setup &mdash; lighting, thermostat, cameras, and more. Custom pricing.</div>
         <div class="price-card-price">Custom Quote</div>
+        <a href="/contact" class="btn btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem;background:var(--off-white);border:1.5px solid var(--border);color:var(--ink-soft)">Get custom quote &rarr;</a>
       </div>
     </div>
     <div class="cta-box">
@@ -274,6 +283,9 @@ function acceptCookies(){localStorage.setItem('cookie-consent','accepted');docum
 function declineCookies(){localStorage.setItem('cookie-consent','declined');document.getElementById('cookie-banner').classList.add('hidden');}
 document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
+</script>
+<script>
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>

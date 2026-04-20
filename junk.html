@@ -146,46 +146,55 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">Single Item (Small)</div>
         <div class="price-card-desc">One small item &mdash; chair, shelving unit, microwave, box of electronics.</div>
         <div class="price-card-price">$75</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Junk Removal - Small Item" onclick="svcAdd('Junk Removal - Small Item','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Single Item (Large / Appliance)</div>
         <div class="price-card-desc">Refrigerator, washer/dryer, dishwasher, large sofa, or similar bulky item.</div>
         <div class="price-card-price">$95</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Junk Removal - Large Item" onclick="svcAdd('Junk Removal - Large Item','$95',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Mattress</div>
         <div class="price-card-desc">Twin, full, queen, or king mattress. Box spring included at no extra charge.</div>
         <div class="price-card-price">$85</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Mattress Removal" onclick="svcAdd('Mattress Removal','$85',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Electronics / TV</div>
         <div class="price-card-desc">Responsible e-waste disposal for TVs, computers, monitors, and similar items.</div>
         <div class="price-card-price">$65</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Electronics Removal" onclick="svcAdd('Electronics Removal','$65',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Half Truck Load</div>
         <div class="price-card-desc">Up to half a truck &mdash; great for clearing out a room or garage corner.</div>
         <div class="price-card-price">$175</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Half Truck Load" onclick="svcAdd('Half Truck Load','$175',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Full Truck Load</div>
         <div class="price-card-desc">Full truck capacity. Moving out, estate cleanout, or major declutter.</div>
         <div class="price-card-price">$295</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Full Truck Load" onclick="svcAdd('Full Truck Load','$295',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Office Cleanout</div>
         <div class="price-card-desc">Desks, chairs, filing cabinets, break room appliances, electronics. Custom quote.</div>
         <div class="price-card-price">Custom Quote</div>
+        <a href="/contact" class="btn btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem;background:var(--off-white);border:1.5px solid var(--border);color:var(--ink-soft)">Get custom quote &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Storage Unit Cleanout</div>
         <div class="price-card-desc">We clear the whole unit so you can stop paying rent on it. Custom quote.</div>
         <div class="price-card-price">Custom Quote</div>
+        <a href="/contact" class="btn btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem;background:var(--off-white);border:1.5px solid var(--border);color:var(--ink-soft)">Get custom quote &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Same-Day Pickup</div>
         <div class="price-card-desc">Need it gone today? Same-day availability subject to scheduling. Book early.</div>
         <div class="price-card-price">Available</div>
+        <a href="/#booking" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Check availability &rarr;</a>
       </div>
     </div>
     <div class="cta-box">
@@ -251,6 +260,9 @@ function acceptCookies(){localStorage.setItem('cookie-consent','accepted');docum
 function declineCookies(){localStorage.setItem('cookie-consent','declined');document.getElementById('cookie-banner').classList.add('hidden');}
 document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
+</script>
+<script>
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>

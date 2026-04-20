@@ -146,56 +146,67 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">Drywall Patch (Small)</div>
         <div class="price-card-desc">Holes up to 6&rdquo; &mdash; nail pops, anchor holes, minor damage. Textured to match.</div>
         <div class="price-card-price">$75</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Drywall Patch (Small)" onclick="svcAdd('Drywall Patch (Small)','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Drywall Patch (Large)</div>
         <div class="price-card-desc">Sections larger than 6&rdquo; or multiple patches requiring new drywall board.</div>
         <div class="price-card-price">From $125</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Drywall Patch (Large)" onclick="svcAdd('Drywall Patch (Large)','$125',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Door Adjustment / Rehang</div>
         <div class="price-card-desc">Sticking doors, misaligned hinges, door not latching, or full rehang.</div>
         <div class="price-card-price">$85</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Door Adjustment / Rehang" onclick="svcAdd('Door Adjustment / Rehang','$85',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Faucet Replacement</div>
         <div class="price-card-desc">Remove old faucet and install customer-supplied faucet. Kitchen or bath.</div>
         <div class="price-card-price">$95</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Faucet Replacement" onclick="svcAdd('Faucet Replacement','$95',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Toilet Repair</div>
         <div class="price-card-desc">Running toilet, flapper, fill valve, or handle replacement. Parts included.</div>
         <div class="price-card-price">$85</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Toilet Repair" onclick="svcAdd('Toilet Repair','$85',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Caulk &amp; Grout</div>
         <div class="price-card-desc">Shower, tub, or kitchen backsplash re-caulking and grout touch-up.</div>
         <div class="price-card-price">$75</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Caulk and Grout" onclick="svcAdd('Caulk and Grout','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Gutter Cleaning</div>
         <div class="price-card-desc">Clear debris from gutters and downspouts, flush and test drainage.</div>
         <div class="price-card-price">From $95</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Gutter Cleaning" onclick="svcAdd('Gutter Cleaning','$95',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Screen Repair</div>
         <div class="price-card-desc">Window or door screen re-screening or full screen replacement.</div>
         <div class="price-card-price">$65</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Screen Repair" onclick="svcAdd('Screen Repair','$65',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Weatherstripping</div>
         <div class="price-card-desc">Door and window weatherstripping replacement to seal drafts and improve efficiency.</div>
         <div class="price-card-price">$65</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Weatherstripping" onclick="svcAdd('Weatherstripping','$65',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Fence Repair</div>
         <div class="price-card-desc">Broken boards, loose posts, sagging gates. Wood and vinyl fencing.</div>
         <div class="price-card-price">From $85</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Fence Repair" onclick="svcAdd('Fence Repair','$85',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Larger Projects</div>
         <div class="price-card-desc">Not listed here? We handle most residential repairs &mdash; get a custom quote.</div>
         <div class="price-card-price">Custom Quote</div>
+        <a href="/contact" class="btn btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem;background:var(--off-white);border:1.5px solid var(--border);color:var(--ink-soft)">Get custom quote &rarr;</a>
       </div>
     </div>
     <div class="cta-box">
@@ -261,6 +272,9 @@ function acceptCookies(){localStorage.setItem('cookie-consent','accepted');docum
 function declineCookies(){localStorage.setItem('cookie-consent','declined');document.getElementById('cookie-banner').classList.add('hidden');}
 document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
+</script>
+<script>
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>

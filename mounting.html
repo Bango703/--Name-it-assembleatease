@@ -146,51 +146,61 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">TV Up to 40&quot;</div>
         <div class="price-card-desc">Small bedroom or kitchen TV, mounted level to studs or rated anchors.</div>
         <div class="price-card-price">$55</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="TV Up to 40&quot;" onclick="svcAdd('TV Up to 40&quot;','$55',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">TV 41&quot; &ndash; 65&quot;</div>
         <div class="price-card-desc">Standard living room or bedroom TV. Most common size we install.</div>
         <div class="price-card-price">$75</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="TV 41 to 65" onclick="svcAdd('TV 41 to 65','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">TV 66&quot; &ndash; 85&quot;</div>
         <div class="price-card-desc">Large-format TV requiring two-person handling and heavy-duty mount.</div>
         <div class="price-card-price">$95</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="TV 66 to 85" onclick="svcAdd('TV 66 to 85','$95',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">TV 86&quot; and Larger</div>
         <div class="price-card-desc">Extra-large or commercial-grade displays, includes reinforced mounting.</div>
         <div class="price-card-price">$125</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="TV 86 and Larger" onclick="svcAdd('TV 86 and Larger','$125',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Above Fireplace Add-On</div>
         <div class="price-card-desc">Bonus charge for above-fireplace installs due to height and masonry work.</div>
         <div class="price-card-price">+$35</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Above Fireplace Add-On" onclick="svcAdd('Above Fireplace Add-On','$35',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Cord Concealment</div>
         <div class="price-card-desc">In-wall cable management for a clean, professional finish.</div>
         <div class="price-card-price">$45</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Cord Concealment" onclick="svcAdd('Cord Concealment','$45',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Floating Shelf</div>
         <div class="price-card-desc">Wall-mounted floating shelves, level and secured to studs.</div>
         <div class="price-card-price">From $55</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Floating Shelf" onclick="svcAdd('Floating Shelf','$55',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Curtain Rod</div>
         <div class="price-card-desc">Single or double curtain rod installation, including brackets and leveling.</div>
         <div class="price-card-price">$45</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Curtain Rod" onclick="svcAdd('Curtain Rod','$45',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Art &amp; Picture Hanging (3-pack)</div>
         <div class="price-card-desc">Gallery wall or three individual pieces, leveled and properly anchored.</div>
         <div class="price-card-price">$55</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Art Hanging 3-pack" onclick="svcAdd('Art Hanging 3-pack','$55',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Outdoor TV Mount</div>
         <div class="price-card-desc">Weatherproof-rated outdoor mounting for patios, covered porches, and decks.</div>
         <div class="price-card-price">$110</div>
+        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Outdoor TV Mount" onclick="svcAdd('Outdoor TV Mount','$110',this)">+ Add to booking</button>
       </div>
     </div>
     <div class="cta-box">
@@ -256,6 +266,9 @@ function acceptCookies(){localStorage.setItem('cookie-consent','accepted');docum
 function declineCookies(){localStorage.setItem('cookie-consent','declined');document.getElementById('cookie-banner').classList.add('hidden');}
 document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
+</script>
+<script>
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>
