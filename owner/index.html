@@ -378,6 +378,12 @@
     <h3 id="reason-modal-title">Reason</h3>
     <p id="reason-modal-desc">Optionally provide a reason.</p>
     <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
+    <div id="waive-fee-row" style="display:none;margin-top:0.75rem;font-size:0.85rem;color:var(--soft)">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+        <input type="checkbox" id="waive-fee-cb" style="width:16px;height:16px;accent-color:var(--teal)">
+        Waive the 50% cancellation fee
+      </label>
+    </div>
     <div class="modal-actions">
       <button class="btn" id="reason-cancel">Cancel</button>
       <button class="btn btn-red" id="reason-confirm">Confirm</button>
@@ -603,6 +609,7 @@
       field('Service', b.service),
       field('Total', b.total_price ? '$' + Number(b.total_price / 100).toFixed(2) : '—'),
       field('Status', '<span class="badge badge-' + b.status + '">' + b.status + '</span>'),
+      field('Payment', b.payment_status ? b.payment_status.replace(/_/g, ' ') : '—'),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
       field('Details', b.details || '—'),
@@ -628,13 +635,17 @@
     if (b.status === 'pending') {
       btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">&#10003; Confirm</button>');
       btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">&#10007; Decline</button>');
+      btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
     }
     if (b.status === 'confirmed') {
       btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">&#10003; Mark Complete</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
-    if (b.status === 'pending') {
-      btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
+    if (b.status === 'completed' && b.payment_status === 'captured') {
+      btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">&#8634; Refund Customer</button>');
+      if (b.assembler_id && b.payout_status !== 'paid') {
+        btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">&#36; Record Payout</button>');
+      }
     }
     $detailAct.innerHTML = btns.join('');
     $detailAct.style.display = btns.length ? '' : 'none';
@@ -653,6 +664,28 @@
       doAction('/confirm', { bookingId: id }, 'Booking confirmed ✓');
     } else if (action === 'complete') {
       doAction('/complete', { bookingId: id }, 'Marked as complete ✓');
+    } else if (action === 'refund') {
+      pendingAction = { path: '/refund', id: id, type: 'refund' };
+      document.getElementById('reason-modal-title').textContent = 'Refund Customer';
+      document.getElementById('reason-modal-desc').textContent = 'Optionally add a reason. A full refund will be issued to the customer\'s card.';
+      document.getElementById('reason-confirm').textContent = 'Issue Refund';
+      document.getElementById('reason-confirm').className = 'btn btn-red';
+      $reasonText.value = '';
+      $reasonText.placeholder = 'Reason (optional)';
+      var $wfR = document.getElementById('waive-fee-row');
+      if ($wfR) $wfR.style.display = 'none';
+      $reasonModal.classList.add('open');
+    } else if (action === 'payout') {
+      pendingAction = { path: '/payout', id: id, type: 'payout' };
+      document.getElementById('reason-modal-title').textContent = 'Record Assembler Payout';
+      document.getElementById('reason-modal-desc').textContent = 'Enter the payout amount in dollars (e.g. 75). Add optional notes.';
+      document.getElementById('reason-confirm').textContent = 'Record Payout';
+      document.getElementById('reason-confirm').className = 'btn btn-teal';
+      $reasonText.value = '';
+      $reasonText.placeholder = 'Amount in dollars — required (e.g. 75)';
+      var $wfP = document.getElementById('waive-fee-row');
+      if ($wfP) $wfP.style.display = 'none';
+      $reasonModal.classList.add('open');
     } else if (action === 'decline') {
       pendingAction = { path: '/decline', id: id };
       document.getElementById('reason-modal-title').textContent = 'Decline Booking';
@@ -664,22 +697,92 @@
     } else if (action === 'cancel') {
       pendingAction = { path: '/cancel', id: id };
       document.getElementById('reason-modal-title').textContent = 'Cancel Booking';
-      document.getElementById('reason-modal-desc').textContent = 'Optionally explain why this booking is being cancelled.';
+      // Check if within 24hrs to warn about the cancellation fee
+      var bObj = allBookings.find(function(bk){ return bk.id == id; });
+      var withinWindow = false;
+      if (bObj && bObj.date) {
+        try {
+          var apptDate = new Date(bObj.date);
+          var slotStart = (bObj.time || '').split('-')[0].trim();
+          var tm = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
+          if (tm) {
+            var h = parseInt(tm[1]); var m = parseInt(tm[2]); var mer = tm[3].toUpperCase();
+            if (mer === 'PM' && h !== 12) h += 12;
+            if (mer === 'AM' && h === 12) h = 0;
+            apptDate.setHours(h, m, 0, 0);
+          }
+          var hoursAway = (apptDate.getTime() - Date.now()) / (1000 * 60 * 60);
+          withinWindow = hoursAway >= 0 && hoursAway < 24;
+        } catch(e) {}
+      }
+      var cancelDesc = withinWindow
+        ? '\u26a0\ufe0f Within 24 hours of appointment — a 50% cancellation fee will be charged. Add a reason or check “Waive fee” below.'
+        : 'Optionally explain why this booking is being cancelled.';
+      document.getElementById('reason-modal-desc').textContent = cancelDesc;
       document.getElementById('reason-confirm').textContent = 'Cancel Booking';
       document.getElementById('reason-confirm').className = 'btn btn-amber';
+      pendingAction.withinWindow = withinWindow;
       $reasonText.value = '';
+      // Show/hide waive-fee checkbox
+      var $wf = document.getElementById('waive-fee-row');
+      if ($wf) $wf.style.display = withinWindow ? '' : 'none';
       $reasonModal.classList.add('open');
     }
   });
 
   document.getElementById('reason-cancel').addEventListener('click', function() {
     $reasonModal.classList.remove('open');
+    $reasonText.placeholder = '';
+    var $wfCb = document.getElementById('waive-fee-cb');
+    if ($wfCb) $wfCb.checked = false;
     pendingAction = null;
   });
 
   document.getElementById('reason-confirm').addEventListener('click', async function() {
     if (!pendingAction) return;
     var reason = $reasonText.value.trim();
+
+    // Handle refund
+    if (pendingAction.type === 'refund') {
+      $reasonModal.classList.remove('open');
+      var bIdRef = pendingAction.id;
+      pendingAction = null;
+      try {
+        var rr = await fetch('/api/booking/refund', {
+          method: 'POST', headers: headers(),
+          body: JSON.stringify({ bookingId: bIdRef, reason: reason || undefined }),
+        });
+        var rd = await rr.json();
+        if (rd.error) { toast(rd.error, 'error'); return; }
+        toast('Refund issued ✓', 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+      } catch { toast('Refund failed', 'error'); }
+      return;
+    }
+
+    // Handle payout
+    if (pendingAction.type === 'payout') {
+      var amtStr = reason; // user types amount in the textarea
+      var amtDollars = parseFloat(amtStr);
+      if (!amtDollars || amtDollars <= 0) { toast('Enter a valid dollar amount', 'error'); return; }
+      $reasonModal.classList.remove('open');
+      var bIdPay = pendingAction.id;
+      pendingAction = null;
+      $reasonText.placeholder = '';
+      try {
+        var pr = await fetch('/api/booking/payout', {
+          method: 'POST', headers: headers(),
+          body: JSON.stringify({ bookingId: bIdPay, amount: Math.round(amtDollars * 100) }),
+        });
+        var pd = await pr.json();
+        if (pd.error) { toast(pd.error, 'error'); return; }
+        toast('Payout recorded ✓', 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+      } catch { toast('Payout failed', 'error'); }
+      return;
+    }
 
     // Handle assembler rejection separately
     if (pendingAction.type === 'reject-assembler') {
@@ -705,6 +808,11 @@
     // Booking actions
     var body = { bookingId: pendingAction.id };
     if (reason) body.reason = reason;
+    if (pendingAction.path === '/cancel') {
+      var $wfCb = document.getElementById('waive-fee-cb');
+      if ($wfCb && $wfCb.checked) body.waiveFee = true;
+      if ($wfCb) $wfCb.checked = false;
+    }
     var msg = pendingAction.path === '/decline' ? 'Booking declined' : 'Booking cancelled';
     doAction(pendingAction.path, body, msg);
     $reasonModal.classList.remove('open');
