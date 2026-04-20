@@ -1612,10 +1612,10 @@
         method: 'PATCH', headers: headers(), body: JSON.stringify({ status: newStatus })
       });
       if (!r.ok) throw new Error();
-      showToast('Job updated to ' + newStatus);
+      toast('Job updated to ' + newStatus);
       document.getElementById('mkt-detail').classList.remove('open');
       await loadMarketplaceJobs();
-    } catch(e) { showToast('Failed to update job', 'error'); }
+    } catch(e) { toast('Failed to update job', 'error'); }
   }
 
   async function deleteMarketplaceJob(jobId) {
@@ -1625,10 +1625,10 @@
         method: 'DELETE', headers: headers()
       });
       if (!r.ok) throw new Error();
-      showToast('Job deleted');
+      toast('Job deleted');
       document.getElementById('mkt-detail').classList.remove('open');
       await loadMarketplaceJobs();
-    } catch(e) { showToast('Failed to delete job', 'error'); }
+    } catch(e) { toast('Failed to delete job', 'error'); }
   }
 
 })();

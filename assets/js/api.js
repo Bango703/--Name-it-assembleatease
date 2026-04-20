@@ -298,6 +298,7 @@ const API = {
       pendingBids:  allBids.filter(b => b.status === 'pending').length,
       acceptedBids: allBids.filter(b => b.status === 'accepted').length,
       completedJobs: allJobs.filter(j => j.status === 'completed').length,
+      assignedJobs:  allJobs.filter(j => j.status === 'assigned' || j.status === 'in_progress').length,
       totalEarned:  earned,
     };
   },

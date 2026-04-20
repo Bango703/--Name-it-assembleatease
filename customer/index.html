@@ -146,9 +146,6 @@
     try {
       const bookingResult = await API.getMyBookings().catch(() => ({ bookings: [], stats: {} }));
       const bs = bookingResult.stats || {};
-      const totalActivity = jobStats.totalJobs + (bs.total || 0);
-      const totalActive = jobStats.inProgress + (bs.confirmed || 0);
-      const totalCompleted = jobStats.completed + (bs.completed || 0);
       document.getElementById('stats-row').innerHTML = `
         <div class="stat-card orange"><div class="stat-value">${bs.total||0}</div><div class="stat-label">Total Bookings</div></div>
         <div class="stat-card neutral"><div class="stat-value">${bs.confirmed||0}</div><div class="stat-label">In Progress</div></div>
