@@ -10,7 +10,7 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <style>
-    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
     .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; position: relative; overflow: hidden; }
     .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
     .stat-card.orange::before { background: var(--accent); }
@@ -76,7 +76,6 @@
     <!-- Stats -->
     <div class="stats-row" id="stats-row">
       <div class="stat-card orange"><div class="skeleton" style="height:50px"></div></div>
-      <div class="stat-card neutral"><div class="skeleton" style="height:50px"></div></div>
       <div class="stat-card neutral"><div class="skeleton" style="height:50px"></div></div>
       <div class="stat-card teal"><div class="skeleton" style="height:50px"></div></div>
     </div>

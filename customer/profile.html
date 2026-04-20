@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Profile â€” AssembleAtEase</title>
+  <title>My Profile — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -128,16 +128,16 @@
 
         <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem">
           <button type="submit" class="btn btn-primary btn-lg" id="save-btn" style="flex:1">Save changes</button>
-          <a href="/" class="btn btn-outline btn-lg" style="flex:1;text-align:center">Cancel</a>
+          <a href="." class="btn btn-outline btn-lg" style="flex:1;text-align:center">Cancel</a>
         </div>
       </form>
 
       <!-- Account info -->
       <div class="form-section">
         <div class="form-section-title">Account information</div>
-        <div class="info-row"><span class="info-label">Email address</span><span class="info-value" id="email-display">â€”</span></div>
+        <div class="info-row"><span class="info-label">Email address</span><span class="info-value" id="email-display">—</span></div>
         <div class="info-row"><span class="info-label">Account type</span><span class="info-value">Customer</span></div>
-        <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">â€”</span></div>
+        <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">—</span></div>
         <div class="info-row"><span class="info-label">Account status</span><span class="badge badge-accepted">Active</span></div>
         <div style="margin-top:1.25rem">
           <button class="btn btn-outline" id="change-password-btn" type="button">Send password reset email</button>
@@ -146,16 +146,12 @@
 
       <!-- Payment -->
       <div class="form-section">
-        <div class="form-section-title">Payment methods</div>
+        <div class="form-section-title">Payment</div>
         <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.65;margin-bottom:1.25rem">
-          Your payment method is charged only when you accept an assembler's bid. We never charge you until you confirm a hire.
+          Your card is authorized at the time of booking and held — not charged — until after the job is complete. We never store your card details on our servers.
         </p>
-        <div class="payment-empty">
-          <div style="font-size:1.4rem;margin-bottom:0.75rem">&#128179;</div>
-          <h4>No payment method added</h4>
-          <p>Add a card to pay assemblers when you accept a bid. Encrypted and never stored on our servers.</p>
-          <button class="btn btn-outline btn-sm" type="button" disabled>Add a card</button>
-          <div style="margin-top:1rem;font-size:0.72rem;color:var(--muted)">&#128274; Secured by Stripe â€” coming soon</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--teal-dark);background:var(--teal-light);border:1px solid rgba(0,151,167,0.15);border-radius:999px;padding:0.3rem 0.75rem">
+          &#128274; Secured by Stripe
         </div>
       </div>
 
@@ -163,11 +159,11 @@
       <div class="form-section">
         <div class="form-section-title">Notification preferences</div>
         <div class="pref-row">
-          <div class="pref-text"><h5>New bid received</h5><p>Get notified when an assembler bids on your job</p></div>
+          <div class="pref-text"><h5>Booking confirmed</h5><p>Get notified when your booking is confirmed by our team</p></div>
           <label class="toggle"><input type="checkbox" id="notif-bids" checked /><span class="toggle-track"></span></label>
         </div>
         <div class="pref-row">
-          <div class="pref-text"><h5>Job status updates</h5><p>Updates when your job moves to in progress or complete</p></div>
+          <div class="pref-text"><h5>Job status updates</h5><p>Updates when your job is assigned or completed</p></div>
           <label class="toggle"><input type="checkbox" id="notif-status" checked /><span class="toggle-track"></span></label>
         </div>
         <div class="pref-row">
@@ -178,8 +174,9 @@
           <div class="pref-text"><h5>Promotions and tips</h5><p>Platform updates, money-saving tips, and new features</p></div>
           <label class="toggle"><input type="checkbox" id="notif-promo" /><span class="toggle-track"></span></label>
         </div>
-        <div style="margin-top:1.25rem">
+        <div style="margin-top:1.25rem;display:flex;align-items:center;gap:0.75rem">
           <button class="btn btn-outline btn-sm" id="save-notifs-btn" type="button">Save preferences</button>
+          <span style="font-size:0.75rem;color:var(--muted)">Email notifications are managed by our team — changes take effect within 24 hours.</span>
         </div>
       </div>
 
