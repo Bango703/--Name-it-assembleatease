@@ -38,6 +38,53 @@
       margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--pro-border);
     }
     body.theme-pro .asgn-status { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* Detail modal */
+    body.theme-pro .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center;
+      padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    body.theme-pro .modal-overlay.open { opacity: 1; pointer-events: all; }
+    body.theme-pro .modal-box {
+      background: var(--pro-surface); border: 1px solid var(--pro-border-md);
+      border-radius: 14px; padding: 1.5rem; max-width: 580px; width: 100%;
+      max-height: 90vh; overflow-y: auto; position: relative;
+    }
+    body.theme-pro .modal-close {
+      position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+      font-size: 1.3rem; color: var(--pro-muted); cursor: pointer; line-height: 1;
+    }
+    body.theme-pro .modal-close:hover { color: var(--pro-text); }
+    /* Message thread */
+    body.theme-pro .msg-thread {
+      background: var(--pro-bg); border: 1px solid var(--pro-border); border-radius: 8px;
+      padding: 1rem; max-height: 220px; overflow-y: auto; margin-bottom: 0.75rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    body.theme-pro .msg-bubble { max-width: 85%; }
+    body.theme-pro .msg-bubble.mine { align-self: flex-end; }
+    body.theme-pro .msg-bubble.theirs { align-self: flex-start; }
+    body.theme-pro .msg-bubble-body {
+      padding: 0.6rem 0.9rem; border-radius: 10px;
+      font-size: 0.875rem; line-height: 1.5;
+    }
+    body.theme-pro .msg-bubble.mine .msg-bubble-body { background: #0097a7; color: #fff; }
+    body.theme-pro .msg-bubble.theirs .msg-bubble-body { background: var(--pro-border); color: var(--pro-text); }
+    body.theme-pro .msg-bubble-meta { font-size: 0.7rem; color: var(--pro-muted); margin-top: 0.2rem; text-align: right; }
+    body.theme-pro .msg-bubble.theirs .msg-bubble-meta { text-align: left; }
+    body.theme-pro .msg-input-row { display: flex; gap: 0.5rem; }
+    body.theme-pro .msg-input-row textarea {
+      flex: 1; resize: none; border-radius: 8px; padding: 0.6rem 0.75rem;
+      font-size: 0.875rem; border: 1px solid var(--pro-border-md); background: var(--pro-bg);
+      color: var(--pro-text); font-family: inherit;
+    }
+    body.theme-pro .msg-input-row textarea:focus { outline: none; border-color: var(--pro-teal); }
+    body.theme-pro .checkin-banner {
+      background: #d1fae5; border: 1px solid #6ee7b7; border-radius: 8px;
+      padding: 0.75rem 1rem; font-size: 0.875rem; color: #065f46;
+      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body class="theme-pro">
@@ -84,9 +131,29 @@
   </main>
 </div>
 
+<!-- Assignment Detail Modal -->
+<div class="modal-overlay" id="asgn-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="asgn-modal-close">&#10005;</button>
+    <div id="asgn-modal-body"></div>
+    <div id="checkin-section" style="display:none">
+      <button class="btn btn-teal" id="checkin-btn" style="width:100%;margin-bottom:1rem">&#128205; Check In — I've Arrived</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--pro-border);margin:1rem 0"/>
+    <h4 style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.75rem">Messages</h4>
+    <div class="msg-thread" id="asgn-msg-thread"></div>
+    <div class="msg-input-row">
+      <textarea id="asgn-msg-input" rows="2" placeholder="Type a message…"></textarea>
+      <button class="btn btn-teal" id="asgn-msg-send">Send</button>
+    </div>
+  </div>
+</div>
+
 <script>
   let allAssignments = [];
   let currentFilter = 'all';
+  let sessionToken = null;
+  let selectedBookingId = null;
 
   function esc(str) {
     if (!str) return '';
@@ -124,7 +191,7 @@
       const badgeClass = isCompleted ? 'badge-complete' : (b.assembler_accepted_at ? 'badge-accepted' : 'badge-pending');
       const badgeText = isCompleted ? 'Completed' : (b.assembler_accepted_at ? 'Accepted' : 'Pending Your Response');
 
-      return '<div class="asgn-card">' +
+      return '<div class="asgn-card" style="cursor:pointer" onclick="openDetail(\'' + b.id + '\')">' +
         '<div class="asgn-card-top">' +
           '<div>' +
             '<h3>' + esc(b.service || 'Service') + '</h3>' +
@@ -141,6 +208,8 @@
           (b.address ? '<span>' + esc(b.address) + '</span>' : '') +
           (isCompleted && b.completed_at ? '<span>Done ' + timeAgo(b.completed_at) + '</span>' : '') +
           (!isCompleted && b.assigned_at ? '<span>Assigned ' + timeAgo(b.assigned_at) + '</span>' : '') +
+          (b.checked_in_at ? '<span style="color:#059669">&#10003; Checked in ' + timeAgo(b.checked_in_at) + '</span>' : '') +
+          (!isCompleted && b.assembler_accepted_at && !b.checked_in_at ? '<span style="color:var(--pro-teal)">Tap to check in &rarr;</span>' : '') +
         '</div>' +
       '</div>';
     }).join('');
@@ -209,7 +278,98 @@
       )
       .subscribe();
     window.addEventListener('beforeunload', () => assignmentsChannel.unsubscribe());
+
+    // Modal close
+    document.getElementById('asgn-modal-close').addEventListener('click', function() {
+      document.getElementById('asgn-modal').classList.remove('open');
+    });
+    document.getElementById('asgn-modal').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+
+    // Check-in button
+    document.getElementById('checkin-btn').addEventListener('click', async function() {
+      if (!selectedBookingId) return;
+      this.disabled = true;
+      this.textContent = 'Checking in\u2026';
+      try {
+        const r = await fetch('/api/booking/checkin', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedBookingId }),
+        });
+        const d = await r.json();
+        if (d.ok) {
+          document.getElementById('checkin-section').style.display = 'none';
+          const banner = document.createElement('div');
+          banner.className = 'checkin-banner';
+          banner.innerHTML = '&#10003; You have checked in! The customer has been notified.';
+          document.getElementById('asgn-modal-body').appendChild(banner);
+          const b = allAssignments.find(x => x.id === selectedBookingId);
+          if (b) b.checked_in_at = d.checkedInAt || new Date().toISOString();
+          const activeTab = document.querySelector('.filter-tab.active');
+          const cf = activeTab?.dataset.filter || 'all';
+          const filtered = cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf);
+          renderAssignments(filtered);
+        } else {
+          alert(d.error || 'Check-in failed');
+          this.disabled = false;
+          this.textContent = '&#128205; Check In \u2014 I\'ve Arrived';
+        }
+      } catch {
+        alert('Check-in failed. Please try again.');
+        this.disabled = false;
+        this.textContent = '&#128205; Check In \u2014 I\'ve Arrived';
+      }
+    });
+
+    // Message send
+    document.getElementById('asgn-msg-send').addEventListener('click', sendMsg);
+    document.getElementById('asgn-msg-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    });
+
+    async function sendMsg() {
+      const input = document.getElementById('asgn-msg-input');
+      const body = input.value.trim();
+      if (!body || !selectedBookingId) return;
+      input.value = '';
+      try {
+        const r = await fetch('/api/booking/message', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedBookingId, body, sender: 'assembler' }),
+        });
+        const d = await r.json();
+        if (!d.success) { alert(d.error || 'Failed to send message'); input.value = body; }
+      } catch { alert('Failed to send message'); input.value = body; }
+    }
   });
+
+  window.openDetail = function(bookingId) {
+    const b = allAssignments.find(x => x.id === bookingId);
+    if (!b) return;
+    selectedBookingId = bookingId;
+    const canCheckIn = b.status === 'confirmed' && b.assembler_accepted_at && !b.checked_in_at;
+
+    document.getElementById('asgn-modal-body').innerHTML = [
+      '<h3 style="margin:0 0 0.75rem;font-size:1.1rem">' + esc(b.service) + '</h3>',
+      b.checked_in_at ? '<div class="checkin-banner">&#10003; Checked in at ' + new Date(b.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div>' : '',
+      '<div style="font-size:0.875rem;color:var(--pro-muted);display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem">',
+        b.date ? '<span>&#128197; ' + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') + '</span>' : '',
+        b.address ? '<span>&#128205; ' + esc(b.address) + '</span>' : '',
+        b.details ? '<span>&#128221; ' + esc(b.details) + '</span>' : '',
+        '<span style="color:var(--pro-muted);font-size:0.78rem">Ref: ' + esc(b.ref) + '</span>',
+      '</div>',
+    ].join('');
+
+    document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
+    const btn = document.getElementById('checkin-btn');
+    btn.disabled = false;
+    btn.innerHTML = '&#128205; Check In &mdash; I\'ve Arrived';
+    document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center">No messages yet.</div>';
+    document.getElementById('asgn-modal').classList.add('open');
+  };
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>

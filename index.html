@@ -156,19 +156,28 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 .waitlist-success{animation:waitlistFadeIn .4s ease}.waitlist-success svg{margin-bottom:1rem}.waitlist-success h3{font-family:var(--font-display);font-size:1.5rem;color:#fff;margin-bottom:0.5rem}.waitlist-success p{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.6}.waitlist-success strong{color:var(--cyan)}@keyframes waitlistFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* HERO */
-.hero{min-height:600px;display:flex;align-items:center;position:relative;background-color:#006070;background-image:url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80');background-size:cover;background-position:center}
-.hero::before{content:'';position:absolute;inset:0;background:rgba(0,25,35,0.62)}
-.hero-inner{max-width:760px;margin:0 auto;padding:6rem 2rem;position:relative;z-index:1;text-align:center}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);color:#fff;font-size:0.82rem;font-weight:600;padding:0.4rem 1.1rem;border-radius:999px;margin-bottom:1.75rem;border:1px solid rgba(255,255,255,0.25)}
-.hero-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
-.hero-title{font-family:var(--font-display);font-size:clamp(2.4rem,5vw,4rem);color:#fff;line-height:1.06;margin-bottom:1.25rem}
-.hero-desc{font-size:1.05rem;color:rgba(255,255,255,0.88);line-height:1.8;margin-bottom:2.5rem;max-width:560px;margin-left:auto;margin-right:auto}
-.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
+.hero{min-height:620px;display:flex;align-items:center;position:relative;background-color:#003d47;background-image:url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80');background-size:cover;background-position:center}
+.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,30,40,0.78) 0%,rgba(0,97,119,0.55) 100%)}
+.hero-inner{max-width:820px;margin:0 auto;padding:6rem 2rem;position:relative;z-index:1;text-align:center}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);color:#fff;font-size:0.82rem;font-weight:600;padding:0.4rem 1.1rem;border-radius:999px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.25)}
+.hero-dot{width:7px;height:7px;border-radius:50%;background:#4dd0e1;animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.5}}
+.hero-title{font-family:var(--font-display);font-size:clamp(2.6rem,5.5vw,4.2rem);color:#fff;line-height:1.05;margin-bottom:1.1rem}
+.hero-title em{color:#4dd0e1;font-style:normal}
+.hero-desc{font-size:1.05rem;color:rgba(255,255,255,0.85);line-height:1.8;margin-bottom:2rem;max-width:560px;margin-left:auto;margin-right:auto}
+.hero-cats{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center;margin-bottom:2rem}
+.hero-cat-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.92);border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:500;text-decoration:none;transition:all 0.15s;cursor:pointer}
+.hero-cat-pill:hover{background:rgba(255,255,255,0.22);color:#fff;border-color:rgba(255,255,255,0.4)}
+.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2.5rem}
 .hero-stats{display:inline-flex;gap:0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:var(--radius-xl);overflow:hidden}
 .hero-stat{padding:1rem 1.5rem;text-align:center;border-right:1px solid rgba(255,255,255,0.12)}
 .hero-stat:last-child{border-right:none}
 .hero-stat-value{font-family:var(--font-display);font-size:1.5rem;color:#fff;line-height:1}
 .hero-stat-label{font-size:0.68rem;color:rgba(255,255,255,0.6);margin-top:3px;text-transform:uppercase;letter-spacing:0.06em}
+.nav-earn-btn{background:var(--cyan);color:#fff;padding:0.5rem 1.1rem;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
+.nav-earn-btn:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35)}
+.nav-auth-link{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
+.nav-auth-link:hover{color:var(--cyan-dark)}
 /* SECTIONS */
 .section{padding:5rem 2rem}
 .section-alt{background:var(--off-white)}
@@ -295,16 +304,22 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <li><a href="/#services">Services</a></li>
       <li><a href="/#how-it-works">How it works</a></li>
       <li><a href="/about">About Us</a></li>
+      <li><a href="/pricing">Pricing</a></li>
       <li><a href="/blog/">Blog</a></li>
       <li><a href="/contact">Contact</a></li>
     </ul>
-        <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
+    <div style="display:flex;align-items:center;gap:1rem">
+      <a href="/auth/login" class="nav-auth-link">Sign In</a>
+      <a href="/assembler/earn" class="nav-earn-btn">Become an Assembler</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
       <span></span><span></span><span></span>
     </button>
   </div>
 </nav>
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services">Services</a>
+  <a href="/#how-it-works">How it works</a>
   <a href="/about">About Us</a>
   <a href="/furniture">Furniture Assembly</a>
   <a href="/mounting">TV &amp; Mounting</a>
@@ -313,21 +328,31 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <a href="/junk">Junk Removal</a>
   <a href="/blog">Blog</a>
   <a href="/contact">Contact</a>
-  <a href="/contact" class="btn btn-cyan btn-full">Get a Quote</a>
+  <a href="/auth/login">Sign In</a>
+  <a href="/auth/signup">Sign Up</a>
+  <a href="/assembler/apply" class="btn btn-cyan btn-full" style="text-align:center">Become an Assembler</a>
+  <a href="javascript:void(0)" class="btn btn-outline btn-full" style="text-align:center" onclick="document.getElementById('mobileNav').classList.remove('open');AAE.openBooking()">Book Now &rarr;</a>
 </div>
 
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="hero-dot"></span> Licensed &amp; Insured Professionals</div>
-    <h1 class="hero-title">Professional Assembly &amp; Handyman Services</h1>
-    <p class="hero-desc">We come to you. Fast, professional, and done right. Furniture assembly, TV mounting, home repairs, smart home installs and more &mdash; so you don't have to.</p>
+    <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Licensed &amp; Insured</div>
+    <h1 class="hero-title">Your to-do list,<br><em>done today.</em></h1>
+    <p class="hero-desc">Austin&rsquo;s trusted assembly and handyman pros. Background-checked professionals at your door &mdash; you only pay when the job is done right.</p>
+    <div class="hero-cats">
+      <a href="/furniture" class="hero-cat-pill">&#128218; Furniture Assembly</a>
+      <a href="/mounting" class="hero-cat-pill">&#128250; TV Mounting</a>
+      <a href="/repairs" class="hero-cat-pill">&#128295; Home Repairs</a>
+      <a href="/smarthome" class="hero-cat-pill">&#127968; Smart Home</a>
+      <a href="/junk" class="hero-cat-pill">&#128465; Junk Removal</a>
+    </div>
     <div class="hero-actions">
-      <button class="btn btn-cyan btn-lg" onclick="AAE.openBooking()">Book Now &rarr;</button>
-      <button class="btn btn-white btn-lg" onclick="document.getElementById('services').scrollIntoView({behavior:'smooth'})">See Our Services &darr;</button>
+      <button class="btn btn-cyan btn-lg" onclick="AAE.openBooking()">Book a Pro &rarr;</button>
+      <a href="/assembler/earn" class="btn btn-ghost-white btn-lg">Earn as an Assembler</a>
     </div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-value">Austin</div><div class="hero-stat-label">Based locally</div></div>
-      <div class="hero-stat"><div class="hero-stat-value">5&#9733;</div><div class="hero-stat-label">Our standard</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">500+</div><div class="hero-stat-label">Jobs completed</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">5&#9733;</div><div class="hero-stat-label">Average rating</div></div>
       <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Availability</div></div>
       <div class="hero-stat"><div class="hero-stat-value">Pay after</div><div class="hero-stat-label">Job is done</div></div>
     </div>
@@ -619,12 +644,28 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
         <li><a href="/blog/">Blog</a></li>
+        <li><a href="/pricing">Pricing</a></li>
         <li><a href="/#faq">FAQ</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/contact">Get a Quote</a></li>
         <li><a href="/business">Business Services</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms &amp; Conditions</a></li>
+      </ul>
+    </div>
+    <div style="grid-column:1 / -1">
+      <div class="footer-col-title">From the Blog</div>
+      <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
+        <li><a href="/blog/same-day-handyman-austin">Same-Day Handyman Austin</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New Home Setup Checklist Austin</a></li>
+        <li><a href="/blog/tv-mounting-tips-austin">TV Mounting Tips Austin</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart Home Install Austin</a></li>
+        <li><a href="/blog/junk-removal-cost-austin">Junk Removal Cost Austin</a></li>
+        <li><a href="/blog/home-repairs-diy-vs-hire-austin">DIY vs. Hire: Austin Repairs</a></li>
+        <li><a href="/blog/wayfair-furniture-assembly-austin">Wayfair Assembly Austin</a></li>
+        <li><a href="/blog/bed-frame-assembly-austin">Bed Frame Assembly Austin</a></li>
+        <li><a href="/blog/ikea-assembly-cost-austin">IKEA Assembly Cost Austin</a></li>
+        <li><a href="/blog/">All Blog Articles &rarr;</a></li>
       </ul>
     </div>
   </div>

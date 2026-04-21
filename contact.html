@@ -1,14 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <meta charset="UTF-8"/>
-<title>Contact Us — AssembleAtEase Austin TX</title>
+<title>Contact Us � AssembleAtEase Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Call, email, or book online. Same-day service available."/>
 <link rel="canonical" href="https://www.assembleatease.com/contact"/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="Contact Us — AssembleAtEase Austin TX"/>
+<meta property="og:title" content="Contact Us � AssembleAtEase Austin TX"/>
 <meta property="og:description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Call, email, or book online. Same-day service available."/>
 <meta property="og:url" content="https://www.assembleatease.com/contact"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
@@ -16,10 +16,10 @@
 <meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta property="og:image:width" content="512"/>
 <meta property="og:image:height" content="512"/>
-<meta property="og:image:alt" content="AssembleAtEase — Professional Assembly &amp; Handyman Services Austin TX"/>
+<meta property="og:image:alt" content="AssembleAtEase � Professional Assembly &amp; Handyman Services Austin TX"/>
 <meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Contact Us — AssembleAtEase Austin TX"/>
+<meta name="twitter:title" content="Contact Us � AssembleAtEase Austin TX"/>
 <meta name="twitter:description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Same-day service available."/>
 <link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="apple-touch-icon" href="/images/logo.jpg"/>
@@ -222,7 +222,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <li><a href="/#services">Services</a></li>
       <li><a href="/#how-it-works">How it works</a></li>
       <li><a href="/about">About Us</a></li>
-      <li><a href="/blog/">Blog</a></li>
+      <li><a href="/blog/">Blog</a></li><li><a href="/pricing">Pricing</a></li>
       <li><a href="/contact">Contact</a></li>
     </ul>
         <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
@@ -326,7 +326,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
-        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/blog/">Blog</a></li><li><a href="/pricing">Pricing</a></li>
         <li><a href="/#faq">FAQ</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/contact">Get a Quote</a></li>
@@ -385,7 +385,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
         <input type="hidden" id="f-time" />
       </div>
       <div class="form-group"><label for="f-details">Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
-      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job — I'd like a custom quote</label></div>
+      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job � I'd like a custom quote</label></div>
       <div class="cart-estimate" id="cart-estimate"></div>
       <div class="form-err" id="form-err"></div>
       <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
@@ -417,7 +417,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   </div>
 </div>
 
-<script>// Shared cart — all pages
+<script>// Shared cart � all pages
 window.AAE = window.AAE || {};
 AAE.cart = JSON.parse(sessionStorage.getItem('aae_cart') || '[]');
 
@@ -469,7 +469,7 @@ AAE.toggleItem = function(name, price, btn) {
   } else {
     AAE.addItem(name, price);
     if (btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added � click to remove';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card2 = btn.closest('.item-card, .service-card');
@@ -504,7 +504,7 @@ AAE.updateCartBar = function() {
   if (AAE.cart.length > 0) {
     bar.classList.add('show');
     if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' · ');
+    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' � ');
   } else {
     bar.classList.remove('show');
   }
@@ -567,7 +567,7 @@ AAE.formatPhone = function(e) {
   input.setSelectionRange(pos + (newLen - oldLen), pos + (newLen - oldLen));
 };
 
-// Address autocomplete (free — OpenStreetMap Nominatim)
+// Address autocomplete (free � OpenStreetMap Nominatim)
 AAE.initAddressAutocomplete = function() {
   var input = document.getElementById('f-address');
   if (!input) return;
@@ -639,12 +639,12 @@ AAE.submitBooking = async function() {
   } catch(e) {
     errEl.textContent = e.message || 'Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
-    btn.disabled = false; btn.textContent = 'Send Booking Request →';
+    btn.disabled = false; btn.textContent = 'Send Booking Request ?';
     return;
   }
 
   AAE.clearCart();
-  btn.disabled = false; btn.textContent = 'Send Booking Request →';
+  btn.disabled = false; btn.textContent = 'Send Booking Request ?';
 
   if (data.clientSecret) {
     AAE._pendingData = { ref: data.ref, services: services, address: address, date: date, time: time, isDeposit: data.isDeposit, depositAmountCents: data.depositAmountCents, totalCents: totalCents, bookingName: _bookingName, bookingEmail: _bookingEmail };
@@ -655,7 +655,7 @@ AAE.submitBooking = async function() {
   }
 };
 
-// ── Stripe card collection ──────────────────────────────────────────────────
+// -- Stripe card collection --------------------------------------------------
 AAE._stripe = null;
 AAE._cardElement = null;
 AAE._pendingData = null;
@@ -759,7 +759,7 @@ AAE.showSuccess = function(ref, services, address, date, time) {
 
 document.addEventListener('keydown', function(e) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added — click to remove';
+      btn.textContent = '\u2713 Added � click to remove';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card = btn.closest('.item-card, .service-card');
@@ -857,7 +857,7 @@ async function sendContact() {
   } catch(e) {
     err.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     err.style.display='block';
-    btn.disabled = false; btn.textContent = 'Send Message →';
+    btn.disabled = false; btn.textContent = 'Send Message ?';
     return;
   }
   document.getElementById('c-success').style.display = 'block';

@@ -648,6 +648,9 @@
         btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">&#36; Record Payout</button>');
       }
     }
+    if (b.status === 'cancelled' || b.status === 'declined') {
+      btns.push('<button class="btn btn-red" data-action="delete-booking" data-id="' + b.id + '" title="Permanently delete this booking">&#128465; Delete</button>');
+    }
     $detailAct.innerHTML = btns.join('');
     $detailAct.style.display = btns.length ? '' : 'none';
   }
@@ -728,6 +731,20 @@
       var $wf = document.getElementById('waive-fee-row');
       if ($wf) $wf.style.display = withinWindow ? '' : 'none';
       $reasonModal.classList.add('open');
+    } else if (action === 'delete-booking') {
+      if (!confirm('Permanently delete this booking? This cannot be undone.')) return;
+      apiPost('/delete', { bookingId: id }).then(function(data) {
+        if (data.ok) {
+          allBookings = allBookings.filter(function(bk){ return bk.id !== id; });
+          $detail.classList.remove('open');
+          $detailPh.style.display = '';
+          selectedId = null;
+          renderList();
+          toast('Booking deleted', 'success');
+        } else {
+          toast(data.error || 'Failed to delete booking', 'error');
+        }
+      }).catch(function() { toast('Failed to delete booking', 'error'); });
     }
   });
 
@@ -1369,6 +1386,10 @@
     if (a.tier === 'starter') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'verified\')">&#8593; Promote → Verified</button>';
     if (a.tier === 'verified') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'elite\')">&#8593; Promote → Elite</button>';
 
+    var downgradeBtn = '';
+    if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-orange" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">&#8595; Demote → Verified</button>';
+    if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-orange" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">&#8595; Demote → Starter</button>';
+
     var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended')
       ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">&#9940; Suspend</button>'
       : '';
@@ -1391,7 +1412,7 @@
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
       '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">'
-        + approveBtn + rejectBtn + promoteBtn + suspendBtn + reinstateBtn
+        + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn
         + '</div>',
     ].filter(Boolean).join('<br>');
 
@@ -1437,6 +1458,23 @@
       if (data.error) { toast(data.error, 'error'); return; }
       var label = newTier.charAt(0).toUpperCase() + newTier.slice(1);
       toast('Assembler promoted to ' + label, 'success');
+      loadAssemblerList();
+    } catch { toast('Failed to update tier', 'error'); }
+  };
+
+  window.downgradeAssembler = async function(assemblerId, newTier) {
+    var label = newTier.charAt(0).toUpperCase() + newTier.slice(1);
+    if (!confirm('Demote this assembler to ' + label + '?')) return;
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    try {
+      var r = await fetch('/api/assembler/update', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ assemblerId: assemblerId, tier: newTier }),
+      });
+      var data = await r.json();
+      if (data.error) { toast(data.error, 'error'); return; }
+      toast('Assembler demoted to ' + label, 'success');
       loadAssemblerList();
     } catch { toast('Failed to update tier', 'error'); }
   };

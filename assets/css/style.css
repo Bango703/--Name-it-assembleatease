@@ -187,6 +187,12 @@ p { color: var(--ink-soft); line-height: 1.7; }
 .btn-warm     { background: #f97316; color: #fff; border-color: #f97316; }
 .btn-warm:hover     { background: #ea6b10; }
 
+.btn-orange   { background: #ea580c; color: #fff; border-color: #ea580c; }
+.btn-orange:hover   { background: #c2410c; border-color: #c2410c; }
+
+.btn-red      { background: #dc2626; color: #fff; border-color: #dc2626; }
+.btn-red:hover      { background: #b91c1c; border-color: #b91c1c; }
+
 .btn-danger   { background: var(--red-light); color: #991b1b; border-color: rgba(239,68,68,0.25); }
 .btn-danger:hover   { background: #fee2e2; }
 

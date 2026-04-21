@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at')
+    .select('id, ref, service, customer_name, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 

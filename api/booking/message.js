@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
     resolvedSender = 'owner';
   } else {
-    // Customer messages require JWT authentication
+    // Customer and assembler messages require JWT authentication
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -53,10 +53,20 @@ export default async function handler(req, res) {
     const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
     const { data: { user }, error: authErr } = await userClient.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-    if (user.email.toLowerCase() !== booking.customer_email.toLowerCase()) {
-      return res.status(401).json({ error: 'Unauthorized — email does not match booking' });
+
+    if (sender === 'assembler') {
+      // Verify user is the assigned assembler on this booking
+      if (!booking.assembler_id || booking.assembler_id !== user.id) {
+        return res.status(403).json({ error: 'You are not assigned to this booking' });
+      }
+      resolvedSender = 'assembler';
+    } else {
+      // Default: customer
+      if (user.email.toLowerCase() !== booking.customer_email.toLowerCase()) {
+        return res.status(401).json({ error: 'Unauthorized — email does not match booking' });
+      }
+      resolvedSender = 'customer';
     }
-    resolvedSender = 'customer';
   }
 
   // Insert message
@@ -137,6 +147,16 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`,
         replyTo: booking.customer_email,
+      });
+    } else if (resolvedSender === 'assembler') {
+      // Notify owner about assembler message
+      await sendEmail({
+        to: ownerEmail(),
+        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
+        subject: 'Assembler Message — ' + booking.ref,
+        html: `<p><strong>Assembler message on booking ${esc(booking.ref)}</strong> (${esc(booking.service)}):</p>
+<blockquote style="background:#f9fafb;border-left:4px solid #0097a7;padding:12px 16px;margin:0">${esc(msgBody.trim())}</blockquote>`,
+        replyTo: ownerEmail(),
       });
     }
   } catch (emailErr) {

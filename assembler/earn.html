@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Earn Money as an Assembler — AssembleAtEase Austin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content="Earn $25–$65/hr doing furniture assembly and handyman work in Austin, TX. Set your own schedule. Join AssembleAtEase today."/>
+<link rel="canonical" href="https://www.assembleatease.com/assembler/earn"/>
+<link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#0097a7;--teal-dark:#00838f;--teal-light:#e0f7fa;
+  --ink:#0d1117;--soft:#374151;--muted:#6b7280;
+  --border:#e5e7eb;--bg:#f9fafb;--white:#ffffff;
+  --gold:#f59e0b;--green:#059669;
+  --font:'DM Sans',sans-serif;--serif:'DM Serif Display',serif;
+  --radius:12px;--shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:68px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.nav-logo{font-family:var(--serif);font-size:1.15rem;color:var(--ink);text-decoration:none}
+.nav-logo span{color:var(--teal)}
+.nav-right{display:flex;align-items:center;gap:1rem}
+.nav-link{font-size:0.875rem;color:var(--muted);text-decoration:none;font-weight:500;transition:color 0.15s}
+.nav-link:hover{color:var(--teal)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-teal:hover{background:var(--teal-dark);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,151,167,0.35)}
+.btn-outline{background:transparent;color:var(--teal);border:2px solid var(--teal);font-weight:600}
+.btn-outline:hover{background:var(--teal-light)}
+.btn-lg{padding:1rem 2.5rem;font-size:1rem}
+.btn-full{width:100%}
+
+/* HERO */
+.earn-hero{background:linear-gradient(135deg,#003d47 0%,#006070 60%,#00838f 100%);padding:6rem 2rem 5rem;text-align:center;position:relative;overflow:hidden}
+.earn-hero::before{content:'';position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=1600&q=80') center/cover;opacity:0.07}
+.earn-hero-inner{position:relative;z-index:1;max-width:700px;margin:0 auto}
+.earn-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);color:#fff;font-size:0.82rem;font-weight:600;padding:0.4rem 1.1rem;border-radius:999px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.25)}
+.earn-hero h1{font-family:var(--serif);font-size:clamp(2.4rem,5vw,3.8rem);color:#fff;line-height:1.08;margin-bottom:1.1rem}
+.earn-hero h1 em{color:#4dd0e1;font-style:normal}
+.earn-hero p{font-size:1.1rem;color:rgba(255,255,255,0.85);line-height:1.75;margin-bottom:2.5rem;max-width:560px;margin-left:auto;margin-right:auto}
+.earn-hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
+.earn-hero-stats{display:inline-flex;gap:0;border:1px solid rgba(255,255,255,0.2);border-radius:16px;overflow:hidden;background:rgba(255,255,255,0.1)}
+.earn-hero-stat{padding:1rem 1.75rem;text-align:center;border-right:1px solid rgba(255,255,255,0.12)}
+.earn-hero-stat:last-child{border-right:none}
+.earn-hero-stat-val{font-family:var(--serif);font-size:1.75rem;color:#fff}
+.earn-hero-stat-lbl{font-size:0.68rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
+
+/* SECTIONS */
+.section{padding:5rem 2rem}
+.section-alt{background:var(--bg)}
+.inner{max-width:1100px;margin:0 auto}
+.s-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--teal);font-weight:700;margin-bottom:0.75rem}
+.s-title{font-family:var(--serif);font-size:clamp(1.8rem,3vw,2.4rem);color:var(--ink);margin-bottom:1rem;line-height:1.15}
+.s-desc{font-size:1rem;color:var(--muted);line-height:1.75;max-width:560px;margin-bottom:2.5rem}
+
+/* EARNINGS CALCULATOR */
+.calc-wrap{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:2.5rem;max-width:680px;margin:0 auto;box-shadow:var(--shadow)}
+.calc-title{font-family:var(--serif);font-size:1.5rem;color:var(--ink);margin-bottom:0.4rem}
+.calc-sub{font-size:0.875rem;color:var(--muted);margin-bottom:2rem}
+.calc-slider-label{font-size:0.82rem;font-weight:600;color:var(--soft);margin-bottom:0.5rem;display:flex;justify-content:space-between}
+.calc-slider{width:100%;height:6px;border-radius:6px;appearance:none;-webkit-appearance:none;background:linear-gradient(90deg,var(--teal) var(--pct,40%),#e5e7eb var(--pct,40%));outline:none;margin-bottom:1.5rem;cursor:pointer}
+.calc-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--teal);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.2);cursor:pointer}
+.calc-result{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem}
+.calc-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;text-align:center}
+.calc-box.highlight{background:#e0f7fa;border-color:#80deea}
+.calc-box-val{font-family:var(--serif);font-size:2rem;color:var(--ink);line-height:1}
+.calc-box.highlight .calc-box-val{color:var(--teal-dark)}
+.calc-box-lbl{font-size:0.75rem;color:var(--muted);margin-top:0.4rem}
+.calc-note{font-size:0.78rem;color:var(--muted);margin-top:1.25rem;text-align:center}
+
+/* HOW IT WORKS */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.step-card{background:var(--white);border:1.5px solid var(--border);border-radius:18px;padding:1.75rem;transition:all 0.2s}
+.step-card:hover{border-color:var(--teal);transform:translateY(-3px);box-shadow:var(--shadow)}
+.step-num{width:48px;height:48px;border-radius:50%;background:var(--teal);color:#fff;font-family:var(--serif);font-size:1.3rem;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem}
+.step-title{font-size:1rem;font-weight:600;color:var(--ink);margin-bottom:0.5rem}
+.step-desc{font-size:0.85rem;color:var(--muted);line-height:1.65}
+
+/* TIER CARDS */
+.tiers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.tier-card{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:2rem;text-align:center;position:relative;transition:all 0.2s}
+.tier-card.popular{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,151,167,0.12)}
+.tier-badge-pop{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;padding:0.3rem 1rem;border-radius:999px;white-space:nowrap}
+.tier-icon{font-size:2.5rem;margin-bottom:0.75rem}
+.tier-name{font-family:var(--serif);font-size:1.25rem;color:var(--ink);margin-bottom:0.25rem}
+.tier-earn{font-size:1.5rem;font-weight:700;color:var(--teal-dark);margin:0.5rem 0}
+.tier-desc{font-size:0.82rem;color:var(--muted);line-height:1.65;margin-bottom:1.5rem}
+.tier-perks{list-style:none;text-align:left;display:flex;flex-direction:column;gap:0.5rem}
+.tier-perks li{font-size:0.85rem;color:var(--soft);display:flex;align-items:flex-start;gap:0.5rem}
+.tier-perks li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;margin-top:0.05rem}
+
+/* WHY US */
+.why-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.why-card{background:var(--white);border:1.5px solid var(--border);border-radius:16px;padding:1.5rem;display:flex;gap:1rem;align-items:flex-start}
+.why-icon{font-size:1.75rem;flex-shrink:0;margin-top:0.1rem}
+.why-title{font-size:0.95rem;font-weight:600;color:var(--ink);margin-bottom:0.35rem}
+.why-desc{font-size:0.83rem;color:var(--muted);line-height:1.65}
+
+/* FAQ */
+.faq-list{max-width:720px;margin:0 auto}
+.faq-item{border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:0.75rem;cursor:pointer;transition:border-color 0.15s;overflow:hidden}
+.faq-item:hover,.faq-item.open{border-color:var(--teal)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;font-size:0.9rem;font-weight:600;color:var(--ink)}
+.faq-chevron{transition:transform 0.2s;flex-shrink:0}
+.faq-item.open .faq-chevron{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height 0.25s ease,padding 0.2s;padding:0 1.25rem;font-size:0.875rem;color:var(--muted);line-height:1.75}
+.faq-item.open .faq-a{max-height:300px;padding:0 1.25rem 1rem}
+
+/* CTA SECTION */
+.cta-section{background:linear-gradient(140deg,#00bcd4,#00838f);padding:5rem 2rem;text-align:center}
+.cta-title{font-family:var(--serif);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
+.cta-desc{font-size:1rem;color:rgba(255,255,255,0.85);margin-bottom:2.5rem;line-height:1.7;max-width:520px;margin-left:auto;margin-right:auto}
+.btn-white{background:#fff;color:var(--teal-dark);font-weight:700}
+.btn-white:hover{background:var(--teal-light)}
+
+/* FOOTER */
+footer{background:#0d1117;color:rgba(255,255,255,0.5);padding:2rem;text-align:center;font-size:0.82rem}
+footer a{color:rgba(255,255,255,0.6);text-decoration:none}
+footer a:hover{color:#fff}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .steps-grid,.tiers-grid{grid-template-columns:1fr}
+  .calc-result{grid-template-columns:1fr}
+  .why-grid{grid-template-columns:1fr}
+  .earn-hero-stats{flex-direction:column}
+}
+@media(max-width:600px){
+  .earn-hero{padding:4rem 1.25rem 3.5rem}
+  .section{padding:3rem 1.25rem}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Assemble<span>AtEase</span></a>
+    <div class="nav-right">
+      <a href="/" class="nav-link">For Customers</a>
+      <a href="/auth/login" class="nav-link">Sign In</a>
+      <a href="/assembler/apply" class="btn btn-teal">Apply Now &rarr;</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="earn-hero">
+  <div class="earn-hero-inner">
+    <div class="earn-badge">&#128176; Join 100+ earners in Austin</div>
+    <h1>Earn money doing<br><em>what you're good at.</em></h1>
+    <p>Turn your skills into a flexible income stream. Assemble furniture, mount TVs, and tackle home projects on your schedule — while we handle the bookings.</p>
+    <div class="earn-hero-btns">
+      <a href="/assembler/apply" class="btn btn-teal btn-lg">Apply in 5 Minutes &rarr;</a>
+      <a href="#how-it-works" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.1)">How it works &darr;</a>
+    </div>
+    <div class="earn-hero-stats">
+      <div class="earn-hero-stat"><div class="earn-hero-stat-val">$25–$65</div><div class="earn-hero-stat-lbl">Per hour</div></div>
+      <div class="earn-hero-stat"><div class="earn-hero-stat-val">Your schedule</div><div class="earn-hero-stat-lbl">Fully flexible</div></div>
+      <div class="earn-hero-stat"><div class="earn-hero-stat-val">Direct payout</div><div class="earn-hero-stat-lbl">We pay promptly</div></div>
+      <div class="earn-hero-stat"><div class="earn-hero-stat-val">Austin TX</div><div class="earn-hero-stat-lbl">Local only</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CALCULATOR -->
+<section class="section">
+  <div class="inner" style="text-align:center">
+    <div class="s-label">Income calculator</div>
+    <div class="s-title">See your earning potential</div>
+    <p class="s-desc" style="margin:0 auto 2.5rem">Slide to estimate monthly earnings based on hours worked. New starters earn around $25/hr base; verified assemblers reach $45+.</p>
+    <div class="calc-wrap">
+      <div class="calc-title">How much could you earn?</div>
+      <div class="calc-sub">Estimate based on your weekly availability.</div>
+      <div class="calc-slider-label">
+        <span>Hours per week</span>
+        <span id="hrs-val" style="color:var(--teal);font-size:1rem">10 hrs/wk</span>
+      </div>
+      <input type="range" class="calc-slider" id="hrs-slider" min="2" max="40" value="10" oninput="updateCalc(this.value)"/>
+      <div class="calc-slider-label" style="margin-top:-0.5rem">
+        <span>Hourly rate</span>
+        <span id="rate-val" style="color:var(--teal);font-size:1rem">$35/hr</span>
+      </div>
+      <input type="range" class="calc-slider" id="rate-slider" min="25" max="65" value="35" oninput="updateCalc()"/>
+      <div class="calc-result">
+        <div class="calc-box">
+          <div class="calc-box-val" id="weekly-earn">$350</div>
+          <div class="calc-box-lbl">Weekly earnings</div>
+        </div>
+        <div class="calc-box highlight">
+          <div class="calc-box-val" id="monthly-earn">$1,400</div>
+          <div class="calc-box-lbl">Monthly earnings</div>
+        </div>
+      </div>
+      <p class="calc-note">&#9432; Estimates based on average assembly jobs. Actual earnings vary by job type and volume. The platform takes a 20% service fee.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section section-alt" id="how-it-works">
+  <div class="inner">
+    <div style="text-align:center;margin-bottom:3rem">
+      <div class="s-label">Simple process</div>
+      <div class="s-title">From application to first paycheck</div>
+      <p class="s-desc" style="margin:0 auto">Six easy steps to start earning with AssembleAtEase.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Apply online in 5 minutes</div>
+        <p class="step-desc">Fill out a quick application telling us about your skills, tools, and availability. No resume needed.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Identity verification</div>
+        <p class="step-desc">We use Stripe Identity to verify your ID. Fast, secure, and required for all assemblers. Takes about 2 minutes.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Team approval</div>
+        <p class="step-desc">Our team reviews your application. We look for reliable, skilled, and customer-friendly professionals.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-title">Set your password</div>
+        <p class="step-desc">Once approved, you'll receive an email with a magic link to set your password and access your dashboard.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">5</div>
+        <div class="step-title">Accept job assignments</div>
+        <p class="step-desc">When a customer books a service, the owner assigns you the job. You'll get an email to accept or decline — your choice.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">6</div>
+        <div class="step-title">Complete job & get paid</div>
+        <p class="step-desc">Finish the job, check in via your dashboard, and get paid after the owner confirms completion. Prompt, reliable payouts.</p>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:2.5rem">
+      <a href="/assembler/apply" class="btn btn-teal btn-lg">Start Your Application &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- TIERS -->
+<section class="section">
+  <div class="inner">
+    <div style="text-align:center;margin-bottom:3rem">
+      <div class="s-label">Assembler tiers</div>
+      <div class="s-title">Grow your income as you grow</div>
+      <p class="s-desc" style="margin:0 auto">The more jobs you complete and the higher your rating, the more you earn and the more visibility you get.</p>
+    </div>
+    <div class="tiers-grid">
+      <div class="tier-card">
+        <div class="tier-icon">&#128994;</div>
+        <div class="tier-name">Starter</div>
+        <div class="tier-earn">~$25–$35/hr</div>
+        <p class="tier-desc">New to the platform. You've passed ID verification and are building your track record on AssembleAtEase.</p>
+        <ul class="tier-perks">
+          <li>Access to all job types</li>
+          <li>Accept/decline any assignment</li>
+          <li>Dashboard &amp; messaging</li>
+          <li>Paid after job completion</li>
+        </ul>
+      </div>
+      <div class="tier-card popular">
+        <div class="tier-badge-pop">&#11088; Most Earners</div>
+        <div class="tier-icon">&#128309;</div>
+        <div class="tier-name">Verified</div>
+        <div class="tier-earn">~$35–$50/hr</div>
+        <p class="tier-desc">After 10 completed jobs with a 4.5+ rating. You&rsquo;re a trusted pro on the platform with priority assignment.</p>
+        <ul class="tier-perks">
+          <li>Everything in Starter</li>
+          <li>Priority job assignments</li>
+          <li>Verified badge on profile</li>
+          <li>Higher-value job access</li>
+          <li>Repeat customer bonus</li>
+        </ul>
+      </div>
+      <div class="tier-card">
+        <div class="tier-icon">&#11088;</div>
+        <div class="tier-name">Elite</div>
+        <div class="tier-earn">~$50–$65/hr</div>
+        <p class="tier-desc">Top 10% of assemblers. After 30+ jobs, 4.8+ rating, and consistent excellence. First pick for premium clients.</p>
+        <ul class="tier-perks">
+          <li>Everything in Verified</li>
+          <li>First pick on premium jobs</li>
+          <li>Elite badge &amp; profile highlight</li>
+          <li>Higher tip rate &amp; bonuses</li>
+          <li>Featured in customer search</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY US -->
+<section class="section section-alt">
+  <div class="inner">
+    <div style="text-align:center;margin-bottom:3rem">
+      <div class="s-label">Why AssembleAtEase</div>
+      <div class="s-title">The smarter way to earn</div>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon">&#128197;</div>
+        <div>
+          <div class="why-title">Work on your schedule</div>
+          <p class="why-desc">Accept or decline any job. We never pressure you. Work 5 hours a week or 40 — it's entirely up to you.</p>
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">&#128184;</div>
+        <div>
+          <div class="why-title">Fast, reliable payouts</div>
+          <p class="why-desc">Payment is captured when the job is marked complete. The owner records your payout directly — no waiting weeks.</p>
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">&#128241;</div>
+        <div>
+          <div class="why-title">Simple digital tools</div>
+          <p class="why-desc">Your assembler dashboard shows all your assignments, messages, and history. Check in on arrival with one tap.</p>
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">&#127775;</div>
+        <div>
+          <div class="why-title">Build your reputation</div>
+          <p class="why-desc">Customer ratings and completed jobs translate directly into tier promotions and higher pay. Hard work is rewarded.</p>
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">&#128274;</div>
+        <div>
+          <div class="why-title">Legal protection</div>
+          <p class="why-desc">AssembleAtEase is fully licensed and insured. We handle disputes and customer issues so you can focus on the job.</p>
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">&#127959;</div>
+        <div>
+          <div class="why-title">Local Austin community</div>
+          <p class="why-desc">Work in your neighborhood. We operate exclusively in Austin, TX, so you&rsquo;re never driving across the state for a job.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section">
+  <div class="inner" style="text-align:center">
+    <div class="s-label">Common questions</div>
+    <div class="s-title" style="margin-bottom:2.5rem">Assembler FAQ</div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Do I need my own tools? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">You'll need basic hand tools (screwdrivers, Allen keys, drill). We don't supply tools, but most assembly jobs only require a basic toolkit. When you apply, you'll indicate what tools you own.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How does payment work? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">The platform takes a 20% service fee from each completed job. You keep 80%. The owner records your payout directly — you&rsquo;ll receive it promptly after job completion. We&rsquo;re constantly improving the payout speed.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I decline a job? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">Absolutely. When the owner assigns you a job, you'll receive an email with accept/decline links. If you decline, the booking is returned to the owner for reassignment. We ask that you decline promptly so the customer isn&rsquo;t kept waiting.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Do I need experience? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">Prior assembly or handyman experience is strongly preferred, but not always required for Starter tier. We look for reliability, good communication, and a customer-first attitude as much as technical skill.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How long does approval take? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">Most applications are reviewed within 48 hours. ID verification via Stripe Identity takes just a few minutes on your end. Once approved, you&rsquo;ll receive a welcome email with your dashboard login link.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What if a customer is unhappy? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">All disputes are handled through our owner. We have a dispute resolution process that protects both assemblers and customers. As long as you do quality work and communicate clearly, disputes are rare.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is this a W-2 job or 1099? <span class="faq-chevron">&#8964;</span></div>
+        <div class="faq-a">Assemblers are independent contractors (1099). You&rsquo;re your own boss — you set your availability, accept the jobs you want, and are responsible for your own taxes and insurance.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-title">Ready to start earning?</div>
+  <p class="cta-desc">Join Austin&rsquo;s fastest-growing assembly platform. Apply takes less than 5 minutes. Most applicants hear back within 48 hours.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="/assembler/apply" class="btn btn-white btn-lg">Apply Now &rarr;</a>
+    <a href="/contact" class="btn btn-lg" style="background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.4)">Ask a Question</a>
+  </div>
+</section>
+
+<footer>
+  <p>&copy; 2025 AssembleAtEase &bull; Austin, TX &bull; <a href="/">Home</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/terms">Terms</a></p>
+</footer>
+
+<script>
+  // Earnings calculator
+  function updateCalc(val) {
+    var hrs = parseInt(document.getElementById('hrs-slider').value);
+    var rate = parseInt(document.getElementById('rate-slider').value);
+    document.getElementById('hrs-val').textContent = hrs + ' hrs/wk';
+    document.getElementById('rate-val').textContent = '$' + rate + '/hr';
+    // Update slider fill
+    var hrsSlider = document.getElementById('hrs-slider');
+    var rateSlider = document.getElementById('rate-slider');
+    var hrsPct = ((hrs - 2) / (40 - 2)) * 100;
+    var ratePct = ((rate - 25) / (65 - 25)) * 100;
+    hrsSlider.style.setProperty('--pct', hrsPct + '%');
+    rateSlider.style.setProperty('--pct', ratePct + '%');
+    // Calculate (platform takes 20%)
+    var weeklyGross = hrs * rate;
+    var weeklyNet = Math.round(weeklyGross * 0.8);
+    var monthlyNet = Math.round(weeklyNet * 4.33);
+    document.getElementById('weekly-earn').textContent = '$' + weeklyNet.toLocaleString();
+    document.getElementById('monthly-earn').textContent = '$' + monthlyNet.toLocaleString();
+  }
+  updateCalc();
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var isOpen = this.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(function(i) { i.classList.remove('open'); });
+      if (!isOpen) this.classList.add('open');
+    });
+  });
+</script>
+
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>
