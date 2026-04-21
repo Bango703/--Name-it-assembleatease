@@ -705,6 +705,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
         </div>
         <div class="dt-times" id="dt-times" style="display:none"></div>
         <div class="dt-selected" id="dt-selected"></div>
+        <p id="dt-horizon-note" style="font-size:0.72rem;color:var(--muted);margin:0.5rem 0 0;line-height:1.45">Online booking available up to 6 days in advance. For bookings further out please contact us at <a href="mailto:service@assembleatease.com" style="color:var(--cyan)">service@assembleatease.com</a></p>
         <input type="hidden" id="f-date" />
         <input type="hidden" id="f-time" />
       </div>
@@ -1123,11 +1124,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
     var slots=['8:00 AM - 10:00 AM','10:00 AM - 12:00 PM','12:00 PM - 2:00 PM','2:00 PM - 4:00 PM','4:00 PM - 6:00 PM','Flexible'];
     var today=new Date();today.setHours(0,0,0,0);
+    var maxDate=new Date(today.getTime()+6*24*60*60*1000);
     var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
     function pad(n){return n<10?'0'+n:n;}
     function render(){
       titleEl.textContent=months[curMonth]+' '+curYear;
       prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());
+      var nextMonthFirst=new Date(curYear,curMonth+1,1);
+      nextBtn.disabled=(nextMonthFirst>maxDate);
       grid.innerHTML='';
       dows.forEach(function(d){var el=document.createElement('div');el.className='dt-cal-dow';el.textContent=d;grid.appendChild(el);});
       var first=new Date(curYear,curMonth,1),startDay=first.getDay(),daysInMonth=new Date(curYear,curMonth+1,0).getDate();
@@ -1136,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
         var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
         btn.textContent=i;btn.setAttribute('data-date',iso);
-        if(dd<today){btn.disabled=true;}
+        if(dd<today||dd>maxDate){btn.disabled=true;}
         else{
           if(dd.getTime()===today.getTime())btn.classList.add('today');
           if(iso===selectedDate)btn.classList.add('active');
