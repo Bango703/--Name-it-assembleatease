@@ -258,7 +258,7 @@
       if (!btn) return;
       btn.disabled = true; btn.textContent = 'Sending...';
       try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/login' });
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/set-password' });
         if (error) throw error;
         APP.showAlert('page-alert', 'Password reset email sent to ' + user.email, 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });

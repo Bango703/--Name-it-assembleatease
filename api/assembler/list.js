@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   let query = sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, tier, identity_verified, identity_verified_at, stripe_verification_id, stripe_customer_id, payment_confirmed, services_offered, has_tools, has_transport, years_experience, rating, completed_jobs, created_at')
+    .select('id, full_name, email, phone, city, zip, tier, identity_verified, identity_verified_at, stripe_verification_id, stripe_customer_id, payment_confirmed, services_offered, has_tools, has_transport, years_experience, rating, completed_jobs, created_at, application_status, rejected_at')
     .eq('role', 'assembler')
     .order('created_at', { ascending: false });
 
@@ -32,10 +32,11 @@ export default async function handler(req, res) {
   const assemblers = data || [];
   const stats = {
     total: assemblers.length,
-    pending: assemblers.filter(a => a.tier === 'pending').length,
+    pending: assemblers.filter(a => a.tier === 'pending' && a.application_status !== 'rejected').length,
     starter: assemblers.filter(a => a.tier === 'starter').length,
     verified: assemblers.filter(a => a.tier === 'verified').length,
     elite: assemblers.filter(a => a.tier === 'elite').length,
+    rejected: assemblers.filter(a => a.application_status === 'rejected').length,
   };
 
   return res.status(200).json({ assemblers, stats });

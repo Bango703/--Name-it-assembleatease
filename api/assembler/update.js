@@ -75,6 +75,33 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, assemblerId, action: 'rejected' });
   }
 
+  // ── Handle permanent deletion of rejected applicants ──
+  if (action === 'delete') {
+    // Only allow deleting rejected or pending assemblers (not active ones)
+    if (!['pending', 'suspended'].includes(profile.tier) && profile.application_status !== 'rejected') {
+      return res.status(400).json({ error: 'Can only delete pending or rejected applications' });
+    }
+
+    // Delete from waitlist
+    try {
+      await sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase());
+    } catch (e) { console.error('Waitlist delete error:', e); }
+
+    // Delete the profile row
+    const { error: profileDeleteErr } = await sb.from('profiles').delete().eq('id', assemblerId);
+    if (profileDeleteErr) {
+      console.error('Profile delete error:', profileDeleteErr);
+      return res.status(500).json({ error: 'Failed to delete profile' });
+    }
+
+    // Attempt to delete the auth user (requires service role — non-blocking if it fails)
+    try {
+      await sb.auth.admin.deleteUser(assemblerId);
+    } catch (e) { console.error('Auth user delete error (non-fatal):', e); }
+
+    return res.status(200).json({ success: true, assemblerId, action: 'deleted' });
+  }
+
   // Block approval of unverified assemblers
   if (tier && tier !== 'pending' && profile.tier === 'pending' && !profile.identity_verified) {
     return res.status(400).json({

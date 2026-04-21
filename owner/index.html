@@ -291,6 +291,7 @@
           <button class="tab" data-tier="verified">Verified</button>
           <button class="tab" data-tier="elite">Elite</button>
           <button class="tab" data-tier="suspended">Suspended</button>
+          <button class="tab" data-tier="rejected">Rejected</button>
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem" id="asm-table">
@@ -1187,7 +1188,7 @@
       document.getElementById('asm-active').textContent = (stats.starter || 0) + (stats.verified || 0);
       document.getElementById('asm-elite').textContent = stats.elite || 0;
 
-      // Pending apps badge
+      // Pending apps badge — exclude rejected
       var $navApps = document.getElementById('nav-pending-apps');
       if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
       else $navApps.style.display = 'none';
@@ -1227,7 +1228,34 @@
   }
 
   function renderAssemblerTable() {
-    var filtered = currentTierFilter === 'all' ? allAssemblerProfiles : allAssemblerProfiles.filter(function(a){ return a.tier === currentTierFilter; });
+    var filtered;
+    if (currentTierFilter === 'all') {
+      // "All" excludes rejected so they don't clutter the main view
+      filtered = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; });
+    } else if (currentTierFilter === 'rejected') {
+      filtered = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; });
+    } else if (currentTierFilter === 'pending') {
+      filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; });
+    } else {
+      filtered = allAssemblerProfiles.filter(function(a){ return a.tier === currentTierFilter; });
+    }
+    // Update tab counts
+    document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
+      var s = t.dataset.tier;
+      var c;
+      if (s === 'all') {
+        c = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; }).length;
+      } else if (s === 'rejected') {
+        c = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; }).length;
+      } else if (s === 'pending') {
+        c = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; }).length;
+      } else {
+        c = allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
+      }
+      var span = t.querySelector('.tab-count');
+      if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
+      span.textContent = c;
+    });
     var tbody = document.getElementById('asm-tbody');
     if (!filtered.length) {
       tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No assemblers found</td></tr>';
@@ -1235,24 +1263,29 @@
     }
     tbody.innerHTML = filtered.map(function(a) {
       var rowStyle = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
+      var isRejected = a.application_status === 'rejected';
       return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
         + '<td style="' + rowStyle + '"><strong>' + esc(a.full_name) + '</strong><br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span></td>'
         + '<td style="' + rowStyle + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
-        + '<td style="' + rowStyle + '">' + tierBadge(a.tier) + '</td>'
+        + '<td style="' + rowStyle + '">' + (isRejected ? '<span class="badge badge-declined">rejected</span>' : tierBadge(a.tier)) + '</td>'
         + '<td style="' + rowStyle + '">' + identityStatus(a) + '</td>'
         + '<td style="' + rowStyle + '">' + (a.completed_jobs||0) + '</td>'
         + '<td style="' + rowStyle + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
         + '<td style="' + rowStyle + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
         + '<td style="' + rowStyle + '">'
-          + (a.tier === 'pending'
-              ? (a.identity_verified
-                  ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
-                  : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
-              : '')
-          + (a.tier === 'pending'
-              ? '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> '
-              : '')
-          + '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
+          + (isRejected
+              ? '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">&#128465; Delete</button>'
+              : (a.tier === 'pending'
+                  ? (a.identity_verified
+                      ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
+                      : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
+                  : '')
+              + (!isRejected && a.tier === 'pending'
+                  ? '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> '
+                  : '')
+              + (!isRejected
+                  ? '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
+                  : ''))
         + '</td></tr>';
     }).join('');
   }
@@ -1297,6 +1330,25 @@
       document.getElementById('reason-confirm').className = 'btn btn-red';
       $reasonText.value = '';
       $reasonModal.classList.add('open');
+    }
+
+    var deleteAsmBtn = e.target.closest('[data-delete-asm]');
+    if (deleteAsmBtn) {
+      var aIdDel = deleteAsmBtn.dataset.deleteAsm;
+      if (!confirm('Permanently delete this rejected application? This cannot be undone.')) return;
+      deleteAsmBtn.disabled = true;
+      deleteAsmBtn.textContent = '...';
+      try {
+        var r2 = await fetch('/api/assembler/update', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ assemblerId: aIdDel, action: 'delete' }),
+        });
+        var d2 = await r2.json();
+        if (d2.error) { toast(d2.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = '&#128465; Delete'; return; }
+        toast('Application deleted', 'success');
+        loadAssemblerList();
+      } catch { toast('Failed to delete application', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = '&#128465; Delete'; }
     }
   });
 
