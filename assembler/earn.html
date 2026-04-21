@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Earn Money as an Assembler — AssembleAtEase Austin</title>
+<title>Become a Pro — Earn on Your Terms | AssembleAtEase Austin</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="Earn $25–$65/hr doing furniture assembly and handyman work in Austin, TX. Set your own schedule. Join AssembleAtEase today."/>
+<meta name="description" content="Earn $40–$160 per job doing furniture assembly and handyman work in Austin, TX. Set your own schedule. Join AssembleAtEase as a Pro today."/>
 <link rel="canonical" href="https://www.assembleatease.com/assembler/earn"/>
 <link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -25,8 +25,10 @@ body{font-family:var(--font);background:var(--white);color:var(--ink);-webkit-fo
 /* NAV */
 .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:68px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.nav-logo{font-family:var(--serif);font-size:1.15rem;color:var(--ink);text-decoration:none}
-.nav-logo span{color:var(--teal)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
+.nav-logo-text{font-family:var(--serif);font-size:1.15rem;color:var(--ink)}
+.nav-logo-text span{color:var(--teal)}
 .nav-right{display:flex;align-items:center;gap:1rem}
 .nav-link{font-size:0.875rem;color:var(--muted);text-decoration:none;font-weight:500;transition:color 0.15s}
 .nav-link:hover{color:var(--teal)}
@@ -122,9 +124,24 @@ body{font-family:var(--font);background:var(--white);color:var(--ink);-webkit-fo
 .btn-white:hover{background:var(--teal-light)}
 
 /* FOOTER */
-footer{background:#0d1117;color:rgba(255,255,255,0.5);padding:2rem;text-align:center;font-size:0.82rem}
-footer a{color:rgba(255,255,255,0.6);text-decoration:none}
-footer a:hover{color:#fff}
+.footer-full{background:#0d1117;padding:3rem 2rem 2rem}
+.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
+.footer-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
+.footer-logo-row img{width:38px;height:38px;border-radius:50%;object-fit:cover}
+.footer-logo-text{font-family:var(--serif);font-size:1.05rem;color:#fff}
+.footer-logo-text span{color:var(--teal)}
+.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-bottom:1rem}
+.footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
+.footer-contact a:hover{color:var(--teal)}
+.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;font-weight:700}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
+.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s}
+.footer-links a:hover{color:#fff}
+.footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2)}
+.footer-legal{display:flex;gap:1.25rem}
+.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.25);text-decoration:none;transition:color 0.15s}
+.footer-legal a:hover{color:rgba(255,255,255,0.6)}
 
 /* RESPONSIVE */
 @media(max-width:900px){
@@ -132,6 +149,7 @@ footer a:hover{color:#fff}
   .calc-result{grid-template-columns:1fr}
   .why-grid{grid-template-columns:1fr}
   .earn-hero-stats{flex-direction:column}
+  .footer-inner{grid-template-columns:1fr;gap:2rem}
 }
 @media(max-width:600px){
   .earn-hero{padding:4rem 1.25rem 3.5rem}
@@ -143,7 +161,10 @@ footer a:hover{color:#fff}
 
 <nav class="nav">
   <div class="nav-inner">
-    <a href="/" class="nav-logo">Assemble<span>AtEase</span></a>
+    <a href="/" class="nav-logo">
+      <img src="/images/logo.jpg" alt="AssembleAtEase Logo"/>
+      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+    </a>
     <div class="nav-right">
       <a href="/" class="nav-link">For Customers</a>
       <a href="/auth/login" class="nav-link">Sign In</a>
@@ -176,31 +197,31 @@ footer a:hover{color:#fff}
   <div class="inner" style="text-align:center">
     <div class="s-label">Income calculator</div>
     <div class="s-title">See your earning potential</div>
-    <p class="s-desc" style="margin:0 auto 2.5rem">Slide to estimate monthly earnings based on hours worked. New starters earn around $25/hr base; verified assemblers reach $45+.</p>
+    <p class="s-desc" style="margin:0 auto 2.5rem">Slide to estimate monthly earnings based on jobs worked. Each job pays you 80% of the service price &mdash; typically $40&ndash;$160 per job depending on complexity.</p>
     <div class="calc-wrap">
       <div class="calc-title">How much could you earn?</div>
-      <div class="calc-sub">Estimate based on your weekly availability.</div>
+      <div class="calc-sub">Estimate based on your weekly job volume.</div>
       <div class="calc-slider-label">
-        <span>Hours per week</span>
-        <span id="hrs-val" style="color:var(--teal);font-size:1rem">10 hrs/wk</span>
+        <span>Jobs per week</span>
+        <span id="hrs-val" style="color:var(--teal);font-size:1rem">5 jobs/wk</span>
       </div>
-      <input type="range" class="calc-slider" id="hrs-slider" min="2" max="40" value="10" oninput="updateCalc(this.value)"/>
+      <input type="range" class="calc-slider" id="hrs-slider" min="1" max="25" value="5" oninput="updateCalc(this.value)"/>
       <div class="calc-slider-label" style="margin-top:-0.5rem">
-        <span>Hourly rate</span>
-        <span id="rate-val" style="color:var(--teal);font-size:1rem">$35/hr</span>
+        <span>Average earnings per job</span>
+        <span id="rate-val" style="color:var(--teal);font-size:1rem">$80 / job</span>
       </div>
-      <input type="range" class="calc-slider" id="rate-slider" min="25" max="65" value="35" oninput="updateCalc()"/>
+      <input type="range" class="calc-slider" id="rate-slider" min="40" max="160" value="80" oninput="updateCalc()"/>
       <div class="calc-result">
         <div class="calc-box">
-          <div class="calc-box-val" id="weekly-earn">$350</div>
+          <div class="calc-box-val" id="weekly-earn">$400</div>
           <div class="calc-box-lbl">Weekly earnings</div>
         </div>
         <div class="calc-box highlight">
-          <div class="calc-box-val" id="monthly-earn">$1,400</div>
+          <div class="calc-box-val" id="monthly-earn">$1,733</div>
           <div class="calc-box-lbl">Monthly earnings</div>
         </div>
       </div>
-      <p class="calc-note">&#9432; Estimates based on average assembly jobs. Actual earnings vary by job type and volume. The platform takes a 20% service fee.</p>
+      <p class="calc-note">Estimates based on average job earnings after the platform&rsquo;s 20% service fee. Actual earnings vary by job type and volume.</p>
     </div>
   </div>
 </section>
@@ -261,9 +282,8 @@ footer a:hover{color:#fff}
     </div>
     <div class="tiers-grid">
       <div class="tier-card">
-        <div class="tier-icon">&#128994;</div>
         <div class="tier-name">Starter</div>
-        <div class="tier-earn">~$25–$35/hr</div>
+        <div class="tier-earn">$40–$95 per job</div>
         <p class="tier-desc">New to the platform. You've passed ID verification and are building your track record on AssembleAtEase.</p>
         <ul class="tier-perks">
           <li>Access to all job types</li>
@@ -273,10 +293,9 @@ footer a:hover{color:#fff}
         </ul>
       </div>
       <div class="tier-card popular">
-        <div class="tier-badge-pop">&#11088; Most Earners</div>
-        <div class="tier-icon">&#128309;</div>
+        <div class="tier-badge-pop">Most Earners</div>
         <div class="tier-name">Verified</div>
-        <div class="tier-earn">~$35–$50/hr</div>
+        <div class="tier-earn">$55–$125 per job</div>
         <p class="tier-desc">After 10 completed jobs with a 4.5+ rating. You&rsquo;re a trusted pro on the platform with priority assignment.</p>
         <ul class="tier-perks">
           <li>Everything in Starter</li>
@@ -287,9 +306,8 @@ footer a:hover{color:#fff}
         </ul>
       </div>
       <div class="tier-card">
-        <div class="tier-icon">&#11088;</div>
         <div class="tier-name">Elite</div>
-        <div class="tier-earn">~$50–$65/hr</div>
+        <div class="tier-earn">$70–$160 per job</div>
         <p class="tier-desc">Top 10% of assemblers. After 30+ jobs, 4.8+ rating, and consistent excellence. First pick for premium clients.</p>
         <ul class="tier-perks">
           <li>Everything in Verified</li>
@@ -405,32 +423,77 @@ footer a:hover{color:#fff}
   </div>
 </section>
 
-<footer>
-  <p>&copy; 2025 AssembleAtEase &bull; Austin, TX &bull; <a href="/">Home</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/terms">Terms</a></p>
+<footer class="footer-full">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo-row"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
+      <div class="footer-contact"><a href="mailto:service@assembleatease.com">service@assembleatease.com</a></div>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <ul class="footer-links">
+        <li><a href="/furniture">Furniture Assembly</a></li>
+        <li><a href="/mounting">TV &amp; Mounting</a></li>
+        <li><a href="/repairs">Home Repairs</a></li>
+        <li><a href="/smarthome">Smart Home</a></li>
+        <li><a href="/junk">Junk Removal</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a href="/about">About Us</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/business">Business Services</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms &amp; Conditions</a></li>
+      </ul>
+    </div>
+    <div style="grid-column:1 / -1">
+      <div class="footer-col-title">From the Blog</div>
+      <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
+        <li><a href="/blog/same-day-handyman-austin">Same-Day Handyman Austin</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New Home Setup Checklist</a></li>
+        <li><a href="/blog/tv-mounting-tips-austin">TV Mounting Tips Austin</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart Home Install Austin</a></li>
+        <li><a href="/blog/junk-removal-cost-austin">Junk Removal Cost Austin</a></li>
+        <li><a href="/blog/home-repairs-diy-vs-hire-austin">DIY vs. Hire: Austin Repairs</a></li>
+        <li><a href="/blog/wayfair-furniture-assembly-austin">Wayfair Assembly Austin</a></li>
+        <li><a href="/blog/bed-frame-assembly-austin">Bed Frame Assembly Austin</a></li>
+        <li><a href="/blog/">All Blog Articles &rarr;</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">&copy; <span id="footer-year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a></div>
+    <div class="footer-copy">Licensed &bull; Insured &bull; Background Checked</div>
+  </div>
 </footer>
 
 <script>
   // Earnings calculator
   function updateCalc(val) {
-    var hrs = parseInt(document.getElementById('hrs-slider').value);
+    var jobs = parseInt(document.getElementById('hrs-slider').value);
     var rate = parseInt(document.getElementById('rate-slider').value);
-    document.getElementById('hrs-val').textContent = hrs + ' hrs/wk';
-    document.getElementById('rate-val').textContent = '$' + rate + '/hr';
+    document.getElementById('hrs-val').textContent = jobs + ' jobs/wk';
+    document.getElementById('rate-val').textContent = '$' + rate + ' / job';
     // Update slider fill
     var hrsSlider = document.getElementById('hrs-slider');
     var rateSlider = document.getElementById('rate-slider');
-    var hrsPct = ((hrs - 2) / (40 - 2)) * 100;
-    var ratePct = ((rate - 25) / (65 - 25)) * 100;
+    var hrsPct = ((jobs - 1) / (25 - 1)) * 100;
+    var ratePct = ((rate - 40) / (160 - 40)) * 100;
     hrsSlider.style.setProperty('--pct', hrsPct + '%');
     rateSlider.style.setProperty('--pct', ratePct + '%');
-    // Calculate (platform takes 20%)
-    var weeklyGross = hrs * rate;
-    var weeklyNet = Math.round(weeklyGross * 0.8);
+    var weeklyNet = jobs * rate;
     var monthlyNet = Math.round(weeklyNet * 4.33);
     document.getElementById('weekly-earn').textContent = '$' + weeklyNet.toLocaleString();
     document.getElementById('monthly-earn').textContent = '$' + monthlyNet.toLocaleString();
   }
   updateCalc();
+  document.getElementById('footer-year') && (document.getElementById('footer-year').textContent = new Date().getFullYear());
 
   // FAQ accordion
   document.querySelectorAll('.faq-item').forEach(function(item) {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
@@ -305,7 +305,6 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <li><a href="/#how-it-works">How it works</a></li>
       <li><a href="/about">About Us</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/blog/">Blog</a></li>
       <li><a href="/contact">Contact</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:1rem">
@@ -326,7 +325,6 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <a href="/repairs">Home Repairs</a>
   <a href="/smarthome">Smart Home</a>
   <a href="/junk">Junk Removal</a>
-  <a href="/blog">Blog</a>
   <a href="/contact">Contact</a>
   <a href="/auth/login">Sign In</a>
   <a href="/auth/signup">Sign Up</a>
@@ -340,15 +338,14 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <h1 class="hero-title">Your to-do list,<br><em>done today.</em></h1>
     <p class="hero-desc">Austin&rsquo;s trusted assembly and handyman pros. Background-checked professionals at your door &mdash; you only pay when the job is done right.</p>
     <div class="hero-cats">
-      <a href="/furniture" class="hero-cat-pill">&#128218; Furniture Assembly</a>
-      <a href="/mounting" class="hero-cat-pill">&#128250; TV Mounting</a>
-      <a href="/repairs" class="hero-cat-pill">&#128295; Home Repairs</a>
-      <a href="/smarthome" class="hero-cat-pill">&#127968; Smart Home</a>
-      <a href="/junk" class="hero-cat-pill">&#128465; Junk Removal</a>
+      <a href="/furniture" class="hero-cat-pill">Furniture Assembly</a>
+      <a href="/mounting" class="hero-cat-pill">TV Mounting</a>
+      <a href="/repairs" class="hero-cat-pill">Home Repairs</a>
+      <a href="/smarthome" class="hero-cat-pill">Smart Home</a>
+      <a href="/junk" class="hero-cat-pill">Junk Removal</a>
     </div>
     <div class="hero-actions">
       <button class="btn btn-cyan btn-lg" onclick="AAE.openBooking()">Book a Pro &rarr;</button>
-      <a href="/assembler/earn" class="btn btn-ghost-white btn-lg">Earn as an Assembler</a>
     </div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-value">500+</div><div class="hero-stat-label">Jobs completed</div></div>
@@ -643,8 +640,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
-        <li><a href="/blog/">Blog</a></li>
-        <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/pricing">Pricing</a></li>
         <li><a href="/#faq">FAQ</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/contact">Get a Quote</a></li>
@@ -691,7 +687,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
         <button class="modal-close" aria-label="Close booking form" onclick="AAE.closeBooking()">&times;</button>
       </div>
       <div class="cart-summary">
-        <div class="cart-summary-title">&#128722; Your Selected Services</div>
+        <div class="cart-summary-title">Your Selected Services</div>
         <div id="modal-cart-items"></div>
         <div class="cart-total" id="modal-cart-total"></div>
         <button class="add-more-btn" onclick="AAE.closeBooking();document.getElementById('services').scrollIntoView({behavior:'smooth'})">+ Add more services</button>
@@ -992,7 +988,7 @@ AAE.submitBooking = async function() {
   }
 };
 
-// ── Stripe card collection ──────────────────────────────────────────────────
+// -- Stripe card collection --------------------------------------------------
 AAE._stripe = null;
 AAE._cardElement = null;
 AAE._pendingData = null;
@@ -1142,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', function() {
           if(iso===selectedDate)btn.classList.add('active');
           btn.addEventListener('click',function(){var me=this;selectedDate=me.getAttribute('data-date');document.getElementById('f-date').value=selectedDate;document.getElementById('f-time').value='';grid.querySelectorAll('.dt-cal-day').forEach(function(b){b.classList.remove('active');});me.classList.add('active');timesEl.innerHTML='';timesEl.style.display='flex';selEl.textContent='';
             slots.forEach(function(s){var tb=document.createElement('button');tb.type='button';tb.className='dt-time-btn';tb.textContent=s;tb.addEventListener('click',function(){timesEl.querySelectorAll('.dt-time-btn').forEach(function(b){b.classList.remove('active');});tb.classList.add('active');document.getElementById('f-time').value=s;var p=selectedDate.split('-');selEl.textContent='\u2714 '+monthsShort[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0]+' \u2022 '+s;});timesEl.appendChild(tb);});
+            setTimeout(function(){var cal=document.getElementById('dt-cal');var modal=document.querySelector('.modal');if(cal&&modal){modal.scrollTop=cal.offsetTop-16;}},50);
           });
         }
         grid.appendChild(btn);
@@ -1157,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
 
-  // ── Waitlist validation helpers ──────────────────────────────────────────
+  // -- Waitlist validation helpers ------------------------------------------
   var BLOCKED_EMAIL_DOMAINS = new Set([
     'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org',
     'guerrillamail.biz','guerrillamail.de','guerrillamail.info','sharklasers.com',
