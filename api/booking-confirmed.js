@@ -1,5 +1,6 @@
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
+import { rateLimit } from './_ratelimit.js';
 
 /**
  * POST /api/booking-confirmed
@@ -9,6 +10,9 @@ import { sendEmail, ownerEmail, esc } from './_email.js';
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
   const { bookingId } = req.body;
   if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
@@ -23,6 +27,19 @@ export default async function handler(req, res) {
   if (error || !booking) {
     console.error('booking-confirmed fetch error:', error);
     return res.status(404).json({ error: 'Booking not found' });
+  }
+
+  // Mark card as authorized in Supabase so booking/complete.js can capture the charge.
+  // This is critical — without this update, payment_status stays 'pending' and the
+  // Stripe capture block in complete.js is skipped, meaning revenue is never collected.
+  const { error: updateErr } = await sb
+    .from('bookings')
+    .update({ payment_status: 'authorized' })
+    .eq('id', bookingId);
+
+  if (updateErr) {
+    console.error('booking-confirmed status update error:', updateErr);
+    // Non-fatal: still send email, but log for manual resolution
   }
 
   const { ref, service, customer_name: name, customer_email: email, address, date, time, details,
