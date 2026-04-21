@@ -88,10 +88,6 @@
         <label for="city-filter">City</label>
         <input type="text" id="city-filter" class="form-control" placeholder="e.g. Austin" />
       </div>
-      <div class="form-group" style="margin:0">
-        <label for="rate-filter">Max hourly rate ($)</label>
-        <input type="number" id="rate-filter" class="form-control" placeholder="e.g. 75" min="0" />
-      </div>
       <button class="btn btn-outline btn-sm" id="reset-btn" style="align-self:flex-end">Reset</button>
     </div>
 
@@ -127,12 +123,10 @@
   function applyFilters() {
     const search  = document.getElementById('search-filter').value.toLowerCase().trim();
     const city    = document.getElementById('city-filter').value.toLowerCase().trim();
-    const maxRate = parseFloat(document.getElementById('rate-filter').value) || null;
 
     filtered = allAssemblers.filter(a => {
       if (search && !a.full_name?.toLowerCase().includes(search) && !a.bio?.toLowerCase().includes(search)) return false;
       if (city && !a.city?.toLowerCase().includes(city)) return false;
-      if (maxRate && a.hourly_rate > maxRate) return false;
       return true;
     });
     currentPage = 0;
@@ -177,7 +171,6 @@
           </div>
           <div class="assembler-tags">
             ${a.city ? `<span class="assembler-tag">&#128205; ${a.city}</span>` : ''}
-            ${a.hourly_rate ? `<span class="assembler-tag" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(0,151,167,0.15)">$${a.hourly_rate}/hr</span>` : ''}
           </div>
           ${skills.length ? `<div class="assembler-tags">${skills.slice(0,3).map(s=>`<span class="assembler-tag">${s}</span>`).join('')}${skills.length>3?`<span class="assembler-tag">+${skills.length-3}</span>`:''}</div>` : ''}
           <div class="assembler-bio">${APP.truncate(a.bio||'Professional assembler ready to help.',80)}</div>

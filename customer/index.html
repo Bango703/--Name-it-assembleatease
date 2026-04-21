@@ -194,7 +194,6 @@
                 <div class="assembler-name">${esc(firstName)}</div>
                 <div class="assembler-meta">${a.completed_jobs||0} jobs &middot; ${esc(a.city||'Local')}</div>
               </div>
-              ${a.hourly_rate?`<div class="assembler-rate">$${a.hourly_rate}/hr</div>`:''}
             </a>`;
         }).join('');
       } else {

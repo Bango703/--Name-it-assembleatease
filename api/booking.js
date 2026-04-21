@@ -221,19 +221,25 @@ export default async function handler(req, res) {
       console.error('Resend owner error:', err);
       return res.status(500).json({ error: 'Failed to send notification' });
     }
-    const customerResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        to: [email],
-        subject: 'Booking Confirmed - We received your request!',
-        html: customerHtml,
-        reply_to: TO,
-      }),
-    });
-    if (!customerResp.ok) {
-      console.error('Resend customer error:', await customerResp.text());
+    // Only send customer confirmation email if no Stripe payment is required.
+    // When payment is required, the frontend calls /api/booking-confirmed AFTER
+    // the customer successfully authorizes their card, so the email reflects
+    // confirmed payment rather than a pending card-entry step.
+    if (!clientSecret) {
+      const customerResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          to: [email],
+          subject: 'Booking Confirmed - We received your request!',
+          html: customerHtml,
+          reply_to: TO,
+        }),
+      });
+      if (!customerResp.ok) {
+        console.error('Resend customer error:', await customerResp.text());
+      }
     }
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {

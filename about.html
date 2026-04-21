@@ -679,7 +679,7 @@ AAE.submitBooking = async function() {
   btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
 
   if (data.clientSecret) {
-    AAE._pendingData = { ref: data.ref, services: services, address: address, date: date, time: time, isDeposit: data.isDeposit, depositAmountCents: data.depositAmountCents, totalCents: totalCents, bookingName: _bookingName, bookingEmail: _bookingEmail };
+    AAE._pendingData = { ref: data.ref, bookingId: data.bookingId, services: services, address: address, date: date, time: time, isDeposit: data.isDeposit, depositAmountCents: data.depositAmountCents, totalCents: totalCents, bookingName: _bookingName, bookingEmail: _bookingEmail };
     document.getElementById('form-state').style.display = 'none';
     await AAE.showCardStep(data.clientSecret);
   } else {
@@ -771,6 +771,15 @@ AAE.confirmCard = async function() {
     btn.disabled = false; btn.innerHTML = '&#128274; Authorize Card \u2192';
     return;
   }
+
+  // Payment authorized — now send customer confirmation email
+  try {
+    await fetch('/api/booking-confirmed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: d.bookingId })
+    });
+  } catch(e) { console.error('booking-confirmed error:', e); }
 
   document.getElementById('card-step').style.display = 'none';
   AAE.showSuccess(d.ref, d.services, d.address, d.date, d.time);
