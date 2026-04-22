@@ -197,7 +197,9 @@
 
       window.location.href = profile.role === 'assembler'
         ? '../assembler/'
-        : '../customer/';
+        : profile.role === 'owner'
+          ? '../owner/'
+          : '../customer/';
 
     } catch (err) {
       console.error('[auth.js] Login error:', err);

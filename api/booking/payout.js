@@ -15,7 +15,6 @@ export default async function handler(req, res) {
 
   const { bookingId, ref, amount, notes } = req.body;
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
-  if (!amount || parseInt(amount) <= 0) return res.status(400).json({ error: 'amount (cents) is required and must be positive' });
 
   const sb = getSupabase();
 
@@ -32,8 +31,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No assembler assigned to this booking' });
   }
 
-  const payoutCents = parseInt(amount);
+  // Auto-derive payout from assembler_due (recorded at job completion), or fall back to 80% of amount_charged
+  const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
+  const derivedDue = booking.assembler_due != null
+    ? booking.assembler_due
+    : Math.round((booking.amount_charged || 0) * (1 - PLATFORM_FEE_PCT / 100));
+
+  const payoutCents = amount ? parseInt(amount) : derivedDue;
+  if (!payoutCents || payoutCents <= 0) return res.status(400).json({ error: 'Cannot determine payout amount — no assembler_due recorded and no amount supplied' });
+
   const payoutDisplay = `$${(payoutCents / 100).toFixed(2)}`;
+  const platformRevenue = (booking.amount_charged || 0) - payoutCents;
 
   // Record payout
   const { error: updateErr } = await sb.from('bookings').update({
@@ -41,6 +49,7 @@ export default async function handler(req, res) {
     paid_out_at: new Date().toISOString(),
     payout_notes: notes?.trim() || null,
     payout_status: 'paid',
+    platform_revenue: platformRevenue,
   }).eq('id', booking.id);
 
   if (updateErr) {
@@ -76,6 +85,8 @@ export default async function handler(req, res) {
     bookingRef: booking.ref,
     assemblerId: booking.assembler_id,
     payoutAmount: payoutCents,
+    platformRevenue,
+    amountCharged: booking.amount_charged || 0,
   });
 }
 

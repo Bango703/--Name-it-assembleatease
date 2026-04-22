@@ -66,6 +66,11 @@ export default async function handler(req, res) {
 
   const finalAmountCharged = amountCharged || booking.total_price || 0;
 
+  // Platform revenue split — configurable via PLATFORM_FEE_PCT env var (default 20%)
+  const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
+  const platformFee = Math.round(finalAmountCharged * PLATFORM_FEE_PCT / 100);
+  const assemblerDue = finalAmountCharged - platformFee;
+
   const { error: updateErr } = await sb
     .from('bookings')
     .update({
@@ -74,6 +79,9 @@ export default async function handler(req, res) {
       payment_status: 'captured',
       payment_captured_at: new Date().toISOString(),
       amount_charged: finalAmountCharged,
+      platform_fee_pct: PLATFORM_FEE_PCT,
+      platform_fee: platformFee,
+      assembler_due: assemblerDue,
     })
     .eq('id', booking.id);
 
@@ -82,7 +90,23 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to update booking' });
   }
 
-  // Send completion email with review link
+  // Increment assembler's completed_jobs count
+  if (booking.assembler_id) {
+    try {
+      const { data: prof } = await sb
+        .from('profiles')
+        .select('completed_jobs')
+        .eq('id', booking.assembler_id)
+        .single();
+      await sb
+        .from('profiles')
+        .update({ completed_jobs: (prof?.completed_jobs || 0) + 1 })
+        .eq('id', booking.assembler_id);
+    } catch (countErr) {
+      console.error('completed_jobs increment error:', countErr);
+      // Non-fatal — don't block the response
+    }
+  }
   try {
     const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
     const html = buildStatusEmail({

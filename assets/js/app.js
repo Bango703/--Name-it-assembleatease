@@ -38,9 +38,12 @@ const APP = {
 
     if (allowedRoles.length && !allowedRoles.includes(auth.profile.role)) {
       // Redirect to their correct dashboard
-      window.location.href = auth.profile.role === 'assembler'
+      const role = auth.profile.role;
+      window.location.href = role === 'assembler'
         ? this._rootPath('assembler/')
-        : this._rootPath('customer/');
+        : role === 'owner'
+          ? this._rootPath('owner/')
+          : this._rootPath('customer/');
       return null;
     }
 
@@ -63,9 +66,12 @@ const APP = {
   async redirectIfLoggedIn() {
     const auth = await this.getAuth();
     if (!auth) return;
-    window.location.href = auth.profile.role === 'assembler'
+    const role = auth.profile.role;
+    window.location.href = role === 'assembler'
       ? this._rootPath('assembler/')
-      : this._rootPath('customer/');
+      : role === 'owner'
+        ? this._rootPath('owner/')
+        : this._rootPath('customer/');
   },
 
   // ── PATH HELPERS ────────────────────────────────────────
