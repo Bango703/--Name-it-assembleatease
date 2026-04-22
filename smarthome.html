@@ -128,7 +128,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <a href="/smarthome">Smart Home</a>
   <a href="/junk">Junk Removal</a>
   <a href="/contact">Contact</a>
-  <a href="/#booking" class="btn btn-cyan btn-full">Book Now</a>
+  <a href="/book?service=Smart+Home" class="btn btn-cyan btn-full">Book Now</a>
 </div>
 
 <section class="page-hero">
@@ -136,7 +136,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <a href="/" class="page-back">&larr; Back to Home</a>
     <h1 class="page-title">Smart Home Installation</h1>
     <p class="page-desc">We install and configure your smart home devices &mdash; all set up on your app before we leave. Nest, Ring, Ecobee, August, Arlo, and more.</p>
-    <a href="/#booking" class="btn btn-cyan btn-lg">Book Installation &rarr;</a>
+    <a href="/book?service=Smart+Home" class="btn btn-cyan btn-lg">Book Installation &rarr;</a>
   </div>
 </section>
 
@@ -204,7 +204,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div class="cta-box">
       <h2>Ready to make your home smarter?</h2>
       <p>Book a visit and we&rsquo;ll have everything installed and running on your phone before we leave. No tech headaches, guaranteed.</p>
-      <a href="/#booking" class="btn btn-cyan btn-lg">Book Now &mdash; Fast &amp; Easy</a>
+      <a href="/book?service=Smart+Home" class="btn btn-cyan btn-lg">Book Now &mdash; Fast &amp; Easy</a>
       <div class="trust-row">
         <span>&#10003; Licensed &amp; Insured</span>
         <span>&#10003; Background Checked</span>
@@ -299,7 +299,7 @@ document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
 </script>
 <script>
-(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/book?service=Smart+Home';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>

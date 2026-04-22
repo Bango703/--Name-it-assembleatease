@@ -128,7 +128,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <a href="/smarthome">Smart Home</a>
   <a href="/junk">Junk Removal</a>
   <a href="/contact">Contact</a>
-  <a href="/#booking" class="btn btn-cyan btn-full">Book Now</a>
+  <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full">Book Now</a>
 </div>
 
 <section class="page-hero">
@@ -136,7 +136,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <a href="/" class="page-back">&larr; Back to Home</a>
     <h1 class="page-title">Furniture Assembly</h1>
     <p class="page-desc">IKEA, Wayfair, Amazon and more &mdash; assembled fast and right the first time. We handle everything from beds to bookcases.</p>
-    <a href="/#booking" class="btn btn-cyan btn-lg">Book Assembly &rarr;</a>
+    <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-lg">Book Assembly &rarr;</a>
   </div>
 </section>
 
@@ -198,7 +198,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">3+ Items Bundle</div>
         <div class="price-card-desc">Assembling multiple pieces in one visit? Ask about our bundle discount at booking.</div>
         <div class="price-card-price">Save 10&ndash;15%</div>
-        <a href="/#booking" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book &amp; request discount &rarr;</a>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book &amp; request discount &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Full Room Setup</div>
@@ -210,7 +210,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div class="cta-box">
       <h2>Ready to get your furniture assembled?</h2>
       <p>Book in minutes. We confirm within the hour and show up on time, every time. Most jobs are finished the same day.</p>
-      <a href="/#booking" class="btn btn-cyan btn-lg">Book Now &mdash; Fast &amp; Easy</a>
+      <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-lg">Book Now &mdash; Fast &amp; Easy</a>
       <div class="trust-row">
         <span>&#10003; Licensed &amp; Insured</span>
         <span>&#10003; Background Checked</span>
@@ -305,7 +305,7 @@ document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
 </script>
 <script>
-(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/book?service=Furniture+Assembly';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>

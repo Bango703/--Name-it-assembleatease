@@ -68,7 +68,7 @@
         <h1 id="welcome-heading">Welcome back</h1>
         <p id="welcome-sub">Browse our services and book online. We will assign a verified assembler to your job within 1 hour.</p>
       </div>
-      <a href="../#booking" class="btn btn-primary">Book a Service</a>
+      <a href="/book" class="btn btn-primary">Book a Service</a>
     </div>
 
     <div id="page-alert" class="alert hidden"></div>
@@ -110,7 +110,7 @@
         <div class="panel">
           <div class="section-title" style="margin-bottom:0.75rem">Quick actions</div>
           <div style="display:flex;flex-direction:column;gap:0.5rem">
-            <a href="../#booking" class="btn btn-primary btn-sm" style="justify-content:center">Book a service</a>
+            <a href="/book" class="btn btn-primary btn-sm" style="justify-content:center">Book a service</a>
             <a href="browse-assemblers" class="btn btn-outline btn-sm" style="justify-content:center">Browse assemblers</a>
           </div>
         </div>
@@ -171,7 +171,7 @@
             </a>`;
         }).join('');
       } else {
-        bList.innerHTML = `<p style="font-size:0.82rem;color:var(--muted)">No bookings yet. <a href="../#booking" style="color:var(--teal)">Book a service</a></p>`;
+        bList.innerHTML = `<p style="font-size:0.82rem;color:var(--muted)">No bookings yet. <a href="/book" style="color:var(--teal)">Book a service</a></p>`;
       }
     } catch {
       document.getElementById('stats-row').innerHTML = '<div style="grid-column:1/-1" class="error-state"><span>&#9888;</span>Could not load stats.</div>';

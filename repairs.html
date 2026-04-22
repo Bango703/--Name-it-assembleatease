@@ -123,7 +123,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <a href="/smarthome">Smart Home</a>
   <a href="/junk">Junk Removal</a>
   <a href="/contact">Contact</a>
-  <a href="/#booking" class="btn btn-cyan btn-full">Book Now</a>
+  <a href="/book?service=Home+Repairs" class="btn btn-cyan btn-full">Book Now</a>
 </div>
 
 <section class="page-hero">
@@ -131,7 +131,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <a href="/" class="page-back">&larr; Back to Home</a>
     <h1 class="page-title">Home Repairs</h1>
     <p class="page-desc">Licensed and insured handyman repairs for Austin homeowners. Fast turnaround, quality workmanship &mdash; no job too small.</p>
-    <a href="/#booking" class="btn btn-cyan btn-lg">Book a Repair &rarr;</a>
+    <a href="/book?service=Home+Repairs" class="btn btn-cyan btn-lg">Book a Repair &rarr;</a>
   </div>
 </section>
 
@@ -211,7 +211,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div class="cta-box">
       <h2>Got something that needs fixing?</h2>
       <p>Book a visit and we&rsquo;ll take care of it. We confirm within the hour and show up on time with all the tools needed.</p>
-      <a href="/#booking" class="btn btn-cyan btn-lg">Book Now &mdash; Fast &amp; Easy</a>
+      <a href="/book?service=Home+Repairs" class="btn btn-cyan btn-lg">Book Now &mdash; Fast &amp; Easy</a>
       <div class="trust-row">
         <span>&#10003; Licensed &amp; Insured</span>
         <span>&#10003; Background Checked</span>
@@ -288,7 +288,7 @@ document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
 </script>
 <script>
-(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/#booking';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/book?service=Home+Repairs';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
 </script>
 </body>
 </html>

@@ -71,7 +71,7 @@
         <h1>My Bookings</h1>
         <p>Track your direct service bookings.</p>
       </div>
-      <a href="../#booking" class="btn btn-primary">Book a Service</a>
+      <a href="/book" class="btn btn-primary">Book a Service</a>
     </div>
 
     <div id="page-alert" class="alert hidden"></div>
@@ -127,7 +127,7 @@
   function renderBookings(bookings) {
     const list = document.getElementById('bookings-list');
     if (!bookings?.length) {
-      list.innerHTML = `<div class="empty-state"><p>No bookings found.</p><a href="../#booking" class="btn btn-primary btn-sm">Book a service</a></div>`;
+      list.innerHTML = `<div class="empty-state"><p>No bookings found.</p><a href="/book" class="btn btn-primary btn-sm">Book a service</a></div>`;
       return;
     }
     list.innerHTML = bookings.map(b => `
