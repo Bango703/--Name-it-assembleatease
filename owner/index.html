@@ -195,7 +195,7 @@
         <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
         <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
         <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
-        <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Revenue</div></div>
+        <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Platform Revenue</div></div>
       </div>
 
       <!-- Status tabs -->
@@ -530,7 +530,10 @@
     let revenue = 0;
     allBookings.forEach(function(b) {
       if (counts[b.status] !== undefined) counts[b.status]++;
-      if (b.status === 'completed' && b.total_price) revenue += Number(b.total_price) || 0;
+      if (b.status === 'completed') {
+        if (b.platform_fee != null) revenue += Number(b.platform_fee) || 0;
+        else if (b.total_price) revenue += Math.round((Number(b.total_price) || 0) * 0.2);
+      }
     });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
     document.querySelector('#stat-confirmed .stat-value').textContent = counts.confirmed;
@@ -680,13 +683,22 @@
       if ($wfR) $wfR.style.display = 'none';
       $reasonModal.classList.add('open');
     } else if (action === 'payout') {
-      pendingAction = { path: '/payout', id: id, type: 'payout' };
+      var bPayout = allBookings.find(function(bk){ return bk.id == id; });
+      var assemblerDueCents = bPayout && bPayout.assembler_due ? bPayout.assembler_due : null;
+      var assemblerDueDollars = assemblerDueCents ? (assemblerDueCents / 100).toFixed(2) : null;
+      pendingAction = { path: '/payout', id: id, type: 'payout', assemblerDueCents: assemblerDueCents };
       document.getElementById('reason-modal-title').textContent = 'Record Assembler Payout';
-      document.getElementById('reason-modal-desc').textContent = 'Enter the payout amount in dollars (e.g. 75). Add optional notes.';
+      if (assemblerDueDollars) {
+        document.getElementById('reason-modal-desc').textContent = 'Assembler due: $' + assemblerDueDollars + '. Confirm to record payout, or enter a different amount below.';
+        $reasonText.value = assemblerDueDollars;
+        $reasonText.placeholder = 'Amount in dollars (pre-filled from job)';
+      } else {
+        document.getElementById('reason-modal-desc').textContent = 'Enter the payout amount in dollars (e.g. 75). Add optional notes.';
+        $reasonText.value = '';
+        $reasonText.placeholder = 'Amount in dollars — required (e.g. 75)';
+      }
       document.getElementById('reason-confirm').textContent = 'Record Payout';
       document.getElementById('reason-confirm').className = 'btn btn-teal';
-      $reasonText.value = '';
-      $reasonText.placeholder = 'Amount in dollars — required (e.g. 75)';
       var $wfP = document.getElementById('waive-fee-row');
       if ($wfP) $wfP.style.display = 'none';
       $reasonModal.classList.add('open');
@@ -781,9 +793,12 @@
 
     // Handle payout
     if (pendingAction.type === 'payout') {
-      var amtStr = reason; // user types amount in the textarea
+      var amtStr = reason; // user types amount (or pre-filled) in the textarea
       var amtDollars = parseFloat(amtStr);
-      if (!amtDollars || amtDollars <= 0) { toast('Enter a valid dollar amount', 'error'); return; }
+      // Fall back to the pre-calculated assembler_due from the booking
+      var fallbackCents = pendingAction.assemblerDueCents || 0;
+      var amountCents = (amtDollars && amtDollars > 0) ? Math.round(amtDollars * 100) : fallbackCents;
+      if (!amountCents || amountCents <= 0) { toast('Enter a valid dollar amount', 'error'); return; }
       $reasonModal.classList.remove('open');
       var bIdPay = pendingAction.id;
       pendingAction = null;
@@ -791,7 +806,7 @@
       try {
         var pr = await fetch('/api/booking/payout', {
           method: 'POST', headers: headers(),
-          body: JSON.stringify({ bookingId: bIdPay, amount: Math.round(amtDollars * 100) }),
+          body: JSON.stringify({ bookingId: bIdPay, amount: amountCents }),
         });
         var pd = await pr.json();
         if (pd.error) { toast(pd.error, 'error'); return; }

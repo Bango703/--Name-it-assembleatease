@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Assignments â€” AssembleAtEase</title>
+  <title>My Assignments — AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -163,7 +163,7 @@
   }
 
   function formatDate(str) {
-    if (!str) return 'â€”';
+    if (!str) return '—';
     const d = new Date(str);
     if (isNaN(d)) return str;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -251,7 +251,7 @@
         '<div class="pro-error">&#9888; Could not load assignments. Please refresh.</div>';
     }
 
-    // â”€â”€ Realtime: live updates when a booking is assigned or status changes â”€â”€
+    // Realtime: live updates when a booking is assigned or status changes
     const assignmentsChannel = supabaseClient
       .channel('assembler-assignments-' + auth.user.id)
       .on('postgres_changes',

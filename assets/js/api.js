@@ -276,30 +276,47 @@ const API = {
   },
 
   async getAssemblerStats(assemblerId) {
-    const { data: bids } = await supabaseClient
-      .from('bids')
-      .select('id, status')
-      .eq('assembler_id', assemblerId);
+    const [bidsRes, jobsRes, bookingsRes] = await Promise.all([
+      supabaseClient
+        .from('bids')
+        .select('id, status')
+        .eq('assembler_id', assemblerId),
+      supabaseClient
+        .from('jobs')
+        .select('id, status, agreed_amount')
+        .eq('assembler_id', assemblerId),
+      supabaseClient
+        .from('bookings')
+        .select('id, status, assembler_due')
+        .eq('assembler_id', assemblerId),
+    ]);
 
-    const { data: jobs } = await supabaseClient
-      .from('jobs')
-      .select('id, status, agreed_amount')
-      .eq('assembler_id', assemblerId);
+    const allBids = bidsRes.data || [];
+    const allJobs = jobsRes.data || [];
+    const allBookings = bookingsRes.data || [];
 
-    const allBids = bids || [];
-    const allJobs = jobs || [];
-
-    const earned = allJobs
+    // Marketplace job earnings
+    const marketplaceEarned = allJobs
       .filter(j => j.status === 'completed')
       .reduce((sum, j) => sum + (j.agreed_amount || 0), 0);
+
+    // Platform booking earnings (assembler_due is in cents → convert to dollars)
+    const bookingEarned = allBookings
+      .filter(b => b.status === 'completed' && b.assembler_due)
+      .reduce((sum, b) => sum + (b.assembler_due || 0), 0) / 100;
+
+    const totalEarned = marketplaceEarned + bookingEarned;
+
+    // Active assignments from bookings
+    const assignedJobs = allBookings.filter(b => b.status === 'confirmed').length;
 
     return {
       totalBids:    allBids.length,
       pendingBids:  allBids.filter(b => b.status === 'pending').length,
       acceptedBids: allBids.filter(b => b.status === 'accepted').length,
       completedJobs: allJobs.filter(j => j.status === 'completed').length,
-      assignedJobs:  allJobs.filter(j => j.status === 'assigned' || j.status === 'in_progress').length,
-      totalEarned:  earned,
+      assignedJobs,
+      totalEarned,
     };
   },
 };

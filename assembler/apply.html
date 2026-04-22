@@ -221,42 +221,35 @@
 <script>
 (function() {
   // ── Stripe setup ──
-  var stripe = Stripe(window.__STRIPE_PK__ || 'pk_live_placeholder');
-  var elements = stripe.elements();
-  var cardElement = elements.create('card', {
-    style: {
-      base: { fontFamily: 'DM Sans, -apple-system, sans-serif', fontSize: '15px', color: '#0d1117', '::placeholder': { color: '#a0aec0' } },
-      invalid: { color: '#ef4444' },
-    },
-  });
-  cardElement.mount('#card-element');
-  cardElement.on('change', function(event) {
-    var display = document.getElementById('card-error');
-    display.textContent = event.error ? event.error.message : '';
-  });
+  // Fetch the real publishable key before mounting the card element.
+  var stripe = null;
+  var cardElement = null;
 
-  // Load publishable key from API
+  var cardWrap = document.getElementById('card-element');
+  var cardErrEl = document.getElementById('card-error');
+
   fetch('/api/config/public-key')
-    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(r) { return r.ok ? r.json() : Promise.reject('no-key'); })
     .then(function(d) {
-      if (d && d.publishableKey) {
-        stripe = Stripe(d.publishableKey);
-        elements = stripe.elements();
-        cardElement.unmount();
-        cardElement = elements.create('card', {
-          style: {
-            base: { fontFamily: 'DM Sans, -apple-system, sans-serif', fontSize: '15px', color: '#0d1117', '::placeholder': { color: '#a0aec0' } },
-            invalid: { color: '#ef4444' },
-          },
-        });
-        cardElement.mount('#card-element');
-        cardElement.on('change', function(event) {
-          var display = document.getElementById('card-error');
-          display.textContent = event.error ? event.error.message : '';
-        });
-      }
+      var pk = d && d.publishableKey;
+      if (!pk) throw new Error('Missing publishable key');
+      stripe = Stripe(pk);
+      var elements = stripe.elements();
+      cardElement = elements.create('card', {
+        style: {
+          base: { fontFamily: 'DM Sans, -apple-system, sans-serif', fontSize: '15px', color: '#0d1117', '::placeholder': { color: '#a0aec0' } },
+          invalid: { color: '#ef4444' },
+        },
+      });
+      cardElement.mount('#card-element');
+      cardElement.on('change', function(event) {
+        cardErrEl.textContent = event.error ? event.error.message : '';
+      });
     })
-    .catch(function() { /* use placeholder */ });
+    .catch(function() {
+      cardWrap.innerHTML = '<div style="color:#ef4444;font-size:0.875rem;padding:0.75rem 0">Unable to load payment form. Please refresh the page.</div>';
+      document.getElementById('submit-btn').disabled = true;
+    });
 
   // ── Handle ?verification=complete return from Stripe Identity ──
   var params = new URLSearchParams(window.location.search);
@@ -370,6 +363,13 @@
     var btn = document.getElementById('submit-btn');
     btn.disabled = true;
     btn.textContent = 'Processing payment...';
+
+    if (!stripe || !cardElement) {
+      showAlert('error', 'Payment form not ready. Please refresh the page and try again.');
+      btn.disabled = false;
+      btn.textContent = 'Pay $30 & Submit Application';
+      return;
+    }
 
     // Create Stripe PaymentMethod from card element
     var pmResult = await stripe.createPaymentMethod({ type: 'card', card: cardElement });
