@@ -9,16 +9,11 @@
   <script src="https://js.stripe.com/v3/" crossorigin="anonymous"></script>
   <style>
     /* ── Page layout ── */
-    .book-page {
-      min-height: 100vh;
-      background: var(--off-white);
-    }
+    .book-page { min-height: 100vh; background: var(--off-white); }
     .book-nav {
       position: sticky; top: 0; z-index: 100;
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      height: 64px;
+      background: var(--white); border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 64px;
       display: flex; align-items: center; justify-content: space-between;
     }
     .book-nav-logo {
@@ -40,21 +35,16 @@
     .book-trust-line span { display: flex; align-items: center; gap: 4px; }
 
     /* ── Progress bar ── */
-    .book-progress {
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-    }
+    .book-progress { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 2rem; }
     .book-progress-inner {
-      max-width: 860px; margin: 0 auto;
+      max-width: 960px; margin: 0 auto;
       display: flex; align-items: center; gap: 0;
       padding: 0.85rem 0;
     }
     .progress-step {
       display: flex; align-items: center; gap: 8px;
       font-size: 0.82rem; font-weight: 500; color: var(--muted);
-      flex: 1;
-      cursor: default;
+      flex: 1; cursor: default;
     }
     .progress-step.active { color: var(--teal); }
     .progress-step.done   { color: var(--ink-soft); }
@@ -64,23 +54,16 @@
       font-size: 0.72rem; font-weight: 700;
       border: 2px solid var(--border); background: var(--white); color: var(--muted);
     }
-    .progress-step.active .progress-dot {
-      border-color: var(--teal); background: var(--teal); color: #fff;
-    }
-    .progress-step.done .progress-dot {
-      border-color: var(--teal); background: var(--teal-light); color: var(--teal);
-    }
+    .progress-step.active .progress-dot { border-color: var(--teal); background: var(--teal); color: #fff; }
+    .progress-step.done .progress-dot   { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
     .progress-label { display: none; }
     @media (min-width: 540px) { .progress-label { display: block; } }
-    .progress-line {
-      flex: 0 0 2rem; height: 2px;
-      background: var(--border); border-radius: 2px;
-    }
+    .progress-line { flex: 0 0 2rem; height: 2px; background: var(--border); border-radius: 2px; }
     .progress-line.done { background: var(--teal); }
 
     /* ── Main content ── */
     .book-main {
-      max-width: 1020px; margin: 0 auto;
+      max-width: 1060px; margin: 0 auto;
       display: grid; grid-template-columns: 1fr 320px;
       gap: 1.5rem; padding: 2rem 1.5rem;
       align-items: start;
@@ -91,25 +74,12 @@
     }
 
     /* ── Step cards ── */
-    .step-panel {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-    }
+    .step-panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; }
     .step-panel.hidden { display: none; }
-    .step-heading {
-      font-family: var(--font-display);
-      font-size: 1.5rem; color: var(--ink);
-      margin-bottom: 0.35rem;
-    }
-    .step-sub {
-      font-size: 0.875rem; color: var(--muted);
-      margin-bottom: 1.75rem;
-      line-height: 1.55;
-    }
+    .step-heading { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); margin-bottom: 0.35rem; }
+    .step-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.55; }
 
-    /* ── Service tiles ── */
+    /* ── Service tiles (multi-select) ── */
     .service-tiles {
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem; margin-bottom: 1.5rem;
@@ -120,20 +90,110 @@
       padding: 1rem 0.85rem; text-align: center;
       background: var(--white); cursor: pointer;
       transition: border-color var(--transition), background var(--transition);
+      position: relative;
     }
     .service-tile:hover { border-color: var(--teal); }
-    .service-tile.selected {
-      border-color: var(--teal); background: var(--teal-light);
+    .service-tile.selected { border-color: var(--teal); background: var(--teal-light); }
+    .service-tile.selected .tile-check { display: flex; }
+    .tile-check {
+      display: none; position: absolute; top: 6px; right: 6px;
+      width: 18px; height: 18px; background: var(--teal); border-radius: 50%;
+      align-items: center; justify-content: center;
     }
+    .tile-check svg { width: 11px; height: 11px; fill: #fff; }
     .tile-icon {
       width: 44px; height: 44px; background: var(--teal-light);
       border-radius: 50%; display: flex; align-items: center;
       justify-content: center; margin: 0 auto 0.75rem;
     }
     .tile-icon svg { width: 22px; height: 22px; fill: var(--teal); }
-    .trust-item-icon svg { fill: currentColor; }
     .tile-name { font-size: 0.8rem; font-weight: 500; color: var(--ink); }
     .tile-from { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Sub-category panel ── */
+    .subcats-wrap { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .subcat-panel {
+      border: 1.5px solid var(--teal); border-radius: var(--radius-lg);
+      overflow: hidden; background: var(--white);
+    }
+    .subcat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.85rem 1rem; background: var(--teal-light);
+      border-bottom: 1px solid var(--border);
+    }
+    .subcat-header-title {
+      font-weight: 700; font-size: 0.875rem; color: var(--teal);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .subcat-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 1.1rem; line-height: 1;
+      padding: 0; transition: color var(--transition);
+    }
+    .subcat-close:hover { color: var(--red); }
+    .subcat-body { padding: 0.5rem 0; }
+    .subcat-group { padding: 0.25rem 0; }
+    .subcat-group-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.09em; color: var(--muted);
+      padding: 0.5rem 1rem 0.25rem;
+    }
+    .subcat-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.55rem 1rem; cursor: pointer; gap: 0.75rem;
+      transition: background var(--transition);
+    }
+    .subcat-item:hover { background: var(--off-white); }
+    .subcat-item.selected { background: #f0fdf4; }
+    .subcat-item-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
+    .subcat-item-cb {
+      width: 18px; height: 18px; border-radius: 4px;
+      border: 2px solid var(--border); background: var(--white);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .subcat-item.selected .subcat-item-cb { border-color: var(--teal); background: var(--teal); }
+    .subcat-item.selected .subcat-item-cb svg { display: block; }
+    .subcat-item-cb svg { display: none; width: 11px; height: 11px; fill: #fff; }
+    .subcat-item-name { font-size: 0.85rem; color: var(--ink); line-height: 1.35; }
+    .subcat-item-badge {
+      font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; background: var(--teal); color: #fff;
+      padding: 2px 5px; border-radius: 4px; flex-shrink: 0;
+    }
+    .subcat-item-price {
+      font-size: 0.82rem; font-weight: 500; color: var(--teal);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .subcat-item-price.addon { color: var(--ink-soft); }
+    .subcat-qty {
+      display: none; align-items: center; gap: 0.35rem;
+    }
+    .subcat-item.selected .subcat-qty { display: flex; }
+    .qty-btn {
+      width: 22px; height: 22px; border-radius: 4px;
+      border: 1.5px solid var(--border); background: var(--white);
+      font-size: 0.9rem; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink); transition: background var(--transition);
+    }
+    .qty-btn:hover { background: var(--teal-light); border-color: var(--teal); color: var(--teal); }
+    .qty-val { font-size: 0.82rem; font-weight: 600; color: var(--ink); min-width: 16px; text-align: center; }
+
+    /* ── Guest/Account step ── */
+    .account-options { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    @media (max-width: 480px) { .account-options { grid-template-columns: 1fr; } }
+    .account-option {
+      border: 2px solid var(--border); border-radius: var(--radius-lg);
+      padding: 1.5rem 1.25rem; text-align: center; cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .account-option:hover { border-color: var(--teal); }
+    .account-option.selected { border-color: var(--teal); background: var(--teal-light); }
+    .account-option-icon { font-size: 2rem; margin-bottom: 0.6rem; }
+    .account-option-title { font-weight: 700; font-size: 1rem; color: var(--ink); margin-bottom: 0.35rem; }
+    .account-option-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+    .account-link { font-size: 0.82rem; color: var(--teal); text-align: center; display: block; margin-top: 0.75rem; }
 
     /* ── Form fields ── */
     .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
@@ -153,195 +213,89 @@
       transition: border-color var(--transition);
       outline: none; width: 100%;
     }
-    .form-input:focus, .form-textarea:focus, .form-select:focus {
-      border-color: var(--teal);
-    }
-    .form-input.error, .form-textarea.error, .form-select.error {
-      border-color: var(--red);
-    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--teal); }
+    .form-input.error, .form-textarea.error, .form-select.error { border-color: var(--red); }
     .form-textarea { resize: vertical; min-height: 90px; }
     .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
     .field-error { font-size: 0.75rem; color: var(--red); margin-top: 4px; display: none; }
     .field-error.show { display: block; }
 
     /* ── Date/time picker ── */
-    .dt-section-label {
-      font-size: 0.75rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--ink-soft); margin-bottom: 0.75rem;
-    }
-    .dt-cal {
-      border: 1.5px solid var(--border); border-radius: var(--radius-lg);
-      overflow: hidden; margin-bottom: 1rem;
-    }
-    .dt-cal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0.75rem 1rem; background: var(--off-white);
-      border-bottom: 1px solid var(--border);
-    }
+    .dt-section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); margin-bottom: 0.75rem; }
+    .dt-cal { border: 1.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; }
+    .dt-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--off-white); border-bottom: 1px solid var(--border); }
     .dt-cal-title { font-size: 0.9rem; font-weight: 500; color: var(--ink); }
-    .dt-cal-nav {
-      background: none; border: 1px solid var(--border); border-radius: 6px;
-      width: 28px; height: 28px; cursor: pointer; font-size: 1rem;
-      color: var(--muted); display: flex; align-items: center; justify-content: center;
-      transition: background var(--transition), color var(--transition);
-    }
+    .dt-cal-nav { background: none; border: 1px solid var(--border); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: 1rem; color: var(--muted); display: flex; align-items: center; justify-content: center; transition: background var(--transition), color var(--transition); }
     .dt-cal-nav:hover { background: var(--teal-light); color: var(--teal); }
-    .dt-cal-grid {
-      display: grid; grid-template-columns: repeat(7, 1fr);
-      padding: 0.75rem;
-    }
-    .dt-dow {
-      text-align: center; font-size: 0.68rem; font-weight: 700;
-      color: var(--muted); text-transform: uppercase; padding: 0.25rem 0;
-    }
-    .dt-day {
-      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-      border-radius: 50%; cursor: pointer; font-size: 0.85rem; color: var(--ink);
-      transition: background var(--transition), color var(--transition);
-      border: none; background: none;
-    }
+    .dt-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0.75rem; }
+    .dt-dow { text-align: center; font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; padding: 0.25rem 0; }
+    .dt-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; font-size: 0.85rem; color: var(--ink); transition: background var(--transition), color var(--transition); border: none; background: none; }
     .dt-day:hover:not(:disabled) { background: var(--teal-light); color: var(--teal); }
     .dt-day.selected { background: var(--teal); color: #fff; }
     .dt-day.today { font-weight: 700; }
     .dt-day:disabled { color: var(--border); cursor: not-allowed; }
     .dt-day.empty { cursor: default; }
-    .dt-times {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem; margin-bottom: 1rem;
-    }
+    .dt-times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
     @media (max-width: 400px) { .dt-times { grid-template-columns: repeat(2, 1fr); } }
-    .dt-time-btn {
-      padding: 0.55rem 0.5rem; border-radius: var(--radius-md);
-      border: 1.5px solid var(--border); background: var(--white);
-      font-size: 0.8rem; font-weight: 500; color: var(--ink-soft);
-      cursor: pointer; text-align: center;
-      transition: border-color var(--transition), background var(--transition), color var(--transition);
-    }
+    .dt-time-btn { padding: 0.55rem 0.5rem; border-radius: var(--radius-md); border: 1.5px solid var(--border); background: var(--white); font-size: 0.8rem; font-weight: 500; color: var(--ink-soft); cursor: pointer; text-align: center; transition: border-color var(--transition), background var(--transition), color var(--transition); }
     .dt-time-btn:hover { border-color: var(--teal); color: var(--teal); }
     .dt-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
-    .dt-horizon-note {
-      font-size: 0.72rem; color: var(--muted); line-height: 1.5;
-    }
+    .dt-horizon-note { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
     .dt-horizon-note a { color: var(--teal); }
 
-    /* ── Stripe card element ── */
-    #stripe-card-wrap {
-      border: 1.5px solid var(--border); border-radius: var(--radius-md);
-      padding: 0.85rem 1rem; background: var(--white);
-      transition: border-color var(--transition);
-    }
+    /* ── Stripe ── */
+    #stripe-card-wrap { border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem 1rem; background: var(--white); transition: border-color var(--transition); }
     #stripe-card-wrap.focused { border-color: var(--teal); }
     #stripe-card-wrap.invalid { border-color: var(--red); }
-    #card-errors {
-      color: var(--red); font-size: 0.82rem;
-      margin-top: 0.5rem; min-height: 1.2em;
-    }
-    .auth-note {
-      display: flex; align-items: flex-start; gap: 0.75rem;
-      padding: 0.85rem 1rem; background: #f0fdf4;
-      border: 1px solid rgba(34,197,94,0.25); border-radius: var(--radius-md);
-      font-size: 0.82rem; color: #166534; line-height: 1.5;
-    }
+    #card-errors { color: var(--red); font-size: 0.82rem; margin-top: 0.5rem; min-height: 1.2em; }
+    .auth-note { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1rem; background: #f0fdf4; border: 1px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); font-size: 0.82rem; color: #166534; line-height: 1.5; }
     .auth-note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
 
     /* ── Action buttons ── */
-    .step-actions {
-      display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem;
-    }
-    .btn-next {
-      flex: 1; padding: 0.9rem 1.5rem;
-      background: var(--teal); color: #fff;
-      border: none; border-radius: var(--radius-md);
-      font-family: var(--font-body); font-size: 0.95rem; font-weight: 500;
-      cursor: pointer; transition: background var(--transition); text-align: center;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
+    .step-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
+    .btn-next { flex: 1; padding: 0.9rem 1.5rem; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-md); font-family: var(--font-body); font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: background var(--transition); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-next:hover:not(:disabled) { background: var(--teal-dark); }
     .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-back-link {
-      background: none; border: none; color: var(--muted); font-size: 0.82rem;
-      cursor: pointer; text-decoration: underline; flex-shrink: 0;
-    }
+    .btn-back-link { background: none; border: none; color: var(--muted); font-size: 0.82rem; cursor: pointer; text-decoration: underline; flex-shrink: 0; }
     .btn-back-link:hover { color: var(--ink); }
-    .step-err {
-      font-size: 0.875rem; color: var(--red);
-      background: var(--red-light); border: 1px solid rgba(239,68,68,0.2);
-      border-radius: var(--radius-md); padding: 0.75rem 1rem;
-      margin-top: 1rem; display: none;
-    }
+    .step-err { font-size: 0.875rem; color: var(--red); background: var(--red-light); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem; display: none; }
     .step-err.show { display: block; }
 
     /* ── Sidebar ── */
     .book-sidebar > * { margin-bottom: 1rem; }
-    .sidebar-card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
-    }
-    .sidebar-title {
-      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.85rem;
-    }
-    .order-line {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 0.5rem; font-size: 0.875rem; padding: 0.4rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .order-line:last-child { border-bottom: none; padding-bottom: 0; }
-    .order-line-name { color: var(--ink); flex: 1; }
+    .sidebar-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; }
+    .sidebar-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.85rem; }
+    .order-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem; padding: 0.35rem 0; border-bottom: 1px solid var(--border); }
+    .order-line:last-child { border-bottom: none; }
+    .order-line-name { color: var(--ink); flex: 1; line-height: 1.4; }
     .order-line-price { color: var(--teal); font-weight: 500; white-space: nowrap; }
-    .order-total {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-top: 0.75rem; font-size: 0.95rem; font-weight: 500;
-    }
+    .order-group-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0.5rem 0 0.15rem; }
+    .order-total { display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; font-size: 0.95rem; font-weight: 500; }
     .order-total-amount { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
     .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
-
-    .trust-items { display: flex; flex-direction: column; gap: 0.65rem; }
-    .trust-item {
-      display: flex; align-items: flex-start; gap: 0.6rem;
-      font-size: 0.82rem; color: var(--ink-soft); line-height: 1.4;
-    }
-    .trust-item-icon { color: var(--teal); font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .sidebar-empty { font-size: 0.875rem; color: var(--muted); padding: 0.5rem 0; }
 
     /* ── Summary step ── */
     .summary-rows { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.5rem; }
-    .summary-row {
-      display: flex; align-items: flex-start; gap: 0.75rem;
-      padding: 0.85rem 1rem;
-      border: 1px solid var(--border); border-radius: var(--radius-md);
-      background: var(--off-white);
-    }
+    .summary-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--off-white); }
     .summary-row-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
     .summary-row-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-    .summary-row-value { font-size: 0.875rem; color: var(--ink); margin-top: 2px; font-weight: 500; }
+    .summary-row-value { font-size: 0.875rem; color: var(--ink); margin-top: 2px; font-weight: 500; line-height: 1.5; }
 
     /* ── Confirmation ── */
-    .confirm-wrap {
-      text-align: center; padding: 2rem 1rem;
-    }
-    .confirm-icon {
-      width: 72px; height: 72px; border-radius: 50%;
-      background: var(--green-light); border: 3px solid var(--green);
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1.25rem; font-size: 2rem;
-    }
-    .confirm-title {
-      font-family: var(--font-display); font-size: 1.9rem;
-      color: var(--ink); margin-bottom: 0.5rem;
-    }
-    .confirm-ref {
-      display: inline-block; background: var(--off-white);
-      border: 1px solid var(--border); border-radius: var(--radius-full);
-      padding: 0.3rem 1rem; font-size: 0.82rem; font-family: monospace;
-      color: var(--teal); margin-bottom: 1.25rem;
-    }
+    .confirm-wrap { text-align: center; padding: 2rem 1rem; }
+    .confirm-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--green-light); border: 3px solid var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 2rem; }
+    .confirm-title { font-family: var(--font-display); font-size: 1.9rem; color: var(--ink); margin-bottom: 0.5rem; }
+    .confirm-ref { display: inline-block; background: var(--off-white); border: 1px solid var(--border); border-radius: var(--radius-full); padding: 0.3rem 1rem; font-size: 0.82rem; font-family: monospace; color: var(--teal); margin-bottom: 1.25rem; }
     .confirm-desc { font-size: 0.95rem; color: var(--ink-soft); line-height: 1.7; max-width: 480px; margin: 0 auto 1.5rem; }
     .confirm-actions { display: flex; flex-direction: column; gap: 0.6rem; align-items: center; }
-    .confirm-actions a {
-      font-size: 0.875rem; color: var(--teal); text-decoration: none; font-weight: 500;
-    }
+    .confirm-actions a { font-size: 0.875rem; color: var(--teal); text-decoration: none; font-weight: 500; }
     .confirm-actions a:hover { text-decoration: underline; }
+
+    .trust-items { display: flex; flex-direction: column; gap: 0.65rem; }
+    .trust-item { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.82rem; color: var(--ink-soft); line-height: 1.4; }
+    .trust-item-icon { color: var(--teal); flex-shrink: 0; margin-top: 1px; }
+    .trust-item-icon svg { fill: currentColor; }
 
     @media (max-width: 640px) {
       .book-main { padding: 1rem; }
@@ -366,102 +320,140 @@
     <a href="/" class="book-nav-back">&#8592; Back to home</a>
   </nav>
 
-  <!-- Progress indicator -->
+  <!-- Progress indicator: 5 steps -->
   <div class="book-progress">
     <div class="book-progress-inner">
       <div class="progress-step active" id="prog-1">
         <div class="progress-dot">1</div>
-        <span class="progress-label">Service</span>
+        <span class="progress-label">Services</span>
       </div>
       <div class="progress-line" id="prog-line-1"></div>
       <div class="progress-step" id="prog-2">
         <div class="progress-dot">2</div>
-        <span class="progress-label">Date &amp; location</span>
+        <span class="progress-label">Account</span>
       </div>
       <div class="progress-line" id="prog-line-2"></div>
       <div class="progress-step" id="prog-3">
         <div class="progress-dot">3</div>
-        <span class="progress-label">Your info</span>
+        <span class="progress-label">Date &amp; location</span>
       </div>
       <div class="progress-line" id="prog-line-3"></div>
       <div class="progress-step" id="prog-4">
         <div class="progress-dot">4</div>
+        <span class="progress-label">Your info</span>
+      </div>
+      <div class="progress-line" id="prog-line-4"></div>
+      <div class="progress-step" id="prog-5">
+        <div class="progress-dot">5</div>
         <span class="progress-label">Payment</span>
       </div>
     </div>
   </div>
 
   <div class="book-main">
-
-    <!-- ─────────────────────────────── LEFT COLUMN ─────────────────────────────── -->
     <div class="book-form-col">
 
-      <!-- STEP 1 — Service selection -->
+      <!-- ══ STEP 1 — Services + sub-categories ══ -->
       <div class="step-panel" id="step-1">
         <div class="step-heading">What do you need help with?</div>
-        <p class="step-sub">Select a service below. You can describe your specific items after.</p>
+        <p class="step-sub">Select one or more services — then pick exactly what you need from each. We'll handle everything in one visit.</p>
 
         <div class="service-tiles" id="service-tiles">
           <div class="service-tile" data-service="Furniture Assembly" data-price="69">
+            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
             <div class="tile-name">Furniture Assembly</div>
             <div class="tile-from">From $69</div>
           </div>
           <div class="service-tile" data-service="TV Mounting" data-price="69">
+            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
             <div class="tile-name">TV &amp; Mounting</div>
             <div class="tile-from">From $69</div>
           </div>
           <div class="service-tile" data-service="Home Repairs" data-price="75">
+            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg></div>
             <div class="tile-name">Home Repairs</div>
             <div class="tile-from">From $75</div>
           </div>
           <div class="service-tile" data-service="Smart Home" data-price="69">
+            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
             <div class="tile-name">Smart Home</div>
             <div class="tile-from">From $69</div>
           </div>
           <div class="service-tile" data-service="Junk Removal" data-price="75">
+            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>
             <div class="tile-name">Junk Removal</div>
             <div class="tile-from">From $75</div>
           </div>
           <div class="service-tile" data-service="Other" data-price="0">
+            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
             <div class="tile-name">Other</div>
             <div class="tile-from">Custom quote</div>
           </div>
         </div>
 
-        <div class="form-fields">
+        <!-- Sub-category panels injected here -->
+        <div class="subcats-wrap" id="subcats-wrap"></div>
+
+        <div class="form-fields" style="margin-top:0.5rem">
           <div class="form-group">
-            <label class="form-label" for="s1-details">Describe what needs to be done <span class="req">*</span></label>
-            <textarea class="form-textarea" id="s1-details" rows="3"
-              placeholder="E.g. Assemble 2x IKEA PAX wardrobes, build king size bed frame — all parts included..."></textarea>
-            <div class="field-error" id="s1-details-err">Please describe your job.</div>
+            <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <textarea class="form-textarea" id="s1-details" rows="2"
+              placeholder="Any extra details — brand, model, floor, access info..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> This is a large or complex job &mdash; I'd prefer a custom quote</label>
           </div>
         </div>
 
-        <div class="step-err" id="s1-err">Please select a service above.</div>
+        <div class="step-err" id="s1-err">Please select at least one service.</div>
         <div class="step-actions">
-          <button class="btn-next" id="s1-next" onclick="goToStep2()">
-            Continue <span>&#8594;</span>
-          </button>
+          <button class="btn-next" id="s1-next" onclick="goToStep2Account()">Continue <span>&#8594;</span></button>
         </div>
       </div>
 
-      <!-- STEP 2 — Date, time, address -->
+      <!-- ══ STEP 2 — Guest vs Account ══ -->
       <div class="step-panel hidden" id="step-2">
+        <div class="step-heading">How do you want to continue?</div>
+        <p class="step-sub">Create a free account to track your bookings, or continue as a guest — either way takes less than 2 minutes.</p>
+
+        <div class="account-options">
+          <div class="account-option" id="opt-guest" onclick="selectAccountMode('guest')">
+            <div class="account-option-icon">&#128100;</div>
+            <div class="account-option-title">Continue as Guest</div>
+            <div class="account-option-desc">No account needed. We'll email you a booking confirmation.</div>
+          </div>
+          <div class="account-option" id="opt-account" onclick="selectAccountMode('account')">
+            <div class="account-option-icon">&#9989;</div>
+            <div class="account-option-title">Create Account</div>
+            <div class="account-option-desc">Track bookings, re-book easily, and manage your appointments.</div>
+          </div>
+        </div>
+
+        <a href="/auth/signup" target="_blank" class="account-link" id="signup-link" style="display:none">
+          &#8599; Open sign-up page in a new tab &mdash; then come back here to continue your booking
+        </a>
+
+        <div class="step-err" id="s2-err">Please choose how to continue.</div>
+        <div class="step-actions">
+          <button class="btn-back-link" onclick="goToStep(1)">&larr; Back</button>
+          <button class="btn-next" onclick="goToStep3DateTime()">Continue <span>&#8594;</span></button>
+        </div>
+      </div>
+
+      <!-- ══ STEP 3 — Date, time, address ══ -->
+      <div class="step-panel hidden" id="step-3">
         <div class="step-heading">When &amp; where?</div>
         <p class="step-sub">Pick a date and time, then enter your service address.</p>
 
         <div class="form-fields">
           <div>
-            <div class="dt-section-label">Preferred date <span class="req" style="color:var(--teal)">*</span></div>
+            <div class="dt-section-label">Preferred date <span style="color:var(--teal)">*</span></div>
             <div class="dt-cal">
               <div class="dt-cal-header">
                 <button type="button" class="dt-cal-nav" id="dt-prev">&lsaquo;</button>
@@ -470,102 +462,93 @@
               </div>
               <div class="dt-cal-grid" id="dt-cal-grid"></div>
             </div>
-            <div class="field-error" id="s2-date-err" style="margin-top:-0.5rem;margin-bottom:0.75rem">Please select a date.</div>
+            <div class="field-error" id="s3-date-err" style="margin-top:-0.5rem;margin-bottom:0.75rem">Please select a date.</div>
           </div>
 
           <div id="dt-times-wrap" style="display:none">
-            <div class="dt-section-label">Preferred time <span class="req" style="color:var(--teal)">*</span></div>
+            <div class="dt-section-label">Preferred time <span style="color:var(--teal)">*</span></div>
             <div class="dt-times" id="dt-times"></div>
-            <div class="field-error" id="s2-time-err">Please select a time.</div>
+            <div class="field-error" id="s3-time-err">Please select a time.</div>
           </div>
 
           <p class="dt-horizon-note">Online booking available up to 6 days in advance. For later dates email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a></p>
 
           <div class="form-group" style="margin-top:0.5rem">
-            <label class="form-label" for="s2-address">Service address <span class="req">*</span></label>
-            <input type="text" class="form-input" id="s2-address"
-              placeholder="Start typing your address..." autocomplete="off" />
-            <div class="field-error" id="s2-addr-err">Please enter your address.</div>
-          </div>
-        </div>
-
-        <div class="step-err" id="s2-err"></div>
-        <div class="step-actions">
-          <button class="btn-back-link" onclick="goToStep(1)">&larr; Back</button>
-          <button class="btn-next" onclick="goToStep3()">Continue <span>&#8594;</span></button>
-        </div>
-      </div>
-
-      <!-- STEP 3 — Contact info -->
-      <div class="step-panel hidden" id="step-3">
-        <div class="step-heading">Your contact info</div>
-        <p class="step-sub">We'll send confirmation details to your email. No account required.</p>
-
-        <div class="form-fields">
-          <div class="form-row-2">
-            <div class="form-group">
-              <label class="form-label" for="s3-first">First name <span class="req">*</span></label>
-              <input type="text" class="form-input" id="s3-first" placeholder="Jane" autocomplete="given-name" />
-              <div class="field-error" id="s3-first-err">Required.</div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="s3-last">Last name <span class="req">*</span></label>
-              <input type="text" class="form-input" id="s3-last" placeholder="Smith" autocomplete="family-name" />
-              <div class="field-error" id="s3-last-err">Required.</div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s3-email">Email address <span class="req">*</span></label>
-            <input type="email" class="form-input" id="s3-email" placeholder="you@example.com" autocomplete="email" />
-            <div class="field-hint">Booking confirmation will be sent here.</div>
-            <div class="field-error" id="s3-email-err">Please enter a valid email.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s3-phone">Phone number <span class="req">*</span></label>
-            <input type="tel" class="form-input" id="s3-phone" placeholder="512-000-0000" autocomplete="tel" />
-            <div class="field-hint">We'll text a reminder before your appointment.</div>
-            <div class="field-error" id="s3-phone-err">Required.</div>
+            <label class="form-label" for="s3-address">Service address <span style="color:var(--teal)">*</span></label>
+            <input type="text" class="form-input" id="s3-address" placeholder="Start typing your address..." autocomplete="off" />
+            <div class="field-error" id="s3-addr-err">Please enter your address.</div>
           </div>
         </div>
 
         <div class="step-err" id="s3-err"></div>
         <div class="step-actions">
           <button class="btn-back-link" onclick="goToStep(2)">&larr; Back</button>
-          <button class="btn-next" onclick="goToStep4()">Continue to payment <span>&#8594;</span></button>
+          <button class="btn-next" onclick="goToStep4Contact()">Continue <span>&#8594;</span></button>
         </div>
       </div>
 
-      <!-- STEP 4 — Payment / authorize -->
+      <!-- ══ STEP 4 — Contact info ══ -->
       <div class="step-panel hidden" id="step-4">
-        <div class="step-heading">Secure your booking</div>
-        <p class="step-sub">Enter your card to hold the appointment. <strong>You won't be charged until the job is done.</strong></p>
-
-        <!-- Booking summary recap -->
-        <div class="summary-rows" id="booking-summary"></div>
+        <div class="step-heading">Your contact info</div>
+        <p class="step-sub">We'll send confirmation details to your email. No account required.</p>
 
         <div class="form-fields">
-          <div>
-            <label class="form-label">Card details <span class="req">*</span></label>
-            <div id="stripe-card-wrap">
-              <div id="stripe-card-element"></div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="s4-first">First name <span class="req">*</span></label>
+              <input type="text" class="form-input" id="s4-first" placeholder="Jane" autocomplete="given-name" />
+              <div class="field-error" id="s4-first-err">Required.</div>
             </div>
-            <div id="card-errors" role="alert"></div>
+            <div class="form-group">
+              <label class="form-label" for="s4-last">Last name <span class="req">*</span></label>
+              <input type="text" class="form-input" id="s4-last" placeholder="Smith" autocomplete="family-name" />
+              <div class="field-error" id="s4-last-err">Required.</div>
+            </div>
           </div>
-
-          <div class="auth-note">
-            <span class="auth-note-icon"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:#166534"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></span>
-            <div>
-              <strong>Card authorized, not charged.</strong> Your card is held securely by Stripe. We only capture payment after you confirm the job is complete.
-            </div>
+          <div class="form-group">
+            <label class="form-label" for="s4-email">Email address <span class="req">*</span></label>
+            <input type="email" class="form-input" id="s4-email" placeholder="you@example.com" autocomplete="email" />
+            <div class="field-hint">Booking confirmation will be sent here.</div>
+            <div class="field-error" id="s4-email-err">Please enter a valid email.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s4-phone">Phone number <span class="req">*</span></label>
+            <input type="tel" class="form-input" id="s4-phone" placeholder="512-000-0000" autocomplete="tel" />
+            <div class="field-hint">We'll text a reminder before your appointment.</div>
+            <div class="field-error" id="s4-phone-err">Required.</div>
           </div>
         </div>
 
         <div class="step-err" id="s4-err"></div>
         <div class="step-actions">
-          <button class="btn-back-link" id="s4-back" onclick="goToStep(3)">&larr; Back</button>
-          <button class="btn-next" id="s4-submit" onclick="submitBooking()">
-            Authorize &amp; confirm <span>&#8594;</span>
-          </button>
+          <button class="btn-back-link" onclick="goToStep(3)">&larr; Back</button>
+          <button class="btn-next" onclick="goToStep5Payment()">Continue to payment <span>&#8594;</span></button>
+        </div>
+      </div>
+
+      <!-- ══ STEP 5 — Payment ══ -->
+      <div class="step-panel hidden" id="step-5">
+        <div class="step-heading">Secure your booking</div>
+        <p class="step-sub">Enter your card to hold the appointment. <strong>You won't be charged until the job is done.</strong></p>
+
+        <div class="summary-rows" id="booking-summary"></div>
+
+        <div class="form-fields">
+          <div>
+            <label class="form-label">Card details <span class="req">*</span></label>
+            <div id="stripe-card-wrap"><div id="stripe-card-element"></div></div>
+            <div id="card-errors" role="alert"></div>
+          </div>
+          <div class="auth-note">
+            <span class="auth-note-icon"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:#166534"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></span>
+            <div><strong>Card authorized, not charged.</strong> Your card is held securely by Stripe. We only capture payment after you confirm the job is complete.</div>
+          </div>
+        </div>
+
+        <div class="step-err" id="s5-err"></div>
+        <div class="step-actions">
+          <button class="btn-back-link" id="s5-back" onclick="goToStep(4)">&larr; Back</button>
+          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Authorize &amp; confirm <span>&#8594;</span></button>
         </div>
         <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.85rem;line-height:1.5">
           Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
@@ -578,40 +561,32 @@
           <div class="confirm-icon"><svg viewBox="0 0 24 24" width="36" height="36" style="fill:#16a34a"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
           <div class="confirm-title">You're all set!</div>
           <div class="confirm-ref" id="confirm-ref"></div>
-          <p class="confirm-desc" id="confirm-desc">
-            We received your booking and will confirm your appointment within 1 hour.
-          </p>
+          <p class="confirm-desc" id="confirm-desc">We received your booking and will confirm your appointment within 1 hour.</p>
           <div class="confirm-actions">
             <a href="/customer/" id="confirm-portal-link">Track your booking in the Customer Portal &rarr;</a>
             <a href="/" style="color:var(--muted)">Back to home</a>
           </div>
-          <p style="font-size:0.78rem;color:var(--muted);margin-top:1.25rem">
-            Questions? Email <strong>service@assembleatease.com</strong>
-          </p>
+          <p style="font-size:0.78rem;color:var(--muted);margin-top:1.25rem">Questions? Email <strong>service@assembleatease.com</strong></p>
         </div>
       </div>
 
     </div><!-- /form-col -->
 
-    <!-- ─────────────────────────────── SIDEBAR ─────────────────────────────── -->
+    <!-- ── SIDEBAR ── -->
     <aside class="book-sidebar">
-
-      <!-- Order summary -->
       <div class="sidebar-card" id="order-summary-card">
         <div class="sidebar-title">Your booking</div>
-        <div id="order-lines">
-          <div style="font-size:0.875rem;color:var(--muted);padding:0.5rem 0">Select a service to see pricing</div>
-        </div>
+        <div id="order-lines"><div class="sidebar-empty">Select services &amp; items to see pricing</div></div>
         <div class="order-total" id="order-total" style="display:none">
           <span style="font-size:0.82rem;color:var(--muted)">Estimated total</span>
           <span class="order-total-amount" id="order-total-amount"></span>
         </div>
-        <p class="order-note" id="order-note" style="display:none">
-          Final price confirmed after we review your job details. Card authorized at booking &mdash; charged only after completion.
-        </p>
+        <p class="order-note" id="order-note" style="display:none">Final price confirmed after review. Card authorized at booking &mdash; charged only after completion.</p>
+        <div style="margin-top:0.75rem">
+          <button onclick="goToStep(1)" id="change-services-btn" style="display:none;background:none;border:none;color:var(--teal);font-size:0.75rem;cursor:pointer;padding:0;text-decoration:underline">Edit services &rarr;</button>
+        </div>
       </div>
 
-      <!-- Trust badges -->
       <div class="sidebar-card">
         <div class="sidebar-title">Why AssembleAtEase</div>
         <div class="trust-items">
@@ -621,395 +596,819 @@
           <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span><div><strong>5-star service</strong><br>Hundreds of 5-star reviews from Austin homeowners.</div></div>
         </div>
       </div>
-
     </aside>
   </div><!-- /book-main -->
 </div><!-- /book-page -->
 
 <script>
-  // ── State ─────────────────────────────────────────────────────────────────
-  var BOOK = {
-    service: '',
-    servicePrice: 0,
-    details: '',
-    wantsQuote: false,
-    date: '',
-    time: '',
-    address: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    // Stripe
-    _stripe: null,
-    _cardEl: null,
-    _clientSecret: null,
-    _pendingData: null
-  };
+// ════════════════════════════════════════════════════════════════════════════
+// SUB-CATEGORY DATA
+// ════════════════════════════════════════════════════════════════════════════
+var SUBCATS = {
+  'Furniture Assembly': [
+    { group: 'Seating & Sofas', items: [
+      { name: 'Accent chair / armchair', price: 69 },
+      { name: 'Sofa (2\u20133 seat, standard)', price: 85 },
+      { name: 'Sectional sofa (L-shape)', price: 110, priceMax: 145, popular: true },
+      { name: 'Sectional sofa (U-shape / oversized)', price: 165 },
+      { name: 'Sleeper sofa / sofa bed', price: 95 },
+      { name: 'Ottoman (storage)', price: 55 },
+      { name: 'Bench (entryway or bedroom)', price: 55 }
+    ]},
+    { group: 'Bedroom', items: [
+      { name: 'Bed frame \u2014 twin / full', price: 75 },
+      { name: 'Bed frame \u2014 queen', price: 85, popular: true },
+      { name: 'Bed frame \u2014 king / cal king', price: 95 },
+      { name: 'Bed frame with storage drawers', price: 110 },
+      { name: 'Platform bed with upholstered headboard', price: 115 },
+      { name: 'Bunk bed / loft bed', price: 125 },
+      { name: 'Trundle bed', price: 95 },
+      { name: 'Crib / toddler bed', price: 75 },
+      { name: 'Nightstand (single)', price: 55 },
+      { name: 'Dresser (up to 6 drawers)', price: 75 },
+      { name: 'Dresser (7+ drawers / double)', price: 95 },
+      { name: 'Wardrobe / armoire (freestanding)', price: 95, priceMax: 115 },
+      { name: 'IKEA PAX wardrobe (single unit)', price: 115, popular: true },
+      { name: 'IKEA PAX wardrobe (per additional unit)', price: 65, addon: true },
+      { name: 'Vanity with mirror', price: 85 }
+    ]},
+    { group: 'Home Office & Study', items: [
+      { name: 'Desk (simple, flat-pack)', price: 69 },
+      { name: 'Desk (L-shape / corner)', price: 95 },
+      { name: 'Standing desk (electric)', price: 95 },
+      { name: 'Office chair (standard)', price: 55 },
+      { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 69 },
+      { name: 'Bookcase / shelving unit (6+ shelves)', price: 85 },
+      { name: 'File cabinet (2\u20134 drawer)', price: 55 }
+    ]},
+    { group: 'Dining & Kitchen', items: [
+      { name: 'Dining table (standard)', price: 75 },
+      { name: 'Dining table (extendable / large)', price: 95 },
+      { name: 'Dining chairs (per 2 chairs)', price: 35 },
+      { name: 'Dining chairs (set of 4\u20136)', price: 65, priceMax: 85 },
+      { name: 'Bar stool (per 2 stools)', price: 35 },
+      { name: 'Kitchen island (freestanding)', price: 85 },
+      { name: 'China cabinet / hutch', price: 95 },
+      { name: 'Buffet / sideboard', price: 75 }
+    ]},
+    { group: 'Living Room', items: [
+      { name: 'Coffee table (simple)', price: 55 },
+      { name: 'Coffee table (lift-top / storage)', price: 69 },
+      { name: 'Side / end table', price: 45 },
+      { name: 'TV stand / media console', price: 69 },
+      { name: 'Entertainment center (large)', price: 110 },
+      { name: 'Console table', price: 55 }
+    ]},
+    { group: 'Outdoor & Patio', items: [
+      { name: 'Outdoor dining set (table + 4 chairs)', price: 95 },
+      { name: 'Outdoor dining set (table + 6+ chairs)', price: 125 },
+      { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 110 },
+      { name: 'Adirondack / Adirondack set (per 2)', price: 55 },
+      { name: 'Patio umbrella + base', price: 55 },
+      { name: 'Pergola / gazebo (kit assembly)', price: 195, priceMax: 295 },
+      { name: 'Fire pit (assembly only)', price: 65 },
+      { name: 'Grill (gas / charcoal assembly)', price: 75 },
+      { name: 'Storage shed (small kit)', price: 195, priceMax: 295 }
+    ]},
+    { group: 'Add-ons', items: [
+      { name: 'Furniture disposal (per piece)', price: 35, addon: true },
+      { name: 'Move to another room (per piece)', price: 25, addon: true },
+      { name: 'Broken hardware repair / replacement', price: 25, addon: true },
+      { name: 'Rush / same-day assembly', price: 30, addon: true },
+      { name: 'After-hours assembly (6pm\u20139pm)', price: 25, addon: true }
+    ]}
+  ],
+  'TV Mounting': [
+    { group: 'TV Mounting by Size', items: [
+      { name: 'TV up to 40\u201d (standard wall)', price: 69 },
+      { name: 'TV 41\u201d\u201355\u201d (standard wall)', price: 79, popular: true },
+      { name: 'TV 56\u201d\u201365\u201d (standard wall)', price: 89 },
+      { name: 'TV 66\u201d\u201375\u201d (standard wall)', price: 99 },
+      { name: 'TV 76\u201d\u201385\u201d (standard wall)', price: 115 },
+      { name: 'TV 86\u201d+ / commercial display', price: 135, priceMax: 175 },
+      { name: 'Second TV (same visit)', price: 20, addon: true }
+    ]},
+    { group: 'Wall Type Upgrades', items: [
+      { name: 'Brick or concrete wall', price: 35, addon: true },
+      { name: 'Tile wall', price: 35, addon: true },
+      { name: 'Steel stud / metal framing', price: 25, addon: true },
+      { name: 'Above fireplace mount', price: 45, addon: true }
+    ]},
+    { group: 'Cable & Cord Management', items: [
+      { name: 'Surface cord cover (raceway, up to 6 ft)', price: 45 },
+      { name: 'In-wall cord concealment', price: 79, popular: true },
+      { name: 'In-wall cord concealment (brick / concrete)', price: 115 },
+      { name: 'Cable management box / hub install', price: 35 }
+    ]},
+    { group: 'Shelves & Wall Items', items: [
+      { name: 'Floating shelf \u2014 single (up to 36\u201d)', price: 55 },
+      { name: 'Floating shelf \u2014 single (37\u201d\u201360\u201d)', price: 69 },
+      { name: 'Floating shelves \u2014 set of 3', price: 115 },
+      { name: 'Floating shelves \u2014 set of 5+', price: 155 },
+      { name: 'Heavy-duty shelf (sawtooth / bracket, per shelf)', price: 65 },
+      { name: 'Gallery wall \u2014 up to 5 pieces', price: 75 },
+      { name: 'Gallery wall \u2014 6\u201310 pieces', price: 105, popular: true },
+      { name: 'Gallery wall \u2014 11\u201320 pieces', price: 155 },
+      { name: 'Single framed picture / mirror (up to 30 lbs)', price: 45 },
+      { name: 'Heavy mirror / artwork (30\u201380 lbs)', price: 65 },
+      { name: 'Full-length mirror (floor lean / anchor)', price: 45 }
+    ]},
+    { group: 'Window Treatments', items: [
+      { name: 'Curtain rod \u2014 1 window', price: 55 },
+      { name: 'Curtain rod \u2014 2 windows', price: 85, popular: true },
+      { name: 'Curtain rod \u2014 3 windows', price: 110 },
+      { name: 'Curtain rod \u2014 4 windows', price: 135 },
+      { name: 'Curtain rod \u2014 5+ windows (per additional)', price: 25, addon: true },
+      { name: 'Double curtain rod (per window)', price: 15, addon: true },
+      { name: 'Blind install \u2014 1 window', price: 45 },
+      { name: 'Blind install \u2014 per additional window', price: 25, addon: true },
+      { name: 'Cellular shade / roller shade install (per window)', price: 45 },
+      { name: 'Motorized blind / shade install (per window)', price: 65 }
+    ]},
+    { group: 'Mounting Add-ons', items: [
+      { name: 'TV mount hardware (if not provided)', price: 25, addon: true },
+      { name: 'HDMI / cable routing to components', price: 25, addon: true },
+      { name: 'Soundbar mount (below/above TV)', price: 35, addon: true },
+      { name: 'Patch drywall after unmount (small)', price: 45, addon: true }
+    ]}
+  ],
+  'Home Repairs': [
+    { group: 'Drywall & Walls', items: [
+      { name: 'Drywall patch \u2014 nail / screw holes (up to 10)', price: 65 },
+      { name: 'Drywall patch \u2014 small hole (up to 4\u201d)', price: 75 },
+      { name: 'Drywall patch \u2014 medium hole (4\u201d\u20138\u201d)', price: 95 },
+      { name: 'Drywall patch \u2014 large hole (8\u201d\u201312\u201d)', price: 125 },
+      { name: 'Drywall patch \u2014 textured finish (per patch)', price: 25, addon: true },
+      { name: 'Drywall patch \u2014 multiple (3+ same visit)', price: 145, priceMax: 195 },
+      { name: 'Caulking \u2014 tub / shower / window (per run)', price: 65 },
+      { name: 'Grout repair (per 2 sq ft)', price: 75 }
+    ]},
+    { group: 'Doors & Locks', items: [
+      { name: 'Door hinge tighten / realign', price: 65 },
+      { name: 'Door hinge replacement (per hinge)', price: 55 },
+      { name: 'Door handle / knob replacement', price: 65 },
+      { name: 'Deadbolt install / replace', price: 75 },
+      { name: 'Door lock rekey (per lock)', price: 55 },
+      { name: 'Door stopper install', price: 35 },
+      { name: 'Door sweep / weatherstripping replace', price: 65 },
+      { name: 'Sliding door track repair / adjust', price: 75 },
+      { name: 'Screen door repair / re-screen', price: 75 },
+      { name: 'Peephole install', price: 45 }
+    ]},
+    { group: 'Cabinet & Hardware', items: [
+      { name: 'Cabinet door rehang / realign (per door)', price: 45 },
+      { name: 'Cabinet hinge replacement (per hinge)', price: 35 },
+      { name: 'Cabinet hardware install \u2014 up to 10 knobs/pulls', price: 65 },
+      { name: 'Cabinet hardware install \u2014 11\u201320 knobs/pulls', price: 95 },
+      { name: 'Cabinet hardware install \u2014 full kitchen (20+)', price: 125 },
+      { name: 'Drawer slide replacement (per pair)', price: 55 },
+      { name: 'Soft-close hinge install (per door)', price: 25 }
+    ]},
+    { group: 'Plumbing (labor only, parts not included)', items: [
+      { name: 'Faucet replacement \u2014 bathroom', price: 85 },
+      { name: 'Faucet replacement \u2014 kitchen', price: 95 },
+      { name: 'Showerhead replacement', price: 65 },
+      { name: 'Toilet seat replacement', price: 55 },
+      { name: 'Toilet running / flapper repair', price: 65 },
+      { name: 'Under-sink supply line replacement', price: 65 },
+      { name: 'P-trap / drain repair (per drain)', price: 75 }
+    ]},
+    { group: 'Lighting & Electrical (no panel work)', items: [
+      { name: 'Light fixture swap (1\u20131 replacement)', price: 75 },
+      { name: 'Ceiling fan install (existing wiring)', price: 95 },
+      { name: 'Ceiling fan install (no existing wiring)', price: 0, customQuote: true },
+      { name: 'Dimmer switch install (per switch)', price: 55 },
+      { name: 'GFCI outlet replacement (per outlet)', price: 55 },
+      { name: 'Outdoor light fixture replace', price: 75 },
+      { name: 'Under-cabinet light install (per run)', price: 75 }
+    ]},
+    { group: 'Safety & Misc', items: [
+      { name: 'Smoke / CO detector install (per unit)', price: 45 },
+      { name: 'Smoke / CO detector install (4-pack)', price: 125 },
+      { name: 'Baby / child proofing (full room)', price: 75 },
+      { name: 'Furniture wall anchor (tip-over, per piece)', price: 35 },
+      { name: 'Furniture wall anchor (4-piece set)', price: 95 },
+      { name: 'Gutter cleaning \u2014 per 20 linear ft', price: 85 },
+      { name: 'Gutter cleaning \u2014 full home (up to 80 ft)', price: 175, priceMax: 225 },
+      { name: 'Towel bar / toilet paper holder install', price: 45 },
+      { name: 'Grab bar install (ADA / accessibility)', price: 75 }
+    ]},
+    { group: 'Add-ons', items: [
+      { name: 'Parts / materials sourcing fee', price: 15, addon: true },
+      { name: 'Photo documentation of work', price: 0, addon: true },
+      { name: 'Rush / same-day repair', price: 35, addon: true }
+    ]}
+  ],
+  'Smart Home': [
+    { group: 'Climate Control', items: [
+      { name: 'Smart thermostat \u2014 Nest, Ecobee, Honeywell', price: 69, popular: true },
+      { name: 'Smart thermostat (no C-wire, adapter needed)', price: 85 },
+      { name: 'Smart vent install (per vent)', price: 45 },
+      { name: 'Smart AC controller (window / mini-split)', price: 55 },
+      { name: 'Whole-home thermostat multi-zone (per zone)', price: 75 }
+    ]},
+    { group: 'Security & Access', items: [
+      { name: 'Smart doorbell \u2014 Ring, Nest, Eufy', price: 75, popular: true },
+      { name: 'Smart doorbell (hardwired replacement)', price: 85 },
+      { name: 'Smart lock \u2014 deadbolt replacement', price: 79 },
+      { name: 'Smart lock \u2014 lever handle', price: 79 },
+      { name: 'Smart lock + deadbolt combo', price: 110 },
+      { name: 'Smart garage door opener / controller', price: 75 },
+      { name: 'Keypad entry install (outdoor)', price: 75 }
+    ]},
+    { group: 'Cameras', items: [
+      { name: 'Indoor security camera (plug-in)', price: 55 },
+      { name: 'Indoor camera (mount + cable manage)', price: 69 },
+      { name: 'Outdoor camera \u2014 eave / soffit mount', price: 79 },
+      { name: 'Outdoor camera \u2014 brick / concrete', price: 95 },
+      { name: 'Camera system \u2014 2 cameras', price: 135 },
+      { name: 'Camera system \u2014 4 cameras', price: 225, popular: true },
+      { name: 'Camera system \u2014 6+ cameras', price: 295, priceMax: 375 },
+      { name: 'NVR / DVR setup + camera config', price: 95 }
+    ]},
+    { group: 'Lighting', items: [
+      { name: 'Smart bulb install + app setup (per room, up to 4 bulbs)', price: 45 },
+      { name: 'Smart switch install (per switch)', price: 55 },
+      { name: 'Smart dimmer install (per switch)', price: 60 },
+      { name: 'Smart plug install + setup (per 2 plugs)', price: 35 },
+      { name: 'LED strip lighting \u2014 per 10 ft run', price: 55 },
+      { name: 'Outdoor smart lighting (per fixture)', price: 65 }
+    ]},
+    { group: 'Network & Hubs', items: [
+      { name: 'Wi-Fi router setup + optimization', price: 65 },
+      { name: 'Wi-Fi extender / mesh node install (per node)', price: 55 },
+      { name: 'Mesh network (3-node setup, full home)', price: 125 },
+      { name: 'Smart home hub setup (Alexa, Google, Apple)', price: 75 },
+      { name: 'Smart home hub + device automation setup', price: 115 },
+      { name: 'TV streaming device setup (Apple TV, Roku, Fire)', price: 45 }
+    ]},
+    { group: 'Add-ons', items: [
+      { name: 'App setup + walkthrough (per platform)', price: 25, addon: true },
+      { name: 'Voice assistant integration (Alexa / Google)', price: 25, addon: true },
+      { name: 'Automation / routine programming (per device)', price: 15, addon: true },
+      { name: 'Device migration (old to new system)', price: 35, addon: true }
+    ]}
+  ],
+  'Junk Removal': [
+    { group: 'Single Items', items: [
+      { name: 'Small item (chair, lamp, boxes)', price: 55 },
+      { name: 'Medium furniture (dresser, desk, bookcase)', price: 75 },
+      { name: 'Sofa / loveseat', price: 85 },
+      { name: 'Sectional sofa', price: 115 },
+      { name: 'Mattress \u2014 twin / full', price: 75 },
+      { name: 'Mattress \u2014 queen', price: 85 },
+      { name: 'Mattress \u2014 king', price: 95 },
+      { name: 'Mattress + box spring set', price: 125, priceMax: 145 },
+      { name: 'Bed frame (disassemble + remove)', price: 85 }
+    ]},
+    { group: 'Appliances', items: [
+      { name: 'Small appliance (microwave, toaster oven)', price: 45 },
+      { name: 'Washer or dryer (single unit)', price: 95 },
+      { name: 'Washer + dryer set', price: 155 },
+      { name: 'Refrigerator (standard)', price: 105 },
+      { name: 'Refrigerator (side-by-side / French door)', price: 125 },
+      { name: 'Dishwasher', price: 85 },
+      { name: 'Stove / range / oven', price: 95 },
+      { name: 'Air conditioner (window unit)', price: 65 }
+    ]},
+    { group: 'Multi-Item Loads', items: [
+      { name: '2 items (same trip)', price: 125 },
+      { name: '3\u20134 items', price: 165 },
+      { name: '5\u20136 items', price: 195, popular: true },
+      { name: '7\u201310 items', price: 245 },
+      { name: '1/4 truck load', price: 175 },
+      { name: '1/2 truck load', price: 275 },
+      { name: 'Full truck load', price: 425 }
+    ]},
+    { group: 'Cleanouts', items: [
+      { name: 'Single room cleanout (small)', price: 195, priceMax: 275 },
+      { name: 'Single room cleanout (large)', price: 275, priceMax: 375 },
+      { name: 'Garage cleanout (standard)', price: 295, priceMax: 425 },
+      { name: 'Garage cleanout (large / heavily loaded)', price: 0, customQuote: true },
+      { name: 'Attic / crawl space cleanout', price: 0, customQuote: true },
+      { name: 'Office / commercial move-out', price: 0, customQuote: true },
+      { name: 'Estate cleanout', price: 0, customQuote: true }
+    ]},
+    { group: 'Specialty & Add-ons', items: [
+      { name: 'E-waste disposal (computers, TVs, monitors)', price: 25, addon: true },
+      { name: 'Paint / hazmat disposal', price: 35, addon: true },
+      { name: 'Disassembly before removal (per piece)', price: 25, addon: true },
+      { name: 'Same-day / rush removal', price: 45, addon: true },
+      { name: 'Stair carry (per flight, per large item)', price: 15, addon: true },
+      { name: 'Donation drop-off (Goodwill / ARC)', price: 25, addon: true }
+    ]}
+  ],
+  'Other': [
+    { group: 'Custom Project', items: [
+      { name: 'Describe your project in the notes below (custom quote)', price: 0, customQuote: true }
+    ]}
+  ]
+};
 
-  var TIME_SLOTS = ['8:00 AM – 10:00 AM','10:00 AM – 12:00 PM','12:00 PM – 2:00 PM','2:00 PM – 4:00 PM','4:00 PM – 6:00 PM','Flexible'];
+// ════════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════════
+var BOOK = {
+  selectedServices: [],
+  selectedItems: {},   // { ServiceName: [{name, price, priceMax, addon, customQuote, qty}] }
+  details: '',
+  wantsQuote: false,
+  accountMode: '',
+  date: '',
+  time: '',
+  address: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  _stripe: null,
+  _cardEl: null
+};
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-  function showErr(id, msg) { var el = document.getElementById(id); if (!el) return; el.textContent = msg || ''; el.classList.add('show'); }
-  function hideErr(id) { var el = document.getElementById(id); if (el) el.classList.remove('show'); }
-  function fieldErr(inputId, errId, show) {
-    var inp = document.getElementById(inputId);
-    if (inp) inp.classList.toggle('error', show);
-    if (show) showErr(errId); else hideErr(errId);
-  }
+var TIME_SLOTS = ['8:00 AM \u2013 10:00 AM','10:00 AM \u2013 12:00 PM','12:00 PM \u2013 2:00 PM','2:00 PM \u2013 4:00 PM','4:00 PM \u2013 6:00 PM','Flexible'];
+var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
 
-  // ── Pre-select from URL param ─────────────────────────────────────────────
-  (function preSelect() {
-    var params = new URLSearchParams(window.location.search);
-    var svc = params.get('service') || params.get('s') || '';
-    if (!svc) return;
-    var tiles = document.querySelectorAll('.service-tile');
-    tiles.forEach(function(tile) {
-      if (tile.dataset.service.toLowerCase().replace(/[^a-z]/g,'').indexOf(svc.toLowerCase().replace(/[^a-z]/g,'')) !== -1) {
-        tile.click();
-      }
-    });
-  })();
+// ════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+function esc(s) { var d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
+function showErr(id, msg) { var el = document.getElementById(id); if (!el) return; if (msg) el.textContent = msg; el.classList.add('show'); }
+function hideErr(id) { var el = document.getElementById(id); if (el) el.classList.remove('show'); }
+function fieldErr(inId, errId, show) {
+  var inp = document.getElementById(inId);
+  if (inp) inp.classList.toggle('error', show);
+  if (show) showErr(errId); else hideErr(errId);
+}
+function fmtPrice(item) {
+  if (item.customQuote) return 'Custom quote';
+  if (item.price === 0) return 'Free';
+  var sign = item.addon ? '+$' : '$';
+  var s = sign + item.price;
+  if (item.priceMax) s = sign + item.price + '\u2013$' + item.priceMax;
+  return s;
+}
 
-  // ── Service tile selection ────────────────────────────────────────────────
-  document.querySelectorAll('.service-tile').forEach(function(tile) {
-    tile.addEventListener('click', function() {
-      document.querySelectorAll('.service-tile').forEach(function(t) { t.classList.remove('selected'); });
+// ════════════════════════════════════════════════════════════════════════════
+// SERVICE TILE TOGGLE (multi-select)
+// ════════════════════════════════════════════════════════════════════════════
+document.querySelectorAll('.service-tile').forEach(function(tile) {
+  tile.addEventListener('click', function() {
+    var svc = tile.dataset.service;
+    var idx = BOOK.selectedServices.indexOf(svc);
+    if (idx === -1) {
+      BOOK.selectedServices.push(svc);
+      if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
       tile.classList.add('selected');
-      BOOK.service = tile.dataset.service;
-      BOOK.servicePrice = parseInt(tile.dataset.price) || 0;
-      hideErr('s1-err');
-      updateOrderSummary();
-    });
-  });
-
-  function updateOrderSummary() {
-    var linesEl = document.getElementById('order-lines');
-    var totalEl = document.getElementById('order-total');
-    var amtEl   = document.getElementById('order-total-amount');
-    var noteEl  = document.getElementById('order-note');
-    if (!BOOK.service) return;
-    var isQuote = BOOK.wantsQuote || BOOK.servicePrice === 0;
-    linesEl.innerHTML = '<div class="order-line"><span class="order-line-name">' + esc(BOOK.service) + '</span><span class="order-line-price">' + (isQuote ? 'Custom quote' : 'From $' + BOOK.servicePrice) + '</span></div><div style="padding:0.3rem 0 0"><button onclick="goToStep(1)" style="background:none;border:none;color:var(--teal);font-size:0.75rem;cursor:pointer;padding:0;text-decoration:underline">Change service &rarr;</button></div>';
-    if (!isQuote) {
-      amtEl.textContent = 'From $' + BOOK.servicePrice;
-      totalEl.style.display = 'flex';
-      noteEl.style.display = 'block';
     } else {
-      totalEl.style.display = 'none';
-      noteEl.style.display = 'none';
+      BOOK.selectedServices.splice(idx, 1);
+      delete BOOK.selectedItems[svc];
+      tile.classList.remove('selected');
     }
-  }
-
-  document.getElementById('s1-quote').addEventListener('change', function() {
-    BOOK.wantsQuote = this.checked;
+    hideErr('s1-err');
+    renderSubcats();
     updateOrderSummary();
   });
+});
 
-  // ── Date/time picker ──────────────────────────────────────────────────────
-  (function initCal() {
-    var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    var DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-    var today = new Date(); today.setHours(0,0,0,0);
-    var maxDate = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000);
-    var curMonth = today.getMonth(), curYear = today.getFullYear();
+// ════════════════════════════════════════════════════════════════════════════
+// RENDER SUB-CATEGORY PANELS
+// ════════════════════════════════════════════════════════════════════════════
+var SVC_ICONS = {
+  'Furniture Assembly': '\uD83E\uDE91',
+  'TV Mounting': '\uD83D\uDCFA',
+  'Home Repairs': '\uD83D\uDD27',
+  'Smart Home': '\uD83C\uDFE0',
+  'Junk Removal': '\uD83D\uDDD1\uFE0F',
+  'Other': '\uD83D\uDCAC'
+};
 
-    function renderCal() {
-      var titleEl = document.getElementById('dt-cal-title');
-      var gridEl  = document.getElementById('dt-cal-grid');
-      if (!titleEl || !gridEl) return;
-      titleEl.textContent = MONTHS[curMonth] + ' ' + curYear;
-      var firstDay = new Date(curYear, curMonth, 1).getDay();
-      var daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
-      var html = '';
-      DAYS_SHORT.forEach(function(d) { html += '<div class="dt-dow">' + d + '</div>'; });
-      for (var i = 0; i < firstDay; i++) html += '<div class="dt-day empty"></div>';
-      for (var d = 1; d <= daysInMonth; d++) {
-        var dateObj = new Date(curYear, curMonth, d);
-        var dateStr = curYear + '-' + pad(curMonth + 1) + '-' + pad(d);
-        var disabled = dateObj < today || dateObj > maxDate;
-        var classes = 'dt-day' + (disabled ? '' : '') + (dateObj.getTime() === today.getTime() ? ' today' : '') + (BOOK.date === dateStr ? ' selected' : '');
-        html += '<button type="button" class="' + classes + '"' + (disabled ? ' disabled' : '') + ' data-date="' + dateStr + '">' + d + '</button>';
-      }
-      gridEl.innerHTML = html;
-      gridEl.querySelectorAll('.dt-day:not([disabled]):not(.empty)').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          BOOK.date = this.dataset.date;
-          BOOK.time = '';
-          renderCal();
-          renderTimes();
-          hideErr('s2-date-err');
-        });
+function renderSubcats() {
+  var wrap = document.getElementById('subcats-wrap');
+  wrap.innerHTML = '';
+  BOOK.selectedServices.forEach(function(svc) {
+    var groups = SUBCATS[svc];
+    if (!groups) return;
+
+    var panel = document.createElement('div');
+    panel.className = 'subcat-panel';
+
+    var html = '<div class="subcat-header">'
+      + '<div class="subcat-header-title">' + (SVC_ICONS[svc] || '') + ' ' + esc(svc) + '</div>'
+      + '<button class="subcat-close" onclick="deselectService(\'' + svc.replace(/'/g,"\\'") + '\')" title="Remove">\u00D7</button>'
+      + '</div><div class="subcat-body">';
+
+    groups.forEach(function(g) {
+      html += '<div class="subcat-group"><div class="subcat-group-label">' + esc(g.group) + '</div>';
+      g.items.forEach(function(item) {
+        var sel = isItemSelected(svc, item.name);
+        var qty = getItemQty(svc, item.name);
+        var priceStr = fmtPrice(item);
+        var badge = item.popular ? '<span class="subcat-item-badge">Popular</span>' : '';
+        var safeN = JSON.stringify(item.name);
+        var safeSvc = JSON.stringify(svc);
+
+        html += '<div class="subcat-item' + (sel ? ' selected' : '') + '" onclick="toggleItem(' + safeSvc + ',' + safeN + ',' + (item.price||0) + ',' + (item.priceMax||0) + ',' + (!!item.addon) + ',' + (!!item.customQuote) + ')">'
+          + '<div class="subcat-item-left">'
+          + '<div class="subcat-item-cb">' + CHECK_SVG + '</div>'
+          + '<span class="subcat-item-name">' + esc(item.name) + '</span>'
+          + badge
+          + '</div>'
+          + '<span class="subcat-item-price' + (item.addon ? ' addon' : '') + '">' + priceStr + '</span>'
+          + '<div class="subcat-qty" onclick="event.stopPropagation()">'
+          + '<button class="qty-btn" onclick="changeQty(' + safeSvc + ',' + safeN + ',-1)">\u2212</button>'
+          + '<span class="qty-val">' + qty + '</span>'
+          + '<button class="qty-btn" onclick="changeQty(' + safeSvc + ',' + safeN + ',1)">+</button>'
+          + '</div>'
+          + '</div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    panel.innerHTML = html;
+    wrap.appendChild(panel);
+  });
+}
+
+function deselectService(svc) {
+  var idx = BOOK.selectedServices.indexOf(svc);
+  if (idx !== -1) BOOK.selectedServices.splice(idx, 1);
+  delete BOOK.selectedItems[svc];
+  document.querySelectorAll('.service-tile').forEach(function(t) {
+    if (t.dataset.service === svc) t.classList.remove('selected');
+  });
+  renderSubcats();
+  updateOrderSummary();
+}
+
+function isItemSelected(svc, name) {
+  return (BOOK.selectedItems[svc] || []).some(function(i) { return i.name === name; });
+}
+function getItemQty(svc, name) {
+  var found = (BOOK.selectedItems[svc] || []).find(function(i) { return i.name === name; });
+  return found ? found.qty : 1;
+}
+
+function toggleItem(svc, name, price, priceMax, isAddon, isCustomQuote) {
+  if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
+  var items = BOOK.selectedItems[svc];
+  var idx = items.findIndex(function(i) { return i.name === name; });
+  if (idx === -1) {
+    items.push({ name: name, price: price, priceMax: priceMax, addon: isAddon, customQuote: isCustomQuote, qty: 1 });
+  } else {
+    items.splice(idx, 1);
+  }
+  renderSubcats();
+  updateOrderSummary();
+}
+
+function changeQty(svc, name, delta) {
+  var found = (BOOK.selectedItems[svc] || []).find(function(i) { return i.name === name; });
+  if (found) { found.qty = Math.max(1, found.qty + delta); renderSubcats(); updateOrderSummary(); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ORDER SUMMARY
+// ════════════════════════════════════════════════════════════════════════════
+function updateOrderSummary() {
+  var linesEl   = document.getElementById('order-lines');
+  var totalEl   = document.getElementById('order-total');
+  var amtEl     = document.getElementById('order-total-amount');
+  var noteEl    = document.getElementById('order-note');
+  var changeBtn = document.getElementById('change-services-btn');
+
+  if (BOOK.selectedServices.length === 0) {
+    linesEl.innerHTML = '<div class="sidebar-empty">Select services &amp; items to see pricing</div>';
+    totalEl.style.display = 'none'; noteEl.style.display = 'none';
+    changeBtn.style.display = 'none';
+    return;
+  }
+
+  changeBtn.style.display = 'inline';
+  var html = '';
+  var runningTotal = 0;
+  var hasCustom = false;
+
+  BOOK.selectedServices.forEach(function(svc) {
+    var items = BOOK.selectedItems[svc] || [];
+    html += '<div class="order-group-label">' + esc(svc) + '</div>';
+    if (items.length === 0) {
+      html += '<div class="order-line"><span class="order-line-name" style="color:var(--muted);font-style:italic">No items selected yet</span></div>';
+    } else {
+      items.forEach(function(item) {
+        var linePrice;
+        if (item.customQuote) { linePrice = 'Quote'; hasCustom = true; }
+        else { var p = item.price; linePrice = '$' + p + (item.priceMax ? '\u2013$' + item.priceMax : '') + (item.qty > 1 ? ' \xD7' + item.qty : ''); runningTotal += p * item.qty; }
+        html += '<div class="order-line"><span class="order-line-name">' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span class="order-line-price">' + linePrice + '</span></div>';
       });
     }
+  });
 
-    function renderTimes() {
-      var wrap = document.getElementById('dt-times-wrap');
-      var timesEl = document.getElementById('dt-times');
-      if (!BOOK.date) { wrap.style.display = 'none'; return; }
-      wrap.style.display = 'block';
-      timesEl.innerHTML = TIME_SLOTS.map(function(slot) {
-        return '<button type="button" class="dt-time-btn' + (BOOK.time === slot ? ' selected' : '') + '" data-time="' + slot + '">' + slot + '</button>';
-      }).join('');
-      timesEl.querySelectorAll('.dt-time-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          BOOK.time = this.dataset.time;
-          renderTimes();
-          hideErr('s2-time-err');
-        });
+  linesEl.innerHTML = html;
+  amtEl.textContent = (runningTotal > 0 ? 'From $' + runningTotal : '') + (hasCustom ? (runningTotal > 0 ? ' + quote' : 'Custom quote') : '');
+  totalEl.style.display = 'flex';
+  noteEl.style.display = 'block';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEP 2 — ACCOUNT MODE
+// ════════════════════════════════════════════════════════════════════════════
+function selectAccountMode(mode) {
+  BOOK.accountMode = mode;
+  document.getElementById('opt-guest').classList.toggle('selected', mode === 'guest');
+  document.getElementById('opt-account').classList.toggle('selected', mode === 'account');
+  document.getElementById('signup-link').style.display = (mode === 'account') ? 'block' : 'none';
+  hideErr('s2-err');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROGRESS & NAV
+// ════════════════════════════════════════════════════════════════════════════
+var TOTAL_STEPS = 5;
+
+function setProgress(step) {
+  for (var i = 1; i <= TOTAL_STEPS; i++) {
+    var el = document.getElementById('prog-' + i);
+    if (!el) continue;
+    el.classList.remove('active','done');
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+  }
+  for (var j = 1; j < TOTAL_STEPS; j++) {
+    var line = document.getElementById('prog-line-' + j);
+    if (line) line.classList.toggle('done', j < step);
+  }
+}
+
+function goToStep(n) {
+  for (var i = 1; i <= TOTAL_STEPS; i++) {
+    var p = document.getElementById('step-' + i);
+    if (p) p.classList.toggle('hidden', i !== n);
+  }
+  var confirm = document.getElementById('step-confirm');
+  if (confirm) confirm.classList.add('hidden');
+  setProgress(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToStep2Account() {
+  var hasService = BOOK.selectedServices.length > 0;
+  if (!hasService) { showErr('s1-err', 'Please select at least one service.'); return; }
+  var missingItems = BOOK.selectedServices.filter(function(svc) {
+    if (svc === 'Other') return false;
+    return (BOOK.selectedItems[svc] || []).length === 0;
+  });
+  if (missingItems.length > 0 && !document.getElementById('s1-quote').checked) {
+    showErr('s1-err', 'Please select at least one item under: ' + missingItems.join(', ') + '. Or check "I\'d prefer a custom quote".');
+    return;
+  }
+  hideErr('s1-err');
+  BOOK.details = document.getElementById('s1-details').value.trim();
+  BOOK.wantsQuote = document.getElementById('s1-quote').checked;
+  goToStep(2);
+}
+
+function goToStep3DateTime() {
+  if (!BOOK.accountMode) { showErr('s2-err', 'Please choose how to continue.'); return; }
+  hideErr('s2-err');
+  goToStep(3);
+}
+
+function goToStep4Contact() {
+  var addr = document.getElementById('s3-address').value.trim();
+  var ok = true;
+  if (!BOOK.date) { showErr('s3-date-err', 'Please select a date.'); ok = false; } else hideErr('s3-date-err');
+  if (!BOOK.time) { showErr('s3-time-err', 'Please select a time slot.'); ok = false; } else hideErr('s3-time-err');
+  if (!addr) { fieldErr('s3-address', 's3-addr-err', true); ok = false; } else fieldErr('s3-address', 's3-addr-err', false);
+  if (!ok) return;
+  BOOK.address = addr;
+  goToStep(4);
+}
+
+async function goToStep5Payment() {
+  var first = document.getElementById('s4-first').value.trim();
+  var last  = document.getElementById('s4-last').value.trim();
+  var email = document.getElementById('s4-email').value.trim();
+  var phone = document.getElementById('s4-phone').value.trim();
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var ok = true;
+  if (!first) { fieldErr('s4-first','s4-first-err',true); ok=false; } else fieldErr('s4-first','s4-first-err',false);
+  if (!last)  { fieldErr('s4-last', 's4-last-err', true); ok=false; } else fieldErr('s4-last', 's4-last-err', false);
+  if (!EMAIL_RE.test(email)) { fieldErr('s4-email','s4-email-err',true); ok=false; } else fieldErr('s4-email','s4-email-err',false);
+  if (!phone) { fieldErr('s4-phone','s4-phone-err',true); ok=false; } else fieldErr('s4-phone','s4-phone-err',false);
+  if (!ok) return;
+  BOOK.firstName = first; BOOK.lastName = last; BOOK.email = email; BOOK.phone = phone;
+
+  var summaryDate = BOOK.date ? new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) : '\u2014';
+  var svcSummary = BOOK.selectedServices.map(function(svc) {
+    var items = BOOK.selectedItems[svc] || [];
+    return items.length ? svc + ' (' + items.map(function(i){return i.qty>1?i.name+' \xD7'+i.qty:i.name;}).join(', ') + ')' : svc;
+  }).join(' \u2022 ');
+
+  var SVGPIN = '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
+  var SVGCAL = '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>';
+  var SVGUSER = '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+  var SVGSVC = '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></svg>';
+
+  document.getElementById('booking-summary').innerHTML = [
+    { icon: SVGSVC,  label: 'Services', value: esc(svcSummary) },
+    { icon: SVGCAL,  label: 'Date &amp; time', value: summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time },
+    { icon: SVGPIN,  label: 'Address', value: esc(BOOK.address) },
+    { icon: SVGUSER, label: 'Contact', value: esc(first + ' ' + last) + ' &nbsp;&middot;&nbsp; ' + esc(email) }
+  ].map(function(r) {
+    return '<div class="summary-row"><span class="summary-row-icon">' + r.icon + '</span><div><div class="summary-row-label">' + r.label + '</div><div class="summary-row-value">' + r.value + '</div></div></div>';
+  }).join('');
+
+  goToStep(5);
+  await initStripe();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PRE-SELECT FROM URL PARAM
+// ════════════════════════════════════════════════════════════════════════════
+(function preSelect() {
+  var params = new URLSearchParams(window.location.search);
+  var svc = params.get('service') || params.get('s') || '';
+  if (!svc) return;
+  var svcClean = svc.toLowerCase().replace(/[^a-z]/g,'');
+  document.querySelectorAll('.service-tile').forEach(function(tile) {
+    var tileClean = tile.dataset.service.toLowerCase().replace(/[^a-z]/g,'');
+    if (tileClean.indexOf(svcClean) !== -1 || svcClean.indexOf(tileClean) !== -1) {
+      tile.click();
+    }
+  });
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
+// DATE/TIME PICKER
+// ════════════════════════════════════════════════════════════════════════════
+(function initCal() {
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var today = new Date(); today.setHours(0,0,0,0);
+  var maxDate = new Date(today.getTime() + 6*24*60*60*1000);
+  var curMonth = today.getMonth(), curYear = today.getFullYear();
+  function pad(n) { return n < 10 ? '0'+n : n; }
+
+  function renderCal() {
+    var titleEl = document.getElementById('dt-cal-title');
+    var gridEl  = document.getElementById('dt-cal-grid');
+    if (!titleEl || !gridEl) return;
+    titleEl.textContent = MONTHS[curMonth] + ' ' + curYear;
+    var firstDay = new Date(curYear, curMonth, 1).getDay();
+    var daysInMonth = new Date(curYear, curMonth+1, 0).getDate();
+    var html = DAYS_SHORT.map(function(d){ return '<div class="dt-dow">'+d+'</div>'; }).join('');
+    for (var i=0;i<firstDay;i++) html+='<div class="dt-day empty"></div>';
+    for (var d=1;d<=daysInMonth;d++) {
+      var dateObj = new Date(curYear, curMonth, d);
+      var dateStr = curYear+'-'+pad(curMonth+1)+'-'+pad(d);
+      var disabled = dateObj < today || dateObj > maxDate;
+      var cls = 'dt-day'+(dateObj.getTime()===today.getTime()?' today':'')+(BOOK.date===dateStr?' selected':'');
+      html += '<button type="button" class="'+cls+'"'+(disabled?' disabled':'')+' data-date="'+dateStr+'">'+d+'</button>';
+    }
+    gridEl.innerHTML = html;
+    gridEl.querySelectorAll('.dt-day:not([disabled]):not(.empty)').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        BOOK.date = this.dataset.date; BOOK.time = '';
+        renderCal(); renderTimes(); hideErr('s3-date-err');
       });
-    }
-
-    function pad(n) { return n < 10 ? '0' + n : n; }
-
-    document.getElementById('dt-prev').addEventListener('click', function() {
-      curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; }
-      renderCal();
     });
-    document.getElementById('dt-next').addEventListener('click', function() {
-      curMonth++; if (curMonth > 11) { curMonth = 0; curYear++; }
-      renderCal();
-    });
-
-    renderCal();
-    renderTimes();
-    window._renderCal = renderCal;
-    window._renderTimes = renderTimes;
-  })();
-
-  // ── Progress helper ───────────────────────────────────────────────────────
-  function setProgress(step) {
-    for (var i = 1; i <= 4; i++) {
-      var el = document.getElementById('prog-' + i);
-      el.classList.remove('active','done');
-      if (i < step) el.classList.add('done');
-      else if (i === step) el.classList.add('active');
-    }
-    for (var j = 1; j <= 3; j++) {
-      var line = document.getElementById('prog-line-' + j);
-      line.classList.toggle('done', j < step);
-    }
   }
 
-  function goToStep(n) {
-    for (var i = 1; i <= 4; i++) {
-      var panel = document.getElementById('step-' + i);
-      if (panel) panel.classList.toggle('hidden', i !== n);
-    }
-    setProgress(n);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // ── Step 1 → 2 ────────────────────────────────────────────────────────────
-  function goToStep2() {
-    var details = document.getElementById('s1-details').value.trim();
-    var ok = true;
-    if (!BOOK.service) { showErr('s1-err', 'Please select a service above.'); ok = false; }
-    if (!details) { fieldErr('s1-details', 's1-details-err', true); ok = false; }
-    else { fieldErr('s1-details', 's1-details-err', false); }
-    if (!ok) return;
-    hideErr('s1-err');
-    BOOK.details = details;
-    BOOK.wantsQuote = document.getElementById('s1-quote').checked;
-    goToStep(2);
-  }
-
-  // ── Step 2 → 3 ────────────────────────────────────────────────────────────
-  function goToStep3() {
-    var addr = document.getElementById('s2-address').value.trim();
-    var ok = true;
-    if (!BOOK.date) { showErr('s2-date-err', 'Please select a date.'); ok = false; }
-    else hideErr('s2-date-err');
-    if (!BOOK.time) { showErr('s2-time-err', 'Please select a time slot.'); ok = false; }
-    else hideErr('s2-time-err');
-    if (!addr) { fieldErr('s2-address', 's2-addr-err', true); ok = false; }
-    else { fieldErr('s2-address', 's2-addr-err', false); }
-    if (!ok) return;
-    BOOK.address = addr;
-    goToStep(3);
-  }
-
-  // ── Step 3 → 4 ────────────────────────────────────────────────────────────
-  async function goToStep4() {
-    var first = document.getElementById('s3-first').value.trim();
-    var last  = document.getElementById('s3-last').value.trim();
-    var email = document.getElementById('s3-email').value.trim();
-    var phone = document.getElementById('s3-phone').value.trim();
-    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    var ok = true;
-    if (!first) { fieldErr('s3-first', 's3-first-err', true); ok = false; } else fieldErr('s3-first', 's3-first-err', false);
-    if (!last)  { fieldErr('s3-last',  's3-last-err',  true); ok = false; } else fieldErr('s3-last',  's3-last-err',  false);
-    if (!EMAIL_RE.test(email)) { fieldErr('s3-email', 's3-email-err', true); ok = false; } else fieldErr('s3-email', 's3-email-err', false);
-    if (!phone) { fieldErr('s3-phone', 's3-phone-err', true); ok = false; } else fieldErr('s3-phone', 's3-phone-err', false);
-    if (!ok) return;
-    BOOK.firstName = first;
-    BOOK.lastName  = last;
-    BOOK.email     = email;
-    BOOK.phone     = phone;
-
-    // Build summary
-    var summaryDate = BOOK.date ? new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : '—';
-    var ICONS = {
-      svc:  '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></svg>',
-      cal:  '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>',
-      pin:  '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
-      user: '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
-    };
-    document.getElementById('booking-summary').innerHTML = [
-      { icon: ICONS.svc,  label:'Service', value: BOOK.service + (BOOK.wantsQuote ? ' (custom quote requested)' : '') },
-      { icon: ICONS.cal,  label:'Date &amp; time', value: summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time },
-      { icon: ICONS.pin,  label:'Address', value: BOOK.address },
-      { icon: ICONS.user, label:'Contact', value: esc(first + ' ' + last) + ' &nbsp;&middot;&nbsp; ' + esc(email) }
-    ].map(function(row) {
-      return '<div class="summary-row"><span class="summary-row-icon">' + row.icon + '</span><div><div class="summary-row-label">' + row.label + '</div><div class="summary-row-value">' + row.value + '</div></div></div>';
+  function renderTimes() {
+    var wrap = document.getElementById('dt-times-wrap');
+    var timesEl = document.getElementById('dt-times');
+    if (!BOOK.date) { wrap.style.display='none'; return; }
+    wrap.style.display='block';
+    timesEl.innerHTML = TIME_SLOTS.map(function(slot) {
+      return '<button type="button" class="dt-time-btn'+(BOOK.time===slot?' selected':'')+'" data-time="'+slot+'">'+slot+'</button>';
     }).join('');
-
-    goToStep(4);
-
-    // Init Stripe card element
-    await initStripe();
+    timesEl.querySelectorAll('.dt-time-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); });
+    });
   }
 
-  // ── Stripe ────────────────────────────────────────────────────────────────
-  async function initStripe() {
-    if (BOOK._stripe && BOOK._cardEl) return;
-    try {
-      if (typeof Stripe === 'undefined') throw new Error('Stripe.js not loaded');
-      var r = await fetch('/api/config/public-key');
-      if (!r.ok) throw new Error('Could not load payment config');
-      var d = await r.json();
-      if (!d.publishableKey) throw new Error('No publishable key returned');
-      BOOK._stripe = Stripe(d.publishableKey);
-      var elements = BOOK._stripe.elements();
-      if (BOOK._cardEl) { try { BOOK._cardEl.destroy(); } catch(e){} }
-      BOOK._cardEl = elements.create('card', {
-        style: {
-          base: { fontSize: '16px', color: '#0d1117', fontFamily: '"DM Sans", sans-serif', '::placeholder': { color: '#9ca3af' } },
-          invalid: { color: '#ef4444' }
-        },
-        hidePostalCode: false
-      });
-      BOOK._cardEl.mount('#stripe-card-element');
-      BOOK._cardEl.on('focus', function() { document.getElementById('stripe-card-wrap').classList.add('focused'); });
-      BOOK._cardEl.on('blur',  function() { document.getElementById('stripe-card-wrap').classList.remove('focused'); });
-      BOOK._cardEl.on('change', function(evt) {
-        var wrap = document.getElementById('stripe-card-wrap');
-        var errEl = document.getElementById('card-errors');
-        wrap.classList.toggle('invalid', !!evt.error);
-        if (evt.error) { errEl.textContent = evt.error.message; }
-        else { errEl.textContent = ''; }
-      });
-    } catch(e) {
-      console.error('Stripe init error:', e);
-      document.getElementById('stripe-card-wrap').innerHTML = '<p style="font-size:0.82rem;color:var(--red)">Could not load payment form. Please refresh and try again.</p>';
-      document.getElementById('s4-submit').disabled = true;
-    }
+  document.getElementById('dt-prev').addEventListener('click', function() { curMonth--; if(curMonth<0){curMonth=11;curYear--;} renderCal(); });
+  document.getElementById('dt-next').addEventListener('click', function() { curMonth++; if(curMonth>11){curMonth=0;curYear++;} renderCal(); });
+  renderCal(); renderTimes();
+})();
+
+// ════════════════════════════════════════════════════════════════════════════
+// STRIPE
+// ════════════════════════════════════════════════════════════════════════════
+async function initStripe() {
+  if (BOOK._stripe && BOOK._cardEl) return;
+  try {
+    if (typeof Stripe === 'undefined') throw new Error('Stripe.js not loaded');
+    var r = await fetch('/api/config/public-key');
+    if (!r.ok) throw new Error('Could not load payment config');
+    var d = await r.json();
+    if (!d.publishableKey) throw new Error('No publishable key returned');
+    BOOK._stripe = Stripe(d.publishableKey);
+    var elements = BOOK._stripe.elements();
+    if (BOOK._cardEl) { try { BOOK._cardEl.destroy(); } catch(e){} }
+    BOOK._cardEl = elements.create('card', {
+      style: { base: { fontSize:'16px', color:'#0d1117', fontFamily:'"DM Sans", sans-serif', '::placeholder':{ color:'#9ca3af' } }, invalid: { color:'#ef4444' } },
+      hidePostalCode: false
+    });
+    BOOK._cardEl.mount('#stripe-card-element');
+    BOOK._cardEl.on('focus', function() { document.getElementById('stripe-card-wrap').classList.add('focused'); });
+    BOOK._cardEl.on('blur',  function() { document.getElementById('stripe-card-wrap').classList.remove('focused'); });
+    BOOK._cardEl.on('change', function(evt) {
+      document.getElementById('stripe-card-wrap').classList.toggle('invalid', !!evt.error);
+      document.getElementById('card-errors').textContent = evt.error ? evt.error.message : '';
+    });
+  } catch(e) {
+    console.error('Stripe init error:', e);
+    document.getElementById('stripe-card-wrap').innerHTML = '<p style="font-size:0.82rem;color:var(--red)">Could not load payment form. Please refresh and try again.</p>';
+    document.getElementById('s5-submit').disabled = true;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SUBMIT
+// ════════════════════════════════════════════════════════════════════════════
+async function submitBooking() {
+  var submitBtn = document.getElementById('s5-submit');
+  var backBtn   = document.getElementById('s5-back');
+  var errEl     = document.getElementById('s5-err');
+  errEl.classList.remove('show'); errEl.textContent = '';
+
+  if (!BOOK._stripe || !BOOK._cardEl) {
+    errEl.textContent = 'Payment form not ready. Please refresh and try again.';
+    errEl.classList.add('show'); return;
   }
 
-  // ── Final submit ──────────────────────────────────────────────────────────
-  async function submitBooking() {
-    var submitBtn = document.getElementById('s4-submit');
-    var backBtn   = document.getElementById('s4-back');
-    var errEl     = document.getElementById('s4-err');
-    errEl.classList.remove('show'); errEl.textContent = '';
+  submitBtn.disabled = true; backBtn.disabled = true;
+  submitBtn.innerHTML = 'Sending&hellip;';
 
-    if (!BOOK._stripe || !BOOK._cardEl) {
-      errEl.textContent = 'Payment form not ready. Please refresh and try again.';
-      errEl.classList.add('show'); return;
-    }
-
-    submitBtn.disabled = true; backBtn.disabled = true;
-    submitBtn.innerHTML = 'Sending&hellip;';
-
-    var totalCents = BOOK.wantsQuote || BOOK.servicePrice === 0 ? 0 : BOOK.servicePrice * 100;
-    var fullName = BOOK.firstName + ' ' + BOOK.lastName;
-
-    // 1. Create booking record + PaymentIntent
-    var data;
-    try {
-      var resp = await fetch('/api/booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service: BOOK.service,
-          name: fullName,
-          phone: BOOK.phone,
-          email: BOOK.email,
-          address: BOOK.address,
-          date: BOOK.date,
-          time: BOOK.time,
-          details: BOOK.details,
-          totalCents: totalCents
-        })
+  var totalCents = 0;
+  if (!BOOK.wantsQuote) {
+    BOOK.selectedServices.forEach(function(svc) {
+      (BOOK.selectedItems[svc]||[]).forEach(function(item) {
+        if (!item.customQuote && item.price > 0) totalCents += item.price * 100 * item.qty;
       });
-      data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Server error. Please try again.');
-    } catch(e) {
-      errEl.textContent = e.message;
-      errEl.classList.add('show');
-      submitBtn.disabled = false; backBtn.disabled = false;
-      submitBtn.innerHTML = 'Authorize &amp; confirm <span>&#8594;</span>';
-      return;
-    }
-
-    // 2. If Stripe charges apply — confirm card
-    if (data.clientSecret) {
-      submitBtn.innerHTML = 'Authorizing card&hellip;';
-      var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: {
-          card: BOOK._cardEl,
-          billing_details: { name: fullName, email: BOOK.email }
-        }
-      });
-      if (result.error) {
-        errEl.textContent = result.error.message;
-        errEl.classList.add('show');
-        submitBtn.disabled = false; backBtn.disabled = false;
-        submitBtn.innerHTML = 'Authorize &amp; confirm <span>&#8594;</span>';
-        return;
-      }
-      // Send confirmation email
-      try {
-        await fetch('/api/booking-confirmed', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: data.bookingId })
-        });
-      } catch(e) { console.error('booking-confirmed error:', e); }
-    }
-
-    // 3. Show confirmation
-    showConfirmation(data.ref);
+    });
   }
 
-  function showConfirmation(ref) {
-    for (var i = 1; i <= 4; i++) {
-      var p = document.getElementById('step-' + i);
-      if (p) p.classList.add('hidden');
-    }
-    var confirmEl = document.getElementById('step-confirm');
-    confirmEl.classList.remove('hidden');
+  var itemsPayload = {};
+  BOOK.selectedServices.forEach(function(svc) {
+    itemsPayload[svc] = (BOOK.selectedItems[svc]||[]).map(function(i){ return {name:i.name,price:i.price,qty:i.qty}; });
+  });
 
-    var refEl = document.getElementById('confirm-ref');
-    if (ref) refEl.textContent = 'Booking ref: ' + ref;
-    else refEl.style.display = 'none';
-
-    var dateStr = BOOK.date ? new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : '';
-    document.getElementById('confirm-desc').textContent =
-      'We\'ve received your ' + BOOK.service + ' booking' +
-      (ref ? ' (' + ref + ')' : '') +
-      ' and will confirm your appointment within 1 hour.' +
-      (dateStr ? ' Your preferred date is ' + dateStr + ' at ' + BOOK.time + '.' : '');
-
-    // Progress — all done
-    setProgress(5);
-
-    // Update portal link
-    document.getElementById('confirm-portal-link').href = '/customer/';
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  var data;
+  try {
+    var resp = await fetch('/api/booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        services: BOOK.selectedServices,
+        items: itemsPayload,
+        name: BOOK.firstName + ' ' + BOOK.lastName,
+        phone: BOOK.phone, email: BOOK.email, address: BOOK.address,
+        date: BOOK.date, time: BOOK.time, details: BOOK.details,
+        totalCents: totalCents, accountMode: BOOK.accountMode
+      })
+    });
+    data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Server error. Please try again.');
+  } catch(e) {
+    errEl.textContent = e.message; errEl.classList.add('show');
+    submitBtn.disabled=false; backBtn.disabled=false;
+    submitBtn.innerHTML = 'Authorize &amp; confirm <span>&#8594;</span>'; return;
   }
+
+  if (data.clientSecret) {
+    submitBtn.innerHTML = 'Authorizing card&hellip;';
+    var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
+      payment_method: { card: BOOK._cardEl, billing_details: { name: BOOK.firstName+' '+BOOK.lastName, email: BOOK.email } }
+    });
+    if (result.error) {
+      errEl.textContent = result.error.message; errEl.classList.add('show');
+      submitBtn.disabled=false; backBtn.disabled=false;
+      submitBtn.innerHTML = 'Authorize &amp; confirm <span>&#8594;</span>'; return;
+    }
+    try { await fetch('/api/booking-confirmed', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({bookingId:data.bookingId}) }); }
+    catch(e) { console.error('booking-confirmed error:', e); }
+  }
+
+  showConfirmation(data.ref);
+}
+
+function showConfirmation(ref) {
+  for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
+  document.getElementById('step-confirm').classList.remove('hidden');
+  var refEl = document.getElementById('confirm-ref');
+  if (ref) refEl.textContent = 'Booking ref: ' + ref; else refEl.style.display='none';
+  var svcList = BOOK.selectedServices.join(' + ');
+  var dateStr = BOOK.date ? new Date(BOOK.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) : '';
+  document.getElementById('confirm-desc').textContent =
+    'We\'ve received your ' + svcList + ' booking' + (ref?' ('+ref+')':'') +
+    ' and will confirm your appointment within 1 hour.' +
+    (dateStr ? ' Your preferred date is '+dateStr+' at '+BOOK.time+'.' : '');
+  setProgress(TOTAL_STEPS+1);
+  document.getElementById('confirm-portal-link').href = '/customer/';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 </script>
 
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
