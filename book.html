@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Book a Service — AssembleAtEase Austin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Book professional furniture assembly, TV mounting, home repairs, and more in Austin, TX. No account needed — pay only after the job is done." />
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <script src="https://js.stripe.com/v3/" crossorigin="anonymous"></script>
+  <style>
+    /* ── Page layout ── */
+    .book-page {
+      min-height: 100vh;
+      background: var(--off-white);
+    }
+    .book-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .book-nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--ink);
+      font-family: var(--font-display); font-size: 1.15rem;
+    }
+    .book-nav-logo span { color: var(--teal); }
+    .book-nav-logo img { width: 32px; height: 32px; border-radius: 50%; }
+    .book-nav-back {
+      font-size: 0.82rem; color: var(--muted); text-decoration: none;
+      display: flex; align-items: center; gap: 5px; transition: color var(--transition);
+    }
+    .book-nav-back:hover { color: var(--ink); }
+    .book-trust-line {
+      font-size: 0.78rem; color: var(--muted);
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .book-trust-line span { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Progress bar ── */
+    .book-progress {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+    .book-progress-inner {
+      max-width: 860px; margin: 0 auto;
+      display: flex; align-items: center; gap: 0;
+      padding: 0.85rem 0;
+    }
+    .progress-step {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.82rem; font-weight: 500; color: var(--muted);
+      flex: 1;
+      cursor: default;
+    }
+    .progress-step.active { color: var(--teal); }
+    .progress-step.done   { color: var(--ink-soft); }
+    .progress-dot {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700;
+      border: 2px solid var(--border); background: var(--white); color: var(--muted);
+    }
+    .progress-step.active .progress-dot {
+      border-color: var(--teal); background: var(--teal); color: #fff;
+    }
+    .progress-step.done .progress-dot {
+      border-color: var(--teal); background: var(--teal-light); color: var(--teal);
+    }
+    .progress-label { display: none; }
+    @media (min-width: 540px) { .progress-label { display: block; } }
+    .progress-line {
+      flex: 0 0 2rem; height: 2px;
+      background: var(--border); border-radius: 2px;
+    }
+    .progress-line.done { background: var(--teal); }
+
+    /* ── Main content ── */
+    .book-main {
+      max-width: 1020px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 320px;
+      gap: 1.5rem; padding: 2rem 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .book-main { grid-template-columns: 1fr; }
+      .book-sidebar { order: -1; }
+    }
+
+    /* ── Step cards ── */
+    .step-panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+    }
+    .step-panel.hidden { display: none; }
+    .step-heading {
+      font-family: var(--font-display);
+      font-size: 1.5rem; color: var(--ink);
+      margin-bottom: 0.35rem;
+    }
+    .step-sub {
+      font-size: 0.875rem; color: var(--muted);
+      margin-bottom: 1.75rem;
+      line-height: 1.55;
+    }
+
+    /* ── Service tiles ── */
+    .service-tiles {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem; margin-bottom: 1.5rem;
+    }
+    @media (max-width: 520px) { .service-tiles { grid-template-columns: repeat(2, 1fr); } }
+    .service-tile {
+      border: 2px solid var(--border); border-radius: var(--radius-lg);
+      padding: 1rem 0.85rem; text-align: center;
+      background: var(--white); cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .service-tile:hover { border-color: var(--teal); }
+    .service-tile.selected {
+      border-color: var(--teal); background: var(--teal-light);
+    }
+    .tile-icon { font-size: 1.6rem; margin-bottom: 0.4rem; }
+    .tile-name { font-size: 0.8rem; font-weight: 500; color: var(--ink); }
+    .tile-from { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Form fields ── */
+    .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 480px) { .form-row-2 { grid-template-columns: 1fr; } }
+    .form-label {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--ink-soft); margin-bottom: 0.4rem;
+    }
+    .form-label .req { color: var(--teal); }
+    .form-input, .form-textarea, .form-select {
+      border: 1.5px solid var(--border); border-radius: var(--radius-md);
+      padding: 0.75rem 1rem; font-family: var(--font-body); font-size: 0.95rem;
+      color: var(--ink); background: var(--white);
+      transition: border-color var(--transition);
+      outline: none; width: 100%;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      border-color: var(--teal);
+    }
+    .form-input.error, .form-textarea.error, .form-select.error {
+      border-color: var(--red);
+    }
+    .form-textarea { resize: vertical; min-height: 90px; }
+    .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .field-error { font-size: 0.75rem; color: var(--red); margin-top: 4px; display: none; }
+    .field-error.show { display: block; }
+
+    /* ── Date/time picker ── */
+    .dt-section-label {
+      font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--ink-soft); margin-bottom: 0.75rem;
+    }
+    .dt-cal {
+      border: 1.5px solid var(--border); border-radius: var(--radius-lg);
+      overflow: hidden; margin-bottom: 1rem;
+    }
+    .dt-cal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1rem; background: var(--off-white);
+      border-bottom: 1px solid var(--border);
+    }
+    .dt-cal-title { font-size: 0.9rem; font-weight: 500; color: var(--ink); }
+    .dt-cal-nav {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      width: 28px; height: 28px; cursor: pointer; font-size: 1rem;
+      color: var(--muted); display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), color var(--transition);
+    }
+    .dt-cal-nav:hover { background: var(--teal-light); color: var(--teal); }
+    .dt-cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      padding: 0.75rem;
+    }
+    .dt-dow {
+      text-align: center; font-size: 0.68rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; padding: 0.25rem 0;
+    }
+    .dt-day {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; cursor: pointer; font-size: 0.85rem; color: var(--ink);
+      transition: background var(--transition), color var(--transition);
+      border: none; background: none;
+    }
+    .dt-day:hover:not(:disabled) { background: var(--teal-light); color: var(--teal); }
+    .dt-day.selected { background: var(--teal); color: #fff; }
+    .dt-day.today { font-weight: 700; }
+    .dt-day:disabled { color: var(--border); cursor: not-allowed; }
+    .dt-day.empty { cursor: default; }
+    .dt-times {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem; margin-bottom: 1rem;
+    }
+    @media (max-width: 400px) { .dt-times { grid-template-columns: repeat(2, 1fr); } }
+    .dt-time-btn {
+      padding: 0.55rem 0.5rem; border-radius: var(--radius-md);
+      border: 1.5px solid var(--border); background: var(--white);
+      font-size: 0.8rem; font-weight: 500; color: var(--ink-soft);
+      cursor: pointer; text-align: center;
+      transition: border-color var(--transition), background var(--transition), color var(--transition);
+    }
+    .dt-time-btn:hover { border-color: var(--teal); color: var(--teal); }
+    .dt-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
+    .dt-horizon-note {
+      font-size: 0.72rem; color: var(--muted); line-height: 1.5;
+    }
+    .dt-horizon-note a { color: var(--teal); }
+
+    /* ── Stripe card element ── */
+    #stripe-card-wrap {
+      border: 1.5px solid var(--border); border-radius: var(--radius-md);
+      padding: 0.85rem 1rem; background: var(--white);
+      transition: border-color var(--transition);
+    }
+    #stripe-card-wrap.focused { border-color: var(--teal); }
+    #stripe-card-wrap.invalid { border-color: var(--red); }
+    #card-errors {
+      color: var(--red); font-size: 0.82rem;
+      margin-top: 0.5rem; min-height: 1.2em;
+    }
+    .auth-note {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.85rem 1rem; background: #f0fdf4;
+      border: 1px solid rgba(34,197,94,0.25); border-radius: var(--radius-md);
+      font-size: 0.82rem; color: #166534; line-height: 1.5;
+    }
+    .auth-note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Action buttons ── */
+    .step-actions {
+      display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem;
+    }
+    .btn-next {
+      flex: 1; padding: 0.9rem 1.5rem;
+      background: var(--teal); color: #fff;
+      border: none; border-radius: var(--radius-md);
+      font-family: var(--font-body); font-size: 0.95rem; font-weight: 500;
+      cursor: pointer; transition: background var(--transition); text-align: center;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-next:hover:not(:disabled) { background: var(--teal-dark); }
+    .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-back-link {
+      background: none; border: none; color: var(--muted); font-size: 0.82rem;
+      cursor: pointer; text-decoration: underline; flex-shrink: 0;
+    }
+    .btn-back-link:hover { color: var(--ink); }
+    .step-err {
+      font-size: 0.875rem; color: var(--red);
+      background: var(--red-light); border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--radius-md); padding: 0.75rem 1rem;
+      margin-top: 1rem; display: none;
+    }
+    .step-err.show { display: block; }
+
+    /* ── Sidebar ── */
+    .book-sidebar > * { margin-bottom: 1rem; }
+    .sidebar-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+    }
+    .sidebar-title {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.85rem;
+    }
+    .order-line {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 0.5rem; font-size: 0.875rem; padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .order-line:last-child { border-bottom: none; padding-bottom: 0; }
+    .order-line-name { color: var(--ink); flex: 1; }
+    .order-line-price { color: var(--teal); font-weight: 500; white-space: nowrap; }
+    .order-total {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 0.75rem; font-size: 0.95rem; font-weight: 500;
+    }
+    .order-total-amount { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
+    .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
+
+    .trust-items { display: flex; flex-direction: column; gap: 0.65rem; }
+    .trust-item {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      font-size: 0.82rem; color: var(--ink-soft); line-height: 1.4;
+    }
+    .trust-item-icon { color: var(--teal); font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Summary step ── */
+    .summary-rows { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.5rem; }
+    .summary-row {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      background: var(--off-white);
+    }
+    .summary-row-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+    .summary-row-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+    .summary-row-value { font-size: 0.875rem; color: var(--ink); margin-top: 2px; font-weight: 500; }
+
+    /* ── Confirmation ── */
+    .confirm-wrap {
+      text-align: center; padding: 2rem 1rem;
+    }
+    .confirm-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--green-light); border: 3px solid var(--green);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem; font-size: 2rem;
+    }
+    .confirm-title {
+      font-family: var(--font-display); font-size: 1.9rem;
+      color: var(--ink); margin-bottom: 0.5rem;
+    }
+    .confirm-ref {
+      display: inline-block; background: var(--off-white);
+      border: 1px solid var(--border); border-radius: var(--radius-full);
+      padding: 0.3rem 1rem; font-size: 0.82rem; font-family: monospace;
+      color: var(--teal); margin-bottom: 1.25rem;
+    }
+    .confirm-desc { font-size: 0.95rem; color: var(--ink-soft); line-height: 1.7; max-width: 480px; margin: 0 auto 1.5rem; }
+    .confirm-actions { display: flex; flex-direction: column; gap: 0.6rem; align-items: center; }
+    .confirm-actions a {
+      font-size: 0.875rem; color: var(--teal); text-decoration: none; font-weight: 500;
+    }
+    .confirm-actions a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .book-main { padding: 1rem; }
+      .step-panel { padding: 1.25rem; }
+      .book-trust-line { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="book-page">
+
+  <!-- Minimal nav -->
+  <nav class="book-nav">
+    <a href="/" class="book-nav-logo">
+      <img src="/images/logo.jpg" alt="AssembleAtEase" />
+      Assemble<span>AtEase</span>
+    </a>
+    <div class="book-trust-line">
+      <span>&#128274; Secure checkout</span>
+      <span>&#9989; No charge until job done</span>
+      <span>&#127775; Licensed &amp; insured</span>
+    </div>
+    <a href="/" class="book-nav-back">&#8592; Back to home</a>
+  </nav>
+
+  <!-- Progress indicator -->
+  <div class="book-progress">
+    <div class="book-progress-inner">
+      <div class="progress-step active" id="prog-1">
+        <div class="progress-dot">1</div>
+        <span class="progress-label">Service</span>
+      </div>
+      <div class="progress-line" id="prog-line-1"></div>
+      <div class="progress-step" id="prog-2">
+        <div class="progress-dot">2</div>
+        <span class="progress-label">Date &amp; location</span>
+      </div>
+      <div class="progress-line" id="prog-line-2"></div>
+      <div class="progress-step" id="prog-3">
+        <div class="progress-dot">3</div>
+        <span class="progress-label">Your info</span>
+      </div>
+      <div class="progress-line" id="prog-line-3"></div>
+      <div class="progress-step" id="prog-4">
+        <div class="progress-dot">4</div>
+        <span class="progress-label">Payment</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="book-main">
+
+    <!-- ─────────────────────────────── LEFT COLUMN ─────────────────────────────── -->
+    <div class="book-form-col">
+
+      <!-- STEP 1 — Service selection -->
+      <div class="step-panel" id="step-1">
+        <div class="step-heading">What do you need help with?</div>
+        <p class="step-sub">Select a service below. You can describe your specific items after.</p>
+
+        <div class="service-tiles" id="service-tiles">
+          <div class="service-tile" data-service="Furniture Assembly" data-price="69">
+            <div class="tile-icon">&#128717;</div>
+            <div class="tile-name">Furniture Assembly</div>
+            <div class="tile-from">From $69</div>
+          </div>
+          <div class="service-tile" data-service="TV Mounting" data-price="69">
+            <div class="tile-icon">&#128250;</div>
+            <div class="tile-name">TV &amp; Mounting</div>
+            <div class="tile-from">From $69</div>
+          </div>
+          <div class="service-tile" data-service="Home Repairs" data-price="75">
+            <div class="tile-icon">&#128296;</div>
+            <div class="tile-name">Home Repairs</div>
+            <div class="tile-from">From $75</div>
+          </div>
+          <div class="service-tile" data-service="Smart Home" data-price="69">
+            <div class="tile-icon">&#127968;</div>
+            <div class="tile-name">Smart Home</div>
+            <div class="tile-from">From $69</div>
+          </div>
+          <div class="service-tile" data-service="Junk Removal" data-price="75">
+            <div class="tile-icon">&#9851;</div>
+            <div class="tile-name">Junk Removal</div>
+            <div class="tile-from">From $75</div>
+          </div>
+          <div class="service-tile" data-service="Other" data-price="0">
+            <div class="tile-icon">&#128172;</div>
+            <div class="tile-name">Other</div>
+            <div class="tile-from">Custom quote</div>
+          </div>
+        </div>
+
+        <div class="form-fields">
+          <div class="form-group">
+            <label class="form-label" for="s1-details">Describe what needs to be done <span class="req">*</span></label>
+            <textarea class="form-textarea" id="s1-details" rows="3"
+              placeholder="E.g. Assemble 2x IKEA PAX wardrobes, build king size bed frame — all parts included..."></textarea>
+            <div class="field-error" id="s1-details-err">Please describe your job.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> This is a large or complex job &mdash; I'd prefer a custom quote</label>
+          </div>
+        </div>
+
+        <div class="step-err" id="s1-err">Please select a service above.</div>
+        <div class="step-actions">
+          <button class="btn-next" id="s1-next" onclick="goToStep2()">
+            Continue <span>&#8594;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2 — Date, time, address -->
+      <div class="step-panel hidden" id="step-2">
+        <div class="step-heading">When &amp; where?</div>
+        <p class="step-sub">Pick a date and time, then enter your service address.</p>
+
+        <div class="form-fields">
+          <div>
+            <div class="dt-section-label">Preferred date <span class="req" style="color:var(--teal)">*</span></div>
+            <div class="dt-cal">
+              <div class="dt-cal-header">
+                <button type="button" class="dt-cal-nav" id="dt-prev">&lsaquo;</button>
+                <span class="dt-cal-title" id="dt-cal-title"></span>
+                <button type="button" class="dt-cal-nav" id="dt-next">&rsaquo;</button>
+              </div>
+              <div class="dt-cal-grid" id="dt-cal-grid"></div>
+            </div>
+            <div class="field-error" id="s2-date-err" style="margin-top:-0.5rem;margin-bottom:0.75rem">Please select a date.</div>
+          </div>
+
+          <div id="dt-times-wrap" style="display:none">
+            <div class="dt-section-label">Preferred time <span class="req" style="color:var(--teal)">*</span></div>
+            <div class="dt-times" id="dt-times"></div>
+            <div class="field-error" id="s2-time-err">Please select a time.</div>
+          </div>
+
+          <p class="dt-horizon-note">Online booking available up to 6 days in advance. For later dates email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a></p>
+
+          <div class="form-group" style="margin-top:0.5rem">
+            <label class="form-label" for="s2-address">Service address <span class="req">*</span></label>
+            <input type="text" class="form-input" id="s2-address"
+              placeholder="Start typing your address..." autocomplete="off" />
+            <div class="field-error" id="s2-addr-err">Please enter your address.</div>
+          </div>
+        </div>
+
+        <div class="step-err" id="s2-err"></div>
+        <div class="step-actions">
+          <button class="btn-back-link" onclick="goToStep(1)">&larr; Back</button>
+          <button class="btn-next" onclick="goToStep3()">Continue <span>&#8594;</span></button>
+        </div>
+      </div>
+
+      <!-- STEP 3 — Contact info -->
+      <div class="step-panel hidden" id="step-3">
+        <div class="step-heading">Your contact info</div>
+        <p class="step-sub">We'll send confirmation details to your email. No account required.</p>
+
+        <div class="form-fields">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="s3-first">First name <span class="req">*</span></label>
+              <input type="text" class="form-input" id="s3-first" placeholder="Jane" autocomplete="given-name" />
+              <div class="field-error" id="s3-first-err">Required.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="s3-last">Last name <span class="req">*</span></label>
+              <input type="text" class="form-input" id="s3-last" placeholder="Smith" autocomplete="family-name" />
+              <div class="field-error" id="s3-last-err">Required.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s3-email">Email address <span class="req">*</span></label>
+            <input type="email" class="form-input" id="s3-email" placeholder="you@example.com" autocomplete="email" />
+            <div class="field-hint">Booking confirmation will be sent here.</div>
+            <div class="field-error" id="s3-email-err">Please enter a valid email.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s3-phone">Phone number <span class="req">*</span></label>
+            <input type="tel" class="form-input" id="s3-phone" placeholder="512-000-0000" autocomplete="tel" />
+            <div class="field-hint">We'll text a reminder before your appointment.</div>
+            <div class="field-error" id="s3-phone-err">Required.</div>
+          </div>
+        </div>
+
+        <div class="step-err" id="s3-err"></div>
+        <div class="step-actions">
+          <button class="btn-back-link" onclick="goToStep(2)">&larr; Back</button>
+          <button class="btn-next" onclick="goToStep4()">Continue to payment <span>&#8594;</span></button>
+        </div>
+      </div>
+
+      <!-- STEP 4 — Payment / authorize -->
+      <div class="step-panel hidden" id="step-4">
+        <div class="step-heading">Secure your booking</div>
+        <p class="step-sub">Enter your card to hold the appointment. <strong>You won't be charged until the job is done.</strong></p>
+
+        <!-- Booking summary recap -->
+        <div class="summary-rows" id="booking-summary"></div>
+
+        <div class="form-fields">
+          <div>
+            <label class="form-label">Card details <span class="req">*</span></label>
+            <div id="stripe-card-wrap">
+              <div id="stripe-card-element"></div>
+            </div>
+            <div id="card-errors" role="alert"></div>
+          </div>
+
+          <div class="auth-note">
+            <span class="auth-note-icon">&#128274;</span>
+            <div>
+              <strong>Card authorized, not charged.</strong> Your card is held securely by Stripe. We only capture payment after you confirm the job is complete.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-err" id="s4-err"></div>
+        <div class="step-actions">
+          <button class="btn-back-link" id="s4-back" onclick="goToStep(3)">&larr; Back</button>
+          <button class="btn-next" id="s4-submit" onclick="submitBooking()">
+            &#128274; Authorize &amp; confirm <span>&#8594;</span>
+          </button>
+        </div>
+        <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.85rem;line-height:1.5">
+          Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
+        </p>
+      </div>
+
+      <!-- CONFIRMATION -->
+      <div class="step-panel hidden" id="step-confirm">
+        <div class="confirm-wrap">
+          <div class="confirm-icon">&#10003;</div>
+          <div class="confirm-title">You're all set!</div>
+          <div class="confirm-ref" id="confirm-ref"></div>
+          <p class="confirm-desc" id="confirm-desc">
+            We received your booking and will confirm your appointment within 1 hour.
+          </p>
+          <div class="confirm-actions">
+            <a href="/customer/" id="confirm-portal-link">Track your booking in the Customer Portal &rarr;</a>
+            <a href="/" style="color:var(--muted)">Back to home</a>
+          </div>
+          <p style="font-size:0.78rem;color:var(--muted);margin-top:1.25rem">
+            Questions? Email <strong>service@assembleatease.com</strong>
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /form-col -->
+
+    <!-- ─────────────────────────────── SIDEBAR ─────────────────────────────── -->
+    <aside class="book-sidebar">
+
+      <!-- Order summary -->
+      <div class="sidebar-card" id="order-summary-card">
+        <div class="sidebar-title">Your booking</div>
+        <div id="order-lines">
+          <div style="font-size:0.875rem;color:var(--muted);padding:0.5rem 0">Select a service to see pricing</div>
+        </div>
+        <div class="order-total" id="order-total" style="display:none">
+          <span style="font-size:0.82rem;color:var(--muted)">Estimated total</span>
+          <span class="order-total-amount" id="order-total-amount"></span>
+        </div>
+        <p class="order-note" id="order-note" style="display:none">
+          Final price confirmed after we review your job details. Card authorized at booking &mdash; charged only after completion.
+        </p>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="sidebar-card">
+        <div class="sidebar-title">Why AssembleAtEase</div>
+        <div class="trust-items">
+          <div class="trust-item"><span class="trust-item-icon">&#9989;</span><div><strong>Pay after the job</strong><br>Card held, never charged until you're satisfied.</div></div>
+          <div class="trust-item"><span class="trust-item-icon">&#128274;</span><div><strong>Fully insured</strong><br>Every pro is licensed, insured, and background checked.</div></div>
+          <div class="trust-item"><span class="trust-item-icon">&#9201;</span><div><strong>Confirmed within 1 hour</strong><br>Same-day and next-day availability in Austin.</div></div>
+          <div class="trust-item"><span class="trust-item-icon">&#127775;</span><div><strong>5-star service</strong><br>Hundreds of 5-star reviews from Austin homeowners.</div></div>
+        </div>
+      </div>
+
+    </aside>
+  </div><!-- /book-main -->
+</div><!-- /book-page -->
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  var BOOK = {
+    service: '',
+    servicePrice: 0,
+    details: '',
+    wantsQuote: false,
+    date: '',
+    time: '',
+    address: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    // Stripe
+    _stripe: null,
+    _cardEl: null,
+    _clientSecret: null,
+    _pendingData: null
+  };
+
+  var TIME_SLOTS = ['8:00 AM – 10:00 AM','10:00 AM – 12:00 PM','12:00 PM – 2:00 PM','2:00 PM – 4:00 PM','4:00 PM – 6:00 PM','Flexible'];
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  function showErr(id, msg) { var el = document.getElementById(id); if (!el) return; el.textContent = msg || ''; el.classList.add('show'); }
+  function hideErr(id) { var el = document.getElementById(id); if (el) el.classList.remove('show'); }
+  function fieldErr(inputId, errId, show) {
+    var inp = document.getElementById(inputId);
+    if (inp) inp.classList.toggle('error', show);
+    if (show) showErr(errId); else hideErr(errId);
+  }
+
+  // ── Pre-select from URL param ─────────────────────────────────────────────
+  (function preSelect() {
+    var params = new URLSearchParams(window.location.search);
+    var svc = params.get('service') || params.get('s') || '';
+    if (!svc) return;
+    var tiles = document.querySelectorAll('.service-tile');
+    tiles.forEach(function(tile) {
+      if (tile.dataset.service.toLowerCase().replace(/[^a-z]/g,'').indexOf(svc.toLowerCase().replace(/[^a-z]/g,'')) !== -1) {
+        tile.click();
+      }
+    });
+  })();
+
+  // ── Service tile selection ────────────────────────────────────────────────
+  document.querySelectorAll('.service-tile').forEach(function(tile) {
+    tile.addEventListener('click', function() {
+      document.querySelectorAll('.service-tile').forEach(function(t) { t.classList.remove('selected'); });
+      tile.classList.add('selected');
+      BOOK.service = tile.dataset.service;
+      BOOK.servicePrice = parseInt(tile.dataset.price) || 0;
+      hideErr('s1-err');
+      updateOrderSummary();
+    });
+  });
+
+  function updateOrderSummary() {
+    var linesEl = document.getElementById('order-lines');
+    var totalEl = document.getElementById('order-total');
+    var amtEl   = document.getElementById('order-total-amount');
+    var noteEl  = document.getElementById('order-note');
+    if (!BOOK.service) return;
+    var isQuote = BOOK.wantsQuote || BOOK.servicePrice === 0;
+    linesEl.innerHTML = '<div class="order-line"><span class="order-line-name">' + esc(BOOK.service) + '</span><span class="order-line-price">' + (isQuote ? 'Custom quote' : 'From $' + BOOK.servicePrice) + '</span></div>';
+    if (!isQuote) {
+      amtEl.textContent = 'From $' + BOOK.servicePrice;
+      totalEl.style.display = 'flex';
+      noteEl.style.display = 'block';
+    } else {
+      totalEl.style.display = 'none';
+      noteEl.style.display = 'none';
+    }
+  }
+
+  document.getElementById('s1-quote').addEventListener('change', function() {
+    BOOK.wantsQuote = this.checked;
+    updateOrderSummary();
+  });
+
+  // ── Date/time picker ──────────────────────────────────────────────────────
+  (function initCal() {
+    var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    var today = new Date(); today.setHours(0,0,0,0);
+    var maxDate = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000);
+    var curMonth = today.getMonth(), curYear = today.getFullYear();
+
+    function renderCal() {
+      var titleEl = document.getElementById('dt-cal-title');
+      var gridEl  = document.getElementById('dt-cal-grid');
+      if (!titleEl || !gridEl) return;
+      titleEl.textContent = MONTHS[curMonth] + ' ' + curYear;
+      var firstDay = new Date(curYear, curMonth, 1).getDay();
+      var daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+      var html = '';
+      DAYS_SHORT.forEach(function(d) { html += '<div class="dt-dow">' + d + '</div>'; });
+      for (var i = 0; i < firstDay; i++) html += '<div class="dt-day empty"></div>';
+      for (var d = 1; d <= daysInMonth; d++) {
+        var dateObj = new Date(curYear, curMonth, d);
+        var dateStr = curYear + '-' + pad(curMonth + 1) + '-' + pad(d);
+        var disabled = dateObj < today || dateObj > maxDate;
+        var classes = 'dt-day' + (disabled ? '' : '') + (dateObj.getTime() === today.getTime() ? ' today' : '') + (BOOK.date === dateStr ? ' selected' : '');
+        html += '<button type="button" class="' + classes + '"' + (disabled ? ' disabled' : '') + ' data-date="' + dateStr + '">' + d + '</button>';
+      }
+      gridEl.innerHTML = html;
+      gridEl.querySelectorAll('.dt-day:not([disabled]):not(.empty)').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          BOOK.date = this.dataset.date;
+          BOOK.time = '';
+          renderCal();
+          renderTimes();
+          hideErr('s2-date-err');
+        });
+      });
+    }
+
+    function renderTimes() {
+      var wrap = document.getElementById('dt-times-wrap');
+      var timesEl = document.getElementById('dt-times');
+      if (!BOOK.date) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      timesEl.innerHTML = TIME_SLOTS.map(function(slot) {
+        return '<button type="button" class="dt-time-btn' + (BOOK.time === slot ? ' selected' : '') + '" data-time="' + slot + '">' + slot + '</button>';
+      }).join('');
+      timesEl.querySelectorAll('.dt-time-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          BOOK.time = this.dataset.time;
+          renderTimes();
+          hideErr('s2-time-err');
+        });
+      });
+    }
+
+    function pad(n) { return n < 10 ? '0' + n : n; }
+
+    document.getElementById('dt-prev').addEventListener('click', function() {
+      curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; }
+      renderCal();
+    });
+    document.getElementById('dt-next').addEventListener('click', function() {
+      curMonth++; if (curMonth > 11) { curMonth = 0; curYear++; }
+      renderCal();
+    });
+
+    renderCal();
+    renderTimes();
+    window._renderCal = renderCal;
+    window._renderTimes = renderTimes;
+  })();
+
+  // ── Progress helper ───────────────────────────────────────────────────────
+  function setProgress(step) {
+    for (var i = 1; i <= 4; i++) {
+      var el = document.getElementById('prog-' + i);
+      el.classList.remove('active','done');
+      if (i < step) el.classList.add('done');
+      else if (i === step) el.classList.add('active');
+    }
+    for (var j = 1; j <= 3; j++) {
+      var line = document.getElementById('prog-line-' + j);
+      line.classList.toggle('done', j < step);
+    }
+  }
+
+  function goToStep(n) {
+    for (var i = 1; i <= 4; i++) {
+      var panel = document.getElementById('step-' + i);
+      if (panel) panel.classList.toggle('hidden', i !== n);
+    }
+    setProgress(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Step 1 → 2 ────────────────────────────────────────────────────────────
+  function goToStep2() {
+    var details = document.getElementById('s1-details').value.trim();
+    var ok = true;
+    if (!BOOK.service) { showErr('s1-err', 'Please select a service above.'); ok = false; }
+    if (!details) { fieldErr('s1-details', 's1-details-err', true); ok = false; }
+    else { fieldErr('s1-details', 's1-details-err', false); }
+    if (!ok) return;
+    hideErr('s1-err');
+    BOOK.details = details;
+    BOOK.wantsQuote = document.getElementById('s1-quote').checked;
+    goToStep(2);
+  }
+
+  // ── Step 2 → 3 ────────────────────────────────────────────────────────────
+  function goToStep3() {
+    var addr = document.getElementById('s2-address').value.trim();
+    var ok = true;
+    if (!BOOK.date) { showErr('s2-date-err', 'Please select a date.'); ok = false; }
+    else hideErr('s2-date-err');
+    if (!BOOK.time) { showErr('s2-time-err', 'Please select a time slot.'); ok = false; }
+    else hideErr('s2-time-err');
+    if (!addr) { fieldErr('s2-address', 's2-addr-err', true); ok = false; }
+    else { fieldErr('s2-address', 's2-addr-err', false); }
+    if (!ok) return;
+    BOOK.address = addr;
+    goToStep(3);
+  }
+
+  // ── Step 3 → 4 ────────────────────────────────────────────────────────────
+  async function goToStep4() {
+    var first = document.getElementById('s3-first').value.trim();
+    var last  = document.getElementById('s3-last').value.trim();
+    var email = document.getElementById('s3-email').value.trim();
+    var phone = document.getElementById('s3-phone').value.trim();
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    var ok = true;
+    if (!first) { fieldErr('s3-first', 's3-first-err', true); ok = false; } else fieldErr('s3-first', 's3-first-err', false);
+    if (!last)  { fieldErr('s3-last',  's3-last-err',  true); ok = false; } else fieldErr('s3-last',  's3-last-err',  false);
+    if (!EMAIL_RE.test(email)) { fieldErr('s3-email', 's3-email-err', true); ok = false; } else fieldErr('s3-email', 's3-email-err', false);
+    if (!phone) { fieldErr('s3-phone', 's3-phone-err', true); ok = false; } else fieldErr('s3-phone', 's3-phone-err', false);
+    if (!ok) return;
+    BOOK.firstName = first;
+    BOOK.lastName  = last;
+    BOOK.email     = email;
+    BOOK.phone     = phone;
+
+    // Build summary
+    var summaryDate = BOOK.date ? new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : '—';
+    document.getElementById('booking-summary').innerHTML = [
+      { icon:'&#128717;', label:'Service', value: BOOK.service + (BOOK.wantsQuote ? ' (custom quote requested)' : '') },
+      { icon:'&#128197;', label:'Date &amp; time', value: summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time },
+      { icon:'&#128205;', label:'Address', value: BOOK.address },
+      { icon:'&#128100;', label:'Contact', value: esc(first + ' ' + last) + ' &nbsp;&middot;&nbsp; ' + esc(email) }
+    ].map(function(row) {
+      return '<div class="summary-row"><span class="summary-row-icon">' + row.icon + '</span><div><div class="summary-row-label">' + row.label + '</div><div class="summary-row-value">' + row.value + '</div></div></div>';
+    }).join('');
+
+    goToStep(4);
+
+    // Init Stripe card element
+    await initStripe();
+  }
+
+  // ── Stripe ────────────────────────────────────────────────────────────────
+  async function initStripe() {
+    if (BOOK._stripe && BOOK._cardEl) return;
+    try {
+      if (typeof Stripe === 'undefined') throw new Error('Stripe.js not loaded');
+      var r = await fetch('/api/config/public-key');
+      if (!r.ok) throw new Error('Could not load payment config');
+      var d = await r.json();
+      if (!d.publishableKey) throw new Error('No publishable key returned');
+      BOOK._stripe = Stripe(d.publishableKey);
+      var elements = BOOK._stripe.elements();
+      if (BOOK._cardEl) { try { BOOK._cardEl.destroy(); } catch(e){} }
+      BOOK._cardEl = elements.create('card', {
+        style: {
+          base: { fontSize: '16px', color: '#0d1117', fontFamily: '"DM Sans", sans-serif', '::placeholder': { color: '#9ca3af' } },
+          invalid: { color: '#ef4444' }
+        },
+        hidePostalCode: false
+      });
+      BOOK._cardEl.mount('#stripe-card-element');
+      BOOK._cardEl.on('focus', function() { document.getElementById('stripe-card-wrap').classList.add('focused'); });
+      BOOK._cardEl.on('blur',  function() { document.getElementById('stripe-card-wrap').classList.remove('focused'); });
+      BOOK._cardEl.on('change', function(evt) {
+        var wrap = document.getElementById('stripe-card-wrap');
+        var errEl = document.getElementById('card-errors');
+        wrap.classList.toggle('invalid', !!evt.error);
+        if (evt.error) { errEl.textContent = evt.error.message; }
+        else { errEl.textContent = ''; }
+      });
+    } catch(e) {
+      console.error('Stripe init error:', e);
+      document.getElementById('stripe-card-wrap').innerHTML = '<p style="font-size:0.82rem;color:var(--red)">Could not load payment form. Please refresh and try again.</p>';
+      document.getElementById('s4-submit').disabled = true;
+    }
+  }
+
+  // ── Final submit ──────────────────────────────────────────────────────────
+  async function submitBooking() {
+    var submitBtn = document.getElementById('s4-submit');
+    var backBtn   = document.getElementById('s4-back');
+    var errEl     = document.getElementById('s4-err');
+    errEl.classList.remove('show'); errEl.textContent = '';
+
+    if (!BOOK._stripe || !BOOK._cardEl) {
+      errEl.textContent = 'Payment form not ready. Please refresh and try again.';
+      errEl.classList.add('show'); return;
+    }
+
+    submitBtn.disabled = true; backBtn.disabled = true;
+    submitBtn.innerHTML = 'Sending&hellip;';
+
+    var totalCents = BOOK.wantsQuote || BOOK.servicePrice === 0 ? 0 : BOOK.servicePrice * 100;
+    var fullName = BOOK.firstName + ' ' + BOOK.lastName;
+
+    // 1. Create booking record + PaymentIntent
+    var data;
+    try {
+      var resp = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service: BOOK.service,
+          name: fullName,
+          phone: BOOK.phone,
+          email: BOOK.email,
+          address: BOOK.address,
+          date: BOOK.date,
+          time: BOOK.time,
+          details: BOOK.details,
+          totalCents: totalCents
+        })
+      });
+      data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Server error. Please try again.');
+    } catch(e) {
+      errEl.textContent = e.message;
+      errEl.classList.add('show');
+      submitBtn.disabled = false; backBtn.disabled = false;
+      submitBtn.innerHTML = '&#128274; Authorize &amp; confirm <span>&#8594;</span>';
+      return;
+    }
+
+    // 2. If Stripe charges apply — confirm card
+    if (data.clientSecret) {
+      submitBtn.innerHTML = 'Authorizing card&hellip;';
+      var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: {
+          card: BOOK._cardEl,
+          billing_details: { name: fullName, email: BOOK.email }
+        }
+      });
+      if (result.error) {
+        errEl.textContent = result.error.message;
+        errEl.classList.add('show');
+        submitBtn.disabled = false; backBtn.disabled = false;
+        submitBtn.innerHTML = '&#128274; Authorize &amp; confirm <span>&#8594;</span>';
+        return;
+      }
+      // Send confirmation email
+      try {
+        await fetch('/api/booking-confirmed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: data.bookingId })
+        });
+      } catch(e) { console.error('booking-confirmed error:', e); }
+    }
+
+    // 3. Show confirmation
+    showConfirmation(data.ref);
+  }
+
+  function showConfirmation(ref) {
+    for (var i = 1; i <= 4; i++) {
+      var p = document.getElementById('step-' + i);
+      if (p) p.classList.add('hidden');
+    }
+    var confirmEl = document.getElementById('step-confirm');
+    confirmEl.classList.remove('hidden');
+
+    var refEl = document.getElementById('confirm-ref');
+    if (ref) refEl.textContent = 'Booking ref: ' + ref;
+    else refEl.style.display = 'none';
+
+    var dateStr = BOOK.date ? new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : '';
+    document.getElementById('confirm-desc').textContent =
+      'We\'ve received your ' + BOOK.service + ' booking' +
+      (ref ? ' (' + ref + ')' : '') +
+      ' and will confirm your appointment within 1 hour.' +
+      (dateStr ? ' Your preferred date is ' + dateStr + ' at ' + BOOK.time + '.' : '');
+
+    // Progress — all done
+    setProgress(5);
+
+    // Update portal link
+    document.getElementById('confirm-portal-link').href = '/customer/';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>

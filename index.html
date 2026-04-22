@@ -305,6 +305,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <li><a href="/about">About Us</a></li>
       <li><a href="/pricing">Pricing</a></li>
       <li><a href="/contact">Contact</a></li>
+      <li><a href="/book" style="color:var(--teal-dark);font-weight:600">Book Now</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:1rem">
       <a href="/auth/login" class="nav-auth-link">Sign In</a>
@@ -328,7 +329,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <a href="/auth/login">Sign In</a>
   <a href="/auth/signup">Sign Up</a>
   <a href="/assembler/apply" class="btn btn-cyan btn-full" style="text-align:center">Become a Pro</a>
-  <a href="javascript:void(0)" class="btn btn-outline btn-full" style="text-align:center" onclick="document.getElementById('mobileNav').classList.remove('open');AAE.openBooking()">Book Now &rarr;</a>
+  <a href="/book" class="btn btn-outline btn-full" style="text-align:center">Book Now &rarr;</a>
 </div>
 
 <section class="hero">
@@ -344,7 +345,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <a href="/junk" class="hero-cat-pill">Junk Removal</a>
     </div>
     <div class="hero-actions">
-      <button class="btn btn-cyan btn-lg" onclick="AAE.openBooking()">Book a Pro &rarr;</button>
+      <a href="/book" class="btn btn-cyan btn-lg">Book a Pro &rarr;</a>
     </div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Availability</div></div>
@@ -671,7 +672,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <div class="cart-bar" id="cart-bar">
   <span class="cart-count" id="cart-count">0</span>
   <div><span class="cart-bar-text">Services selected</span><div class="cart-bar-services" id="cart-bar-services"></div></div>
-  <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
+  <button class="btn btn-cyan" onclick="var svc=AAE.cart[0]?AAE.cart[0].name:'';window.location.href='/book'+(svc?'?service='+encodeURIComponent(svc):'')">Book Now &rarr;</button>
 </div>
 
 <div class="modal-overlay" id="booking-modal">
@@ -713,7 +714,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job &mdash; I'd like a custom quote</label></div>
       <div class="cart-estimate" id="cart-estimate"></div>
       <div class="form-err" id="form-err"></div>
-      <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
+      <a href="/book" class="btn btn-cyan btn-full btn-lg">Book Online &rarr;</a>
       <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem"> Your info is private. We respond within 1 hour. Card authorized at booking &mdash; charged only after the job is done.</p>
     </div>
 
