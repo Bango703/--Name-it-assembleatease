@@ -691,7 +691,7 @@
     var noteEl  = document.getElementById('order-note');
     if (!BOOK.service) return;
     var isQuote = BOOK.wantsQuote || BOOK.servicePrice === 0;
-    linesEl.innerHTML = '<div class="order-line"><span class="order-line-name">' + esc(BOOK.service) + '</span><span class="order-line-price">' + (isQuote ? 'Custom quote' : 'From $' + BOOK.servicePrice) + '</span></div>';
+    linesEl.innerHTML = '<div class="order-line"><span class="order-line-name">' + esc(BOOK.service) + '</span><span class="order-line-price">' + (isQuote ? 'Custom quote' : 'From $' + BOOK.servicePrice) + '</span></div><div style="padding:0.3rem 0 0"><button onclick="goToStep(1)" style="background:none;border:none;color:var(--teal);font-size:0.75rem;cursor:pointer;padding:0;text-decoration:underline">Change service &rarr;</button></div>';
     if (!isQuote) {
       amtEl.textContent = 'From $' + BOOK.servicePrice;
       totalEl.style.display = 'flex';

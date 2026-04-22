@@ -63,7 +63,10 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .cart-bar.show{display:flex}
 .cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cart-bar-text{font-size:0.9rem;font-weight:500}
-.cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:2px;max-width:600px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:4px;max-width:600px;display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center}
+.cart-bar-item{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.12);border-radius:999px;padding:2px 8px}
+.cart-bar-remove{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.95rem;padding:0;line-height:1}
+.cart-bar-remove:hover{color:#fff}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
@@ -364,7 +367,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <div class="cart-bar" id="cart-bar">
   <span class="cart-count" id="cart-count">0</span>
   <div><span class="cart-bar-text">Services selected</span><div class="cart-bar-services" id="cart-bar-services"></div></div>
-  <button class="btn btn-cyan" onclick="AAE.openBooking()">Book Now &rarr;</button>
+  <button class="btn btn-cyan" onclick="window.location.href='/book'">Book Now &rarr;</button>
 </div>
 
 <div class="modal-overlay" id="booking-modal">
@@ -521,7 +524,12 @@ AAE.updateCartBar = function() {
   if (AAE.cart.length > 0) {
     bar.classList.add('show');
     if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) servicesEl.textContent = AAE.cart.map(function(i){return i.name;}).join(' \u00b7 ');
+    if (servicesEl) {
+      servicesEl.innerHTML = AAE.cart.map(function(i, idx) {
+        var n = (i.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return '<span class="cart-bar-item">' + n + '<button class="cart-bar-remove" onclick="AAE.removeByIndex(' + idx + ')" aria-label="Remove">&times;</button></span>';
+      }).join('');
+    }
   } else {
     bar.classList.remove('show');
   }
