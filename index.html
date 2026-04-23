@@ -1070,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
         var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
         btn.textContent=i;btn.setAttribute('data-date',iso);
-        if(dd<today||dd>maxDate){btn.disabled=true;}
+        if(dd<today||dd>maxDate||dd.getDay()===0){btn.disabled=true;}
         else{
           if(dd.getTime()===today.getTime())btn.classList.add('today');
           if(iso===selectedDate)btn.classList.add('active');

@@ -200,15 +200,9 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   "description": "Professional furniture assembly and handyman services in Austin, Texas.",
   "url": "https://www.assembleatease.com",
   "email": "service@assembleatease.com",
-  "address": {
-    "@type": "PostalAddress", "streetAddress": "1910 W Braker Ln", "addressLocality": "Austin", "addressRegion": "TX", "postalCode": "78701", "addressCountry": "US"
-  },
+  "address": {"@type": "PostalAddress", "addressLocality": "Austin", "addressRegion": "TX"},
   "areaServed": {"@type": "City", "name": "Austin", "addressRegion": "TX"},
-  "priceRange": "$",
-  "openingHoursSpecification": [
-    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "07:00", "closes": "17:00"},
-    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday"], "opens": "07:00", "closes": "13:00"}
-  ]
+  "priceRange": "$$"
 }
 </script><style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#0097a7;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#0097a7;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
 <style>#stripe-card-element{border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;background:var(--white);transition:border-color 0.15s}.StripeElement--focus{border-color:var(--cyan) !important}.StripeElement--invalid{border-color:#ef4444 !important}#card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}</style>
@@ -238,7 +232,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <a href="/repairs">Home Repairs</a>
   <a href="/smarthome">Smart Home</a>
   <a href="/junk">Junk Removal</a>
-  <a href="/contact" class="btn btn-cyan btn-full">Get a Quote</a>
+  <a href="/book" class="btn btn-cyan btn-full">Book Now</a>
 </div>
 
 <section class="page-hero">
@@ -804,7 +798,7 @@ document.addEventListener('keydown', function(e) {
         var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
         var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
         btn.textContent=i;btn.setAttribute('data-date',iso);
-        if(dd<today||dd>maxDate){btn.disabled=true;}
+        if(dd<today||dd>maxDate||dd.getDay()===0){btn.disabled=true;}
         else{
           if(dd.getTime()===today.getTime())btn.classList.add('today');
           if(iso===selectedDate)btn.classList.add('active');

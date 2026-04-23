@@ -120,5 +120,55 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to send confirmation email' });
   }
 
+  // ── Owner notification — sent here (not in /api/booking) so it only fires
+  //    after the card has been successfully authorized. If auth fails, owner
+  //    gets no email and the booking stays in Supabase as 'pending' for cleanup.
+  const paymentStatus = amount > 0
+    ? (isDeposit && depositAmountCents
+        ? `CARD AUTHORIZED — 25% deposit $${(depositAmountCents / 100).toFixed(2)} captured at booking`
+        : `CARD AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`)
+    : 'No payment required';
+
+  const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #0097a7"><tr><td style="padding:20px 24px">
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td><img src="https://www.assembleatease.com/images/logo.jpg" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
+      <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
+    </tr></table>
+  </td><td style="padding:20px 24px;text-align:right;font-size:12px;color:#71717a">Internal Notification</td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">New Booking — Card Authorized</p>
+    <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#1a1a1a">Ref: ${esc(ref)}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
+      <p style="margin:0 0 2px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Services</p>
+      <p style="margin:0;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.5">${esc(service)}</p>
+    </td></tr></table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px">Customer</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(name)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(address)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(date)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(time)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${paymentStatus}</span></td></tr>
+      <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Notes</td><td style="padding:10px 0;line-height:1.6">${esc(details) || 'None'}</td></tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
+      <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Action Required</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Contact <strong>${esc(name)}</strong> to confirm appointment details.</p>
+    </td></tr></table>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
+    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
+  </td></tr></table>
+</div></body></html>`;
+
+  await sendEmail({
+    from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
+    to: TO,
+    subject: `New Booking (Card Authorized) — ${ref} — ${service}`,
+    html: ownerHtml,
+    replyTo: email,
+  });
+
   return res.status(200).json({ success: true });
 }

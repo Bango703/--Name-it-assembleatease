@@ -112,6 +112,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><a href="/#how-it-works">How it works</a></li>
       <li><a href="/pricing">Pricing</a></li>
     </ul>
+    <a href="/book" class="btn btn-cyan" style="padding:0.5rem 1.25rem;font-size:0.875rem">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
       <span></span><span></span><span></span>
     </button>
@@ -194,7 +195,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">Full Room Smart Install</div>
         <div class="price-card-desc">Complete smart room setup &mdash; lighting, thermostat, cameras, and more. Custom pricing.</div>
         <div class="price-card-price">Custom Quote</div>
-        <a href="/contact" class="btn btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem;background:var(--off-white);border:1.5px solid var(--border);color:var(--ink-soft)">Get custom quote &rarr;</a>
+        <a href="/book" class="btn btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem;background:var(--off-white);border:1.5px solid var(--border);color:var(--ink-soft)">Get custom quote &rarr;</a>
       </div>
     </div>
     <div class="cta-box">
@@ -295,7 +296,7 @@ document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
 </script>
 <script>
-(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}window.location.href='/book?service=Smart+Home';};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='\u2713 In cart \u2014 Book Now \u2192';}});});})();
+(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}if(btn){btn.textContent='✓ Added — Book Now →';btn.onclick=function(){window.location.href='/book';};}};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='✓ Added — Book Now →';btn.onclick=function(){window.location.href='/book';};}});});})();
 </script>
 </body>
 </html>

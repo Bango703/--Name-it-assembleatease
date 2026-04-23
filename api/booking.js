@@ -211,27 +211,29 @@ export default async function handler(req, res) {
 </div></body></html>`;
 
   try {
-    const ownerResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-        to: [TO],
-        subject: 'New Booking - ' + service + ' from ' + name,
-        html: ownerHtml,
-        reply_to: email,
-      }),
-    });
-    if (!ownerResp.ok) {
-      const err = await ownerResp.text();
-      console.error('Resend owner error:', err);
-      return res.status(500).json({ error: 'Failed to send notification' });
-    }
-    // Only send customer confirmation email if no Stripe payment is required.
-    // When payment is required, the frontend calls /api/booking-confirmed AFTER
-    // the customer successfully authorizes their card, so the email reflects
-    // confirmed payment rather than a pending card-entry step.
+    // ── Owner notification email ──────────────────────────────
+    // When payment is required (clientSecret present), the card hasn't been held yet.
+    // Sending an owner email now would be premature — the customer might abandon the
+    // card form or the auth might fail. Owner email is sent by /api/booking-confirmed
+    // AFTER the frontend successfully calls stripe.confirmCardPayment().
+    // When no payment is required (custom quote / free booking), send immediately.
     if (!clientSecret) {
+      const ownerResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
+          to: [TO],
+          subject: 'New Booking - ' + service + ' from ' + name,
+          html: ownerHtml,
+          reply_to: email,
+        }),
+      });
+      if (!ownerResp.ok) {
+        const err = await ownerResp.text();
+        console.error('Resend owner error:', err);
+      }
+      // Send customer email immediately too (no payment to wait for)
       const customerResp = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
@@ -247,6 +249,8 @@ export default async function handler(req, res) {
         console.error('Resend customer error:', await customerResp.text());
       }
     }
+    // When clientSecret is present: both owner and customer emails are sent by
+    // /api/booking-confirmed after the card authorization succeeds.
     // HubSpot CRM — non-blocking
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
