@@ -72,13 +72,12 @@ export default async function handler(req, res) {
         metadata: { bookingRef: ref },
       });
 
-      // Create PaymentIntent — hold card, charge after job completion
+      // Create PaymentIntent — authorize card now, capture manually after job completion
       const pi = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
         customer: customer.id,
         capture_method: 'manual',
-        setup_future_usage: 'off_session',
         metadata: {
           bookingRef: ref,
           bookingId,
