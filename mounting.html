@@ -91,6 +91,32 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .nav-mobile .btn{margin-top:0.5rem;justify-content:center}
 @media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}}
 @media(max-width:700px){.footer-inner{grid-template-columns:1fr;gap:2rem}.pricing-grid{grid-template-columns:1fr}}
+#m-svc-bar{display:none}
+@media(max-width:768px){
+  .nav-inner{padding:0 1rem}
+  .nav-inner>.btn-cyan{display:none}
+  .page-hero{padding:3rem 1.25rem 2.5rem}
+  .page-title{font-size:clamp(1.75rem,7vw,2.2rem)}
+  .page-desc{font-size:0.92rem}
+  .page-hero .btn-lg{width:100%;min-height:52px;font-size:1rem}
+  .pricing-section{padding:2.5rem 1.25rem}
+  .pricing-grid{display:flex;flex-direction:column;gap:0}
+  .price-card{border:none;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);padding:.9rem 0;display:grid;grid-template-areas:"name price" "btn btn";grid-template-columns:1fr auto;align-items:center;gap:0 .75rem}
+  .price-card:first-child{border-top:1px solid var(--border)}
+  .price-card:hover{border-color:var(--border)!important;box-shadow:none!important}
+  .price-card-name{grid-area:name;font-size:.92rem;margin:0}
+  .price-card-desc{display:none}
+  .price-card-price{grid-area:price;font-size:1rem;white-space:nowrap;margin:0}
+  .price-card .btn{grid-area:btn;margin-top:.65rem!important;font-size:.9rem!important;min-height:44px;padding:.7rem 1rem!important}
+  .cta-box{padding:2rem 1.25rem;border-radius:var(--radius)}
+  .cta-box .btn-lg{width:100%;min-height:52px;font-size:1rem}
+  .footer{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  .footer-inner{grid-template-columns:1fr;gap:1rem}
+  .footer-inner>*:not(:first-child){display:none}
+  .btn{min-height:44px}
+  #m-svc-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:64px;padding:0 1.5rem;padding-bottom:env(safe-area-inset-bottom,0px);z-index:290;background:var(--cyan);align-items:center;justify-content:center}
+  #m-svc-bar a{color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+}
 </style>
 <style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#0097a7;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#0097a7;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
 </head>
@@ -264,6 +290,8 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div class="footer-copy">Licensed &bull; Insured &bull; Background Checked</div>
   </div>
 </footer>
+
+<div id="m-svc-bar"><a href="/book?service=TV+Mounting">Book Mounting &#8594;</a></div>
 
 <div id="cookie-banner" class="hidden">
   <span>We use cookies to improve your experience. <a href="/privacy">Learn more</a>.</span>

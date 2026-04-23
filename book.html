@@ -328,6 +328,75 @@
       .step-panel { padding: 1.25rem; }
       .book-trust-line { display: none; }
     }
+
+    /* ── Mobile app-like ≤ 768px ── */
+    @media (max-width: 768px) {
+      /* Full-screen step panels, edge-to-edge */
+      .book-main { padding: 0; gap: 0; }
+      .book-form-col { width: 100%; }
+      .book-sidebar { display: none; }
+      .step-panel {
+        border-radius: 0; border-left: none; border-right: none;
+        border-top: none; padding: 1.25rem 1rem 100px;
+      }
+
+      /* Inputs 52px, 16px font prevents iOS zoom */
+      .form-input, .form-select {
+        min-height: 52px; font-size: 16px !important; padding: 0 1rem;
+      }
+      .form-textarea { font-size: 16px !important; }
+      .form-label { font-size: 0.8rem; }
+
+      /* Continue button fixed at bottom */
+      .step-actions {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 290;
+        background: var(--white); padding: 0.75rem 1rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--border); margin: 0;
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+      }
+      .btn-next { font-size: 1rem; padding: 0.9rem; }
+      .btn-back-link { font-size: 0.85rem; }
+
+      /* Progress bar: compact — show step X of 5 */
+      .book-progress-inner { padding: 0.5rem 1rem; flex-wrap: wrap; gap: 0.35rem; }
+      .progress-step { flex: none; gap: 6px; }
+      .progress-step:not(.active):not(.done) .progress-label { display: none; }
+      .progress-step:not(.active) { display: none; }
+      .progress-step.done { display: none; }
+      .progress-step.active { display: flex; }
+      .progress-line { display: none; }
+      .progress-label { display: block; font-size: 0.85rem; }
+
+      /* Calendar days 40×40 */
+      .dt-day { min-width: 40px; min-height: 40px; font-size: 0.9rem; }
+      .dt-cal-grid { padding: 0.5rem; }
+
+      /* Time slots full-width stacked */
+      .dt-times { grid-template-columns: 1fr; }
+      .dt-time-btn { padding: 0.75rem 1rem; font-size: 0.9rem; text-align: left; }
+
+      /* Service tiles 2-col */
+      .service-tiles { grid-template-columns: repeat(2, 1fr); }
+
+      /* Quick-pick chips wrap nicely */
+      .qp-chips { gap: 0.5rem; }
+      .qp-chip { font-size: 0.85rem; padding: 0.55rem 0.9rem; min-height: 44px; }
+
+      /* Summary rows */
+      .summary-row { padding: 0.75rem; }
+
+      /* Confirmation: full screen feel */
+      .confirm-wrap { padding: 3rem 1.5rem; }
+      .confirm-icon { width: 88px; height: 88px; font-size: 2.5rem; margin-bottom: 1.5rem; }
+      .confirm-title { font-size: 2rem; }
+      .confirm-ref { font-size: 1rem; padding: 0.5rem 1.25rem; }
+      .confirm-actions .btn-next { width: 100%; max-width: 360px; }
+
+      /* Book nav */
+      .book-nav { padding: 0 1rem; }
+      .book-nav-back { display: none; }
+    }
   </style>
 </head>
 <body>

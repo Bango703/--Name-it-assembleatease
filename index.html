@@ -273,6 +273,72 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   .trust-grid{grid-template-columns:1fr}
   .steps-grid{grid-template-columns:1fr}
 }
+/* ── Mobile-first overrides ≤ 768 px ── */
+.nav-book-pill,.footer-back-top,#m-book-bar,.reviews-show-more{display:none}
+@media(max-width:768px){
+  /* NAV */
+  .nav-inner{padding:0 1rem}
+  .nav-earn-btn,.nav-auth-link{display:none}
+  .nav-logo img{width:32px;height:32px}
+  .nav-book-pill{display:inline-flex;align-items:center;padding:0.38rem 0.9rem;background:var(--cyan);color:#fff;border-radius:999px;font-size:0.8rem;font-weight:700;text-decoration:none;white-space:nowrap;gap:4px;min-height:36px}
+  /* HERO */
+  .hero-inner{padding:2.5rem 1.5rem}
+  .hero-title{font-size:2.2rem}
+  .hero-desc{font-size:0.92rem}
+  .hero-stats{display:none}
+  .hero-cats{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;justify-content:flex-start;padding-bottom:0.5rem;scrollbar-width:none}
+  .hero-cats::-webkit-scrollbar{display:none}
+  .hero-cat-pill{scroll-snap-align:start;flex-shrink:0;white-space:nowrap;min-height:40px}
+  .hero-actions .btn{width:100%;max-width:none;min-height:52px;font-size:1rem}
+  /* TRUST — swipeable horizontal pills */
+  .trust-grid{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;gap:0.75rem;padding:1.25rem 1.25rem 0.75rem;margin:0;scrollbar-width:none}
+  .trust-grid::-webkit-scrollbar{display:none}
+  .trust-badge{flex-shrink:0;width:172px;scroll-snap-align:start;border-radius:var(--radius);padding:1.1rem 0.85rem}
+  /* SERVICES — 2-col compact */
+  .services-grid{grid-template-columns:repeat(2,1fr);gap:0.65rem}
+  .service-card{padding:1rem 0.85rem}
+  .svc-icon{width:44px;height:44px;border-radius:12px;margin-bottom:0.75rem}
+  .svc-icon svg{width:22px;height:22px}
+  .svc-name{font-size:0.95rem;margin-bottom:0.25rem}
+  .svc-desc{display:none}
+  .svc-from{font-size:0.8rem;margin-bottom:0.5rem}
+  .svc-arrow{display:none}
+  .service-card:hover{transform:none;box-shadow:none;border-color:var(--border)}
+  .service-card:active{transform:scale(0.98);box-shadow:var(--shadow);border-color:var(--cyan)}
+  /* HOW IT WORKS */
+  .steps-grid{grid-template-columns:repeat(2,1fr)}
+  .steps-grid::before{display:none}
+  /* REVIEWS */
+  .review-card:nth-child(n+3){display:none}
+  .reviews-grid.show-all .review-card:nth-child(n+3){display:block}
+  .reviews-show-more{display:block;margin:1.25rem auto 0;background:none;border:1.5px solid var(--border);border-radius:999px;padding:0.6rem 1.5rem;font-family:var(--font-body);font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;min-height:44px}
+  .reviews-show-more:active{background:var(--off-white)}
+  /* FAQ */
+  .faq-q{min-height:56px;padding:0 1rem}
+  .faq-q span{font-size:0.95rem}
+  .faq-a{font-size:0.875rem}
+  /* FORMS */
+  .form-control{font-size:16px !important;min-height:52px}
+  textarea.form-control{font-size:16px !important;min-height:80px}
+  .form-row{grid-template-columns:1fr}
+  /* FOOTER — logo + email + copyright only */
+  .footer{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  .footer-inner{display:flex;flex-direction:column;gap:1rem}
+  .footer-inner>*:not(:first-child){display:none}
+  .footer-back-top{display:flex !important;background:none;border:1px solid rgba(255,255,255,0.22);color:rgba(255,255,255,0.65);border-radius:999px;padding:0.5rem 1.25rem;font-size:0.82rem;font-weight:600;cursor:pointer;margin-top:0.75rem;font-family:var(--font-body);align-items:center;gap:6px;min-height:44px}
+  .footer-bottom{flex-direction:column;align-items:flex-start;gap:0.4rem}
+  .footer-legal{display:none}
+  /* SECTIONS */
+  .section{padding:2.5rem 1.25rem}
+  .cta-section{padding:3rem 1.5rem}
+  /* TOUCH */
+  .btn{min-height:44px}
+  .area-pill{min-height:40px;display:inline-flex;align-items:center}
+  /* STICKY BOOK BAR z-index 290, below cart-bar 300 */
+  #m-book-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:64px;padding:0 1.5rem;padding-bottom:env(safe-area-inset-bottom,0px);z-index:290;background:var(--cyan);align-items:center;justify-content:center}
+  #m-book-bar.hide{display:none !important}
+  #m-book-bar a{color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+}
 </style>
 <script type="application/ld+json">
 {
@@ -312,6 +378,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <a href="/auth/login" class="nav-auth-link">Sign In</a>
       <a href="/assembler/earn" class="nav-earn-btn">Become a Pro</a>
     </div>
+    <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
       <span></span><span></span><span></span>
     </button>
@@ -463,7 +530,10 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <div style="font-size:0.72rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.6rem">Junk Removal</div>
   <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.7;font-style:italic">"Cleared out my garage which had years of accumulated junk. Took everything I needed gone in one trip. Only reason for 4 stars is I had to wait an extra day but they communicated about it and got it done well."</p>
 </div></div>
-    <div style="text-align:center;margin-top:2rem">
+    <div style="text-align:center;margin-top:1.5rem">
+      <button class="reviews-show-more" onclick="document.querySelector('.reviews-grid').classList.toggle('show-all');this.textContent=this.textContent.includes('Show')?(document.querySelector('.reviews-grid').classList.contains('show-all')?'Show fewer reviews &#8679;':'Show more reviews &#8681;'):'Show more reviews &#8681;'">Show more reviews &#8681;</button>
+    </div>
+    <div style="text-align:center;margin-top:1.25rem">
       <p style="font-size:0.875rem;color:var(--muted)">Licensed &bull; Insured &bull; Background Checked &bull; Austin, TX</p>
     </div>
   </div>
@@ -549,6 +619,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="footer-contact">
         <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
       </div>
+      <button class="footer-back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679; Back to top</button>
     </div>
     <div>
       <div class="footer-col-title">Services</div>
@@ -591,6 +662,9 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
     <div class="footer-copy">Licensed &bull; Insured &bull; Background Checked</div>
   </div>
 </footer>
+
+<!-- Mobile sticky Book Now bar (hidden on desktop via CSS) -->
+<div id="m-book-bar"><a href="/book">Book Now &#8594;</a></div>
 
 <!-- Cart Bar -->
 <div class="cart-bar" id="cart-bar">
@@ -1197,7 +1271,10 @@ function toggleFaqMore(btn) {
 function acceptCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","accepted");(function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');})();}
 function declineCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","declined");}
 window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}
-if(window.location.hash==="#booking"){AAE.openBooking();}});
+if(window.location.hash==="#booking"){AAE.openBooking();}
+// Hide mobile Book Now bar when cart is active (cart already has Book Now)
+(function(){var cb=document.getElementById('cart-bar'),mb=document.getElementById('m-book-bar');if(!cb||!mb)return;new MutationObserver(function(){mb.classList.toggle('hide',cb.classList.contains('show'));}).observe(cb,{attributes:true,attributeFilter:['class']});})();
+});
 </script>
 </body>
 </html>
