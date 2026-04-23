@@ -1,6 +1,18 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/furniture",    "destination": "/book?service=Furniture+Assembly", "permanent": true },
+    { "source": "/furniture.html","destination": "/book?service=Furniture+Assembly", "permanent": true },
+    { "source": "/mounting",     "destination": "/book?service=TV+Mounting",        "permanent": true },
+    { "source": "/mounting.html","destination": "/book?service=TV+Mounting",        "permanent": true },
+    { "source": "/repairs",      "destination": "/book?service=Home+Repairs",       "permanent": true },
+    { "source": "/repairs.html", "destination": "/book?service=Home+Repairs",       "permanent": true },
+    { "source": "/smarthome",    "destination": "/book?service=Smart+Home",         "permanent": true },
+    { "source": "/smarthome.html","destination": "/book?service=Smart+Home",        "permanent": true },
+    { "source": "/junk",         "destination": "/book?service=Junk+Removal",       "permanent": true },
+    { "source": "/junk.html",    "destination": "/book?service=Junk+Removal",       "permanent": true }
+  ],
   "crons": [
     {
       "path": "/api/cron/review-request",
