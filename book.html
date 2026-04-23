@@ -303,7 +303,10 @@
     .summary-row-edit { font-size: 0.7rem; color: var(--teal); cursor: pointer; text-decoration: underline; border: none; background: none; padding: 0; }
     .summary-row-value { font-size: 0.875rem; color: var(--ink); margin-top: 2px; font-weight: 500; line-height: 1.5; }
     .summary-addr-input { width: 100%; margin-top: 6px; border: 1.5px solid var(--teal); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; font-family: var(--font-body); font-size: 0.875rem; color: var(--ink); outline: none; }
-    .summary-addr-save { margin-top: 6px; padding: 0.35rem 0.85rem; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-md); font-size: 0.78rem; cursor: pointer; }
+    .summary-addr-save { margin-top: 6px; padding: 0.35rem 0.85rem; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-md); font-size: 0.78rem; cursor: pointer; display: block; }
+    .s5-time-btn { padding: 0.35rem 0.7rem; border: 1.5px solid var(--border); border-radius: var(--radius-md); background: var(--white); font-size: 0.75rem; cursor: pointer; font-family: var(--font-body); transition: border-color 0.12s, background 0.12s; }
+    .s5-time-btn:hover { border-color: var(--teal); }
+    .s5-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); font-weight: 600; }
 
     /* ── Confirmation ── */
     .confirm-wrap { text-align: center; padding: 2rem 1rem; }
@@ -1312,39 +1315,93 @@ async function goToStep5Payment() {
   var SVGUSER = '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
   var SVGSVC = '<svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></svg>';
 
-  function staticRow(icon, label, value) {
-    return '<div class="summary-row"><span class="summary-row-icon">' + icon + '</span>'
-      + '<div><div class="summary-row-label">' + label + '</div>'
-      + '<div class="summary-row-value">' + value + '</div></div></div>';
+  function editRow(id, icon, label, displayHtml, formHtml) {
+    return '<div class="summary-row" id="srow-' + id + '">'
+      + '<span class="summary-row-icon">' + icon + '</span>'
+      + '<div style="flex:1">'
+      + '<div class="summary-row-label">' + label
+      + '<button class="summary-row-edit" onclick="toggleS5Edit(\'' + id + '\')">Edit</button>'
+      + '</div>'
+      + '<div class="summary-row-value" id="s5-' + id + '-val">' + displayHtml + '</div>'
+      + '<div id="s5-' + id + '-form" style="display:none;margin-top:0.5rem">' + formHtml + '</div>'
+      + '</div></div>';
   }
+
+  var TIME_SLOTS = ['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM'];
+
   document.getElementById('booking-summary').innerHTML =
-    staticRow(SVGSVC,  'Services',      esc(svcSummary)) +
-    staticRow(SVGCAL,  'Date &amp; time', summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time) +
-    '<div class="summary-row"><span class="summary-row-icon">' + SVGPIN + '</span>'
-      + '<div style="flex:1"><div class="summary-row-label">Address'
-      + '<button class="summary-row-edit" onclick="toggleAddrEdit()">Edit</button></div>'
-      + '<div class="summary-row-value" id="s5-addr-val">' + esc(BOOK.address) + '</div>'
-      + '<div id="s5-addr-form" style="display:none;margin-top:0.5rem">'
-      + '<input type="text" class="summary-addr-input" id="s5-addr-input" value="' + escAttr(BOOK.address) + '" />'
-      + '<button onclick="saveAddrEdit()" class="summary-addr-save">Save</button>'
-      + '</div></div></div>' +
-    staticRow(SVGUSER, 'Contact', esc(first + ' ' + last) + ' &nbsp;&middot;&nbsp; ' + esc(email));
+    // Services row — go back to step 1
+    '<div class="summary-row"><span class="summary-row-icon">' + SVGSVC + '</span>'
+      + '<div style="flex:1"><div class="summary-row-label">Services'
+      + '<button class="summary-row-edit" onclick="goToStep(1)">Edit</button></div>'
+      + '<div class="summary-row-value">' + esc(svcSummary) + '</div>'
+      + '</div></div>' +
+
+    // Date & time row — inline pickers
+    editRow('dt', SVGCAL, 'Date &amp; time',
+      summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time,
+      '<input type="date" class="summary-addr-input" id="s5-dt-date" value="' + escAttr(BOOK.date) + '" min="' + escAttr(new Date(Date.now()+86400000).toISOString().slice(0,10)) + '" />'
+      + '<div id="s5-dt-times" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem">'
+      + TIME_SLOTS.map(function(t){ return '<button type="button" class="s5-time-btn' + (BOOK.time===t?' selected':'') + '" onclick="s5SelectTime(\'' + escAttr(t) + '\')">' + esc(t) + '</button>'; }).join('')
+      + '</div>'
+      + '<button onclick="saveDtEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
+    ) +
+
+    // Address row — inline text input
+    editRow('addr', SVGPIN, 'Address',
+      esc(BOOK.address),
+      '<input type="text" class="summary-addr-input" id="s5-addr-input" value="' + escAttr(BOOK.address) + '" />'
+      + '<button onclick="saveAddrEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
+    ) +
+
+    // Contact row — inline fields
+    editRow('contact', SVGUSER, 'Contact',
+      esc(first + ' ' + last) + ' &nbsp;&middot;&nbsp; ' + esc(email) + ' &nbsp;&middot;&nbsp; ' + esc(BOOK.phone),
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem">'
+      + '<input type="text" class="summary-addr-input" id="s5-c-first" placeholder="First name" value="' + escAttr(first) + '" />'
+      + '<input type="text" class="summary-addr-input" id="s5-c-last" placeholder="Last name" value="' + escAttr(last) + '" />'
+      + '</div>'
+      + '<input type="email" class="summary-addr-input" id="s5-c-email" placeholder="Email" value="' + escAttr(email) + '" style="margin-top:0.4rem" />'
+      + '<input type="tel" class="summary-addr-input" id="s5-c-phone" placeholder="Phone" value="' + escAttr(BOOK.phone) + '" style="margin-top:0.4rem" />'
+      + '<button onclick="saveContactEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
+    );
 
   goToStep(5);
   await initStripe();
 }
 
-function toggleAddrEdit() {
-  var valEl  = document.getElementById('s5-addr-val');
-  var formEl = document.getElementById('s5-addr-form');
+function toggleS5Edit(id) {
+  var valEl  = document.getElementById('s5-' + id + '-val');
+  var formEl = document.getElementById('s5-' + id + '-form');
   if (!valEl || !formEl) return;
-  var editing = formEl.style.display !== 'none';
-  valEl.style.display  = editing ? '' : 'none';
-  formEl.style.display = editing ? 'none' : '';
-  if (!editing) {
-    var inp = document.getElementById('s5-addr-input');
-    if (inp) { inp.value = BOOK.address; inp.focus(); }
+  var opening = formEl.style.display === 'none';
+  formEl.style.display = opening ? '' : 'none';
+  valEl.style.display  = opening ? 'none' : '';
+  if (opening) {
+    var first = formEl.querySelector('input');
+    if (first) first.focus();
   }
+}
+
+var _s5SelTime = BOOK.time;
+function s5SelectTime(t) {
+  _s5SelTime = t;
+  document.querySelectorAll('.s5-time-btn').forEach(function(b){ b.classList.toggle('selected', b.textContent===t); });
+}
+
+function saveDtEdit() {
+  var dateInp = document.getElementById('s5-dt-date');
+  if (!dateInp || !dateInp.value) return;
+  if (!_s5SelTime) return;
+  BOOK.date = dateInp.value;
+  BOOK.time = _s5SelTime;
+  var summaryDate = new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  var valEl = document.getElementById('s5-dt-val');
+  if (valEl) valEl.innerHTML = esc(summaryDate) + ' &nbsp;&middot;&nbsp; ' + esc(BOOK.time);
+  // sync back to step 3 fields
+  var s3date = document.getElementById('s3-date-input');
+  if (s3date) s3date.value = BOOK.date;
+  toggleS5Edit('dt');
 }
 
 function saveAddrEdit() {
@@ -1357,7 +1414,25 @@ function saveAddrEdit() {
   if (valEl) valEl.textContent = val;
   var s3inp = document.getElementById('s3-address');
   if (s3inp) s3inp.value = val;
-  toggleAddrEdit();
+  toggleS5Edit('addr');
+}
+
+function saveContactEdit() {
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var first = (document.getElementById('s5-c-first').value || '').trim();
+  var last  = (document.getElementById('s5-c-last').value  || '').trim();
+  var email = (document.getElementById('s5-c-email').value || '').trim();
+  var phone = (document.getElementById('s5-c-phone').value || '').trim();
+  if (!first || !last || !EMAIL_RE.test(email) || !phone) return;
+  BOOK.firstName = first; BOOK.lastName = last; BOOK.email = email; BOOK.phone = phone;
+  var valEl = document.getElementById('s5-contact-val');
+  if (valEl) valEl.innerHTML = esc(first+' '+last) + ' &nbsp;&middot;&nbsp; ' + esc(email) + ' &nbsp;&middot;&nbsp; ' + esc(phone);
+  // sync step 4 fields
+  ['s4-first','s4-last','s4-email','s4-phone'].forEach(function(id, i){
+    var el = document.getElementById(id);
+    if (el) el.value = [first,last,email,phone][i];
+  });
+  toggleS5Edit('contact');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
