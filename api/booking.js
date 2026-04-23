@@ -9,7 +9,13 @@ export default async function handler(req, res) {
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
-  const { service, name, phone, email, address, date, time, details, totalCents } = req.body;
+  const { services, items, service: serviceLegacy, name, phone, email, address, date, time, details, totalCents } = req.body;
+
+  // Support both new multi-service payload (services=[]) and legacy single-service (service='')
+  const serviceList = Array.isArray(services) && services.length > 0
+    ? services
+    : (serviceLegacy ? [serviceLegacy] : []);
+  const service = serviceList.join(', ');
 
   if (!service || !name || !phone || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !address || !date || !time) {
     return res.status(400).json({ error: 'Missing required fields' });
