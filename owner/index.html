@@ -9,7 +9,14 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--bg:#111827;--surface:#1e2433;--elevated:#28304a;--border:rgba(255,255,255,0.09);--border-md:rgba(255,255,255,0.15);--text:#f0f2f8;--muted:#6b7280;--soft:#9ca3af;--teal:#1d9e75;--teal-glow:rgba(29,158,117,0.15);--orange:#e86a2e;--orange-glow:rgba(232,106,46,0.15);--amber:#f59e0b;--red:#ef4444;--sidebar-w:260px}
+    :root{
+      --bg:#111827;--surface:#1e2433;--elevated:#28304a;
+      --border:rgba(255,255,255,0.09);--border-md:rgba(255,255,255,0.15);
+      --text:#f0f2f8;--muted:#6b7280;--soft:#9ca3af;
+      --teal:#1d9e75;--teal-glow:rgba(29,158,117,0.15);
+      --orange:#e86a2e;--orange-glow:rgba(232,106,46,0.15);
+      --amber:#f59e0b;--red:#ef4444;--sidebar-w:260px
+    }
     body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 
     /* ── Login gate ── */
@@ -63,6 +70,15 @@
     /* ── Content ── */
     .main{display:flex;flex-direction:column;min-height:100vh}
     .content{padding:2rem;flex:1}
+
+    /* ── Search bar ── */
+    .search-bar{position:relative;margin-bottom:1rem}
+    .search-input{width:100%;padding:0.6rem 1rem 0.6rem 2.5rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.875rem;outline:none;transition:border-color 0.15s}
+    .search-input:focus{border-color:var(--teal)}
+    .search-input::placeholder{color:var(--muted)}
+    .search-icon{position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.9rem;pointer-events:none}
+    .search-clear{position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem;display:none}
+    .search-clear.show{display:block}
 
     /* ── Stats ── */
     .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;margin-bottom:2rem}
@@ -125,11 +141,15 @@
     /* ── Modals ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;padding:1rem}
     .modal-overlay.open{display:flex}
-    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:420px}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
     .modal h3{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.5rem}
     .modal p{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
-    .modal textarea{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:vertical;min-height:80px;margin-bottom:1rem}
-    .modal-actions{display:flex;gap:0.5rem;justify-content:flex-end}
+    .modal textarea,.modal-input{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:vertical;min-height:80px;margin-bottom:0.75rem}
+    .modal-input{min-height:unset;resize:none}
+    .modal select{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;margin-bottom:0.75rem;cursor:pointer}
+    .modal-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:0.35rem}
+    .modal-actions{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.5rem}
+    .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
 
     /* ── Empty / loading / error ── */
     .empty{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;color:var(--muted);font-size:0.875rem}
@@ -182,66 +202,71 @@
     <div class="topbar">
       <div class="topbar-title">Bookings</div>
       <div class="topbar-right">
+        <button class="btn btn-teal" id="new-booking-btn">&#43; New Booking</button>
         <button class="btn" id="refresh-btn">&#8635; Refresh</button>
       </div>
     </div>
 
     <div class="content">
+
       <!-- ─── BOOKINGS VIEW ─── -->
       <div id="bookings-view">
-      <!-- Stats -->
-      <div class="stats-row" id="stats-row">
-        <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
-        <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
-        <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
-        <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
-        <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Platform Revenue</div></div>
-      </div>
-
-      <!-- Status tabs -->
-      <div class="tabs" id="tabs">
-        <button class="tab active" data-status="all">All</button>
-        <button class="tab" data-status="pending">Pending</button>
-        <button class="tab" data-status="confirmed">Confirmed</button>
-        <button class="tab" data-status="completed">Completed</button>
-        <button class="tab" data-status="declined">Declined</button>
-        <button class="tab" data-status="cancelled">Cancelled</button>
-      </div>
-
-      <!-- Content grid: list + detail -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="content-grid">
-        <div>
-          <div id="bookings-list"></div>
+        <div class="stats-row" id="stats-row">
+          <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
+          <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
+          <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
+          <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
+          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Platform Revenue</div></div>
         </div>
-        <div>
-          <div class="detail-panel" id="detail-panel">
-            <div class="detail-header">
-              <h2 id="detail-ref">—</h2>
-              <button class="detail-close" id="detail-close">&times;</button>
-            </div>
-            <div class="detail-grid" id="detail-grid"></div>
-            <div class="detail-actions" id="detail-actions"></div>
-            <!-- Assignment section -->
-            <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
-              <div class="detail-section-title">Assembler Assignment</div>
-              <div id="assign-status" style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"></div>
-              <div id="assign-controls" style="display:flex;gap:0.5rem;align-items:center">
-                <select id="assign-select" style="flex:1;padding:0.5rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;cursor:pointer">
-                  <option value="">Select an assembler...</option>
-                </select>
-                <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
+
+        <!-- Search -->
+        <div class="search-bar">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" class="search-input" id="booking-search" placeholder="Search by ref, name, email, service, or address..." />
+          <button class="search-clear" id="search-clear" onclick="clearSearch()">&#10005;</button>
+        </div>
+
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-status="all">All</button>
+          <button class="tab" data-status="pending">Pending</button>
+          <button class="tab" data-status="confirmed">Confirmed</button>
+          <button class="tab" data-status="completed">Completed</button>
+          <button class="tab" data-status="declined">Declined</button>
+          <button class="tab" data-status="cancelled">Cancelled</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="content-grid">
+          <div>
+            <div id="bookings-list"></div>
+          </div>
+          <div>
+            <div class="detail-panel" id="detail-panel">
+              <div class="detail-header">
+                <h2 id="detail-ref">—</h2>
+                <button class="detail-close" id="detail-close">&times;</button>
+              </div>
+              <div class="detail-grid" id="detail-grid"></div>
+              <div class="detail-actions" id="detail-actions"></div>
+              <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+                <div class="detail-section-title">Assembler Assignment</div>
+                <div id="assign-status" style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"></div>
+                <div id="assign-controls" style="display:flex;gap:0.5rem;align-items:center">
+                  <select id="assign-select" style="flex:1;padding:0.5rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;cursor:pointer">
+                    <option value="">Select an assembler...</option>
+                  </select>
+                  <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
+                </div>
+              </div>
+              <div class="detail-section-title">Messages</div>
+              <div class="msg-thread" id="msg-thread"></div>
+              <div class="msg-compose">
+                <textarea class="msg-input" id="msg-input" placeholder="Type a message..." rows="1"></textarea>
+                <button class="btn btn-teal" id="msg-send">Send</button>
               </div>
             </div>
-            <div class="detail-section-title">Messages</div>
-            <div class="msg-thread" id="msg-thread"></div>
-            <div class="msg-compose">
-              <textarea class="msg-input" id="msg-input" placeholder="Type a message..." rows="1"></textarea>
-              <button class="btn btn-teal" id="msg-send">Send</button>
-            </div>
+            <div class="empty" id="detail-placeholder" style="margin-top:0">Select a booking to view details</div>
           </div>
-          <div class="empty" id="detail-placeholder" style="margin-top:0">Select a booking to view details</div>
         </div>
-      </div>
       </div><!-- /bookings-view -->
 
       <!-- ─── WAITLIST VIEW ─── -->
@@ -274,7 +299,7 @@
             <tbody id="wl-tbody"></tbody>
           </table>
         </div>
-      </div><!-- /waitlist-view -->
+      </div>
 
       <!-- ─── ASSEMBLERS VIEW ─── -->
       <div id="assemblers-view" style="display:none">
@@ -310,7 +335,7 @@
             <tbody id="asm-tbody"></tbody>
           </table>
         </div>
-      </div><!-- /assemblers-view -->
+      </div>
 
       <!-- ─── MARKETPLACE VIEW ─── -->
       <div id="marketplace-view" style="display:none">
@@ -345,7 +370,6 @@
             <tbody id="mkt-tbody"></tbody>
           </table>
         </div>
-        <!-- Job Detail Panel -->
         <div class="detail-panel" id="mkt-detail" style="margin-top:1.5rem">
           <div class="detail-header">
             <h2 id="mkt-detail-title">Job Detail</h2>
@@ -356,7 +380,7 @@
           <div id="mkt-bids-list" style="font-size:0.85rem"></div>
           <div id="mkt-detail-actions" style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap"></div>
         </div>
-      </div><!-- /marketplace-view -->
+      </div>
 
     </div>
   </div>
@@ -392,6 +416,65 @@
   </div>
 </div>
 
+<!-- ─── New Booking Modal ─── -->
+<div class="modal-overlay" id="new-booking-modal">
+  <div class="modal" style="max-width:500px">
+    <h3>New Manual Booking</h3>
+    <p>Create a booking manually — e.g. for a phone or walk-in inquiry.</p>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Customer name *</label>
+        <input type="text" class="modal-input" id="nb-name" placeholder="Jane Smith" />
+      </div>
+      <div>
+        <label class="modal-label">Phone *</label>
+        <input type="tel" class="modal-input" id="nb-phone" placeholder="512-000-0000" />
+      </div>
+    </div>
+    <label class="modal-label">Email address *</label>
+    <input type="email" class="modal-input" id="nb-email" placeholder="customer@email.com" />
+    <label class="modal-label">Service *</label>
+    <select id="nb-service">
+      <option value="">Select a service...</option>
+      <option value="Furniture Assembly">Furniture Assembly</option>
+      <option value="TV Mounting">TV Mounting</option>
+      <option value="Home Repairs">Home Repairs</option>
+      <option value="Smart Home">Smart Home</option>
+      <option value="Junk Removal">Junk Removal</option>
+      <option value="Other">Other / Custom</option>
+    </select>
+    <label class="modal-label">Service address *</label>
+    <input type="text" class="modal-input" id="nb-address" placeholder="123 Main St, Austin TX" />
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Preferred date</label>
+        <input type="date" class="modal-input" id="nb-date" />
+      </div>
+      <div>
+        <label class="modal-label">Preferred time</label>
+        <select id="nb-time">
+          <option value="">Select...</option>
+          <option>8:00 AM - 10:00 AM</option>
+          <option>10:00 AM - 12:00 PM</option>
+          <option>12:00 PM - 2:00 PM</option>
+          <option>2:00 PM - 4:00 PM</option>
+          <option>4:00 PM - 6:00 PM</option>
+          <option>Flexible</option>
+        </select>
+      </div>
+    </div>
+    <label class="modal-label">Total amount ($) — leave 0 for custom quote</label>
+    <input type="number" class="modal-input" id="nb-amount" placeholder="0" min="0" value="0" />
+    <label class="modal-label">Job details *</label>
+    <textarea id="nb-details" style="margin-bottom:0.75rem" placeholder="Describe what needs to be done..."></textarea>
+    <div id="nb-error" style="font-size:0.82rem;color:var(--red);margin-bottom:0.75rem;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn" id="nb-cancel">Cancel</button>
+      <button class="btn btn-teal" id="nb-submit">Create Booking</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -404,8 +487,8 @@
   let allBookings = [];
   let selectedId = null;
   let currentStatus = 'all';
+  let searchQuery = '';
 
-  // ─── DOM refs ───
   const $gate      = document.getElementById('login-gate');
   const $layout    = document.getElementById('layout');
   const $loginPw   = document.getElementById('login-pw');
@@ -423,7 +506,6 @@
   const $reasonModal = document.getElementById('reason-modal');
   const $reasonText  = document.getElementById('reason-text');
 
-  // ─── Auth helpers ───
   function headers(extra) {
     return Object.assign({ 'Content-Type': 'application/json', 'x-owner-password': password }, extra || {});
   }
@@ -445,7 +527,6 @@
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
     loadBookings();
-    // Load pending assembler count for sidebar badge
     fetch('/api/assembler/list?tier=pending', { headers: headers() })
       .then(function(r) { return r.json(); })
       .then(function(d) {
@@ -462,11 +543,7 @@
     $loginBtn.disabled = true;
     try {
       const r = await fetch(API + '/list', { headers: headers() });
-      if (r.status === 401) {
-        $loginErr.style.display = 'block';
-        password = '';
-        return;
-      }
+      if (r.status === 401) { $loginErr.style.display = 'block'; password = ''; return; }
       sessionStorage.setItem('owner_pw', JSON.stringify({ password, expires: Date.now() + 86400000 }));
       showDashboard();
     } catch {
@@ -508,8 +585,22 @@
     }
   });
 
-  // Auto-login if password in session
   if (password) showDashboard();
+
+  // ─── Search ───
+  document.getElementById('booking-search').addEventListener('input', function() {
+    searchQuery = this.value.trim().toLowerCase();
+    var clearBtn = document.getElementById('search-clear');
+    clearBtn.classList.toggle('show', searchQuery.length > 0);
+    renderList();
+  });
+
+  window.clearSearch = function() {
+    document.getElementById('booking-search').value = '';
+    searchQuery = '';
+    document.getElementById('search-clear').classList.remove('show');
+    renderList();
+  };
 
   // ─── Load bookings ───
   async function loadBookings() {
@@ -524,15 +615,24 @@
     }
   }
 
-  // ─── Stats ───
+  // ─── Stats with correct tier-based commission ───
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
     let revenue = 0;
     allBookings.forEach(function(b) {
       if (counts[b.status] !== undefined) counts[b.status]++;
       if (b.status === 'completed') {
-        if (b.platform_fee != null) revenue += Number(b.platform_fee) || 0;
-        else if (b.total_price) revenue += Math.round((Number(b.total_price) || 0) * 0.2);
+        if (b.platform_fee != null) {
+          revenue += Number(b.platform_fee) || 0;
+        } else if (b.total_price) {
+          // Tier-based commission: starter=25%, verified=20%, elite=15%, no assembler=100%
+          var rate = 0.20;
+          if (!b.assembler_id) rate = 1.0;
+          else if (b.assembler_tier === 'starter') rate = 0.25;
+          else if (b.assembler_tier === 'verified') rate = 0.20;
+          else if (b.assembler_tier === 'elite') rate = 0.15;
+          revenue += Math.round((Number(b.total_price) || 0) * rate);
+        }
       }
     });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
@@ -541,11 +641,9 @@
     document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
     if (revenueEl) revenueEl.textContent = revenue > 0 ? '$' + (revenue / 100).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
-    // Pending badge in sidebar
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
     else $navP.style.display = 'none';
-    // Tab counts — scoped to booking tabs only
     document.querySelectorAll('#tabs .tab').forEach(function(t) {
       var s = t.dataset.status;
       var c = s === 'all' ? allBookings.length : allBookings.filter(function(b){return b.status===s}).length;
@@ -555,7 +653,6 @@
     });
   }
 
-  // ─── Tabs ───
   document.getElementById('tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tab');
     if (!tab) return;
@@ -565,11 +662,22 @@
     renderList();
   });
 
-  // ─── Render booking list ───
+  // ─── Render list with search + status filter ───
   function renderList() {
     var filtered = currentStatus === 'all' ? allBookings : allBookings.filter(function(b){return b.status===currentStatus});
+    if (searchQuery) {
+      filtered = filtered.filter(function(b) {
+        var q = searchQuery;
+        return (b.ref && b.ref.toLowerCase().includes(q))
+          || (b.customer_name && b.customer_name.toLowerCase().includes(q))
+          || (b.customer_email && b.customer_email.toLowerCase().includes(q))
+          || (b.service && b.service.toLowerCase().includes(q))
+          || (b.address && b.address.toLowerCase().includes(q))
+          || (b.customer_phone && b.customer_phone.toLowerCase().includes(q));
+      });
+    }
     if (!filtered.length) {
-      $list.innerHTML = '<div class="empty">No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings</div>';
+      $list.innerHTML = '<div class="empty">' + (searchQuery ? 'No results for &ldquo;' + esc(searchQuery) + '&rdquo;' : 'No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings') + '</div>';
       return;
     }
     $list.innerHTML = filtered.map(function(b) {
@@ -587,12 +695,10 @@
     }).join('');
   }
 
-  // ─── Click a booking card ───
   $list.addEventListener('click', function(e) {
     var card = e.target.closest('.booking-card');
     if (!card) return;
-    var id = card.dataset.id;
-    selectBooking(id);
+    selectBooking(card.dataset.id);
   });
 
   async function selectBooking(id) {
@@ -600,12 +706,9 @@
     renderList();
     var b = allBookings.find(function(x){return x.id === id});
     if (!b) return;
-
     $detailPh.style.display = 'none';
     $detail.classList.add('open');
     $detailRef.textContent = b.ref;
-
-    // Detail fields
     $detailGrid.innerHTML = [
       field('Customer', b.customer_name),
       field('Email', b.customer_email),
@@ -617,16 +720,11 @@
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
       field('Details', b.details || '—'),
+      field('Source', b.source === 'manual' ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
-
-    // Action buttons
     renderActions(b);
-
-    // Assignment section
     renderAssignSection(b);
-
-    // Load messages
     loadMessages(b.id);
   }
 
@@ -658,7 +756,6 @@
     $detailAct.style.display = btns.length ? '' : 'none';
   }
 
-  // ─── Action buttons ───
   var pendingAction = null;
 
   $detailAct.addEventListener('click', function(e) {
@@ -679,8 +776,7 @@
       document.getElementById('reason-confirm').className = 'btn btn-red';
       $reasonText.value = '';
       $reasonText.placeholder = 'Reason (optional)';
-      var $wfR = document.getElementById('waive-fee-row');
-      if ($wfR) $wfR.style.display = 'none';
+      document.getElementById('waive-fee-row').style.display = 'none';
       $reasonModal.classList.add('open');
     } else if (action === 'payout') {
       var bPayout = allBookings.find(function(bk){ return bk.id == id; });
@@ -699,8 +795,7 @@
       }
       document.getElementById('reason-confirm').textContent = 'Record Payout';
       document.getElementById('reason-confirm').className = 'btn btn-teal';
-      var $wfP = document.getElementById('waive-fee-row');
-      if ($wfP) $wfP.style.display = 'none';
+      document.getElementById('waive-fee-row').style.display = 'none';
       $reasonModal.classList.add('open');
     } else if (action === 'decline') {
       pendingAction = { path: '/decline', id: id };
@@ -709,11 +804,11 @@
       document.getElementById('reason-confirm').textContent = 'Decline';
       document.getElementById('reason-confirm').className = 'btn btn-red';
       $reasonText.value = '';
+      document.getElementById('waive-fee-row').style.display = 'none';
       $reasonModal.classList.add('open');
     } else if (action === 'cancel') {
       pendingAction = { path: '/cancel', id: id };
       document.getElementById('reason-modal-title').textContent = 'Cancel Booking';
-      // Check if within 24hrs to warn about the cancellation fee
       var bObj = allBookings.find(function(bk){ return bk.id == id; });
       var withinWindow = false;
       if (bObj && bObj.date) {
@@ -731,17 +826,14 @@
           withinWindow = hoursAway >= 0 && hoursAway < 24;
         } catch(e) {}
       }
-      var cancelDesc = withinWindow
-        ? '\u26a0\ufe0f Within 24 hours of appointment — a 50% cancellation fee will be charged. Add a reason or check “Waive fee” below.'
+      document.getElementById('reason-modal-desc').textContent = withinWindow
+        ? '⚠️ Within 24 hours of appointment — a 50% cancellation fee will be charged. Add a reason or check "Waive fee" below.'
         : 'Optionally explain why this booking is being cancelled.';
-      document.getElementById('reason-modal-desc').textContent = cancelDesc;
       document.getElementById('reason-confirm').textContent = 'Cancel Booking';
       document.getElementById('reason-confirm').className = 'btn btn-amber';
       pendingAction.withinWindow = withinWindow;
       $reasonText.value = '';
-      // Show/hide waive-fee checkbox
-      var $wf = document.getElementById('waive-fee-row');
-      if ($wf) $wf.style.display = withinWindow ? '' : 'none';
+      document.getElementById('waive-fee-row').style.display = withinWindow ? '' : 'none';
       $reasonModal.classList.add('open');
     } else if (action === 'delete-booking') {
       if (!confirm('Permanently delete this booking? This cannot be undone.')) return;
@@ -772,7 +864,6 @@
     if (!pendingAction) return;
     var reason = $reasonText.value.trim();
 
-    // Handle refund
     if (pendingAction.type === 'refund') {
       $reasonModal.classList.remove('open');
       var bIdRef = pendingAction.id;
@@ -791,11 +882,8 @@
       return;
     }
 
-    // Handle payout
     if (pendingAction.type === 'payout') {
-      var amtStr = reason; // user types amount (or pre-filled) in the textarea
-      var amtDollars = parseFloat(amtStr);
-      // Fall back to the pre-calculated assembler_due from the booking
+      var amtDollars = parseFloat(reason);
       var fallbackCents = pendingAction.assemblerDueCents || 0;
       var amountCents = (amtDollars && amtDollars > 0) ? Math.round(amtDollars * 100) : fallbackCents;
       if (!amountCents || amountCents <= 0) { toast('Enter a valid dollar amount', 'error'); return; }
@@ -817,7 +905,6 @@
       return;
     }
 
-    // Handle assembler rejection separately
     if (pendingAction.type === 'reject-assembler') {
       $reasonModal.classList.remove('open');
       var aIdRej = pendingAction.assemblerId;
@@ -825,11 +912,7 @@
       try {
         var body = { assemblerId: aIdRej, action: 'reject' };
         if (reason) body.rejectionReason = reason;
-        var r = await fetch('/api/assembler/update', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify(body),
-        });
+        var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
         toast('Assembler rejected and notified', 'success');
@@ -838,18 +921,22 @@
       return;
     }
 
-    // Booking actions
-    var body = { bookingId: pendingAction.id };
-    if (reason) body.reason = reason;
+    // ─── FIX: Cancel/Decline booking actions ───
+    // Read waive-fee checkbox BEFORE closing modal
+    var waiveFee = false;
     if (pendingAction.path === '/cancel') {
       var $wfCb = document.getElementById('waive-fee-cb');
-      if ($wfCb && $wfCb.checked) body.waiveFee = true;
+      waiveFee = $wfCb && $wfCb.checked;
       if ($wfCb) $wfCb.checked = false;
     }
+    var actionBody = { bookingId: pendingAction.id };
+    if (reason) actionBody.reason = reason;
+    if (waiveFee) actionBody.waiveFee = true;
     var msg = pendingAction.path === '/decline' ? 'Booking declined' : 'Booking cancelled';
-    doAction(pendingAction.path, body, msg);
+    var actionPath = pendingAction.path;
     $reasonModal.classList.remove('open');
     pendingAction = null;
+    doAction(actionPath, actionBody, msg);
   });
 
   async function doAction(path, body, msg) {
@@ -860,9 +947,87 @@
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch (e) {
-      toast('Action failed', 'error');
+      toast('Action failed — check your connection', 'error');
     }
   }
+
+  // ─── Manual booking ───
+  document.getElementById('new-booking-btn').addEventListener('click', function() {
+    document.getElementById('nb-error').style.display = 'none';
+    document.getElementById('nb-name').value = '';
+    document.getElementById('nb-phone').value = '';
+    document.getElementById('nb-email').value = '';
+    document.getElementById('nb-service').value = '';
+    document.getElementById('nb-address').value = '';
+    document.getElementById('nb-date').value = '';
+    document.getElementById('nb-time').value = '';
+    document.getElementById('nb-amount').value = '0';
+    document.getElementById('nb-details').value = '';
+    document.getElementById('new-booking-modal').classList.add('open');
+  });
+
+  document.getElementById('nb-cancel').addEventListener('click', function() {
+    document.getElementById('new-booking-modal').classList.remove('open');
+  });
+
+  document.getElementById('nb-submit').addEventListener('click', async function() {
+    var name    = document.getElementById('nb-name').value.trim();
+    var phone   = document.getElementById('nb-phone').value.trim();
+    var email   = document.getElementById('nb-email').value.trim();
+    var service = document.getElementById('nb-service').value;
+    var address = document.getElementById('nb-address').value.trim();
+    var date    = document.getElementById('nb-date').value;
+    var time    = document.getElementById('nb-time').value;
+    var amount  = parseFloat(document.getElementById('nb-amount').value) || 0;
+    var details = document.getElementById('nb-details').value.trim();
+    var errEl   = document.getElementById('nb-error');
+    errEl.style.display = 'none';
+
+    if (!name)    { errEl.textContent = 'Customer name is required.'; errEl.style.display = 'block'; return; }
+    if (!phone)   { errEl.textContent = 'Phone number is required.'; errEl.style.display = 'block'; return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { errEl.textContent = 'Valid email is required.'; errEl.style.display = 'block'; return; }
+    if (!service) { errEl.textContent = 'Please select a service.'; errEl.style.display = 'block'; return; }
+    if (!address) { errEl.textContent = 'Service address is required.'; errEl.style.display = 'block'; return; }
+    if (!details) { errEl.textContent = 'Job details are required.'; errEl.style.display = 'block'; return; }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    try {
+      var resp = await fetch('/api/booking', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          service: service,
+          name: name,
+          phone: phone,
+          email: email,
+          address: address,
+          date: date || '',
+          time: time || '',
+          details: details,
+          totalCents: Math.round(amount * 100),
+          source: 'manual'
+        })
+      });
+      var data = await resp.json();
+      if (!resp.ok || data.error) throw new Error(data.error || 'Server error');
+      document.getElementById('new-booking-modal').classList.remove('open');
+      toast('Booking created — ref: ' + (data.ref || 'N/A'), 'success');
+      await loadBookings();
+    } catch(e) {
+      errEl.textContent = e.message || 'Failed to create booking. Try again.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Booking';
+    }
+  });
+
+  document.getElementById('new-booking-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
 
   // ─── Messages ───
   async function loadMessages(bookingId) {
@@ -870,10 +1035,7 @@
     try {
       var data = await apiGet('/message?bookingId=' + bookingId);
       var msgs = data.messages || [];
-      if (!msgs.length) {
-        $msgThread.innerHTML = '<div class="msg-empty">No messages yet</div>';
-        return;
-      }
+      if (!msgs.length) { $msgThread.innerHTML = '<div class="msg-empty">No messages yet</div>'; return; }
       $msgThread.innerHTML = msgs.map(function(m) {
         return '<div class="msg ' + (m.sender === 'owner' ? 'owner' : 'customer') + '">'
           + '<div>' + esc(m.body) + '</div>'
@@ -897,12 +1059,9 @@
       var data = await apiPost('/message', { bookingId: selectedId, body: body, sender: 'owner' });
       if (data.error) { toast(data.error, 'error'); return; }
       loadMessages(selectedId);
-    } catch {
-      toast('Failed to send message', 'error');
-    }
+    } catch { toast('Failed to send message', 'error'); }
   }
 
-  // ─── Close detail panel ───
   document.getElementById('detail-close').addEventListener('click', function() {
     $detail.classList.remove('open');
     $detailPh.style.display = '';
@@ -934,7 +1093,7 @@
   function toast(msg, type) {
     $toast.textContent = msg;
     $toast.className = 'toast ' + (type || 'success') + ' show';
-    setTimeout(function() { $toast.classList.remove('show'); }, 3000);
+    setTimeout(function() { $toast.classList.remove('show'); }, 3500);
   }
 
   // ─── Assembler assignment ───
@@ -946,38 +1105,25 @@
       if (!r.ok) return;
       var data = await r.json();
       eligibleAssemblers = data.assemblers || [];
-    } catch (e) {
-      console.error('Failed to load assemblers:', e);
-    }
+    } catch(e) { console.error('Failed to load assemblers:', e); }
   }
 
-  // Load assemblers on dashboard open
   loadAssemblers();
 
   function renderAssignSection(b) {
-    var section = document.getElementById('assign-section');
-    var status = document.getElementById('assign-status');
+    var section  = document.getElementById('assign-section');
+    var status   = document.getElementById('assign-status');
     var controls = document.getElementById('assign-controls');
-    var select = document.getElementById('assign-select');
-
-    // Only show for confirmed bookings
-    if (b.status !== 'confirmed') {
-      section.style.display = 'none';
-      return;
-    }
-
+    var select   = document.getElementById('assign-select');
+    if (b.status !== 'confirmed') { section.style.display = 'none'; return; }
     section.style.display = '';
-
     if (b.assembler_id) {
-      // Already assigned
-      var aName = '(assigned assembler)';
       var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; });
-      if (a) aName = a.full_name;
+      var aName = a ? a.full_name : '(assigned assembler)';
       var accepted = b.assembler_accepted_at ? ' &bull; <span style="color:#1d9e75">Accepted</span>' : ' &bull; <span style="color:#f59e0b">Pending response</span>';
       status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted;
       controls.style.display = 'none';
     } else {
-      // Not yet assigned
       status.textContent = 'No assembler assigned yet.';
       controls.style.display = 'flex';
       select.innerHTML = '<option value="">Select an assembler...</option>';
@@ -995,28 +1141,25 @@
   document.getElementById('assign-btn').addEventListener('click', async function() {
     var assemblerId = document.getElementById('assign-select').value;
     if (!assemblerId || !selectedId) return;
-    this.disabled = true;
-    this.textContent = 'Assigning...';
+    this.disabled = true; this.textContent = 'Assigning...';
     try {
       var data = await apiPost('/assign', { bookingId: selectedId, assemblerId: assemblerId });
       if (data.error) { toast(data.error, 'error'); return; }
       toast('Assigned to ' + (data.assignedTo || 'assembler'), 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
-    } catch (e) {
-      toast('Failed to assign', 'error');
-    } finally {
-      this.disabled = false;
-      this.textContent = 'Assign';
-    }
+    } catch(e) { toast('Failed to assign', 'error'); }
+    finally { this.disabled = false; this.textContent = 'Assign'; }
   });
-  // ─── View switching (bookings ↔ waitlist ↔ assemblers ↔ marketplace) ───
+
+  // ─── View switching ───
   var currentView = 'bookings';
-  var $bookingsView = document.getElementById('bookings-view');
-  var $waitlistView = document.getElementById('waitlist-view');
+  var $bookingsView   = document.getElementById('bookings-view');
+  var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
-  var $marketplaceView = document.getElementById('marketplace-view');
-  var $topbarTitle = document.querySelector('.topbar-title');
+  var $marketplaceView= document.getElementById('marketplace-view');
+  var $topbarTitle    = document.querySelector('.topbar-title');
+  var $newBookingBtn  = document.getElementById('new-booking-btn');
 
   document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
     var link = e.target.closest('[data-view]');
@@ -1027,31 +1170,18 @@
     currentView = view;
     document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
     link.classList.add('active');
-
-    $bookingsView.style.display = 'none';
-    $waitlistView.style.display = 'none';
+    $bookingsView.style.display   = 'none';
+    $waitlistView.style.display   = 'none';
     $assemblersView.style.display = 'none';
-    $marketplaceView.style.display = 'none';
-
-    if (view === 'bookings') {
-      $bookingsView.style.display = '';
-      $topbarTitle.textContent = 'Bookings';
-    } else if (view === 'waitlist') {
-      $waitlistView.style.display = '';
-      $topbarTitle.textContent = 'Waitlist';
-      loadWaitlist();
-    } else if (view === 'assemblers') {
-      $assemblersView.style.display = '';
-      $topbarTitle.textContent = 'Assemblers';
-      loadAssemblerList();
-    } else if (view === 'marketplace') {
-      $marketplaceView.style.display = '';
-      $topbarTitle.textContent = 'Marketplace Jobs';
-      loadMarketplaceJobs();
-    }
+    $marketplaceView.style.display= 'none';
+    $newBookingBtn.style.display  = view === 'bookings' ? '' : 'none';
+    if (view === 'bookings') { $bookingsView.style.display = ''; $topbarTitle.textContent = 'Bookings'; }
+    else if (view === 'waitlist') { $waitlistView.style.display = ''; $topbarTitle.textContent = 'Waitlist'; loadWaitlist(); }
+    else if (view === 'assemblers') { $assemblersView.style.display = ''; $topbarTitle.textContent = 'Assemblers'; loadAssemblerList(); }
+    else if (view === 'marketplace') { $marketplaceView.style.display = ''; $topbarTitle.textContent = 'Marketplace Jobs'; loadMarketplaceJobs(); }
   });
 
-  // ─── Waitlist Management ───
+  // ─── Waitlist ───
   var allWaitlistEntries = [];
   var currentWlFilter = 'all';
 
@@ -1067,13 +1197,11 @@
       document.getElementById('wl-pending').textContent = stats.pending || 0;
       document.getElementById('wl-invited').textContent = stats.invited || 0;
       document.getElementById('wl-applied').textContent = stats.applied || 0;
-
       var $navWl = document.getElementById('nav-waitlist');
       if (stats.pending > 0) { $navWl.textContent = stats.pending; $navWl.style.display = ''; }
       else $navWl.style.display = 'none';
-
       renderWaitlistTable();
-    } catch (e) {
+    } catch(e) {
       document.getElementById('wl-tbody').innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--red)">Failed to load waitlist</td></tr>';
     }
   }
@@ -1088,19 +1216,12 @@
   });
 
   function wlStatusBadge(status) {
-    var map = {
-      pending: 'badge-cancelled',
-      invited: 'badge-pending',
-      applied: 'badge-completed',
-      approved: 'badge-confirmed',
-      rejected: 'badge-declined',
-    };
+    var map = { pending:'badge-cancelled', invited:'badge-pending', applied:'badge-completed', approved:'badge-confirmed', rejected:'badge-declined' };
     return '<span class="badge ' + (map[status]||'') + '">' + esc(status||'—') + '</span>';
   }
 
   function renderWaitlistTable() {
     var filtered = currentWlFilter === 'all' ? allWaitlistEntries : allWaitlistEntries.filter(function(w){ return w.status === currentWlFilter; });
-    // Update tab counts
     document.querySelectorAll('#wl-tabs .tab').forEach(function(t) {
       var s = t.dataset.wlStatus;
       var c = s === 'all' ? allWaitlistEntries.length : allWaitlistEntries.filter(function(w){ return w.status === s; }).length;
@@ -1109,88 +1230,53 @@
       span.textContent = c;
     });
     var tbody = document.getElementById('wl-tbody');
-    if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--muted)">No waitlist entries found</td></tr>';
-      return;
-    }
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--muted)">No waitlist entries found</td></tr>'; return; }
     tbody.innerHTML = filtered.map(function(w) {
       var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
       var expired = w.invite_expires_at && new Date(w.invite_expires_at) < new Date();
       var actions = '';
       if (w.status === 'pending') {
-        actions = '<button class="btn btn-teal" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Invite</button> '
-          + '<button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
+        actions = '<button class="btn btn-teal" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
       } else if (w.status === 'invited' && expired) {
-        actions = '<button class="btn btn-amber" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Re-invite</button> '
-          + '<button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
+        actions = '<button class="btn btn-amber" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Re-invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
       } else if (w.status === 'invited') {
-        var sentStr = w.invite_sent_at ? formatDate(w.invite_sent_at) : '';
-        var expiresStr = w.invite_expires_at ? formatDate(w.invite_expires_at) : '';
-        actions = '<span style="font-size:0.78rem;color:var(--muted)">Sent ' + sentStr + (expiresStr ? ' &bull; Expires ' + expiresStr : '') + '</span>';
+        actions = '<span style="font-size:0.78rem;color:var(--muted)">Sent ' + (w.invite_sent_at ? formatDate(w.invite_sent_at) : '') + (w.invite_expires_at ? ' &bull; Expires ' + formatDate(w.invite_expires_at) : '') + '</span>';
       } else if (w.status === 'applied') {
         actions = '<button class="btn" data-wl-goto-asm="1" style="font-size:0.75rem;padding:0.3rem 0.6rem">View in Assemblers</button>';
       }
-      return '<tr>'
-        + '<td style="' + rs + '"><strong>' + esc(w.name) + '</strong></td>'
-        + '<td style="' + rs + '">' + esc(w.email) + '</td>'
-        + '<td style="' + rs + '">' + esc(w.phone||'—') + '</td>'
-        + '<td style="' + rs + '">' + esc(w.city||'—') + (w.state ? ', ' + esc(w.state) : '') + '</td>'
-        + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td>'
-        + '<td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td>'
-        + '<td style="' + rs + '">' + actions + '</td>'
-        + '</tr>';
+      return '<tr><td style="' + rs + '"><strong>' + esc(w.name) + '</strong></td><td style="' + rs + '">' + esc(w.email) + '</td><td style="' + rs + '">' + esc(w.phone||'—') + '</td><td style="' + rs + '">' + esc(w.city||'—') + (w.state ? ', ' + esc(w.state) : '') + '</td><td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td><td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td><td style="' + rs + '">' + actions + '</td></tr>';
     }).join('');
   }
 
   document.getElementById('wl-tbody').addEventListener('click', async function(e) {
-    var gotoAsm = e.target.closest('[data-wl-goto-asm]');
-    if (gotoAsm) {
-      document.querySelector('.sidebar-nav a[data-view="assemblers"]').click();
-      return;
-    }
-
+    if (e.target.closest('[data-wl-goto-asm]')) { document.querySelector('.sidebar-nav a[data-view="assemblers"]').click(); return; }
     var inviteBtn = e.target.closest('[data-wl-invite]');
     if (inviteBtn) {
       var wId = inviteBtn.dataset.wlInvite;
       var wEntry = allWaitlistEntries.find(function(w){ return String(w.id) === String(wId); });
-      inviteBtn.disabled = true;
-      inviteBtn.textContent = '...';
+      inviteBtn.disabled = true; inviteBtn.textContent = '...';
       try {
-        var r = await fetch('/api/owner/waitlist', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ action: 'invite', id: wId }),
-        });
+        var r = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'invite', id:wId }) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
-        var toastMsg = wEntry ? 'Invitation sent to ' + wEntry.name + ' at ' + wEntry.email : 'Invite sent';
-        toast(toastMsg, 'success');
+        toast(wEntry ? 'Invitation sent to ' + wEntry.name : 'Invite sent', 'success');
         loadWaitlist();
       } catch { toast('Failed to send invite', 'error'); }
       return;
     }
-
     var rejectBtn = e.target.closest('[data-wl-reject]');
     if (rejectBtn) {
-      var wId2 = rejectBtn.dataset.wlReject;
       if (!confirm('Reject this waitlist entry?')) return;
-      rejectBtn.disabled = true;
-      rejectBtn.textContent = '...';
+      rejectBtn.disabled = true; rejectBtn.textContent = '...';
       try {
-        var r2 = await fetch('/api/owner/waitlist', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ action: 'reject', id: wId2 }),
-        });
+        var r2 = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'reject', id:rejectBtn.dataset.wlReject }) });
         var data2 = await r2.json();
         if (data2.error) { toast(data2.error, 'error'); return; }
-        toast('Entry rejected', 'success');
-        loadWaitlist();
+        toast('Entry rejected', 'success'); loadWaitlist();
       } catch { toast('Failed to reject', 'error'); }
     }
   });
 
-  // Load waitlist badge count on initial page load
   (async function() {
     try {
       var r = await fetch('/api/owner/waitlist?status=pending', { headers: headers() });
@@ -1203,7 +1289,7 @@
     } catch(e) {}
   })();
 
-  // ─── Assembler Management ───
+  // ─── Assembler management ───
   var allAssemblerProfiles = [];
   var currentTierFilter = 'all';
 
@@ -1219,19 +1305,15 @@
       document.getElementById('asm-pending').textContent = stats.pending || 0;
       document.getElementById('asm-active').textContent = (stats.starter || 0) + (stats.verified || 0);
       document.getElementById('asm-elite').textContent = stats.elite || 0;
-
-      // Pending apps badge — exclude rejected
       var $navApps = document.getElementById('nav-pending-apps');
       if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
       else $navApps.style.display = 'none';
-
       renderAssemblerTable();
-    } catch (e) {
+    } catch(e) {
       document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load assemblers</td></tr>';
     }
   }
 
-  // Tier filter tabs
   document.getElementById('asm-tabs').addEventListener('click', function(e) {
     var tab = e.target.closest('.tab');
     if (!tab) return;
@@ -1242,13 +1324,8 @@
   });
 
   function tierBadge(tier) {
-    var colors = {
-      pending: 'badge-pending',
-      starter: 'badge-confirmed',
-      verified: 'badge-completed',
-      elite: 'badge-pending',
-    };
-    var icons = { pending: '&#9679;', starter: '&#10003;', verified: '&#10003;', elite: '&#9733;' };
+    var colors = { pending:'badge-pending', starter:'badge-confirmed', verified:'badge-completed', elite:'badge-pending' };
+    var icons = { pending:'&#9679;', starter:'&#10003;', verified:'&#10003;', elite:'&#9733;' };
     return '<span class="badge ' + (colors[tier]||'') + '">' + (icons[tier]||'') + ' ' + (tier||'—') + '</span>';
   }
 
@@ -1261,157 +1338,108 @@
 
   function renderAssemblerTable() {
     var filtered;
-    if (currentTierFilter === 'all') {
-      // "All" excludes rejected so they don't clutter the main view
-      filtered = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; });
-    } else if (currentTierFilter === 'rejected') {
-      filtered = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; });
-    } else if (currentTierFilter === 'pending') {
-      filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; });
-    } else {
-      filtered = allAssemblerProfiles.filter(function(a){ return a.tier === currentTierFilter; });
-    }
-    // Update tab counts
+    if (currentTierFilter === 'all') filtered = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; });
+    else if (currentTierFilter === 'rejected') filtered = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; });
+    else if (currentTierFilter === 'pending') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; });
+    else filtered = allAssemblerProfiles.filter(function(a){ return a.tier === currentTierFilter; });
     document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
       var s = t.dataset.tier;
       var c;
-      if (s === 'all') {
-        c = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; }).length;
-      } else if (s === 'rejected') {
-        c = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; }).length;
-      } else if (s === 'pending') {
-        c = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; }).length;
-      } else {
-        c = allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
-      }
+      if (s === 'all') c = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; }).length;
+      else if (s === 'rejected') c = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; }).length;
+      else if (s === 'pending') c = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; }).length;
+      else c = allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
     });
     var tbody = document.getElementById('asm-tbody');
-    if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No assemblers found</td></tr>';
-      return;
-    }
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No assemblers found</td></tr>'; return; }
+    var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
     tbody.innerHTML = filtered.map(function(a) {
-      var rowStyle = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
       var isRejected = a.application_status === 'rejected';
       return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
-        + '<td style="' + rowStyle + '"><strong>' + esc(a.full_name) + '</strong><br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span></td>'
-        + '<td style="' + rowStyle + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
-        + '<td style="' + rowStyle + '">' + (isRejected ? '<span class="badge badge-declined">rejected</span>' : tierBadge(a.tier)) + '</td>'
-        + '<td style="' + rowStyle + '">' + identityStatus(a) + '</td>'
-        + '<td style="' + rowStyle + '">' + (a.completed_jobs||0) + '</td>'
-        + '<td style="' + rowStyle + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
-        + '<td style="' + rowStyle + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
-        + '<td style="' + rowStyle + '">'
+        + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong><br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span></td>'
+        + '<td style="' + rs + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
+        + '<td style="' + rs + '">' + (isRejected ? '<span class="badge badge-declined">rejected</span>' : tierBadge(a.tier)) + '</td>'
+        + '<td style="' + rs + '">' + identityStatus(a) + '</td>'
+        + '<td style="' + rs + '">' + (a.completed_jobs||0) + '</td>'
+        + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
+        + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
+        + '<td style="' + rs + '">'
           + (isRejected
-              ? '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">&#128465; Delete</button>'
-              : (a.tier === 'pending'
-                  ? (a.identity_verified
-                      ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
-                      : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
-                  : '')
-              + (!isRejected && a.tier === 'pending'
-                  ? '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> '
-                  : '')
-              + (!isRejected
-                  ? '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
-                  : ''))
+            ? '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">&#128465; Delete</button>'
+            : (a.tier === 'pending'
+              ? (a.identity_verified
+                ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
+                : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
+              : '')
+            + (!isRejected && a.tier === 'pending'
+              ? '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> '
+              : '')
+            + (!isRejected
+              ? '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
+              : ''))
         + '</td></tr>';
     }).join('');
   }
 
-  // Approve button → set tier to starter
   document.getElementById('asm-tbody').addEventListener('click', async function(e) {
     var approveBtn = e.target.closest('[data-approve]');
     if (approveBtn) {
       var aId = approveBtn.dataset.approve;
-      approveBtn.disabled = true;
-      approveBtn.textContent = '...';
+      approveBtn.disabled = true; approveBtn.textContent = '...';
       try {
-        var r = await fetch('/api/assembler/update', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ assemblerId: aId, tier: 'starter' }),
-        });
+        var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, tier:'starter' }) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
         toast('Assembler approved', 'success');
-        loadAssemblerList();
-        loadAssemblers(); // refresh eligible list for bookings
+        loadAssemblerList(); loadAssemblers();
       } catch { toast('Failed to approve', 'error'); }
       return;
     }
-
     var viewBtn = e.target.closest('[data-view-asm]');
     if (viewBtn) {
-      var aId2 = viewBtn.dataset.viewAsm;
-      var a = allAssemblerProfiles.find(function(x){ return x.id === aId2; });
-      if (!a) return;
-      showAssemblerDetail(a);
+      var a = allAssemblerProfiles.find(function(x){ return x.id === viewBtn.dataset.viewAsm; });
+      if (a) showAssemblerDetail(a);
+      return;
     }
-
     var rejectAsmBtn = e.target.closest('[data-reject-asm]');
     if (rejectAsmBtn) {
-      var aIdR = rejectAsmBtn.dataset.rejectAsm;
-      pendingAction = { type: 'reject-assembler', assemblerId: aIdR };
+      pendingAction = { type:'reject-assembler', assemblerId:rejectAsmBtn.dataset.rejectAsm };
       document.getElementById('reason-modal-title').textContent = 'Reject Application';
       document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback to the assembler. They will receive an email.';
       document.getElementById('reason-confirm').textContent = 'Reject';
       document.getElementById('reason-confirm').className = 'btn btn-red';
       $reasonText.value = '';
       $reasonModal.classList.add('open');
+      return;
     }
-
     var deleteAsmBtn = e.target.closest('[data-delete-asm]');
     if (deleteAsmBtn) {
-      var aIdDel = deleteAsmBtn.dataset.deleteAsm;
       if (!confirm('Permanently delete this rejected application? This cannot be undone.')) return;
-      deleteAsmBtn.disabled = true;
-      deleteAsmBtn.textContent = '...';
+      deleteAsmBtn.disabled = true; deleteAsmBtn.textContent = '...';
       try {
-        var r2 = await fetch('/api/assembler/update', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ assemblerId: aIdDel, action: 'delete' }),
-        });
+        var r2 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
         var d2 = await r2.json();
         if (d2.error) { toast(d2.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = '&#128465; Delete'; return; }
-        toast('Application deleted', 'success');
-        loadAssemblerList();
+        toast('Application deleted', 'success'); loadAssemblerList();
       } catch { toast('Failed to delete application', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = '&#128465; Delete'; }
     }
   });
 
   function showAssemblerDetail(a) {
     document.getElementById('asm-detail-name').textContent = a.full_name;
-
-    var approveBtn = (a.tier === 'pending')
-      ? (a.identity_verified
-          ? '<button class="btn btn-teal" onclick="approveFromDetail(\'' + a.id + '\')">&#10003; Approve → Starter</button>'
-          : '<button class="btn" disabled title="Identity verification required" style="opacity:0.45;cursor:not-allowed">&#10003; Approve → Starter</button>')
-      : '';
-
-    var rejectBtn = (a.tier === 'pending')
-      ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">&#10007; Reject</button>'
-      : '';
-
+    var approveBtn = a.tier === 'pending' ? (a.identity_verified ? '<button class="btn btn-teal" onclick="approveFromDetail(\'' + a.id + '\')">&#10003; Approve → Starter</button>' : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed">&#10003; Approve → Starter</button>') : '';
+    var rejectBtn = a.tier === 'pending' ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">&#10007; Reject</button>' : '';
     var promoteBtn = '';
     if (a.tier === 'starter') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'verified\')">&#8593; Promote → Verified</button>';
     if (a.tier === 'verified') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'elite\')">&#8593; Promote → Elite</button>';
-
     var downgradeBtn = '';
-    if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-orange" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">&#8595; Demote → Verified</button>';
-    if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-orange" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">&#8595; Demote → Starter</button>';
-
-    var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended')
-      ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">&#9940; Suspend</button>'
-      : '';
-    var reinstateBtn = (a.tier === 'suspended')
-      ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">&#10003; Reinstate → Starter</button>'
-      : '';
-
+    if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">&#8595; Demote → Verified</button>';
+    if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">&#8595; Demote → Starter</button>';
+    var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended') ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">&#9940; Suspend</button>' : '';
+    var reinstateBtn = a.tier === 'suspended' ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">&#10003; Reinstate → Starter</button>' : '';
     document.getElementById('asm-detail-body').innerHTML = [
       '<strong>Email:</strong> ' + esc(a.email),
       '<strong>Phone:</strong> ' + esc(a.phone||'—'),
@@ -1426,83 +1454,61 @@
       '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">'
-        + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn
-        + '</div>',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '</div>',
     ].filter(Boolean).join('<br>');
-
     document.getElementById('asm-detail-modal').classList.add('open');
   }
 
-  window.approveFromDetail = async function(assemblerId) {
+  window.approveFromDetail = async function(id) {
     document.getElementById('asm-detail-modal').classList.remove('open');
     try {
-      var r = await fetch('/api/assembler/update', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ assemblerId: assemblerId, tier: 'starter' }),
-      });
+      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:'starter' }) });
       var data = await r.json();
       if (data.error) { toast(data.error, 'error'); return; }
       toast('Assembler approved — welcome email sent', 'success');
-      loadAssemblerList();
-      loadAssemblers();
+      loadAssemblerList(); loadAssemblers();
     } catch { toast('Failed to approve', 'error'); }
   };
 
-  window.rejectFromDetail = function(assemblerId) {
+  window.rejectFromDetail = function(id) {
     document.getElementById('asm-detail-modal').classList.remove('open');
-    pendingAction = { type: 'reject-assembler', assemblerId: assemblerId };
+    pendingAction = { type:'reject-assembler', assemblerId:id };
     document.getElementById('reason-modal-title').textContent = 'Reject Application';
-    document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback to the assembler. They will receive an email.';
+    document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback. They will receive an email.';
     document.getElementById('reason-confirm').textContent = 'Reject';
     document.getElementById('reason-confirm').className = 'btn btn-red';
     $reasonText.value = '';
     $reasonModal.classList.add('open');
   };
 
-  window.promoteAssembler = async function(assemblerId, newTier) {
+  window.promoteAssembler = async function(id, newTier) {
     document.getElementById('asm-detail-modal').classList.remove('open');
     try {
-      var r = await fetch('/api/assembler/update', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ assemblerId: assemblerId, tier: newTier }),
-      });
+      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:newTier }) });
       var data = await r.json();
       if (data.error) { toast(data.error, 'error'); return; }
-      var label = newTier.charAt(0).toUpperCase() + newTier.slice(1);
-      toast('Assembler promoted to ' + label, 'success');
+      toast('Assembler promoted to ' + newTier.charAt(0).toUpperCase() + newTier.slice(1), 'success');
       loadAssemblerList();
     } catch { toast('Failed to update tier', 'error'); }
   };
 
-  window.downgradeAssembler = async function(assemblerId, newTier) {
-    var label = newTier.charAt(0).toUpperCase() + newTier.slice(1);
-    if (!confirm('Demote this assembler to ' + label + '?')) return;
+  window.downgradeAssembler = async function(id, newTier) {
+    if (!confirm('Demote this assembler to ' + newTier + '?')) return;
     document.getElementById('asm-detail-modal').classList.remove('open');
     try {
-      var r = await fetch('/api/assembler/update', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ assemblerId: assemblerId, tier: newTier }),
-      });
+      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:newTier }) });
       var data = await r.json();
       if (data.error) { toast(data.error, 'error'); return; }
-      toast('Assembler demoted to ' + label, 'success');
+      toast('Assembler demoted to ' + newTier.charAt(0).toUpperCase() + newTier.slice(1), 'success');
       loadAssemblerList();
     } catch { toast('Failed to update tier', 'error'); }
   };
 
-  window.suspendAssembler = async function(assemblerId) {
-    if (!confirm('Suspend this assembler? They will no longer appear to customers.')) return;
+  window.suspendAssembler = async function(id) {
+    if (!confirm('Suspend this assembler?')) return;
     document.getElementById('asm-detail-modal').classList.remove('open');
     try {
-      var r = await fetch('/api/assembler/update', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ assemblerId: assemblerId, tier: 'suspended' }),
-      });
+      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:'suspended' }) });
       var data = await r.json();
       if (data.error) { toast(data.error, 'error'); return; }
       toast('Assembler suspended', 'success');
@@ -1510,17 +1516,11 @@
     } catch { toast('Failed to suspend assembler', 'error'); }
   };
 
-  document.getElementById('asm-detail-close').addEventListener('click', function() {
-    document.getElementById('asm-detail-modal').classList.remove('open');
-  });
-  document.getElementById('asm-detail-modal').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('open');
-  });
-  $reasonModal.addEventListener('click', function(e) {
-    if (e.target === this) { this.classList.remove('open'); pendingAction = null; }
-  });
+  document.getElementById('asm-detail-close').addEventListener('click', function() { document.getElementById('asm-detail-modal').classList.remove('open'); });
+  document.getElementById('asm-detail-modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  $reasonModal.addEventListener('click', function(e) { if (e.target === this) { this.classList.remove('open'); pendingAction = null; } });
 
-  // ─── Marketplace Jobs ───
+  // ─── Marketplace ───
   var allMarketplaceJobs = [];
   var currentMktStatus = 'all';
 
@@ -1532,24 +1532,18 @@
       if (!r.ok) throw new Error('Failed');
       var data = await r.json();
       allMarketplaceJobs = data.jobs || [];
-
-      // Stats
-      var total = allMarketplaceJobs.length;
-      var open = allMarketplaceJobs.filter(function(j){ return j.status === 'open'; }).length;
-      var assigned = allMarketplaceJobs.filter(function(j){ return j.status === 'assigned' || j.status === 'in_progress'; }).length;
-      var completed = allMarketplaceJobs.filter(function(j){ return j.status === 'completed'; }).length;
-      document.getElementById('mkt-total').textContent = total;
+      var open = allMarketplaceJobs.filter(function(j){ return j.status==='open'; }).length;
+      var assigned = allMarketplaceJobs.filter(function(j){ return j.status==='assigned'||j.status==='in_progress'; }).length;
+      var completed = allMarketplaceJobs.filter(function(j){ return j.status==='completed'; }).length;
+      document.getElementById('mkt-total').textContent = allMarketplaceJobs.length;
       document.getElementById('mkt-open').textContent = open;
       document.getElementById('mkt-assigned').textContent = assigned;
       document.getElementById('mkt-completed').textContent = completed;
-
-      // Sidebar badge — show open job count
       var $navMkt = document.getElementById('nav-marketplace');
       if (open > 0) { $navMkt.textContent = open; $navMkt.style.display = ''; }
       else $navMkt.style.display = 'none';
-
       renderMarketplaceTable();
-    } catch (e) {
+    } catch(e) {
       document.getElementById('mkt-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load marketplace jobs</td></tr>';
     }
   }
@@ -1564,53 +1558,35 @@
   });
 
   function mktStatusBadge(status) {
-    var map = {
-      open:        'badge-pending',
-      assigned:    'badge-confirmed',
-      in_progress: 'badge-confirmed',
-      completed:   'badge-completed',
-      cancelled:   'badge-cancelled',
-    };
-    return '<span class="badge ' + (map[status] || '') + '">' + esc(status || '—') + '</span>';
+    var map = { open:'badge-pending', assigned:'badge-confirmed', in_progress:'badge-confirmed', completed:'badge-completed', cancelled:'badge-cancelled' };
+    return '<span class="badge ' + (map[status]||'') + '">' + esc(status||'—') + '</span>';
   }
 
   function formatBudget(job) {
     if (job.budget_type === 'fixed' && job.fixed_price) return '$' + job.fixed_price;
-    if (job.budget_type === 'range' && (job.budget_min || job.budget_max)) {
-      return '$' + (job.budget_min || 0) + '–$' + (job.budget_max || '?');
-    }
+    if (job.budget_type === 'range' && (job.budget_min || job.budget_max)) return '$' + (job.budget_min||0) + '–$' + (job.budget_max||'?');
     return '—';
   }
 
   function renderMarketplaceTable() {
-    var filtered = currentMktStatus === 'all'
-      ? allMarketplaceJobs
-      : allMarketplaceJobs.filter(function(j){ return j.status === currentMktStatus; });
-
-    // Update tab counts
+    var filtered = currentMktStatus === 'all' ? allMarketplaceJobs : allMarketplaceJobs.filter(function(j){ return j.status===currentMktStatus; });
     document.querySelectorAll('#mkt-tabs .tab').forEach(function(t) {
       var s = t.dataset.mktStatus;
-      var c = s === 'all' ? allMarketplaceJobs.length : allMarketplaceJobs.filter(function(j){ return j.status === s; }).length;
+      var c = s === 'all' ? allMarketplaceJobs.length : allMarketplaceJobs.filter(function(j){ return j.status===s; }).length;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
     });
-
     var tbody = document.getElementById('mkt-tbody');
-    if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No ' + (currentMktStatus === 'all' ? '' : currentMktStatus + ' ') + 'jobs found</td></tr>';
-      return;
-    }
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No ' + (currentMktStatus==='all'?'':currentMktStatus+' ') + 'jobs found</td></tr>'; return; }
+    var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
     tbody.innerHTML = filtered.map(function(j) {
-      var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
       var bidCount = (j.bids && j.bids.length) ? (j.bids[0].count || 0) : 0;
-      var customerName = j.customer ? esc(j.customer.full_name) : '—';
-      var customerCity = j.customer ? esc(j.customer.city || '—') : '—';
       return '<tr style="cursor:pointer" data-mkt-job-id="' + j.id + '">'
         + '<td style="' + rs + '"><strong>' + esc(j.title) + '</strong></td>'
-        + '<td style="' + rs + '">' + customerName + '</td>'
-        + '<td style="' + rs + '">' + esc(j.category || '—') + '</td>'
-        + '<td style="' + rs + '">' + customerCity + (j.state ? ', ' + esc(j.state) : '') + '</td>'
+        + '<td style="' + rs + '">' + (j.customer ? esc(j.customer.full_name) : '—') + '</td>'
+        + '<td style="' + rs + '">' + esc(j.category||'—') + '</td>'
+        + '<td style="' + rs + '">' + (j.customer ? esc(j.customer.city||'—') : '—') + (j.state ? ', ' + esc(j.state) : '') + '</td>'
         + '<td style="' + rs + '">' + mktStatusBadge(j.status) + '</td>'
         + '<td style="' + rs + ';text-align:center">' + bidCount + '</td>'
         + '<td style="' + rs + '">' + formatBudget(j) + '</td>'
@@ -1621,101 +1597,80 @@
 
   document.getElementById('mkt-tbody').addEventListener('click', async function(e) {
     var row = e.target.closest('[data-mkt-job-id]');
-    if (!row) return;
-    await loadMarketplaceJobDetail(row.dataset.mktJobId);
+    if (row) await loadMarketplaceJobDetail(row.dataset.mktJobId);
   });
 
   async function loadMarketplaceJobDetail(jobId) {
-    var $panel  = document.getElementById('mkt-detail');
-    var $grid   = document.getElementById('mkt-detail-grid');
-    var $title  = document.getElementById('mkt-detail-title');
-    var $bids   = document.getElementById('mkt-bids-list');
-
+    var $panel = document.getElementById('mkt-detail');
+    var $grid  = document.getElementById('mkt-detail-grid');
+    var $title = document.getElementById('mkt-detail-title');
+    var $bids  = document.getElementById('mkt-bids-list');
     $panel.classList.add('open');
     $title.textContent = 'Loading…';
     $grid.innerHTML = '';
     $bids.innerHTML = '<div style="color:var(--muted);padding:1rem 0">Loading bids…</div>';
-    $panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
+    $panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
     try {
-      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { headers: headers() });
+      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { headers:headers() });
       if (!r.ok) throw new Error('Failed');
       var data = await r.json();
       var j = data.job;
       if (!j) throw new Error('No job');
-
       $title.textContent = j.title;
       $grid.innerHTML = [
-        field('Customer',       j.customer ? esc(j.customer.full_name) : '—'),
-        field('Customer Email', j.customer ? esc(j.customer.email)     : '—'),
-        field('Category',       esc(j.category  || '—')),
-        field('Location',       esc((j.city || '') + (j.state ? ', ' + j.state : '') || '—')),
-        field('Status',         mktStatusBadge(j.status)),
-        field('Budget',         formatBudget(j)),
-        field('Description',    '<span style="white-space:pre-wrap">' + esc(j.description || '—') + '</span>'),
-        field('Posted',         formatDateTime(j.created_at)),
-        j.assigned_at  ? field('Assigned',  formatDateTime(j.assigned_at))  : '',
+        field('Customer', j.customer ? esc(j.customer.full_name) : '—'),
+        field('Customer Email', j.customer ? esc(j.customer.email) : '—'),
+        field('Category', esc(j.category||'—')),
+        field('Location', esc((j.city||'') + (j.state ? ', ' + j.state : '')||'—')),
+        field('Status', mktStatusBadge(j.status)),
+        field('Budget', formatBudget(j)),
+        field('Description', '<span style="white-space:pre-wrap">' + esc(j.description||'—') + '</span>'),
+        field('Posted', formatDateTime(j.created_at)),
+        j.assigned_at ? field('Assigned', formatDateTime(j.assigned_at)) : '',
         j.completed_at ? field('Completed', formatDateTime(j.completed_at)) : '',
       ].filter(Boolean).join('');
-
       var bids = j.bids || [];
       if (!bids.length) {
         $bids.innerHTML = '<div style="color:var(--muted);padding:0.75rem 0">No bids yet</div>';
       } else {
         $bids.innerHTML = bids.map(function(b) {
-          var asmName  = b.assembler ? esc(b.assembler.full_name) : 'Unknown';
-          var asmCity  = b.assembler ? esc(b.assembler.city || '') : '';
-          var bidAmt   = b.bid_type === 'fixed' ? '$' + (b.amount || '?') : '$' + (b.amount || '?') + '/hr';
+          var asmName = b.assembler ? esc(b.assembler.full_name) : 'Unknown';
+          var bidAmt  = b.bid_type === 'fixed' ? '$' + (b.amount||'?') : '$' + (b.amount||'?') + '/hr';
           var statusColor = b.status === 'accepted' ? '#1d9e75' : b.status === 'rejected' ? 'var(--red)' : 'var(--muted)';
           return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
-            + '<div style="display:flex;justify-content:space-between;align-items:center">'
-            + '<strong>' + asmName + '</strong>'
-            + '<span style="font-weight:600;color:var(--teal)">' + bidAmt + '</span>'
-            + '</div>'
-            + '<div style="font-size:0.8rem;color:var(--muted);margin-top:2px">'
-            + asmCity
-            + (b.assembler && b.assembler.rating     ? ' &bull; ' + Number(b.assembler.rating).toFixed(1) + ' &#9733;' : '')
-            + (b.assembler && b.assembler.completed_jobs ? ' &bull; ' + b.assembler.completed_jobs + ' jobs' : '')
-            + '</div>'
+            + '<div style="display:flex;justify-content:space-between;align-items:center"><strong>' + asmName + '</strong><span style="font-weight:600;color:var(--teal)">' + bidAmt + '</span></div>'
+            + '<div style="font-size:0.8rem;color:var(--muted);margin-top:2px">' + (b.assembler ? esc(b.assembler.city||'') : '') + (b.assembler && b.assembler.rating ? ' &bull; ' + Number(b.assembler.rating).toFixed(1) + ' &#9733;' : '') + (b.assembler && b.assembler.completed_jobs ? ' &bull; ' + b.assembler.completed_jobs + ' jobs' : '') + '</div>'
             + (b.note ? '<div style="font-size:0.8rem;color:var(--soft);margin-top:4px;font-style:italic">' + esc(b.note) + '</div>' : '')
-            + '<div style="font-size:0.75rem;color:' + statusColor + ';margin-top:4px;font-weight:600">'
-            + (b.status || 'pending').toUpperCase() + ' &bull; ' + formatDate(b.created_at)
-            + '</div>'
+            + '<div style="font-size:0.75rem;color:' + statusColor + ';margin-top:4px;font-weight:600">' + (b.status||'pending').toUpperCase() + ' &bull; ' + formatDate(b.created_at) + '</div>'
             + '</div>';
         }).join('');
       }
-
-      // Action buttons
       var $actions = document.getElementById('mkt-detail-actions');
       $actions.innerHTML = '';
       if (j.status === 'open') {
-        var cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn btn-amber';
-        cancelBtn.textContent = 'Close Job';
-        cancelBtn.onclick = function() { closeMarketplaceJob(j.id, 'cancelled'); };
-        $actions.appendChild(cancelBtn);
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'btn btn-amber';
+        closeBtn.textContent = 'Close Job';
+        closeBtn.onclick = function() { closeMarketplaceJob(j.id, 'cancelled'); };
+        $actions.appendChild(closeBtn);
       }
       var deleteBtn = document.createElement('button');
       deleteBtn.className = 'btn btn-red';
       deleteBtn.textContent = '🗑 Delete Job';
       deleteBtn.onclick = function() { deleteMarketplaceJob(j.id); };
       $actions.appendChild(deleteBtn);
-    } catch (e) {
+    } catch(e) {
       $title.textContent = 'Error';
       $bids.innerHTML = '<div style="color:var(--red);padding:1rem 0">Failed to load job detail</div>';
     }
   }
 
-  document.getElementById('mkt-detail-close').addEventListener('click', function() {
-    document.getElementById('mkt-detail').classList.remove('open');
-  });
+  document.getElementById('mkt-detail-close').addEventListener('click', function() { document.getElementById('mkt-detail').classList.remove('open'); });
 
   async function closeMarketplaceJob(jobId, newStatus) {
     if (!confirm('Change this job to "' + newStatus + '"?')) return;
     try {
-      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), {
-        method: 'PATCH', headers: headers(), body: JSON.stringify({ status: newStatus })
-      });
+      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { method:'PATCH', headers:headers(), body:JSON.stringify({ status:newStatus }) });
       if (!r.ok) throw new Error();
       toast('Job updated to ' + newStatus);
       document.getElementById('mkt-detail').classList.remove('open');
@@ -1726,9 +1681,7 @@
   async function deleteMarketplaceJob(jobId) {
     if (!confirm('Permanently delete this job and all its bids? This cannot be undone.')) return;
     try {
-      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), {
-        method: 'DELETE', headers: headers()
-      });
+      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { method:'DELETE', headers:headers() });
       if (!r.ok) throw new Error();
       toast('Job deleted');
       document.getElementById('mkt-detail').classList.remove('open');
