@@ -135,6 +135,14 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </div>
 </article>
 
+<section style="background:linear-gradient(135deg,#003d47,#006070);padding:3rem 2rem;text-align:center;margin-top:3rem">
+  <div style="max-width:560px;margin:0 auto">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;font-weight:700">Ready to book?</div>
+    <h2 style="font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;margin-bottom:0.75rem">Get it done today</h2>
+    <p style="font-size:0.95rem;color:rgba(255,255,255,0.78);line-height:1.7;margin-bottom:1.75rem">Licensed and insured pros in Austin. Transparent pricing. Pay only after the job is done.</p>
+    <a href="/book" style="display:inline-flex;align-items:center;gap:6px;background:#0097a7;color:#fff;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:600;padding:0.9rem 2rem;border-radius:999px;text-decoration:none;transition:background 0.15s">Book Now &rarr;</a>
+  </div>
+</section>
 <footer class="footer">
   <div class="footer-inner">
     <div>
@@ -168,7 +176,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
 </footer>
 <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
-<div id="cookie-banner" class="hidden"><span>We use cookies to improve your experience. <a href="/privacy">Privacy Policy</a></span><div class="cookie-btns"><button class="cookie-btn cookie-accept" onclick="document.getElementById('cookie-banner').classList.add('hidden');localStorage.setItem('cookie-consent','accepted')">Accept</button><button class="cookie-btn cookie-decline" onclick="document.getElementById('cookie-banner').classList.add('hidden')">Decline</button></div></div>
+<div id="cookie-banner" class="hidden"><span>We use cookies to improve your experience. <a href="/privacy">Privacy Policy</a></span><div class="cookie-btns"><button class="cookie-btn cookie-accept" style="background:#0097a7;color:#fff;font-weight:700" onclick="document.getElementById('cookie-banner').classList.add('hidden');localStorage.setItem('cookie-consent','accepted')">Accept</button><button class="cookie-btn cookie-decline" style="background:none;border:none;color:rgba(255,255,255,0.5);text-decoration:underline;cursor:pointer;font-size:0.8rem" onclick="document.getElementById('cookie-banner').classList.add('hidden')">Decline</button></div></div>
 <script>if(localStorage.getItem('cookie-consent')!=='accepted')document.getElementById('cookie-banner').classList.remove('hidden');</script>
 </body>
 </html>

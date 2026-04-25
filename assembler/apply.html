@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Apply as Assembler — AssembleAtEase</title>
+  <title>Apply as Assembler � AssembleAtEase</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Join the AssembleAtEase team. Apply to become a professional assembler in Austin, TX." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -181,7 +181,7 @@
 
     <!-- Payment -->
     <div class="section">
-      <div class="section-title">Application Fee — $30</div>
+      <div class="section-title">Application Fee � $30</div>
       <p style="font-size:0.875rem;color:#4a5568;margin:0 0 1rem;line-height:1.55">A one-time $30 application fee is required to cover the cost of identity verification. Your card will be charged when you submit.</p>
       <div class="form-group">
         <label>Card details *</label>
@@ -220,7 +220,7 @@
 
 <script>
 (function() {
-  // ── Stripe setup ──
+  // -- Stripe setup --
   // Fetch the real publishable key before mounting the card element.
   var stripe = null;
   var cardElement = null;
@@ -251,7 +251,7 @@
       document.getElementById('submit-btn').disabled = true;
     });
 
-  // ── Handle ?verification=complete return from Stripe Identity ──
+  // -- Handle ?verification=complete return from Stripe Identity --
   var params = new URLSearchParams(window.location.search);
   if (params.get('verification') === 'complete') {
     document.querySelector('.apply-wrap').style.display = 'none';
@@ -262,7 +262,7 @@
     document.getElementById('verification-complete-section').style.display = '';
   }
 
-  // ── Invite token detection and pre-fill ──
+  // -- Invite token detection and pre-fill --
   var inviteToken = params.get('invite');
   if (inviteToken) {
     document.getElementById('invite-token').value = inviteToken;
