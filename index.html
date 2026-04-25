@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <meta charset="UTF-8"/>
+<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <title>AssembleAtEase &mdash; Professional Assembly & Handyman Services Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Professional furniture assembly and handyman services in Austin, Texas. Licensed, insured, same-day available. Book online &mdash; pay after job done."/>
 <link rel="canonical" href="https://www.assembleatease.com/"/>
+<link rel="preload" as="image" href="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80" fetchpriority="high"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="AssembleAtEase &mdash; Professional Assembly & Handyman Services Austin TX"/>
 <meta property="og:description" content="Professional furniture assembly and handyman services in Austin, Texas. Licensed, insured, same-day available. Book online &mdash; pay after job done."/>
@@ -131,17 +132,17 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
 .footer-logo-text{font-family:var(--font-display);font-size:1.05rem;color:#fff}
 .footer-logo-text span{color:var(--cyan)}
-.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-bottom:1rem}
+.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.65;margin-bottom:1rem}
 .footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
 .footer-contact a:hover{color:var(--cyan)}
-.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;font-weight:700}
+.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.55);margin-bottom:0.85rem;font-weight:700}
 .footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
 .footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s}
 .footer-links a:hover{color:#fff}
 .footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
-.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2)}
+.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.5)}
 .footer-legal{display:flex;gap:1.25rem}
-.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.25);text-decoration:none;transition:color 0.15s}
+.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.15s}
 .footer-legal a:hover{color:rgba(255,255,255,0.6)}
 .assembler-waitlist{background:linear-gradient(135deg,#0a1628 0%,#132744 100%);padding:4rem 2rem;text-align:center}
 .waitlist-inner{max-width:600px;margin:0 auto}
@@ -347,12 +348,28 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   "description": "Professional furniture assembly and handyman services in Austin, Texas.",
   "url": "https://www.assembleatease.com",
   "email": "service@assembleatease.com",
+  "telephone": "+1-512-000-0000",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Austin",
+    "addressRegion": "TX",
+    "addressCountry": "US"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": "30.2672",
+    "longitude": "-97.7431"
+  },
   "areaServed": {
     "@type": "City",
     "name": "Austin",
     "addressRegion": "TX"
   },
   "priceRange": "$$",
+  "openingHoursSpecification": [
+    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "07:00", "closes": "17:00"},
+    {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday"], "opens": "07:00", "closes": "13:00"}
+  ],
   "serviceType": ["Furniture Assembly", "Home Repairs", "TV Mounting", "Smart Home Installation", "Junk Removal"]
 }
 </script>
@@ -360,10 +377,11 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <style>#stripe-card-element{border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;background:var(--white);transition:border-color 0.15s}.StripeElement--focus{border-color:var(--cyan) !important}.StripeElement--invalid{border-color:#ef4444 !important}#card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}</style>
 </head>
 <body>
+<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#0097a7;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" />
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" fetchpriority="high" /></picture>
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
@@ -397,6 +415,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
+<main id="main-content">
 <section class="hero">
   <div class="hero-inner">
     <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Licensed &amp; Insured</div>
@@ -556,40 +575,40 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       <div class="section-label">Common questions</div>
       <h2 class="section-title">FAQ</h2>
     </div>
-    <div class="faq-list"><div class="faq-item" onclick="toggleFaq(this)">
+    <div class="faq-list"><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>Do you bring your own tools?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Yes &mdash; we arrive fully equipped with everything needed to complete the job. You don't need to provide any tools or equipment.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>What areas do you serve?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We serve Austin, TX and surrounding areas &mdash; including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, Bee Cave, Manor, Leander, and Hutto. Not sure if we cover your zip? Just <a href="/contact" style="color:var(--cyan-dark)">ask us</a>.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>How quickly can you come?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We offer same-day and next-day availability for most services. Once you submit a request we'll confirm your appointment within 1 hour.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>What's your cancellation policy?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We require at least 24 hours' notice to cancel or reschedule. Cancellations made within 24 hours of your scheduled appointment are subject to a cancellation fee. This protects our professionals who reserved that time slot for you.</div>
 </div>
 
 <div id="faq-more" style="display:none">
-<div class="faq-item" onclick="toggleFaq(this)">
+<div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>When do I pay?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Payment is processed securely online after the job is completed to your satisfaction. We accept all major credit and debit cards. We do not accept cash, Zelle, or Venmo &mdash; all payments go through our secure platform.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>What if something gets damaged?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We treat your home and belongings with care. In the unlikely event of damage, we are fully insured and will make it right.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>Do I need to be home?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Yes, we ask that someone 18+ be present for the duration of the job. This ensures you can approve placement, mounting height, and final results.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>Can you assemble any brand?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Yes &mdash; IKEA, Wayfair, Amazon, Ashley, Target, Costco, Walmart and more. If it came in a box, we can build it.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>What's your minimum charge?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Our minimum service fee is $69. This covers most small jobs — nightstands, stools, small shelves, and similar single items.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>Are your technicians background checked?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">Yes &mdash; every technician is licensed, insured, and background checked before joining our team.</div>
-</div><div class="faq-item" onclick="toggleFaq(this)">
+</div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>Do you offer warranties on your work?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We do not offer a general satisfaction warranty. All our pros are fully insured &mdash; if a professional damages your property or belongings during a job, it will be covered. Report any damage within 48 hours of job completion.</div>
 </div>
@@ -610,10 +629,11 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 
 
 
+</main>
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" loading="lazy" /></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
       <div class="footer-contact">
         <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
@@ -673,10 +693,10 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 </div>
 
 <div class="modal-overlay" id="booking-modal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
     <div id="form-state">
       <div class="modal-header">
-        <div><div class="modal-title">Complete Your Booking</div><div class="modal-sub">Fill out your details once for all selected services.</div></div>
+        <div><div class="modal-title" id="booking-modal-title">Complete Your Booking</div><div class="modal-sub">Fill out your details once for all selected services.</div></div>
         <button class="modal-close" aria-label="Close booking form" onclick="AAE.closeBooking()">&times;</button>
       </div>
       <div class="cart-summary">
@@ -1245,7 +1265,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script>
 function toggleFaq(el) {
+  var isOpen = el.classList.contains('open');
   el.classList.toggle('open');
+  el.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
 }
 function toggleFaqMore(btn) {
   var more = document.getElementById('faq-more');
@@ -1258,7 +1280,7 @@ function toggleFaqMore(btn) {
   }
 }
 </script>
-<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+<script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 <div id="cookie-banner" class="hidden">
   <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
   <div class="cookie-btns">
