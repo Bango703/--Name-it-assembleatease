@@ -69,7 +69,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://js-na2.hs-scripts.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://nominatim.openstreetmap.org https://*.supabase.co https://api.resend.com https://*.hubspot.com; frame-src https://js.stripe.com; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://js-na2.hs-scripts.com https://js-na2.hs-analytics.net https://js-na2.hs-banner.com https://js-na2.hscollectedforms.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://nominatim.openstreetmap.org https://*.supabase.co https://api.resend.com https://*.hubspot.com; frame-src https://js.stripe.com; object-src 'none'"
         }
       ]
     }
