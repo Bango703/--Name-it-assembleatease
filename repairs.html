@@ -125,7 +125,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <img src="/images/logo.jpg" alt="AssembleAtEase Logo"/>
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/>
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
@@ -148,6 +148,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <a href="/junk">Junk Removal</a>
   <a href="/book?service=Home+Repairs" class="btn btn-cyan btn-full">Book Now</a>
 </div>
+<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
 <section class="page-hero">
   <div class="page-hero-inner">
@@ -248,7 +249,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-logo"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
       <div class="footer-contact"><a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a></div>
     </div>

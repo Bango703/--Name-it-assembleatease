@@ -1,14 +1,14 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <meta charset="UTF-8"/>
-<title>Contact Us â€” AssembleAtEase Austin TX</title>
+<title>Contact Us — AssembleAtEase Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Call, email, or book online. Same-day service available."/>
 <link rel="canonical" href="https://www.assembleatease.com/contact"/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="Contact Us â€” AssembleAtEase Austin TX"/>
+<meta property="og:title" content="Contact Us — AssembleAtEase Austin TX"/>
 <meta property="og:description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Call, email, or book online. Same-day service available."/>
 <meta property="og:url" content="https://www.assembleatease.com/contact"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
@@ -16,10 +16,10 @@
 <meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta property="og:image:width" content="512"/>
 <meta property="og:image:height" content="512"/>
-<meta property="og:image:alt" content="AssembleAtEase â€” Professional Assembly &amp; Handyman Services Austin TX"/>
+<meta property="og:image:alt" content="AssembleAtEase — Professional Assembly &amp; Handyman Services Austin TX"/>
 <meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Contact Us â€” AssembleAtEase Austin TX"/>
+<meta name="twitter:title" content="Contact Us — AssembleAtEase Austin TX"/>
 <meta name="twitter:description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Same-day service available."/>
 <link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="apple-touch-icon" href="/images/logo.jpg"/>
@@ -212,7 +212,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <img src="/images/logo.jpg" alt="AssembleAtEase Logo" />
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" />
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
@@ -234,6 +234,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   <a href="/junk">Junk Removal</a>
   <a href="/book" class="btn btn-cyan btn-full">Book Now</a>
 </div>
+<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
 <section class="page-hero">
   <div class="page-hero-inner">
@@ -284,7 +285,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-logo"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
       <div class="footer-contact">
         <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
@@ -379,7 +380,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
         <input type="hidden" id="f-time" />
       </div>
       <div class="form-group"><label for="f-details">Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
-      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job â€” I'd like a custom quote</label></div>
+      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job — I'd like a custom quote</label></div>
       <div class="cart-estimate" id="cart-estimate"></div>
       <div class="form-err" id="form-err"></div>
       <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
@@ -411,7 +412,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   </div>
 </div>
 
-<script>// Shared cart â€” all pages
+<script>// Shared cart — all pages
 window.AAE = window.AAE || {};
 AAE.cart = JSON.parse(sessionStorage.getItem('aae_cart') || '[]');
 
@@ -463,7 +464,7 @@ AAE.toggleItem = function(name, price, btn) {
   } else {
     AAE.addItem(name, price);
     if (btn) {
-      btn.textContent = '\u2713 Added â€” click to remove';
+      btn.textContent = '\u2713 Added — click to remove';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card2 = btn.closest('.item-card, .service-card');
@@ -566,7 +567,7 @@ AAE.formatPhone = function(e) {
   input.setSelectionRange(pos + (newLen - oldLen), pos + (newLen - oldLen));
 };
 
-// Address autocomplete (free â€” OpenStreetMap Nominatim)
+// Address autocomplete (free — OpenStreetMap Nominatim)
 AAE.initAddressAutocomplete = function() {
   var input = document.getElementById('f-address');
   if (!input) return;
@@ -739,7 +740,7 @@ AAE.confirmCard = async function() {
     return;
   }
 
-  // Payment authorized â€” now send customer confirmation email
+  // Payment authorized — now send customer confirmation email
   try {
     await fetch('/api/booking-confirmed', {
       method: 'POST',
@@ -767,7 +768,7 @@ AAE.showSuccess = function(ref, services, address, date, time) {
 
 document.addEventListener('keydown', function(e) {
     document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added â€” click to remove';
+      btn.textContent = '\u2713 Added — click to remove';
       btn.style.background = 'var(--cyan)';
       btn.style.color = '#fff';
       var card = btn.closest('.item-card, .service-card');
