@@ -1126,8 +1126,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var monthsShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
     var slots=['8:00 AM - 10:00 AM','10:00 AM - 12:00 PM','12:00 PM - 2:00 PM','2:00 PM - 4:00 PM','4:00 PM - 6:00 PM','Flexible'];
-    var today=new Date();today.setHours(0,0,0,0);
-    var maxDate=new Date(today.getTime()+6*24*60*60*1000);
+    var today=new Date(); today=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    var maxDate=new Date(today.getFullYear(),today.getMonth(),today.getDate()+6);
     var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
     function pad(n){return n<10?'0'+n:n;}
     function render(){
