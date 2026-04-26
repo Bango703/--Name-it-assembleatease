@@ -180,49 +180,49 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="price-card-name">Single Item</div>
         <div class="price-card-desc">One piece of furniture from any brand &mdash; chairs, nightstands, shelves, and more.</div>
         <div class="price-card-price">From $69</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Single Item" onclick="svcAdd('Single Item','$69',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Bed Frame</div>
         <div class="price-card-desc">Twin, full, queen, or king bed frames &mdash; including platform, storage, and headboard attachment.</div>
         <div class="price-card-price">$75 &ndash; $95</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Bed Frame" onclick="svcAdd('Bed Frame','$75',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Dresser / Chest</div>
         <div class="price-card-desc">Bedroom dressers, chests of drawers, and drawer units assembled and leveled.</div>
         <div class="price-card-price">From $75</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Dresser / Chest" onclick="svcAdd('Dresser / Chest','$75',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Sofa / Sectional</div>
         <div class="price-card-desc">Sectional configuration, sofa legs, chaise and ottoman attachment.</div>
         <div class="price-card-price">From $85</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Sofa / Sectional" onclick="svcAdd('Sofa / Sectional','$85',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Wardrobe / Armoire</div>
         <div class="price-card-desc">Large flat-pack wardrobes including IKEA PAX, sliding door systems, and interior fittings.</div>
         <div class="price-card-price">$95 &ndash; $115</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Wardrobe / Armoire" onclick="svcAdd('Wardrobe / Armoire','$95',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Desk / Workstation</div>
         <div class="price-card-desc">Standing desks, L-shaped desks, gaming desks, and full computer workstations.</div>
         <div class="price-card-price">From $69</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Desk / Workstation" onclick="svcAdd('Desk / Workstation','$75',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Bookcase / Shelving</div>
         <div class="price-card-desc">Freestanding bookshelves, display cabinets, modular cube storage units.</div>
         <div class="price-card-price">From $69</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Bookcase / Shelving" onclick="svcAdd('Bookcase / Shelving','$69',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">Outdoor / Patio Set</div>
         <div class="price-card-desc">Patio dining sets, lounge chairs, outdoor sofas, and fire pit tables.</div>
         <div class="price-card-price">From $85</div>
-        <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Outdoor / Patio Set" onclick="svcAdd('Outdoor / Patio Set','$85',this)">+ Add to booking</button>
+        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card">
         <div class="price-card-name">3+ Items Bundle</div>
@@ -336,8 +336,6 @@ function declineCookies(){localStorage.setItem('cookie-consent','declined');docu
 document.getElementById('year').textContent=new Date().getFullYear();
 window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
 </script>
-<script>
-(function(){function _c(){return JSON.parse(sessionStorage.getItem('aae_cart')||'[]');}function _h(n){return _c().some(function(i){return i.name===n;});}window.svcAdd=function(name,price,btn){var cart=_c();if(!cart.some(function(i){return i.name===name;})){cart.push({name:name,price:price});sessionStorage.setItem('aae_cart',JSON.stringify(cart));}if(btn){btn.textContent='✓ Added — Book Now →';btn.onclick=function(){window.location.href='/book?service=Furniture+Assembly';};}};document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[data-svc]').forEach(function(btn){if(_h(btn.getAttribute('data-svc'))){btn.textContent='✓ Added — Book Now →';btn.onclick=function(){window.location.href='/book?service=Furniture+Assembly';};}});});})();
-</script>
+
 </body>
 </html>

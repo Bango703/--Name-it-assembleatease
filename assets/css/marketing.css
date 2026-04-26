@@ -153,5 +153,5 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 .StripeElement--focus{border-color:var(--cyan) !important}
 .StripeElement--invalid{border-color:#ef4444 !important}
 #card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}
-@media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}}
+@media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}.nav-auth-link,.nav-earn-btn,.nav-book-pill{display:none!important}}
 @media(max-width:700px){.footer-inner{grid-template-columns:1fr;gap:2rem}}
