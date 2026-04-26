@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
@@ -22,6 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
+<link rel="stylesheet" href="/assets/css/marketing.css"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--cyan:#0097a7;--cyan-dark:#00838f;--cyan-light:#e0f7fa;--ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;--border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;--radius:12px;--radius-xl:24px;--font-display:'DM Serif Display',serif;--font-body:'DM Sans',sans-serif;--shadow:0 4px 20px rgba(0,0,0,0.08);}
@@ -73,17 +74,17 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
 .footer-logo-text{font-family:var(--font-display);font-size:1.05rem;color:#fff}
 .footer-logo-text span{color:var(--cyan)}
-.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-bottom:1rem}
+.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.65;margin-bottom:1rem}
 .footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
 .footer-contact a:hover{color:var(--cyan)}
-.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;font-weight:700}
+.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.55);margin-bottom:0.85rem;font-weight:700}
 .footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
-.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s}
+.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.65);text-decoration:none;transition:color 0.15s}
 .footer-links a:hover{color:#fff}
 .footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
-.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.2)}
+.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.5)}
 .footer-legal{display:flex;gap:1.25rem}
-.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.25);text-decoration:none;transition:color 0.15s}
+.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.15s}
 .footer-legal a:hover{color:rgba(255,255,255,0.6)}
 .nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;background:none;border:none;z-index:300}
 .nav-hamburger span{display:block;width:24px;height:2px;background:var(--ink);border-radius:2px;transition:all 0.3s}
@@ -130,7 +131,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/>
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture>
       <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
@@ -139,6 +140,11 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><a href="/pricing">Pricing</a></li>
     </ul>
     <a href="/book" class="btn btn-cyan" style="padding:0.5rem 1.25rem;font-size:0.875rem">Book Now &rarr;</a>
+    <div style="display:flex;align-items:center;gap:1rem">
+      <a href="/auth/login" class="nav-auth-link">Sign In</a>
+      <a href="/assembler/earn" class="nav-earn-btn">Become a Pro</a>
+    </div>
+    <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
       <span></span><span></span><span></span>
     </button>
@@ -197,13 +203,13 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div class="price-card">
         <div class="price-card-name">Wardrobe / Armoire</div>
         <div class="price-card-desc">Large flat-pack wardrobes including IKEA PAX, sliding door systems, and interior fittings.</div>
-        <div class="price-card-price">$95 &ndash; $125</div>
+        <div class="price-card-price">$95 &ndash; $115</div>
         <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Wardrobe / Armoire" onclick="svcAdd('Wardrobe / Armoire','$95',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
         <div class="price-card-name">Desk / Workstation</div>
         <div class="price-card-desc">Standing desks, L-shaped desks, gaming desks, and full computer workstations.</div>
-        <div class="price-card-price">From $75</div>
+        <div class="price-card-price">From $69</div>
         <button class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem" data-svc="Desk / Workstation" onclick="svcAdd('Desk / Workstation','$75',this)">+ Add to booking</button>
       </div>
       <div class="price-card">
@@ -266,7 +272,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
       <div class="footer-contact"><a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a></div>
     </div>

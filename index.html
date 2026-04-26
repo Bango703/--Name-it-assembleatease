@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -7,6 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Professional furniture assembly and handyman services in Austin, Texas. Licensed, insured, same-day available. Book online &mdash; pay after job done."/>
 <link rel="canonical" href="https://www.assembleatease.com/"/>
+<link rel="stylesheet" href="/assets/css/marketing.css"/>
 <link rel="preload" as="image" href="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80" fetchpriority="high"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="AssembleAtEase &mdash; Professional Assembly & Handyman Services Austin TX"/>
@@ -29,135 +30,6 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --cyan:#0097a7;--cyan-dark:#0097a7;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;
-  --ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;
-  --border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;
-  --radius:12px;--radius-lg:18px;--radius-xl:24px;
-  --font-display:'DM Serif Display',serif;--font-body:'DM Sans',sans-serif;
-  --shadow:0 4px 20px rgba(0,0,0,0.08);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);
-}
-html{scroll-behavior:smooth}
-body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-.nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:68px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
-.nav-logo-text{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
-.nav-logo-text span{color:var(--cyan)}
-.nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
-.nav-links a{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
-.nav-links a:hover{color:var(--cyan-dark)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
-.btn-cyan{background:var(--cyan);color:#fff}
-.btn-cyan:hover{background:var(--cyan-dark);box-shadow:0 4px 16px rgba(0,188,212,0.35);transform:translateY(-1px)}
-.btn-white{background:#fff;color:var(--cyan-dark);font-weight:700}
-.btn-white:hover{background:var(--cyan-light)}
-.btn-ghost-white{background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.4)}
-.btn-ghost-white:hover{background:rgba(255,255,255,0.25)}
-.btn-lg{padding:1rem 2.5rem;font-size:1rem}
-.btn-full{width:100%}
-.btn-outline{background:transparent;color:var(--cyan-dark);border:2px solid var(--cyan);font-weight:600}
-.btn-outline:hover{background:var(--cyan-light)}
-.cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:1rem 2rem;z-index:300;display:none;align-items:center;justify-content:space-between;gap:1rem;box-shadow:0 -4px 24px rgba(0,0,0,0.2)}
-.cart-bar.show{display:flex}
-.cart-count{background:var(--cyan);color:#fff;font-size:0.8rem;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cart-bar-text{font-size:0.9rem;font-weight:500}
-.cart-bar-services{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-top:4px;max-width:600px;display:flex;flex-wrap:wrap;gap:0.35rem;align-items:center}
-.cart-bar-item{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.12);border-radius:999px;padding:2px 8px}
-.cart-bar-remove{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.95rem;padding:0;line-height:1}
-.cart-bar-remove:hover{color:#fff}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
-.modal-overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;transform:translateY(24px) scale(0.98);transition:transform 0.2s}
-.modal-overlay.open .modal{transform:translateY(0) scale(1)}
-.modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.75rem}
-.modal-title{font-family:var(--font-display);font-size:1.6rem;color:var(--ink)}
-.modal-sub{font-size:0.875rem;color:var(--muted);margin-top:0.3rem}
-.modal-close{background:var(--off-white);border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
-.modal-close:hover{background:var(--border);color:var(--ink)}
-.cart-summary{background:var(--cyan-light);border:1.5px solid var(--cyan-mid);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem}
-.cart-summary-title{font-size:0.75rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem}
-.cart-item-row{display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--cyan-mid)}
-.cart-item-row:last-child{border-bottom:none}
-.cart-item-name{font-size:0.85rem;font-weight:500;color:var(--ink)}
-.cart-item-price{font-size:0.85rem;font-weight:700;color:var(--cyan-dark)}
-.cart-item-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:1rem;padding:0;line-height:1;transition:color 0.15s}
-.cart-item-remove:hover{color:#ef4444}
-.cart-total{display:none}
-.cart-estimate{background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center}
-.cart-estimate-label{font-size:0.82rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em}
-.cart-estimate-value{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.form-group{margin-bottom:1.1rem}
-.form-group label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em}
-.form-group label .req{color:var(--cyan)}
-.form-control{width:100%;padding:0.8rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:var(--white);outline:none;transition:border-color 0.15s}
-.form-control:focus{border-color:var(--cyan)}
-.form-err{font-size:0.82rem;color:#ef4444;margin-bottom:1rem;display:none;padding:0.6rem 0.85rem;background:#fef2f2;border-radius:var(--radius);border:1px solid #fecaca}
-.dt-picker{margin-bottom:1.1rem}
-.dt-picker-label{display:block;font-size:0.78rem;font-weight:700;color:var(--ink-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em}
-.dt-picker-label .req{color:var(--cyan)}
-.dt-cal{border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--white)}
-.dt-cal-header{display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.5rem;background:var(--bg)}
-.dt-cal-title{font-size:0.8rem;font-weight:700;color:var(--ink);font-family:var(--font-display)}
-.dt-cal-nav{background:none;border:1.5px solid var(--border);border-radius:var(--radius);width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:0.85rem;transition:all 0.15s}
-.dt-cal-nav:hover{border-color:var(--cyan);color:var(--cyan)}
-.dt-cal-nav:disabled{opacity:0.3;cursor:default}
-.dt-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
-.dt-cal-dow{font-size:0.6rem;font-weight:700;color:var(--muted);padding:0.25rem 0;text-transform:uppercase;letter-spacing:0.04em}
-.dt-cal-day{padding:0.3rem 0;font-size:0.78rem;cursor:pointer;border:none;background:none;color:var(--ink);font-family:var(--font-body);transition:all 0.12s;border-radius:var(--radius);margin:1px}
-.dt-cal-day:hover:not(:disabled):not(.active){background:var(--bg);color:var(--cyan-dark)}
-.dt-cal-day.active{background:var(--cyan);color:#fff;font-weight:700}
-.dt-cal-day.today:not(.active){color:var(--cyan);font-weight:700}
-.dt-cal-day:disabled{color:var(--border);cursor:default}
-.dt-cal-day.empty{visibility:hidden}
-.dt-times{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.dt-time-btn{padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);cursor:pointer;font-size:0.75rem;font-family:var(--font-body);color:var(--ink);transition:all 0.15s}
-.dt-time-btn:hover{border-color:var(--cyan);background:var(--cyan-light)}
-.dt-time-btn.active{border-color:var(--cyan);background:var(--cyan);color:#fff}
-.dt-selected{margin-top:8px;font-size:0.8rem;color:var(--cyan-dark);font-weight:600}
-.add-more-btn{display:inline-flex;align-items:center;gap:4px;font-size:0.8rem;font-weight:600;color:var(--cyan-dark);background:none;border:1.5px dashed var(--cyan-mid);border-radius:var(--radius);padding:0.5rem 1rem;cursor:pointer;margin-top:0.75rem;transition:all 0.15s}
-.add-more-btn:hover{background:var(--cyan-light);border-color:var(--cyan)}
-.success-state{text-align:center;padding:2.5rem 0;display:none}
-.success-state.show{display:block}
-.success-icon{width:72px;height:72px;background:var(--cyan-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
-.success-icon svg{width:36px;height:36px;fill:var(--cyan-dark)}
-.success-title{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);margin-bottom:0.75rem}
-.success-desc{font-size:0.9rem;color:var(--muted);line-height:1.75}
-.footer{background:#0a1628;padding:3rem 2rem 2rem}
-.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
-.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
-.footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
-.footer-logo-text{font-family:var(--font-display);font-size:1.05rem;color:#fff}
-.footer-logo-text span{color:var(--cyan)}
-.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.65;margin-bottom:1rem}
-.footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
-.footer-contact a:hover{color:var(--cyan)}
-.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.55);margin-bottom:0.85rem;font-weight:700}
-.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
-.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s}
-.footer-links a:hover{color:#fff}
-.footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
-.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.5)}
-.footer-legal{display:flex;gap:1.25rem}
-.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.15s}
-.footer-legal a:hover{color:rgba(255,255,255,0.6)}
-.assembler-waitlist{background:linear-gradient(135deg,#0a1628 0%,#132744 100%);padding:4rem 2rem;text-align:center}
-.waitlist-inner{max-width:600px;margin:0 auto}
-.waitlist-title{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2.25rem);color:#fff;margin-bottom:0.75rem}
-.waitlist-desc{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.75;margin-bottom:1.5rem}
-.waitlist-form{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;max-width:500px;margin:0 auto 1rem;text-align:left}
-.waitlist-form .waitlist-full{grid-column:1/-1}
-.waitlist-input{padding:0.65rem 1.25rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-family:var(--font-body);font-size:0.9rem;width:100%;outline:none;transition:border 0.15s;box-sizing:border-box}
-select.waitlist-input{appearance:auto;cursor:pointer}
-select.waitlist-input option{background:#1a1a2e;color:#fff}
-.waitlist-input::placeholder{color:rgba(255,255,255,0.35)}
-.waitlist-input:focus{border-color:var(--cyan)}
-.waitlist-note{font-size:0.78rem;color:rgba(255,255,255,0.3);margin-top:0.5rem}
-.waitlist-success{animation:waitlistFadeIn .4s ease}.waitlist-success svg{margin-bottom:1rem}.waitlist-success h3{font-family:var(--font-display);font-size:1.5rem;color:#fff;margin-bottom:0.5rem}.waitlist-success p{font-size:0.95rem;color:rgba(255,255,255,0.6);line-height:1.6}.waitlist-success strong{color:var(--cyan)}@keyframes waitlistFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
 /* HERO */
 .hero{min-height:620px;display:flex;align-items:center;position:relative;background-color:#003d47;background-image:url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80');background-size:cover;background-position:center}
 .hero::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,30,40,0.78) 0%,rgba(0,97,119,0.55) 100%)}
@@ -277,15 +149,19 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   .nav-earn-btn,.nav-auth-link{display:none}
   .nav-logo img{width:32px;height:32px}
   @media(max-width:900px){.nav-book-pill{display:none!important}} .nav-book-pill{display:inline-flex;align-items:center;padding:0.38rem 0.9rem;background:var(--cyan);color:#fff;border-radius:999px;font-size:0.8rem;font-weight:700;text-decoration:none;white-space:nowrap;gap:4px;min-height:36px}
-  /* HERO — kill min-height, compact padding, hide body copy */
+  /* HERO — mobile layout */
   .hero{min-height:auto !important}
   .hero-inner{padding:1.75rem 1.25rem 2rem}
   .hero-title{font-size:1.95rem}
-  .hero-desc{display:none}
-  .hero-stats{display:none}
-  .hero-cats{flex-wrap:wrap;gap:0.45rem;justify-content:center;overflow:visible}
-  .hero-cat-pill{font-size:0.8rem;min-height:38px}
-  .hero-actions{margin-bottom:0}
+  .hero-desc{display:block;font-size:0.9rem;margin-bottom:1.25rem;color:rgba(255,255,255,0.82)}
+  .hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:var(--radius-lg);overflow:hidden;margin-top:1.25rem}
+  .hero-stat{padding:0.75rem 1rem}
+  .hero-stat-value{font-size:1.1rem}
+  .hero-stat-label{font-size:0.62rem}
+  .hero-cats{display:grid;grid-template-columns:1fr 1fr;gap:0.45rem}
+  .hero-cat-pill:last-child:nth-child(odd){grid-column:1 / -1}
+  .hero-cat-pill{font-size:0.8rem;min-height:38px;text-align:center;justify-content:center}
+  .hero-actions{margin-bottom:0;margin-top:1rem}
   .hero-actions .btn{width:100%;max-width:none;min-height:52px;font-size:1rem}
   /* TRUST — compact 2×2 grid, no descriptions (no overflow risk) */
   .trust-grid{display:grid !important;grid-template-columns:repeat(2,1fr);gap:0.5rem}
@@ -348,7 +224,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   "description": "Professional furniture assembly and handyman services in Austin, Texas.",
   "url": "https://www.assembleatease.com",
   "email": "service@assembleatease.com",
-  "telephone": "+1-512-000-0000",
+  "telephone": "+1-737-290-6129",
   "address": {
     "@type": "PostalAddress",
     "addressLocality": "Austin",
@@ -373,8 +249,6 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
   "serviceType": ["Furniture Assembly", "Home Repairs", "TV Mounting", "Smart Home Installation", "Junk Removal"]
 }
 </script>
-<style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#0097a7;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#0097a7;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
-<style>#stripe-card-element{border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;background:var(--white);transition:border-color 0.15s}.StripeElement--focus{border-color:var(--cyan) !important}.StripeElement--invalid{border-color:#ef4444 !important}#card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}</style>
 </head>
 <body>
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#0097a7;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
@@ -442,6 +316,10 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 
 <section class="section section-alt">
   <div class="section-inner">
+    <div class="section-header" style="margin-bottom:2rem">
+      <div class="section-label">Why Austin chooses us</div>
+      <h2 class="section-title">Built on trust</h2>
+    </div>
     <div class="trust-grid"><div class="trust-badge">
   <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
   <div class="trust-title">Fully Insured</div>
@@ -707,7 +585,7 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
       </div>
       <div class="form-row">
         <div class="form-group"><label for="f-name">Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
-        <div class="form-group"><label for="f-phone">Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="512-000-0000" /></div>
+        <div class="form-group"><label for="f-phone">Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="737-000-0000" /></div>
       </div>
       <div class="form-group"><label for="f-email">Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
       <div class="form-group"><label for="f-address">Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="Start typing your address..." autocomplete="off" /></div>
@@ -1295,6 +1173,8 @@ window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("
 if(window.location.hash==="#booking"){AAE.openBooking();}
 // Hide mobile Book Now bar when cart is active (cart already has Book Now)
 (function(){var cb=document.getElementById('cart-bar'),mb=document.getElementById('m-book-bar');if(!cb||!mb)return;new MutationObserver(function(){mb.classList.toggle('hide',cb.classList.contains('show'));}).observe(cb,{attributes:true,attributeFilter:['class']});})();
+// Hide mobile Book Now bar while hero CTA is visible on screen
+(function(){var mb=document.getElementById('m-book-bar'),hero=document.querySelector('.hero-actions');if(!mb||!hero)return;new IntersectionObserver(function(entries){mb.classList.toggle('hide',entries[0].isIntersecting);},{threshold:0.5}).observe(hero);})();
 });
 </script>
 </body>

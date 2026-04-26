@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:ukamyqnaukxlmeoncjgr.supabase.co)",
+      "WebFetch(domain:www.taskrabbit.com)"
+    ]
+  }
+}

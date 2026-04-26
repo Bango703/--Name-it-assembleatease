@@ -1,18 +1,7 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [
-    { "source": "/furniture",    "destination": "/book?service=Furniture+Assembly", "permanent": true },
-    { "source": "/furniture.html","destination": "/book?service=Furniture+Assembly", "permanent": true },
-    { "source": "/mounting",     "destination": "/book?service=TV+Mounting",        "permanent": true },
-    { "source": "/mounting.html","destination": "/book?service=TV+Mounting",        "permanent": true },
-    { "source": "/repairs",      "destination": "/book?service=Home+Repairs",       "permanent": true },
-    { "source": "/repairs.html", "destination": "/book?service=Home+Repairs",       "permanent": true },
-    { "source": "/smarthome",    "destination": "/book?service=Smart+Home",         "permanent": true },
-    { "source": "/smarthome.html","destination": "/book?service=Smart+Home",        "permanent": true },
-    { "source": "/junk",         "destination": "/book?service=Junk+Removal",       "permanent": true },
-    { "source": "/junk.html",    "destination": "/book?service=Junk+Removal",       "permanent": true }
-  ],
+  "redirects": [],
   "crons": [
     {
       "path": "/api/cron/review-request",
@@ -60,16 +49,16 @@
           "value": "SAMEORIGIN"
         },
         {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
         },
         {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(self)"
+        },
+        {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://js-na2.hs-scripts.com https://js-na2.hs-analytics.net https://js-na2.hs-banner.com https://js-na2.hscollectedforms.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://nominatim.openstreetmap.org https://*.supabase.co https://api.resend.com https://*.hubspot.com; frame-src https://js.stripe.com; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'strict-dynamic' https://js.stripe.com https://js-na2.hs-scripts.com https://js-na2.hs-analytics.net https://js-na2.hs-banner.com https://js-na2.hscollectedforms.net https://www.googletagmanager.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://nominatim.openstreetmap.org https://*.supabase.co https://api.resend.com https://*.hubspot.com https://www.googletagmanager.com; frame-src https://js.stripe.com https://js-na2.hs-scripts.com; object-src 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }
