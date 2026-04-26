@@ -156,12 +156,39 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <a href="/" class="page-back">&larr; Back to Home</a>
-    <h1 class="page-title">Junk Removal</h1>
-    <p class="page-desc">Fast, affordable junk removal in Austin. We haul away furniture, appliances, electronics, and more &mdash; same-day available.</p>
-    <a href="/book?service=Junk+Removal" class="btn btn-cyan btn-lg">Book Pickup &rarr;</a>
+<!-- ══ HERO ══ -->
+<section style="background:linear-gradient(135deg,#f0fdff 0%,#e0f7fa 50%,#f9fafb 100%);padding:4.5rem 2rem 3.5rem;border-bottom:1px solid var(--border)">
+  <div style="max-width:720px;margin:0 auto;text-align:center">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.3rem 0.9rem;font-size:0.72rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1.25rem">Austin&rsquo;s Top-Rated Service</div>
+    <h1 style="font-family:var(--font-display);font-size:clamp(2.2rem,5vw,3.4rem);color:var(--ink);line-height:1.1;margin-bottom:1rem">Junk Removal in Austin</h1>
+    <p style="font-size:1.05rem;color:var(--ink-soft);line-height:1.75;max-width:560px;margin:0 auto 1.5rem">Appliances, furniture, mattresses, electronics and more &mdash; we haul it all away quickly, responsibly, and without the stress.</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:1.75rem;flex-wrap:wrap">
+      <span style="color:#f59e0b">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+      <strong style="font-size:0.95rem;color:var(--ink)">4.8 &bull; 112+ reviews &bull; Austin&rsquo;s same-day junk removal</strong>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;margin-bottom:2rem">
+      <a href="/book?service=Junk+Removal" style="display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#fff;font-family:var(--font-body);font-size:1.05rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;box-shadow:0 4px 20px rgba(0,151,167,0.3)">Book Pickup &rarr;</a>
+      <span style="font-size:0.82rem;color:var(--muted)">From $69 &bull; No charge until the job is done</span>
+    </div>
+    <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;font-size:0.82rem;color:var(--ink-soft)">
+      <span>&#10003; Background Checked</span><span>&#10003; Licensed &amp; Insured</span><span>&#10003; Same-Day Available</span><span>&#10003; Pay After</span>
+    </div>
+  </div>
+</section>
+<!-- ══ HOW IT WORKS ══ -->
+<section style="background:var(--off-white);padding:4rem 2rem;border-bottom:1px solid var(--border)">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Simple Process</div>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Book in minutes. Done today.</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:0.5rem">
+      <div style="text-align:center;padding:1.5rem 1rem"><div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">1</div><h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Book online</h3><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Choose your service, pick a time. Takes under 2 minutes.</p></div>
+      <div style="font-size:1.5rem;color:var(--border);padding-top:2.5rem">&#8594;</div>
+      <div style="text-align:center;padding:1.5rem 1rem"><div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">2</div><h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">We confirm</h3><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Within 1 hour we confirm and assign a verified Austin pro.</p></div>
+      <div style="font-size:1.5rem;color:var(--border);padding-top:2.5rem">&#8594;</div>
+      <div style="text-align:center;padding:1.5rem 1rem"><div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">3</div><h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Pay after</h3><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Your pro completes the job. Only then is your card charged.</p></div>
+    </div>
   </div>
 </section>
 
@@ -238,6 +265,69 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       </div>
     </div>
   </div>
+<!-- ══ REVIEWS ══ -->
+<section style="background:var(--white);padding:4.5rem 2rem;border-bottom:1px solid var(--border)">
+  <div style="max-width:960px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Customer Reviews</div>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">What Austin customers say</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem">
+      <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem">
+        <div style="color:#f59e0b;margin-bottom:0.75rem">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.75;margin-bottom:1.25rem;font-style:italic">&ldquo;Cleared out my entire garage &mdash; old furniture, broken appliances, bags of junk from years of accumulation. Everything gone in one trip. They were fast, careful with the walls, and swept up after.&rdquo;</p>
+        <div style="display:flex;align-items:center;gap:0.75rem"><div style="width:38px;height:38px;border-radius:50%;background:#92400e;color:#fff;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">LB</div><div><div style="font-size:0.875rem;font-weight:600;color:var(--ink)">Lauren B.</div><div style="font-size:0.75rem;color:var(--muted)">North Austin &bull; Garage Cleanout</div></div></div>
+      </div>
+      <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem">
+        <div style="color:#f59e0b;margin-bottom:0.75rem">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.75;margin-bottom:1.25rem;font-style:italic">&ldquo;Needed a couch, old washer, and a fridge removed. Same-day appointment, showed up on time, moved everything without scratching my floors. Simple and stress-free.&rdquo;</p>
+        <div style="display:flex;align-items:center;gap:0.75rem"><div style="width:38px;height:38px;border-radius:50%;background:#0097a7;color:#fff;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">SM</div><div><div style="font-size:0.875rem;font-weight:600;color:var(--ink)">Scott M.</div><div style="font-size:0.75rem;color:var(--muted)">Buda, TX &bull; Furniture + Appliances</div></div></div>
+      </div>
+      <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem">
+        <div style="color:#f59e0b;margin-bottom:0.75rem">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.75;margin-bottom:1.25rem;font-style:italic">&ldquo;Moving out of an office and needed everything hauled. Three loads of desks, chairs, and electronics. They handled the whole thing in an afternoon and even separated out the recyclables.&rdquo;</p>
+        <div style="display:flex;align-items:center;gap:0.75rem"><div style="width:38px;height:38px;border-radius:50%;background:#374151;color:#fff;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">EP</div><div><div style="font-size:0.875rem;font-weight:600;color:var(--ink)">Elena P.</div><div style="font-size:0.75rem;color:var(--muted)">East Austin &bull; Office Cleanout</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ══ FAQ ══ -->
+<section style="background:var(--off-white);padding:4.5rem 2rem;border-bottom:1px solid var(--border)">
+  <div style="max-width:680px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">FAQ</div>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Common questions</h2>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+        <button onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fc').style.transform=a.style.display==='block'?'rotate(180deg)':''" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;background:none;border:none;cursor:pointer;font-family:var(--font-body);font-size:0.9rem;font-weight:600;color:var(--ink);text-align:left">What items do you remove? <span class="fc" style="transition:transform 0.2s;flex-shrink:0;color:var(--muted);font-size:1.1rem">&#8964;</span></button>
+        <div style="display:none;padding:0 1.25rem 1rem;font-size:0.875rem;color:var(--muted);line-height:1.75">Furniture, appliances (fridges, washers, dryers), mattresses, electronics, office equipment, yard waste, and general household junk. We&rsquo;ll let you know if something requires special handling.</div>
+      </div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+        <button onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fc').style.transform=a.style.display==='block'?'rotate(180deg)':''" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;background:none;border:none;cursor:pointer;font-family:var(--font-body);font-size:0.9rem;font-weight:600;color:var(--ink);text-align:left">Do you offer same-day junk removal? <span class="fc" style="transition:transform 0.2s;flex-shrink:0;color:var(--muted);font-size:1.1rem">&#8964;</span></button>
+        <div style="display:none;padding:0 1.25rem 1rem;font-size:0.875rem;color:var(--muted);line-height:1.75">Yes &mdash; same-day availability for most pickups in Austin. Book before noon for best same-day availability.</div>
+      </div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+        <button onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fc').style.transform=a.style.display==='block'?'rotate(180deg)':''" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;background:none;border:none;cursor:pointer;font-family:var(--font-body);font-size:0.9rem;font-weight:600;color:var(--ink);text-align:left">How is pricing determined? <span class="fc" style="transition:transform 0.2s;flex-shrink:0;color:var(--muted);font-size:1.1rem">&#8964;</span></button>
+        <div style="display:none;padding:0 1.25rem 1rem;font-size:0.875rem;color:var(--muted);line-height:1.75">Pricing is based on the volume of junk (number of items or truck space used). See our pricing section above for common item costs. Large cleanouts are custom quoted.</div>
+      </div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+        <button onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fc').style.transform=a.style.display==='block'?'rotate(180deg)':''" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;background:none;border:none;cursor:pointer;font-family:var(--font-body);font-size:0.9rem;font-weight:600;color:var(--ink);text-align:left">Do you donate or recycle items? <span class="fc" style="transition:transform 0.2s;flex-shrink:0;color:var(--muted);font-size:1.1rem">&#8964;</span></button>
+        <div style="display:none;padding:0 1.25rem 1rem;font-size:0.875rem;color:var(--muted);line-height:1.75">Yes &mdash; we separate usable items for donation and recycle where possible. We aim to keep as much as possible out of the landfill.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ══ FINAL CTA ══ -->
+<section style="background:linear-gradient(135deg,#003d47,#006070);padding:5rem 2rem;text-align:center">
+  <div style="max-width:600px;margin:0 auto">
+    <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done today?</h2>
+    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Licensed pros, flat-rate pricing, same-day available. Book in minutes &mdash; pay only after the job is complete.</p>
+    <a href="/book?service=Junk+Removal" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#006070;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book Pickup &rarr;</a>
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)">&#128222; <a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; &#9993; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
+  </div>
+</section>
+
 </section>
 
 <footer class="footer">
