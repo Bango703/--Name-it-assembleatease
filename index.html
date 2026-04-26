@@ -580,63 +580,14 @@
       <div class="cart-summary">
         <div class="cart-summary-title">Your Selected Services</div>
         <div id="modal-cart-items"></div>
-        <div class="cart-total" id="modal-cart-total"></div>
+        <div class="cart-estimate" id="cart-estimate"></div>
         <button class="add-more-btn" onclick="AAE.closeBooking();document.getElementById('services').scrollIntoView({behavior:'smooth'})">+ Add more services</button>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label for="f-name">Full name <span class="req">*</span></label><input type="text" id="f-name" class="form-control" placeholder="Jane Smith" /></div>
-        <div class="form-group"><label for="f-phone">Phone number <span class="req">*</span></label><input type="tel" id="f-phone" class="form-control" placeholder="737-000-0000" /></div>
+      <p style="font-size:0.875rem;color:var(--muted);line-height:1.65;margin:1.25rem 0">Continue to our quick booking form to pick your date, enter your details, and secure your appointment.</p>
+      <div style="display:flex;flex-direction:column;gap:0.6rem">
+        <a href="/book" id="modal-book-btn" class="btn btn-cyan btn-full btn-lg" onclick="AAE.passCartToBook(event)">Continue to Booking &rarr;</a>
       </div>
-      <div class="form-group"><label for="f-email">Email address <span class="req">*</span></label><input type="email" id="f-email" class="form-control" placeholder="you@example.com" /></div>
-      <div class="form-group"><label for="f-address">Service address <span class="req">*</span></label><input type="text" id="f-address" class="form-control" placeholder="Start typing your address..." autocomplete="off" /></div>
-      <div class="dt-picker" id="dt-picker">
-        <label class="dt-picker-label">Preferred date &amp; time <span class="req">*</span></label>
-        <div class="dt-cal" id="dt-cal">
-          <div class="dt-cal-header">
-            <button type="button" class="dt-cal-nav" id="dt-prev">&lsaquo;</button>
-            <span class="dt-cal-title" id="dt-cal-title"></span>
-            <button type="button" class="dt-cal-nav" id="dt-next">&rsaquo;</button>
-          </div>
-          <div class="dt-cal-grid" id="dt-cal-grid"></div>
-        </div>
-        <div class="dt-times" id="dt-times" style="display:none"></div>
-        <div class="dt-selected" id="dt-selected"></div>
-        <p id="dt-horizon-note" style="font-size:0.72rem;color:var(--muted);margin:0.5rem 0 0;line-height:1.45">Online booking available up to 6 days in advance. For bookings further out please contact us at <a href="mailto:service@assembleatease.com" style="color:var(--cyan)">service@assembleatease.com</a></p>
-        <input type="hidden" id="f-date" />
-        <input type="hidden" id="f-time" />
-      </div>
-      <div class="form-group"><label for="f-details">Describe what needs to be done <span class="req">*</span></label><textarea id="f-details" class="form-control" rows="3" placeholder="Tell us about the items, sizes, or any special instructions..."></textarea></div>
-      <div class="form-group" style="margin-bottom:0.75rem"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--ink-soft);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-custom-quote" style="accent-color:var(--cyan);width:18px;height:18px" /> This is a large or complex job &mdash; I'd like a custom quote</label></div>
-      <div class="cart-estimate" id="cart-estimate"></div>
-      <div class="form-err" id="form-err"></div>
-      <a href="/book" class="btn btn-cyan btn-full btn-lg">Book Online &rarr;</a>
-      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem"> Your info is private. We respond within 1 hour. Card authorized at booking &mdash; charged only after the job is done.</p>
-    </div>
-
-    <div id="card-step" style="display:none">
-      <div class="modal-header">
-        <div><div class="modal-title">Secure Your Booking</div><div class="modal-sub">Your card is authorized &mdash; not charged until the job is done.</div></div>
-        <button class="modal-close" aria-label="Close" onclick="AAE.closeBooking()">&times;</button>
-      </div>
-      <div id="card-step-summary" style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:0.875rem;color:var(--ink)"></div>
-      <div style="margin-bottom:1.25rem">
-        <label style="display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-soft);margin-bottom:0.5rem">Card Details</label>
-        <div id="stripe-card-element"></div>
-        <div id="card-errors" role="alert"></div>
-      </div>
-      <button class="btn btn-cyan btn-full btn-lg" id="card-submit-btn" onclick="AAE.confirmCard()">&#128274; Authorize Card &rarr;</button>
-      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secured by <strong>Stripe</strong>. Your card is authorized now &mdash; <strong>no charge until the job is complete.</strong></p>
-      <button onclick="AAE.backToForm()" style="display:block;margin:0.75rem auto 0;background:none;border:none;font-size:0.82rem;color:var(--muted);cursor:pointer;text-decoration:underline">&larr; Go back and edit</button>
-    </div>
-
-    <div class="success-state" id="success-state">
-      <div class="success-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
-      <div class="success-title">Booking Request Sent!</div>
-      <p class="success-desc" id="success-desc">We received your request and will contact you within 1 hour to confirm.</p>
-      <p style="margin-top:0.75rem;font-size:0.875rem;color:var(--muted)">Questions? Email <strong>service@assembleatease.com</strong></p>
-      <p style="margin-top:0.75rem;font-size:0.875rem"><a href="/customer/" style="color:var(--cyan);font-weight:600">Track your booking in the Customer Portal &rarr;</a></p>
-      <p style="margin-top:0.4rem;font-size:0.8rem;color:var(--muted)">Don&rsquo;t have an account? <a href="/auth/signup" style="color:var(--cyan)">Sign up free</a> with the same email to see your booking history.</p>
-      <button class="btn btn-cyan" style="margin-top:1.5rem" onclick="AAE.closeBooking()">Close</button>
+      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Secure checkout &bull; Card authorized at booking &bull; Charged only after job is done</p>
     </div>
   </div>
 </div>
@@ -766,14 +717,18 @@ AAE.updateModalCart = function() {
   }
 };
 
+AAE.passCartToBook = function(e) {
+  if (AAE.cart.length === 0) return;
+  e.preventDefault();
+  var services = AAE.cart.map(function(i){ return i.name; })
+    .filter(function(v,i,a){ return a.indexOf(v)===i; });
+  window.location.href = '/book?service=' + encodeURIComponent(services[0]);
+};
+
 AAE.openBooking = function() {
   AAE.updateModalCart();
   var fs = document.getElementById('form-state');
-  var cs = document.getElementById('card-step');
-  var ss = document.getElementById('success-state');
   if (fs) fs.style.display = 'block';
-  if (cs) cs.style.display = 'none';
-  if (ss) ss.classList.remove('show');
   document.getElementById('booking-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 };
