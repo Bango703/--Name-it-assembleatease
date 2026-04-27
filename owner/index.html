@@ -843,6 +843,7 @@
           $detail.classList.remove('open');
           $detailPh.style.display = '';
           selectedId = null;
+          updateStats();
           renderList();
           toast('Booking deleted', 'success');
         } else {

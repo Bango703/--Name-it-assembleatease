@@ -8,6 +8,7 @@ export default async function handler(req, res) {
   const { name, email, subject, message } = req.body;
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
+  const ref = 'MSG-' + Date.now().toString(36).toUpperCase();
 
   if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !message) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
 
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Contact Form Submission</p>
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Contact Form Submission &bull; Ref: ${ref}</p>
     <p style="margin:0 0 24px;font-size:22px;font-weight:700;color:#1a1a1a">${sSubject || 'New Message'}</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
@@ -74,6 +75,8 @@ export default async function handler(req, res) {
     <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for reaching out. Our team will review your message and respond within <strong>24 hours</strong>.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Reference Number</p>
+      <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a1a">${ref}</p>
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Your Message</p>
       <p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#1a1a1a">${sSubject || 'General Inquiry'}</p>
       <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">${sMessage}</p>
@@ -147,7 +150,7 @@ export default async function handler(req, res) {
       } catch (err) { console.error('HubSpot contact error:', err); }
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, ref });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Failed' });

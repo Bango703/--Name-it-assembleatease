@@ -22,7 +22,7 @@
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Contact Us &mdash; AssembleAtEase Austin TX"/>
 <meta name="twitter:description" content="Contact AssembleAtEase for professional handyman services in Austin, TX. Same-day service available."/>
-<link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="apple-touch-icon" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -149,7 +149,7 @@
       <div class="form-group"><label for="c-message">Message</label><textarea id="c-message" class="form-control" rows="5" placeholder="Tell us what you need or ask us anything..."></textarea></div>
       <div id="c-err" style="font-size:0.82rem;color:#ef4444;margin-bottom:0.75rem;display:none;padding:0.6rem;background:#fef2f2;border-radius:8px;border:1px solid #fecaca"></div>
       <button class="btn btn-cyan btn-full" id="c-btn" onclick="sendContact()">Send Message &rarr;</button>
-      <div id="c-success" style="display:none;margin-top:1rem;padding:0.85rem;background:var(--cyan-light);border-radius:var(--radius);font-size:0.875rem;color:var(--cyan-dark);font-weight:600;text-align:center">&#10003; Message sent! We will get back to you within 1 hour.</div>
+      <div id="c-success" style="display:none;margin-top:1rem;padding:0.85rem 1rem;background:var(--cyan-light);border-radius:var(--radius);font-size:0.875rem;color:var(--cyan-dark);text-align:center">&#10003; <strong>Message sent!</strong> We will get back to you within 1 hour.<br><span id="c-success-ref" style="font-size:0.78rem;opacity:0.8"></span></div>
     </div>
   </div>
 </section>
@@ -746,10 +746,13 @@ async function sendContact() {
   try {
     var resp = await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message})});
     if (!resp.ok) throw new Error('Server error');
+    var data = await resp.json();
+    var refEl = document.getElementById('c-success-ref');
+    if (refEl && data.ref) refEl.textContent = 'Reference: ' + data.ref;
   } catch(e) {
     err.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
     err.style.display='block';
-    btn.disabled = false; btn.textContent = 'Send Message ?';
+    btn.disabled = false; btn.textContent = 'Send Message \u2192';
     return;
   }
   document.getElementById('c-success').style.display = 'block';
