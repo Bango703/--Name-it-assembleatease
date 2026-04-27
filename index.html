@@ -197,13 +197,11 @@
   .form-control{font-size:16px !important;min-height:52px}
   textarea.form-control{font-size:16px !important;min-height:80px}
   .form-row{grid-template-columns:1fr}
-  /* FOOTER — logo + email + copyright only */
+  /* FOOTER */
   .footer{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
-  .footer-inner{display:flex;flex-direction:column;gap:1rem}
-  .footer-inner>*:not(:first-child){display:none}
+  .footer-inner{display:flex;flex-direction:column;gap:2rem}
   .footer-back-top{display:flex !important;background:none;border:1px solid rgba(255,255,255,0.22);color:rgba(255,255,255,0.65);border-radius:999px;padding:0.5rem 1.25rem;font-size:0.82rem;font-weight:600;cursor:pointer;margin-top:0.75rem;font-family:var(--font-body);align-items:center;gap:6px;min-height:44px}
   .footer-bottom{flex-direction:column;align-items:flex-start;gap:0.4rem}
-  .footer-legal{display:none}
   /* SECTIONS — tighter padding */
   .section{padding:1.75rem 1.25rem}
   .cta-section{padding:2.5rem 1.25rem}
@@ -545,7 +543,6 @@
       <div class="footer-contact">
         <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
       </div>
-      <button class="footer-back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679; Back to top</button>
     </div>
     <div>
       <div class="footer-col-title">Services</div>
@@ -585,7 +582,7 @@
   <div class="footer-bottom">
     <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
     <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-    <div class="footer-copy">Austin, TX &bull; Same-Day Available &bull; Pay After Job Done</div>
+    <button class="footer-back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679; Back to top</button>
   </div>
 </footer>
 
