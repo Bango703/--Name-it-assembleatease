@@ -1,374 +1,318 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Log In — AssembleAtEase</title>
+  <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" /><link rel="icon" type="image/jpeg" href="/images/logo.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" /></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/auth.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; color: #0d1117; background: #f8fafc; -webkit-font-smoothing: antialiased; min-height: 100vh; }
 
-    body {
-      font-family: 'DM Sans', sans-serif;
-      color: #0d1117;
-      background: #f8fafc;
-      -webkit-font-smoothing: antialiased;
+    /* ── SPLIT LAYOUT ── */
+    .auth-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       min-height: 100vh;
     }
 
-    /* ── LAYOUT ── */
-    .auth-page {
+    /* LEFT — brand panel */
+    .auth-brand {
+      background: linear-gradient(160deg, #003d47 0%, #006070 55%, #0097a7 100%);
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-brand::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 320px; height: 320px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .auth-brand::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 240px; height: 240px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .auth-brand-inner { position: relative; z-index: 1; max-width: 380px; }
+
+    .brand-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.35rem;
+      color: #fff;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 3rem;
+    }
+    .brand-logo span { color: #4dd0e1; }
+
+    .brand-headline {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.75rem, 2.5vw, 2.4rem);
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .brand-sub {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+    .brand-bullets { display: flex; flex-direction: column; gap: 0.75rem; }
+    .brand-bullet {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.88);
+    }
+    .brand-bullet-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.8rem;
+      color: #4dd0e1;
+      font-weight: 700;
+    }
+
+    /* RIGHT — form panel */
+    .auth-form-panel {
+      background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 2rem;
+      padding: 3rem 2rem;
     }
-
-    .auth-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 2.5rem;
+    .auth-form-inner {
       width: 100%;
-      max-width: 420px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      max-width: 380px;
     }
 
-    .auth-logo {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+    .form-heading { font-family: 'DM Serif Display', serif; font-size: 1.75rem; color: #0d1117; margin-bottom: 0.35rem; }
+    .form-sub { font-size: 0.9rem; color: #64748b; margin-bottom: 2rem; }
+    .form-sub a { color: #0097a7; font-weight: 500; text-decoration: none; }
+    .form-sub a:hover { text-decoration: underline; }
 
-    .auth-logo a {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.4rem;
-      color: #0d1117;
-      text-decoration: none;
-    }
-
-    .auth-logo a span {
-      color: #0097a7;
-    }
-
-    .auth-card h1 {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.75rem;
-      color: #0d1117;
-      text-align: center;
-      margin-bottom: 0.4rem;
-    }
-
-    .subtitle {
-      font-size: 0.9rem;
-      color: #64748b;
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .subtitle a {
-      color: #0097a7;
-      font-weight: 500;
-      text-decoration: none;
-    }
-    .subtitle a:hover { color: #00838f; text-decoration: underline; }
-
-    /* ── ALERT ── */
-    .alert {
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      font-size: 0.875rem;
-      margin-bottom: 1rem;
-    }
+    /* ALERT */
+    .alert { padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.875rem; margin-bottom: 1.25rem; }
     .alert.hidden { display: none; }
     .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
     .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 
-    /* ── FORM ── */
+    /* FORM */
     .auth-form { display: flex; flex-direction: column; gap: 1.1rem; }
-
-    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-
-    .form-group label {
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: #4a5568;
-    }
-
-    .label-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .label-row a {
-      font-size: 0.8rem;
-      color: #0097a7;
-      text-decoration: none;
-    }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group label { font-size: 0.82rem; font-weight: 600; color: #374151; }
+    .label-row { display: flex; justify-content: space-between; align-items: center; }
+    .label-row a { font-size: 0.8rem; color: #0097a7; text-decoration: none; font-weight: 500; }
     .label-row a:hover { text-decoration: underline; }
 
-    .input-with-icon {
-      position: relative;
-    }
-    .input-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 14px;
-      color: #64748b;
-      pointer-events: none;
-    }
+    .input-wrap { position: relative; }
+    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8; pointer-events: none; }
 
     .form-control {
-      width: 100%;
-      padding: 0.65rem 0.9rem 0.65rem 2.5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      color: #0d1117;
-      background: #ffffff;
+      width: 100%; padding: 0.7rem 0.9rem 0.7rem 2.5rem;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: #0d1117;
+      background: #fff; outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
-      outline: none;
     }
-    .form-control:focus {
-      border-color: #0097a7;
-      box-shadow: 0 0 0 3px rgba(0,151,167,0.1);
-    }
-    .form-control.error {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
-    }
-    .form-control::placeholder { color: #94a3b8; }
+    .form-control:focus { border-color: #0097a7; box-shadow: 0 0 0 3px rgba(0,151,167,0.1); }
+    .form-control.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+    .form-control::placeholder { color: #cbd5e1; }
 
-    .field-error {
-      font-size: 0.78rem;
-      color: #ef4444;
-      margin-top: 2px;
-      display: none;
-    }
+    .field-error { font-size: 0.78rem; color: #ef4444; display: none; }
     .field-error.visible { display: block; }
 
-    /* ── BUTTON ── */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 0.65rem 1.25rem;
-      border-radius: 999px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid transparent;
-      text-decoration: none;
-      transition: all 0.15s;
+    /* BUTTON */
+    .btn-submit {
+      width: 100%; padding: 0.8rem 1.5rem;
+      background: #0097a7; color: #fff;
+      border: none; border-radius: 999px;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
     }
-    .btn-primary { background: #0097a7; color: #fff; border-color: #0097a7; }
-    .btn-primary:hover:not(:disabled) { background: #00838f; border-color: #00838f; }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-full { width: 100%; }
-    .btn-lg { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+    .btn-submit:hover:not(:disabled) { background: #00838f; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* ── AUTH FOOTER ── */
-    .auth-footer {
+    /* DIVIDER */
+    .form-divider {
       margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #f1f5f9;
       text-align: center;
       font-size: 0.85rem;
-      color: #64748b;
+      color: #94a3b8;
     }
-    .auth-footer a {
-      color: #0097a7;
-      font-weight: 500;
-      text-decoration: none;
-    }
-    .auth-footer a:hover { text-decoration: underline; }
+    .form-divider a { color: #0097a7; font-weight: 600; text-decoration: none; }
+    .form-divider a:hover { text-decoration: underline; }
 
-    @media (max-width: 480px) {
-      .auth-card { padding: 2rem 1.5rem; }
+    /* MOBILE */
+    @media (max-width: 768px) {
+      .auth-split { grid-template-columns: 1fr; }
+      .auth-brand { padding: 1.5rem 2rem; }
+      .brand-headline { font-size: 1.4rem; }
+      .brand-sub { display: none; }
+      .brand-bullets { display: none; }
+      .brand-logo { margin-bottom: 0; }
+      .auth-form-panel { padding: 2rem 1.5rem; }
       .form-control { font-size: 16px !important; min-height: 48px; }
-      .btn { min-height: 48px; }
+      .btn-submit { min-height: 52px; }
     }
   </style>
 </head>
 <body>
+<div class="auth-split">
 
-<div class="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo"><a href="../">Assemble<span>AtEase</span></a></div>
-
-    <h1>Log in</h1>
-    <p class="subtitle">Don't have an account? <a href="signup">Sign up free</a></p>
-
-    <div id="auth-alert" class="alert hidden"></div>
-
-    <form class="auth-form" id="login-form" novalidate>
-
-      <div class="form-group">
-        <label for="email">Email address</label>
-        <div class="input-with-icon">
-          <span class="input-icon">&#9993;</span>
-          <input type="email" id="email" class="form-control"
-            placeholder="you@example.com" autocomplete="email" required />
-        </div>
-        <span class="field-error" id="email-error"></span>
+  <!-- LEFT — Brand -->
+  <div class="auth-brand">
+    <div class="auth-brand-inner">
+      <a href="/" class="brand-logo">Assemble<span>AtEase</span></a>
+      <h1 class="brand-headline">Welcome back to AssembleAtEase</h1>
+      <p class="brand-sub">Manage your bookings, track your appointments, and book new services — all in one place.</p>
+      <div class="brand-bullets">
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>View and manage all your bookings</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Book new services in minutes</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Message your assigned pro</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Pay securely after job completion</div>
       </div>
-
-      <div class="form-group">
-        <div class="label-row">
-          <label for="password">Password</label>
-          <a href="forgot-password">Forgot password?</a>
-        </div>
-        <div class="input-with-icon">
-          <span class="input-icon">&#128274;</span>
-          <input type="password" id="password" class="form-control"
-            placeholder="Enter your password" autocomplete="current-password" required />
-        </div>
-        <span class="field-error" id="password-error"></span>
-      </div>
-
-      <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
-        Log in
-      </button>
-
-    </form>
-
-    <div class="auth-footer">
-      New to AssembleAtEase? <a href="signup">Create a free account</a>
     </div>
   </div>
+
+  <!-- RIGHT — Form -->
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <h2 class="form-heading">Log in</h2>
+      <p class="form-sub">Don't have an account? <a href="signup">Sign up free</a></p>
+
+      <div id="auth-alert" class="alert hidden"></div>
+
+      <form class="auth-form" id="login-form" novalidate>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <div class="input-wrap">
+            <span class="input-icon">&#9993;</span>
+            <input type="email" id="email" class="form-control" placeholder="you@example.com" autocomplete="email" required />
+          </div>
+          <span class="field-error" id="email-error"></span>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label for="password">Password</label>
+            <a href="forgot-password">Forgot password?</a>
+          </div>
+          <div class="input-wrap">
+            <span class="input-icon">&#128274;</span>
+            <input type="password" id="password" class="form-control" placeholder="Enter your password" autocomplete="current-password" required />
+          </div>
+          <span class="field-error" id="password-error"></span>
+        </div>
+
+        <button type="submit" class="btn-submit" id="login-btn">Log in</button>
+
+      </form>
+
+      <div class="form-divider">
+        New to AssembleAtEase? <a href="signup">Create a free account</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-  // ── Helpers ──────────────────────────────────────────────
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  function showAlert(type, message) {
-    const el = document.getElementById('auth-alert');
-    el.className = `alert alert-${type}`;
-    el.textContent = message;
-  }
-
-  function hideAlert() {
-    const el = document.getElementById('auth-alert');
-    el.className = 'alert hidden';
-    el.textContent = '';
-  }
-
-  function fieldError(id, message) {
-    const input = document.getElementById(id);
-    const errEl = document.getElementById(`${id}-error`);
-    input?.classList.add('error');
-    if (errEl) { errEl.textContent = message; errEl.classList.add('visible'); }
-  }
-
-  function clearFieldErrors() {
-    document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
-    document.querySelectorAll('.field-error').forEach(el => {
-      el.textContent = ''; el.classList.remove('visible');
-    });
-  }
-
-  function setLoading(btnId, loading, label) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.disabled = loading;
-    btn.textContent = label;
-  }
-
-  // ── Init ─────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async () => {
-    // Redirect if already logged in
     await APP.redirectIfLoggedIn();
-
-    // Show success message if arriving from password reset
     if (new URLSearchParams(window.location.search).get('reset') === 'success') {
-      showAlert('success', 'Password updated successfully. Please log in with your new password.');
+      const el = document.getElementById('auth-alert');
+      el.className = 'alert alert-success';
+      el.textContent = 'Password updated successfully. Please log in with your new password.';
     }
 
-    // ── Form submit ──
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      hideAlert();
-      clearFieldErrors();
+      const alertEl = document.getElementById('auth-alert');
+      alertEl.className = 'alert hidden'; alertEl.textContent = '';
+      document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+      document.querySelectorAll('.field-error').forEach(el => { el.textContent = ''; el.classList.remove('visible'); });
 
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      const btn      = document.getElementById('login-btn');
 
-      // Client-side validation
       let hasError = false;
-      if (!email) {
-        fieldError('email', 'Email is required.'); hasError = true;
-      } else if (!isValidEmail(email)) {
-        fieldError('email', 'Please enter a valid email address.'); hasError = true;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        const e = document.getElementById('email-error'); e.textContent = 'Enter a valid email.'; e.classList.add('visible');
+        document.getElementById('email').classList.add('error'); hasError = true;
       }
       if (!password) {
-        fieldError('password', 'Password is required.'); hasError = true;
+        const e = document.getElementById('password-error'); e.textContent = 'Password is required.'; e.classList.add('visible');
+        document.getElementById('password').classList.add('error'); hasError = true;
       }
       if (hasError) return;
 
-      setLoading('login-btn', true, 'Logging in…');
+      btn.disabled = true; btn.textContent = 'Logging in…';
 
       try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
         if (error) {
-          showAlert('error', error.message || 'Login failed. Please try again.');
-          setLoading('login-btn', false, 'Log in');
+          alertEl.className = 'alert alert-error';
+          alertEl.textContent = error.message || 'Login failed. Please check your credentials and try again.';
+          btn.disabled = false; btn.textContent = 'Log in';
           return;
         }
 
-        // Fetch profile role + tier and redirect
-        const { data: profile, error: profileError } = await supabaseClient
-          .from('profiles')
-          .select('role, tier')
-          .eq('id', data.user.id)
-          .single();
+        const { data: profile } = await supabaseClient.from('profiles').select('role, tier').eq('id', data.user.id).single();
 
-        if (profileError || !profile) {
-          showAlert('error', 'Could not load your profile. Please try again.');
-          setLoading('login-btn', false, 'Log in');
+        if (!profile) {
+          alertEl.className = 'alert alert-error';
+          alertEl.textContent = 'Could not load your profile. Please try again.';
+          btn.disabled = false; btn.textContent = 'Log in';
           return;
         }
 
-        // Block pending assemblers — they must wait for owner approval
         if (profile.role === 'assembler' && profile.tier === 'pending') {
           await supabaseClient.auth.signOut();
-          const card = document.querySelector('.auth-card');
-          card.innerHTML = `
-            <div style="text-align:center;padding:1rem 0">
-              <div style="font-size:2.5rem;margin-bottom:1rem">&#9203;</div>
-              <h2 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:0.75rem;color:#0d1117">Application Under Review</h2>
-              <p style="color:#64748b;font-size:0.925rem;line-height:1.6;margin-bottom:1.5rem">
-                Your application is being reviewed by our team.<br>
-                You will receive an email with next steps once a decision is made.
-              </p>
+          document.querySelector('.auth-form-inner').innerHTML = `
+            <div style="text-align:center;padding:2rem 0">
+              <div style="font-size:3rem;margin-bottom:1rem">&#9203;</div>
+              <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.75rem">Application Under Review</h2>
+              <p style="color:#64748b;font-size:0.9rem;line-height:1.65;margin-bottom:1.5rem">Your application is being reviewed by our team.<br>You will receive an email once a decision is made.</p>
               <p style="font-size:0.82rem;color:#94a3b8">Questions? <a href="mailto:service@assembleatease.com" style="color:#0097a7;text-decoration:none">service@assembleatease.com</a></p>
             </div>`;
           return;
         }
 
-        window.location.href = profile.role === 'assembler'
-          ? '../assembler/'
-          : profile.role === 'owner'
-            ? '../owner/'
-            : '../customer/';
+        window.location.href = profile.role === 'assembler' ? '../assembler/'
+          : profile.role === 'owner' ? '../owner/' : '../customer/';
 
       } catch (err) {
         console.error('Login error:', err);
-        showAlert('error', 'Something went wrong. Please try again.');
-        setLoading('login-btn', false, 'Log in');
+        alertEl.className = 'alert alert-error';
+        alertEl.textContent = 'Something went wrong. Please try again.';
+        btn.disabled = false; btn.textContent = 'Log in';
       }
     });
   });
@@ -376,16 +320,3 @@
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-

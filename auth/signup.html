@@ -1,403 +1,309 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sign Up — AssembleAtEase</title>
+  <title>Create Account — AssembleAtEase</title>
+  <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" /><link rel="icon" type="image/jpeg" href="/images/logo.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" /></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/auth.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; color: #0d1117; background: #f8fafc; -webkit-font-smoothing: antialiased; min-height: 100vh; }
 
-    body {
-      font-family: 'DM Sans', sans-serif;
-      color: #0d1117;
-      background: #f8fafc;
-      -webkit-font-smoothing: antialiased;
+    /* ── SPLIT LAYOUT ── */
+    .auth-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       min-height: 100vh;
     }
 
-    /* ── LAYOUT ── */
-    .auth-page {
+    /* LEFT — brand panel */
+    .auth-brand {
+      background: linear-gradient(160deg, #003d47 0%, #006070 55%, #0097a7 100%);
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-brand::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 320px; height: 320px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .auth-brand::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 240px; height: 240px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .auth-brand-inner { position: relative; z-index: 1; max-width: 380px; }
+
+    .brand-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.35rem;
+      color: #fff;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 3rem;
+    }
+    .brand-logo span { color: #4dd0e1; }
+
+    .brand-headline {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.75rem, 2.5vw, 2.4rem);
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .brand-sub {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+    .brand-bullets { display: flex; flex-direction: column; gap: 0.75rem; }
+    .brand-bullet {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.88);
+    }
+    .brand-bullet-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.8rem;
+      color: #4dd0e1;
+      font-weight: 700;
+    }
+
+    /* RIGHT — form panel */
+    .auth-form-panel {
+      background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 2rem;
+      padding: 3rem 2rem;
     }
-
-    .auth-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 2.5rem;
+    .auth-form-inner {
       width: 100%;
-      max-width: 460px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      max-width: 400px;
     }
 
-    .auth-logo {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+    .form-heading { font-family: 'DM Serif Display', serif; font-size: 1.75rem; color: #0d1117; margin-bottom: 0.35rem; }
+    .form-sub { font-size: 0.9rem; color: #64748b; margin-bottom: 2rem; }
+    .form-sub a { color: #0097a7; font-weight: 500; text-decoration: none; }
+    .form-sub a:hover { text-decoration: underline; }
 
-    .auth-logo a {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.4rem;
-      color: #0d1117;
-      text-decoration: none;
-    }
-
-    .auth-logo a span {
-      color: #0097a7;
-    }
-
-    .auth-card h1 {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.75rem;
-      color: #0d1117;
-      text-align: center;
-      margin-bottom: 0.4rem;
-    }
-
-    .subtitle {
-      font-size: 0.9rem;
-      color: #64748b;
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .subtitle a {
-      color: #0097a7;
-      font-weight: 500;
-      text-decoration: none;
-    }
-    .subtitle a:hover { color: #00838f; text-decoration: underline; }
-
-    /* ── ALERT ── */
-    .alert {
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      font-size: 0.875rem;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
+    /* ALERT */
+    .alert { padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.875rem; margin-bottom: 1.25rem; }
     .alert.hidden { display: none; }
     .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
     .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
     .alert-info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
-    /* ── FORM ── */
+    /* FORM */
     .auth-form { display: flex; flex-direction: column; gap: 1rem; }
-
-    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-    .form-group label { font-size: 0.82rem; font-weight: 500; color: #4a5568; }
-
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group label { font-size: 0.82rem; font-weight: 600; color: #374151; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 
-    .input-with-icon { position: relative; }
-    .input-icon {
-      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-      font-size: 14px; color: #64748b; pointer-events: none;
-    }
+    .input-wrap { position: relative; }
+    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #94a3b8; pointer-events: none; }
 
     .form-control {
-      width: 100%; padding: 0.65rem 0.9rem 0.65rem 2.5rem;
-      border: 1px solid #e2e8f0; border-radius: 10px;
-      font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
-      color: #0d1117; background: #ffffff;
+      width: 100%; padding: 0.7rem 0.9rem 0.7rem 2.5rem;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: #0d1117;
+      background: #fff; outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
-      outline: none;
     }
     .form-control.no-icon { padding-left: 0.9rem; }
     .form-control:focus { border-color: #0097a7; box-shadow: 0 0 0 3px rgba(0,151,167,0.1); }
     .form-control.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
-    .form-control::placeholder { color: #94a3b8; }
+    .form-control::placeholder { color: #cbd5e1; }
 
-    .field-error { font-size: 0.78rem; color: #ef4444; margin-top: 2px; display: none; }
+    .field-error { font-size: 0.78rem; color: #ef4444; display: none; }
     .field-error.visible { display: block; }
 
-    /* ── ROLE SELECTOR ── */
-    .role-selector {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
-    }
-    .role-option input[type="radio"] { display: none; }
-    .role-option label {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 6px; padding: 1rem 0.75rem;
-      border: 1px solid #e2e8f0; border-radius: 10px;
-      cursor: pointer; text-align: center;
-      transition: all 0.15s; background: #ffffff;
-    }
-    .role-option label:hover { border-color: #0097a7; background: rgba(0,151,167,0.04); }
-    .role-option input:checked + label {
-      border-color: #0097a7; border-width: 2px;
-      background: rgba(0,151,167,0.06); color: #00838f;
-    }
-    .role-icon { font-size: 1.5rem; }
-    .role-option strong { font-size: 0.875rem; font-weight: 500; color: #0d1117; }
-    .role-option span { font-size: 0.75rem; color: #64748b; }
+    /* PASSWORD STRENGTH */
+    .strength-wrap { margin-top: 5px; }
+    .strength-bar { height: 3px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-bottom: 3px; }
+    .strength-fill { height: 100%; width: 0; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+    .strength-label { font-size: 0.75rem; color: #94a3b8; }
 
-    /* ── PASSWORD STRENGTH ── */
-    .password-strength { margin-top: 6px; }
-    .strength-bar {
-      height: 3px; border-radius: 2px;
-      background: #e2e8f0;
-      overflow: hidden; margin-bottom: 4px;
-    }
-    .strength-fill {
-      height: 100%; width: 0%;
-      border-radius: 2px;
-      transition: width 0.3s, background 0.3s;
-    }
-    .strength-label { font-size: 0.75rem; color: #64748b; }
-
-    /* ── LEGAL ── */
-    .legal-text {
-      font-size: 0.78rem; color: #64748b; line-height: 1.55;
-    }
+    /* LEGAL */
+    .legal-text { font-size: 0.78rem; color: #94a3b8; line-height: 1.6; }
     .legal-text a { color: #0097a7; text-decoration: none; }
     .legal-text a:hover { text-decoration: underline; }
 
-    /* ── BUTTON ── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 0.65rem 1.25rem; border-radius: 999px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem; font-weight: 500; cursor: pointer;
-      border: 1px solid transparent; text-decoration: none;
-      transition: all 0.15s;
+    /* BUTTON */
+    .btn-submit {
+      width: 100%; padding: 0.8rem 1.5rem;
+      background: #0097a7; color: #fff;
+      border: none; border-radius: 999px;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
     }
-    .btn-primary { background: #0097a7; color: #fff; border-color: #0097a7; }
-    .btn-primary:hover:not(:disabled) { background: #00838f; border-color: #00838f; }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-full { width: 100%; }
-    .btn-lg { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+    .btn-submit:hover:not(:disabled) { background: #00838f; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* ── AUTH FOOTER ── */
-    .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: #64748b; }
-    .auth-footer a { color: #0097a7; font-weight: 500; text-decoration: none; }
-    .auth-footer a:hover { text-decoration: underline; }
+    /* PRO LINK */
+    .pro-link {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #f1f5f9;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    .pro-link a { color: #0097a7; font-weight: 600; text-decoration: none; }
+    .pro-link a:hover { text-decoration: underline; }
 
-    @media (max-width: 480px) {
-      .auth-card { padding: 2rem 1.5rem; }
+    /* MOBILE */
+    @media (max-width: 768px) {
+      .auth-split { grid-template-columns: 1fr; }
+      .auth-brand { padding: 2rem; min-height: auto; }
+      .brand-headline { font-size: 1.5rem; }
+      .brand-sub { display: none; }
+      .brand-bullets { display: none; }
+      .brand-logo { margin-bottom: 0; }
+      .auth-brand { padding: 1.5rem 2rem; }
+      .auth-form-panel { padding: 2rem 1.5rem; }
       .form-row { grid-template-columns: 1fr; }
       .form-control { font-size: 16px !important; min-height: 48px; }
-      .btn { min-height: 48px; }
+      .btn-submit { min-height: 52px; }
     }
   </style>
 </head>
 <body>
+<div class="auth-split">
 
-<div class="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo"><a href="../">Assemble<span>AtEase</span></a></div>
-
-    <h1>Create account</h1>
-    <p class="subtitle">Already have an account? <a href="login">Log in</a></p>
-
-    <div id="auth-alert" class="alert hidden"></div>
-
-    <form class="auth-form" id="signup-form" novalidate>
-
-      <!-- Role selector -->
-      <div class="form-group">
-        <label>I want to…</label>
-        <div class="role-selector">
-          <div class="role-option">
-            <input type="radio" name="role" id="role-customer" value="customer" checked />
-            <label for="role-customer">
-              <span class="role-icon">&#128715;</span>
-              <strong>Hire an Assembler</strong>
-              <span>I need something assembled</span>
-            </label>
-          </div>
-          <div class="role-option">
-            <input type="radio" name="role" id="role-assembler" value="assembler" />
-            <label for="role-assembler">
-              <span class="role-icon">&#128295;</span>
-              <strong>Earn as Assembler</strong>
-              <span>I want to offer my skills</span>
-            </label>
-          </div>
-        </div>
+  <!-- LEFT — Brand -->
+  <div class="auth-brand">
+    <div class="auth-brand-inner">
+      <a href="/" class="brand-logo">Assemble<span>AtEase</span></a>
+      <h1 class="brand-headline">Book trusted pros in Austin, TX</h1>
+      <p class="brand-sub">Furniture assembly, TV mounting, home repairs and more — done right, on your schedule.</p>
+      <div class="brand-bullets">
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Same-day availability</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Flat-rate pricing from $69</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Pay only after job is done</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Vetted, background-checked pros</div>
       </div>
-
-      <!-- Name row -->
-      <div class="form-row">
-        <div class="form-group">
-          <label for="first-name">First name</label>
-          <input type="text" id="first-name" class="form-control no-icon"
-            placeholder="Jane" autocomplete="given-name" required />
-          <span class="field-error" id="first-name-error"></span>
-        </div>
-        <div class="form-group">
-          <label for="last-name">Last name</label>
-          <input type="text" id="last-name" class="form-control no-icon"
-            placeholder="Smith" autocomplete="family-name" required />
-          <span class="field-error" id="last-name-error"></span>
-        </div>
-      </div>
-
-      <!-- Email -->
-      <div class="form-group">
-        <label for="email">Email address</label>
-        <div class="input-with-icon">
-          <span class="input-icon">&#9993;</span>
-          <input type="email" id="email" class="form-control"
-            placeholder="you@example.com" autocomplete="email" required />
-        </div>
-        <span class="field-error" id="email-error"></span>
-      </div>
-
-      <!-- Password -->
-      <div class="form-group">
-        <label for="password">Password</label>
-        <div class="input-with-icon">
-          <span class="input-icon">&#128274;</span>
-          <input type="password" id="password" class="form-control"
-            placeholder="At least 8 characters" autocomplete="new-password" required />
-        </div>
-        <div class="password-strength" id="strength-wrap" style="display:none">
-          <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
-          <span class="strength-label" id="strength-label"></span>
-        </div>
-        <span class="field-error" id="password-error"></span>
-      </div>
-
-      <!-- Confirm password -->
-      <div class="form-group">
-        <label for="confirm-password">Confirm password</label>
-        <div class="input-with-icon">
-          <span class="input-icon">&#128274;</span>
-          <input type="password" id="confirm-password" class="form-control"
-            placeholder="Repeat your password" autocomplete="new-password" required />
-        </div>
-        <span class="field-error" id="confirm-password-error"></span>
-      </div>
-
-      <!-- Legal -->
-      <p class="legal-text">
-        By creating an account you agree to our
-        <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.
-      </p>
-
-      <button type="submit" class="btn btn-primary btn-full btn-lg" id="signup-btn">
-        Create Free Account
-      </button>
-
-    </form>
-
-    <div class="auth-footer">
-      Already have an account? <a href="login">Log in</a>
     </div>
   </div>
+
+  <!-- RIGHT — Form -->
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <h2 class="form-heading">Create account</h2>
+      <p class="form-sub">Already have an account? <a href="login">Log in</a></p>
+
+      <div id="auth-alert" class="alert hidden"></div>
+
+      <form class="auth-form" id="signup-form" novalidate>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first-name">First name</label>
+            <input type="text" id="first-name" class="form-control no-icon" placeholder="Jane" autocomplete="given-name" required />
+            <span class="field-error" id="first-name-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="last-name">Last name</label>
+            <input type="text" id="last-name" class="form-control no-icon" placeholder="Smith" autocomplete="family-name" required />
+            <span class="field-error" id="last-name-error"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <div class="input-wrap">
+            <span class="input-icon">&#9993;</span>
+            <input type="email" id="email" class="form-control" placeholder="you@example.com" autocomplete="email" required />
+          </div>
+          <span class="field-error" id="email-error"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">&#128274;</span>
+            <input type="password" id="password" class="form-control" placeholder="At least 8 characters" autocomplete="new-password" required />
+          </div>
+          <div class="strength-wrap" id="strength-wrap" style="display:none">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <span class="strength-label" id="strength-label"></span>
+          </div>
+          <span class="field-error" id="password-error"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm-password">Confirm password</label>
+          <div class="input-wrap">
+            <span class="input-icon">&#128274;</span>
+            <input type="password" id="confirm-password" class="form-control" placeholder="Repeat your password" autocomplete="new-password" required />
+          </div>
+          <span class="field-error" id="confirm-password-error"></span>
+        </div>
+
+        <p class="legal-text">By creating an account you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+
+        <button type="submit" class="btn-submit" id="signup-btn">Create Free Account</button>
+
+      </form>
+
+      <div class="pro-link">
+        Want to earn as a Pro? <a href="/assembler/earn">Apply here &rarr;</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-  // ── Helpers ──────────────────────────────────────────────
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  function showAlert(type, message) {
-    const el = document.getElementById('auth-alert');
-    el.className = `alert alert-${type}`;
-    el.textContent = message;
-  }
-
-  function hideAlert() {
-    const el = document.getElementById('auth-alert');
-    el.className = 'alert hidden';
-    el.textContent = '';
-  }
-
-  function fieldError(id, message) {
-    const input = document.getElementById(id);
-    const errEl = document.getElementById(`${id}-error`);
-    input?.classList.add('error');
-    if (errEl) { errEl.textContent = message; errEl.classList.add('visible'); }
-  }
-
-  function clearFieldErrors() {
-    document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
-    document.querySelectorAll('.field-error').forEach(el => {
-      el.textContent = ''; el.classList.remove('visible');
-    });
-  }
-
-  function setLoading(btnId, loading, label) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.disabled = loading;
-    btn.textContent = label;
-  }
-
-  // ── Password strength ────────────────────────────────────
   function getPasswordStrength(pw) {
-    let score = 0;
-    if (pw.length >= 8)  score++;
-    if (pw.length >= 12) score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    if (score <= 1) return { label: 'Weak',   color: '#ef4444', pct: 25  };
-    if (score <= 2) return { label: 'Fair',   color: '#f97316', pct: 50  };
-    if (score <= 3) return { label: 'Good',   color: '#f59e0b', pct: 75  };
+    let s = 0;
+    if (pw.length >= 8) s++; if (pw.length >= 12) s++;
+    if (/[A-Z]/.test(pw)) s++; if (/[0-9]/.test(pw)) s++; if (/[^A-Za-z0-9]/.test(pw)) s++;
+    if (s <= 1) return { label: 'Weak',   color: '#ef4444', pct: 25  };
+    if (s <= 2) return { label: 'Fair',   color: '#f97316', pct: 50  };
+    if (s <= 3) return { label: 'Good',   color: '#f59e0b', pct: 75  };
     return              { label: 'Strong', color: '#22c55e', pct: 100 };
   }
-
-  // ── Init ─────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async () => {
     await APP.redirectIfLoggedIn();
-
-    // Pre-select role from URL param
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('role') === 'assembler') {
-      document.getElementById('role-assembler').checked = true;
-    }
-
-    // Live password strength meter
-    const passwordInput = document.getElementById('password');
-    const strengthWrap  = document.getElementById('strength-wrap');
-    const strengthFill  = document.getElementById('strength-fill');
-    const strengthLabel = document.getElementById('strength-label');
-
-    passwordInput.addEventListener('input', () => {
-      const val = passwordInput.value;
-      if (!val) { strengthWrap.style.display = 'none'; return; }
-      strengthWrap.style.display = 'block';
-      const { label, color, pct } = getPasswordStrength(val);
-      strengthFill.style.width      = `${pct}%`;
-      strengthFill.style.background = color;
-      strengthLabel.textContent     = label;
-      strengthLabel.style.color     = color;
+    const pw = document.getElementById('password');
+    pw.addEventListener('input', () => {
+      const wrap = document.getElementById('strength-wrap');
+      if (!pw.value) { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      const { label, color, pct } = getPasswordStrength(pw.value);
+      document.getElementById('strength-fill').style.cssText = `width:${pct}%;background:${color}`;
+      const lbl = document.getElementById('strength-label');
+      lbl.textContent = label; lbl.style.color = color;
     });
-
-    // Form submit is handled by auth.js — no duplicate handler here
   });
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-

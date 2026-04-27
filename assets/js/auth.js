@@ -69,7 +69,7 @@
     const email     = document.getElementById('email')?.value.trim()      || '';
     const password  = document.getElementById('password')?.value          || '';
     const confirm   = document.getElementById('confirm-password')?.value  || '';
-    const role      = document.querySelector('input[name="role"]:checked')?.value || 'customer';
+    const role      = 'customer'; // Signup page is customer-only; assemblers use /assembler/apply
 
     // Validation
     let hasError = false;
