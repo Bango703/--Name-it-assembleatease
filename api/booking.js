@@ -29,7 +29,11 @@ export default async function handler(req, res) {
 
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
-  const amount = Math.max(parseInt(totalCents) || 0, 0); // keep 0 if no price (custom quote)
+  const TX_TAX_RATE = 0.0825; // Texas 6.25% + Austin 2%
+  const amount = Math.max(parseInt(totalCents) || 0, 0); // tax-inclusive total in cents
+  // Back-calculate subtotal and tax for record-keeping
+  const subtotalCents = amount > 0 ? Math.round(amount / (1 + TX_TAX_RATE)) : 0;
+  const taxCents = amount - subtotalCents;
   const isDeposit = amount >= 20000; // $200+ → deposit flow
   const depositAmountCents = isDeposit ? Math.round(amount * 0.25) : null;
 
@@ -46,6 +50,7 @@ export default async function handler(req, res) {
     status: 'pending',
     payment_status: amount > 0 ? 'pending' : 'not_required',
     total_price: amount,
+    tax_amount: taxCents,
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
   }).select('id').single();

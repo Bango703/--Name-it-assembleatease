@@ -564,10 +564,32 @@
 
           <p class="dt-horizon-note">Online booking available up to 6 days in advance. For later dates email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a></p>
 
-          <div class="form-group" style="margin-top:0.5rem">
-            <label class="form-label" for="s3-address">Service address <span style="color:var(--teal)">*</span></label>
-            <input type="text" class="form-input" id="s3-address" placeholder="Start typing your address..." autocomplete="off" />
-            <div class="field-error" id="s3-addr-err">Please enter your address.</div>
+          <div style="margin-top:0.5rem">
+            <div class="form-group" style="position:relative">
+              <label class="form-label" for="s3-street">Street address <span style="color:var(--teal)">*</span></label>
+              <input type="text" class="form-input" id="s3-street" placeholder="123 Main St" autocomplete="off" />
+              <div id="s3-addr-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto"></div>
+              <div class="field-error" id="s3-addr-err">Please enter your street address.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="s3-apt">Apt / Suite / Unit <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+              <input type="text" class="form-input" id="s3-apt" placeholder="Apt 4B, Suite 200, Unit 3..." autocomplete="off" />
+            </div>
+            <div class="form-row-2" style="grid-template-columns:2fr 1fr 1fr">
+              <div class="form-group">
+                <label class="form-label" for="s3-city">City <span style="color:var(--teal)">*</span></label>
+                <input type="text" class="form-input" id="s3-city" placeholder="Austin" value="Austin" autocomplete="address-level2" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="s3-state">State</label>
+                <input type="text" class="form-input" id="s3-state" placeholder="TX" value="TX" maxlength="2" autocomplete="address-level1" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="s3-zip">ZIP <span style="color:var(--teal)">*</span></label>
+                <input type="text" class="form-input" id="s3-zip" placeholder="78701" maxlength="5" autocomplete="postal-code" />
+                <div class="field-error" id="s3-zip-err">Required.</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1406,13 +1428,18 @@ function goToStep3DateTime() {
 }
 
 function goToStep4Contact() {
-  var addr = document.getElementById('s3-address').value.trim();
+  var street = (document.getElementById('s3-street').value || '').trim();
+  var apt    = (document.getElementById('s3-apt').value || '').trim();
+  var city   = (document.getElementById('s3-city').value || '').trim();
+  var state  = (document.getElementById('s3-state').value || '').trim();
+  var zip    = (document.getElementById('s3-zip').value || '').trim();
   var ok = true;
   if (!BOOK.date) { showErr('s3-date-err', 'Please select a date.'); ok = false; } else hideErr('s3-date-err');
   if (!BOOK.time) { showErr('s3-time-err', 'Please select a time slot.'); ok = false; } else hideErr('s3-time-err');
-  if (!addr) { fieldErr('s3-address', 's3-addr-err', true); ok = false; } else fieldErr('s3-address', 's3-addr-err', false);
+  if (!street) { fieldErr('s3-street', 's3-addr-err', true); ok = false; } else fieldErr('s3-street', 's3-addr-err', false);
+  if (!zip) { fieldErr('s3-zip', 's3-zip-err', true); ok = false; } else fieldErr('s3-zip', 's3-zip-err', false);
   if (!ok) return;
-  BOOK.address = addr;
+  BOOK.address = street + (apt ? ', ' + apt : '') + ', ' + (city || 'Austin') + ', ' + (state || 'TX') + ' ' + zip;
   goToStep(4);
 }
 
@@ -1492,6 +1519,49 @@ async function goToStep5Payment() {
       + '<button onclick="saveContactEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
     );
 
+  // Calculate and display order total with tax
+  (function() {
+    var TX_TAX_RATE = 0.0825; // 8.25% — Texas 6.25% + Austin 2%
+    var hasCustom = false, subtotal = 0;
+    var lineHtml = '';
+    BOOK.selectedServices.forEach(function(svc) {
+      (BOOK.selectedItems[svc] || []).forEach(function(item) {
+        if (item.customQuote) {
+          hasCustom = true;
+          lineHtml += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span>Custom quote</span></div>';
+        } else if (item.price > 0) {
+          var lineTotal = item.price * item.qty;
+          subtotal += lineTotal;
+          lineHtml += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span>$' + lineTotal + '</span></div>';
+        }
+      });
+    });
+    var taxAmount = Math.round(subtotal * TX_TAX_RATE * 100) / 100;
+    var grandTotal = Math.round((subtotal + taxAmount) * 100) / 100;
+    // Store tax-inclusive total for submitBooking to use
+    BOOK._grandTotalCents = hasCustom && subtotal === 0 ? 0 : Math.round(grandTotal * 100);
+
+    var taxLineHtml = subtotal > 0
+      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
+        + '<span>Subtotal</span><span>$' + subtotal.toFixed(2) + '</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
+        + '<span>Sales tax (8.25%)</span><span>$' + taxAmount.toFixed(2) + '</span></div>'
+      : '';
+    var totalDisplay = hasCustom && subtotal === 0 ? 'Custom quote' : ('$' + grandTotal.toFixed(2) + (hasCustom ? '+ (some items need a quote)' : ''));
+    var totalHtml = '<div class="summary-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
+      + '<span class="summary-row-icon"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></span>'
+      + '<div style="flex:1">'
+      + '<div class="summary-row-label" style="font-weight:600;color:var(--ink)">Order total</div>'
+      + (lineHtml ? '<div style="margin-top:0.4rem">' + lineHtml + '</div>' : '')
+      + (taxLineHtml ? '<div style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px dashed var(--border)">' + taxLineHtml + '</div>' : '')
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;padding-top:0.5rem;border-top:2px solid var(--border)">'
+      + '<span style="font-size:1.1rem;font-weight:700;color:var(--ink)">' + totalDisplay + '</span>'
+      + '<span style="font-size:0.75rem;color:var(--muted)">No charge until job is done</span>'
+      + '</div>'
+      + '</div></div>';
+    document.getElementById('booking-summary').innerHTML += totalHtml;
+  })();
+
   goToStep(5);
   await initStripe();
 }
@@ -1564,6 +1634,63 @@ function saveContactEdit() {
 // ════════════════════════════════════════════════════════════════════════════
 // PRE-SELECT FROM URL PARAM
 // ════════════════════════════════════════════════════════════════════════════
+// ── ADDRESS AUTOCOMPLETE (Nominatim) ─────────────────────────────────────────
+(function initAddressAutocomplete() {
+  var input = document.getElementById('s3-street');
+  var dropdown = document.getElementById('s3-addr-dropdown');
+  if (!input || !dropdown) return;
+  var debounce;
+  input.addEventListener('input', function() {
+    clearTimeout(debounce);
+    var q = input.value.trim();
+    if (q.length < 4) { dropdown.style.display = 'none'; return; }
+    debounce = setTimeout(function() {
+      fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&addressdetails=1&limit=6&q=' + encodeURIComponent(q + ' Austin TX'))
+        .then(function(r) { return r.json(); })
+        .then(function(results) {
+          if (!results.length) { dropdown.style.display = 'none'; return; }
+          dropdown.innerHTML = results.map(function(r) {
+            var a = r.address || {};
+            var street = (a.house_number ? a.house_number + ' ' : '') + (a.road || '');
+            var city   = a.city || a.town || a.village || 'Austin';
+            var state  = a.state_code || a.state || 'TX';
+            var zip    = a.postcode || '';
+            var label  = r.display_name.replace(/, United States$/, '');
+            return '<div data-street="' + street + '" data-city="' + city + '" data-state="' + state + '" data-zip="' + zip + '" style="padding:0.6rem 1rem;cursor:pointer;font-size:0.875rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s" onmouseenter="this.style.background=\'#e0f7fa\'" onmouseleave="this.style.background=\'#fff\'">' + label + '</div>';
+          }).join('');
+          dropdown.querySelectorAll('div').forEach(function(opt) {
+            opt.addEventListener('mousedown', function(ev) {
+              ev.preventDefault();
+              input.value = opt.dataset.street || input.value;
+              if (opt.dataset.city)  document.getElementById('s3-city').value  = opt.dataset.city;
+              if (opt.dataset.state) document.getElementById('s3-state').value = opt.dataset.state;
+              if (opt.dataset.zip)   document.getElementById('s3-zip').value   = opt.dataset.zip;
+              dropdown.style.display = 'none';
+            });
+          });
+          dropdown.style.display = 'block';
+        }).catch(function() { dropdown.style.display = 'none'; });
+    }, 400);
+  });
+  input.addEventListener('blur', function() { setTimeout(function(){ dropdown.style.display='none'; }, 200); });
+})();
+
+// ── PHONE AUTO-FORMAT ─────────────────────────────────────────────────────────
+(function initPhoneFormat() {
+  var ph = document.getElementById('s4-phone');
+  if (!ph) return;
+  ph.addEventListener('input', function() {
+    var pos = this.selectionStart;
+    var old = this.value.length;
+    var d = this.value.replace(/\D/g, '').substring(0, 10);
+    if (d.length > 6)      this.value = d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+    else if (d.length > 3) this.value = d.slice(0,3) + '-' + d.slice(3);
+    else                   this.value = d;
+    var diff = this.value.length - old;
+    this.setSelectionRange(pos + diff, pos + diff);
+  });
+})();
+
 (function preSelect() {
   var params = new URLSearchParams(window.location.search);
   var svc = params.get('service') || params.get('s') || '';
@@ -1680,14 +1807,8 @@ async function submitBooking() {
   submitBtn.disabled = true; backBtn.disabled = true;
   submitBtn.innerHTML = 'Sending&hellip;';
 
-  var totalCents = 0;
-  if (!BOOK.wantsQuote) {
-    BOOK.selectedServices.forEach(function(svc) {
-      (BOOK.selectedItems[svc]||[]).forEach(function(item) {
-        if (!item.customQuote && item.price > 0) totalCents += item.price * 100 * item.qty;
-      });
-    });
-  }
+  // Use tax-inclusive total calculated when Step 5 was rendered
+  var totalCents = BOOK._grandTotalCents || 0;
 
   var itemsPayload = {};
   BOOK.selectedServices.forEach(function(svc) {
