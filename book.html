@@ -1855,6 +1855,7 @@ async function submitBooking() {
 }
 
 function showConfirmation(ref) {
+  if (window.gtag) gtag('event', 'conversion', { send_to: 'AW-16551666395/OSX0CIvz1aMcENvFudQ9', transaction_id: ref });
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
   document.getElementById('step-confirm').classList.remove('hidden');
 
@@ -1907,6 +1908,7 @@ function showConfirmation(ref) {
 }
 </script>
 
+<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=AW-16551666395';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
