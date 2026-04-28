@@ -60,7 +60,31 @@ export default async function handler(req, res) {
       }
     } catch (stripeErr) {
       console.error('Stripe capture error:', stripeErr);
-      // Continue — don't block job completion on payment error; owner can resolve manually
+      // Notify owner of capture failure so they can resolve manually
+      try {
+        await sendEmail({
+          to: ownerEmail(),
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: `⚠️ Payment Capture Failed — ${booking.ref}`,
+          html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #fecaca"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#991b1b">Payment Capture Failed</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">The automatic payment capture for booking <strong>${esc(booking.ref)}</strong> failed. The job has been marked complete but payment was NOT collected. Manual resolution required.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px">
+      <table width="100%">
+        <tr><td style="padding:5px 0;color:#71717a;width:120px">Reference</td><td style="padding:5px 0;font-weight:600">${esc(booking.ref)}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Customer</td><td style="padding:5px 0">${esc(booking.customer_name)}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Service</td><td style="padding:5px 0">${esc(booking.service)}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Amount Due</td><td style="padding:5px 0;font-weight:700;color:#991b1b">$${((booking.total_price || 0) / 100).toFixed(2)}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Error</td><td style="padding:5px 0;color:#991b1b">${esc(stripeErr?.message || 'Unknown Stripe error')}</td></tr>
+      </table>
+    </td></tr></table>
+    <p style="font-size:13px;color:#71717a;line-height:1.6">Log in to the Stripe dashboard to manually capture or re-attempt payment. If the card was declined, contact the customer directly at <a href="mailto:${esc(booking.customer_email)}" style="color:#0097a7">${esc(booking.customer_email)}</a>.</p>
+  </td></tr></table>
+</div></body></html>`,
+        });
+      } catch (alertErr) { console.error('Capture failure alert error:', alertErr); }
     }
   }
 
@@ -109,28 +133,42 @@ export default async function handler(req, res) {
   }
   try {
     const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
+    const amountDisplay = finalAmountCharged > 0 ? `$${(finalAmountCharged / 100).toFixed(2)}` : null;
+    const receiptBlock = amountDisplay ? `
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
+        <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment Receipt</p>
+        <p style="margin:0 0 12px;font-size:28px;font-weight:700;color:#065f46">${amountDisplay}</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#166534">
+          <tr><td style="padding:3px 0;width:130px">Service</td><td style="padding:3px 0;font-weight:600">${esc(booking.service)}</td></tr>
+          <tr><td style="padding:3px 0">Reference</td><td style="padding:3px 0;font-weight:600">${esc(booking.ref)}</td></tr>
+          <tr><td style="padding:3px 0">Payment method</td><td style="padding:3px 0">Card on file</td></tr>
+          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged ✓</td></tr>
+        </table>
+        <p style="margin:10px 0 0;font-size:12px;color:#166534;line-height:1.5">A Stripe receipt has been sent separately to <strong>${esc(booking.customer_email)}</strong>.</p>
+      </td></tr></table>` : '';
+
     const html = buildStatusEmail({
       customerName: booking.customer_name,
       ref: booking.ref,
       status: 'COMPLETED',
       statusColor: '#065f46',
       statusBg: '#d1fae5',
-      headline: `Job complete! Thank you, ${esc(booking.customer_name)}.`,
+      headline: `Your job is complete, ${esc(booking.customer_name)}.`,
       bodyHtml: `
-        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service has been completed. We hope you're happy with the work!</p>
-        ${finalAmountCharged > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px;color:#065f46;line-height:1.6"><strong>Amount charged: $${(finalAmountCharged/100).toFixed(2)}</strong> — This has been processed to your card on file. You will receive a Stripe receipt at ${esc(booking.customer_email)}.</td></tr></table>` : ''}
+        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service has been completed. Thank you for choosing AssembleAtEase!</p>
+        ${receiptBlock}
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
-          <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#1e40af">Enjoyed the service?</p>
-          <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick review helps other Austin homeowners find reliable help.</p>
+          <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
+          <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick Google review helps other Austin homeowners find trusted help — it takes 30 seconds.</p>
           <a href="${esc(reviewUrl)}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#9733;</a>
         </td></tr></table>
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need anything else? We'd love to help again anytime.</p>`,
+        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#0097a7;font-weight:600">book your next service</a> anytime.</p>`,
     });
 
     await sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'Job Complete — How did we do? ' + booking.ref,
+      subject: `Payment Receipt & Job Complete — ${booking.ref}`,
       html,
       replyTo: ownerEmail(),
     });

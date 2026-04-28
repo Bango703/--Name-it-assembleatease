@@ -41,20 +41,21 @@ export default async function handler(req, res) {
     const html = buildStatusEmail({
       customerName: booking.customer_name,
       ref: booking.ref,
-      status: 'DECLINED',
-      statusColor: '#991b1b',
-      statusBg: '#fee2e2',
-      headline: `We're unable to fulfill your booking, ${esc(booking.customer_name)}.`,
+      status: 'UNABLE TO FULFIL',
+      statusColor: '#71717a',
+      statusBg: '#f4f4f5',
+      headline: `We're sorry, ${esc(booking.customer_name)} — we can't take this one.`,
       bodyHtml: `
-        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">We're sorry, but we're unable to accommodate this request at this time. We apologize for the inconvenience.</p>
+        <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Unfortunately we are not able to accommodate your request for <strong>${esc(booking.service)}</strong> at this time. No charge has been made to your card.</p>
         ${reasonHtml}
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">If you'd like to submit a new request for a different date or service, we'd be happy to help.</p>`,
+        <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">We'd love to help you on another date or with a different service. Feel free to submit a new booking and we'll do our best to make it work.</p>
+        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">We apologize for any inconvenience and appreciate your understanding.</p>`,
     });
 
     await sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: 'Booking Update — ' + booking.ref,
+      subject: 'Your Booking Request — ' + booking.ref,
       html,
       replyTo: ownerEmail(),
     });

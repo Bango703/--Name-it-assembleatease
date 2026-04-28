@@ -61,8 +61,19 @@ export default async function handler(req, res) {
         to: ownerEmail(),
         from: 'AssembleAtEase <booking@assembleatease.com>',
         replyTo: assembler?.email,
-        subject: `Job Accepted — ${esc(booking.ref)}`,
-        html: `<p><strong>${esc(assemblerName)}</strong> accepted the assignment for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>`,
+        subject: `Job Accepted — ${esc(booking.ref)} — ${esc(assemblerName)}`,
+        html: buildOwnerAlertEmail({
+          title: 'Job Accepted',
+          color: '#0097a7',
+          lines: [
+            { label: 'Reference', value: booking.ref },
+            { label: 'Service', value: booking.service },
+            { label: 'Date', value: (booking.date || 'TBD') + (booking.time ? ' at ' + booking.time : '') },
+            { label: 'Assembler', value: assemblerName },
+          ],
+          note: `<strong>${esc(assemblerName)}</strong> has accepted this job and is confirmed. No further action needed.`,
+          noteColor: '#065f46', noteBg: '#d1fae5', noteBorder: '#bbf7d0',
+        }),
       });
     } catch (e) { console.error('Accept notify error:', e); }
 
@@ -114,8 +125,19 @@ export default async function handler(req, res) {
         to: ownerEmail(),
         from: 'AssembleAtEase <booking@assembleatease.com>',
         replyTo: assembler?.email,
-        subject: `Job Declined — ${esc(booking.ref)}`,
-        html: `<p><strong>${esc(assemblerName)}</strong> declined the assignment for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}). Booking is now unassigned and available for reassignment.</p>`,
+        subject: `Job Declined — ${esc(booking.ref)} — ${esc(assemblerName)}`,
+        html: buildOwnerAlertEmail({
+          title: 'Job Declined — Reassignment Needed',
+          color: '#b45309',
+          lines: [
+            { label: 'Reference', value: booking.ref },
+            { label: 'Service', value: booking.service },
+            { label: 'Date', value: (booking.date || 'TBD') + (booking.time ? ' at ' + booking.time : '') },
+            { label: 'Declined by', value: assemblerName },
+          ],
+          note: `<strong>${esc(assemblerName)}</strong> declined this assignment. The booking is now unassigned — please assign another assembler as soon as possible.`,
+          noteColor: '#92400e', noteBg: '#fffbeb', noteBorder: '#fcd34d',
+        }),
       });
     } catch (e) { console.error('Decline notify error:', e); }
 
@@ -136,6 +158,26 @@ export default async function handler(req, res) {
       `You've declined this assignment. No worries — other jobs will come your way.`,
       false);
   }
+}
+
+function buildOwnerAlertEmail({ title, color, lines, note, noteColor, noteBg, noteBorder }) {
+  const rows = lines.map(l => `<tr><td style="padding:7px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px;font-size:14px">${esc(l.label)}</td><td style="padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:600;color:#1a1a1a">${esc(l.value || '—')}</td></tr>`).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px 8px 0 0;border-bottom:3px solid ${color}"><tr>
+    <td style="padding:20px 24px"><table cellpadding="0" cellspacing="0"><tr>
+      <td><img src="${LOGO}" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
+      <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
+    </tr></table></td>
+    <td style="padding:20px 24px;text-align:right;font-size:12px;color:#71717a">Internal Notification</td>
+  </tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 20px;font-size:20px;font-weight:700;color:#1a1a1a">${esc(title)}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">${rows}</table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:${noteBg};border:1px solid ${noteBorder};border-radius:6px"><tr><td style="padding:14px 18px;font-size:13px;color:${noteColor};line-height:1.6">${note}</td></tr></table>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:14px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></td></tr></table>
+</div></body></html>`;
 }
 
 function buildAssemblerDeclineEmail(firstName, service, date) {
