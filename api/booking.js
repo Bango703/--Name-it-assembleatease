@@ -84,6 +84,11 @@ export default async function handler(req, res) {
         customer: customer.id,
         capture_method: 'manual',
         payment_method_types: ['card'],
+        payment_method_options: {
+          card: {
+            request_three_d_secure: 'automatic',
+          },
+        },
         receipt_email: email,
         statement_descriptor_suffix: 'ASSEMBLEATEASE',
         description: `${service} — ${name}`,
