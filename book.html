@@ -661,7 +661,7 @@
         <div class="step-err" id="s5-err"></div>
         <div class="step-actions">
           <button class="btn-back-link" id="s5-back" onclick="goToStep(4)">&larr; Back</button>
-          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Authorize &amp; confirm <span>&#8594;</span></button>
+          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Confirm Booking <span>&#8594;</span></button>
         </div>
         <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.85rem;line-height:1.5">
           Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
@@ -1834,18 +1834,18 @@ async function submitBooking() {
   } catch(e) {
     errEl.textContent = e.message; errEl.classList.add('show');
     submitBtn.disabled=false; backBtn.disabled=false;
-    submitBtn.innerHTML = 'Authorize &amp; confirm <span>&#8594;</span>'; return;
+    submitBtn.innerHTML = 'Confirm Booking <span>&#8594;</span>'; return;
   }
 
   if (data.clientSecret) {
-    submitBtn.innerHTML = 'Authorizing card&hellip;';
+    submitBtn.innerHTML = 'Processing payment&hellip;';
     var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
       payment_method: { card: BOOK._cardEl, billing_details: { name: BOOK.firstName+' '+BOOK.lastName, email: BOOK.email } }
     });
     if (result.error) {
       errEl.textContent = result.error.message; errEl.classList.add('show');
       submitBtn.disabled=false; backBtn.disabled=false;
-      submitBtn.innerHTML = 'Authorize &amp; confirm <span>&#8594;</span>'; return;
+      submitBtn.innerHTML = 'Confirm Booking <span>&#8594;</span>'; return;
     }
     try { await fetch('/api/booking-confirmed', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({bookingId:data.bookingId}) }); }
     catch(e) { console.error('booking-confirmed error:', e); }
