@@ -672,7 +672,7 @@
       <div class="step-panel hidden" id="step-confirm">
         <div class="confirm-wrap">
           <div class="confirm-icon"><svg viewBox="0 0 24 24" width="36" height="36" style="fill:#16a34a"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-          <div class="confirm-title">Booking confirmed!</div>
+          <div class="confirm-title">You're all set!</div>
           <div class="confirm-ref" id="confirm-ref"></div>
 
           <!-- Booking summary -->
@@ -702,7 +702,7 @@
           </div>
 
           <div class="confirm-actions">
-            <a href="/customer/" id="confirm-portal-link" class="btn-next" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">Track your booking &rarr;</a>
+            <a href="/customer/" id="confirm-portal-link" class="btn-next" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;width:100%;max-width:360px;font-size:1rem;font-weight:600;padding:1rem 1.5rem;background:#0097a7;color:#fff;border-radius:999px">Track Your Booking &rarr;</a>
             <a id="confirm-calendar-link" href="#" target="_blank" rel="noopener" style="font-size:0.82rem;color:var(--teal);display:none">+ Add to Google Calendar</a>
             <a href="/" style="color:var(--muted);font-size:0.82rem">Back to home</a>
           </div>
@@ -1745,10 +1745,29 @@ function saveContactEdit() {
     var timesEl = document.getElementById('dt-times');
     if (!BOOK.date) { wrap.style.display='none'; return; }
     wrap.style.display='block';
+    // For today, disable time slots that have already started (need at least 1 hour lead)
+    var todayStr = new Date().toISOString().slice(0,10);
+    var isToday = BOOK.date === todayStr;
+    var nowHour = new Date().getHours() + 1; // require 1hr notice
     timesEl.innerHTML = TIME_SLOTS.map(function(slot) {
+      var disabled = false;
+      if (isToday) {
+        var match = slot.match(/^(\d+):(\d+)\s*(AM|PM)/i);
+        if (match) {
+          var h = parseInt(match[1], 10);
+          var meridiem = match[3].toUpperCase();
+          if (meridiem === 'PM' && h !== 12) h += 12;
+          if (meridiem === 'AM' && h === 12) h = 0;
+          disabled = h <= nowHour;
+        }
+      }
+      if (disabled) {
+        if (BOOK.time === slot) BOOK.time = '';
+        return '<button type="button" class="dt-time-btn" data-time="'+slot+'" disabled style="opacity:0.35;cursor:not-allowed;text-decoration:line-through">'+slot+'</button>';
+      }
       return '<button type="button" class="dt-time-btn'+(BOOK.time===slot?' selected':'')+'" data-time="'+slot+'">'+slot+'</button>';
     }).join('');
-    timesEl.querySelectorAll('.dt-time-btn').forEach(function(btn) {
+    timesEl.querySelectorAll('.dt-time-btn:not([disabled])').forEach(function(btn) {
       btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); });
     });
   }

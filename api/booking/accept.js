@@ -40,6 +40,8 @@ export default async function handler(req, res) {
   const assembler = booking.profiles;
   const assemblerName = assembler?.full_name || 'Assembler';
   const assemblerFirstName = assemblerName.split(' ')[0];
+  const assemblerLastInitial = assemblerName.split(' ')[1]?.[0] || '';
+  const assemblerDisplay = assemblerFirstName + (assemblerLastInitial ? ' ' + assemblerLastInitial + '.' : '');
 
   if (action === 'accept') {
     // Accept the assignment
@@ -88,7 +90,7 @@ export default async function handler(req, res) {
           subject: `Your Assembler is Confirmed — ${esc(booking.ref)}`,
           html: buildCustomerNotifyEmail({
             customerFirst,
-            assemblerFirst: assemblerFirstName,
+            assemblerFirst: assemblerDisplay,
             service: booking.service,
             date: booking.date,
             time: booking.time,
@@ -202,8 +204,6 @@ function buildAssemblerDeclineEmail(firstName, service, date) {
 }
 
 function sendHtml(res, title, message, isSuccess) {
-  const bgColor = isSuccess ? '#f0fdf4' : '#fef2f2';
-  const borderColor = isSuccess ? '#bbf7d0' : '#fecaca';
   const iconColor = isSuccess ? '#16a34a' : '#dc2626';
   const icon = isSuccess ? '&#10003;' : '&#9888;';
 
@@ -215,7 +215,7 @@ function sendHtml(res, title, message, isSuccess) {
   <div class="icon">${icon}</div>
   <h1>${title}</h1>
   <p>${message}</p>
-  <a href="https://www.assembleatease.com/auth/login" class="btn">Go to Dashboard</a>
+  <a href="/assembler/" class="btn">Go to Dashboard</a>
 </div></body></html>`);
 }
 

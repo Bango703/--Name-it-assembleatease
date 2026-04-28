@@ -28,6 +28,9 @@ export default async function handler(req, res) {
   if (booking.payment_status === 'refunded') {
     return res.status(400).json({ error: 'Booking has already been refunded' });
   }
+  if (booking.payment_status === 'authorized') {
+    return res.status(400).json({ error: 'This payment has not been captured yet — the card hold has not been charged. Cancel the booking instead to release the hold on the customer\'s card.' });
+  }
 
   const refundAmountCents = amount ? parseInt(amount) : (booking.amount_charged || null);
   if (!refundAmountCents || refundAmountCents <= 0) {
