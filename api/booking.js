@@ -83,6 +83,19 @@ export default async function handler(req, res) {
         currency: 'usd',
         customer: customer.id,
         capture_method: 'manual',
+        payment_method_types: ['card'],
+        receipt_email: email,
+        statement_descriptor_suffix: 'ASSEMBLEATEASE',
+        description: `${service} — ${name}`,
+        shipping: {
+          name,
+          address: {
+            line1: address,
+            city: 'Austin',
+            state: 'TX',
+            country: 'US',
+          },
+        },
         metadata: {
           bookingRef: ref,
           bookingId,
@@ -90,7 +103,6 @@ export default async function handler(req, res) {
           isDeposit: isDeposit ? 'true' : 'false',
           depositAmountCents: depositAmountCents ? String(depositAmountCents) : '0',
         },
-        description: `${service} — ${name}`,
       });
 
       // Save Stripe IDs to booking record

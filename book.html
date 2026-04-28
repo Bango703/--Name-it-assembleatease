@@ -1840,7 +1840,16 @@ async function submitBooking() {
   if (data.clientSecret) {
     submitBtn.innerHTML = 'Processing payment&hellip;';
     var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
-      payment_method: { card: BOOK._cardEl, billing_details: { name: BOOK.firstName+' '+BOOK.lastName, email: BOOK.email } }
+      payment_method: {
+        card: BOOK._cardEl,
+        billing_details: {
+          name: BOOK.firstName + ' ' + BOOK.lastName,
+          email: BOOK.email,
+          phone: BOOK.phone || undefined,
+          address: { line1: BOOK.address, city: 'Austin', state: 'TX', country: 'US' }
+        }
+      },
+      return_url: window.location.origin + '/book'
     });
     if (result.error) {
       errEl.textContent = result.error.message; errEl.classList.add('show');
