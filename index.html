@@ -30,7 +30,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
-/* HERO */
+/* ── HERO V2 — split layout (desktop ≥ 1024px) ─── */
 .hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#00838f 100%);padding:5rem 2rem 4rem;text-align:center;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%,rgba(0,188,212,0.12),transparent 70%);pointer-events:none}
 .hero-inner{max-width:680px;margin:0 auto;position:relative;z-index:1}
@@ -51,10 +51,69 @@
 .hero-stat:last-child{border-right:none}
 .hero-stat-value{font-family:var(--font-display);font-size:1.5rem;color:#fff;line-height:1}
 .hero-stat-label{font-size:0.65rem;color:rgba(255,255,255,0.55);margin-top:3px;text-transform:uppercase;letter-spacing:0.07em}
+/* NAV extras */
 .nav-earn-btn{background:var(--cyan);color:#fff;padding:0.5rem 1.1rem;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
 .nav-earn-btn:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35)}
 .nav-auth-link{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
 .nav-auth-link:hover{color:var(--cyan-dark)}
+.nav-logo-sub{font-size:0.58rem;font-family:var(--font-body);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--cyan-dark);line-height:1;margin-top:2px}
+.nav-book-cta{display:inline-flex;align-items:center;gap:6px;background:var(--cyan);color:#fff;padding:0.55rem 1.35rem;border-radius:6px;font-size:0.875rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
+.nav-book-cta:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35);transform:translateY(-1px)}
+/* Desktop nav centering */
+@media(min-width:1024px){
+  .nav-inner{position:relative}
+  .nav-links{position:absolute;left:50%;transform:translateX(-50%);gap:2.25rem}
+}
+/* Hero V2 — hidden on mobile, shown on desktop */
+.hero-v2{display:none;background:#fff;overflow:hidden}
+@media(min-width:1024px){
+  .hero{display:none!important}
+  #photo-brands{display:none!important}
+  .hero-v2{display:grid!important;grid-template-columns:44% 56%;min-height:560px}
+}
+.hv2-left{display:flex;flex-direction:column;justify-content:center;padding:5rem 3rem 5rem 4rem;background:#fff}
+.hv2-eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan-dark);margin-bottom:0.9rem}
+.hv2-h1{font-family:var(--font-display);font-size:clamp(3rem,4.5vw,4.75rem);color:var(--ink);line-height:1.04;margin-bottom:1.25rem}
+.hv2-desc{font-size:1.05rem;color:var(--ink-soft);line-height:1.75;margin-bottom:2.25rem;max-width:440px}
+.hv2-actions{display:flex;gap:0.85rem;align-items:center;margin-bottom:2.5rem;flex-wrap:wrap}
+.hv2-btn-book{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:#fff;padding:0.9rem 2.25rem;border-radius:6px;font-family:var(--font-body);font-size:1rem;font-weight:700;letter-spacing:0.03em;text-decoration:none;transition:all 0.18s}
+.hv2-btn-book:hover{background:#1a2736;box-shadow:0 4px 20px rgba(0,0,0,0.25);transform:translateY(-1px)}
+.hv2-btn-view{display:inline-flex;align-items:center;background:transparent;color:var(--ink);border:2px solid #d1d5db;padding:0.9rem 2.25rem;border-radius:6px;font-family:var(--font-body);font-size:1rem;font-weight:700;text-decoration:none;transition:all 0.18s}
+.hv2-btn-view:hover{background:var(--off-white);border-color:var(--ink)}
+.hv2-trust-row{display:flex;gap:1.75rem;flex-wrap:wrap}
+.hv2-tr-item{display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;font-weight:500;color:var(--muted)}
+.hv2-tr-icon{flex-shrink:0;color:var(--cyan-dark)}
+.hv2-right{overflow:hidden;background:#e5e7eb}
+.hv2-right img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+/* ── SERVICES 5-COL (desktop only) ────────────────── */
+.svc5-section{display:none;background:#f8f9fa;padding:4.5rem 2rem}
+@media(min-width:1024px){
+  .svc5-section{display:block}
+  #services .svc-featured-pair,.svc-secondary-three{display:none}
+}
+.svc5-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1.25rem;max-width:1100px;margin:0 auto}
+.svc5-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem 1.25rem;text-align:center;text-decoration:none;display:block;transition:all 0.2s}
+.svc5-card:hover{box-shadow:var(--shadow-lg);border-color:var(--cyan);transform:translateY(-3px)}
+.svc5-icon{width:64px;height:64px;border-radius:50%;border:2px solid var(--cyan-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem}
+.svc5-icon svg{width:30px;height:30px;stroke:var(--cyan-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.svc5-name{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem}
+.svc5-desc{font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:1.1rem}
+.svc5-link{font-size:0.82rem;font-weight:600;color:var(--cyan-dark);display:inline-flex;align-items:center;gap:4px}
+/* ── DARK TRUST BAR ───────────────────────────────── */
+.trust-bar{background:var(--ink);padding:2.5rem 2rem}
+.trust-bar-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem}
+.trust-bar-item{display:flex;align-items:center;gap:1rem}
+.trust-bar-icon{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.trust-bar-icon svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.trust-bar-text{display:flex;flex-direction:column}
+.trust-bar-title{font-size:0.78rem;font-weight:700;color:#fff;letter-spacing:0.06em;text-transform:uppercase}
+.trust-bar-sub{font-size:0.68rem;color:rgba(255,255,255,0.5);margin-top:2px;text-transform:uppercase;letter-spacing:0.04em}
+@media(min-width:1024px){
+  #services-mobile{display:none}
+  .trust-bar-icon svg{stroke:#fff;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+}
+@media(max-width:768px){.trust-bar-inner{grid-template-columns:repeat(2,1fr);gap:1.5rem}.trust-bar{padding:2rem 1.25rem}}
+@media(max-width:480px){.trust-bar-inner{grid-template-columns:1fr 1fr;gap:1rem}}
 /* SECTIONS */
 .section{padding:5rem 2rem}
 .section-alt{background:var(--off-white)}
@@ -258,17 +317,18 @@
   <div class="nav-inner">
     <a href="/" class="nav-logo">
       <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" fetchpriority="high" /></picture>
-      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+      <div class="nav-logo-text">Assemble<span>AtEase</span><div class="nav-logo-sub">Junk Removal &bull; Home Services</div></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services">Services</a></li>
       <li><a href="/#how-it-works">How it works</a></li>
-      <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/book" style="color:var(--teal-dark);font-weight:600">Book Now</a></li>
+      <li><a href="/about">About Us</a></li>
+      <li><a href="/#reviews">Reviews</a></li>
+      <li><a href="/#service-area">Service Area</a></li>
     </ul>
-    <div style="display:flex;align-items:center;gap:1rem">
+    <div style="display:flex;align-items:center;gap:0.75rem">
       <a href="/auth/login" class="nav-auth-link">Sign In</a>
-      <a href="/assembler/earn" class="nav-earn-btn">Become a Pro</a>
+      <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     </div>
     <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
@@ -292,6 +352,37 @@
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
 <main id="main-content">
+
+<!-- HERO V2 — desktop split layout (hidden on mobile via CSS) -->
+<section class="hero-v2">
+  <div class="hv2-left">
+    <div class="hv2-eyebrow">Professional Home Services &mdash; Austin, TX</div>
+    <h1 class="hv2-h1">Quality work.<br>Every time.</h1>
+    <p class="hv2-desc">Furniture assembly, TV mounting, smart home setup, junk removal, and home repairs&mdash;done right so you don&rsquo;t have to lift a finger.</p>
+    <div class="hv2-actions">
+      <a href="/book" class="hv2-btn-book">BOOK NOW &rarr;</a>
+      <a href="/#services" class="hv2-btn-view">VIEW SERVICES</a>
+    </div>
+    <div class="hv2-trust-row">
+      <div class="hv2-tr-item">
+        <svg class="hv2-tr-icon" viewBox="0 0 24 24" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        5.0 Rated &bull; 100+ Reviews
+      </div>
+      <div class="hv2-tr-item">
+        <svg class="hv2-tr-icon" viewBox="0 0 24 24" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        Insured &amp; Background Checked
+      </div>
+      <div class="hv2-tr-item">
+        <svg class="hv2-tr-icon" viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/><polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        On Time. Every Time.
+      </div>
+    </div>
+  </div>
+  <div class="hv2-right">
+    <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase pro mounting a TV in Austin TX" />
+  </div>
+</section>
+
 <section class="hero">
   <div class="hero-inner">
     <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Same-Day Available</div>
@@ -344,42 +435,57 @@
 
 
 
-<section class="section section-alt">
-  <div class="section-inner">
-    <div class="section-header" style="margin-bottom:2rem">
-      <div class="section-label">Why Austin chooses us</div>
-      <h2 class="section-title">Built on trust</h2>
-    </div>
-    <div class="trust-grid"><div class="trust-badge">
-  <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
-  <div class="trust-title">Charged only after completion</div>
-  <div class="trust-desc">Your card is authorized at booking and only charged after the job is complete.</div>
-</div><div class="trust-badge">
-  <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
-  <div class="trust-title">Pros you can trust</div>
-  <div class="trust-desc">Every pro is vetted before their first job. We only work with people we&rsquo;d trust in our own home.</div>
-</div><div class="trust-badge">
-  <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></div>
-  <div class="trust-title">Same-Day Available</div>
-  <div class="trust-desc">Book online, done the same day</div>
-</div><div class="trust-badge">
-  <div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div>
-  <div class="trust-title">Pay After Job Done</div>
-  <div class="trust-desc">Card authorized at booking &mdash; no charge until job done</div>
-</div></div>
-  </div>
-</section>
-
 <section class="section" id="services">
   <div class="section-inner">
     <div class="section-header">
-      <div class="section-label">Popular Services</div>
-      <h2 class="section-title">What can we help with?</h2>
+      <div class="section-label">Our Services</div>
+      <h2 class="section-title">We make home projects easy</h2>
       <p class="section-desc">Flat-rate pricing. Book online in minutes. Confirmed within 1 hour.</p>
     </div>
+  </div>
+</section>
+
+<!-- SERVICES 5-COL DESKTOP -->
+<section class="svc5-section">
+  <div class="svc5-grid">
+    <a class="svc5-card" href="/book?service=Furniture+Assembly">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="10" rx="1"/><path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><line x1="5" y1="18" x2="5" y2="21"/><line x1="19" y1="18" x2="19" y2="21"/></svg></div>
+      <div class="svc5-name">Furniture Assembly</div>
+      <div class="svc5-desc">Fast, careful assembly for all types of furniture.</div>
+      <span class="svc5-link">Learn more &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Smart+Home">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/><circle cx="12" cy="7" r="1" fill="currentColor"/><path d="M8.5 14a3.5 3.5 0 0 1 7 0"/></svg></div>
+      <div class="svc5-name">Smart Home Setup</div>
+      <div class="svc5-desc">Set up your devices and automate your home.</div>
+      <span class="svc5-link">Learn more &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Junk+Removal">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
+      <div class="svc5-name">Junk Removal</div>
+      <div class="svc5-desc">We haul it away so you don&rsquo;t have to.</div>
+      <span class="svc5-link">Learn more &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Home+Repairs">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+      <div class="svc5-name">Home Repairs</div>
+      <div class="svc5-desc">Minor fixes and improvements around your home.</div>
+      <span class="svc5-link">Learn more &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=TV+Mounting">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <div class="svc5-name">TV Mounting</div>
+      <div class="svc5-desc">Secure mounting for TVs of all sizes.</div>
+      <span class="svc5-link">Learn more &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<section class="section" id="services-mobile">
+  <div class="section-inner">
 
     <!-- Featured two -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+    <div class="svc-featured-pair" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
       <a class="service-card" href="/book?service=Furniture+Assembly" style="padding:2.5rem;border-width:2px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
           <div class="svc-icon c1" style="margin-bottom:0"><svg viewBox="0 0 24 24"><path d="M7 13c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v1H7v-1zm-2 2h14v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1zm1-6V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4H6zm2-3v2h8V8H8zM5 19h1v2H5v-2zm13 0h1v2h-1v-2z"/></svg></div>
@@ -407,13 +513,35 @@
     </div>
 
     <!-- Secondary three -->
-    <div class="services-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="svc-secondary-three services-grid" style="grid-template-columns:repeat(3,1fr)">
       <a class="service-card" href="/book?service=Home+Repairs"><div class="svc-icon c3"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="svc-name">Home Repairs</div><div class="svc-desc">Drywall, doors, faucets, leaks, gutters and general repairs.</div><div class="svc-from">From $75</div></a>
       <a class="service-card" href="/book?service=Smart+Home"><div class="svc-icon c4"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div class="svc-name">Smart Home Install</div><div class="svc-desc">Nest, Ring, Ecobee, smart locks, cameras &amp; doorbells.</div><div class="svc-from">From $69</div></a>
       <a class="service-card" href="/book?service=Junk+Removal"><div class="svc-icon c5"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div><div class="svc-name">Junk Removal</div><div class="svc-desc">Appliances, furniture, mattresses &amp; storage cleanouts.</div><div class="svc-from">From $75</div></a>
     </div>
   </div>
 </section>
+
+<!-- DARK TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-bar-inner">
+    <div class="trust-bar-item">
+      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="trust-bar-text"><div class="trust-bar-title">Same-Day</div><div class="trust-bar-sub">Availability</div></div>
+    </div>
+    <div class="trust-bar-item">
+      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg></div>
+      <div class="trust-bar-text"><div class="trust-bar-title">Satisfaction</div><div class="trust-bar-sub">Guaranteed</div></div>
+    </div>
+    <div class="trust-bar-item">
+      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="trust-bar-text"><div class="trust-bar-title">Fully Insured</div><div class="trust-bar-sub">For Your Peace of Mind</div></div>
+    </div>
+    <div class="trust-bar-item">
+      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="trust-bar-text"><div class="trust-bar-title">Local Experts</div><div class="trust-bar-sub">You Can Trust</div></div>
+    </div>
+  </div>
+</div>
 
 <section class="section" id="reviews">
   <div class="section-inner">
