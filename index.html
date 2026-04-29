@@ -8,7 +8,7 @@
 <meta name="description" content="Professional furniture assembly and handyman services in Austin, Texas. Same-day available in Austin. No charge until the job is complete."/>
 <link rel="canonical" href="https://www.assembleatease.com/"/>
 <link rel="stylesheet" href="/assets/css/marketing.css"/>
-<link rel="preload" as="image" href="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80" fetchpriority="high"/>
+<link rel="preload" as="image" href="/images/hero-pro.jpg.png" fetchpriority="high"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="AssembleAtEase &mdash; Professional Assembly & Handyman Services Austin TX"/>
 <meta property="og:description" content="Professional furniture assembly and handyman services in Austin, Texas. Same-day available in Austin. No charge until the job is complete."/>
@@ -30,25 +30,35 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
-/* HERO */
-.hero{min-height:620px;display:flex;align-items:center;position:relative;background-color:#003d47;background-image:url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1800&q=80');background-size:cover;background-position:center}
-.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,30,40,0.78) 0%,rgba(0,97,119,0.55) 100%)}
-.hero-inner{max-width:820px;margin:0 auto;padding:6rem 2rem;position:relative;z-index:1;text-align:center}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);color:#fff;font-size:0.82rem;font-weight:600;padding:0.4rem 1.1rem;border-radius:999px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.25)}
-.hero-dot{width:7px;height:7px;border-radius:50%;background:#4dd0e1;animation:pulse-dot 2s infinite}
+/* HERO — split layout */
+.hero{background:#fff;overflow:hidden}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 2rem;display:grid;grid-template-columns:1fr 1fr;min-height:600px;align-items:center;gap:3rem}
+.hero-left{padding:4rem 0}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:#e0f7fa;color:var(--cyan-dark);font-size:0.78rem;font-weight:700;padding:0.4rem 1rem;border-radius:999px;margin-bottom:1.5rem;letter-spacing:0.03em}
+.hero-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:pulse-dot 2s infinite}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.5}}
-.hero-title{font-family:var(--font-display);font-size:clamp(2.6rem,5.5vw,4.2rem);color:#fff;line-height:1.05;margin-bottom:1.1rem}
-.hero-title em{color:#4dd0e1;font-style:normal}
-.hero-desc{font-size:1.05rem;color:rgba(255,255,255,0.85);line-height:1.8;margin-bottom:2rem;max-width:560px;margin-left:auto;margin-right:auto}
-.hero-cats{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center;margin-bottom:2rem}
-.hero-cat-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.92);border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:500;text-decoration:none;transition:all 0.15s;cursor:pointer}
-.hero-cat-pill:hover{background:rgba(255,255,255,0.22);color:#fff;border-color:rgba(255,255,255,0.4)}
-.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2.5rem}
-.hero-stats{display:inline-flex;gap:0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:var(--radius-xl);overflow:hidden}
-.hero-stat{padding:1rem 1.5rem;text-align:center;border-right:1px solid rgba(255,255,255,0.12)}
-.hero-stat:last-child{border-right:none}
-.hero-stat-value{font-family:var(--font-display);font-size:1.5rem;color:#fff;line-height:1}
-.hero-stat-label{font-size:0.68rem;color:rgba(255,255,255,0.6);margin-top:3px;text-transform:uppercase;letter-spacing:0.06em}
+.hero-title{font-family:var(--font-display);font-size:clamp(2.4rem,4vw,3.8rem);color:var(--ink);line-height:1.08;margin-bottom:1.1rem}
+.hero-title em{color:var(--cyan-dark);font-style:normal}
+.hero-desc{font-size:1rem;color:var(--muted);line-height:1.8;margin-bottom:1.75rem;max-width:480px}
+.hero-cats{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:2rem}
+.hero-cat-pill{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;color:var(--ink-soft);border:1.5px solid var(--border);border-radius:999px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:600;text-decoration:none;transition:all 0.15s}
+.hero-cat-pill:hover,.hero-cat-pill.featured{background:var(--cyan-light);color:var(--cyan-dark);border-color:var(--cyan)}
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin-bottom:2rem}
+.hero-rating{display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)}
+.hero-rating strong{color:var(--ink)}
+.hero-stats{display:flex;gap:2rem;flex-wrap:wrap}
+.hero-stat{text-align:left}
+.hero-stat-value{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);line-height:1}
+.hero-stat-label{font-size:0.68rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em}
+/* HERO RIGHT — photo */
+.hero-right{position:relative;height:600px;overflow:hidden}
+.hero-right img{width:100%;height:100%;object-fit:cover;object-position:left center;border-radius:0 0 0 48px}
+.hero-right::after{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,rgba(0,97,119,0.18),transparent)}
+.hero-tag{position:absolute;bottom:2rem;left:2rem;background:#fff;border-radius:12px;padding:0.75rem 1.1rem;box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;align-items:center;gap:0.75rem}
+.hero-tag-icon{width:38px;height:38px;background:var(--cyan-light);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.hero-tag-icon svg{width:20px;height:20px;fill:var(--cyan-dark)}
+.hero-tag-text{font-size:0.78rem;font-weight:700;color:var(--ink)}
+.hero-tag-sub{font-size:0.7rem;color:var(--muted)}
 .nav-earn-btn{background:var(--cyan);color:#fff;padding:0.5rem 1.1rem;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
 .nav-earn-btn:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35)}
 .nav-auth-link{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
@@ -150,19 +160,20 @@
   .nav-logo img{width:32px;height:32px}
   @media(max-width:900px){.nav-book-pill{display:none!important}} .nav-book-pill{display:inline-flex;align-items:center;padding:0.38rem 0.9rem;background:var(--cyan);color:#fff;border-radius:999px;font-size:0.8rem;font-weight:700;text-decoration:none;white-space:nowrap;gap:4px;min-height:36px}
   /* HERO — mobile layout */
-  .hero{min-height:auto !important}
-  .hero-inner{padding:1.75rem 1.25rem 2rem}
+  .hero-inner{grid-template-columns:1fr !important;gap:0}
+  .hero-left{padding:2rem 0 1.5rem}
+  .hero-right{height:260px;border-radius:0 !important}
+  .hero-right img{border-radius:0 !important}
+  .hero-tag{display:none}
   .hero-title{font-size:1.95rem}
-  .hero-desc{display:block;font-size:0.9rem;margin-bottom:1.25rem;color:rgba(255,255,255,0.82)}
-  .hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:var(--radius-lg);overflow:hidden;margin-top:1.25rem}
-  .hero-stat{padding:0.75rem 1rem}
-  .hero-stat-value{font-size:1.1rem}
+  .hero-desc{font-size:0.9rem;margin-bottom:1.25rem}
+  .hero-stats{gap:1.25rem;margin-top:1rem}
+  .hero-stat-value{font-size:1.2rem}
   .hero-stat-label{font-size:0.62rem}
-  .hero-cats{display:grid;grid-template-columns:1fr 1fr;gap:0.45rem}
-  .hero-cat-pill:last-child:nth-child(odd){grid-column:1 / -1}
-  .hero-cat-pill{font-size:0.8rem;min-height:38px;text-align:center;justify-content:center}
-  .hero-actions{margin-bottom:0;margin-top:1rem}
-  .hero-actions .btn{width:100%;max-width:none;min-height:52px;font-size:1rem}
+  .hero-cats{gap:0.45rem}
+  .hero-cat-pill{font-size:0.8rem;min-height:38px}
+  .hero-actions{flex-direction:column;align-items:flex-start}
+  .hero-actions .btn{width:100%;max-width:none;min-height:52px;font-size:1rem;text-align:center;justify-content:center}
   /* TRUST — compact 2×2 grid, no descriptions (no overflow risk) */
   .trust-grid{display:grid !important;grid-template-columns:repeat(2,1fr);gap:0.5rem}
   .trust-badge{padding:0.85rem 0.65rem}
@@ -170,7 +181,8 @@
   .trust-icon svg{width:18px;height:18px}
   .trust-title{font-size:0.8rem}
   .trust-desc{display:none}
-  /* SERVICES — 2-col compact */
+  /* SERVICES — stack featured cards on mobile */
+  #services > .section-inner > div:first-of-type + div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
   .services-grid{grid-template-columns:repeat(2,1fr);gap:0.65rem}
   .service-card{padding:1rem 0.85rem}
   .svc-icon{width:44px;height:44px;border-radius:12px;margin-bottom:0.75rem}
@@ -290,27 +302,58 @@
 <main id="main-content">
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Same-Day Available</div>
-    <h1 class="hero-title">Your to-do list,<br><em>done today.</em></h1>
-    <p class="hero-desc">Austin&rsquo;s trusted assembly and handyman pros. No charge until the job is complete.</p>
-    <div class="hero-cats">
-      <a href="/book?service=Furniture+Assembly" class="hero-cat-pill">Furniture Assembly</a>
-      <a href="/book?service=TV+Mounting" class="hero-cat-pill">TV Mounting</a>
-      <a href="/book?service=Home+Repairs" class="hero-cat-pill">Home Repairs</a>
-      <a href="/book?service=Smart+Home" class="hero-cat-pill">Smart Home</a>
-      <a href="/book?service=Junk+Removal" class="hero-cat-pill">Junk Removal</a>
+    <!-- LEFT — copy -->
+    <div class="hero-left">
+      <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Same-Day Available</div>
+      <h1 class="hero-title">Assembly &amp; mounting,<br><em>done right.</em></h1>
+      <p class="hero-desc">Austin&rsquo;s trusted pros for furniture assembly, TV mounting, home repairs and more. No charge until the job is complete.</p>
+      <div class="hero-cats">
+        <a href="/book?service=Furniture+Assembly" class="hero-cat-pill featured">📦 Furniture Assembly — from $69</a>
+        <a href="/book?service=TV+Mounting" class="hero-cat-pill featured">📺 TV Mounting — from $69</a>
+        <a href="/book?service=Home+Repairs" class="hero-cat-pill">Home Repairs</a>
+        <a href="/book?service=Smart+Home" class="hero-cat-pill">Smart Home</a>
+        <a href="/book?service=Junk+Removal" class="hero-cat-pill">Junk Removal</a>
+      </div>
+      <div class="hero-actions">
+        <a href="/book" class="btn btn-cyan btn-lg">Book a Pro &rarr;</a>
+        <div class="hero-rating">
+          <span style="color:#f59e0b;font-size:1rem">★★★★★</span>
+          <span><strong>4.9</strong> avg &bull; 1,200+ jobs in Austin</span>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Available</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">&lt; 1 hr</div><div class="hero-stat-label">Confirmation</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">Pay after</div><div class="hero-stat-label">Job is done</div></div>
+      </div>
     </div>
-    <div class="hero-actions">
-      <a href="/book" class="btn btn-cyan btn-lg">Book a Pro &rarr;</a>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Availability</div></div>
-      <div class="hero-stat"><div class="hero-stat-value">1 hr</div><div class="hero-stat-label">Confirm time</div></div>
-      <div class="hero-stat"><div class="hero-stat-value">Flat-rate</div><div class="hero-stat-label">Upfront pricing</div></div>
-      <div class="hero-stat"><div class="hero-stat-value">Pay after</div><div class="hero-stat-label">Job is done</div></div>
+    <!-- RIGHT — branded photo -->
+    <div class="hero-right">
+      <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase professional assembling furniture in Austin TX" />
+      <div class="hero-tag">
+        <div class="hero-tag-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+        <div><div class="hero-tag-text">No charge until done</div><div class="hero-tag-sub">Card authorized — charged after job</div></div>
+      </div>
     </div>
   </div>
 </section>
+
+<!-- BRAND BAR -->
+<div style="background:#0a1628;padding:1rem 2rem;overflow:hidden">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;justify-content:center">
+    <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.45);font-weight:700;white-space:nowrap">We assemble items from</span>
+    <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:center">
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">IKEA</span>
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Wayfair</span>
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Amazon</span>
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Ashley</span>
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Costco</span>
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Target</span>
+      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">West Elm</span>
+      <span style="font-size:0.875rem;font-weight:700;color:var(--cyan)">+ any brand</span>
+    </div>
+  </div>
+</div>
 
 
 <!-- ── PHOTO + STATS ── -->
@@ -372,17 +415,44 @@
 <section class="section" id="services">
   <div class="section-inner">
     <div class="section-header">
-      <div class="section-label">What we do</div>
-      <h2 class="section-title">Our Services</h2>
-      <p class="section-desc">Select a service to book &mdash; upfront pricing, confirmed within 1 hour.</p>
+      <div class="section-label">Popular Services</div>
+      <h2 class="section-title">What can we help with?</h2>
+      <p class="section-desc">Flat-rate pricing. Book online in minutes. Confirmed within 1 hour.</p>
     </div>
-    <div class="services-grid">
-      <a class="service-card" href="/book?service=Furniture+Assembly"><div class="svc-icon c1"><svg viewBox="0 0 24 24"><path d="M7 13c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v1H7v-1zm-2 2h14v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1zm1-6V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4H6zm2-3v2h8V8H8zM5 19h1v2H5v-2zm13 0h1v2h-1v-2z"/></svg></div><div class="svc-name">Furniture Assembly</div><div class="svc-desc">IKEA, Wayfair, Amazon, beds, sofas, desks, wardrobes, outdoor furniture and more.</div><div class="svc-from">From $69</div></a>
-      <a class="service-card" href="/book?service=TV+Mounting"><div class="svc-icon c2"><svg viewBox="0 0 24 24"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6v2H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM4 15V5h16v10H4z"/></svg></div><div class="svc-name">TV &amp; Mounting</div><div class="svc-desc">TV mounting by size, floating shelves, curtain rods, art hanging, cord concealment.</div><div class="svc-from">From $69</div></a>
-      <a class="service-card" href="/book?service=Home+Repairs"><div class="svc-icon c3"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="svc-name">Home Repairs</div><div class="svc-desc">Drywall, doors, faucets, leaks, gutters and general home repair services.</div><div class="svc-from">From $75</div></a>
-      <a class="service-card" href="/book?service=Smart+Home"><div class="svc-icon c4"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div class="svc-name">Smart Home Install</div><div class="svc-desc">Smart thermostats, cameras, door locks, lighting, doorbells and motion sensors.</div><div class="svc-from">From $69</div></a>
-      <a class="service-card" href="/book?service=Junk+Removal"><div class="svc-icon c5"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div><div class="svc-name">Junk Removal</div><div class="svc-desc">Appliances, furniture, electronics, mattresses, office and storage cleanouts.</div><div class="svc-from">From $75</div></a>
-      <a class="service-card" href="/book?service=Other"><div class="svc-icon c6"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="svc-name">Other Services</div><div class="svc-desc">Don't see what you need? Describe your project and we'll send a custom quote.</div><div class="svc-from">Custom quote</div></a>
+
+    <!-- Featured two -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+      <a class="service-card" href="/furniture" style="padding:2.5rem;border-width:2px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div class="svc-icon c1" style="margin-bottom:0"><svg viewBox="0 0 24 24"><path d="M7 13c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v1H7v-1zm-2 2h14v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1zm1-6V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4H6zm2-3v2h8V8H8zM5 19h1v2H5v-2zm13 0h1v2h-1v-2z"/></svg></div>
+          <span style="background:var(--cyan-light);color:var(--cyan-dark);font-size:0.78rem;font-weight:700;padding:0.3rem 0.85rem;border-radius:999px">Most Popular</span>
+        </div>
+        <div class="svc-name" style="font-size:1.4rem;margin-bottom:0.5rem">Furniture Assembly</div>
+        <div class="svc-desc">IKEA, Wayfair, Amazon, beds, sofas, desks, wardrobes &amp; more. Any brand, any piece.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem">
+          <div class="svc-from" style="font-size:1.1rem">From $69</div>
+          <span class="svc-arrow">Book now &rarr;</span>
+        </div>
+      </a>
+      <a class="service-card" href="/mounting" style="padding:2.5rem;border-width:2px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+          <div class="svc-icon c2" style="margin-bottom:0"><svg viewBox="0 0 24 24"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6v2H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM4 15V5h16v10H4z"/></svg></div>
+          <span style="background:#f0f0f0;color:#374151;font-size:0.78rem;font-weight:700;padding:0.3rem 0.85rem;border-radius:999px">Any TV, Any Wall</span>
+        </div>
+        <div class="svc-name" style="font-size:1.4rem;margin-bottom:0.5rem">TV &amp; Mounting</div>
+        <div class="svc-desc">TV mounting, floating shelves, curtain rods, cord concealment &amp; art hanging.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem">
+          <div class="svc-from" style="font-size:1.1rem">From $69</div>
+          <span class="svc-arrow">Book now &rarr;</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Secondary three -->
+    <div class="services-grid" style="grid-template-columns:repeat(3,1fr)">
+      <a class="service-card" href="/repairs"><div class="svc-icon c3"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="svc-name">Home Repairs</div><div class="svc-desc">Drywall, doors, faucets, leaks, gutters and general repairs.</div><div class="svc-from">From $75</div></a>
+      <a class="service-card" href="/smarthome"><div class="svc-icon c4"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div class="svc-name">Smart Home Install</div><div class="svc-desc">Nest, Ring, Ecobee, smart locks, cameras &amp; doorbells.</div><div class="svc-from">From $69</div></a>
+      <a class="service-card" href="/junk"><div class="svc-icon c5"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div><div class="svc-name">Junk Removal</div><div class="svc-desc">Appliances, furniture, mattresses &amp; storage cleanouts.</div><div class="svc-from">From $75</div></a>
     </div>
   </div>
 </section>
