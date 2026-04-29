@@ -30,35 +30,27 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
-/* HERO — split layout */
-.hero{background:linear-gradient(135deg,#f0fdfe 0%,#e8f9fb 50%,#ffffff 100%);overflow:hidden}
-.hero-inner{max-width:1200px;margin:0 auto;padding:0 2rem;display:grid;grid-template-columns:1fr 1fr;min-height:600px;align-items:center;gap:3rem}
-.hero-left{padding:4rem 0}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:#e0f7fa;color:var(--cyan-dark);font-size:0.78rem;font-weight:700;padding:0.4rem 1rem;border-radius:999px;margin-bottom:1.5rem;letter-spacing:0.03em}
-.hero-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:pulse-dot 2s infinite}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.5}}
-.hero-title{font-family:var(--font-display);font-size:clamp(2.4rem,4vw,3.8rem);color:var(--ink);line-height:1.08;margin-bottom:1.1rem}
-.hero-title em{color:var(--cyan-dark);font-style:normal}
-.hero-desc{font-size:1rem;color:var(--muted);line-height:1.8;margin-bottom:1.75rem;max-width:480px}
-.hero-cats{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:2rem}
-.hero-cat-pill{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;color:var(--ink-soft);border:1.5px solid var(--border);border-radius:999px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:600;text-decoration:none;transition:all 0.15s}
-.hero-cat-pill:hover,.hero-cat-pill.featured{background:var(--cyan-light);color:var(--cyan-dark);border-color:var(--cyan)}
-.hero-actions{display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin-bottom:2rem}
-.hero-rating{display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)}
-.hero-rating strong{color:var(--ink)}
-.hero-stats{display:flex;gap:2rem;flex-wrap:wrap}
-.hero-stat{text-align:left}
-.hero-stat-value{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);line-height:1}
-.hero-stat-label{font-size:0.68rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em}
-/* HERO RIGHT — photo */
-.hero-right{position:relative;height:600px;overflow:hidden}
-.hero-right img{width:100%;height:100%;object-fit:cover;object-position:left center;border-radius:0 0 0 48px}
-.hero-right::after{content:'';position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,rgba(0,97,119,0.18),transparent)}
-.hero-tag{position:absolute;bottom:2rem;left:2rem;background:#fff;border-radius:12px;padding:0.75rem 1.1rem;box-shadow:0 8px 32px rgba(0,0,0,0.12);display:flex;align-items:center;gap:0.75rem}
-.hero-tag-icon{width:38px;height:38px;background:var(--cyan-light);border-radius:50%;display:flex;align-items:center;justify-content:center}
-.hero-tag-icon svg{width:20px;height:20px;fill:var(--cyan-dark)}
-.hero-tag-text{font-size:0.78rem;font-weight:700;color:var(--ink)}
-.hero-tag-sub{font-size:0.7rem;color:var(--muted)}
+/* HERO */
+.hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#00838f 100%);padding:5rem 2rem 4rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%,rgba(0,188,212,0.12),transparent 70%);pointer-events:none}
+.hero-inner{max-width:680px;margin:0 auto;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);color:#fff;font-size:0.78rem;font-weight:600;padding:0.4rem 1.1rem;border-radius:999px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.2)}
+.hero-dot{width:7px;height:7px;border-radius:50%;background:#4dd0e1;animation:pulse-dot 2s infinite;flex-shrink:0}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
+.hero-title{font-family:var(--font-display);font-size:clamp(2.6rem,6vw,4rem);color:#fff;line-height:1.06;margin-bottom:1rem}
+.hero-title em{color:#4dd0e1;font-style:normal}
+.hero-desc{font-size:1rem;color:rgba(255,255,255,0.8);line-height:1.75;margin-bottom:2rem;max-width:520px;margin-left:auto;margin-right:auto}
+.hero-cats{display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-bottom:2rem}
+.hero-cat-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.9);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:0.5rem 1.1rem;font-size:0.82rem;font-weight:600;text-decoration:none;transition:all 0.15s}
+.hero-cat-pill:hover,.hero-cat-pill.featured{background:rgba(255,255,255,0.22);color:#fff;border-color:rgba(255,255,255,0.45)}
+.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;align-items:center;margin-bottom:2.5rem}
+.hero-rating{color:rgba(255,255,255,0.75);font-size:0.82rem}
+.hero-rating strong{color:#fff}
+.hero-stats{display:inline-flex;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:16px;overflow:hidden}
+.hero-stat{padding:1rem 1.75rem;text-align:center;border-right:1px solid rgba(255,255,255,0.1)}
+.hero-stat:last-child{border-right:none}
+.hero-stat-value{font-family:var(--font-display);font-size:1.5rem;color:#fff;line-height:1}
+.hero-stat-label{font-size:0.65rem;color:rgba(255,255,255,0.55);margin-top:3px;text-transform:uppercase;letter-spacing:0.07em}
 .nav-earn-btn{background:var(--cyan);color:#fff;padding:0.5rem 1.1rem;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
 .nav-earn-btn:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35)}
 .nav-auth-link{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
@@ -159,19 +151,21 @@
   .nav-earn-btn,.nav-auth-link{display:none}
   .nav-logo img{width:32px;height:32px}
   @media(max-width:900px){.nav-book-pill{display:none!important}} .nav-book-pill{display:inline-flex;align-items:center;padding:0.38rem 0.9rem;background:var(--cyan);color:#fff;border-radius:999px;font-size:0.8rem;font-weight:700;text-decoration:none;white-space:nowrap;gap:4px;min-height:36px}
-  /* HERO — mobile: text only, no photo */
-  .hero-inner{grid-template-columns:1fr !important;gap:0;min-height:auto;align-items:flex-start}
-  .hero-left{padding:1.75rem 0 2rem}
-  .hero-right{display:none}
-  .hero-title{font-size:1.95rem}
-  .hero-desc{font-size:0.9rem;margin-bottom:1.25rem}
-  .hero-stats{gap:1.25rem;margin-top:1rem}
-  .hero-stat-value{font-size:1.2rem}
-  .hero-stat-label{font-size:0.62rem}
-  .hero-cats{gap:0.45rem}
-  .hero-cat-pill{font-size:0.8rem;min-height:38px}
-  .hero-actions{flex-direction:column;align-items:flex-start}
-  .hero-actions .btn{width:100%;max-width:none;min-height:52px;font-size:1rem;text-align:center;justify-content:center}
+  /* HERO — mobile */
+  .hero{padding:3rem 1.25rem 2.5rem}
+  .hero-title{font-size:2rem}
+  .hero-desc{font-size:0.9rem;margin-bottom:1.5rem}
+  .hero-cats{gap:0.4rem}
+  .hero-cat-pill{font-size:0.8rem;padding:0.45rem 0.9rem}
+  .hero-actions{flex-direction:column;align-items:center;gap:0.75rem}
+  .hero-actions .btn{width:100%;max-width:none;min-height:52px;font-size:1rem}
+  .hero-stats{width:100%;border-radius:12px}
+  .hero-stat{flex:1;padding:0.75rem 0.5rem}
+  .hero-stat-value{font-size:1.1rem}
+  /* Photo+brands — stack on mobile */
+  #photo-brands{grid-template-columns:1fr !important}
+  #photo-brands>div:first-child{min-height:220px}
+  #photo-brands>div:last-child{padding:1.75rem 1.25rem}
   /* TRUST — compact 2×2 grid, no descriptions (no overflow risk) */
   .trust-grid{display:grid !important;grid-template-columns:repeat(2,1fr);gap:0.5rem}
   .trust-badge{padding:0.85rem 0.65rem}
@@ -300,55 +294,50 @@
 <main id="main-content">
 <section class="hero">
   <div class="hero-inner">
-    <!-- LEFT — copy -->
-    <div class="hero-left">
-      <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Same-Day Available</div>
-      <h1 class="hero-title">Assembly &amp; mounting,<br><em>done right.</em></h1>
-      <p class="hero-desc">Austin&rsquo;s trusted pros for furniture assembly, TV mounting, home repairs and more. No charge until the job is complete.</p>
-      <div class="hero-cats">
-        <a href="/book?service=Furniture+Assembly" class="hero-cat-pill featured">📦 Furniture Assembly — from $69</a>
-        <a href="/book?service=TV+Mounting" class="hero-cat-pill featured">📺 TV Mounting — from $69</a>
-        <a href="/book?service=Home+Repairs" class="hero-cat-pill">Home Repairs</a>
-        <a href="/book?service=Smart+Home" class="hero-cat-pill">Smart Home</a>
-        <a href="/book?service=Junk+Removal" class="hero-cat-pill">Junk Removal</a>
-      </div>
-      <div class="hero-actions">
-        <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-lg">Book a Pro &rarr;</a>
-        <div class="hero-rating">
-          <span style="color:#f59e0b;font-size:1rem">★★★★★</span>
-          <span><strong>4.9</strong> avg &bull; 1,200+ jobs in Austin</span>
-        </div>
-      </div>
-      <div class="hero-stats">
-        <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Available</div></div>
-        <div class="hero-stat"><div class="hero-stat-value">&lt; 1 hr</div><div class="hero-stat-label">Confirmation</div></div>
-        <div class="hero-stat"><div class="hero-stat-value">Pay after</div><div class="hero-stat-label">Job is done</div></div>
-      </div>
+    <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Same-Day Available</div>
+    <h1 class="hero-title">Assembly &amp; mounting,<br><em>done right.</em></h1>
+    <p class="hero-desc">Austin&rsquo;s trusted pros for furniture assembly, TV mounting, home repairs and more. No charge until the job is complete.</p>
+    <div class="hero-cats">
+      <a href="/book?service=Furniture+Assembly" class="hero-cat-pill featured">📦 Furniture Assembly &mdash; from $69</a>
+      <a href="/book?service=TV+Mounting" class="hero-cat-pill featured">📺 TV Mounting &mdash; from $69</a>
+      <a href="/book?service=Home+Repairs" class="hero-cat-pill">Home Repairs</a>
+      <a href="/book?service=Smart+Home" class="hero-cat-pill">Smart Home</a>
+      <a href="/book?service=Junk+Removal" class="hero-cat-pill">Junk Removal</a>
     </div>
-    <!-- RIGHT — branded photo -->
-    <div class="hero-right">
-      <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase professional assembling furniture in Austin TX" />
-      <div class="hero-tag">
-        <div class="hero-tag-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
-        <div><div class="hero-tag-text">No charge until done</div><div class="hero-tag-sub">Card authorized — charged after job</div></div>
-      </div>
+    <div class="hero-actions">
+      <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-lg">Book a Pro &rarr;</a>
+      <div class="hero-rating"><span style="color:#fbbf24">★★★★★</span> <strong>4.9</strong> avg &bull; 1,200+ jobs</div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Available</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">&lt; 1 hr</div><div class="hero-stat-label">Confirmation</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">Pay after</div><div class="hero-stat-label">Job is done</div></div>
     </div>
   </div>
 </section>
 
-<!-- BRAND BAR -->
-<div style="background:#0a1628;padding:1rem 2rem;overflow:hidden">
-  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;justify-content:center">
-    <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.45);font-weight:700;white-space:nowrap">We assemble items from</span>
-    <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:center">
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">IKEA</span>
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Wayfair</span>
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Amazon</span>
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Ashley</span>
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Costco</span>
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">Target</span>
-      <span style="font-size:0.875rem;font-weight:700;color:rgba(255,255,255,0.6)">West Elm</span>
-      <span style="font-size:0.875rem;font-weight:700;color:var(--cyan)">+ any brand</span>
+<!-- PHOTO + BRANDS -->
+<div style="display:grid;grid-template-columns:1fr 1fr;background:#0a1628" id="photo-brands">
+  <div style="overflow:hidden;min-height:300px">
+    <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase pro at work in Austin TX" style="width:100%;height:100%;object-fit:cover;object-position:left center;display:block"/>
+  </div>
+  <div style="padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:center;gap:2rem">
+    <div>
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.45);font-weight:700;margin-bottom:1rem">We assemble items from</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.65rem">
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">IKEA</span>
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">Wayfair</span>
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">Amazon</span>
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">Ashley</span>
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">Costco</span>
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">Target</span>
+        <span style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;padding:0.35rem 0.85rem;border-radius:6px">West Elm</span>
+        <span style="background:rgba(0,151,167,0.25);color:#4dd0e1;font-size:0.82rem;font-weight:700;padding:0.35rem 0.85rem;border-radius:6px">+ any brand</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:1.25rem">
+      <div><div style="font-family:'DM Serif Display',serif;font-size:2.5rem;color:#4dd0e1;line-height:1">1,200+</div><div style="font-size:0.82rem;color:rgba(255,255,255,0.55);margin-top:3px">Jobs completed in Austin</div></div>
+      <div><div style="font-family:'DM Serif Display',serif;font-size:2.5rem;color:#4dd0e1;line-height:1">4.9 ★</div><div style="font-size:0.82rem;color:rgba(255,255,255,0.55);margin-top:3px">Average customer rating</div></div>
     </div>
   </div>
 </div>
