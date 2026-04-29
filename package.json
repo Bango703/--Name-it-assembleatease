@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/Bango703/--Name-it-assembleatease#readme",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@supabase/supabase-js": "^2.103.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
