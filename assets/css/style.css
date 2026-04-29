@@ -888,6 +888,7 @@ select.form-control {
   .container, .container-sm { padding: 0 1rem; }
   .btn-lg { padding: 0.7rem 1.25rem; font-size: 0.9rem; }
   .dashboard-main { padding: 1rem; }
+  .form-control { font-size: 16px; } /* prevent iOS auto-zoom */
 }
 
 /* ════════════════════════════════════════
