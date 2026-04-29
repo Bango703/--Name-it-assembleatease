@@ -168,32 +168,40 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       </div>
     </div>
 
-    <div class="b2b-form-box">
+    <div class="b2b-form-box" id="b2b-form-wrap">
       <h3>Request a business quote</h3>
       <p>Tell us about your project and we'll send a custom proposal &mdash; typically within 1 business day.</p>
-      <div class="form-row">
-        <div class="form-group"><label for="b-name">Your name</label><input type="text" id="b-name" class="form-control" placeholder="Jane Smith" /></div>
-        <div class="form-group"><label for="b-company">Company name</label><input type="text" id="b-company" class="form-control" placeholder="Acme Property Group" /></div>
+      <div id="b2b-form-fields">
+        <div class="form-row">
+          <div class="form-group"><label for="b-name">Your name</label><input type="text" id="b-name" class="form-control" placeholder="Jane Smith" /></div>
+          <div class="form-group"><label for="b-company">Company name</label><input type="text" id="b-company" class="form-control" placeholder="Acme Property Group" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="b-email">Email address</label><input type="email" id="b-email" class="form-control" placeholder="you@company.com" /></div>
+          <div class="form-group"><label for="b-phone">Phone number</label><input type="tel" id="b-phone" class="form-control" placeholder="737-000-0000" /></div>
+        </div>
+        <div class="form-group"><label for="b-type">Type of work</label>
+          <select id="b-type" class="form-control" style="cursor:pointer">
+            <option value="">Select one...</option>
+            <option value="Office furniture assembly">Office furniture assembly</option>
+            <option value="Property management / maintenance">Property management / maintenance</option>
+            <option value="Commercial installs (TV, cameras, locks)">Commercial installs (TV, cameras, locks)</option>
+            <option value="Junk removal / cleanout">Junk removal / cleanout</option>
+            <option value="Recurring / ongoing service">Recurring / ongoing service</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label for="b-details">Project details</label><textarea id="b-details" class="form-control" rows="4" placeholder="Describe the scope, number of units, timeline, etc."></textarea></div>
+        <div id="b-err" style="font-size:0.82rem;color:#ef4444;margin-bottom:0.75rem;display:none;padding:0.6rem;background:#fef2f2;border-radius:8px;border:1px solid #fecaca"></div>
+        <button class="btn btn-cyan btn-full" id="b-btn" onclick="sendB2B()">Send Quote Request &rarr;</button>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label for="b-email">Email address</label><input type="email" id="b-email" class="form-control" placeholder="you@company.com" /></div>
-        <div class="form-group"><label for="b-phone">Phone number</label><input type="tel" id="b-phone" class="form-control" placeholder="737-000-0000" /></div>
+      <!-- Success state — replaces form on submit -->
+      <div id="b-success" style="display:none;text-align:center;padding:2rem 1rem">
+        <div style="font-size:3rem;margin-bottom:1rem">&#10003;</div>
+        <h3 style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--ink);margin-bottom:0.75rem">Quote request received!</h3>
+        <p style="font-size:0.95rem;color:var(--muted);line-height:1.65;margin-bottom:1.25rem">We'll review your project and send a custom proposal within <strong>1 business day</strong>. Check your email — we'll reach out at the address you provided.</p>
+        <p style="font-size:0.82rem;color:var(--muted)">Questions in the meantime? Email us at <a href="mailto:service@assembleatease.com" style="color:var(--cyan-dark)">service@assembleatease.com</a></p>
       </div>
-      <div class="form-group"><label for="b-type">Type of work</label>
-        <select id="b-type" class="form-control" style="cursor:pointer">
-          <option value="">Select one...</option>
-          <option value="Office furniture assembly">Office furniture assembly</option>
-          <option value="Property management / maintenance">Property management / maintenance</option>
-          <option value="Commercial installs (TV, cameras, locks)">Commercial installs (TV, cameras, locks)</option>
-          <option value="Junk removal / cleanout">Junk removal / cleanout</option>
-          <option value="Recurring / ongoing service">Recurring / ongoing service</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="form-group"><label for="b-details">Project details</label><textarea id="b-details" class="form-control" rows="4" placeholder="Describe the scope, number of units, timeline, etc."></textarea></div>
-      <div id="b-err" style="font-size:0.82rem;color:#ef4444;margin-bottom:0.75rem;display:none;padding:0.6rem;background:#fef2f2;border-radius:8px;border:1px solid #fecaca"></div>
-      <button class="btn btn-cyan btn-full" id="b-btn" onclick="sendB2B()">Send Quote Request &rarr;</button>
-      <div id="b-success" style="display:none;margin-top:1rem;padding:0.85rem;background:var(--cyan-light);border-radius:var(--radius);font-size:0.875rem;color:var(--cyan-dark);font-weight:600;text-align:center">&#10003; Request sent! We'll get back to you within 1 business day with a custom quote.</div>
     </div>
   </div>
 </section>
@@ -286,9 +294,9 @@ async function sendB2B() {
     btn.disabled = false; btn.textContent = 'Send Quote Request \u2192';
     return;
   }
+  document.getElementById('b2b-form-fields').style.display = 'none';
   document.getElementById('b-success').style.display = 'block';
-  btn.disabled = false;
-  btn.textContent = 'Send Quote Request \u2192';
+  document.getElementById('b2b-form-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // Phone formatter
