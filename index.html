@@ -161,8 +161,8 @@
   @media(max-width:900px){.nav-book-pill{display:none!important}} .nav-book-pill{display:inline-flex;align-items:center;padding:0.38rem 0.9rem;background:var(--cyan);color:#fff;border-radius:999px;font-size:0.8rem;font-weight:700;text-decoration:none;white-space:nowrap;gap:4px;min-height:36px}
   /* HERO — mobile layout */
   .hero-inner{grid-template-columns:1fr !important;gap:0}
-  .hero-left{padding:2rem 0 1.5rem}
-  .hero-right{height:260px;border-radius:0 !important}
+  .hero-left{padding:2rem 0 1.5rem;order:2}
+  .hero-right{height:280px;border-radius:0 !important;order:1}
   .hero-right img{border-radius:0 !important}
   .hero-tag{display:none}
   .hero-title{font-size:1.95rem}
@@ -356,35 +356,6 @@
 </div>
 
 
-<!-- ── PHOTO + STATS ── -->
-<section style="background:#0a1628;overflow:hidden">
-  <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;min-height:380px">
-    <!-- Photo — swap src with your own photo when ready -->
-    <div style="background:url('/images/hero-pro.jpg.png') left center/cover no-repeat;min-height:280px;position:relative">
-      <div style="position:absolute;inset:0;background:rgba(0,0,0,0.08)"></div>
-    </div>
-    <!-- Stats -->
-    <div style="padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:center;gap:2rem">
-      <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);color:#4dd0e1;line-height:1">1,200+</div>
-        <div style="font-size:0.875rem;color:rgba(255,255,255,0.65);margin-top:4px">Jobs completed in Austin</div>
-      </div>
-      <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);color:#4dd0e1;line-height:1">4.9 &#9733;</div>
-        <div style="font-size:0.875rem;color:rgba(255,255,255,0.65);margin-top:4px">Average customer rating</div>
-      </div>
-      <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);color:#4dd0e1;line-height:1">&lt; 1 hr</div>
-        <div style="font-size:0.875rem;color:rgba(255,255,255,0.65);margin-top:4px">Confirmation time after booking</div>
-      </div>
-    </div>
-  </div>
-</section>
-<style>
-@media(max-width:640px){
-  #stats-photo-grid{grid-template-columns:1fr!important}
-}
-</style>
 
 <section class="section section-alt">
   <div class="section-inner">
