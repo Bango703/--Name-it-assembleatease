@@ -108,7 +108,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
   let articleHtml;
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-opus-4-7',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       messages: [{ role: 'user', content: userPrompt }],
       system: systemPrompt,
@@ -116,7 +116,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
     articleHtml = message.content[0]?.text?.trim();
   } catch (e) {
     console.error('Anthropic error:', e);
-    return res.status(500).json({ error: 'Failed to generate blog content' });
+    return res.status(500).json({ error: 'Failed to generate blog content', detail: e?.message || String(e) });
   }
 
   if (!articleHtml) {
@@ -137,7 +137,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
   const canonicalUrl = `${SITE}/blog/${slug}`;
   const readTime = Math.max(3, Math.round(cleanBody.replace(/<[^>]+>/g, '').split(/\s+/).length / 200));
 
-  const fullHtml = buildBlogPage({ title, slug, canonicalUrl, today, readTime, body: cleanBody });
+  const fullHtml = buildBlogPage({ title, canonicalUrl, today, readTime, body: cleanBody });
 
   // ── 4. Commit to GitHub ──────────────────────────────────────────
   const filePath = `blog/${slug}.html`;
@@ -190,7 +190,7 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function buildBlogPage({ title, slug, canonicalUrl, today, readTime, body }) {
+function buildBlogPage({ title, canonicalUrl, today, readTime, body }) {
   const escaped = title.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
