@@ -1711,7 +1711,7 @@ function saveContactEdit() {
   var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
   var today = new Date(); today.setHours(0,0,0,0);
-  var maxDate = new Date(today.getTime() + 6*24*60*60*1000);
+  var maxDate = new Date(today.getTime() + 30*24*60*60*1000);
   var curMonth = today.getMonth(), curYear = today.getFullYear();
   function pad(n) { return n < 10 ? '0'+n : n; }
 
