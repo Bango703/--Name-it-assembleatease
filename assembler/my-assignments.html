@@ -103,7 +103,7 @@
       <div class="sidebar-label">Account</div>
       <ul class="sidebar-nav">
         <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon">&#128682;</span> Log out</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:currentColor;vertical-align:middle"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg></span> Log out</a></li>
       </ul>
     </div>
   </aside>
@@ -368,8 +368,26 @@
     const btn = document.getElementById('checkin-btn');
     btn.disabled = false;
     btn.innerHTML = '&#128205; Check In &mdash; I\'ve Arrived';
-    document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center">No messages yet.</div>';
+    document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     document.getElementById('asgn-modal').classList.add('open');
+    // Load messages from Supabase
+    supabaseClient.from('messages').select('*').eq('booking_id', bookingId).order('created_at',{ascending:true})
+      .then(function(r){
+        var msgs=r.data||[];
+        var thread=document.getElementById('asgn-msg-thread');
+        if(!msgs.length){
+          thread.innerHTML='<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
+        } else {
+          thread.innerHTML=msgs.map(function(m){
+            var isMe=m.sender==='assembler';
+            return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-bottom:0.6rem">'
+              +'<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
+              +(isMe?'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px':'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px')+'">'+esc(m.body)+'</div></div>';
+          }).join('');
+          thread.scrollTop=thread.scrollHeight;
+        }
+      })
+      .catch(function(){ document.getElementById('asgn-msg-thread').innerHTML='<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>'; });
   };
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>

@@ -351,16 +351,26 @@
     });
 
     // ── VERIFICATION GATE ──
-    // If assembler is pending or not background-checked, show only status banners
     if(profile.tier==='pending' || profile.identity_verified!==true){
-      // Hide functional sections
       document.getElementById('stats-row').style.display='none';
+      // Show the appropriate banner
+      var banner=document.getElementById('identity-banner');
+      if(banner) banner.classList.remove('hidden');
+      if(profile.tier==='pending'){
+        var sub=document.getElementById('identity-banner-sub');
+        if(sub) sub.textContent='Your application is under review. We\'ll email you once approved.';
+      } else {
+        // Identity not verified — show the verify button
+        var verifyBtn=document.getElementById('identity-verify-btn');
+        if(verifyBtn){ verifyBtn.style.display=''; verifyBtn.href='apply.html'; }
+      }
       // Disable sidebar nav links except Dashboard and Profile
       document.querySelectorAll('.sidebar-nav a').forEach(function(a){
         var href=a.getAttribute('href')||'';
         if(href!=='.'&&href!=='profile'&&!a.id){
           a.style.opacity='0.4';
           a.style.pointerEvents='none';
+          a.title='Complete verification to access this section';
         }
       });
       return;

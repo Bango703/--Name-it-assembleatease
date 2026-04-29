@@ -228,7 +228,15 @@
     document.getElementById('email-display').textContent = user.email;
     document.getElementById('member-since').textContent  = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'â€”';
+      : '—';
+    // Load saved notification preferences
+    if (profile.notification_prefs) {
+      const p = profile.notification_prefs;
+      if (document.getElementById('notif-bids'))     document.getElementById('notif-bids').checked     = p.booking_confirmed !== false;
+      if (document.getElementById('notif-status'))   document.getElementById('notif-status').checked   = p.status_updates !== false;
+      if (document.getElementById('notif-messages')) document.getElementById('notif-messages').checked = p.messages !== false;
+      if (document.getElementById('notif-promo'))    document.getElementById('notif-promo').checked    = !!p.promotions;
+    }
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -268,7 +276,22 @@
     }
     document.getElementById('change-password-btn')?.addEventListener('click', () => sendReset('change-password-btn', 'Send password reset email'));
     document.getElementById('change-password-btn-2')?.addEventListener('click', () => sendReset('change-password-btn-2', 'Change password'));
-    document.getElementById('save-notifs-btn')?.addEventListener('click', () => { APP.showAlert('page-alert', 'Notification preferences saved.', 'success'); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    document.getElementById('save-notifs-btn')?.addEventListener('click', async () => {
+      const prefs = {
+        booking_confirmed: document.getElementById('notif-bids')?.checked ?? true,
+        status_updates: document.getElementById('notif-status')?.checked ?? true,
+        messages: document.getElementById('notif-messages')?.checked ?? true,
+        promotions: document.getElementById('notif-promo')?.checked ?? false,
+      };
+      try {
+        const { error } = await supabaseClient.from('profiles').update({ notification_prefs: prefs }).eq('id', user.id);
+        if (error) throw error;
+        APP.showAlert('page-alert', 'Notification preferences saved.', 'success');
+      } catch (e) {
+        APP.showAlert('page-alert', 'Could not save preferences. Please try again.', 'error');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 
     document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
       if (!confirm('Delete your account? This cannot be undone.')) return;

@@ -110,7 +110,6 @@ export default async function handler(req, res) {
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
   </td></tr></table>
 </div></body></html>`;
-
       await sendEmail({
         to: booking.customer_email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -118,8 +117,27 @@ export default async function handler(req, res) {
         html,
         replyTo: ownerEmail(),
       });
+    } else if (resolvedSender === 'assembler') {
+      // Notify owner about assembler message
+      await sendEmail({
+        to: ownerEmail(),
+        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
+        subject: 'Assembler Message — ' + booking.ref,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Booking ${esc(booking.ref)} &mdash; Assembler Message</p>
+    <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a1a">Message from your assembler</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 18px">
+      <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
+    </td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a">Service: ${esc(booking.service)} &bull; Customer: ${esc(booking.customer_name)}</p>
+  </td></tr></table>
+</div></body></html>`,
+        replyTo: ownerEmail(),
+      });
     } else {
-      // Notify owner
+      // Customer message — notify owner
       await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
@@ -139,24 +157,12 @@ export default async function handler(req, res) {
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
-      <p style="margin:0;font-size:13px;color:#1e40af">Reply to this email or contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af">Contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.</p>
     </td></tr></table>
   </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    AssembleAtEase &bull; Austin, TX
-  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</td></tr></table>
 </div></body></html>`,
         replyTo: booking.customer_email,
-      });
-    } else if (resolvedSender === 'assembler') {
-      // Notify owner about assembler message
-      await sendEmail({
-        to: ownerEmail(),
-        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-        subject: 'Assembler Message — ' + booking.ref,
-        html: `<p><strong>Assembler message on booking ${esc(booking.ref)}</strong> (${esc(booking.service)}):</p>
-<blockquote style="background:#f9fafb;border-left:4px solid #0097a7;padding:12px 16px;margin:0">${esc(msgBody.trim())}</blockquote>`,
-        replyTo: ownerEmail(),
       });
     }
   } catch (emailErr) {
