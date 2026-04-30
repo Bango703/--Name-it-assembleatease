@@ -220,6 +220,11 @@
     .field-error { font-size: 0.75rem; color: var(--red); margin-top: 4px; display: none; }
     .field-error.show { display: block; }
 
+    /* ── Urgency hint ── */
+    .urgency-hint{display:flex;align-items:center;gap:0.6rem;background:#f0fdf4;border:1px solid rgba(22,163,74,0.25);border-radius:var(--radius-md);padding:0.65rem 1rem;margin-bottom:1.25rem;font-size:0.82rem;color:#15803d;line-height:1.4}
+    .urgency-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;animation:pulse-dot 2s infinite}
+    .urgency-slot{display:inline-flex;align-items:center;gap:0.4rem;background:rgba(22,163,74,0.1);border-radius:999px;padding:0.15rem 0.55rem;font-weight:700;font-size:0.78rem;color:#15803d;white-space:nowrap}
+    .urgency-scarcity{color:#dc2626;font-weight:600;font-size:0.78rem}
     /* ── Date/time picker ── */
     .dt-section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); margin-bottom: 0.75rem; }
     .dt-cal { border: 1.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; }
@@ -542,6 +547,11 @@
         <div class="step-heading">When &amp; where?</div>
         <p class="step-sub">Pick a date and time, then enter your service address.</p>
 
+        <div class="urgency-hint">
+          <span class="urgency-dot"></span>
+          <div><strong>Next available:</strong> <span class="urgency-slot" id="urgency-next"></span> &nbsp;<span class="urgency-scarcity" id="urgency-scarce"></span></div>
+        </div>
+
         <div class="form-fields">
           <div>
             <div class="dt-section-label">Preferred date <span style="color:var(--teal)">*</span></div>
@@ -661,9 +671,12 @@
         <div class="step-err" id="s5-err"></div>
         <div class="step-actions">
           <button class="btn-back-link" id="s5-back" onclick="goToStep(4)">&larr; Back</button>
-          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Confirm Booking <span>&#8594;</span></button>
+          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Confirm My Booking <span>&#8594;</span></button>
         </div>
-        <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.85rem;line-height:1.5">
+        <p style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500">
+          You won&rsquo;t be charged until the job is complete.
+        </p>
+        <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.4rem;line-height:1.5">
           Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
         </p>
       </div>
@@ -749,10 +762,10 @@
       <div class="sidebar-card">
         <div class="sidebar-title">Why AssembleAtEase</div>
         <div class="trust-items">
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></span><div><strong>Pay after the job</strong><br>Card authorized at booking &mdash; charged only after the job is complete.</div></div>
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></span><div><strong>No charge until the job is complete</strong><br>Your card is authorized at booking and only charged after the job is complete.</div></div>
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></span><div><strong>Confirmed within 1 hour</strong><br>Same-day and next-day availability in Austin.</div></div>
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span><div><strong>5-star service</strong><br>Hundreds of 5-star reviews from Austin homeowners.</div></div>
+          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></span><div><strong>Booked in under 60 seconds</strong><br>Pick a service, choose a time, done.</div></div>
+          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></span><div><strong>No charge until job done</strong><br>Card authorized at booking &mdash; only captured after you confirm it&rsquo;s complete.</div></div>
+          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span><div><strong>100+ 5-star reviews</strong><br>Austin&rsquo;s trusted pros. Vetted, insured, background-checked.</div></div>
+          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></span><div><strong>Confirmed within 1 hour</strong><br>Same-day and next-day availability across Austin.</div></div>
         </div>
       </div>
     </aside>
@@ -770,6 +783,38 @@
 </footer>
 
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
+<script>
+// ── Urgency hint: show next available slot ──────────────────────────────────
+(function(){
+  var el=document.getElementById('urgency-next');
+  var sc=document.getElementById('urgency-scarce');
+  if(!el)return;
+  var now=new Date();
+  var h=now.getHours();
+  var today=h<14; // before 2pm can still book today
+  var label,scarcity;
+  if(today){
+    // round up to nearest half-hour, min 1.5h from now
+    var earliest=new Date(now.getTime()+90*60000);
+    var m=earliest.getMinutes();
+    if(m>30){earliest.setHours(earliest.getHours()+1,0,0,0);}else if(m>0){earliest.setMinutes(30,0,0);}
+    var hh=earliest.getHours();
+    var ampm=hh>=12?'PM':'AM';
+    var h12=hh%12||12;
+    var mm=earliest.getMinutes()===0?'':':'+String(earliest.getMinutes()).padStart(2,'0');
+    label='Today at '+h12+mm+' '+ampm;
+    scarcity='Only 2 slots left today';
+  } else {
+    var tom=new Date(now);
+    tom.setDate(tom.getDate()+1);
+    var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    label=(tom.getDay()===0||tom.getDay()===6)?days[tom.getDay()]+' morning':'Tomorrow at 9:00 AM';
+    scarcity='Most popular: '+label.split(' ')[0]+' morning';
+  }
+  el.textContent=label;
+  sc.textContent=scarcity;
+})();
+</script>
 <script>
 // ════════════════════════════════════════════════════════════════════════════
 // SUB-CATEGORY DATA

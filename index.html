@@ -51,8 +51,15 @@
 .hero-stat:last-child{border-right:none}
 .hero-stat-value{font-family:var(--font-display);font-size:1.5rem;color:#fff;line-height:1}
 .hero-stat-label{font-size:0.65rem;color:rgba(255,255,255,0.55);margin-top:3px;text-transform:uppercase;letter-spacing:0.07em}
-/* NAV extras */
-.nav-earn-btn{background:var(--cyan);color:#fff;padding:0.5rem 1.1rem;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
+/* Quick-book bar */
+.qbb-form{display:flex;border-radius:8px;overflow:hidden;border:2px solid var(--ink);background:#fff;margin-bottom:2rem;box-shadow:0 4px 24px rgba(0,0,0,0.13)}
+.qbb-select{flex:1;border:none;padding:0.85rem 1rem;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);background:#fff;outline:none;cursor:pointer;appearance:none;min-width:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.75rem center;padding-right:2.25rem}
+.qbb-btn{padding:0.85rem 1.5rem;background:var(--ink);color:#fff;border:none;font-family:var(--font-body);font-size:0.95rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background 0.15s;flex-shrink:0}
+.qbb-btn:hover{background:#1a2736}
+.qbb-or{display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;font-size:0.82rem;color:var(--muted)}
+.qbb-or::before,.qbb-or::after{content:'';flex:1;height:1px;background:var(--border)}
+.hv2-btn-book-sm{display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:0.875rem;font-weight:600;text-decoration:none}
+.hv2-btn-book-sm:hover{color:var(--ink)}padding:0.5rem 1.1rem;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
 .nav-earn-btn:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35)}
 .nav-auth-link{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
 .nav-auth-link:hover{color:var(--cyan-dark)}
@@ -361,9 +368,21 @@
     <div class="hv2-eyebrow">Professional Home Services &mdash; Austin, TX</div>
     <h1 class="hv2-h1">Quality work.<br>Every time.</h1>
     <p class="hv2-desc">Furniture assembly, TV mounting, smart home setup, junk removal, and home repairs&mdash;done right so you don&rsquo;t have to lift a finger.</p>
-    <div class="hv2-actions">
+    <form class="qbb-form" onsubmit="return qbbGo(event)">
+      <select class="qbb-select" id="qbb-svc" aria-label="Select a service">
+        <option value="">What do you need? ▾</option>
+        <option value="Furniture+Assembly">📦 Furniture Assembly — from $69</option>
+        <option value="TV+Mounting">📺 TV Mounting — from $69</option>
+        <option value="Home+Repairs">🔧 Home Repairs — from $75</option>
+        <option value="Smart+Home">🏠 Smart Home Setup — from $69</option>
+        <option value="Junk+Removal">🚛 Junk Removal — from $75</option>
+      </select>
+      <button type="submit" class="qbb-btn">Check Availability &rarr;</button>
+    </form>
+    <script>function qbbGo(e){e.preventDefault();var v=document.getElementById('qbb-svc').value;window.location='/book'+(v?'?service='+v:'');return false;}</script>
+    <div class="qbb-or">or</div>
+    <div class="hv2-actions" style="margin-bottom:2rem">
       <a href="/book" class="hv2-btn-book">BOOK NOW &rarr;</a>
-      <a href="/#services" class="hv2-btn-view">VIEW SERVICES</a>
     </div>
     <div class="hv2-trust-row">
       <div class="hv2-tr-item">
