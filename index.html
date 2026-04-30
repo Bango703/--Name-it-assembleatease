@@ -97,7 +97,8 @@
 .svc5-icon{width:64px;height:64px;border-radius:50%;border:2px solid var(--cyan-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem}
 .svc5-icon svg{width:30px;height:30px;stroke:var(--cyan-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .svc5-name{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem}
-.svc5-desc{font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:1.1rem}
+.svc5-desc{font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:0.5rem}
+.svc5-price{font-size:0.9rem;font-weight:700;color:var(--cyan-dark);margin-bottom:0.85rem}
 .svc5-link{font-size:0.82rem;font-weight:600;color:var(--cyan-dark);display:inline-flex;align-items:center;gap:4px}
 /* ── DARK TRUST BAR ───────────────────────────────── */
 .trust-bar{background:var(--ink);padding:2.5rem 2rem}
@@ -327,7 +328,7 @@
       <li><a href="/#service-area">Service Area</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:0.75rem">
-      <a href="/auth/login" class="nav-auth-link">Sign In</a>
+      <a href="tel:+17372906129" class="nav-auth-link" style="font-weight:600">(737) 290-6129</a>
       <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     </div>
     <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
@@ -337,16 +338,15 @@
   </div>
 </nav>
 <div class="nav-mobile" id="mobileNav">
-  <a href="/book?service=Furniture+Assembly">Furniture Assembly</a>
-  <a href="/book?service=TV+Mounting">TV &amp; Mounting</a>
-  <a href="/book?service=Home+Repairs">Home Repairs</a>
-  <a href="/book?service=Smart+Home">Smart Home</a>
-  <a href="/book?service=Junk+Removal">Junk Removal</a>
+  <a href="/book?service=Furniture+Assembly">📦 Furniture Assembly</a>
+  <a href="/book?service=TV+Mounting">📺 TV Mounting</a>
+  <a href="/book?service=Home+Repairs">🔧 Home Repairs</a>
+  <a href="/book?service=Smart+Home">💡 Smart Home</a>
+  <a href="/book?service=Junk+Removal">🗑 Junk Removal</a>
   <a href="/pricing">Pricing</a>
-  <a href="/about">About</a>
-  <a href="/auth/login">Sign In</a>
-  <a href="/auth/signup">Sign Up</a>
-  <a href="/assembler/apply" class="btn btn-cyan btn-full" style="text-align:center">Become a Pro</a>
+  <a href="/about">About Us</a>
+  <a href="tel:+17372906129" style="font-weight:700;color:#0097a7">(737) 290-6129</a>
+  <a href="/book" class="btn btn-cyan btn-full" style="text-align:center">Book Now &rarr;</a>
   <a href="/book" class="btn btn-outline btn-full" style="text-align:center">Book Now &rarr;</a>
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
@@ -387,7 +387,7 @@
   <div class="hero-inner">
     <div class="hero-badge"><span class="hero-dot"></span> Serving Austin, TX &mdash; Same-Day Available</div>
     <h1 class="hero-title">Assembly &amp; mounting,<br><em>done right.</em></h1>
-    <p class="hero-desc">Austin&rsquo;s trusted pros for furniture assembly, TV mounting, home repairs and more. No charge until the job is complete.</p>
+    <p class="hero-desc">Austin&rsquo;s trusted pros for furniture assembly, TV mounting, home repairs and more. Card held at booking &mdash; only charged after the job is done.</p>
     <div class="hero-cats">
       <a href="/book?service=Furniture+Assembly" class="hero-cat-pill featured">📦 Furniture Assembly &mdash; from $69</a>
       <a href="/book?service=TV+Mounting" class="hero-cat-pill featured">📺 TV Mounting &mdash; from $69</a>
@@ -396,9 +396,10 @@
       <a href="/book?service=Junk+Removal" class="hero-cat-pill">Junk Removal</a>
     </div>
     <div class="hero-actions">
-      <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-lg">Book a Pro &rarr;</a>
-      <div class="hero-rating"><span style="color:#fbbf24">★★★★★</span> <strong>4.9</strong> avg &bull; 1,200+ jobs</div>
+      <a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-lg">Book Now &rarr;</a>
+      <a href="tel:+17372906129" style="color:rgba(255,255,255,0.85);font-size:0.9rem;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" style="fill:currentColor;flex-shrink:0"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>(737) 290-6129</a>
     </div>
+    <div class="hero-rating" style="margin-bottom:2rem"><span style="color:#fbbf24">★★★★★</span> <strong>4.9</strong> avg &bull; 1,200+ jobs in Austin</div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-value">Same-day</div><div class="hero-stat-label">Available</div></div>
       <div class="hero-stat"><div class="hero-stat-value">&lt; 1 hr</div><div class="hero-stat-label">Confirmation</div></div>
@@ -451,32 +452,37 @@
     <a class="svc5-card" href="/book?service=Furniture+Assembly">
       <div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="10" rx="1"/><path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><line x1="5" y1="18" x2="5" y2="21"/><line x1="19" y1="18" x2="19" y2="21"/></svg></div>
       <div class="svc5-name">Furniture Assembly</div>
-      <div class="svc5-desc">Fast, careful assembly for all types of furniture.</div>
-      <span class="svc5-link">Learn more &rarr;</span>
-    </a>
-    <a class="svc5-card" href="/book?service=Smart+Home">
-      <div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/><circle cx="12" cy="7" r="1" fill="currentColor"/><path d="M8.5 14a3.5 3.5 0 0 1 7 0"/></svg></div>
-      <div class="svc5-name">Smart Home Setup</div>
-      <div class="svc5-desc">Set up your devices and automate your home.</div>
-      <span class="svc5-link">Learn more &rarr;</span>
-    </a>
-    <a class="svc5-card" href="/book?service=Junk+Removal">
-      <div class="svc5-icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
-      <div class="svc5-name">Junk Removal</div>
-      <div class="svc5-desc">We haul it away so you don&rsquo;t have to.</div>
-      <span class="svc5-link">Learn more &rarr;</span>
-    </a>
-    <a class="svc5-card" href="/book?service=Home+Repairs">
-      <div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
-      <div class="svc5-name">Home Repairs</div>
-      <div class="svc5-desc">Minor fixes and improvements around your home.</div>
-      <span class="svc5-link">Learn more &rarr;</span>
+      <div class="svc5-desc">IKEA, Wayfair, Amazon & more. Any brand, any piece.</div>
+      <div class="svc5-price">From $69</div>
+      <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=TV+Mounting">
       <div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
       <div class="svc5-name">TV Mounting</div>
-      <div class="svc5-desc">Secure mounting for TVs of all sizes.</div>
-      <span class="svc5-link">Learn more &rarr;</span>
+      <div class="svc5-desc">Any TV, any wall. Cord concealment included.</div>
+      <div class="svc5-price">From $69</div>
+      <span class="svc5-link">Book now &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Home+Repairs">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+      <div class="svc5-name">Home Repairs</div>
+      <div class="svc5-desc">Drywall, doors, fixtures & general repairs.</div>
+      <div class="svc5-price">From $75</div>
+      <span class="svc5-link">Book now &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Smart+Home">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/><circle cx="12" cy="7" r="1" fill="currentColor"/><path d="M8.5 14a3.5 3.5 0 0 1 7 0"/></svg></div>
+      <div class="svc5-name">Smart Home Setup</div>
+      <div class="svc5-desc">Nest, Ring, Ecobee, smart locks & cameras.</div>
+      <div class="svc5-price">From $69</div>
+      <span class="svc5-link">Book now &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Junk+Removal">
+      <div class="svc5-icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>
+      <div class="svc5-name">Junk Removal</div>
+      <div class="svc5-desc">Furniture, appliances, mattresses & cleanouts.</div>
+      <div class="svc5-price">From $75</div>
+      <span class="svc5-link">Book now &rarr;</span>
     </a>
   </div>
 </section>
@@ -639,23 +645,23 @@
       <h2 class="section-title">FAQ</h2>
     </div>
     <div class="faq-list"><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
-  <div class="faq-q"><span>Do you bring your own tools?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
-  <div class="faq-a">Yes &mdash; we arrive fully equipped with everything needed to complete the job. You don't need to provide any tools or equipment.</div>
+  <div class="faq-q"><span>How much does it cost?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+  <div class="faq-a">All prices are flat-rate &mdash; no hourly billing, no surprises. Furniture assembly starts at $69, TV mounting from $69, home repairs from $75, smart home installs from $69, and junk removal from $75. See our full <a href="/pricing" style="color:var(--cyan-dark);font-weight:600">pricing page</a> for a complete breakdown.</div>
 </div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
-  <div class="faq-q"><span>What areas do you serve?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
-  <div class="faq-a">We serve Austin, TX and surrounding areas &mdash; including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, Bee Cave, Manor, Leander, and Hutto. Not sure if we cover your zip? Just <a href="/contact" style="color:var(--cyan-dark)">ask us</a>.</div>
+  <div class="faq-q"><span>When do I pay?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+  <div class="faq-a">Your card is held at booking but <strong>only charged after the job is complete</strong>. We accept all major credit and debit cards through our secure Stripe-powered platform. We do not accept cash, Zelle, or Venmo.</div>
 </div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>How quickly can you come?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
-  <div class="faq-a">We offer same-day and next-day availability for most services. Once you submit a request we'll confirm your appointment within 1 hour.</div>
+  <div class="faq-a">We offer same-day and next-day availability for most services. Once you submit a booking we confirm your appointment within 1 hour.</div>
 </div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>What's your cancellation policy?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
-  <div class="faq-a">We require at least 24 hours' notice to cancel or reschedule. Cancellations made within 24 hours of your scheduled appointment are subject to a cancellation fee. This protects our professionals who reserved that time slot for you.</div>
+  <div class="faq-a">Cancel at least 24 hours before your appointment at no charge. Cancellations within 24 hours are subject to a 50% cancellation fee of your booking total. No-shows are charged in full.</div>
 </div>
 
 <div id="faq-more" style="display:none">
 <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
-  <div class="faq-q"><span>When do I pay?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
-  <div class="faq-a">Payment is processed securely online after the job is completed to your satisfaction. We accept all major credit and debit cards. We do not accept cash, Zelle, or Venmo &mdash; all payments go through our secure platform.</div>
+  <div class="faq-q"><span>What areas do you serve?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+  <div class="faq-a">We serve Austin, TX and surrounding areas &mdash; including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, Bee Cave, Manor, Leander, and Hutto. Not sure if we cover your zip? Just <a href="/contact" style="color:var(--cyan-dark)">ask us</a>.</div>
 </div><div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}">
   <div class="faq-q"><span>What if something gets damaged?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
   <div class="faq-a">We treat your home and belongings with care. In the unlikely event of damage, we are fully insured and will make it right.</div>
@@ -697,6 +703,7 @@
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" loading="lazy" /></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
       <div class="footer-contact">
+        <a href="tel:+17372906129">&#128222;&nbsp; (737) 290-6129</a>
         <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
       </div>
     </div>
