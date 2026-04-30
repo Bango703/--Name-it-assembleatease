@@ -7,6 +7,8 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const { status, limit, offset } = req.query;
+  const safeLimit  = Math.min(Math.max(parseInt(limit, 10) || 25, 1), 100);
+  const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
   let query = sb
     .from('bookings')
@@ -14,8 +16,7 @@ export default async function handler(req, res) {
     .order('created_at', { ascending: false });
 
   if (status && status !== 'all') query = query.eq('status', status);
-  if (limit) query = query.limit(parseInt(limit, 10));
-  if (offset) query = query.range(parseInt(offset, 10), parseInt(offset, 10) + parseInt(limit || 25, 10) - 1);
+  query = query.range(safeOffset, safeOffset + safeLimit - 1);
 
   const { data, error, count } = await query;
 

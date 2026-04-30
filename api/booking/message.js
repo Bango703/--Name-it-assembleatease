@@ -27,6 +27,7 @@ export default async function handler(req, res) {
   const { bookingId, ref, body: msgBody, sender } = req.body;
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
   if (!msgBody || !msgBody.trim()) return res.status(400).json({ error: 'Message body is required' });
+  if (msgBody.trim().length > 2000) return res.status(400).json({ error: 'Message must be 2000 characters or fewer' });
 
   const sb = getSupabase();
 

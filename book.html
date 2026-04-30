@@ -1178,7 +1178,11 @@ function fieldErr(inId, errId, show) {
 function checkServiceZip(val) {
   var ok = document.getElementById('svc-area-ok');
   if (!ok) return;
-  ok.style.display = (val && val.length === 5 && /^\d{5}$/.test(val)) ? 'block' : 'none';
+  // Validate and check Austin TX service area (ZIP prefixes 786-788)
+  var isValid = val && val.length === 5 && /^\d{5}$/.test(val);
+  var prefix = isValid ? parseInt(val.slice(0, 3), 10) : 0;
+  var inArea = isValid && (prefix >= 786 && prefix <= 788);
+  ok.style.display = inArea ? 'block' : 'none';
 }
 function fmtPrice(item) {
   if (item.customQuote) return 'Custom quote';

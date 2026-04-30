@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'This payment has not been captured yet — the card hold has not been charged. Cancel the booking instead to release the hold on the customer\'s card.' });
   }
 
-  const refundAmountCents = amount ? parseInt(amount) : (booking.amount_charged || null);
+  const refundAmountCents = amount ? parseInt(amount, 10) : (booking.amount_charged || null);
   if (!refundAmountCents || refundAmountCents <= 0) {
     return res.status(400).json({ error: 'Invalid refund amount' });
   }

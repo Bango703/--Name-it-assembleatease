@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     ? booking.assembler_due
     : Math.round((booking.amount_charged || 0) * (1 - PLATFORM_FEE_PCT / 100));
 
-  const payoutCents = amount ? parseInt(amount) : derivedDue;
+  const payoutCents = amount ? parseInt(amount, 10) : derivedDue;
   if (!payoutCents || payoutCents <= 0) return res.status(400).json({ error: 'Cannot determine payout amount — no assembler_due recorded and no amount supplied' });
 
   const payoutDisplay = `$${(payoutCents / 100).toFixed(2)}`;
