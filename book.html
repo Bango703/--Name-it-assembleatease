@@ -255,6 +255,18 @@
     #card-errors { color: var(--red); font-size: 0.82rem; margin-top: 0.5rem; min-height: 1.2em; }
     .auth-note { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1rem; background: #f0fdf4; border: 1px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); font-size: 0.82rem; color: #166534; line-height: 1.5; }
     .auth-note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    /* CRO v2 additions */
+    .slot-rec { display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); margin-top: 2px; }
+    .tile-feedback { display: none; align-items: center; gap: 0.5rem; background: #ecfdf5; border: 1px solid rgba(34,197,94,0.3); border-radius: var(--radius-md); padding: 0.65rem 1rem; font-size: 0.875rem; color: #166534; font-weight: 500; margin-top: 1rem; }
+    .book-progress-hint { text-align: center; font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; letter-spacing: 0.01em; }
+    .almost-done-banner { background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%); border: 1px solid rgba(34,197,94,0.35); border-radius: var(--radius-md); padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; color: #166534; text-align: center; margin-bottom: 1.25rem; }
+    .confidence-strip { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+    .confidence-strip span { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: #166534; font-weight: 500; }
+    .confidence-strip span::before { content: '✔'; font-size: 0.75rem; }
+    .svc-area-ok { display: none; font-size: 0.8rem; font-weight: 600; color: #166534; margin-top: 0.3rem; }
+    @media(min-width: 640px) {
+      .confidence-strip { flex-direction: row; justify-content: center; gap: 1.5rem; }
+    }
 
     /* ── Action buttons ── */
     .step-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
@@ -445,6 +457,7 @@
       </div>
     </div>
   </div>
+  <div class="book-progress-hint" id="book-progress-hint">Step 1 of 4 &mdash; Takes less than 2 minutes</div>
 
   <div class="book-main">
     <div class="book-form-col">
@@ -492,6 +505,7 @@
             <div class="tile-from">Custom quote</div>
           </div>
         </div>
+        <div class="tile-feedback" id="tile-feedback">&#10003;&ensp;Great choice. Now pick what you need below &darr;</div>
 
         <!-- Sub-category panels injected here -->
         <div class="subcats-wrap" id="subcats-wrap"></div>
@@ -576,7 +590,7 @@
 
           <div style="margin-top:0.5rem">
             <div class="form-group" style="position:relative">
-              <label class="form-label" for="s3-street">Street address <span style="color:var(--teal)">*</span></label>
+              <label class="form-label" for="s3-street">Where should we come? <span style="color:var(--teal)">*</span></label>
               <input type="text" class="form-input" id="s3-street" placeholder="123 Main St" autocomplete="off" />
               <div id="s3-addr-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto"></div>
               <div class="field-error" id="s3-addr-err">Please enter your street address.</div>
@@ -596,7 +610,8 @@
               </div>
               <div class="form-group">
                 <label class="form-label" for="s3-zip">ZIP <span style="color:var(--teal)">*</span></label>
-                <input type="text" class="form-input" id="s3-zip" placeholder="78701" maxlength="5" autocomplete="postal-code" />
+                <input type="text" class="form-input" id="s3-zip" placeholder="78701" maxlength="5" autocomplete="postal-code" oninput="checkServiceZip(this.value)" />
+                <div class="svc-area-ok" id="svc-area-ok">&#10003; We service your area</div>
                 <div class="field-error" id="s3-zip-err">Required.</div>
               </div>
             </div>
@@ -651,8 +666,9 @@
 
       <!-- ══ STEP 5 — Payment ══ -->
       <div class="step-panel hidden" id="step-5">
+        <div class="almost-done-banner">You&rsquo;re almost done &mdash; just 1 step left</div>
         <div class="step-heading">Secure your booking</div>
-        <p class="step-sub">Enter your card to hold the appointment. <strong>You won't be charged until the job is done.</strong></p>
+        <p class="step-sub">Enter your card to hold the appointment. <strong>You won&rsquo;t be charged until the job is done.</strong></p>
 
         <div class="summary-rows" id="booking-summary"></div>
 
@@ -664,14 +680,19 @@
           </div>
           <div class="auth-note">
             <span class="auth-note-icon"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:#166534"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></span>
-            <div><strong>Card authorized, not charged.</strong> Your card is held securely by Stripe. We only capture payment after you confirm the job is complete.</div>
+            <div>No charge today. Your card is only held to reserve your time slot &mdash; we charge nothing until you confirm the job is done.</div>
           </div>
         </div>
 
         <div class="step-err" id="s5-err"></div>
+        <div class="confidence-strip">
+          <span>Takes less than 60 seconds</span>
+          <span>No charge until job is done</span>
+          <span>Instant confirmation</span>
+        </div>
         <div class="step-actions">
           <button class="btn-back-link" id="s5-back" onclick="goToStep(4)">&larr; Back</button>
-          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Confirm My Booking <span>&#8594;</span></button>
+          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Reserve My Time Slot <span>&#8594;</span></button>
         </div>
         <p style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500">
           You won&rsquo;t be charged until the job is complete.
@@ -1154,6 +1175,11 @@ function fieldErr(inId, errId, show) {
   if (inp) inp.classList.toggle('error', show);
   if (show) showErr(errId); else hideErr(errId);
 }
+function checkServiceZip(val) {
+  var ok = document.getElementById('svc-area-ok');
+  if (!ok) return;
+  ok.style.display = (val && val.length === 5 && /^\d{5}$/.test(val)) ? 'block' : 'none';
+}
 function fmtPrice(item) {
   if (item.customQuote) return 'Custom quote';
   if (item.price === 0) return 'Free';
@@ -1173,6 +1199,8 @@ function tileClick(el) {
     BOOK.selectedServices.push(svc);
     if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
     el.classList.add('selected');
+    var fb = document.getElementById('tile-feedback');
+    if (fb) { fb.style.display='flex'; clearTimeout(window._fbTimer); window._fbTimer=setTimeout(function(){fb.style.display='none';},3000); }
   } else {
     BOOK.selectedServices.splice(idx, 1);
     delete BOOK.selectedItems[svc];
@@ -1436,6 +1464,11 @@ function setProgress(step) {
     var line = document.getElementById('prog-line-' + j);
     if (line) line.classList.toggle('done', j < d);
   }
+  var hint = document.getElementById('book-progress-hint');
+  if (hint) {
+    var hints = ['Step 1 of 4 &mdash; Takes less than 2 minutes','Step 1 of 4 &mdash; Takes less than 2 minutes','Step 2 of 4 &mdash; Almost halfway there','Step 3 of 4 &mdash; Almost done!','Step 4 of 4 &mdash; One last step!'];
+    hint.innerHTML = hints[step - 1] || '';
+  }
 }
 
 function goToStep(n) {
@@ -1465,6 +1498,14 @@ function goToStep2Account() {
   BOOK.wantsQuote = document.getElementById('s1-quote').checked;
   BOOK.accountMode = 'guest'; // auto guest — no friction step
   goToStep(3);
+  // Hesitation trigger: if user pauses without picking a time, nudge urgency bar
+  if (window._hesitationTimer) clearTimeout(window._hesitationTimer);
+  window._hesitationTimer = setTimeout(function() {
+    if (!BOOK.time) {
+      var sc = document.getElementById('urgency-scarce');
+      if (sc && !sc.textContent) sc.textContent = '· Slots filling up fast';
+    }
+  }, 7000);
 }
 
 function goToStep3DateTime() {
@@ -1815,6 +1856,14 @@ function saveContactEdit() {
     timesEl.querySelectorAll('.dt-time-btn:not([disabled])').forEach(function(btn) {
       btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); });
     });
+    // Auto-select first available if none chosen yet
+    if (!BOOK.time) {
+      var firstAvail = timesEl.querySelector('.dt-time-btn:not([disabled])');
+      if (firstAvail) { BOOK.time = firstAvail.dataset.time; firstAvail.classList.add('selected'); }
+    }
+    // Mark first available slot with "Recommended" badge
+    var firstRec = timesEl.querySelector('.dt-time-btn:not([disabled])');
+    if (firstRec) { firstRec.innerHTML += '<span class="slot-rec">Recommended</span>'; }
   }
 
   document.getElementById('dt-prev').addEventListener('click', function() { curMonth--; if(curMonth<0){curMonth=11;curYear--;} renderCal(); });

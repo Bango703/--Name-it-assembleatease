@@ -56,6 +56,8 @@
 .qbb-select{flex:1;border:none;padding:0.85rem 1rem;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);background:#fff;outline:none;cursor:pointer;appearance:none;min-width:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.75rem center;padding-right:2.25rem}
 .qbb-btn{padding:0.85rem 1.5rem;background:var(--ink);color:#fff;border:none;font-family:var(--font-body);font-size:0.95rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background 0.15s;flex-shrink:0}
 .qbb-btn:hover{background:#1a2736}
+.qbb-zip{width:96px;border:none;border-left:1.5px solid #e5e7eb;padding:0.85rem 0.6rem;font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:#fff;outline:none;text-align:center;letter-spacing:0.04em;flex-shrink:0}
+.qbb-zip::placeholder{color:#9ca3af}
 .qbb-or{display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;font-size:0.82rem;color:var(--muted)}
 .qbb-or::before,.qbb-or::after{content:'';flex:1;height:1px;background:var(--border)}
 .hv2-btn-book-sm{display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);font-size:0.875rem;font-weight:600;text-decoration:none}
@@ -377,9 +379,10 @@
         <option value="Smart+Home">🏠 Smart Home Setup — from $69</option>
         <option value="Junk+Removal">🚛 Junk Removal — from $75</option>
       </select>
+      <input class="qbb-zip" id="qbb-zip" type="text" inputmode="numeric" placeholder="ZIP" maxlength="5" aria-label="Your ZIP code">
       <button type="submit" class="qbb-btn">Check Availability &rarr;</button>
     </form>
-    <script>function qbbGo(e){e.preventDefault();var v=document.getElementById('qbb-svc').value;window.location='/book'+(v?'?service='+v:'');return false;}</script>
+    <script>function qbbGo(e){e.preventDefault();var v=document.getElementById('qbb-svc').value;var z=(document.getElementById('qbb-zip').value||'').trim();var url='/book'+(v?'?service='+encodeURIComponent(v):'');if(z.length===5){url+=(v?'&':'?')+'zip='+encodeURIComponent(z);}window.location=url;return false;}</script>
     <div class="qbb-or">or</div>
     <div class="hv2-actions" style="margin-bottom:2rem">
       <a href="/book" class="hv2-btn-book">BOOK NOW &rarr;</a>
