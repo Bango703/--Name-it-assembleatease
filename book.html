@@ -1442,10 +1442,34 @@ function updateOrderSummary() {
     }
   });
 
+  var bundle = getBundleDiscount();
+  if (bundle.pct > 0 && runningTotal > 0) {
+    var saving = Math.round(runningTotal * bundle.pct / 100);
+    html += '<div class="order-line" style="color:#0d9488;font-weight:600;margin-top:0.25rem">'
+      + '<span class="order-line-name">&#127881; Bundle ' + bundle.pct + '% off (' + bundle.count + ' items)</span>'
+      + '<span class="order-line-price" style="color:#0d9488">&minus;$' + saving + '</span></div>';
+  }
+
   linesEl.innerHTML = html;
-  amtEl.textContent = (runningTotal > 0 ? 'From $' + runningTotal : '') + (hasCustom ? (runningTotal > 0 ? ' + quote' : 'Custom quote') : '');
+  var displayTotal = runningTotal > 0 ? Math.round(runningTotal * (1 - bundle.pct / 100)) : 0;
+  amtEl.textContent = (displayTotal > 0 ? 'From $' + displayTotal : '') + (hasCustom ? (displayTotal > 0 ? ' + quote' : 'Custom quote') : '');
   totalEl.style.display = 'flex';
   noteEl.style.display = 'block';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BUNDLE DISCOUNT
+// ════════════════════════════════════════════════════════════════════════════
+function getBundleDiscount() {
+  var count = 0;
+  BOOK.selectedServices.forEach(function(svc) {
+    (BOOK.selectedItems[svc] || []).forEach(function(item) {
+      if (!item.customQuote) count += (item.qty || 1);
+    });
+  });
+  if (count >= 6) return { pct: 15, count: count };
+  if (count >= 3) return { pct: 10, count: count };
+  return { pct: 0, count: count };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1657,14 +1681,24 @@ async function goToStep5Payment() {
         }
       });
     });
-    var taxAmount = Math.round(subtotal * TX_TAX_RATE * 100) / 100;
-    var grandTotal = Math.round((subtotal + taxAmount) * 100) / 100;
-    // Store tax-inclusive total for submitBooking to use
+    var bundle = getBundleDiscount();
+    var discountAmount = subtotal > 0 ? Math.round(subtotal * bundle.pct / 100 * 100) / 100 : 0;
+    var discountedSubtotal = subtotal - discountAmount;
+    BOOK._discountPct = bundle.pct;
+    BOOK._discountAmount = discountAmount;
+    var taxAmount = Math.round(discountedSubtotal * TX_TAX_RATE * 100) / 100;
+    var grandTotal = Math.round((discountedSubtotal + taxAmount) * 100) / 100;
     BOOK._grandTotalCents = hasCustom && subtotal === 0 ? 0 : Math.round(grandTotal * 100);
 
-    var taxLineHtml = subtotal > 0
+    var discountLineHtml = bundle.pct > 0 && discountAmount > 0
+      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0d9488;font-weight:600;margin-bottom:0.25rem">'
+        + '<span>&#127881; Bundle discount (' + bundle.pct + '% &mdash; ' + bundle.count + ' items)</span>'
+        + '<span>&minus;$' + discountAmount.toFixed(2) + '</span></div>'
+      : '';
+    var taxLineHtml = discountedSubtotal > 0
       ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
         + '<span>Subtotal</span><span>$' + subtotal.toFixed(2) + '</span></div>'
+        + discountLineHtml
         + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
         + '<span>Sales tax (8.25%)</span><span>$' + taxAmount.toFixed(2) + '</span></div>'
       : '';
@@ -1974,7 +2008,9 @@ async function submitBooking() {
         name: BOOK.firstName + ' ' + BOOK.lastName,
         phone: BOOK.phone, email: BOOK.email, address: BOOK.address,
         date: BOOK.date, time: BOOK.time, details: BOOK.details,
-        totalCents: totalCents, accountMode: BOOK.accountMode
+        totalCents: totalCents, accountMode: BOOK.accountMode,
+        discountPct: BOOK._discountPct || 0,
+        discountAmount: BOOK._discountAmount || 0
       })
     });
     data = await resp.json();
