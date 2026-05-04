@@ -132,7 +132,9 @@
       list.innerHTML = `<div class="empty-state"><p>No bookings found.</p><a href="/book" class="btn btn-primary btn-sm">Book a service</a></div>`;
       return;
     }
-    list.innerHTML = bookings.map(b => `
+    list.innerHTML = bookings.map(b => {
+      const canCancel = b.status === 'pending' || b.status === 'confirmed';
+      return `
       <div class="booking-card">
         <div class="booking-card-top">
           <div>
@@ -147,10 +149,46 @@
           ${b.address ? `<span>&#128205; ${esc(b.address)}</span>` : ''}
           ${b.assembler_name ? `<span class="assembler-tag">&#128736; ${esc(b.assembler_name)}</span>` : ''}
           <span>Booked ${formatDate(b.created_at)}</span>
+          ${canCancel ? `<button class="btn btn-outline btn-sm" style="margin-left:auto;color:#dc2626;border-color:#fca5a5;font-size:0.75rem" onclick="cancelBooking('${b.id}','${esc(b.ref)}',event)">Cancel</button>` : ''}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
+
+  async function cancelBooking(bookingId, ref, e) {
+    e.stopPropagation();
+    const ok = confirm(`Cancel booking ${ref}?\n\nIf your appointment is within 24 hours, a 50% cancellation fee applies per our policy. Outside 24 hours — no charge.\n\nProceed?`);
+    if (!ok) return;
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = 'Cancelling…';
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const resp = await fetch('/api/booking/customer-cancel', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      });
+      const d = await resp.json();
+      if (d.success) {
+        const b = allBookings.find(x => x.id === bookingId);
+        if (b) b.status = 'cancelled';
+        APP.showAlert('page-alert', 'Booking cancelled. A confirmation has been sent to your email.', 'success');
+        const activeTab = document.querySelector('.filter-tab.active');
+        const status = activeTab?.dataset.status || 'all';
+        renderBookings(status === 'all' ? allBookings : allBookings.filter(x => x.status === status));
+      } else {
+        alert(d.error || 'Could not cancel booking. Please contact us.');
+        btn.disabled = false;
+        btn.textContent = 'Cancel';
+      }
+    } catch {
+      alert('Something went wrong. Please refresh and try again.');
+      btn.disabled = false;
+      btn.textContent = 'Cancel';
+    }
+  }
+  window.cancelBooking = cancelBooking;
 
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['customer']);

@@ -140,6 +140,12 @@
     <div id="checkin-section" style="display:none">
       <button class="btn btn-teal" id="checkin-btn" style="width:100%;margin-bottom:1rem">&#128205; Check In — I've Arrived</button>
     </div>
+    <div id="complete-section" style="display:none">
+      <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:0.75rem 1rem;font-size:0.8rem;color:#854d0e;margin-bottom:0.75rem;line-height:1.55">
+        <strong>&#9888; Important:</strong> Only mark a job complete when the work is fully finished to the customer's satisfaction. Falsely marking a job as done before completion is a serious violation of our terms and will result in immediate account suspension.
+      </div>
+      <button class="btn btn-teal" id="complete-btn" style="width:100%;margin-bottom:1rem;background:#059669;border-color:#059669">&#10003; Mark Job as Complete</button>
+    </div>
     <hr style="border:none;border-top:1px solid var(--pro-border);margin:1rem 0"/>
     <h4 style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.75rem">Messages</h4>
     <div class="msg-thread" id="asgn-msg-thread"></div>
@@ -288,6 +294,51 @@
       if (e.target === this) this.classList.remove('open');
     });
 
+    // Mark Complete button
+    document.getElementById('complete-btn').addEventListener('click', async function() {
+      if (!selectedBookingId) return;
+      const confirmed = window.confirm(
+        'Are you sure the job is 100% complete?\n\n' +
+        'By confirming, you acknowledge that:\n' +
+        '• The work is fully finished to the customer\'s satisfaction\n' +
+        '• The customer\'s card will be charged immediately\n' +
+        '• Falsely marking a job as done is a violation of our terms and will result in account suspension\n\n' +
+        'Click OK only when the job is truly complete.'
+      );
+      if (!confirmed) return;
+      this.disabled = true;
+      this.textContent = 'Processing…';
+      try {
+        const r = await fetch('/api/booking/assembler-complete', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedBookingId }),
+        });
+        const d = await r.json();
+        if (d.success) {
+          document.getElementById('complete-section').style.display = 'none';
+          const banner = document.createElement('div');
+          banner.className = 'checkin-banner';
+          banner.innerHTML = '&#10003; Job marked complete. Payment has been captured and the customer has been notified.';
+          document.getElementById('asgn-modal-body').appendChild(banner);
+          const b = allAssignments.find(x => x.id === selectedBookingId);
+          if (b) b.status = 'completed';
+          const activeTab = document.querySelector('.filter-tab.active');
+          const cf = activeTab?.dataset.filter || 'all';
+          const filtered = cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf);
+          renderAssignments(filtered);
+        } else {
+          alert(d.error || 'Failed to mark complete. Please try again.');
+          this.disabled = false;
+          this.innerHTML = '&#10003; Mark Job as Complete';
+        }
+      } catch {
+        alert('Something went wrong. Please try again.');
+        this.disabled = false;
+        this.innerHTML = '&#10003; Mark Job as Complete';
+      }
+    });
+
     // Check-in button
     document.getElementById('checkin-btn').addEventListener('click', async function() {
       if (!selectedBookingId) return;
@@ -365,9 +416,14 @@
     ].join('');
 
     document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
+    const canComplete = b.status === 'confirmed' && b.assembler_accepted_at && b.checked_in_at;
+    document.getElementById('complete-section').style.display = canComplete ? 'block' : 'none';
     const btn = document.getElementById('checkin-btn');
     btn.disabled = false;
     btn.innerHTML = '&#128205; Check In &mdash; I\'ve Arrived';
+    const completeBtn = document.getElementById('complete-btn');
+    completeBtn.disabled = false;
+    completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     document.getElementById('asgn-modal').classList.add('open');
     // Load messages from Supabase

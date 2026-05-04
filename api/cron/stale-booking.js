@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 
-const STALE_DAYS = 7; // auto-decline bookings pending for this many days
+const STALE_DAYS = 7;       // auto-decline bookings still pending after 7 days
+const ACCEPT_HOURS = 24;    // auto-cancel assigned bookings not accepted within 24 hours
 
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -10,9 +11,66 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
-  const cutoff = new Date(Date.now() - STALE_DAYS * 86400000).toISOString();
 
-  // Find pending bookings older than STALE_DAYS
+  // ── 1. Cancel confirmed bookings where assembler has not accepted within 24 hours ──
+  const acceptCutoff = new Date(Date.now() - ACCEPT_HOURS * 3600000).toISOString();
+  const { data: unaccepted } = await sb
+    .from('bookings')
+    .select('*')
+    .eq('status', 'confirmed')
+    .is('assembler_accepted_at', null)
+    .lt('assigned_at', acceptCutoff)
+    .limit(20);
+
+  let autoRequeued = 0;
+  for (const b of unaccepted || []) {
+    try {
+      // Move back to pending so owner can reassign; remove assembler
+      await sb.from('bookings').update({
+        status: 'pending',
+        assembler_id: null,
+        assigned_at: null,
+        decline_reason: 'Assembler did not accept within 24 hours — returned to queue',
+      }).eq('id', b.id);
+
+      // Notify owner to reassign
+      await sendEmail({
+        to: ownerEmail(),
+        from: 'AssembleAtEase System <booking@assembleatease.com>',
+        subject: `Action Required: Booking ${b.ref} needs reassignment`,
+        html: `<p>Booking <strong>${esc(b.ref)}</strong> (${esc(b.service)} for ${esc(b.customer_name)}) was not accepted by the assigned assembler within 24 hours.</p>
+<p>It has been returned to pending status. Please log in and reassign it as soon as possible.</p>
+<p>Job date: <strong>${esc(b.date)}</strong> at ${esc(b.time)}</p>`,
+        replyTo: ownerEmail(),
+      });
+
+      // Reassure customer there is no disruption
+      await sendEmail({
+        to: b.customer_email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `Update on your booking — ${esc(b.ref)}`,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 8px;font-size:18px;font-weight:700">Hi ${esc((b.customer_name||'').split(' ')[0])},</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We're making a quick adjustment to your upcoming booking (<strong>${esc(b.ref)}</strong>) and are assigning you a new assembler. Your appointment date and time remain unchanged.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#166534;line-height:1.6">
+      &#10003; Your booking is secure and confirmed.<br/>&#10003; You will receive an updated confirmation shortly.<br/>&#10003; Your card will not be charged until the job is done.
+    </td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or call us at (737) 290-6129.</p>
+  </td></tr></table>
+</div></body></html>`,
+        replyTo: ownerEmail(),
+      });
+
+      autoRequeued++;
+    } catch (err) {
+      console.error('Auto-requeue error for ' + b.ref + ':', err);
+    }
+  }
+
+  // ── 2. Auto-decline pending bookings older than STALE_DAYS ───────────────
+  const cutoff = new Date(Date.now() - STALE_DAYS * 86400000).toISOString();
   const { data: bookings, error } = await sb
     .from('bookings')
     .select('*')
@@ -93,5 +151,5 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ declined, total: bookings.length });
+  return res.status(200).json({ declined, total: bookings.length, autoRequeued });
 }
