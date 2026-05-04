@@ -39,6 +39,10 @@
     .hire-card { background: var(--white); border: 2px solid var(--accent); border-radius: var(--radius-lg); padding: 1.75rem; }
     .hire-rate { font-family: var(--font-display); font-size: 2rem; color: var(--ink); margin-bottom: 0.2rem; }
     .hire-label { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .reviews-collapsible { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-top: 1rem; overflow: hidden; }
+    .reviews-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; cursor: pointer; user-select: none; }
+    .reviews-toggle-row:hover { background: var(--off-white); }
+    .reviews-body { padding: 0 1.5rem 1rem; }
     @media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -136,12 +140,6 @@
                 : `<p style="font-size:0.875rem;color:var(--muted)">No skills listed yet.</p>`}
             </div>
 
-            <div class="profile-card">
-              <div class="profile-card-title">Reviews${assembler.review_count ? ' (' + assembler.review_count + ')' : ''}</div>
-              <div id="reviews-list">
-                <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
-              </div>
-            </div>
           </div>
 
           <div>
@@ -166,13 +164,40 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="reviews-collapsible" id="reviews-section">
+          <div class="reviews-toggle-row" id="reviews-toggle">
+            <div style="display:flex;align-items:center;gap:0.75rem">
+              <span class="profile-card-title" style="margin:0">Customer Reviews</span>
+              <span id="reviews-summary" style="font-size:0.875rem;color:var(--ink-soft)"></span>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="reviews-toggle-btn" style="font-size:0.8rem">Show &#9660;</button>
+          </div>
+          <div class="reviews-body" id="reviews-body" style="display:none">
+            <div id="reviews-list">
+              <div class="skeleton-card"><div class="skeleton" style="height:60px"></div></div>
+            </div>
+          </div>
         </div>`;
+
+      // Toggle behaviour
+      document.getElementById('reviews-toggle').addEventListener('click', () => {
+        const body = document.getElementById('reviews-body');
+        const btn  = document.getElementById('reviews-toggle-btn');
+        const open = body.style.display === 'block';
+        body.style.display = open ? 'none' : 'block';
+        btn.innerHTML = open ? 'Show &#9660;' : 'Hide &#9650;';
+      });
 
       // Load reviews
       try {
         const { data: reviews } = await API.getReviews(assemblerId);
         const reviewsList = document.getElementById('reviews-list');
+        const summary = document.getElementById('reviews-summary');
         if (reviews?.length) {
+          const avg = (reviews.reduce((s, r) => s + (r.rating || 5), 0) / reviews.length).toFixed(1);
+          summary.innerHTML = `<span style="color:#f59e0b;font-weight:500">&#9733; ${avg}</span> &middot; ${reviews.length} review${reviews.length !== 1 ? 's' : ''}`;
           reviewsList.innerHTML = reviews.slice(0, 6).map(r => `
             <div class="review-item">
               <div class="review-header">
@@ -184,9 +209,11 @@
               <div class="review-date">${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
             </div>`).join('');
         } else {
+          summary.textContent = 'No reviews yet';
           reviewsList.innerHTML = `<p style="font-size:0.875rem;color:var(--muted);padding:0.5rem 0">No reviews yet. Be the first to hire and review!</p>`;
         }
       } catch {
+        document.getElementById('reviews-summary').textContent = '';
         document.getElementById('reviews-list').innerHTML = `<div class="error-state"><span>&#9888;</span>Could not load reviews.</div>`;
       }
 

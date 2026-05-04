@@ -174,7 +174,12 @@
             ${a.city ? `<span class="assembler-tag">&#128205; ${a.city}</span>` : ''}
           </div>
           ${skills.length ? `<div class="assembler-tags">${skills.slice(0,3).map(s=>`<span class="assembler-tag">${s}</span>`).join('')}${skills.length>3?`<span class="assembler-tag">+${skills.length-3}</span>`:''}</div>` : ''}
-          <div class="assembler-bio">${APP.truncate(a.bio||'Professional assembler ready to help.',80)}</div>
+          <div style="margin:0.6rem 0 0.85rem;padding:0.6rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+            <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.35rem">Customer Reviews</div>
+            ${a.review_count
+              ? `<div style="font-size:0.9rem;font-weight:500;color:#f59e0b">&#9733; ${Number(a.rating).toFixed(1)}</div><div style="font-size:0.75rem;color:var(--muted)">${a.review_count} verified review${a.review_count !== 1 ? 's' : ''}</div>`
+              : `<div style="font-size:0.78rem;color:var(--muted)">No reviews yet</div>`}
+          </div>
           <div class="btn btn-outline btn-sm" style="width:100%">View profile</div>
         </a>`;
     }).join('');
@@ -207,7 +212,7 @@
     document.getElementById('reset-btn').addEventListener('click', () => {
       document.getElementById('search-filter').value = '';
       document.getElementById('city-filter').value = '';
-      document.getElementById('rate-filter').value = '';
+      const rf = document.getElementById('rate-filter'); if (rf) rf.value = '';
       applyFilters();
     });
 

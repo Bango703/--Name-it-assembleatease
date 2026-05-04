@@ -1176,13 +1176,22 @@ function fieldErr(inId, errId, show) {
   if (show) showErr(errId); else hideErr(errId);
 }
 function checkServiceZip(val) {
-  var ok = document.getElementById('svc-area-ok');
+  var ok  = document.getElementById('svc-area-ok');
+  var err = document.getElementById('s3-zip-err');
   if (!ok) return;
-  // Validate and check Austin TX service area (ZIP prefixes 786-788)
   var isValid = val && val.length === 5 && /^\d{5}$/.test(val);
-  var prefix = isValid ? parseInt(val.slice(0, 3), 10) : 0;
-  var inArea = isValid && (prefix >= 786 && prefix <= 788);
+  var prefix  = isValid ? parseInt(val.slice(0, 3), 10) : 0;
+  var inArea  = isValid && (prefix >= 786 && prefix <= 788);
   ok.style.display = inArea ? 'block' : 'none';
+  if (err) {
+    if (isValid && !inArea) {
+      err.textContent = 'Sorry, we don\'t service this area yet.';
+      showErr('s3-zip-err');
+    } else {
+      err.textContent = 'Required.';
+      hideErr('s3-zip-err');
+    }
+  }
 }
 function fmtPrice(item) {
   if (item.customQuote) return 'Custom quote';
@@ -1527,7 +1536,19 @@ function goToStep4Contact() {
   if (!BOOK.date) { showErr('s3-date-err', 'Please select a date.'); ok = false; } else hideErr('s3-date-err');
   if (!BOOK.time) { showErr('s3-time-err', 'Please select a time slot.'); ok = false; } else hideErr('s3-time-err');
   if (!street) { fieldErr('s3-street', 's3-addr-err', true); ok = false; } else fieldErr('s3-street', 's3-addr-err', false);
-  if (!zip) { fieldErr('s3-zip', 's3-zip-err', true); ok = false; } else fieldErr('s3-zip', 's3-zip-err', false);
+  if (!zip) {
+    document.getElementById('s3-zip-err').textContent = 'Required.';
+    fieldErr('s3-zip', 's3-zip-err', true); ok = false;
+  } else {
+    var zipPrefix = zip.length === 5 ? parseInt(zip.slice(0, 3), 10) : 0;
+    var zipInArea = zip.length === 5 && /^\d{5}$/.test(zip) && zipPrefix >= 786 && zipPrefix <= 788;
+    if (!zipInArea) {
+      document.getElementById('s3-zip-err').textContent = 'Sorry, we don\'t service this area yet.';
+      fieldErr('s3-zip', 's3-zip-err', true); ok = false;
+    } else {
+      fieldErr('s3-zip', 's3-zip-err', false);
+    }
+  }
   if (!ok) return;
   BOOK.address = street + (apt ? ', ' + apt : '') + ', ' + (city || 'Austin') + ', ' + (state || 'TX') + ' ' + zip;
   goToStep(4);
