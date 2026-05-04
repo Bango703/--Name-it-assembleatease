@@ -1176,21 +1176,24 @@ function fieldErr(inId, errId, show) {
   if (show) showErr(errId); else hideErr(errId);
 }
 function checkServiceZip(val) {
-  var ok  = document.getElementById('svc-area-ok');
-  var err = document.getElementById('s3-zip-err');
-  if (!ok) return;
+  var okEl  = document.getElementById('svc-area-ok');
+  var errEl = document.getElementById('s3-zip-err');
+  var inEl  = document.getElementById('s3-zip');
   var isValid = val && val.length === 5 && /^\d{5}$/.test(val);
   var prefix  = isValid ? parseInt(val.slice(0, 3), 10) : 0;
-  var inArea  = isValid && (prefix >= 786 && prefix <= 788);
-  ok.style.display = inArea ? 'block' : 'none';
-  if (err) {
-    if (isValid && !inArea) {
-      err.textContent = 'Sorry, we don\'t service this area yet.';
-      showErr('s3-zip-err');
-    } else {
-      err.textContent = 'Required.';
-      hideErr('s3-zip-err');
-    }
+  var inArea  = isValid && prefix >= 786 && prefix <= 788;
+  if (okEl) okEl.style.display = inArea ? 'block' : 'none';
+  if (!errEl) return;
+  if (isValid && !inArea) {
+    errEl.textContent = 'Sorry, we don\'t service this ZIP yet. We cover Austin TX (786xx–788xx).';
+    errEl.style.display = 'block';
+    if (inEl) inEl.style.borderColor = '#ef4444';
+  } else if (inArea) {
+    errEl.style.display = 'none';
+    if (inEl) inEl.style.borderColor = '#22c55e';
+  } else {
+    errEl.style.display = 'none';
+    if (inEl) inEl.style.borderColor = '';
   }
 }
 function fmtPrice(item) {
@@ -1536,17 +1539,24 @@ function goToStep4Contact() {
   if (!BOOK.date) { showErr('s3-date-err', 'Please select a date.'); ok = false; } else hideErr('s3-date-err');
   if (!BOOK.time) { showErr('s3-time-err', 'Please select a time slot.'); ok = false; } else hideErr('s3-time-err');
   if (!street) { fieldErr('s3-street', 's3-addr-err', true); ok = false; } else fieldErr('s3-street', 's3-addr-err', false);
+  var zipEl  = document.getElementById('s3-zip');
+  var zipErr = document.getElementById('s3-zip-err');
   if (!zip) {
-    document.getElementById('s3-zip-err').textContent = 'Required.';
-    fieldErr('s3-zip', 's3-zip-err', true); ok = false;
+    zipErr.textContent = 'Please enter your ZIP code.';
+    zipErr.style.display = 'block';
+    if (zipEl) zipEl.style.borderColor = '#ef4444';
+    ok = false;
   } else {
-    var zipPrefix = zip.length === 5 ? parseInt(zip.slice(0, 3), 10) : 0;
+    var zipPrefix = parseInt(zip.slice(0, 3), 10);
     var zipInArea = zip.length === 5 && /^\d{5}$/.test(zip) && zipPrefix >= 786 && zipPrefix <= 788;
     if (!zipInArea) {
-      document.getElementById('s3-zip-err').textContent = 'Sorry, we don\'t service this area yet.';
-      fieldErr('s3-zip', 's3-zip-err', true); ok = false;
+      zipErr.textContent = 'Sorry, we don\'t service this ZIP. We cover Austin TX (786xx–788xx).';
+      zipErr.style.display = 'block';
+      if (zipEl) zipEl.style.borderColor = '#ef4444';
+      ok = false;
     } else {
-      fieldErr('s3-zip', 's3-zip-err', false);
+      zipErr.style.display = 'none';
+      if (zipEl) zipEl.style.borderColor = '#22c55e';
     }
   }
   if (!ok) return;
