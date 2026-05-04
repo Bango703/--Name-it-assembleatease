@@ -1426,6 +1426,7 @@ function updateOrderSummary() {
   var html = '';
   var runningTotal = 0;
   var hasCustom = false;
+  var hasRange = false;
 
   BOOK.selectedServices.forEach(function(svc) {
     var items = BOOK.selectedItems[svc] || [];
@@ -1436,7 +1437,7 @@ function updateOrderSummary() {
       items.forEach(function(item) {
         var linePrice;
         if (item.customQuote) { linePrice = 'Quote'; hasCustom = true; }
-        else { var p = item.price; linePrice = '$' + p + (item.priceMax ? '\u2013$' + item.priceMax : '') + (item.qty > 1 ? ' \xD7' + item.qty : ''); runningTotal += p * item.qty; }
+        else { var p = item.price; if (item.priceMax) hasRange = true; linePrice = '$' + p + (item.priceMax ? '\u2013$' + item.priceMax : '') + (item.qty > 1 ? ' \xD7' + item.qty : ''); runningTotal += p * item.qty; }
         html += '<div class="order-line"><span class="order-line-name">' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span class="order-line-price">' + linePrice + '</span></div>';
       });
     }
@@ -1452,7 +1453,8 @@ function updateOrderSummary() {
 
   linesEl.innerHTML = html;
   var displayTotal = runningTotal > 0 ? Math.round(runningTotal * (1 - bundle.pct / 100)) : 0;
-  amtEl.textContent = (displayTotal > 0 ? 'From $' + displayTotal : '') + (hasCustom ? (displayTotal > 0 ? ' + quote' : 'Custom quote') : '');
+  var prefix = (hasRange || hasCustom) ? 'From $' : '$';
+  amtEl.textContent = (displayTotal > 0 ? prefix + displayTotal : '') + (hasCustom ? (displayTotal > 0 ? ' + quote' : 'Custom quote') : '');
   totalEl.style.display = 'flex';
   noteEl.style.display = 'block';
 }
@@ -1461,8 +1463,13 @@ function updateOrderSummary() {
 // BUNDLE DISCOUNT
 // ════════════════════════════════════════════════════════════════════════════
 function getBundleDiscount() {
+  // Requires 2+ different services — picking multiple items within one service doesn't qualify
+  var servicesWithItems = BOOK.selectedServices.filter(function(svc) {
+    return (BOOK.selectedItems[svc] || []).some(function(i) { return !i.customQuote; });
+  });
+  if (servicesWithItems.length < 2) return { pct: 0, count: 0 };
   var count = 0;
-  BOOK.selectedServices.forEach(function(svc) {
+  servicesWithItems.forEach(function(svc) {
     (BOOK.selectedItems[svc] || []).forEach(function(item) {
       if (!item.customQuote) count += (item.qty || 1);
     });
