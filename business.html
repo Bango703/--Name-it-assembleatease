@@ -119,7 +119,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <a href="/auth/login" class="nav-auth-link">Sign In</a>
       <a href="/assembler/earn" class="nav-earn-btn">Become a Pro</a>
     </div>
-    <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
+    <a href="#b2b-form-wrap" class="nav-book-pill">Get a Quote &#8594;</a>
         <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
       <span></span><span></span><span></span>
     </button>
@@ -173,25 +173,36 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <p>Tell us about your project and we'll send a custom proposal &mdash; typically within 1 business day.</p>
       <div id="b2b-form-fields">
         <div class="form-row">
-          <div class="form-group"><label for="b-name">Your name</label><input type="text" id="b-name" class="form-control" placeholder="Jane Smith" /></div>
-          <div class="form-group"><label for="b-company">Company name</label><input type="text" id="b-company" class="form-control" placeholder="Acme Property Group" /></div>
+          <div class="form-group"><label for="b-name">Your name *</label><input type="text" id="b-name" class="form-control" placeholder="Jane Smith" autocomplete="name" /></div>
+          <div class="form-group"><label for="b-company">Company name *</label><input type="text" id="b-company" class="form-control" placeholder="Acme Property Group" autocomplete="organization" /></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label for="b-email">Email address</label><input type="email" id="b-email" class="form-control" placeholder="you@company.com" /></div>
-          <div class="form-group"><label for="b-phone">Phone number</label><input type="tel" id="b-phone" class="form-control" placeholder="737-000-0000" /></div>
+          <div class="form-group"><label for="b-email">Email address *</label><input type="email" id="b-email" class="form-control" placeholder="you@company.com" autocomplete="email" /></div>
+          <div class="form-group"><label for="b-phone">Phone number *</label><input type="tel" id="b-phone" class="form-control" placeholder="737-000-0000" autocomplete="tel" /></div>
         </div>
-        <div class="form-group"><label for="b-type">Type of work</label>
-          <select id="b-type" class="form-control" style="cursor:pointer">
-            <option value="">Select one...</option>
-            <option value="Office furniture assembly">Office furniture assembly</option>
-            <option value="Property management / maintenance">Property management / maintenance</option>
-            <option value="Commercial installs (TV, cameras, locks)">Commercial installs (TV, cameras, locks)</option>
-            <option value="Junk removal / cleanout">Junk removal / cleanout</option>
-            <option value="Recurring / ongoing service">Recurring / ongoing service</option>
-            <option value="Other">Other</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group"><label for="b-type">Type of work *</label>
+            <select id="b-type" class="form-control" style="cursor:pointer">
+              <option value="">Select one...</option>
+              <option value="Office furniture assembly">Office furniture assembly</option>
+              <option value="Property management / maintenance">Property management / maintenance</option>
+              <option value="Commercial installs (TV, cameras, locks)">Commercial installs (TV, cameras, locks)</option>
+              <option value="Junk removal / cleanout">Junk removal / cleanout</option>
+              <option value="Recurring / ongoing service">Recurring / ongoing service</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label for="b-frequency">Frequency</label>
+            <select id="b-frequency" class="form-control" style="cursor:pointer">
+              <option value="">Select one...</option>
+              <option value="One-time project">One-time project</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Ongoing / as needed">Ongoing / as needed</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group"><label for="b-details">Project details</label><textarea id="b-details" class="form-control" rows="4" placeholder="Describe the scope, number of units, timeline, etc."></textarea></div>
+        <div class="form-group"><label for="b-details">Project details *</label><textarea id="b-details" class="form-control" rows="4" placeholder="Describe the scope, number of units or locations, desired timeline, and anything else relevant."></textarea></div>
         <div id="b-err" style="font-size:0.82rem;color:#ef4444;margin-bottom:0.75rem;display:none;padding:0.6rem;background:#fef2f2;border-radius:8px;border:1px solid #fecaca"></div>
         <button class="btn btn-cyan btn-full" id="b-btn" onclick="sendB2B()">Send Quote Request &rarr;</button>
       </div>
@@ -210,7 +221,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <div class="footer-inner">
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, on time, every time.</p>
+      <p class="footer-tagline">Commercial assembly, installs, and handyman services for businesses in Austin, Texas. Custom quotes for every project.</p>
       <div class="footer-contact">
         <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
       </div>
@@ -262,16 +273,20 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 
 <script>
 async function sendB2B() {
-  var name = document.getElementById('b-name').value.trim();
-  var company = document.getElementById('b-company').value.trim();
-  var email = document.getElementById('b-email').value.trim();
-  var phone = document.getElementById('b-phone').value.trim();
-  var type = document.getElementById('b-type').value;
-  var details = document.getElementById('b-details').value.trim();
+  var name      = document.getElementById('b-name').value.trim();
+  var company   = document.getElementById('b-company').value.trim();
+  var email     = document.getElementById('b-email').value.trim();
+  var phone     = document.getElementById('b-phone').value.trim();
+  var type      = document.getElementById('b-type').value;
+  var frequency = document.getElementById('b-frequency').value;
+  var details   = document.getElementById('b-details').value.trim();
   var err = document.getElementById('b-err');
   err.style.display = 'none';
-  if (!name) { err.textContent='Please enter your name.'; err.style.display='block'; return; }
-  if (!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
+  if (!name)    { err.textContent='Please enter your name.'; err.style.display='block'; return; }
+  if (!company) { err.textContent='Please enter your company name.'; err.style.display='block'; return; }
+  if (!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { err.textContent='Please enter a valid email address.'; err.style.display='block'; return; }
+  if (!phone)   { err.textContent='Please enter a phone number.'; err.style.display='block'; return; }
+  if (!type)    { err.textContent='Please select the type of work.'; err.style.display='block'; return; }
   if (!details) { err.textContent='Please describe your project.'; err.style.display='block'; return; }
   var btn = document.getElementById('b-btn');
   btn.disabled = true;
@@ -281,10 +296,14 @@ async function sendB2B() {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        name: name + (company ? ' (' + company + ')' : ''),
+        name: name + ' (' + company + ')',
         email: email,
-        subject: '[B2B] ' + (type || 'Business Quote Request') + (phone ? ' | Phone: ' + phone : ''),
-        message: 'Company: ' + (company || 'N/A') + '\nPhone: ' + (phone || 'N/A') + '\nType: ' + (type || 'N/A') + '\n\n' + details
+        subject: '[B2B] ' + type + ' | ' + company,
+        message: 'Company: ' + company
+          + '\nPhone: ' + phone
+          + '\nType: ' + type
+          + (frequency ? '\nFrequency: ' + frequency : '')
+          + '\n\n' + details
       })
     });
     if (!resp.ok) throw new Error('Server error');
