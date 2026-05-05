@@ -787,6 +787,10 @@
     if (b.status === 'cancelled' || b.status === 'declined') {
       btns.push('<button class="btn btn-red" data-action="delete-booking" data-id="' + b.id + '" title="Permanently delete this booking">&#128465; Delete</button>');
     }
+    // Always show password reset for customer on any booking
+    if (b.customer_email) {
+      btns.push('<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(b.customer_email) + '\')" style="font-size:0.75rem">&#128273; Reset Customer Password</button>');
+    }
     $detailAct.innerHTML = btns.join('');
     $detailAct.style.display = btns.length ? '' : 'none';
   }
@@ -1490,7 +1494,7 @@
       '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '</div>',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">&#128273; Send Password Reset</button>' + '</div>',
     ].filter(Boolean).join('<br>');
     document.getElementById('asm-detail-modal').classList.add('open');
   }
@@ -1515,6 +1519,17 @@
     document.getElementById('reason-confirm').className = 'btn btn-red';
     $reasonText.value = '';
     $reasonModal.classList.add('open');
+  };
+
+  window.sendResetPassword = async function(email) {
+    if (!email) return;
+    if (!confirm('Send a password reset email to ' + email + '?')) return;
+    try {
+      var r = await fetch('/api/owner/reset-password', { method:'POST', headers:headers(), body:JSON.stringify({ email }) });
+      var d = await r.json();
+      if (d.success) toast('Password reset email sent to ' + email, 'success');
+      else toast(d.error || 'Failed to send reset email', 'error');
+    } catch { toast('Failed to send reset email', 'error'); }
   };
 
   window.promoteAssembler = async function(id, newTier) {
