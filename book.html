@@ -651,7 +651,10 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="s4-phone">Phone number <span class="req">*</span></label>
-            <input type="tel" class="form-input" id="s4-phone" placeholder="737-000-0000" autocomplete="tel" />
+            <div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden;background:var(--white);transition:border-color 0.15s" id="s4-phone-wrap">
+              <span style="padding:0 0.75rem;font-size:0.9rem;color:var(--ink-soft);background:var(--off-white);border-right:1.5px solid var(--border);height:100%;display:flex;align-items:center;white-space:nowrap;min-height:44px;font-weight:500">+1</span>
+              <input type="tel" class="form-input" id="s4-phone" placeholder="737-000-0000" autocomplete="tel" style="border:none;border-radius:0;flex:1" />
+            </div>
             <div class="field-hint">Used to reach you about your booking if needed.</div>
             <div class="field-error" id="s4-phone-err">Required.</div>
           </div>
@@ -1604,7 +1607,7 @@ async function goToStep5Payment() {
   if (!first) { fieldErr('s4-first','s4-first-err',true); ok=false; } else fieldErr('s4-first','s4-first-err',false);
   if (!last)  { fieldErr('s4-last', 's4-last-err', true); ok=false; } else fieldErr('s4-last', 's4-last-err', false);
   if (!EMAIL_RE.test(email)) { fieldErr('s4-email','s4-email-err',true); ok=false; } else fieldErr('s4-email','s4-email-err',false);
-  if (!phone) { fieldErr('s4-phone','s4-phone-err',true); ok=false; } else fieldErr('s4-phone','s4-phone-err',false);
+  if (!phone) { fieldErr('s4-phone','s4-phone-err',true); var pw=document.getElementById('s4-phone-wrap'); if(pw) pw.style.borderColor='#ef4444'; ok=false; } else { fieldErr('s4-phone','s4-phone-err',false); var pw=document.getElementById('s4-phone-wrap'); if(pw) pw.style.borderColor=''; }
   if (!ok) return;
   BOOK.firstName = first; BOOK.lastName = last; BOOK.email = email; BOOK.phone = phone;
 
@@ -1836,10 +1839,13 @@ function saveContactEdit() {
   input.addEventListener('blur', function() { setTimeout(function(){ dropdown.style.display='none'; }, 200); });
 })();
 
-// ── PHONE AUTO-FORMAT ─────────────────────────────────────────────────────────
+// ── PHONE AUTO-FORMAT + WRAPPER FOCUS STATE ───────────────────────────────────
 (function initPhoneFormat() {
   var ph = document.getElementById('s4-phone');
+  var wrap = document.getElementById('s4-phone-wrap');
   if (!ph) return;
+  ph.addEventListener('focus', function() { if (wrap) wrap.style.borderColor = 'var(--teal)'; });
+  ph.addEventListener('blur',  function() { if (wrap) wrap.style.borderColor = ''; });
   ph.addEventListener('input', function() {
     var pos = this.selectionStart;
     var old = this.value.length;
