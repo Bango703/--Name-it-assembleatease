@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Payouts — AssembleAtEase</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
+  <script src="../config.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <style>
+    body.theme-pro .payout-card {
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
+      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
+    }
+    body.theme-pro .payout-card-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 1rem; margin-bottom: 0.5rem;
+    }
+    body.theme-pro .payout-card h3 { font-size: 0.95rem; font-weight: 500; color: var(--pro-text); margin: 0; }
+    body.theme-pro .payout-card-meta { font-size: 0.82rem; color: var(--pro-muted); margin-top: 0.25rem; }
+    body.theme-pro .payout-amounts {
+      display: flex; gap: 1.5rem; margin-top: 0.75rem; padding-top: 0.75rem;
+      border-top: 1px solid var(--pro-border); font-size: 0.82rem; flex-wrap: wrap;
+    }
+    body.theme-pro .payout-amount-item { display: flex; flex-direction: column; gap: 2px; }
+    body.theme-pro .payout-amount-label { color: var(--pro-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    body.theme-pro .payout-amount-value { font-weight: 600; color: var(--pro-text); }
+    body.theme-pro .payout-amount-value.green { color: #059669; }
+    body.theme-pro .payout-amount-value.red { color: #dc2626; }
+    body.theme-pro .summary-bar {
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
+      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+    }
+    body.theme-pro .summary-stat { text-align: center; }
+    body.theme-pro .summary-stat-value { font-size: 1.5rem; font-weight: 700; color: var(--pro-text); }
+    body.theme-pro .summary-stat-label { font-size: 0.75rem; color: var(--pro-muted); margin-top: 2px; }
+  </style>
+</head>
+<body class="theme-pro">
+<div class="dashboard-layout">
+  <aside class="sidebar">
+    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Workspace</div>
+      <ul class="sidebar-nav">
+        <li><a href="."><span class="nav-icon">&#9889;</span> Dashboard</a></li>
+        <li><a href="my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
+        <li><a href="payouts" class="active"><span class="nav-icon">&#128176;</span> Payouts</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Account</div>
+      <ul class="sidebar-nav">
+        <li><a href="profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="#" id="sidebar-logout"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:currentColor;vertical-align:middle"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg></span> Log out</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="dashboard-main" style="padding:2rem">
+    <div class="page-header" style="margin-bottom:1.5rem">
+      <div>
+        <h1 style="font-size:1.5rem;font-weight:600;margin:0 0 0.25rem">My Payouts</h1>
+        <p style="font-size:0.875rem;color:var(--pro-muted);margin:0">Earnings breakdown for completed jobs.</p>
+      </div>
+    </div>
+
+    <div id="page-alert" class="alert hidden"></div>
+    <div class="summary-bar" id="summary-bar">
+      <div class="summary-stat"><div class="skeleton" style="height:40px"></div></div>
+      <div class="summary-stat"><div class="skeleton" style="height:40px"></div></div>
+      <div class="summary-stat"><div class="skeleton" style="height:40px"></div></div>
+    </div>
+    <div id="payouts-list">
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function fmt(cents) {
+    if (!cents && cents !== 0) return '—';
+    return '$' + (cents / 100).toFixed(2);
+  }
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  document.addEventListener('DOMContentLoaded', async function() {
+    const auth = await APP.requireVerifiedAssembler();
+    if (!auth) return;
+    const session = auth.session;
+
+    document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
+      e.preventDefault();
+      await supabaseClient.auth.signOut();
+      window.location.href = '../';
+    });
+
+    try {
+      const resp = await fetch('/api/booking/my-assignments', {
+        headers: { 'Authorization': 'Bearer ' + session.access_token },
+      });
+      if (!resp.ok) throw new Error('Failed to load');
+      const data = await resp.json();
+      const completed = (data.bookings || []).filter(function(b) { return b.status === 'completed'; });
+
+      // Summary
+      var totalEarned = completed.reduce(function(s, b) { return s + (b.assembler_due || 0); }, 0);
+      var totalCharged = completed.reduce(function(s, b) { return s + (b.amount_charged || 0); }, 0);
+      var totalFees = completed.reduce(function(s, b) { return s + (b.platform_fee || 0); }, 0);
+
+      document.getElementById('summary-bar').innerHTML =
+        '<div class="summary-stat"><div class="summary-stat-value" style="color:#059669">' + fmt(totalEarned) + '</div><div class="summary-stat-label">Total Earned</div></div>' +
+        '<div class="summary-stat"><div class="summary-stat-value">' + completed.length + '</div><div class="summary-stat-label">Jobs Completed</div></div>' +
+        '<div class="summary-stat"><div class="summary-stat-value" style="color:#dc2626">' + fmt(totalFees) + '</div><div class="summary-stat-label">Platform Fees</div></div>';
+
+      const list = document.getElementById('payouts-list');
+      if (!completed.length) {
+        list.innerHTML = '<div class="pro-empty"><p>No completed jobs yet. Payouts will appear here once you mark jobs as complete.</p></div>';
+        return;
+      }
+
+      list.innerHTML = completed.slice().reverse().map(function(b) {
+        var feePct = b.platform_fee_pct ? b.platform_fee_pct + '%' : '—';
+        return '<div class="payout-card">' +
+          '<div class="payout-card-top">' +
+            '<div>' +
+              '<h3>' + esc(b.service || 'Service') + '</h3>' +
+              '<div class="payout-card-meta">' + esc(b.ref) + ' &bull; Completed ' + fmtDate(b.completed_at) + '</div>' +
+            '</div>' +
+            '<span class="badge badge-complete">Completed</span>' +
+          '</div>' +
+          '<div class="payout-amounts">' +
+            '<div class="payout-amount-item"><div class="payout-amount-label">Job Total</div><div class="payout-amount-value">' + fmt(b.amount_charged) + '</div></div>' +
+            '<div class="payout-amount-item"><div class="payout-amount-label">Platform Fee (' + feePct + ')</div><div class="payout-amount-value red">&minus;' + fmt(b.platform_fee) + '</div></div>' +
+            '<div class="payout-amount-item"><div class="payout-amount-label">Your Payout</div><div class="payout-amount-value green">' + fmt(b.assembler_due) + '</div></div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+    } catch (err) {
+      document.getElementById('payouts-list').innerHTML =
+        '<div class="pro-error">&#9888; Could not load payout history. Please refresh.</div>';
+    }
+  });
+</script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+</body>
+</html>

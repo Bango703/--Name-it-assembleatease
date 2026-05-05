@@ -176,6 +176,9 @@ export default async function handler(req, res) {
     console.error('Complete email error:', emailErr);
   }
 
+  // Audit log
+  console.log(JSON.stringify({ audit: true, action: 'booking_complete', actor: 'owner', bookingId: booking.id, ref: booking.ref, amountCharged: finalAmountCharged, timestamp: new Date().toISOString() }));
+
   // Non-blocking HubSpot stage update
   if (booking.hubspot_deal_id) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot complete stage error:', e));

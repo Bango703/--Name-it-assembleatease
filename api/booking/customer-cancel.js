@@ -123,5 +123,6 @@ export default async function handler(req, res) {
     });
   } catch (e) { console.error('Owner cancel notify error:', e); }
 
+  console.log(JSON.stringify({ audit: true, action: 'booking_cancel', actor: 'customer', customerId: user.id, bookingId: booking.id, ref: booking.ref, feeCaptured, withinWindow, timestamp: new Date().toISOString() }));
   return res.status(200).json({ success: true, feeCaptured, withinWindow });
 }

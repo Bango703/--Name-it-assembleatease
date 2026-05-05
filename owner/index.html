@@ -536,19 +536,55 @@
       }).catch(function(){});
   }
 
+  // Brute-force lockout: track failed attempts in sessionStorage
+  var _loginAttempts = parseInt(sessionStorage.getItem('owner_login_attempts') || '0', 10);
+  var _lockoutUntil  = parseInt(sessionStorage.getItem('owner_lockout_until')   || '0', 10);
+
+  function checkLockout() {
+    if (_lockoutUntil && Date.now() < _lockoutUntil) {
+      var secs = Math.ceil((_lockoutUntil - Date.now()) / 1000);
+      $loginErr.textContent = 'Too many failed attempts. Try again in ' + secs + 's.';
+      $loginErr.style.display = 'block';
+      $loginBtn.disabled = true;
+      setTimeout(function() { $loginBtn.disabled = false; checkLockout(); }, 5000);
+      return true;
+    }
+    return false;
+  }
+
   async function tryLogin() {
+    if (checkLockout()) return;
     password = $loginPw.value.trim();
     if (!password) return;
     $loginBtn.disabled = true;
     try {
       const r = await fetch(API + '/list', { headers: headers() });
-      if (r.status === 401) { $loginErr.style.display = 'block'; password = ''; return; }
+      if (r.status === 401) {
+        _loginAttempts++;
+        sessionStorage.setItem('owner_login_attempts', String(_loginAttempts));
+        if (_loginAttempts >= 3) {
+          _lockoutUntil = Date.now() + 5 * 60 * 1000; // 5 min lockout
+          sessionStorage.setItem('owner_lockout_until', String(_lockoutUntil));
+          _loginAttempts = 0;
+          sessionStorage.setItem('owner_login_attempts', '0');
+          $loginErr.textContent = 'Too many failed attempts. Locked out for 5 minutes.';
+        } else {
+          $loginErr.textContent = 'Invalid password (' + (3 - _loginAttempts) + ' attempt' + (3 - _loginAttempts !== 1 ? 's' : '') + ' remaining)';
+        }
+        $loginErr.style.display = 'block';
+        password = '';
+        $loginBtn.disabled = false;
+        return;
+      }
+      // Success — reset counters
+      sessionStorage.removeItem('owner_login_attempts');
+      sessionStorage.removeItem('owner_lockout_until');
+      _loginAttempts = 0; _lockoutUntil = 0;
       sessionStorage.setItem('owner_pw', JSON.stringify({ password, expires: Date.now() + 86400000 }));
       showDashboard();
     } catch {
-      $loginErr.textContent = 'Connection error';
+      $loginErr.textContent = 'Connection error — please try again';
       $loginErr.style.display = 'block';
-    } finally {
       $loginBtn.disabled = false;
     }
   }

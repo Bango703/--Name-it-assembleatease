@@ -177,6 +177,9 @@ export default async function handler(req, res) {
     });
   } catch (e) { console.error('Owner notify error:', e); }
 
+  // Audit log
+  console.log(JSON.stringify({ audit: true, action: 'booking_complete', actor: 'assembler', assemblerId: user.id, bookingId: booking.id, ref: booking.ref, amountCharged: finalAmount, assemblerDue, timestamp: new Date().toISOString() }));
+
   if (booking.hubspot_deal_id) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot error:', e));
   }

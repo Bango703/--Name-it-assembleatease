@@ -87,7 +87,50 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ ok: true, sent, errors: errors.length ? errors : undefined });
+  // ── Stripe authorization expiry warning (day 5 of 7-day hold) ──────────────
+  // Find confirmed bookings with payment authorized 5-6 days ago — approaching expiry
+  const day5ago = new Date(now.getTime() - 5 * 86400000).toISOString();
+  const day6ago = new Date(now.getTime() - 6 * 86400000).toISOString();
+
+  const { data: expiringAuths } = await sb
+    .from('bookings')
+    .select('id, ref, service, customer_name, date, amount_charged, total_price')
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'authorized')
+    .gte('payment_authorized_at', day6ago)
+    .lte('payment_authorized_at', day5ago)
+    .limit(20);
+
+  if (expiringAuths && expiringAuths.length > 0) {
+    const rows = expiringAuths.map(b =>
+      `<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.ref)}</td>` +
+      `<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.service)}</td>` +
+      `<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.date || '—')}</td>` +
+      `<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px">${esc(b.customer_name)}</td></tr>`
+    ).join('');
+
+    try {
+      await sendEmail({
+        to: 'service@assembleatease.com',
+        from: 'AssembleAtEase System <booking@assembleatease.com>',
+        subject: `⚠️ Action Required: ${expiringAuths.length} card authorization(s) expiring within 48 hours`,
+        html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,sans-serif">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #fcd34d"><tr><td style="padding:24px">
+    <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#92400e">⚠️ Card Authorizations Expiring Soon</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">The following ${expiringAuths.length} booking(s) have card authorizations that will expire within ~48 hours (Stripe holds last 7 days). You must complete or cancel these jobs before the authorization expires, or the payment cannot be captured.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
+      <tr style="background:#fafafa"><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Ref</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Service</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Date</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Customer</th></tr>
+      ${rows}
+    </table>
+    <p style="margin:16px 0 0;font-size:13px;color:#71717a">Log in to the <a href="https://www.assembleatease.com/owner" style="color:#0097a7">owner dashboard</a> to take action.</p>
+  </td></tr></table>
+</div></body></html>`,
+      });
+    } catch (e) { console.error('Auth expiry warning email error:', e); }
+  }
+
+  return res.status(200).json({ ok: true, sent, expiringAuthsWarned: expiringAuths?.length || 0, errors: errors.length ? errors : undefined });
 }
 
 function buildReminderEmail({ customerFirst, booking }) {

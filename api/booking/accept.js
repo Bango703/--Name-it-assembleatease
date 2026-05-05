@@ -37,6 +37,14 @@ export default async function handler(req, res) {
     return sendHtml(res, 'Booking Unavailable', 'This booking is no longer available for assignment.', false);
   }
 
+  // Reject token if assignment is older than 48 hours — require in-portal confirmation
+  const assignedAt = booking.assigned_at ? new Date(booking.assigned_at).getTime() : 0;
+  if (assignedAt && Date.now() - assignedAt > 48 * 3600000) {
+    return sendHtml(res, 'Link Expired',
+      'This email link has expired (links are valid for 48 hours). Please log in to your <a href="/assembler/" style="color:#0097a7">assembler dashboard</a> to accept or decline this assignment.',
+      false);
+  }
+
   const assembler = booking.profiles;
   const assemblerName = assembler?.full_name || 'Assembler';
   const assemblerFirstName = assemblerName.split(' ')[0];
