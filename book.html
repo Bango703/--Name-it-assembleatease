@@ -808,35 +808,33 @@
 
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
 <script>
-// ── Urgency hint: show next available slot ──────────────────────────────────
+// ── Urgency hint: derive from actual slot availability ───────────────────────
 (function(){
   var el=document.getElementById('urgency-next');
   var sc=document.getElementById('urgency-scarce');
   if(!el)return;
-  var now=new Date();
-  var h=now.getHours();
-  var today=h<14; // before 2pm can still book today
-  var label,scarcity;
-  if(today){
-    // round up to nearest half-hour, min 1.5h from now
-    var earliest=new Date(now.getTime()+90*60000);
-    var m=earliest.getMinutes();
-    if(m>30){earliest.setHours(earliest.getHours()+1,0,0,0);}else if(m>0){earliest.setMinutes(30,0,0);}
-    var hh=earliest.getHours();
-    var ampm=hh>=12?'PM':'AM';
-    var h12=hh%12||12;
-    var mm=earliest.getMinutes()===0?'':':'+String(earliest.getMinutes()).padStart(2,'0');
-    label='Today at '+h12+mm+' '+ampm;
-    scarcity='Only 2 slots left today';
+  // Same slot definitions and disable logic as the calendar picker
+  var ALL_SLOTS=[
+    {label:'7:00 AM \u2013 9:00 AM',  startH:7},
+    {label:'9:00 AM \u2013 11:00 AM', startH:9},
+    {label:'11:00 AM \u2013 1:00 PM', startH:11},
+    {label:'1:00 PM \u2013 3:00 PM',  startH:13},
+    {label:'3:00 PM \u2013 5:00 PM',  startH:15},
+    {label:'5:00 PM \u2013 7:00 PM',  startH:17}
+  ];
+  var nowHour=new Date().getHours()+1; // require 1hr notice (matches renderTimes)
+  var available=ALL_SLOTS.filter(function(s){return s.startH>nowHour;});
+  if(available.length>0){
+    el.textContent='Today \u2014 '+available[0].label;
+    sc.textContent='Only '+available.length+' slot'+(available.length===1?'':'s')+' left today';
   } else {
-    var tom=new Date(now);
-    tom.setDate(tom.getDate()+1);
+    // No more slots today — show tomorrow
     var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    label=(tom.getDay()===0||tom.getDay()===6)?days[tom.getDay()]+' morning':'Tomorrow at 9:00 AM';
-    scarcity='Most popular: '+label.split(' ')[0]+' morning';
+    var tom=new Date(); tom.setDate(tom.getDate()+1);
+    var isWeekend=tom.getDay()===0||tom.getDay()===6;
+    el.textContent=days[tom.getDay()]+' \u2014 9:00 AM \u2013 11:00 AM';
+    sc.textContent=isWeekend?'Weekend slots available':'First slot tomorrow';
   }
-  el.textContent=label;
-  sc.textContent=scarcity;
 })();
 </script>
 <script>
