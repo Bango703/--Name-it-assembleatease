@@ -59,7 +59,7 @@
   --font-body:     'DM Sans', system-ui, sans-serif;
 
   /* Transitions */
-  --transition:    0.15s ease;
+  --transition:    0.18s cubic-bezier(0.4,0,0.2,1);
 }
 
 /* ════════════════════════════════════════
@@ -171,12 +171,15 @@ p { color: var(--ink-soft); line-height: 1.7; }
   position: relative;
 }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
 
 .btn-primary  { background: var(--accent);  color: #fff; border-color: var(--accent);  }
 .btn-primary:hover  { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn-primary:active { background: var(--accent-dark); transform: scale(0.97); box-shadow: none; }
 
 .btn-teal     { background: var(--teal);    color: #fff; border-color: var(--teal);    }
 .btn-teal:hover     { background: var(--teal-dark);  border-color: var(--teal-dark);  }
+.btn-teal:active    { background: var(--teal-dark); transform: scale(0.97); box-shadow: none; }
 
 .btn-outline  { background: transparent; color: var(--ink); border-color: var(--border); }
 .btn-outline:hover  { background: var(--off-white); border-color: #cbd5e1; }
@@ -238,7 +241,7 @@ p { color: var(--ink-soft); line-height: 1.7; }
 }
 .form-control:focus {
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(29,158,117,0.1);
+  box-shadow: 0 0 0 3px rgba(0,151,167,0.12);
 }
 .form-control.error {
   border-color: var(--red);
@@ -328,7 +331,12 @@ select.form-control {
   cursor: pointer;
 }
 .card-interactive:hover {
-  border-color: #c8c4bb;
+  border-color: var(--teal);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.card-interactive:active {
+  transform: none;
   box-shadow: var(--shadow-sm);
 }
 

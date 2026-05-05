@@ -155,3 +155,34 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 #card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}
 @media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}.nav-auth-link,.nav-earn-btn,.nav-book-pill{display:none!important}}
 @media(max-width:700px){.footer-inner{grid-template-columns:1fr;gap:2rem}}
+
+/* ══════════════════════════════════════════════════════
+   POLISH — buttons, forms, focus rings, transitions
+   ══════════════════════════════════════════════════════ */
+
+/* Smoother easing on interactive elements */
+.btn{transition:all 0.18s cubic-bezier(0.4,0,0.2,1)}
+
+/* Keyboard focus rings (a11y) */
+.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;box-shadow:none}
+
+/* Button active/press states */
+.btn-cyan:active{background:var(--cyan-dark) !important;box-shadow:none !important;transform:translateY(0) scale(0.97) !important}
+.btn-white:active{background:var(--cyan-mid) !important;transform:scale(0.97)}
+.btn-ghost-white:active{background:rgba(255,255,255,0.35) !important;transform:scale(0.97)}
+.btn-outline:active{background:var(--cyan-light) !important;transform:scale(0.97)}
+
+/* btn-white: add subtle hover lift on dark backgrounds */
+.btn-white:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,255,255,0.2)}
+/* btn-ghost-white: stronger hover border */
+.btn-ghost-white:hover{border-color:rgba(255,255,255,0.75)}
+
+/* Nav CTA active state */
+.nav-book-cta:active{background:var(--cyan-dark);transform:none;box-shadow:none}
+
+/* Form focus ring (modal + QBB forms) */
+.form-control:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,151,167,0.12);outline:none}
+.waitlist-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,151,167,0.18);outline:none}
+
+/* Stripe element better focus */
+.StripeElement--focus{border-color:var(--cyan) !important;box-shadow:0 0 0 3px rgba(0,151,167,0.12) !important}
