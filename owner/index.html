@@ -187,9 +187,9 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Management</div>
       <ul class="sidebar-nav">
-        <li><a class="active" data-view="bookings"><span class="nav-icon">&#128197;</span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
-        <li><a data-view="waitlist"><span class="nav-icon">&#128203;</span> Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
-        <li><a data-view="assemblers"><span class="nav-icon">&#128101;</span> Assemblers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
+        <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
+        <li><a data-view="waitlist"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
+        <li><a data-view="assemblers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Assemblers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
       </ul>
     </div>
     <div class="sidebar-footer">
@@ -220,7 +220,7 @@
 
         <!-- Search -->
         <div class="search-bar">
-          <span class="search-icon">&#128269;</span>
+          <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="text" class="search-input" id="booking-search" placeholder="Search by ref, name, email, service, or address..." />
           <button class="search-clear" id="search-clear" onclick="clearSearch()">&#10005;</button>
         </div>
@@ -779,17 +779,17 @@
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
     if (b.status === 'completed' && b.payment_status === 'captured') {
-      btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">&#8634; Refund Customer</button>');
+      btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
       if (b.assembler_id && b.payout_status !== 'paid') {
         btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">&#36; Record Payout</button>');
       }
     }
     if (b.status === 'cancelled' || b.status === 'declined') {
-      btns.push('<button class="btn btn-red" data-action="delete-booking" data-id="' + b.id + '" title="Permanently delete this booking">&#128465; Delete</button>');
+      btns.push('<button class="btn btn-red" data-action="delete-booking" data-id="' + b.id + '" title="Permanently delete this booking">Delete</button>');
     }
     // Always show password reset for customer on any booking
     if (b.customer_email) {
-      btns.push('<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(b.customer_email) + '\')" style="font-size:0.75rem">&#128273; Reset Customer Password</button>');
+      btns.push('<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(b.customer_email) + '\')" style="font-size:0.75rem">Reset Customer Password</button>');
     }
     $detailAct.innerHTML = btns.join('');
     $detailAct.style.display = btns.length ? '' : 'none';
@@ -1408,7 +1408,7 @@
         + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
         + '<td style="' + rs + '">'
           + (isRejected
-            ? '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">&#128465; Delete</button>'
+            ? '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Delete</button>'
             : (a.tier === 'pending'
               ? (a.identity_verified
                 ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
@@ -1462,9 +1462,9 @@
       try {
         var r2 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
         var d2 = await r2.json();
-        if (d2.error) { toast(d2.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = '&#128465; Delete'; return; }
+        if (d2.error) { toast(d2.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = 'Delete'; return; }
         toast('Application deleted', 'success'); loadAssemblerList();
-      } catch { toast('Failed to delete application', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = '&#128465; Delete'; }
+      } catch { toast('Failed to delete application', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = 'Delete'; }
     }
   });
 
@@ -1478,7 +1478,7 @@
     var downgradeBtn = '';
     if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">&#8595; Demote → Verified</button>';
     if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">&#8595; Demote → Starter</button>';
-    var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended') ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">&#9940; Suspend</button>' : '';
+    var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended') ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">Suspend</button>' : '';
     var reinstateBtn = a.tier === 'suspended' ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">&#10003; Reinstate → Starter</button>' : '';
     document.getElementById('asm-detail-body').innerHTML = [
       '<strong>Email:</strong> ' + esc(a.email),
@@ -1494,7 +1494,7 @@
       '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">&#128273; Send Password Reset</button>' + '</div>',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Send Password Reset</button>' + '</div>',
     ].filter(Boolean).join('<br>');
     document.getElementById('asm-detail-modal').classList.add('open');
   }
