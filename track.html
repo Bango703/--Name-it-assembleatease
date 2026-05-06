@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
+<meta charset="UTF-8"/>
+<title>Manage My Booking &mdash; AssembleAtEase</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content="Look up your AssembleAtEase booking, check your appointment status, or cancel your booking."/>
+<meta name="robots" content="noindex"/>
+<link rel="canonical" href="https://www.assembleatease.com/track"/>
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
+<link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="apple-touch-icon" href="/images/logo.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
+<link rel="stylesheet" href="/assets/css/marketing.css"/>
+<style>
+/* ── MANAGE BOOKING PAGE ────────────────────────────────── */
+.track-hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#00838f 100%);padding:4rem 2rem 3.5rem;text-align:center;position:relative;overflow:hidden}
+.track-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%,rgba(0,188,212,0.1),transparent 65%);pointer-events:none}
+.track-hero-inner{max-width:580px;margin:0 auto;position:relative;z-index:1}
+.track-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:0.4rem 1rem;border-radius:999px;margin-bottom:1.25rem;border:1px solid rgba(255,255,255,0.18)}
+.track-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.75rem);color:#fff;line-height:1.1;margin-bottom:0.75rem}
+.track-subtitle{font-size:0.95rem;color:rgba(255,255,255,0.72);line-height:1.7;margin-bottom:2.25rem}
+.track-form{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:16px;padding:2rem;backdrop-filter:blur(8px);text-align:left}
+.track-form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.track-field{display:flex;flex-direction:column;gap:6px}
+.track-label{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.6)}
+.track-input{width:100%;padding:0.85rem 1rem;border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;background:rgba(255,255,255,0.08);color:#fff;font-family:var(--font-body);font-size:0.95rem;outline:none;transition:border-color 0.18s,background 0.18s}
+.track-input::placeholder{color:rgba(255,255,255,0.35)}
+.track-input:focus{border-color:var(--cyan);background:rgba(255,255,255,0.12);box-shadow:0 0 0 3px rgba(0,151,167,0.25)}
+.track-hint{font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:0.25rem}
+.track-submit{width:100%;padding:1rem;background:var(--cyan);color:#fff;border:none;border-radius:10px;font-family:var(--font-body);font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.18s;margin-top:0.25rem;display:flex;align-items:center;justify-content:center;gap:8px}
+.track-submit:hover{background:var(--cyan-dark);box-shadow:0 4px 20px rgba(0,151,167,0.45);transform:translateY(-1px)}
+.track-submit:active{transform:none;box-shadow:none}
+.track-submit:disabled{opacity:0.65;cursor:not-allowed;transform:none;box-shadow:none}
+.track-err{font-size:0.83rem;color:#fca5a5;margin-top:0.75rem;text-align:center;display:none}
+.track-portal-link{display:block;text-align:center;margin-top:1.25rem;font-size:0.82rem;color:rgba(255,255,255,0.5)}
+.track-portal-link a{color:rgba(255,255,255,0.75);font-weight:600;text-decoration:none;transition:color 0.15s}
+.track-portal-link a:hover{color:#fff}
+
+/* ── RESULT SECTION ─────────────────────────────────────── */
+.track-result{padding:3rem 2rem 4rem;display:none}
+.track-result.show{display:block}
+.track-result-inner{max-width:640px;margin:0 auto}
+.booking-card{background:#fff;border:1.5px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.09)}
+.booking-card-top{padding:1.75rem 2rem;border-bottom:1.5px solid var(--border)}
+.booking-ref-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem}
+.booking-ref{font-size:0.75rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+.booking-status-badge{display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:0.38rem 0.9rem;border-radius:999px}
+.status-pending{background:#fffbeb;color:#92400e;border:1px solid #fcd34d}
+.status-confirmed{background:var(--cyan-light);color:var(--cyan-dark);border:1px solid var(--cyan-mid)}
+.status-completed{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.status-cancelled{background:#f4f4f5;color:#71717a;border:1px solid #d4d4d8}
+.booking-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-pending .booking-status-dot{background:#f59e0b;animation:status-pulse 2s infinite}
+.status-confirmed .booking-status-dot{background:var(--cyan);animation:status-pulse 2s infinite}
+.status-completed .booking-status-dot{background:#22c55e}
+.status-cancelled .booking-status-dot{background:#a1a1aa}
+@keyframes status-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.booking-service-name{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);margin-bottom:0.25rem}
+.booking-created{font-size:0.78rem;color:var(--muted)}
+.booking-card-details{padding:1.5rem 2rem;border-bottom:1.5px solid var(--border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+.detail-item{display:flex;flex-direction:column;gap:3px}
+.detail-label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+.detail-value{font-size:0.95rem;font-weight:500;color:var(--ink)}
+.booking-card-price{padding:1.25rem 2rem;background:var(--off-white);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.price-label{font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em}
+.price-value{font-family:var(--font-display);font-size:1.5rem;color:var(--ink)}
+.booking-card-actions{padding:1.5rem 2rem;display:flex;flex-direction:column;gap:0.75rem}
+.btn-cancel-booking{width:100%;padding:0.85rem;background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-cancel-booking:hover{background:#fee2e2;border-color:#fca5a5}
+.btn-cancel-booking:disabled{opacity:0.5;cursor:not-allowed}
+.btn-portal{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:0.85rem;background:transparent;color:var(--ink-soft);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;text-decoration:none}
+.btn-portal:hover{background:var(--off-white);border-color:#cbd5e1;color:var(--ink)}
+.cancel-fee-warn{background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:0.85rem 1rem;font-size:0.83rem;color:#92400e;line-height:1.6;display:none}
+.cancel-fee-warn strong{display:block;margin-bottom:3px;font-size:0.88rem}
+.track-help{text-align:center;margin-top:1.5rem;font-size:0.85rem;color:var(--muted)}
+.track-help a{color:var(--cyan-dark);font-weight:600;text-decoration:none}
+.track-help a:hover{text-decoration:underline}
+.new-lookup-btn{display:block;text-align:center;margin-top:2rem;background:none;border:none;font-family:var(--font-body);font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:underline;width:100%}
+.new-lookup-btn:hover{color:var(--ink)}
+
+/* ── CONFIRM CANCEL MODAL ───────────────────────────────── */
+.cancel-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.cancel-modal-overlay.open{opacity:1;pointer-events:all}
+.cancel-modal{background:#fff;border-radius:18px;padding:2rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.18);transform:translateY(16px) scale(0.98);transition:transform 0.2s}
+.cancel-modal-overlay.open .cancel-modal{transform:translateY(0) scale(1)}
+.cancel-modal-title{font-family:var(--font-display);font-size:1.4rem;color:var(--ink);margin-bottom:0.6rem}
+.cancel-modal-fee{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;font-size:0.83rem;color:#92400e;line-height:1.6;margin-bottom:1.25rem;display:none}
+.cancel-modal-desc{font-size:0.9rem;color:var(--muted);line-height:1.7;margin-bottom:1.5rem}
+.cancel-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem}
+.btn-confirm-cancel{padding:0.85rem;background:#dc2626;color:#fff;border:none;border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.18s}
+.btn-confirm-cancel:hover{background:#b91c1c}
+.btn-confirm-cancel:disabled{opacity:0.6;cursor:not-allowed}
+.btn-keep-booking{padding:0.85rem;background:var(--off-white);color:var(--ink);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s}
+.btn-keep-booking:hover{background:#e2e8f0}
+.cancel-modal-result{text-align:center;padding:0.5rem 0;display:none}
+.cancel-modal-result-icon{font-size:2.5rem;margin-bottom:0.75rem}
+.cancel-modal-result-title{font-family:var(--font-display);font-size:1.2rem;color:var(--ink);margin-bottom:0.4rem}
+.cancel-modal-result-desc{font-size:0.875rem;color:var(--muted);line-height:1.65}
+
+@media(max-width:600px){
+  .track-form-row{grid-template-columns:1fr}
+  .detail-grid{grid-template-columns:1fr}
+  .cancel-modal-actions{grid-template-columns:1fr}
+  .booking-card-price{flex-direction:column;align-items:flex-start;gap:4px}
+}
+</style>
+</head>
+<body>
+
+<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#0097a7;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /></picture>
+      <div class="nav-logo-text">Assemble<span>AtEase</span><div class="nav-logo-sub">Furniture Assembly &bull; TV Mounting</div></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#services">Services</a></li>
+      <li><a href="/#how-it-works">How it works</a></li>
+      <li><a href="/about">About Us</a></li>
+      <li><a href="/#why-us">Why Us</a></li>
+    </ul>
+    <div style="display:flex;align-items:center;gap:0.75rem">
+      <a href="tel:+17372906129" class="nav-auth-link" style="font-weight:600">(737) 290-6129</a>
+      <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
+    </div>
+    <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile" id="mobileNav">
+  <a href="/book?service=Furniture+Assembly">📦 Furniture Assembly</a>
+  <a href="/book?service=TV+Mounting">📺 TV Mounting</a>
+  <a href="/book?service=Home+Repairs">🔧 Home Repairs</a>
+  <a href="/book?service=Smart+Home">💡 Smart Home</a>
+  <a href="/book?service=Junk+Removal">🗑 Junk Removal</a>
+  <a href="/track" style="font-weight:700;color:#0097a7">📍 Manage My Booking</a>
+  <a href="/about">About Us</a>
+  <a href="tel:+17372906129" style="font-weight:700;color:#0097a7">(737) 290-6129</a>
+  <a href="/book" class="btn btn-cyan btn-full" style="text-align:center">Book Now &rarr;</a>
+</div>
+<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
+
+<main id="main-content">
+
+<!-- HERO + LOOKUP FORM -->
+<section class="track-hero">
+  <div class="track-hero-inner">
+    <div class="track-eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Booking Status
+    </div>
+    <h1 class="track-title">Manage My Booking</h1>
+    <p class="track-subtitle">Look up your booking status, view your appointment details, or cancel &mdash; no login required.</p>
+
+    <form class="track-form" id="trackForm" onsubmit="lookupBooking(event)">
+      <div class="track-form-row">
+        <div class="track-field">
+          <label class="track-label" for="t-email">Email Address</label>
+          <input type="email" id="t-email" class="track-input" placeholder="you@example.com" autocomplete="email" required/>
+        </div>
+        <div class="track-field">
+          <label class="track-label" for="t-ref">Booking Reference</label>
+          <input type="text" id="t-ref" class="track-input" placeholder="AAE-2025-XXXXX" autocomplete="off" required/>
+          <span class="track-hint">Found in your confirmation email</span>
+        </div>
+      </div>
+      <button type="submit" class="track-submit" id="trackSubmit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Look Up My Booking
+      </button>
+      <p class="track-err" id="trackErr"></p>
+    </form>
+
+    <p class="track-portal-link">Have an account? <a href="/customer">View all your bookings &rarr;</a></p>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="track-result" id="trackResult">
+  <div class="track-result-inner">
+
+    <div class="booking-card" id="bookingCard">
+      <!-- Top: ref + status -->
+      <div class="booking-card-top">
+        <div class="booking-ref-row">
+          <span class="booking-ref" id="bRef"></span>
+          <span class="booking-status-badge" id="bStatusBadge">
+            <span class="booking-status-dot"></span>
+            <span id="bStatusText"></span>
+          </span>
+        </div>
+        <div class="booking-service-name" id="bService"></div>
+        <div class="booking-created" id="bCreated"></div>
+      </div>
+
+      <!-- Details grid -->
+      <div class="booking-card-details">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Date</span>
+            <span class="detail-value" id="bDate"></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Time</span>
+            <span class="detail-value" id="bTime"></span>
+          </div>
+          <div class="detail-item" id="bAddressWrap">
+            <span class="detail-label">Address</span>
+            <span class="detail-value" id="bAddress"></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Customer</span>
+            <span class="detail-value" id="bName"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Price -->
+      <div class="booking-card-price">
+        <span class="price-label">Booking Total</span>
+        <span class="price-value" id="bPrice"></span>
+      </div>
+
+      <!-- Late cancel warning (shown if applicable) -->
+      <div class="cancel-fee-warn" id="cancelFeeWarn">
+        <strong>⚠️ Late-cancellation fee applies</strong>
+        Your appointment is within 24 hours. Cancelling now will charge a 50% cancellation fee of <span id="cancelFeeAmt"></span>.
+      </div>
+
+      <!-- Actions -->
+      <div class="booking-card-actions" id="bookingActions">
+        <button class="btn-cancel-booking" id="btnCancelOpen" onclick="openCancelModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancel This Booking
+        </button>
+        <a href="/customer" class="btn-portal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Manage in My Account
+        </a>
+      </div>
+    </div>
+
+    <p class="track-help">
+      Need help? Call us at <a href="tel:+17372906129">(737) 290-6129</a> or <a href="/contact">send a message</a>.
+    </p>
+    <button class="new-lookup-btn" onclick="resetLookup()">Look up a different booking</button>
+  </div>
+</section>
+
+</main>
+
+<!-- CANCEL CONFIRMATION MODAL -->
+<div class="cancel-modal-overlay" id="cancelModal">
+  <div class="cancel-modal">
+    <div id="cancelModalContent">
+      <h2 class="cancel-modal-title">Cancel this booking?</h2>
+      <div class="cancel-modal-fee" id="cancelModalFee"></div>
+      <p class="cancel-modal-desc" id="cancelModalDesc">This will cancel your appointment. You&rsquo;ll receive a confirmation email shortly.</p>
+      <div class="cancel-modal-actions">
+        <button class="btn-keep-booking" onclick="closeCancelModal()">Keep My Booking</button>
+        <button class="btn-confirm-cancel" id="btnConfirmCancel" onclick="confirmCancel()">Yes, Cancel It</button>
+      </div>
+    </div>
+    <div class="cancel-modal-result" id="cancelModalResult">
+      <div class="cancel-modal-result-icon" id="cancelResultIcon"></div>
+      <div class="cancel-modal-result-title" id="cancelResultTitle"></div>
+      <p class="cancel-modal-result-desc" id="cancelResultDesc"></p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">
+        <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase" width="38" height="38"/></picture>
+        <div class="footer-logo-text">Assemble<span>AtEase</span></div>
+      </div>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, and handyman services in Austin, TX. You don&rsquo;t pay until the job is done.</p>
+      <div class="footer-contact">
+        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <ul class="footer-links">
+        <li><a href="/furniture">Furniture Assembly</a></li>
+        <li><a href="/mounting">TV Mounting</a></li>
+        <li><a href="/repairs">Home Repairs</a></li>
+        <li><a href="/smarthome">Smart Home</a></li>
+        <li><a href="/junk">Junk Removal</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a href="/about">About Us</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/track">Manage My Booking</a></li>
+        <li><a href="/customer">Customer Portal</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-copy">&copy; 2026 AssembleAtEase. All rights reserved.</p>
+    <div class="footer-legal">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let currentBooking = null;
+let currentEmail   = null;
+
+// ── Lookup ─────────────────────────────────────────────────
+async function lookupBooking(e) {
+  e.preventDefault();
+  const email  = document.getElementById('t-email').value.trim();
+  const ref    = document.getElementById('t-ref').value.trim();
+  const errEl  = document.getElementById('trackErr');
+  const btn    = document.getElementById('trackSubmit');
+
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Looking up…';
+
+  try {
+    const res = await fetch('/api/booking/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, ref }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lookup failed');
+
+    currentBooking = data.booking;
+    currentEmail   = email;
+    renderBooking(data.booking);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Look Up My Booking';
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────
+function renderBooking(b) {
+  document.getElementById('bRef').textContent      = b.ref;
+  document.getElementById('bService').textContent  = b.service;
+  document.getElementById('bName').textContent     = b.customer_name;
+  document.getElementById('bDate').textContent     = formatDate(b.date);
+  document.getElementById('bTime').textContent     = b.time || '—';
+  document.getElementById('bPrice').textContent    = b.total_price ? '$' + (b.total_price / 100).toFixed(2) : '—';
+  document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
+
+  const addrEl = document.getElementById('bAddress');
+  const addrWrap = document.getElementById('bAddressWrap');
+  if (b.address || b.city) {
+    addrEl.textContent = [b.address, b.city].filter(Boolean).join(', ');
+    addrWrap.style.display = '';
+  } else {
+    addrWrap.style.display = 'none';
+  }
+
+  // Status badge
+  const badge = document.getElementById('bStatusBadge');
+  const statusText = (b.status || '').toLowerCase();
+  badge.className = 'booking-status-badge status-' + (statusText || 'pending');
+  document.getElementById('bStatusText').textContent = capitalize(b.status || 'pending');
+
+  // Cancellability
+  const actions  = document.getElementById('bookingActions');
+  const feeWarn  = document.getElementById('cancelFeeWarn');
+  const cancelBtn = document.getElementById('btnCancelOpen');
+
+  if (b.status === 'cancelled' || b.status === 'completed') {
+    cancelBtn.style.display = 'none';
+    feeWarn.style.display   = 'none';
+  } else {
+    cancelBtn.style.display = '';
+    // Check 24hr window
+    const withinWindow = isWithin24hrs(b.date, b.time);
+    if (withinWindow && b.total_price) {
+      const fee = '$' + ((b.total_price * 0.5) / 100).toFixed(2);
+      document.getElementById('cancelFeeAmt').textContent = fee;
+      feeWarn.style.display = 'block';
+    } else {
+      feeWarn.style.display = 'none';
+    }
+  }
+
+  // Show result section, scroll to it
+  const resultEl = document.getElementById('trackResult');
+  resultEl.classList.add('show');
+  setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+// ── Cancel modal ───────────────────────────────────────────
+function openCancelModal() {
+  if (!currentBooking) return;
+  const withinWindow = isWithin24hrs(currentBooking.date, currentBooking.time);
+  const feeEl  = document.getElementById('cancelModalFee');
+  const descEl = document.getElementById('cancelModalDesc');
+
+  if (withinWindow && currentBooking.total_price) {
+    const fee = '$' + ((currentBooking.total_price * 0.5) / 100).toFixed(2);
+    feeEl.innerHTML = '<strong>⚠️ Late-cancellation fee: ' + fee + '</strong> Since your appointment is within 24 hours, cancelling will charge 50% of your booking total.';
+    feeEl.style.display = 'block';
+    descEl.textContent  = 'Are you sure you want to cancel? This action cannot be undone.';
+  } else {
+    feeEl.style.display = 'none';
+    descEl.textContent  = 'Your appointment is more than 24 hours away — cancellation is free. Your card hold will be fully released.';
+  }
+
+  document.getElementById('cancelModalContent').style.display = '';
+  document.getElementById('cancelModalResult').style.display  = 'none';
+  document.getElementById('cancelModal').classList.add('open');
+}
+
+function closeCancelModal() {
+  document.getElementById('cancelModal').classList.remove('open');
+}
+
+async function confirmCancel() {
+  const btn = document.getElementById('btnConfirmCancel');
+  btn.disabled  = true;
+  btn.textContent = 'Cancelling…';
+
+  try {
+    const res = await fetch('/api/booking/guest-cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Cancellation failed');
+
+    // Success UI
+    document.getElementById('cancelModalContent').style.display = 'none';
+    const resultEl = document.getElementById('cancelModalResult');
+    document.getElementById('cancelResultIcon').textContent   = '✅';
+    document.getElementById('cancelResultTitle').textContent  = 'Booking cancelled';
+    document.getElementById('cancelResultDesc').textContent   =
+      data.feeCaptured > 0
+        ? 'A cancellation fee of $' + (data.feeCaptured / 100).toFixed(2) + ' was charged. A confirmation email is on its way.'
+        : 'Your booking has been cancelled and your card hold released. A confirmation email is on its way.';
+    resultEl.style.display = 'block';
+
+    // Update booking card badge
+    currentBooking.status = 'cancelled';
+    document.getElementById('bStatusBadge').className = 'booking-status-badge status-cancelled';
+    document.getElementById('bStatusText').textContent = 'Cancelled';
+    document.getElementById('btnCancelOpen').style.display = 'none';
+    document.getElementById('cancelFeeWarn').style.display = 'none';
+
+    setTimeout(closeCancelModal, 3200);
+  } catch (err) {
+    document.getElementById('cancelModalContent').style.display = '';
+    document.getElementById('cancelModalResult').style.display  = 'none';
+    const resultEl = document.getElementById('cancelModalResult');
+    document.getElementById('cancelResultIcon').textContent  = '❌';
+    document.getElementById('cancelResultTitle').textContent = 'Something went wrong';
+    document.getElementById('cancelResultDesc').textContent  = err.message + ' — Call us at (737) 290-6129 to cancel.';
+    resultEl.style.display = 'block';
+    document.getElementById('cancelModalContent').style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Yes, Cancel It';
+  }
+}
+
+// Close modal on backdrop click
+document.getElementById('cancelModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCancelModal();
+});
+
+// ── Helpers ────────────────────────────────────────────────
+function resetLookup() {
+  currentBooking = null;
+  currentEmail   = null;
+  document.getElementById('trackResult').classList.remove('show');
+  document.getElementById('trackErr').style.display = 'none';
+  document.getElementById('trackForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function formatDate(str) {
+  if (!str) return '—';
+  try {
+    // Handle YYYY-MM-DD and ISO strings
+    const d = new Date(str.includes('T') ? str : str + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  } catch { return str; }
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function isWithin24hrs(dateStr, timeStr) {
+  try {
+    const apptDate = new Date(dateStr);
+    const slotStart = (timeStr || '').split('-')[0].trim();
+    const match = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const mer = match[3].toUpperCase();
+      if (mer === 'PM' && h !== 12) h += 12;
+      if (mer === 'AM' && h === 12) h = 0;
+      apptDate.setHours(h, m, 0, 0);
+    }
+    const hoursAway = (apptDate.getTime() - Date.now()) / 3600000;
+    return hoursAway >= 0 && hoursAway < 24;
+  } catch { return false; }
+}
+
+// Pre-fill ref from URL if provided: /track?ref=AAE-2025-XXXXX
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) document.getElementById('t-ref').value = ref;
+})();
+</script>
+
+</body>
+</html>

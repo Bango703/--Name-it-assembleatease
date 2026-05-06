@@ -289,6 +289,48 @@
   #m-book-bar a{color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
 }
 
+/* ══════════════════════════════════════════════════════
+   ANIMATIONS — entrance, float, sonar, icon bounce
+   ══════════════════════════════════════════════════════ */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes sonarPing{0%{transform:scale(1);opacity:0.55}100%{transform:scale(2.6);opacity:0}}
+@keyframes iconBounce{0%,100%{transform:scale(1) rotate(0)}40%{transform:scale(1.2) rotate(-6deg)}65%{transform:scale(1.1) rotate(3deg)}}
+@keyframes heroGlow{0%,100%{opacity:0.08}50%{opacity:0.18}}
+
+/* Desktop hero entrance — staggered */
+.hv2-eyebrow{animation:fadeInUp 0.5s 0.1s both}
+.hv2-h1{animation:fadeInUp 0.55s 0.25s both}
+.hv2-desc{animation:fadeInUp 0.5s 0.4s both}
+.qbb-form,.qbb-or,.hv2-actions{animation:fadeInUp 0.5s 0.5s both}
+.hv2-trust-row{animation:fadeInUp 0.5s 0.65s both}
+/* Hero image — continuous gentle float */
+.hv2-right img{animation:floatY 7s ease-in-out infinite;transform-origin:center}
+
+/* Mobile hero entrance */
+.hero-badge{animation:fadeIn 0.4s 0.15s both}
+.hero-title{animation:fadeInUp 0.5s 0.25s both}
+.hero-desc{animation:fadeInUp 0.5s 0.35s both}
+.hero-cats{animation:fadeInUp 0.5s 0.45s both}
+.hero-actions{animation:fadeInUp 0.5s 0.55s both}
+.hero-stats{animation:fadeInUp 0.5s 0.65s both}
+
+/* Step-num sonar effect on hover */
+.step-num{position:relative}
+.step-num::after{content:'';position:absolute;inset:0;border-radius:50%;background:rgba(0,151,167,0.45);opacity:0;animation:none;pointer-events:none}
+.step-card:hover .step-num::after{animation:sonarPing 0.75s ease-out forwards}
+
+/* Service card icon playful bounce on hover */
+.service-card:hover .svc-icon,.svc5-card:hover .svc5-icon{animation:iconBounce 0.38s ease forwards}
+
+/* Accessibility: no motion */
+@media(prefers-reduced-motion:reduce){
+  .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,
+  .hv2-right img,.hero-badge,.hero-title,.hero-desc,.hero-cats,.hero-actions,.hero-stats
+  {animation:none !important}
+}
+
 /* ── POLISH: depth, hover effects, visual hierarchy ── */
 
 /* Service cards: soft shadow at rest for depth */
@@ -392,6 +434,7 @@
     </ul>
     <div style="display:flex;align-items:center;gap:0.75rem">
       <a href="tel:+17372906129" class="nav-auth-link" style="font-weight:600">(737) 290-6129</a>
+      <a href="/track" class="nav-auth-link">Track My Booking</a>
       <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     </div>
     <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
@@ -409,8 +452,8 @@
   <a href="/pricing">Pricing</a>
   <a href="/about">About Us</a>
   <a href="tel:+17372906129" style="font-weight:700;color:#0097a7">(737) 290-6129</a>
+  <a href="/track" style="font-weight:700;color:#0097a7">📍 Manage My Booking</a>
   <a href="/book" class="btn btn-cyan btn-full" style="text-align:center">Book Now &rarr;</a>
-  <a href="/book" class="btn btn-outline btn-full" style="text-align:center">Book Now &rarr;</a>
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
