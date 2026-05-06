@@ -28,10 +28,14 @@ export default async function handler(req, res) {
     .select('*')
     .eq('ref', ref.toUpperCase().trim())
     .ilike('customer_email', email.trim())
-    .single();
+    .maybeSingle();
 
-  if (fetchErr || !booking) {
-    return res.status(404).json({ error: 'Booking not found.' });
+  if (fetchErr) {
+    console.error('Guest cancel lookup error:', fetchErr);
+    return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
+  }
+  if (!booking) {
+    return res.status(404).json({ error: 'Booking not found. Check your reference and email.' });
   }
 
   if (booking.status === 'completed') {
@@ -74,12 +78,17 @@ export default async function handler(req, res) {
     } catch (e) { console.error('Stripe guest-cancel error:', e); }
   }
 
-  await sb.from('bookings').update({
+  const { error: updateErr } = await sb.from('bookings').update({
     status: 'cancelled',
     cancelled_at: new Date().toISOString(),
     cancel_reason: 'Cancelled by customer (guest)',
     cancellation_fee: feeCaptured || null,
   }).eq('id', booking.id);
+
+  if (updateErr) {
+    console.error('Guest cancel update failed:', updateErr);
+    return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
+  }
 
   // Email customer
   try {

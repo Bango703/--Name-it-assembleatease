@@ -26,9 +26,13 @@ export default async function handler(req, res) {
     .select('*')
     .eq('ref', ref.toUpperCase().trim())
     .ilike('customer_email', email.trim())
-    .single();
+    .maybeSingle();
 
-  if (error || !booking) {
+  if (error) {
+    console.error('Track lookup error:', { message: error.message, code: error.code, ref: ref.toUpperCase().trim() });
+    return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
+  }
+  if (!booking) {
     return res.status(404).json({
       error: 'No booking found with that reference and email. Double-check your confirmation email.',
     });

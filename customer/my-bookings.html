@@ -122,7 +122,7 @@
       cancelled: 'badge-rejected',
       declined:  'badge-rejected',
     };
-    const labels = { pending: 'Pending', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled', declined: 'Declined' };
+    const labels = { pending: 'Pending', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled', declined: 'Unable to Complete' };
     return `<span class="badge ${map[status] || 'badge-default'}">${labels[status] || status}</span>`;
   }
 

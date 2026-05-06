@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   let query = sb
     .from('bookings')
     .select('id, ref, service, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assigned_at, assembler_accepted_at')
-    .eq('customer_email', email)
+    .ilike('customer_email', email)
     .order('created_at', { ascending: false });
 
   if (status && status !== 'all') {

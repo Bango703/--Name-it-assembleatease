@@ -75,12 +75,17 @@ export default async function handler(req, res) {
     } catch (e) { console.error('Stripe cancel error:', e); }
   }
 
-  await sb.from('bookings').update({
+  const { error: updateErr } = await sb.from('bookings').update({
     status: 'cancelled',
     cancelled_at: new Date().toISOString(),
     cancel_reason: 'Cancelled by customer',
     cancellation_fee: feeCaptured || null,
   }).eq('id', booking.id);
+
+  if (updateErr) {
+    console.error('Customer cancel update failed:', updateErr);
+    return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
+  }
 
   // Email customer
   try {

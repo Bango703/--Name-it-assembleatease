@@ -826,11 +826,11 @@
     el.textContent='Today \u2014 '+available[0].label;
     sc.textContent='Only '+available.length+' slot'+(available.length===1?'':'s')+' left today';
   } else {
-    // No more slots today — show tomorrow
+    // No more slots today — show tomorrow's first slot (7 AM, all slots available)
     var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     var tom=new Date(); tom.setDate(tom.getDate()+1);
     var isWeekend=tom.getDay()===0||tom.getDay()===6;
-    el.textContent=days[tom.getDay()]+' \u2014 9:00 AM \u2013 11:00 AM';
+    el.textContent=days[tom.getDay()]+' \u2014 '+ALL_SLOTS[0].label;
     sc.textContent=isWeekend?'Weekend slots available':'First slot tomorrow';
   }
 })();

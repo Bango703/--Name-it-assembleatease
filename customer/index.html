@@ -157,13 +157,14 @@
       const bookings = bookingResult.bookings || [];
       if (bookings.length) {
         bList.innerHTML = bookings.slice(0, 4).map(b => {
-            const statusMap = { pending:'badge-pending', confirmed:'badge-accepted', completed:'badge-complete', cancelled:'badge-rejected', declined:'badge-rejected' };
+          const statusLabels = { pending:'Pending', confirmed:'Confirmed', completed:'Completed', cancelled:'Cancelled', declined:'Unable to Complete' };
+          const statusMap = { pending:'badge-pending', confirmed:'badge-accepted', completed:'badge-complete', cancelled:'badge-rejected', declined:'badge-rejected' };
           const dateStr = b.date ? new Date(b.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
           return `
             <a class="job-row" href="my-bookings">
               <div class="job-row-top">
                 <div class="job-row-title">${esc(b.service || 'Booking')}</div>
-                <span class="badge ${statusMap[b.status]||'badge-default'}">${esc(b.status)}</span>
+                <span class="badge ${statusMap[b.status]||'badge-default'}">${statusLabels[b.status] || esc(b.status)}</span>
               </div>
               <div class="job-row-meta">
                 <span>${esc(b.ref || '')}</span>
