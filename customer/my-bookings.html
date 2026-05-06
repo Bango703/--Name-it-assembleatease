@@ -10,6 +10,7 @@
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
+  <style>body{visibility:hidden}</style>
   <style>
     .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-tab {
@@ -193,6 +194,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
+    document.body.style.visibility = 'visible';
 
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
       e.preventDefault();

@@ -10,6 +10,7 @@
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
+  <style>body{visibility:hidden}</style>
   <style>
     .profile-wrap { max-width: 680px; margin: 0 auto; }
     .form-section { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 1.25rem; }
@@ -185,7 +186,7 @@
       <div class="form-section">
         <div class="form-section-title">Security</div>
         <div class="info-row">
-          <div><div style="font-size:0.875rem;font-weight:500;color:var(--ink)">Password</div><div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Last changed â€” unknown</div></div>
+          <div><div style="font-size:0.875rem;font-weight:500;color:var(--ink)">Password</div><div style="font-size:0.78rem;color:var(--muted);margin-top:2px">Last changed &mdash; unknown</div></div>
           <button class="btn btn-outline btn-sm" id="change-password-btn-2" type="button">Change password</button>
         </div>
       </div>
@@ -204,6 +205,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
+    document.body.style.visibility = 'visible';
     const { user, profile } = auth;
 
     document.getElementById('sidebar-logout')?.addEventListener('click', async (e) => {
@@ -291,7 +293,7 @@
 
     document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
       if (!confirm('Delete your account? This cannot be undone.')) return;
-      if (!confirm('Last warning â€” all jobs and data will be permanently deleted.')) return;
+      if (!confirm('Last warning — all jobs and data will be permanently deleted.')) return;
       APP.setLoading('delete-account-btn', true, 'Deleting...');
       try {
         await supabaseClient.from('profiles').delete().eq('id', user.id);

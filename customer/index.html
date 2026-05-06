@@ -10,6 +10,7 @@
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
+  <style>body{visibility:hidden}</style>
   <style>
     .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
     .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; position: relative; overflow: hidden; }
@@ -132,6 +133,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['customer']);
     if (!auth) return;
+    document.body.style.visibility = 'visible';
     const { user, profile } = auth;
 
     const firstName = profile.full_name?.split(' ')[0] || '';
