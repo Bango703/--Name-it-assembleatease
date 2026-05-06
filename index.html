@@ -94,8 +94,24 @@
 .hv2-trust-row{display:flex;gap:1.75rem;flex-wrap:wrap}
 .hv2-tr-item{display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;font-weight:500;color:rgba(255,255,255,0.65)}
 .hv2-tr-icon{flex-shrink:0;color:#4dd0e1}
-.hv2-right{overflow:hidden;background:#001f2b;position:relative;z-index:1}
-.hv2-right img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;opacity:0.9}
+.hv2-right{overflow:hidden;background:#001f2b;position:relative;z-index:1;transform-style:preserve-3d;transition:transform 0.65s cubic-bezier(0.23,1,0.32,1);will-change:transform}
+.hv2-right img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;opacity:0.9;transform:scale(1.04);transition:transform 0.65s cubic-bezier(0.23,1,0.32,1)}
+/* Cinematic teal sweep reveal on load */
+.hv2-right::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#00838f,#0097a7);transform-origin:left;animation:hv2Reveal 0.85s 0.15s cubic-bezier(0.77,0,0.18,1) both;z-index:3;pointer-events:none}
+@keyframes hv2Reveal{0%{transform:scaleX(1) translateX(0)}50%{transform:scaleX(1) translateX(0)}100%{transform:scaleX(0) translateX(0);transform-origin:right}}
+/* Floating status chips over image */
+.hv2-chip{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5);border-radius:999px;padding:0.45rem 1rem;font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:var(--ink);box-shadow:0 8px 32px rgba(0,0,0,0.18);opacity:0;animation:chipIn 0.5s forwards}
+.hv2-chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hv2-chip--1{top:18%;right:1.75rem;animation-delay:0.9s}
+.hv2-chip--2{bottom:32%;left:1.75rem;animation-delay:1.05s}
+.hv2-chip--3{bottom:18%;right:2rem;animation-delay:1.15s}
+@keyframes chipIn{from{opacity:0;transform:translateY(10px) scale(0.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* Chip idle float (after entrance) — staggered */
+.hv2-chip--1{animation:chipIn 0.5s 0.9s forwards,chipFloat1 4s 1.4s ease-in-out infinite}
+.hv2-chip--2{animation:chipIn 0.5s 1.05s forwards,chipFloat2 5s 1.55s ease-in-out infinite}
+.hv2-chip--3{animation:chipIn 0.5s 1.15s forwards,chipFloat1 4.5s 1.65s ease-in-out infinite reverse}
+@keyframes chipFloat1{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes chipFloat2{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 /* ── SERVICES 5-COL (desktop only) ────────────────── */
 .svc5-section{display:none;background:#f8f9fa;padding:1.75rem 2rem 3.5rem}
 @media(min-width:1024px){
@@ -305,8 +321,9 @@
 .hv2-desc{animation:fadeInUp 0.5s 0.4s both}
 .qbb-form,.qbb-or,.hv2-actions{animation:fadeInUp 0.5s 0.5s both}
 .hv2-trust-row{animation:fadeInUp 0.5s 0.65s both}
-/* Hero image — continuous gentle float */
-.hv2-right img{animation:floatY 7s ease-in-out infinite;transform-origin:center}
+/* Hero image — gentle Ken Burns zoom (3D tilt handled by JS) */
+@keyframes kenBurns{0%{transform:scale(1.04)}100%{transform:scale(1.08)}}
+.hv2-right img{animation:kenBurns 12s ease-in-out infinite alternate}
 
 /* Mobile hero entrance */
 .hero-badge{animation:fadeIn 0.4s 0.15s both}
@@ -327,8 +344,12 @@
 /* Accessibility: no motion */
 @media(prefers-reduced-motion:reduce){
   .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,
-  .hv2-right img,.hero-badge,.hero-title,.hero-desc,.hero-cats,.hero-actions,.hero-stats
+  .hv2-right img,.hero-badge,.hero-title,.hero-desc,.hero-cats,.hero-actions,.hero-stats,
+  .hv2-chip,.hv2-right::after
   {animation:none !important}
+  .hv2-right{transition:none !important}
+  .hv2-chip{opacity:1 !important}
+  .hv2-right::after{display:none !important}
 }
 
 /* ── POLISH: depth, hover effects, visual hierarchy ── */
@@ -521,8 +542,21 @@
       </div>
     </div>
   </div>
-  <div class="hv2-right">
+  <div class="hv2-right" id="hv2Right">
     <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase pro mounting a TV in Austin TX" />
+    <!-- Floating status chips -->
+    <div class="hv2-chip hv2-chip--1">
+      <span class="hv2-chip-dot" style="background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.25)"></span>
+      Same-day available
+    </div>
+    <div class="hv2-chip hv2-chip--2">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0097a7" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Pay after job done
+    </div>
+    <div class="hv2-chip hv2-chip--3">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Flat-rate pricing
+    </div>
   </div>
 </section>
 
@@ -1424,6 +1458,47 @@ if(window.location.hash==="#booking"){AAE.openBooking();}
 (function(){var cb=document.getElementById('cart-bar'),mb=document.getElementById('m-book-bar');if(!cb||!mb)return;new MutationObserver(function(){mb.classList.toggle('hide',cb.classList.contains('show'));}).observe(cb,{attributes:true,attributeFilter:['class']});})();
 // Hide mobile Book Now bar while hero CTA is visible on screen
 (function(){var mb=document.getElementById('m-book-bar'),hero=document.querySelector('.hero-actions');if(!mb||!hero)return;new IntersectionObserver(function(entries){mb.classList.toggle('hide',entries[0].isIntersecting);},{threshold:0.5}).observe(hero);})();
+
+// ── 3D mouse-tracking tilt on hero image ───────────────────────────────
+(function(){
+  var hero = document.querySelector('.hero-v2');
+  var right = document.getElementById('hv2Right');
+  if (!hero || !right) return;
+  var MAX_TILT = 10; // degrees
+  var isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (isReducedMotion) return;
+
+  var raf = null;
+  var targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function tick() {
+    currentX = lerp(currentX, targetX, 0.08);
+    currentY = lerp(currentY, targetY, 0.08);
+    right.style.transform = 'perspective(900px) rotateX(' + currentX + 'deg) rotateY(' + currentY + 'deg) scale(1.02)';
+    if (Math.abs(currentX - targetX) > 0.01 || Math.abs(currentY - targetY) > 0.01) {
+      raf = requestAnimationFrame(tick);
+    } else {
+      raf = null;
+    }
+  }
+
+  hero.addEventListener('mousemove', function(e) {
+    var rect = hero.getBoundingClientRect();
+    var x = (e.clientX - rect.left) / rect.width;   // 0-1
+    var y = (e.clientY - rect.top)  / rect.height;  // 0-1
+    targetY =  (x - 0.5) * MAX_TILT;   // left/right tilt
+    targetX = -(y - 0.5) * MAX_TILT;   // up/down tilt
+    if (!raf) raf = requestAnimationFrame(tick);
+  });
+
+  hero.addEventListener('mouseleave', function() {
+    targetX = 0;
+    targetY = 0;
+    if (!raf) raf = requestAnimationFrame(tick);
+  });
+})();
 });
 </script>
 </body>
