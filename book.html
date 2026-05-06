@@ -667,15 +667,16 @@
         </div>
       </div>
 
-      <!-- ══ STEP 5 — Payment ══ -->
+      <!-- ══ STEP 5 — Payment / Quote ══ -->
       <div class="step-panel hidden" id="step-5">
-        <div class="almost-done-banner">You&rsquo;re almost done &mdash; just 1 step left</div>
-        <div class="step-heading">Secure your booking</div>
-        <p class="step-sub">Enter your card to hold the appointment. <strong>You won&rsquo;t be charged until the job is done.</strong></p>
+        <div class="almost-done-banner" id="s5-banner">You&rsquo;re almost done &mdash; just 1 step left</div>
+        <div class="step-heading" id="s5-heading">Secure your booking</div>
+        <p class="step-sub" id="s5-sub">Enter your card to hold the appointment. <strong>You won&rsquo;t be charged until the job is done.</strong></p>
 
         <div class="summary-rows" id="booking-summary"></div>
 
-        <div class="form-fields">
+        <!-- Card payment (standard bookings) -->
+        <div id="s5-payment-section" class="form-fields">
           <div>
             <label class="form-label">Card details <span class="req">*</span></label>
             <div id="stripe-card-wrap"><div id="stripe-card-element"></div></div>
@@ -687,8 +688,15 @@
           </div>
         </div>
 
+        <!-- Quote request note (custom quote bookings) -->
+        <div id="s5-quote-section" style="display:none">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:1rem 1.25rem;font-size:0.875rem;color:#166534;line-height:1.6">
+            <strong>No payment required.</strong> We'll review your project details and contact you within 1 business day with a custom quote. Only once you approve the quote do we schedule and charge anything.
+          </div>
+        </div>
+
         <div class="step-err" id="s5-err"></div>
-        <div class="confidence-strip">
+        <div class="confidence-strip" id="s5-confidence">
           <span>Takes under 2 minutes</span>
           <span>No charge until job is done</span>
           <span>Instant confirmation</span>
@@ -697,10 +705,10 @@
           <button class="btn-back-link" id="s5-back" onclick="goToStep(4)">&larr; Back</button>
           <button class="btn-next" id="s5-submit" onclick="submitBooking()">Reserve My Time Slot <span>&#8594;</span></button>
         </div>
-        <p style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500">
+        <p id="s5-charge-note" style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500">
           You won&rsquo;t be charged until the job is complete.
         </p>
-        <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.4rem;line-height:1.5">
+        <p id="s5-stripe-note" style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.4rem;line-height:1.5">
           Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
         </p>
       </div>
@@ -1711,7 +1719,25 @@ async function goToStep5Payment() {
   })();
 
   goToStep(5);
-  await initStripe();
+
+  // Detect quote-only flow: all items are custom quotes OR user checked the quote checkbox
+  var isQuoteFlow = (BOOK._grandTotalCents === 0) || BOOK.wantsQuote;
+  BOOK._isQuoteFlow = isQuoteFlow;
+
+  if (isQuoteFlow) {
+    document.getElementById('s5-banner').textContent = 'Almost done — one last step';
+    document.getElementById('s5-heading').textContent = 'Submit your quote request';
+    document.getElementById('s5-sub').innerHTML = 'No payment needed. We\'ll review your project and send you a <strong>custom quote within 1 business day</strong>.';
+    document.getElementById('s5-payment-section').style.display = 'none';
+    document.getElementById('s5-quote-section').style.display = 'block';
+    document.getElementById('s5-charge-note').style.display = 'none';
+    document.getElementById('s5-stripe-note').style.display = 'none';
+    document.getElementById('s5-confidence').innerHTML =
+      '<span>No payment today</span><span>Quote within 1 business day</span><span>You approve before anything is scheduled</span>';
+    document.getElementById('s5-submit').innerHTML = 'Submit Quote Request <span>&#8594;</span>';
+  } else {
+    await initStripe();
+  }
 }
 
 function toggleS5Edit(id) {
@@ -2006,7 +2032,8 @@ async function submitBooking() {
         date: BOOK.date, time: BOOK.time, details: BOOK.details,
         totalCents: totalCents, accountMode: BOOK.accountMode,
         discountPct: BOOK._discountPct || 0,
-        discountAmount: BOOK._discountAmount || 0
+        discountAmount: BOOK._discountAmount || 0,
+        isQuoteRequest: BOOK._isQuoteFlow || false
       })
     });
     data = await resp.json();
@@ -2040,13 +2067,23 @@ async function submitBooking() {
     catch(e) { console.error('booking-confirmed error:', e); }
   }
 
-  showConfirmation(data.ref);
+  showConfirmation(data.ref, BOOK._isQuoteFlow);
 }
 
-function showConfirmation(ref) {
+function showConfirmation(ref, isQuote) {
   if (window.gtag) gtag('event', 'conversion', { send_to: 'AW-16551666395/7KS0CIjz1aMcENvFudQ9', transaction_id: ref });
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
   document.getElementById('step-confirm').classList.remove('hidden');
+
+  // Adjust confirmation messaging for quote requests
+  if (isQuote) {
+    var h = document.querySelector('#step-confirm .confirm-heading');
+    var sub = document.querySelector('#step-confirm .confirm-subheading');
+    var cal = document.getElementById('confirm-calendar-link');
+    if (h) h.textContent = 'Quote request received!';
+    if (sub) sub.textContent = 'We\'ll review your project and send a custom quote to ' + (BOOK.email || 'your email') + ' within 1 business day. No payment has been taken.';
+    if (cal) cal.style.display = 'none';
+  }
 
   // Reference
   var refEl = document.getElementById('confirm-ref');
