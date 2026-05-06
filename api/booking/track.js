@@ -23,18 +23,37 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select(
-      'id, ref, status, service, date, time, customer_name, address, city, total_price, deposit_amount, payment_status, created_at, cancelled_at, completed_at, cancel_reason, cancellation_fee'
-    )
+    .select('*')
     .eq('ref', ref.toUpperCase().trim())
     .ilike('customer_email', email.trim())
     .single();
 
   if (error || !booking) {
     return res.status(404).json({
-      error: 'No booking found with that reference and email. Check your confirmation email.',
+      error: 'No booking found with that reference and email. Double-check your confirmation email.',
     });
   }
 
-  return res.status(200).json({ booking });
+  // Return only safe/public fields — never expose Stripe IDs, phone, raw payment data
+  const safe = {
+    id: booking.id,
+    ref: booking.ref,
+    status: booking.status,
+    service: booking.service,
+    date: booking.date,
+    time: booking.time,
+    customer_name: booking.customer_name,
+    address: booking.address,
+    city: booking.city || null,
+    total_price: booking.total_price || null,
+    deposit_amount: booking.deposit_amount || null,
+    payment_status: booking.payment_status || null,
+    created_at: booking.created_at,
+    cancelled_at: booking.cancelled_at || null,
+    completed_at: booking.completed_at || null,
+    cancel_reason: booking.cancel_reason || null,
+    cancellation_fee: booking.cancellation_fee || null,
+  };
+
+  return res.status(200).json({ booking: safe });
 }
