@@ -534,7 +534,7 @@
 
         <div class="account-options">
           <div class="account-option" id="opt-guest" onclick="selectAccountMode('guest')">
-            <div class="account-option-icon">&#128100;</div>
+            <div class="account-option-icon"></div>
             <div class="account-option-title">Continue as Guest</div>
             <div class="account-option-desc">No account needed. We'll email you a booking confirmation.</div>
           </div>
@@ -1441,7 +1441,7 @@ function updateOrderSummary() {
   if (bundle.pct > 0 && runningTotal > 0) {
     var saving = Math.round(runningTotal * bundle.pct / 100);
     html += '<div class="order-line" style="color:#0d9488;font-weight:600;margin-top:0.25rem">'
-      + '<span class="order-line-name">&#127881; Bundle ' + bundle.pct + '% off (' + bundle.count + ' items)</span>'
+      + '<span class="order-line-name">Bundle ' + bundle.pct + '% off (' + bundle.count + ' items)</span>'
       + '<span class="order-line-price" style="color:#0d9488">&minus;$' + saving + '</span></div>';
   }
 
@@ -1693,7 +1693,7 @@ async function goToStep5Payment() {
 
     var discountLineHtml = bundle.pct > 0 && discountAmount > 0
       ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0d9488;font-weight:600;margin-bottom:0.25rem">'
-        + '<span>&#127881; Bundle discount (' + bundle.pct + '% &mdash; ' + bundle.count + ' items)</span>'
+        + '<span>Bundle discount (' + bundle.pct + '% &mdash; ' + bundle.count + ' items)</span>'
         + '<span>&minus;$' + discountAmount.toFixed(2) + '</span></div>'
       : '';
     var taxLineHtml = discountedSubtotal > 0
@@ -2102,7 +2102,7 @@ function showConfirmation(ref, isQuote) {
 
   // Address
   var addrEl = document.getElementById('confirm-address');
-  if (addrEl && BOOK.address) addrEl.textContent = '📍 ' + BOOK.address;
+  if (addrEl && BOOK.address) addrEl.textContent = BOOK.address;
 
   // Confirmation email
   var emailEl = document.getElementById('confirm-email');

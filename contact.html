@@ -56,7 +56,7 @@
 .nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 .nav-hamburger.open span:nth-child(2){opacity:0}
 .nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.nav-mobile{display:none;position:fixed;top:68px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:199;flex-direction:column;gap:1rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.nav-mobile{display:none;position:fixed;top:56px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:199;flex-direction:column;gap:1rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
 .nav-mobile.open{display:flex}
 .nav-mobile a{font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
 .nav-mobile a:last-child{border-bottom:none}
@@ -168,7 +168,7 @@
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly and handyman services in Austin, Texas. Quality work, done right.</p>
       <div class="footer-contact">
-        <a href="mailto:service@assembleatease.com">&#9993;&nbsp; service@assembleatease.com</a>
+        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
       </div>
     </div>
     <div>
@@ -232,7 +232,7 @@
         <button class="modal-close" aria-label="Close booking form" onclick="AAE.closeBooking()">&times;</button>
       </div>
       <div class="cart-summary">
-        <div class="cart-summary-title">&#128722; Your Selected Services</div>
+        <div class="cart-summary-title">Your Selected Services</div>
         <div id="modal-cart-items"></div>
         <div class="cart-total" id="modal-cart-total"></div>
         <button class="add-more-btn" onclick="AAE.closeBooking();window.scrollTo({top:0,behavior:'smooth'})">+ Add more services</button>
@@ -264,7 +264,7 @@
       <div class="cart-estimate" id="cart-estimate"></div>
       <div class="form-err" id="form-err"></div>
       <button class="btn btn-cyan btn-full btn-lg" id="submit-btn" onclick="AAE.submitBooking()">Send Booking Request &rarr;</button>
-      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">&#128274; Your info is private. We respond within 1 hour. Card authorized at booking &mdash; charged only after the job is done.</p>
+      <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-top:0.75rem">Your info is private. We respond within 1 hour. Card authorized at booking &mdash; charged only after the job is done.</p>
     </div>
     <div id="card-step" style="display:none">
       <div class="modal-header">
@@ -277,7 +277,7 @@
         <div id="stripe-card-element"></div>
         <div id="card-errors" role="alert"></div>
       </div>
-      <button class="btn btn-cyan btn-full btn-lg" id="card-submit-btn" onclick="AAE.confirmCard()">&#128274; Authorize Card &rarr;</button>
+      <button class="btn btn-cyan btn-full btn-lg" id="card-submit-btn" onclick="AAE.confirmCard()">Authorize Card &rarr;</button>
       <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secured by <strong>Stripe</strong>. Your card is authorized now &mdash; <strong>no charge until the job is complete.</strong></p>
       <button onclick="AAE.backToForm()" style="display:block;margin:0.75rem auto 0;background:none;border:none;font-size:0.82rem;color:var(--muted);cursor:pointer;text-decoration:underline">&larr; Go back and edit</button>
     </div>
@@ -601,7 +601,7 @@ AAE.confirmCard = async function() {
   if (!stripe || !AAE._cardElement || !AAE._clientSecret) {
     errEl.textContent = 'Payment setup error. Please refresh and try again.';
     errEl.style.display = 'block';
-    btn.disabled = false; btn.innerHTML = '&#128274; Authorize Card \u2192';
+    btn.disabled = false; btn.innerHTML = 'Authorize Card \u2192';
     return;
   }
 
@@ -616,7 +616,7 @@ AAE.confirmCard = async function() {
   if (result.error) {
     errEl.textContent = result.error.message;
     errEl.style.display = 'block';
-    btn.disabled = false; btn.innerHTML = '&#128274; Authorize Card \u2192';
+    btn.disabled = false; btn.innerHTML = 'Authorize Card \u2192';
     return;
   }
 
