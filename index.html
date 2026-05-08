@@ -162,21 +162,41 @@ section#service-area{display:none}
 .svc-section{background:#fff}
 
 /* Heading */
-.m-hero{padding:28px 1.25rem 16px}
-.m-hero-title{font-family:var(--font-display);font-size:clamp(2rem,8vw,2.6rem);color:var(--ink);line-height:1.08;font-weight:400;margin-bottom:8px}
-.m-hero-sub{font-size:0.85rem;color:var(--muted);font-weight:500}
+.m-hero{padding:28px 1.25rem 18px}
+.m-hero-title{font-family:var(--font-display);font-size:clamp(2.1rem,9vw,2.7rem);color:var(--ink);line-height:1.06;font-weight:400;margin-bottom:10px}
+.m-hero-sub{font-size:0.84rem;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.m-hero-sub svg{width:14px;height:14px;stroke:var(--cyan-dark);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 
 /* Service list */
 .svc-list{padding:0 1.25rem 0.5rem}
-.svc-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;-webkit-tap-highlight-color:transparent;transition:background 0.1s}
+.svc-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .svc-item:last-child{border-bottom:none}
-.svc-item:active{background:rgba(0,151,167,0.04);margin:0 -1.25rem;padding-left:1.25rem;padding-right:1.25rem}
-.svc-item-thumb{width:60px;height:60px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(0,151,167,0.08)}
-.svc-item-thumb svg{width:26px;height:26px;stroke:var(--cyan-dark);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.svc-item:active{opacity:0.7}
+.svc-item--featured{padding:16px 0}
+
+/* Thumbnails — unique color per service */
+.svc-item-thumb{width:58px;height:58px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.svc-item-thumb svg{width:25px;height:25px;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.svc-t-assembly{background:rgba(0,151,167,0.1)}
+.svc-t-assembly svg{stroke:#0097a7}
+.svc-t-mounting{background:rgba(0,96,112,0.12)}
+.svc-t-mounting svg{stroke:#006070}
+.svc-t-repairs{background:rgba(245,158,11,0.1)}
+.svc-t-repairs svg{stroke:#d97706}
+.svc-t-smarthome{background:rgba(59,130,246,0.1)}
+.svc-t-smarthome svg{stroke:#3b82f6}
+.svc-t-junk{background:rgba(100,116,139,0.1)}
+.svc-t-junk svg{stroke:#475569}
+.svc-t-moving{background:rgba(16,185,129,0.1)}
+.svc-t-moving svg{stroke:#059669}
+
+/* Body */
 .svc-item-body{flex:1;min-width:0}
-.svc-item-name{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:3px}
-.svc-item-price{font-size:0.82rem;color:var(--cyan-dark);font-weight:500}
-.svc-item-chevron{width:18px;height:18px;flex-shrink:0;stroke:#cbd5e1}
+.svc-item-name-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap}
+.svc-item-name{font-size:0.95rem;font-weight:700;color:var(--ink)}
+.svc-chip{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:2px 7px;border-radius:999px;white-space:nowrap;background:rgba(0,151,167,0.1);color:var(--cyan-dark)}
+.svc-price-badge{display:inline-flex;align-items:center;font-size:0.8rem;font-weight:700;color:var(--cyan-dark);background:rgba(0,151,167,0.07);padding:2px 10px;border-radius:999px}
+.svc-item-chevron{width:18px;height:18px;flex-shrink:0;stroke:#d1d5db;fill:none}
 
 /* ─────────────────────────────────────────────────────
    MOBILE/TABLET TRUST STRIP (<1024px only)
@@ -472,79 +492,88 @@ section#service-area{display:none}
 ═══════════════════════════════════════════════ -->
 <section class="svc-section" id="services">
 
-  <!-- Bold heading -->
+  <!-- Heading — AssembleAtEase voice -->
   <div class="m-hero">
-    <h1 class="m-hero-title">Book trusted<br>home services</h1>
-    <p class="m-hero-sub">Same-day available &middot; Pay after the job</p>
+    <h1 class="m-hero-title">What needs<br>doing?</h1>
+    <p class="m-hero-sub">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Pay nothing until the job is done
+    </p>
   </div>
 
-  <!-- Service list (Taskrabbit-style) -->
+  <!-- Service list -->
   <div class="svc-list">
 
-    <a href="/book?service=Furniture+Assembly" class="svc-item">
-      <div class="svc-item-thumb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+    <a href="/book?service=Furniture+Assembly" class="svc-item svc-item--featured">
+      <div class="svc-item-thumb svc-t-assembly">
+        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
       </div>
       <div class="svc-item-body">
-        <div class="svc-item-name">Furniture Assembly</div>
-        <div class="svc-item-price">From $69</div>
+        <div class="svc-item-name-row">
+          <span class="svc-item-name">Furniture Assembly</span>
+          <span class="svc-chip">Most booked</span>
+        </div>
+        <span class="svc-price-badge">$69+</span>
       </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
-    <a href="/book?service=TV+Mounting" class="svc-item">
-      <div class="svc-item-thumb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+    <a href="/book?service=TV+Mounting" class="svc-item svc-item--featured">
+      <div class="svc-item-thumb svc-t-mounting">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
       </div>
       <div class="svc-item-body">
-        <div class="svc-item-name">TV Mounting</div>
-        <div class="svc-item-price">From $69</div>
+        <div class="svc-item-name-row">
+          <span class="svc-item-name">TV Mounting</span>
+          <span class="svc-chip">Same-day</span>
+        </div>
+        <span class="svc-price-badge">$69+</span>
       </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Home+Repairs" class="svc-item">
-      <div class="svc-item-thumb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      <div class="svc-item-thumb svc-t-repairs">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name">Home Repairs</div>
-        <div class="svc-item-price">From $75</div>
+        <span class="svc-price-badge">$75+</span>
       </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Smart+Home" class="svc-item">
-      <div class="svc-item-thumb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <div class="svc-item-thumb svc-t-smarthome">
+        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name">Smart Home Setup</div>
-        <div class="svc-item-price">From $69</div>
+        <span class="svc-price-badge">$69+</span>
       </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Junk+Removal" class="svc-item">
-      <div class="svc-item-thumb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      <div class="svc-item-thumb svc-t-junk">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name">Junk Removal</div>
-        <div class="svc-item-price">From $75</div>
+        <span class="svc-price-badge">$75+</span>
       </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Moving+Help" class="svc-item">
-      <div class="svc-item-thumb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
+      <div class="svc-item-thumb svc-t-moving">
+        <svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name">Moving Help</div>
-        <div class="svc-item-price">From $75</div>
+        <span class="svc-price-badge">$75+</span>
       </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
   </div>
