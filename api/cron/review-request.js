@@ -34,11 +34,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ sent: 0, message: 'No bookings need review requests' });
   }
 
-  const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
   let sent = 0;
 
   for (const b of bookings) {
     try {
+      const reviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}`;
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -47,9 +47,10 @@ export default async function handler(req, res) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience, ${esc(b.customer_name)}?</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">We hope you loved your <strong>${esc(b.service)}</strong> service! Your feedback helps us keep improving and helps other customers find us.</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="background:#1d9e75;border-radius:8px;padding:0"><a href="${esc(reviewUrl)}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">Leave a Google Review &#11088;</a></td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">It only takes a minute and means the world to us. Thank you for choosing AssembleAtEase!</p>
+    <p style="margin:0 0 8px;font-size:14px;color:#52525b;line-height:1.6">We hope you loved your <strong>${esc(b.service)}</strong> service! It only takes a minute and means the world to a small local business like ours.</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.6">Click below — your booking is already filled in, just pick your stars and write a few words.</p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="background:#0097a7;border-radius:8px;padding:0"><a href="${reviewUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">Leave Your Review &#11088;</a></td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Thank you for choosing AssembleAtEase!</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     Ref: ${esc(b.ref)} &bull; AssembleAtEase &bull; Austin, TX

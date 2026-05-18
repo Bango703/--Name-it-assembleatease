@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
+<meta charset="UTF-8"/>
+<title>Leave a Review &mdash; AssembleAtEase</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex"/>
+<link rel="stylesheet" href="/assets/css/marketing.css"/>
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
+<link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
+<style>
+.page-hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#00838f 100%);padding:3.5rem 2rem;text-align:center}
+.page-hero-inner{max-width:520px;margin:0 auto}
+.page-title{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.4rem);color:#fff;margin-bottom:0.5rem}
+.page-desc{font-size:0.95rem;color:rgba(255,255,255,0.75);line-height:1.7}
+.review-wrap{max-width:520px;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+.review-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem;box-shadow:var(--shadow)}
+.stars{display:flex;gap:8px;margin:0.5rem 0 1.5rem;justify-content:center}
+.stars button{background:none;border:none;cursor:pointer;padding:4px;font-size:2.4rem;color:#d1d5db;transition:color 0.12s;line-height:1}
+.stars button.active,.stars button.hover{color:#f59e0b}
+.form-group{margin-bottom:1.25rem}
+.form-group label{display:block;font-size:0.82rem;font-weight:600;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+.form-control{width:100%;padding:0.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius-md);font-family:var(--font-body);font-size:0.9375rem;color:var(--ink);background:#fff;transition:border-color 0.15s;outline:none}
+.form-control:focus{border-color:var(--cyan)}
+textarea.form-control{resize:vertical;min-height:130px}
+.rating-label{text-align:center;font-size:0.9rem;color:var(--muted);margin-bottom:0.25rem;min-height:1.4em}
+.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:var(--radius-md);padding:0.75rem 1rem;font-size:0.875rem;margin-bottom:1rem;display:none}
+.success-wrap{text-align:center;padding:2rem 0}
+.success-icon{font-size:3rem;margin-bottom:1rem}
+.success-title{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);margin-bottom:0.5rem}
+.success-desc{font-size:0.9rem;color:var(--muted);line-height:1.7;margin-bottom:1.5rem}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-inner">
+  <a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase"/></picture><div class="nav-logo-text">Assemble<span>AtEase</span></div></a>
+  <a href="/book" class="btn btn-cyan" style="font-size:0.875rem">Book Now</a>
+</div></nav>
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <h1 class="page-title">How did we do?</h1>
+    <p class="page-desc">Your feedback means everything to us and helps other Austin homeowners find quality help.</p>
+  </div>
+</section>
+
+<div class="review-wrap">
+  <div class="review-card">
+
+    <!-- Success state -->
+    <div id="success-state" style="display:none">
+      <div class="success-wrap">
+        <div class="success-icon">&#11088;</div>
+        <div class="success-title">Thank you!</div>
+        <p class="success-desc">Your review has been posted. We really appreciate you taking the time — it helps more Austin homeowners find reliable help.</p>
+        <a href="/" class="btn btn-cyan">Back to Home</a>
+      </div>
+    </div>
+
+    <!-- Form state -->
+    <div id="form-state">
+      <p style="text-align:center;font-size:0.9rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6">Rate your recent AssembleAtEase service</p>
+
+      <div class="rating-label" id="rating-label">Tap a star to rate</div>
+      <div class="stars" id="star-row">
+        <button type="button" data-val="1" aria-label="1 star">&#9733;</button>
+        <button type="button" data-val="2" aria-label="2 stars">&#9733;</button>
+        <button type="button" data-val="3" aria-label="3 stars">&#9733;</button>
+        <button type="button" data-val="4" aria-label="4 stars">&#9733;</button>
+        <button type="button" data-val="5" aria-label="5 stars">&#9733;</button>
+      </div>
+
+      <div class="form-group">
+        <label for="r-body">Your review</label>
+        <textarea id="r-body" class="form-control" placeholder="Tell us what we did well or how we can improve…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="r-email">Your email <span style="font-weight:400;color:var(--muted)">(to verify your booking)</span></label>
+        <input type="email" id="r-email" class="form-control" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+
+      <div class="form-group">
+        <label for="r-ref">Booking reference</label>
+        <input type="text" id="r-ref" class="form-control" placeholder="e.g. AAE-K9XABCD" autocomplete="off" oninput="this.value=this.value.toUpperCase()"/>
+      </div>
+
+      <div class="err" id="r-err"></div>
+
+      <button id="r-submit" class="btn btn-cyan" style="width:100%;padding:1rem;font-size:1rem" onclick="submitReview()">Submit Review</button>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner" style="max-width:900px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;padding:1.5rem 2rem">
+    <div style="font-size:0.82rem;color:rgba(255,255,255,0.35)">&copy; <span id="year"></span> AssembleAtEase. Austin, TX.</div>
+    <div style="display:flex;gap:1.5rem"><a href="/privacy" style="font-size:0.82rem;color:rgba(255,255,255,0.35);text-decoration:none">Privacy</a><a href="/terms" style="font-size:0.82rem;color:rgba(255,255,255,0.35);text-decoration:none">Terms</a></div>
+  </div>
+</footer>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+var selectedRating = 0;
+var labels = ['','Terrible','Poor','Okay','Good','Excellent'];
+var stars = document.querySelectorAll('.stars button');
+
+stars.forEach(function(btn) {
+  btn.addEventListener('mouseenter', function() { highlight(+this.dataset.val); });
+  btn.addEventListener('mouseleave', function() { highlight(selectedRating); });
+  btn.addEventListener('click', function() {
+    selectedRating = +this.dataset.val;
+    highlight(selectedRating);
+    document.getElementById('rating-label').textContent = labels[selectedRating] + ' — ' + selectedRating + ' star' + (selectedRating !== 1 ? 's' : '');
+  });
+});
+
+function highlight(n) {
+  stars.forEach(function(b) {
+    b.classList.toggle('active', +b.dataset.val <= n);
+  });
+}
+
+// Pre-fill from URL params
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  if (p.get('ref'))   document.getElementById('r-ref').value   = p.get('ref').toUpperCase();
+  if (p.get('email')) document.getElementById('r-email').value = p.get('email');
+})();
+
+async function submitReview() {
+  var errEl  = document.getElementById('r-err');
+  var btn    = document.getElementById('r-submit');
+  errEl.style.display = 'none';
+
+  var email  = document.getElementById('r-email').value.trim();
+  var ref    = document.getElementById('r-ref').value.trim();
+  var body   = document.getElementById('r-body').value.trim();
+
+  if (!selectedRating) { showErr('Please select a star rating.'); return; }
+  if (!body)           { showErr('Please write a short review.'); return; }
+  if (!email)          { showErr('Please enter your email.'); return; }
+  if (!ref)            { showErr('Please enter your booking reference.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    var resp = await fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: ref, email: email, rating: selectedRating, body: body })
+    });
+    var data = await resp.json();
+    if (!resp.ok) { showErr(data.error || 'Something went wrong. Please try again.'); btn.disabled=false; btn.textContent='Submit Review'; return; }
+    document.getElementById('form-state').style.display = 'none';
+    document.getElementById('success-state').style.display = 'block';
+  } catch(e) {
+    showErr('Something went wrong. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Review';
+  }
+}
+
+function showErr(msg) {
+  var el = document.getElementById('r-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>

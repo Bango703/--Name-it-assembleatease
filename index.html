@@ -724,6 +724,48 @@ section#service-area{display:none}
   </div>
 </section>
 
+<!-- CUSTOMER REVIEWS -->
+<section class="section section-alt" id="reviews">
+  <div class="section-inner" style="max-width:900px">
+    <div class="section-header">
+      <div class="section-label">What customers say</div>
+      <h2 class="section-title">Real Reviews</h2>
+      <p class="section-desc">From Austin homeowners who booked with us.</p>
+    </div>
+    <div id="reviews-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem">
+      <div style="text-align:center;color:var(--muted);font-size:0.9rem;grid-column:1/-1;padding:2rem 0">Loading reviews…</div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  fetch('/api/review').then(function(r){return r.json();}).then(function(d){
+    var grid = document.getElementById('reviews-grid');
+    if(!d.reviews||!d.reviews.length){
+      grid.innerHTML='<p style="text-align:center;color:var(--muted);font-size:0.9rem;grid-column:1/-1;padding:2rem 0">Be the first to leave a review!</p>';
+      return;
+    }
+    grid.innerHTML = d.reviews.map(function(r){
+      var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating?'#f59e0b':'#d1d5db')+'">&#9733;</span>';
+      var name=(r.customer_name||'').split(' ');
+      var display=name[0]+(name[1]?' '+name[1][0]+'.':'');
+      var date=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
+      var esc=function(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+      return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:0.6rem">'
+        +'<div style="font-size:1.1rem">'+stars+'</div>'
+        +'<p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.7;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
+        +'<div style="margin-top:auto;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+        +'<span style="font-size:0.8rem;font-weight:600;color:var(--ink)">'+esc(display)+'</span>'
+        +'<span style="font-size:0.75rem;color:var(--muted)">'+esc(r.service||'')+(date?' &bull; '+date:'')+'</span>'
+        +'</div></div>';
+    }).join('');
+  }).catch(function(){
+    document.getElementById('reviews-grid').innerHTML='';
+  });
+})();
+</script>
+
 <!-- DESKTOP: SERVICE AREA (shown ≥1024px) -->
 <section class="section section-alt" id="service-area">
   <div class="section-inner">
