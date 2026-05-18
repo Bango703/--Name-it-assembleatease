@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   const result = await sendEmail({
     to: b.customer_email,
     from: 'AssembleAtEase <booking@assembleatease.com>',
-    subject: `How was your ${esc(b.service)} service? Leave a quick review`,
+    subject: 'How did your Easer do? Leave a quick review',
     html,
     replyTo: ownerEmail(),
   });
