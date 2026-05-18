@@ -12,7 +12,11 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+  try {
+    if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+  } catch (rlErr) {
+    console.error('Rate limit error (Redis unavailable):', rlErr);
+  }
 
   const { bookingId } = req.body;
   if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });

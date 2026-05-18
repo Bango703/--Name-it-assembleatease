@@ -747,7 +747,7 @@
           </div>
 
           <div class="confirm-actions">
-            <a href="/customer/" id="confirm-portal-link" class="btn-next" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;width:100%;max-width:360px;font-size:1rem;font-weight:600;padding:1rem 1.5rem;background:#0097a7;color:#fff;border-radius:999px">Track Your Booking &rarr;</a>
+            <a href="/track" id="confirm-portal-link" class="btn-next" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;width:100%;max-width:360px;font-size:1rem;font-weight:600;padding:1rem 1.5rem;background:#0097a7;color:#fff;border-radius:999px">Track Your Booking &rarr;</a>
             <a id="confirm-calendar-link" href="#" target="_blank" rel="noopener" style="font-size:0.82rem;color:var(--teal);display:none">+ Add to Google Calendar</a>
             <a href="/" style="color:var(--muted);font-size:0.82rem">Back to home</a>
           </div>
@@ -2081,7 +2081,7 @@ function showConfirmation(ref, isQuote) {
     var sub = document.querySelector('#step-confirm .confirm-subheading');
     var cal = document.getElementById('confirm-calendar-link');
     if (h) h.textContent = 'Quote request received!';
-    if (sub) sub.textContent = 'We\'ll review your project and send a custom quote to ' + (BOOK.email || 'your email') + ' within 1 business day. No payment has been taken.';
+    if (sub) sub.textContent = 'We\'ll review your project and send a custom quote to ' + (BOOK.email || 'your email') + ' in as little as 1 hour. No payment has been taken.';
     if (cal) cal.style.display = 'none';
   }
 
@@ -2129,7 +2129,10 @@ function showConfirmation(ref, isQuote) {
   }
 
   setProgress(TOTAL_STEPS+1);
-  document.getElementById('confirm-portal-link').href = '/customer/';
+  var trackUrl = '/track';
+  if (ref && BOOK.email) trackUrl += '?ref=' + encodeURIComponent(ref) + '&email=' + encodeURIComponent(BOOK.email);
+  else if (ref) trackUrl += '?ref=' + encodeURIComponent(ref);
+  document.getElementById('confirm-portal-link').href = trackUrl;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>

@@ -518,11 +518,19 @@ function isWithin24hrs(dateStr, timeStr) {
   } catch { return false; }
 }
 
-// Pre-fill ref from URL if provided: /track?ref=AAE-2025-XXXXX
+// Pre-fill and auto-submit from URL params: /track?ref=AAE-XXX&email=you@example.com
 (function() {
   const params = new URLSearchParams(window.location.search);
-  const ref = params.get('ref');
-  if (ref) document.getElementById('t-ref').value = ref;
+  const ref   = params.get('ref');
+  const email = params.get('email');
+  if (ref)   document.getElementById('t-ref').value   = ref.toUpperCase();
+  if (email) document.getElementById('t-email').value = email;
+  if (ref && email) {
+    // Auto-submit once DOM is ready
+    setTimeout(function() {
+      document.getElementById('trackForm').dispatchEvent(new Event('submit', { cancelable: true }));
+    }, 300);
+  }
 })();
 </script>
 
