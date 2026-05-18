@@ -305,6 +305,62 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
   }
 
   console.log(`Auto-blog published: ${filePath}`);
+
+  // ── 5. Update blog/index.html — prepend new card ────────────────
+  try {
+    // Fetch current index
+    const idxRes = await fetch(
+      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog/index.html`,
+      { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github+json' } }
+    );
+    if (idxRes.ok) {
+      const idxData  = await idxRes.json();
+      const idxHtml  = Buffer.from(idxData.content, 'base64').toString('utf8');
+      const idxSha   = idxData.sha;
+
+      // Derive tag from topic keywords
+      const tLower = topic.toLowerCase();
+      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV Mounting'
+        : tLower.includes('junk') || tLower.includes('removal') || tLower.includes('cleanout') ? 'Junk Removal'
+        : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart Home'
+        : tLower.includes('repair') || tLower.includes('handyman') || tLower.includes('fix') || tLower.includes('install') ? 'Home Repairs'
+        : 'Furniture';
+
+      const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const excerpt = articleHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '…';
+      const newCard = `\n    <a href="/blog/${slug}" class="blog-card">
+      <div class="blog-meta"><span class="blog-tag">${tag}</span> ${displayDate} &bull; ${readTime} min read</div>
+      <div class="blog-card-title">${title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="blog-card-excerpt">${excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="blog-read-more">Read more &rarr;</div>
+    </a>\n`;
+
+      // Insert after the opening <div class="blog-grid">
+      const updatedIdx = idxHtml.replace(/(<div class="blog-grid">)/, '$1' + newCard);
+
+      await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog/index.html`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${githubToken}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: `Auto-blog index: add ${slug}`,
+            content: Buffer.from(updatedIdx).toString('base64'),
+            sha: idxSha,
+            branch: 'main',
+          }),
+        }
+      );
+      console.log(`Auto-blog index updated with: ${slug}`);
+    }
+  } catch (idxErr) {
+    console.error('Blog index update error (non-fatal):', idxErr);
+  }
+
   return res.status(200).json({ success: true, slug, title, url: canonicalUrl });
 }
 
