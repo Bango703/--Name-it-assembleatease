@@ -11,7 +11,11 @@ export default async function handler(req, res) {
   } catch (rlErr) {
     console.error('Rate limit error (Redis unavailable):', rlErr);
   }
-  const { service, name, phone, email, address, date, time, details, source, isQuoteRequest } = req.body;
+  // Frontend sends `services` (array) from the multi-step book.html form;
+  // owner dashboard sends `service` (string). Normalize both to a string.
+  const rawService = req.body.service || req.body.services;
+  const service = Array.isArray(rawService) ? rawService.join(', ') : (rawService || '');
+  const { name, phone, email, address, date, time, details, source, isQuoteRequest, totalCents } = req.body;
   const isManual = source === 'manual' && verifyOwner(req);
   const isQuote  = !!isQuoteRequest && !isManual;
 
@@ -228,6 +232,7 @@ export default async function handler(req, res) {
           date,
           time,
           details: details || null,
+          total_price: totalCents || 0,
         })
         .select('id')
         .single();
