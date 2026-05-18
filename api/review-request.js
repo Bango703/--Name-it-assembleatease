@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience, ${esc(b.customer_name)}?</p>
+    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience?</p>
     <p style="margin:0 0 8px;font-size:15px;color:#52525b;line-height:1.7">We hope you loved your <strong>${esc(b.service)}</strong> service!</p>
     <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your booking is already filled in — just click below, pick your stars, and write a couple words. Takes less than a minute.</p>
     <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px"><tr><td style="background:#0097a7;border-radius:8px"><a href="${reviewUrl}" style="display:inline-block;padding:16px 40px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px">Leave Your Review &#11088;</a></td></tr></table>

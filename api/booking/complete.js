@@ -153,7 +153,7 @@ export default async function handler(req, res) {
       status: 'COMPLETED',
       statusColor: '#065f46',
       statusBg: '#d1fae5',
-      headline: `Your job is complete, ${esc(booking.customer_name)}.`,
+      headline: `Your job is complete!`,
       bodyHtml: `
         <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service has been completed. Thank you for choosing AssembleAtEase!</p>
         ${receiptBlock}
