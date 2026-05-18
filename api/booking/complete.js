@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     }
   }
   try {
-    const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
+    const reviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(booking.ref)}&email=${encodeURIComponent(booking.customer_email)}`;
     const amountDisplay = finalAmountCharged > 0 ? `$${(finalAmountCharged / 100).toFixed(2)}` : null;
     const receiptBlock = amountDisplay ? `
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
@@ -159,8 +159,8 @@ export default async function handler(req, res) {
         ${receiptBlock}
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
           <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
-          <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick Google review helps other Austin homeowners find trusted help — it takes 30 seconds.</p>
-          <a href="${esc(reviewUrl)}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#9733;</a>
+          <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick review helps other Austin homeowners find trusted help — it takes 30 seconds and your booking is pre-filled.</p>
+          <a href="${reviewUrl}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#11088;</a>
         </td></tr></table>
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#0097a7;font-weight:600">book your next service</a> anytime.</p>`,
     });

@@ -778,10 +778,17 @@
       btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">&#10003; Mark Complete</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
-    if (b.status === 'completed' && b.payment_status === 'captured') {
-      btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
-      if (b.assembler_id && b.payout_status !== 'paid') {
-        btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">&#36; Record Payout</button>');
+    if (b.status === 'completed') {
+      if (!b.review_requested_at) {
+        btns.push('<button class="btn btn-teal" data-action="review-request" data-id="' + b.id + '">&#11088; Send Review Request</button>');
+      } else {
+        btns.push('<button class="btn" disabled style="opacity:0.5;cursor:not-allowed;font-size:0.78rem">&#11088; Review Sent</button>');
+      }
+      if (b.payment_status === 'captured') {
+        btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
+        if (b.assembler_id && b.payout_status !== 'paid') {
+          btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">&#36; Record Payout</button>');
+        }
       }
     }
     if (b.status === 'cancelled' || b.status === 'declined') {
@@ -803,7 +810,20 @@
     var action = btn.dataset.action;
     var id = btn.dataset.id;
 
-    if (action === 'confirm') {
+    if (action === 'review-request') {
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      fetch('/api/review-request', { method:'POST', headers: headers(), body: JSON.stringify({ bookingId: id }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.error) { toast(d.error, 'error'); btn.disabled=false; btn.textContent='⭐ Send Review Request'; return; }
+          toast('Review request sent ✓', 'success');
+          // Update local booking so button changes to "Review Sent"
+          var bk = allBookings.find(function(x){ return x.id == id; });
+          if (bk) { bk.review_requested_at = new Date().toISOString(); renderActions(bk); }
+        })
+        .catch(function(){ toast('Failed to send — check your connection', 'error'); btn.disabled=false; btn.textContent='⭐ Send Review Request'; });
+    } else if (action === 'confirm') {
       doAction('/confirm', { bookingId: id }, 'Booking confirmed ✓');
     } else if (action === 'complete') {
       doAction('/complete', { bookingId: id }, 'Marked as complete ✓');
