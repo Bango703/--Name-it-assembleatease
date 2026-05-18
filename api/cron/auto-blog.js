@@ -481,7 +481,7 @@ ${body}
     <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;font-weight:700">Austin TX &bull; Same-Day Available</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;margin-bottom:0.85rem;line-height:1.2">Ready to book a pro in Austin?</h2>
     <p style="font-size:0.95rem;color:rgba(255,255,255,0.8);margin-bottom:1.75rem;line-height:1.7">Flat-rate pricing. Vetted professionals. No charge until the job is done.</p>
-    <a href="/book" class="btn btn-cyan btn-lg" style="color:#fff;background:#fff;color:#0097a7;font-weight:700">Book a Service &rarr;</a>
+    <a href="/book" class="btn btn-cyan btn-lg" style="color:#fff;font-weight:700">Book a Service &rarr;</a>
   </div>
 </section>
 
