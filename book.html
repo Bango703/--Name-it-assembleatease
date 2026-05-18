@@ -691,7 +691,7 @@
         <!-- Quote request note (custom quote bookings) -->
         <div id="s5-quote-section" style="display:none">
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:1rem 1.25rem;font-size:0.875rem;color:#166534;line-height:1.6">
-            <strong>No payment required.</strong> We'll review your project details and contact you within 1 business day with a custom quote. Only once you approve the quote do we schedule and charge anything.
+            <strong>No payment required.</strong> We'll review your project details and send you a custom quote in as little as 1 hour. Only once you approve the quote do we schedule and charge anything.
           </div>
         </div>
 
@@ -1727,13 +1727,13 @@ async function goToStep5Payment() {
   if (isQuoteFlow) {
     document.getElementById('s5-banner').textContent = 'Almost done — one last step';
     document.getElementById('s5-heading').textContent = 'Submit your quote request';
-    document.getElementById('s5-sub').innerHTML = 'No payment needed. We\'ll review your project and send you a <strong>custom quote within 1 business day</strong>.';
+    document.getElementById('s5-sub').innerHTML = 'No payment needed. We\'ll review your project and send you a <strong>custom quote in as little as 1 hour</strong>.';
     document.getElementById('s5-payment-section').style.display = 'none';
     document.getElementById('s5-quote-section').style.display = 'block';
     document.getElementById('s5-charge-note').style.display = 'none';
     document.getElementById('s5-stripe-note').style.display = 'none';
     document.getElementById('s5-confidence').innerHTML =
-      '<span>No payment today</span><span>Quote within 1 business day</span><span>You approve before anything is scheduled</span>';
+      '<span>No payment today</span><span>Quote in as little as 1 hour</span><span>You approve before anything is scheduled</span>';
     document.getElementById('s5-submit').innerHTML = 'Submit Quote Request <span>&#8594;</span>';
   } else {
     await initStripe();
@@ -2003,7 +2003,7 @@ async function submitBooking() {
   var errEl     = document.getElementById('s5-err');
   errEl.classList.remove('show'); errEl.textContent = '';
 
-  if (!BOOK._stripe || !BOOK._cardEl) {
+  if (!BOOK._isQuoteFlow && (!BOOK._stripe || !BOOK._cardEl)) {
     errEl.textContent = 'Payment form not ready. Please refresh and try again.';
     errEl.classList.add('show'); return;
   }

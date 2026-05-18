@@ -1,12 +1,19 @@
 import { upsertContact, createDeal } from '../_hubspot.js';
 import { rateLimit } from '../_ratelimit.js';
 import { getSupabase } from '../_supabase.js';
+import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc as escEmail } from '../_email.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
-  const { service, name, phone, email, address, date, time, details } = req.body;
+  try {
+    if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+  } catch (rlErr) {
+    console.error('Rate limit error (Redis unavailable):', rlErr);
+  }
+  const { service, name, phone, email, address, date, time, details, source, isQuoteRequest } = req.body;
+  const isManual = source === 'manual' && verifyOwner(req);
+  const isQuote  = !!isQuoteRequest && !isManual;
 
   if (!service || !name || !phone || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !address || !date || !time) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -81,30 +88,39 @@ export default async function handler(req, res) {
 
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">We received your booking,&nbsp;${sName}.</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for choosing AssembleAtEase. A member of our team will email you within <strong>1 hour</strong> to confirm your appointment.</p>
+    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">${isQuote ? 'We received your quote request,&nbsp;' : 'We received your booking,&nbsp;'}${sName}.</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">${isQuote
+      ? 'Thank you for choosing AssembleAtEase. We\'ll review your project and send you a <strong>custom quote in as little as 1 hour</strong>.'
+      : 'Thank you for choosing AssembleAtEase. A member of our team will email you within <strong>1 hour</strong> to confirm your appointment.'
+    }</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
-        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">PENDING CONFIRMATION</span></td></tr>
+        <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">${isQuote ? 'Quote Reference' : 'Booking Reference'}</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
+        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${isQuote ? 'QUOTE REQUESTED' : 'PENDING CONFIRMATION'}</span></td></tr>
       </table>
     </td></tr></table>
 
-    <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Appointment Details</p>
+    <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">${isQuote ? 'Project Details' : 'Appointment Details'}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px">
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Services</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${sService}</td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sDate}</td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sTime}</td></tr>
+      ${!isQuote ? `<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sDate}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sTime}</td></tr>` : ''}
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">${sAddress}</td></tr>
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Notes</td><td style="padding:10px 0;line-height:1.6">${sDetails || 'None'}</td></tr>
     </table>
 
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What Happens Next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
+      ${isQuote ? `
+      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We review your project</strong> — Our team assesses the scope and prepares a custom quote.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">You receive a quote in as little as 1 hour</strong> — We'll email you a detailed, no-obligation quote.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">You approve, then we schedule</strong> — Nothing is charged or booked until you give the go-ahead.</td></tr>
+      ` : `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll email you within 1 hour to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a licensed, insured professional will arrive with all tools needed.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Pay after completion</strong> — No upfront payment. You pay only when you're 100% satisfied with the work.</td></tr>
+      `}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
@@ -126,6 +142,11 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`;
 
+  if (!KEY) {
+    console.error('RESEND_API_KEY is not set');
+    return res.status(500).json({ error: 'Email service not configured' });
+  }
+
   try {
     const ownerResp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -133,7 +154,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         to: [TO],
-        subject: 'New Booking - ' + service + ' from ' + name,
+        subject: (isManual ? '[Manual] ' : '') + 'New Booking - ' + service + ' from ' + name,
         html: ownerHtml,
         reply_to: email,
       }),
@@ -143,14 +164,45 @@ export default async function handler(req, res) {
       console.error('Resend owner error:', err);
       return res.status(500).json({ error: 'Failed to send notification' });
     }
+
+    // Manual (owner-created) bookings → send full confirmed email immediately
+    // Customer-submitted bookings → send pending acknowledgement
+    let customerEmailHtml, customerSubject;
+    if (isManual) {
+      customerEmailHtml = buildStatusEmail({
+        customerName: name,
+        ref,
+        status: 'CONFIRMED',
+        statusColor: '#065f46',
+        statusBg: '#d1fae5',
+        headline: `Your booking is confirmed, ${escEmail(name)}!`,
+        bodyHtml: `
+          <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Appointment Details</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
+            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${escEmail(service)}</td></tr>
+            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${escEmail(date)}</td></tr>
+            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${escEmail(time)}</td></tr>
+            <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">${escEmail(address)}</td></tr>
+            ${details ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Notes</td><td style="padding:10px 0;line-height:1.6">${escEmail(details)}</td></tr>` : ''}
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
+            <strong style="color:#1a1a1a">Cancellation policy:</strong> We ask for at least 24 hours' notice to cancel or reschedule.
+          </td></tr></table>`,
+      });
+      customerSubject = 'Booking Confirmed — ' + ref;
+    } else {
+      customerEmailHtml = customerHtml;
+      customerSubject = isQuote ? 'Quote Request Received — ' + ref : 'Booking Confirmed - We received your request!';
+    }
+
     const customerResp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'AssembleAtEase <booking@assembleatease.com>',
         to: [email],
-        subject: 'Booking Confirmed - We received your request!',
-        html: customerHtml,
+        subject: customerSubject,
+        html: customerEmailHtml,
         reply_to: TO,
       }),
     });
@@ -166,7 +218,8 @@ export default async function handler(req, res) {
         .from('bookings')
         .insert({
           ref,
-          status: 'pending',
+          status: isManual ? 'confirmed' : 'pending',
+          ...(isManual ? { confirmed_at: new Date().toISOString(), confirmed_by: 'owner' } : {}),
           customer_name: name,
           customer_email: email,
           customer_phone: phone,

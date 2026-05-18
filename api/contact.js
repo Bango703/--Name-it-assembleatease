@@ -4,7 +4,12 @@ import { rateLimit } from './_ratelimit.js';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (!await rateLimit(ip, 'default')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+  try {
+    if (!await rateLimit(ip, 'default')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+  } catch (rlErr) {
+    console.error('Rate limit error (Redis unavailable):', rlErr);
+    // fail open — don't block legitimate requests if Redis is down
+  }
   const { name, email, subject, message } = req.body;
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
@@ -106,6 +111,11 @@ export default async function handler(req, res) {
     <p style="margin:10px 0 0;font-size:10px;color:#d4d4d8">You received this email because a message was submitted at assembleatease.com. If you did not make this request, please disregard this email.</p>
   </td></tr></table>
 </div></body></html>`;
+
+  if (!KEY) {
+    console.error('RESEND_API_KEY is not set');
+    return res.status(500).json({ error: 'Email service not configured' });
+  }
 
   try {
     const resp = await fetch('https://api.resend.com/emails', {
