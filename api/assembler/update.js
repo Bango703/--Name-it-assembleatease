@@ -129,12 +129,12 @@ export default async function handler(req, res) {
 
   // ── If approving (pending → starter/verified/elite), send welcome email with password reset link ──
   if (tier && tier !== 'pending' && profile.tier === 'pending') {
-    // Update waitlist status to approved
+    // Remove from waitlist — approved Easers no longer need to be listed there
     try {
       await sb.from('assembler_waitlist')
-        .update({ status: 'approved' })
+        .delete()
         .eq('email', profile.email.toLowerCase());
-    } catch (e) { console.error('Waitlist approve update error:', e); }
+    } catch (e) { console.error('Waitlist remove on approve error:', e); }
 
     // Generate password reset link — assembler uses this to set their own password
     let resetUrl = SITE + '/auth/set-password';
