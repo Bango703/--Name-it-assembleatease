@@ -212,7 +212,7 @@
       <div class="topbar-title">Bookings</div>
       <div class="topbar-right">
         <button class="btn btn-red" id="bulk-delete-btn" style="display:none">&#128465; Delete Selected (<span id="bulk-count">0</span>)</button>
-        <button class="btn btn-outline" id="export-csv-btn" style="font-size:0.78rem">&#8595; Export CSV</button>
+        <button class="btn btn-outline" id="export-csv-btn" style="font-size:0.78rem">&#8595; Export PDF</button>
         <button class="btn btn-teal" id="new-booking-btn">&#43; New Booking</button>
         <button class="btn" id="refresh-btn">&#8635; Refresh</button>
       </div>
@@ -1039,78 +1039,123 @@ function intelQuick(msg) {
     finally { this.disabled=false; document.getElementById('bulk-count').textContent=selectedIds.size; document.getElementById('bulk-delete-btn').textContent='🗑 Delete Selected ('+selectedIds.size+')'; }
   });
 
-  // ─── CSV Export — full financial report ───
+  // ─── PDF Financial Report ───
   document.getElementById('export-csv-btn').addEventListener('click', function() {
-    function csvVal(v) { return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"'; }
     function fmtDate(d) {
-      if (!d) return '';
-      try { return new Date(d).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}); }
+      if (!d) return '—';
+      try { return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
       catch(e) { return d; }
     }
-    function dollars(cents) { return cents ? (cents/100).toFixed(2) : '0.00'; }
+    function dollars(cents) { return '$' + (cents/100).toFixed(2); }
+    function sfee(g) { return g > 0 ? Math.round(g * 0.029) + 30 : 0; }
 
-    var headers = [
-      'Ref','Status','Service','Customer Name','Customer Email','Customer Phone',
-      'Date','Time','Address','Easer',
-      'Gross Charged ($)','Stripe Fee ($)','Net After Stripe ($)',
-      'Easer Payout ($)','Platform Profit ($)',
-      'Payment Status','Created','Completed'
-    ];
-
-    var rows = [headers.map(csvVal).join(',')];
-
-    allBookings.forEach(function(b) {
-      var gross   = Number(b.total_price) || 0;
-      var sfee    = gross > 0 ? Math.round(gross * 0.029) + 30 : 0;
-      var net     = gross - sfee;
-      var payout  = Number(b.assembler_due) || 0;
-      var profit  = net - payout;
-
-      rows.push([
-        b.ref,
-        b.status,
-        b.service,
-        b.customer_name,
-        b.customer_email,
-        b.customer_phone,
-        fmtDate(b.date),
-        b.time,
-        b.address,
-        b.assembler_name || (b.assembler_id ? 'Easer' : 'Owner'),
-        dollars(gross),
-        dollars(sfee),
-        dollars(net),
-        dollars(payout),
-        dollars(profit),
-        b.payment_status || '',
-        fmtDate(b.created_at),
-        fmtDate(b.completed_at),
-      ].map(csvVal).join(','));
-    });
-
-    // Summary row at bottom for completed jobs
     var completed = allBookings.filter(function(b){return b.status==='completed';});
     var totGross=0, totFee=0, totPayout=0;
     completed.forEach(function(b){
       var g=Number(b.total_price)||0; totGross+=g;
-      totFee += g>0 ? Math.round(g*0.029)+30 : 0;
-      totPayout += Number(b.assembler_due)||0;
+      totFee += sfee(g); totPayout += Number(b.assembler_due)||0;
     });
     var totNet = totGross - totFee;
     var totProfit = totNet - totPayout;
-    rows.push(''); // blank line
-    rows.push([
-      'TOTALS (completed only)','','','','','','','','','',
-      dollars(totGross), dollars(totFee), dollars(totNet),
-      dollars(totPayout), dollars(totProfit),
-      '','',''
-    ].map(csvVal).join(','));
 
-    var blob = new Blob(['﻿' + rows.join('\n')], {type:'text/csv;charset=utf-8'});
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'AssembleAtEase-Financial-' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
+    var rows = allBookings.map(function(b) {
+      var g = Number(b.total_price)||0;
+      var f = sfee(g);
+      var n = g - f;
+      var p = Number(b.assembler_due)||0;
+      var profit = n - p;
+      var statusColor = {completed:'#065f46',confirmed:'#0097a7',pending:'#92400e',cancelled:'#6b7280',declined:'#6b7280'}[b.status]||'#374151';
+      var statusBg = {completed:'#d1fae5',confirmed:'#e0f7fa',pending:'#fef3c7',cancelled:'#f4f4f5',declined:'#f4f4f5'}[b.status]||'#f4f4f5';
+      return '<tr>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:11px;color:#6b7280">'+b.ref+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+b.customer_name+'</div><div style="color:#9ca3af;font-size:10px">'+b.service+'</div></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+fmtDate(b.date)+(b.time?'<br><span style="color:#9ca3af">'+b.time+'</span>':'')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+(b.assembler_name||'Owner')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g?dollars(g):'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#ef4444">'+(f?'-'+dollars(f):'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n?dollars(n):'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(p?'-'+dollars(p):'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0?'#065f46':'#ef4444')+'">'+(g?dollars(profit):'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+b.status+'</span></td>'
+        +'</tr>';
+    }).join('');
+
+    var reportDate = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"/><title>AssembleAtEase Financial Report</title>'
+      +'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      +'@page{size:landscape;margin:0.6in}'
+      +'@media print{.no-print{display:none}}'
+      +'</style></head><body>'
+      +'<div style="max-width:1100px;margin:0 auto;padding:2rem 0">'
+
+      // Header
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:3px solid #0097a7">'
+        +'<div>'
+          +'<div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-0.5px">AssembleAtEase</div>'
+          +'<div style="font-size:12px;color:#6b7280;margin-top:2px">Professional Assembly &amp; Handyman Services &bull; Austin, TX</div>'
+          +'<div style="font-size:18px;font-weight:700;color:#0d1117;margin-top:12px">Financial Report</div>'
+          +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Generated '+reportDate+'</div>'
+        +'</div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:4px">Stripe fee rate</div>'
+          +'<div style="font-size:12px;color:#374151">2.9% + $0.30 per transaction</div>'
+        +'</div>'
+      +'</div>'
+
+      // Summary cards
+      +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:2rem">'
+        +[
+          ['Gross Revenue',dollars(totGross),'#0097a7'],
+          ['Stripe Fees','-'+dollars(totFee),'#ef4444'],
+          ['Net After Stripe',dollars(totNet),'#374151'],
+          ['Easer Payouts','-'+dollars(totPayout),'#f59e0b'],
+          ['Platform Profit',dollars(totProfit),'#065f46'],
+        ].map(function(c){
+          return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px">'
+            +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:6px">'+c[0]+'</div>'
+            +'<div style="font-size:20px;font-weight:800;color:'+c[2]+'">'+c[1]+'</div>'
+          +'</div>';
+        }).join('')
+      +'</div>'
+
+      // Table
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:#f9fafb;border-top:1px solid #e5e7eb;border-bottom:2px solid #e5e7eb">'
+          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Ref</th>'
+          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Customer / Service</th>'
+          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Date</th>'
+          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Charged</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Stripe</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Net</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer Pay</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0097a7">Profit</th>'
+          +'<th style="padding:10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Status</th>'
+        +'</tr></thead>'
+        +'<tbody>'+rows+'</tbody>'
+        // Totals row
+        +'<tfoot><tr style="background:#f0fdf4;border-top:2px solid #0097a7">'
+          +'<td colspan="4" style="padding:10px;font-size:12px;font-weight:700;color:#065f46">TOTALS — Completed Jobs ('+completed.length+')</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:800;color:#111">'+dollars(totGross)+'</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:700;color:#ef4444">-'+dollars(totFee)+'</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:700;color:#374151">'+dollars(totNet)+'</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:700;color:#f59e0b">-'+dollars(totPayout)+'</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:800;color:#065f46">'+dollars(totProfit)+'</td>'
+          +'<td></td>'
+        +'</tr></tfoot>'
+      +'</table>'
+
+      +'<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af">'
+        +'<span>AssembleAtEase &bull; service@assembleatease.com &bull; (737) 290-6129 &bull; Austin, TX</span>'
+        +'<span>Confidential — For Internal Use Only</span>'
+      +'</div>'
+    +'</div>'
+    +'<script>window.onload=function(){window.print();}<\/script>'
+    +'</body></html>';
+
+    var w = window.open('','_blank');
+    w.document.write(html);
+    w.document.close();
   });
 
   // ─── Render list with search + status filter ───
