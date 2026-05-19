@@ -227,7 +227,7 @@
           <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
           <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
           <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
-          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Platform Revenue</div></div>
+          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Platform Profit</div></div>
         </div>
 
         <!-- Search -->
@@ -928,24 +928,19 @@ function intelQuick(msg) {
     }
   }
 
-  // ─── Stats with correct tier-based commission ───
+  // ─── Stats ───
+  function stripeFeeCalc(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
-    let revenue = 0;
+    let profit = 0;
     allBookings.forEach(function(b) {
       if (counts[b.status] !== undefined) counts[b.status]++;
       if (b.status === 'completed') {
-        if (b.platform_fee != null) {
-          revenue += Number(b.platform_fee) || 0;
-        } else if (b.total_price) {
-          // Tier-based commission: starter=25%, verified=20%, elite=15%, no assembler=100%
-          var rate = 0.20;
-          if (!b.assembler_id) rate = 1.0;
-          else if (b.assembler_tier === 'starter') rate = 0.25;
-          else if (b.assembler_tier === 'verified') rate = 0.20;
-          else if (b.assembler_tier === 'elite') rate = 0.15;
-          revenue += Math.round((Number(b.total_price) || 0) * rate);
-        }
+        var charged  = Number(b.total_price) || 0;
+        var sfee     = stripeFeeCalc(charged);
+        var net      = charged - sfee;
+        var payout   = Number(b.assembler_due) || 0;
+        profit += net - payout;
       }
     });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
@@ -953,7 +948,7 @@ function intelQuick(msg) {
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
     document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
-    if (revenueEl) revenueEl.textContent = revenue > 0 ? '$' + (revenue / 100).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
+    if (revenueEl) revenueEl.textContent = profit > 0 ? '$' + (profit / 100).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
     else $navP.style.display = 'none';
