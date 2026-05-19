@@ -1672,7 +1672,7 @@ function intelQuick(msg) {
       +'</div>';
     }).join('');
   }
-  async function toggleReview(id, approved) {
+  window.toggleReview = async function(id, approved) {
     try {
       var r = await fetch('/api/owner/reviews', { method:'PATCH', headers:headers(), body:JSON.stringify({id:id,approved:approved}) });
       var d = await r.json();
@@ -1682,8 +1682,8 @@ function intelQuick(msg) {
       renderReviews();
       toast(approved ? 'Review now visible on site' : 'Review hidden from site', 'success');
     } catch { toast('Failed to update review','error'); }
-  }
-  async function deleteReview(id) {
+  };
+  window.deleteReview = async function(id) {
     if(!confirm('Permanently delete this review?')) return;
     try {
       var r = await fetch('/api/owner/reviews', { method:'DELETE', headers:headers(), body:JSON.stringify({id:id}) });
@@ -1693,7 +1693,7 @@ function intelQuick(msg) {
       renderReviews();
       toast('Review deleted','success');
     } catch { toast('Failed to delete review','error'); }
-  }
+  };
 
   // ─── CUSTOMERS VIEW ───
   var allCustomers = [];
