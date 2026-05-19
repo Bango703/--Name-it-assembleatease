@@ -210,6 +210,8 @@
     <div class="topbar">
       <div class="topbar-title">Bookings</div>
       <div class="topbar-right">
+        <button class="btn btn-red" id="bulk-delete-btn" style="display:none">&#128465; Delete Selected (<span id="bulk-count">0</span>)</button>
+        <button class="btn btn-outline" id="export-csv-btn" style="font-size:0.78rem">&#8595; Export CSV</button>
         <button class="btn btn-teal" id="new-booking-btn">&#43; New Booking</button>
         <button class="btn" id="refresh-btn">&#8635; Refresh</button>
       </div>
@@ -444,14 +446,42 @@
 
       <!-- ─── ANALYTICS VIEW ─── -->
       <div id="analytics-view" style="display:none">
-        <div class="stats-row" id="analytics-stats-row">
-          <div class="stat teal"><div class="stat-value" id="an-revenue">—</div><div class="stat-label">Total Revenue</div></div>
-          <div class="stat orange"><div class="stat-value" id="an-avg">—</div><div class="stat-label">Avg Job Value</div></div>
+        <!-- P&L Summary -->
+        <div class="stats-row" id="analytics-stats-row" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
+          <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Gross Revenue</div></div>
+          <div class="stat amber"><div class="stat-value" id="an-stripe-fees">—</div><div class="stat-label">Stripe Fees</div></div>
+          <div class="stat orange"><div class="stat-value" id="an-net">—</div><div class="stat-label">Net After Stripe</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-payouts">—</div><div class="stat-label">Easer Payouts</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-profit">—</div><div class="stat-label">Platform Profit</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-complete-rate">—</div><div class="stat-label">Completion Rate</div></div>
-          <div class="stat amber"><div class="stat-value" id="an-this-month">—</div><div class="stat-label">This Month</div></div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
+          <!-- P&L per job -->
+          <div class="detail-panel open" style="grid-column:1/-1">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="detail-section-title" style="margin:0">Financial Ledger — Completed Jobs</div>
+              <div style="font-size:0.72rem;color:var(--muted)">Stripe fee = 2.9% + $0.30 per transaction</div>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:0.8rem" id="an-ledger">
+                <thead>
+                  <tr style="text-align:left;border-bottom:1px solid var(--border)">
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Ref</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Customer</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Service</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Charged</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Stripe Fee</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Net</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Easer Pay</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--teal);font-weight:700;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Profit</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Date</th>
+                  </tr>
+                </thead>
+                <tbody id="an-ledger-body"></tbody>
+              </table>
+            </div>
+          </div>
           <!-- Top Services -->
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:1rem">Top Services by Volume</div>
@@ -795,6 +825,50 @@
     renderList();
   });
 
+  // ─── Bulk select ───
+  var selectedIds = new Set();
+  function updateBulkBar() {
+    var btn = document.getElementById('bulk-delete-btn');
+    var countEl = document.getElementById('bulk-count');
+    if (selectedIds.size > 0) { btn.style.display=''; countEl.textContent=selectedIds.size; }
+    else btn.style.display='none';
+  }
+
+  document.getElementById('bulk-delete-btn').addEventListener('click', async function() {
+    if (!selectedIds.size) return;
+    if (!confirm('Permanently delete ' + selectedIds.size + ' booking(s)? This cannot be undone.')) return;
+    this.disabled = true; this.textContent = 'Deleting…';
+    try {
+      var r = await fetch('/api/owner/bulk-delete', { method:'POST', headers:headers(), body:JSON.stringify({ ids: Array.from(selectedIds) }) });
+      var d = await r.json();
+      if (d.error) { toast(d.error, 'error'); return; }
+      toast('Deleted ' + d.deleted + ' booking(s)', 'success');
+      selectedIds.clear();
+      updateBulkBar();
+      await loadBookings();
+    } catch { toast('Delete failed', 'error'); }
+    finally { this.disabled=false; document.getElementById('bulk-count').textContent=selectedIds.size; document.getElementById('bulk-delete-btn').textContent='🗑 Delete Selected ('+selectedIds.size+')'; }
+  });
+
+  // ─── CSV Export ───
+  document.getElementById('export-csv-btn').addEventListener('click', function() {
+    var cols = ['ref','customer_name','customer_email','customer_phone','service','status','date','time','address','total_price','payment_status','created_at'];
+    var headers2 = ['Ref','Name','Email','Phone','Service','Status','Date','Time','Address','Total ($)','Payment','Created'];
+    var rows = [headers2.join(',')];
+    allBookings.forEach(function(b) {
+      rows.push(cols.map(function(c) {
+        var v = b[c] != null ? String(b[c]) : '';
+        if (c === 'total_price') v = b[c] ? (b[c]/100).toFixed(2) : '0.00';
+        return '"' + v.replace(/"/g,'""') + '"';
+      }).join(','));
+    });
+    var blob = new Blob([rows.join('\n')], {type:'text/csv'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bookings-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+  });
+
   // ─── Render list with search + status filter ───
   function renderList() {
     var filtered = currentStatus === 'all' ? allBookings : allBookings.filter(function(b){return b.status===currentStatus});
@@ -816,17 +890,28 @@
     $list.innerHTML = filtered.map(function(b) {
       var msgCount = 0;
       if (b.messages && b.messages.length) msgCount = b.messages[0].count || 0;
-      return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '">'
-        + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4><span class="badge badge-' + b.status + '">' + b.status + '</span></div>'
+      var chk = selectedIds.has(b.id);
+      return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
+        + '<label onclick="event.stopPropagation()" style="position:absolute;top:10px;right:10px;cursor:pointer;z-index:2">'
+          + '<input type="checkbox" ' + (chk?'checked':'') + ' data-chk="' + b.id + '" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer" onclick="event.stopPropagation();toggleSelect(this)">'
+        + '</label>'
+        + '<div class="card-top" style="padding-right:1.75rem"><h4>' + esc(b.customer_name) + '</h4><span class="badge badge-' + b.status + '">' + b.status + '</span></div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
           + '<span>' + formatDate(b.date) + (b.time ? ' ' + esc(b.time) : '') + '</span>'
+          + (b.total_price ? '<span class="meta-dot"></span><span>$'+(b.total_price/100).toFixed(0)+'</span>' : '')
           + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
         + '</div></div>';
     }).join('');
   }
+
+  window.toggleSelect = function(chk) {
+    var id = chk.dataset.chk;
+    if (chk.checked) selectedIds.add(id); else selectedIds.delete(id);
+    updateBulkBar();
+  };
 
   $list.addEventListener('click', function(e) {
     var card = e.target.closest('.booking-card');
@@ -1499,19 +1584,56 @@
   }
 
   // ─── ANALYTICS VIEW ───
+  function stripeFee(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
+  function fmt$(cents) { return '$'+(cents/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
   function renderAnalytics() {
     var completed = allBookings.filter(function(b){return b.status==='completed';});
-    var totalRev = completed.reduce(function(s,b){return s+(Number(b.total_price)||0);},0);
-    var avgJob = completed.length ? Math.round(totalRev/completed.length/100) : 0;
+    var gross=0, fees=0, payouts=0;
+    completed.forEach(function(b){
+      var charged = Number(b.total_price)||0;
+      var sf = stripeFee(charged);
+      var payout = Number(b.assembler_due)||0;
+      gross += charged; fees += sf; payouts += payout;
+    });
+    var net = gross - fees;
+    var profit = net - payouts;
     var complRate = allBookings.length ? Math.round(completed.length/allBookings.length*100) : 0;
+
+    document.getElementById('an-gross').textContent        = gross  ? fmt$(gross)  : '—';
+    document.getElementById('an-stripe-fees').textContent  = fees   ? '-'+fmt$(fees) : '—';
+    document.getElementById('an-net').textContent          = net    ? fmt$(net)    : '—';
+    document.getElementById('an-payouts').textContent      = payouts? '-'+fmt$(payouts): '—';
+    document.getElementById('an-profit').textContent       = profit ? fmt$(profit) : '—';
+    document.getElementById('an-complete-rate').textContent= complRate+'%';
+
+    // Financial ledger
+    var tbody = document.getElementById('an-ledger-body');
+    if (!completed.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed jobs yet.</td></tr>';
+    } else {
+      tbody.innerHTML = completed.slice().sort(function(a,b){return (b.completed_at||b.created_at).localeCompare(a.completed_at||a.created_at);}).map(function(b){
+        var charged = Number(b.total_price)||0;
+        var sf = stripeFee(charged);
+        var netJob = charged - sf;
+        var payout = Number(b.assembler_due)||0;
+        var jobProfit = netJob - payout;
+        var profitColor = jobProfit >= 0 ? 'var(--teal)' : '#ef4444';
+        return '<tr style="border-bottom:1px solid var(--border)">'
+          +'<td style="padding:0.55rem 0.75rem;font-family:monospace;font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--text)">'+esc(b.customer_name||'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--soft)">'+esc(b.service||'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;text-align:right;font-weight:600;color:var(--text)">'+(charged?fmt$(charged):'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;text-align:right;color:#ef4444;font-size:0.8rem">'+(sf?'-'+fmt$(sf):'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--text)">'+(netJob?fmt$(netJob):'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--amber)">'+(payout?'-'+fmt$(payout):'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;text-align:right;font-weight:700;color:'+profitColor+'">'+fmt$(jobProfit)+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:var(--muted)">'+formatDate(b.completed_at||b.date)+'</td>'
+        +'</tr>';
+      }).join('');
+    }
+
     var now = new Date(); var m = now.getMonth(); var y = now.getFullYear();
-    var thisMonth = allBookings.filter(function(b){
-      var d=new Date(b.created_at); return d.getMonth()===m && d.getFullYear()===y;
-    }).length;
-    document.getElementById('an-revenue').textContent  = '$'+(totalRev/100).toLocaleString('en-US',{minimumFractionDigits:0});
-    document.getElementById('an-avg').textContent      = '$'+avgJob;
-    document.getElementById('an-complete-rate').textContent = complRate+'%';
-    document.getElementById('an-this-month').textContent   = thisMonth;
 
     // Services breakdown
     var svcMap = {};
