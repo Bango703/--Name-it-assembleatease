@@ -2116,7 +2116,7 @@ function intelQuick(msg) {
       '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Send Password Reset</button>' + '</div>',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Send Password Reset</button>' + '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">&#128465; Delete Easer</button>' + '</div>',
     ].filter(Boolean).join('<br>');
     document.getElementById('asm-detail-modal').classList.add('open');
   }
@@ -2175,6 +2175,18 @@ function intelQuick(msg) {
       toast('Assembler demoted to ' + newTier.charAt(0).toUpperCase() + newTier.slice(1), 'success');
       loadAssemblerList();
     } catch { toast('Failed to update tier', 'error'); }
+  };
+
+  window.deleteEaser = async function(id, name) {
+    if (!confirm('Permanently delete ' + name + '? This cannot be undone.\n\nThey will lose all access. Completed job history is preserved.')) return;
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    try {
+      var r = await fetch('/api/owner/delete-easer', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId: id }) });
+      var d = await r.json();
+      if (d.error) { toast(d.error, 'error'); return; }
+      toast(name + ' has been deleted', 'success');
+      loadAssemblerList();
+    } catch { toast('Failed to delete Easer', 'error'); }
   };
 
   window.suspendAssembler = async function(id) {
