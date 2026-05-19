@@ -469,6 +469,7 @@
                   <tr style="text-align:left;border-bottom:1px solid var(--border)">
                     <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Ref</th>
                     <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Customer</th>
+                    <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Easer</th>
                     <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Service</th>
                     <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Charged</th>
                     <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em;text-align:right">Stripe Fee</th>
@@ -508,6 +509,80 @@
     </div>
   </div>
 </div>
+
+<!-- ─── AI Assistant ─── -->
+<div id="ai-fab" title="AI Assistant" onclick="toggleAI()" style="position:fixed;bottom:2rem;right:2rem;width:52px;height:52px;background:linear-gradient(135deg,#0097a7,#005f6b);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,151,167,0.4);z-index:1000;transition:transform 0.2s" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="#fff"/><circle cx="12" cy="10" r="1" fill="#fff"/><circle cx="15" cy="10" r="1" fill="#fff"/></svg>
+</div>
+<div id="ai-panel" style="display:none;position:fixed;bottom:6rem;right:2rem;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.25);z-index:999;overflow:hidden">
+  <div style="background:linear-gradient(135deg,#0097a7,#005f6b);padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:0.875rem;font-weight:700;color:#fff">AI Assistant</div>
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.7)">Powered by Claude Haiku &bull; ~$0.001/msg</div>
+    </div>
+    <button onclick="toggleAI()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1.2rem;line-height:1;padding:4px">&times;</button>
+  </div>
+  <div id="ai-messages" style="height:280px;overflow-y:auto;padding:0.75rem;display:flex;flex-direction:column;gap:0.6rem">
+    <div style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--soft);line-height:1.5;max-width:85%">
+      Hi! Ask me anything about your bookings, revenue, customers, or get help writing messages and emails.
+    </div>
+  </div>
+  <div style="padding:0.6rem;border-top:1px solid var(--border);display:flex;gap:0.5rem">
+    <input id="ai-input" type="text" placeholder="Ask anything…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendAI()"/>
+    <button onclick="sendAI()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.8rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
+  </div>
+  <div style="padding:0.4rem 0.75rem 0.6rem;display:flex;gap:0.4rem;flex-wrap:wrap">
+    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Today's summary</button>
+    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Write customer reply</button>
+    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Revenue breakdown</button>
+    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">How to get more bookings</button>
+  </div>
+</div>
+
+<script>
+function toggleAI() {
+  var p = document.getElementById('ai-panel');
+  var open = p.style.display !== 'none';
+  p.style.display = open ? 'none' : 'block';
+  if (!open) document.getElementById('ai-input').focus();
+}
+function aiQuick(btn) { document.getElementById('ai-input').value = btn.textContent; sendAI(); }
+async function sendAI() {
+  var input = document.getElementById('ai-input');
+  var msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  var msgs = document.getElementById('ai-messages');
+  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;line-height:1.5;max-width:85%;align-self:flex-end;margin-left:auto">' + msg.replace(/</g,'&lt;') + '</div>';
+  msgs.innerHTML += '<div id="ai-thinking" style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--muted);max-width:85%">Thinking…</div>';
+  msgs.scrollTop = msgs.scrollHeight;
+  // Build context from current data
+  var ctx = {
+    totalBookings: (typeof allBookings !== 'undefined' ? allBookings.length : 0),
+    pending: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.status==='pending';}).length : 0),
+    confirmed: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.status==='confirmed';}).length : 0),
+    completed: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.status==='completed';}).length : 0),
+    grossRevenueDollars: (typeof allBookings !== 'undefined' ? (allBookings.filter(function(b){return b.status==='completed';}).reduce(function(s,b){return s+(Number(b.total_price)||0);},0)/100).toFixed(2) : 0),
+    todayJobs: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.date===new Date().toISOString().slice(0,10);}).length : 0),
+    businessName: 'AssembleAtEase',
+    location: 'Austin, TX'
+  };
+  try {
+    var r = await fetch('/api/owner/ai', {
+      method: 'POST',
+      headers: (typeof headers === 'function' ? headers() : {'Content-Type':'application/json'}),
+      body: JSON.stringify({ message: msg, context: ctx })
+    });
+    var d = await r.json();
+    document.getElementById('ai-thinking').remove();
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--soft);line-height:1.6;max-width:90%;white-space:pre-wrap">' + (d.reply||d.error||'No response.').replace(/</g,'&lt;') + '</div>';
+  } catch(e) {
+    document.getElementById('ai-thinking').remove();
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:#ef4444;max-width:85%">Failed to reach AI.</div>';
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+</script>
 
 <!-- ─── Assembler Detail Modal ─── -->
 <div class="modal-overlay" id="asm-detail-modal">
@@ -897,6 +972,7 @@
         + '</label>'
         + '<div class="card-top" style="padding-right:1.75rem"><h4>' + esc(b.customer_name) + '</h4><span class="badge badge-' + b.status + '">' + b.status + '</span></div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
+        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">&#128736; Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + b.assembler_tier : '') + '</div>' : '')
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
@@ -938,6 +1014,7 @@
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
       field('Details', b.details || '—'),
+      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + '&#9733;' : '') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', b.source === 'manual' ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
@@ -1622,6 +1699,7 @@
         return '<tr style="border-bottom:1px solid var(--border)">'
           +'<td style="padding:0.55rem 0.75rem;font-family:monospace;font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+'</td>'
           +'<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--text)">'+esc(b.customer_name||'—')+'</td>'
+          +'<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--teal)">'+esc(b.assembler_name||'Owner')+'</td>'
           +'<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--soft)">'+esc(b.service||'—')+'</td>'
           +'<td style="padding:0.55rem 0.75rem;text-align:right;font-weight:600;color:var(--text)">'+(charged?fmt$(charged):'—')+'</td>'
           +'<td style="padding:0.55rem 0.75rem;text-align:right;color:#ef4444;font-size:0.8rem">'+(sf?'-'+fmt$(sf):'—')+'</td>'

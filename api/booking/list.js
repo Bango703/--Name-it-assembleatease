@@ -25,5 +25,28 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 
+  // Enrich with assembler name/tier/rating — separate query avoids FK constraint uncertainty
+  if (data && data.length) {
+    const aIds = [...new Set(data.filter(b => b.assembler_id).map(b => b.assembler_id))];
+    if (aIds.length) {
+      const { data: profiles } = await sb
+        .from('profiles')
+        .select('id, full_name, tier, rating, completed_jobs')
+        .in('id', aIds);
+      if (profiles) {
+        const pm = {};
+        profiles.forEach(p => { pm[p.id] = p; });
+        data.forEach(b => {
+          if (b.assembler_id && pm[b.assembler_id]) {
+            b.assembler_name  = pm[b.assembler_id].full_name;
+            b.assembler_tier  = pm[b.assembler_id].tier;
+            b.assembler_rating= pm[b.assembler_id].rating;
+            b.assembler_jobs  = pm[b.assembler_id].completed_jobs;
+          }
+        });
+      }
+    }
+  }
+
   return res.status(200).json({ bookings: data || [], count });
 }
