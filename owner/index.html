@@ -2054,14 +2054,17 @@ function intelQuick(msg) {
       var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
       var expired = w.invite_expires_at && new Date(w.invite_expires_at) < new Date();
       var actions = '';
+      var deleteBtn = '<button class="btn btn-red" data-wl-delete="' + w.id + '" data-wl-name="' + esc(w.name) + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">&#128465; Delete</button>';
       if (w.status === 'pending') {
-        actions = '<button class="btn btn-teal" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
+        actions = '<button class="btn btn-teal" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> ' + deleteBtn;
       } else if (w.status === 'invited' && expired) {
-        actions = '<button class="btn btn-amber" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Re-invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button>';
+        actions = '<button class="btn btn-amber" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Re-invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> ' + deleteBtn;
       } else if (w.status === 'invited') {
-        actions = '<span style="font-size:0.78rem;color:var(--muted)">Sent ' + (w.invite_sent_at ? formatDate(w.invite_sent_at) : '') + (w.invite_expires_at ? ' &bull; Expires ' + formatDate(w.invite_expires_at) : '') + '</span>';
+        actions = '<span style="font-size:0.78rem;color:var(--muted)">Sent ' + (w.invite_sent_at ? formatDate(w.invite_sent_at) : '') + (w.invite_expires_at ? ' &bull; Expires ' + formatDate(w.invite_expires_at) : '') + '</span> ' + deleteBtn;
       } else if (w.status === 'applied') {
-        actions = '<button class="btn" data-wl-goto-asm="1" style="font-size:0.75rem;padding:0.3rem 0.6rem">View in Assemblers</button>';
+        actions = '<button class="btn" data-wl-goto-asm="1" style="font-size:0.75rem;padding:0.3rem 0.6rem">View in Easers</button> ' + deleteBtn;
+      } else {
+        actions = deleteBtn;
       }
       return '<tr><td style="' + rs + '"><strong>' + esc(w.name) + '</strong></td><td style="' + rs + '">' + esc(w.email) + '</td><td style="' + rs + '">' + esc(w.phone||'—') + '</td><td style="' + rs + '">' + esc(w.city||'—') + (w.state ? ', ' + esc(w.state) : '') + '</td><td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(w.created_at) + '</td><td style="' + rs + '">' + wlStatusBadge(w.status) + (expired && w.status==='invited' ? ' <span style="font-size:0.7rem;color:var(--red)">expired</span>' : '') + '</td><td style="' + rs + '">' + actions + '</td></tr>';
     }).join('');
@@ -2093,6 +2096,19 @@ function intelQuick(msg) {
         if (data2.error) { toast(data2.error, 'error'); return; }
         toast('Entry rejected', 'success'); loadWaitlist();
       } catch { toast('Failed to reject', 'error'); }
+      return;
+    }
+    var deleteBtn2 = e.target.closest('[data-wl-delete]');
+    if (deleteBtn2) {
+      var name = deleteBtn2.dataset.wlName || 'this entry';
+      if (!confirm('Permanently delete ' + name + ' from the waitlist?')) return;
+      deleteBtn2.disabled = true; deleteBtn2.textContent = '...';
+      try {
+        var r3 = await fetch('/api/owner/waitlist', { method:'POST', headers:headers(), body:JSON.stringify({ action:'delete', id:deleteBtn2.dataset.wlDelete }) });
+        var data3 = await r3.json();
+        if (data3.error) { toast(data3.error, 'error'); return; }
+        toast(name + ' deleted from waitlist', 'success'); loadWaitlist();
+      } catch { toast('Failed to delete', 'error'); }
     }
   });
 

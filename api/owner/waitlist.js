@@ -144,7 +144,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    return res.status(400).json({ error: 'Invalid action. Use: invite, reject' });
+    // ── DELETE ──
+    if (action === 'delete') {
+      const { error: delErr } = await sb.from('assembler_waitlist').delete().eq('id', id);
+      if (delErr) {
+        console.error('Waitlist delete error:', delErr);
+        return res.status(500).json({ error: 'Failed to delete entry' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(400).json({ error: 'Invalid action. Use: invite, reject, delete' });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
