@@ -583,7 +583,10 @@ async function runIntelligence() {
     if (d.error) { document.getElementById('intel-briefing').textContent = 'Error: ' + d.error; return; }
 
     // Briefing
-    document.getElementById('intel-briefing').textContent = d.reply || 'No analysis returned.';
+    var raw = (d.reply || 'No analysis returned.').replace(/</g,'&lt;');
+    // Convert section labels like "URGENT:" to styled headers
+    raw = raw.replace(/^([A-Z][A-Z\s]+:)/gm, '<strong style="color:var(--text);font-size:0.82rem;letter-spacing:0.06em">$1</strong>');
+    document.getElementById('intel-briefing').innerHTML = raw.replace(/\n/g,'<br/>');
 
     // Stats from data
     var pd = d.data || {};

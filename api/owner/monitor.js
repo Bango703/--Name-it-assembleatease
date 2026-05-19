@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     growth: {
       bookingsLast7Days: last7,
       bookingsPrev7Days: prev7,
-      velocityTrendPct: velocityTrend !== null ? velocityTrend + '%' : 'insufficient data',
+      velocityTrendPct: velocityTrend !== null ? (velocityTrend >= 0 ? '+' : '') + velocityTrend + '%' : 'Building baseline',
     },
     reviews: {
       totalReviews: reviews.length,
@@ -126,12 +126,16 @@ You have full access to real-time platform data shown below. Your job is to surf
 Platform data:
 ${JSON.stringify(platformData, null, 2)}
 
-Rules:
+CRITICAL FORMATTING RULES — you must follow these exactly:
+- Never use markdown: no #, ##, **, *, backticks, or dashes as bullets
+- Use plain section labels like "URGENT:", "REVENUE:", "GROWTH:" on their own line
+- Use numbers for lists: 1. 2. 3.
+- Separate sections with a blank line
 - Be direct, specific, use real numbers from the data
 - Priority order: revenue risk > customer problems > growth opportunities
-- For alerts, tell the owner EXACTLY what to do, not what to consider
-- For growth advice, think like a business scaling from 1 city to nationwide
-- Keep responses under 300 words unless writing a draft email/message
+- For alerts, tell the owner EXACTLY what to do
+- For growth, think like a business scaling from 1 city to nationwide
+- Keep responses under 250 words unless writing a draft email
 - Never say "I notice" or "I'd suggest" — just state it`;
 
   const userMsg = isChat ? message.trim()
