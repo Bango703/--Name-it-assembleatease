@@ -1039,22 +1039,77 @@ function intelQuick(msg) {
     finally { this.disabled=false; document.getElementById('bulk-count').textContent=selectedIds.size; document.getElementById('bulk-delete-btn').textContent='🗑 Delete Selected ('+selectedIds.size+')'; }
   });
 
-  // ─── CSV Export ───
+  // ─── CSV Export — full financial report ───
   document.getElementById('export-csv-btn').addEventListener('click', function() {
-    var cols = ['ref','customer_name','customer_email','customer_phone','service','status','date','time','address','total_price','payment_status','created_at'];
-    var headers2 = ['Ref','Name','Email','Phone','Service','Status','Date','Time','Address','Total ($)','Payment','Created'];
-    var rows = [headers2.join(',')];
+    function csvVal(v) { return '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"'; }
+    function fmtDate(d) {
+      if (!d) return '';
+      try { return new Date(d).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}); }
+      catch(e) { return d; }
+    }
+    function dollars(cents) { return cents ? (cents/100).toFixed(2) : '0.00'; }
+
+    var headers = [
+      'Ref','Status','Service','Customer Name','Customer Email','Customer Phone',
+      'Date','Time','Address','Easer',
+      'Gross Charged ($)','Stripe Fee ($)','Net After Stripe ($)',
+      'Easer Payout ($)','Platform Profit ($)',
+      'Payment Status','Created','Completed'
+    ];
+
+    var rows = [headers.map(csvVal).join(',')];
+
     allBookings.forEach(function(b) {
-      rows.push(cols.map(function(c) {
-        var v = b[c] != null ? String(b[c]) : '';
-        if (c === 'total_price') v = b[c] ? (b[c]/100).toFixed(2) : '0.00';
-        return '"' + v.replace(/"/g,'""') + '"';
-      }).join(','));
+      var gross   = Number(b.total_price) || 0;
+      var sfee    = gross > 0 ? Math.round(gross * 0.029) + 30 : 0;
+      var net     = gross - sfee;
+      var payout  = Number(b.assembler_due) || 0;
+      var profit  = net - payout;
+
+      rows.push([
+        b.ref,
+        b.status,
+        b.service,
+        b.customer_name,
+        b.customer_email,
+        b.customer_phone,
+        fmtDate(b.date),
+        b.time,
+        b.address,
+        b.assembler_name || (b.assembler_id ? 'Easer' : 'Owner'),
+        dollars(gross),
+        dollars(sfee),
+        dollars(net),
+        dollars(payout),
+        dollars(profit),
+        b.payment_status || '',
+        fmtDate(b.created_at),
+        fmtDate(b.completed_at),
+      ].map(csvVal).join(','));
     });
-    var blob = new Blob([rows.join('\n')], {type:'text/csv'});
+
+    // Summary row at bottom for completed jobs
+    var completed = allBookings.filter(function(b){return b.status==='completed';});
+    var totGross=0, totFee=0, totPayout=0;
+    completed.forEach(function(b){
+      var g=Number(b.total_price)||0; totGross+=g;
+      totFee += g>0 ? Math.round(g*0.029)+30 : 0;
+      totPayout += Number(b.assembler_due)||0;
+    });
+    var totNet = totGross - totFee;
+    var totProfit = totNet - totPayout;
+    rows.push(''); // blank line
+    rows.push([
+      'TOTALS (completed only)','','','','','','','','','',
+      dollars(totGross), dollars(totFee), dollars(totNet),
+      dollars(totPayout), dollars(totProfit),
+      '','',''
+    ].map(csvVal).join(','));
+
+    var blob = new Blob(['﻿' + rows.join('\n')], {type:'text/csv;charset=utf-8'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'bookings-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.download = 'AssembleAtEase-Financial-' + new Date().toISOString().slice(0,10) + '.csv';
     a.click();
   });
 
