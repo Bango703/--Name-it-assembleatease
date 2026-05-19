@@ -192,6 +192,7 @@
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews <span class="nav-count" id="nav-reviews" style="display:none">0</span></a></li>
         <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Analytics</a></li>
+        <li><a data-view="intelligence"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span> AI Intelligence <span class="nav-count" id="nav-alerts" style="display:none">!</span></a></li>
       </ul>
     </div>
     <div class="sidebar-section">
@@ -404,6 +405,58 @@
         </div>
       </div>
 
+      <!-- ─── AI INTELLIGENCE VIEW ─── -->
+      <div id="intelligence-view" style="display:none">
+        <div class="stats-row" id="intel-stats-row">
+          <div class="stat amber"><div class="stat-value" id="intel-urgent">—</div><div class="stat-label">Urgent Alerts</div></div>
+          <div class="stat teal"><div class="stat-value" id="intel-velocity">—</div><div class="stat-label">7-Day Trend</div></div>
+          <div class="stat neutral"><div class="stat-value" id="intel-needs-review">—</div><div class="stat-label">Needs Review Request</div></div>
+          <div class="stat orange"><div class="stat-value" id="intel-payouts">—</div><div class="stat-label">Pending Payouts</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
+
+          <!-- AI Briefing -->
+          <div class="detail-panel open" style="grid-column:1/-1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+              <div class="detail-section-title" style="margin:0">&#129302; AI Platform Briefing</div>
+              <button id="intel-refresh-btn" onclick="runIntelligence()" class="btn btn-teal" style="font-size:0.78rem;padding:4px 14px">&#8635; Run Check</button>
+            </div>
+            <div id="intel-briefing" style="font-size:0.875rem;color:var(--soft);line-height:1.75;white-space:pre-wrap;min-height:80px;background:var(--elevated);border-radius:8px;padding:1rem">
+              Click "Run Check" to get a full AI analysis of your platform.
+            </div>
+          </div>
+
+          <!-- Alert Cards -->
+          <div class="detail-panel open">
+            <div class="detail-section-title" style="margin-bottom:0.75rem">&#9888; Active Alerts</div>
+            <div id="intel-alert-list" style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem">
+              <div style="color:var(--muted)">Run a check to see alerts.</div>
+            </div>
+          </div>
+
+          <!-- AI Chat -->
+          <div class="detail-panel open" style="display:flex;flex-direction:column">
+            <div class="detail-section-title" style="margin-bottom:0.75rem">Ask the AI</div>
+            <div id="intel-chat-msgs" style="flex:1;min-height:120px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem">
+              <div style="font-size:0.8rem;color:var(--muted);line-height:1.5">Ask about your business, get a draft email, analyze trends, or request specific actions.</div>
+            </div>
+            <div style="margin-bottom:0.5rem;display:flex;gap:0.4rem;flex-wrap:wrap">
+              <button onclick="intelQuick('Why am I getting cancellations?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Cancellation reasons</button>
+              <button onclick="intelQuick('Write a follow-up email for a customer who cancelled')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Draft follow-up email</button>
+              <button onclick="intelQuick('What should I charge for furniture assembly in Austin?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Pricing advice</button>
+              <button onclick="intelQuick('How do I expand to a second city?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Expansion strategy</button>
+              <button onclick="intelQuick('Which service makes me the most money?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Most profitable service</button>
+            </div>
+            <div style="display:flex;gap:0.4rem">
+              <input id="intel-chat-input" type="text" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
+              <button onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- ─── REVIEWS VIEW ─── -->
       <div id="reviews-view" style="display:none">
         <div class="stats-row" id="reviews-stats-row">
@@ -510,77 +563,96 @@
   </div>
 </div>
 
-<!-- ─── AI Assistant ─── -->
-<div id="ai-fab" title="AI Assistant" onclick="toggleAI()" style="position:fixed;bottom:2rem;right:2rem;width:52px;height:52px;background:linear-gradient(135deg,#0097a7,#005f6b);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,151,167,0.4);z-index:1000;transition:transform 0.2s" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">
-  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="#fff"/><circle cx="12" cy="10" r="1" fill="#fff"/><circle cx="15" cy="10" r="1" fill="#fff"/></svg>
-</div>
-<div id="ai-panel" style="display:none;position:fixed;bottom:6rem;right:2rem;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,0.25);z-index:999;overflow:hidden">
-  <div style="background:linear-gradient(135deg,#0097a7,#005f6b);padding:0.85rem 1rem;display:flex;align-items:center;justify-content:space-between">
-    <div>
-      <div style="font-size:0.875rem;font-weight:700;color:#fff">AI Assistant</div>
-      <div style="font-size:0.7rem;color:rgba(255,255,255,0.7)">Powered by Claude Haiku &bull; ~$0.001/msg</div>
-    </div>
-    <button onclick="toggleAI()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1.2rem;line-height:1;padding:4px">&times;</button>
-  </div>
-  <div id="ai-messages" style="height:280px;overflow-y:auto;padding:0.75rem;display:flex;flex-direction:column;gap:0.6rem">
-    <div style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--soft);line-height:1.5;max-width:85%">
-      Hi! Ask me anything about your bookings, revenue, customers, or get help writing messages and emails.
-    </div>
-  </div>
-  <div style="padding:0.6rem;border-top:1px solid var(--border);display:flex;gap:0.5rem">
-    <input id="ai-input" type="text" placeholder="Ask anything…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendAI()"/>
-    <button onclick="sendAI()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.8rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
-  </div>
-  <div style="padding:0.4rem 0.75rem 0.6rem;display:flex;gap:0.4rem;flex-wrap:wrap">
-    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Today's summary</button>
-    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Write customer reply</button>
-    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Revenue breakdown</button>
-    <button onclick="aiQuick(this)" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">How to get more bookings</button>
-  </div>
-</div>
-
 <script>
-function toggleAI() {
-  var p = document.getElementById('ai-panel');
-  var open = p.style.display !== 'none';
-  p.style.display = open ? 'none' : 'block';
-  if (!open) document.getElementById('ai-input').focus();
+// ─── AI Intelligence ───────────────────────────────────────────────
+var _intelRunning = false;
+
+async function runIntelligence() {
+  if (_intelRunning) return;
+  _intelRunning = true;
+  var btn = document.getElementById('intel-refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing…'; }
+  document.getElementById('intel-briefing').textContent = 'Running full platform analysis…';
+  try {
+    var r = await fetch('/api/owner/monitor', {
+      method: 'POST',
+      headers: window._ownerHeaders(),
+      body: JSON.stringify({})
+    });
+    var d = await r.json();
+    if (d.error) { document.getElementById('intel-briefing').textContent = 'Error: ' + d.error; return; }
+
+    // Briefing
+    document.getElementById('intel-briefing').textContent = d.reply || 'No analysis returned.';
+
+    // Stats from data
+    var pd = d.data || {};
+    var alerts = pd.alerts || {};
+    var urgent = (alerts.stalePendingCount||0) + (alerts.missedJobsCount||0);
+    document.getElementById('intel-urgent').textContent = urgent || '✓';
+    document.getElementById('intel-velocity').textContent = pd.growth ? pd.growth.velocityTrendPct : '—';
+    document.getElementById('intel-needs-review').textContent = alerts.needsReviewCount || 0;
+    document.getElementById('intel-payouts').textContent = alerts.pendingPayoutsDollars ? '$'+alerts.pendingPayoutsDollars : '—';
+
+    // Alert cards
+    var alertList = document.getElementById('intel-alert-list');
+    var alertItems = [];
+    if (alerts.stalePendingCount > 0) alertItems.push({ level:'red', msg: alerts.stalePendingCount + ' pending booking(s) unactioned for 2+ hours: ' + alerts.stalePendingRefs });
+    if (alerts.missedJobsCount > 0) alertItems.push({ level:'red', msg: alerts.missedJobsCount + ' confirmed job(s) date has passed — not marked complete: ' + alerts.missedJobRefs });
+    if (alerts.needsReviewCount > 0) alertItems.push({ level:'amber', msg: alerts.needsReviewCount + ' completed job(s) haven\'t had a review request sent yet.' });
+    if (parseFloat(alerts.pendingPayoutsDollars) > 0) alertItems.push({ level:'amber', msg: '$' + alerts.pendingPayoutsDollars + ' in Easer payouts pending.' });
+    if (pd.reviews && pd.reviews.lowRatingCount > 0) alertItems.push({ level:'red', msg: pd.reviews.lowRatingCount + ' review(s) rated 2 stars or below — check and respond.' });
+
+    if (!alertItems.length) {
+      alertList.innerHTML = '<div style="color:var(--teal);font-weight:600">✓ No urgent alerts. Platform looks healthy.</div>';
+    } else {
+      var colors = { red:'#ef4444', amber:'#f59e0b' };
+      alertList.innerHTML = alertItems.map(function(a) {
+        return '<div style="background:'+colors[a.level]+'18;border-left:3px solid '+colors[a.level]+';border-radius:0 6px 6px 0;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text);line-height:1.5">' + a.msg + '</div>';
+      }).join('');
+    }
+
+    // Badge on nav
+    var navAlerts = document.getElementById('nav-alerts');
+    if (navAlerts) { navAlerts.style.display = urgent > 0 ? '' : 'none'; }
+  } catch(e) {
+    document.getElementById('intel-briefing').textContent = 'Failed to run analysis. Check your connection.';
+  } finally {
+    _intelRunning = false;
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Run Check'; }
+  }
 }
-function aiQuick(btn) { document.getElementById('ai-input').value = btn.textContent; sendAI(); }
-async function sendAI() {
-  var input = document.getElementById('ai-input');
+
+async function sendIntelChat() {
+  var input = document.getElementById('intel-chat-input');
   var msg = input.value.trim();
   if (!msg) return;
   input.value = '';
-  var msgs = document.getElementById('ai-messages');
-  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;line-height:1.5;max-width:85%;align-self:flex-end;margin-left:auto">' + msg.replace(/</g,'&lt;') + '</div>';
-  msgs.innerHTML += '<div id="ai-thinking" style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--muted);max-width:85%">Thinking…</div>';
+  var msgs = document.getElementById('intel-chat-msgs');
+  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + msg.replace(/</g,'&lt;') + '</div>';
+  msgs.innerHTML += '<div id="intel-thinking" style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--muted)">Thinking…</div>';
   msgs.scrollTop = msgs.scrollHeight;
-  // Build context from current data
-  var ctx = {
-    totalBookings: (typeof allBookings !== 'undefined' ? allBookings.length : 0),
-    pending: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.status==='pending';}).length : 0),
-    confirmed: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.status==='confirmed';}).length : 0),
-    completed: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.status==='completed';}).length : 0),
-    grossRevenueDollars: (typeof allBookings !== 'undefined' ? (allBookings.filter(function(b){return b.status==='completed';}).reduce(function(s,b){return s+(Number(b.total_price)||0);},0)/100).toFixed(2) : 0),
-    todayJobs: (typeof allBookings !== 'undefined' ? allBookings.filter(function(b){return b.date===new Date().toISOString().slice(0,10);}).length : 0),
-    businessName: 'AssembleAtEase',
-    location: 'Austin, TX'
-  };
   try {
-    var r = await fetch('/api/owner/ai', {
+    var r = await fetch('/api/owner/monitor', {
       method: 'POST',
-      headers: (typeof headers === 'function' ? headers() : {'Content-Type':'application/json'}),
-      body: JSON.stringify({ message: msg, context: ctx })
+      headers: window._ownerHeaders(),
+      body: JSON.stringify({ message: msg })
     });
     var d = await r.json();
-    document.getElementById('ai-thinking').remove();
-    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:var(--soft);line-height:1.6;max-width:90%;white-space:pre-wrap">' + (d.reply||d.error||'No response.').replace(/</g,'&lt;') + '</div>';
+    var t = document.getElementById('intel-thinking');
+    if (t) t.remove();
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + (d.reply||'No response.').replace(/</g,'&lt;') + '</div>';
   } catch(e) {
-    document.getElementById('ai-thinking').remove();
-    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:10px;padding:0.6rem 0.8rem;font-size:0.8rem;color:#ef4444;max-width:85%">Failed to reach AI.</div>';
+    var t2 = document.getElementById('intel-thinking');
+    if (t2) t2.remove();
+    msgs.innerHTML += '<div style="color:#ef4444;font-size:0.8rem;padding:0.5rem">Request failed.</div>';
   }
   msgs.scrollTop = msgs.scrollHeight;
+}
+
+function intelQuick(msg) {
+  document.getElementById('intel-chat-input').value = msg;
+  sendIntelChat();
 }
 </script>
 
@@ -1478,13 +1550,17 @@ async function sendAI() {
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
   var $marketplaceView= document.getElementById('marketplace-view');
-  var $todayView      = document.getElementById('today-view');
-  var $reviewsView    = document.getElementById('reviews-view');
-  var $customersView  = document.getElementById('customers-view');
-  var $analyticsView  = document.getElementById('analytics-view');
+  var $todayView        = document.getElementById('today-view');
+  var $reviewsView      = document.getElementById('reviews-view');
+  var $customersView    = document.getElementById('customers-view');
+  var $analyticsView    = document.getElementById('analytics-view');
+  var $intelligenceView = document.getElementById('intelligence-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$waitlistView,$assemblersView,$marketplaceView,$todayView,$reviewsView,$customersView,$analyticsView];
+  var allViews = [$bookingsView,$waitlistView,$assemblersView,$marketplaceView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView];
+
+  // Expose headers globally so scripts outside IIFE can use it
+  window._ownerHeaders = function() { return headers(); };
 
   function hideAllViews() { allViews.forEach(function(v){ if(v) v.style.display='none'; }); }
 
@@ -1507,7 +1583,8 @@ async function sendAI() {
       else if (view === 'today')       { $todayView.style.display='';       $topbarTitle.textContent='Today\'s Schedule'; renderTodayView(); }
       else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
       else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
-      else if (view === 'analytics')   { $analyticsView.style.display='';   $topbarTitle.textContent='Analytics'; renderAnalytics(); }
+      else if (view === 'analytics')     { $analyticsView.style.display='';     $topbarTitle.textContent='Analytics'; renderAnalytics(); }
+      else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; runIntelligence(); }
     });
   });
 
