@@ -185,11 +185,21 @@
       <a href=".">Assemble<span>AtEase</span></a>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Management</div>
+      <div class="sidebar-label">Operations</div>
       <ul class="sidebar-nav">
+        <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" style="display:none">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
-        <li><a data-view="waitlist"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
-        <li><a data-view="assemblers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Assemblers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
+        <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
+        <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews <span class="nav-count" id="nav-reviews" style="display:none">0</span></a></li>
+        <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Analytics</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Platform</div>
+      <ul class="sidebar-nav">
+        <li><a data-view="assemblers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Easers <span class="nav-count" id="nav-pending-apps" style="display:none">0</span></a></li>
+        <li><a data-view="waitlist"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Easer Waitlist <span class="nav-count" id="nav-waitlist" style="display:none">0</span></a></li>
+        <li><a data-view="marketplace"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span> Marketplace</a></li>
       </ul>
     </div>
     <div class="sidebar-footer">
@@ -267,6 +277,18 @@
           </div>
         </div>
       </div><!-- /bookings-view -->
+
+      <!-- ─── TODAY VIEW ─── -->
+      <div id="today-view" style="display:none">
+        <div class="stats-row" id="today-stats-row">
+          <div class="stat teal"><div class="stat-value" id="today-count">—</div><div class="stat-label">Jobs Today</div></div>
+          <div class="stat amber"><div class="stat-value" id="today-pending">—</div><div class="stat-label">Pending</div></div>
+          <div class="stat orange"><div class="stat-value" id="today-confirmed">—</div><div class="stat-label">Confirmed</div></div>
+          <div class="stat neutral"><div class="stat-value" id="today-done">—</div><div class="stat-label">Completed</div></div>
+        </div>
+        <div id="today-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem"></div>
+        <div id="today-empty" class="empty" style="display:none">No jobs scheduled for today.</div>
+      </div>
 
       <!-- ─── WAITLIST VIEW ─── -->
       <div id="waitlist-view" style="display:none">
@@ -378,6 +400,79 @@
           <div class="detail-section-title" style="margin-top:1rem;margin-bottom:0.75rem">Bids</div>
           <div id="mkt-bids-list" style="font-size:0.85rem"></div>
           <div id="mkt-detail-actions" style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap"></div>
+        </div>
+      </div>
+
+      <!-- ─── REVIEWS VIEW ─── -->
+      <div id="reviews-view" style="display:none">
+        <div class="stats-row" id="reviews-stats-row">
+          <div class="stat teal"><div class="stat-value" id="rev-total">—</div><div class="stat-label">Total Reviews</div></div>
+          <div class="stat orange"><div class="stat-value" id="rev-avg">—</div><div class="stat-label">Avg Rating</div></div>
+          <div class="stat neutral"><div class="stat-value" id="rev-five">—</div><div class="stat-label">5-Star</div></div>
+          <div class="stat amber"><div class="stat-value" id="rev-pending">—</div><div class="stat-label">Hidden</div></div>
+        </div>
+        <div id="reviews-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem"></div>
+        <div id="reviews-empty" class="empty" style="display:none">No reviews yet. Send review requests to completed bookings.</div>
+      </div>
+
+      <!-- ─── CUSTOMERS VIEW ─── -->
+      <div id="customers-view" style="display:none">
+        <div class="stats-row" id="cust-stats-row">
+          <div class="stat teal"><div class="stat-value" id="cust-total">—</div><div class="stat-label">Total Customers</div></div>
+          <div class="stat orange"><div class="stat-value" id="cust-repeat">—</div><div class="stat-label">Repeat Customers</div></div>
+          <div class="stat neutral"><div class="stat-value" id="cust-ltv">—</div><div class="stat-label">Avg Lifetime Value</div></div>
+        </div>
+        <div class="search-bar" style="margin:1rem 0">
+          <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input type="text" class="search-input" id="cust-search" placeholder="Search by name or email..." oninput="filterCustomers()"/>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem">
+            <thead>
+              <tr style="text-align:left">
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Phone</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Bookings</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Total Spent</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Service</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Booking</th>
+              </tr>
+            </thead>
+            <tbody id="cust-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ─── ANALYTICS VIEW ─── -->
+      <div id="analytics-view" style="display:none">
+        <div class="stats-row" id="analytics-stats-row">
+          <div class="stat teal"><div class="stat-value" id="an-revenue">—</div><div class="stat-label">Total Revenue</div></div>
+          <div class="stat orange"><div class="stat-value" id="an-avg">—</div><div class="stat-label">Avg Job Value</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-complete-rate">—</div><div class="stat-label">Completion Rate</div></div>
+          <div class="stat amber"><div class="stat-value" id="an-this-month">—</div><div class="stat-label">This Month</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
+          <!-- Top Services -->
+          <div class="detail-panel open">
+            <div class="detail-section-title" style="margin-bottom:1rem">Top Services by Volume</div>
+            <div id="an-services"></div>
+          </div>
+          <!-- Bookings by Month -->
+          <div class="detail-panel open">
+            <div class="detail-section-title" style="margin-bottom:1rem">Bookings by Month</div>
+            <div id="an-monthly"></div>
+          </div>
+          <!-- Status breakdown -->
+          <div class="detail-panel open">
+            <div class="detail-section-title" style="margin-bottom:1rem">Booking Status Breakdown</div>
+            <div id="an-status"></div>
+          </div>
+          <!-- Revenue by service -->
+          <div class="detail-panel open">
+            <div class="detail-section-title" style="margin-bottom:1rem">Revenue by Service</div>
+            <div id="an-rev-service"></div>
+          </div>
         </div>
       </div>
 
@@ -613,6 +708,10 @@
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'marketplace') await loadMarketplaceJobs();
+      else if (currentView === 'reviews') { await loadReviews(); }
+      else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
+      else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
+      else if (currentView === 'analytics') { await loadBookings(); renderAnalytics(); }
       else await loadBookings();
     } finally {
       btn.disabled = false;
@@ -1218,28 +1317,257 @@
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
   var $marketplaceView= document.getElementById('marketplace-view');
+  var $todayView      = document.getElementById('today-view');
+  var $reviewsView    = document.getElementById('reviews-view');
+  var $customersView  = document.getElementById('customers-view');
+  var $analyticsView  = document.getElementById('analytics-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
+  var allViews = [$bookingsView,$waitlistView,$assemblersView,$marketplaceView,$todayView,$reviewsView,$customersView,$analyticsView];
 
-  document.querySelector('.sidebar-nav').addEventListener('click', function(e) {
-    var link = e.target.closest('[data-view]');
-    if (!link) return;
-    e.preventDefault();
-    var view = link.dataset.view;
-    if (view === currentView) return;
-    currentView = view;
-    document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
-    link.classList.add('active');
-    $bookingsView.style.display   = 'none';
-    $waitlistView.style.display   = 'none';
-    $assemblersView.style.display = 'none';
-    $marketplaceView.style.display= 'none';
-    $newBookingBtn.style.display  = view === 'bookings' ? '' : 'none';
-    if (view === 'bookings') { $bookingsView.style.display = ''; $topbarTitle.textContent = 'Bookings'; }
-    else if (view === 'waitlist') { $waitlistView.style.display = ''; $topbarTitle.textContent = 'Waitlist'; loadWaitlist(); }
-    else if (view === 'assemblers') { $assemblersView.style.display = ''; $topbarTitle.textContent = 'Assemblers'; loadAssemblerList(); }
-    else if (view === 'marketplace') { $marketplaceView.style.display = ''; $topbarTitle.textContent = 'Marketplace Jobs'; loadMarketplaceJobs(); }
+  function hideAllViews() { allViews.forEach(function(v){ if(v) v.style.display='none'; }); }
+
+  document.querySelectorAll('.sidebar-nav').forEach(function(nav) {
+    nav.addEventListener('click', function(e) {
+      var link = e.target.closest('[data-view]');
+      if (!link) return;
+      e.preventDefault();
+      var view = link.dataset.view;
+      if (view === currentView) return;
+      currentView = view;
+      document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
+      link.classList.add('active');
+      hideAllViews();
+      $newBookingBtn.style.display = view === 'bookings' ? '' : 'none';
+      if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; }
+      else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; loadWaitlist(); }
+      else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
+      else if (view === 'marketplace') { $marketplaceView.style.display=''; $topbarTitle.textContent='Marketplace'; loadMarketplaceJobs(); }
+      else if (view === 'today')       { $todayView.style.display='';       $topbarTitle.textContent='Today\'s Schedule'; renderTodayView(); }
+      else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
+      else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
+      else if (view === 'analytics')   { $analyticsView.style.display='';   $topbarTitle.textContent='Analytics'; renderAnalytics(); }
+    });
   });
+
+  // ─── TODAY VIEW ───
+  function renderTodayView() {
+    var today = new Date().toISOString().slice(0,10);
+    var jobs = allBookings.filter(function(b){ return b.date === today; });
+    jobs.sort(function(a,b){ return (a.time||'').localeCompare(b.time||''); });
+    document.getElementById('today-count').textContent = jobs.length;
+    document.getElementById('today-pending').textContent = jobs.filter(function(b){return b.status==='pending';}).length;
+    document.getElementById('today-confirmed').textContent = jobs.filter(function(b){return b.status==='confirmed';}).length;
+    document.getElementById('today-done').textContent = jobs.filter(function(b){return b.status==='completed';}).length;
+    var navToday = document.getElementById('nav-today');
+    var active = jobs.filter(function(b){return b.status==='pending'||b.status==='confirmed';}).length;
+    if(active>0){navToday.textContent=active;navToday.style.display='';}else{navToday.style.display='none';}
+    var list = document.getElementById('today-list');
+    var empty = document.getElementById('today-empty');
+    if(!jobs.length){ list.innerHTML=''; empty.style.display=''; return; }
+    empty.style.display='none';
+    list.innerHTML = jobs.map(function(b){
+      var statusColors = {pending:'var(--amber)',confirmed:'var(--teal)',completed:'#22c55e',cancelled:'var(--muted)'};
+      var col = statusColors[b.status]||'var(--muted)';
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
+        +'<div style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+(b.time||'—')+'</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+(b.customer_name||'—')+'</div>'
+          +'<div style="font-size:0.8rem;color:var(--muted)">'+(b.service||'—')+' &bull; '+(b.address||'—')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:0.5rem">'
+          +'<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;background:'+col+'22;color:'+col+';border:1px solid '+col+'44">'+b.status.toUpperCase()+'</span>'
+          +(b.customer_phone?'<a href="tel:'+esc(b.customer_phone)+'" style="font-size:0.78rem;color:var(--teal);text-decoration:none;font-weight:600">Call</a>':'')
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }
+
+  // ─── REVIEWS VIEW ───
+  var allReviews = [];
+  async function loadReviews() {
+    document.getElementById('reviews-list').innerHTML = '<div class="empty">Loading reviews…</div>';
+    try {
+      var r = await fetch('/api/owner/reviews', { headers: headers() });
+      var data = await r.json();
+      allReviews = data.reviews || [];
+      renderReviews();
+    } catch(e) { document.getElementById('reviews-list').innerHTML = '<div class="empty">Failed to load reviews.</div>'; }
+  }
+  function renderReviews() {
+    var total = allReviews.length;
+    var avg = total ? (allReviews.reduce(function(s,r){return s+r.rating;},0)/total).toFixed(1) : '—';
+    var fiveStars = allReviews.filter(function(r){return r.rating===5;}).length;
+    var hidden = allReviews.filter(function(r){return !r.approved;}).length;
+    document.getElementById('rev-total').textContent = total;
+    document.getElementById('rev-avg').textContent = total ? avg + ' ★' : '—';
+    document.getElementById('rev-five').textContent = fiveStars;
+    document.getElementById('rev-pending').textContent = hidden;
+    var navRev = document.getElementById('nav-reviews');
+    if(hidden>0){navRev.textContent=hidden;navRev.style.display='';}else{navRev.style.display='none';}
+    var list = document.getElementById('reviews-list');
+    var empty = document.getElementById('reviews-empty');
+    if(!total){ list.innerHTML=''; empty.style.display=''; return; }
+    empty.style.display='none';
+    list.innerHTML = allReviews.map(function(r){
+      var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating?'#f59e0b':'#374151')+'">★</span>';
+      var date=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+      var approvedBg = r.approved ? 'rgba(29,158,117,0.12)' : 'rgba(245,158,11,0.12)';
+      var approvedColor = r.approved ? 'var(--teal)' : 'var(--amber)';
+      var approvedLabel = r.approved ? '✓ Visible' : '⊘ Hidden';
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
+          +'<div>'
+            +'<div style="font-size:1rem;margin-bottom:2px">'+stars+'</div>'
+            +'<div style="font-size:0.8rem;color:var(--muted)">'+(r.customer_name||'Customer')+' &bull; '+(r.service||'')+(date?' &bull; '+date:'')+'</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">'
+            +'<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:'+approvedBg+';color:'+approvedColor+'">'+approvedLabel+'</span>'
+            +'<button onclick="toggleReview(\''+r.id+'\','+(r.approved?'false':'true')+')" class="btn" style="font-size:0.72rem;padding:3px 10px">'+(r.approved?'Hide':'Show')+'</button>'
+            +'<button onclick="deleteReview(\''+r.id+'\')" class="btn btn-red" style="font-size:0.72rem;padding:3px 10px">Delete</button>'
+          +'</div>'
+        +'</div>'
+        +'<p style="font-size:0.875rem;color:var(--text);line-height:1.65;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
+      +'</div>';
+    }).join('');
+  }
+  async function toggleReview(id, approved) {
+    try {
+      var r = await fetch('/api/owner/reviews', { method:'PATCH', headers:headers(), body:JSON.stringify({id:id,approved:approved}) });
+      var d = await r.json();
+      if(d.error){toast(d.error,'error');return;}
+      var rev = allReviews.find(function(x){return x.id===id;});
+      if(rev) rev.approved = approved;
+      renderReviews();
+      toast(approved ? 'Review now visible on site' : 'Review hidden from site', 'success');
+    } catch { toast('Failed to update review','error'); }
+  }
+  async function deleteReview(id) {
+    if(!confirm('Permanently delete this review?')) return;
+    try {
+      var r = await fetch('/api/owner/reviews', { method:'DELETE', headers:headers(), body:JSON.stringify({id:id}) });
+      var d = await r.json();
+      if(d.error){toast(d.error,'error');return;}
+      allReviews = allReviews.filter(function(x){return x.id!==id;});
+      renderReviews();
+      toast('Review deleted','success');
+    } catch { toast('Failed to delete review','error'); }
+  }
+
+  // ─── CUSTOMERS VIEW ───
+  var allCustomers = [];
+  function buildCustomers() {
+    var map = {};
+    allBookings.forEach(function(b){
+      var key = (b.customer_email||'').toLowerCase();
+      if(!key) return;
+      if(!map[key]){
+        map[key] = { name:b.customer_name, email:b.customer_email, phone:b.customer_phone, bookings:0, spent:0, lastDate:'', lastService:'' };
+      }
+      map[key].bookings++;
+      if(b.total_price) map[key].spent += Number(b.total_price)||0;
+      if(b.created_at > map[key].lastDate){ map[key].lastDate=b.created_at; map[key].lastService=b.service||'—'; }
+    });
+    allCustomers = Object.values(map).sort(function(a,b){return b.bookings-a.bookings;});
+  }
+  function renderCustomers() {
+    buildCustomers();
+    var repeat = allCustomers.filter(function(c){return c.bookings>1;}).length;
+    var avgLtv = allCustomers.length ? Math.round(allCustomers.reduce(function(s,c){return s+c.spent;},0)/allCustomers.length/100) : 0;
+    document.getElementById('cust-total').textContent = allCustomers.length;
+    document.getElementById('cust-repeat').textContent = repeat;
+    document.getElementById('cust-ltv').textContent = '$'+avgLtv;
+    filterCustomers();
+  }
+  function filterCustomers() {
+    var q = (document.getElementById('cust-search').value||'').toLowerCase();
+    var filtered = allCustomers.filter(function(c){
+      return !q || (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
+    });
+    var tbody = document.getElementById('cust-tbody');
+    if(!filtered.length){ tbody.innerHTML='<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No customers found.</td></tr>'; return; }
+    tbody.innerHTML = filtered.map(function(c){
+      var date = c.lastDate ? new Date(c.lastDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+      return '<tr style="border-bottom:1px solid var(--border)">'
+        +'<td style="padding:0.7rem 1rem"><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(c.name||'—')+'</div><div style="font-size:0.75rem;color:var(--muted)">'+esc(c.email||'')+'</div></td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft)">'+(c.phone?'<a href="tel:'+esc(c.phone)+'" style="color:var(--teal);text-decoration:none">'+esc(c.phone)+'</a>':'—')+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.bookings>1?' <span style="font-size:0.7rem;color:var(--teal);font-weight:700">REPEAT</span>':'')+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">$'+(c.spent/100).toFixed(0)+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--soft)">'+esc(c.lastService)+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--muted)">'+date+'</td>'
+      +'</tr>';
+    }).join('');
+  }
+
+  // ─── ANALYTICS VIEW ───
+  function renderAnalytics() {
+    var completed = allBookings.filter(function(b){return b.status==='completed';});
+    var totalRev = completed.reduce(function(s,b){return s+(Number(b.total_price)||0);},0);
+    var avgJob = completed.length ? Math.round(totalRev/completed.length/100) : 0;
+    var complRate = allBookings.length ? Math.round(completed.length/allBookings.length*100) : 0;
+    var now = new Date(); var m = now.getMonth(); var y = now.getFullYear();
+    var thisMonth = allBookings.filter(function(b){
+      var d=new Date(b.created_at); return d.getMonth()===m && d.getFullYear()===y;
+    }).length;
+    document.getElementById('an-revenue').textContent  = '$'+(totalRev/100).toLocaleString('en-US',{minimumFractionDigits:0});
+    document.getElementById('an-avg').textContent      = '$'+avgJob;
+    document.getElementById('an-complete-rate').textContent = complRate+'%';
+    document.getElementById('an-this-month').textContent   = thisMonth;
+
+    // Services breakdown
+    var svcMap = {};
+    allBookings.forEach(function(b){ var s=b.service||'Other'; svcMap[s]=(svcMap[s]||0)+1; });
+    var svcs = Object.entries(svcMap).sort(function(a,b){return b[1]-a[1];});
+    var maxSvc = svcs.length ? svcs[0][1] : 1;
+    document.getElementById('an-services').innerHTML = svcs.map(function(s){
+      var pct = Math.round(s[1]/maxSvc*100);
+      return '<div style="margin-bottom:0.75rem">'
+        +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500">'+esc(s[0])+'</span><span style="color:var(--muted)">'+s[1]+' bookings</span></div>'
+        +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:var(--teal);border-radius:999px;width:'+pct+'%"></div></div>'
+      +'</div>';
+    }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No data yet.</div>';
+
+    // Monthly bookings (last 6 months)
+    var months = [];
+    for(var i=5;i>=0;i--){ var d=new Date(y,m-i,1); months.push({label:d.toLocaleDateString('en-US',{month:'short'}),key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),count:0}); }
+    allBookings.forEach(function(b){ var k=(b.created_at||'').slice(0,7); var mo=months.find(function(x){return x.key===k;}); if(mo) mo.count++; });
+    var maxMo = Math.max.apply(null,months.map(function(x){return x.count;})) || 1;
+    document.getElementById('an-monthly').innerHTML = '<div style="display:flex;align-items:flex-end;gap:8px;height:100px">'
+      +months.map(function(mo){
+        var h=Math.max(4,Math.round(mo.count/maxMo*90));
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">'
+          +'<div style="font-size:0.72rem;color:var(--muted)">'+mo.count+'</div>'
+          +'<div style="width:100%;height:'+h+'px;background:var(--teal);border-radius:4px 4px 0 0;opacity:0.85"></div>'
+          +'<div style="font-size:0.7rem;color:var(--muted)">'+mo.label+'</div>'
+        +'</div>';
+      }).join('')+'</div>';
+
+    // Status breakdown
+    var statuses = ['pending','confirmed','completed','cancelled','declined'];
+    var statusMap = {};
+    allBookings.forEach(function(b){statusMap[b.status]=(statusMap[b.status]||0)+1;});
+    document.getElementById('an-status').innerHTML = statuses.filter(function(s){return statusMap[s];}).map(function(s){
+      var pct2 = Math.round((statusMap[s]||0)/Math.max(1,allBookings.length)*100);
+      var colors = {pending:'#f59e0b',confirmed:'var(--teal)',completed:'#22c55e',cancelled:'var(--muted)',declined:'#ef4444'};
+      return '<div style="margin-bottom:0.75rem">'
+        +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500;text-transform:capitalize">'+s+'</span><span style="color:var(--muted)">'+statusMap[s]+' ('+pct2+'%)</span></div>'
+        +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:'+(colors[s]||'var(--muted)')+';border-radius:999px;width:'+pct2+'%"></div></div>'
+      +'</div>';
+    }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No data yet.</div>';
+
+    // Revenue by service
+    var revMap = {};
+    completed.forEach(function(b){ var s=b.service||'Other'; revMap[s]=(revMap[s]||0)+(Number(b.total_price)||0); });
+    var revSvcs = Object.entries(revMap).sort(function(a,b){return b[1]-a[1];});
+    var maxRev = revSvcs.length ? revSvcs[0][1] : 1;
+    document.getElementById('an-rev-service').innerHTML = revSvcs.map(function(s){
+      var pct3 = Math.round(s[1]/maxRev*100);
+      return '<div style="margin-bottom:0.75rem">'
+        +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500">'+esc(s[0])+'</span><span style="color:var(--muted)">$'+(s[1]/100).toFixed(0)+'</span></div>'
+        +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:#f59e0b;border-radius:999px;width:'+pct3+'%"></div></div>'
+      +'</div>';
+    }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No completed jobs yet.</div>';
+  }
 
   // ─── Waitlist ───
   var allWaitlistEntries = [];
