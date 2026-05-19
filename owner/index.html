@@ -659,6 +659,50 @@ function intelQuick(msg) {
 }
 </script>
 
+<!-- ─── Edit Booking Modal ─── -->
+<div class="modal-overlay" id="edit-booking-modal">
+  <div class="modal" style="max-width:480px">
+    <h3>Edit Booking</h3>
+    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Changes are saved immediately. Optionally notify the customer.</p>
+    <input type="hidden" id="eb-id"/>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Date</label>
+        <input type="date" class="modal-input" id="eb-date"/>
+      </div>
+      <div>
+        <label class="modal-label">Time</label>
+        <select class="modal-input" id="eb-time">
+          <option value="">— select —</option>
+          <option>8:00 AM - 10:00 AM</option><option>9:00 AM - 11:00 AM</option>
+          <option>10:00 AM - 12:00 PM</option><option>11:00 AM - 1:00 PM</option>
+          <option>12:00 PM - 2:00 PM</option><option>1:00 PM - 3:00 PM</option>
+          <option>2:00 PM - 4:00 PM</option><option>3:00 PM - 5:00 PM</option>
+          <option>4:00 PM - 6:00 PM</option><option>5:00 PM - 7:00 PM</option>
+        </select>
+      </div>
+    </div>
+    <label class="modal-label">Service</label>
+    <select class="modal-input" id="eb-service">
+      <option value="">— no change —</option>
+      <option>Furniture Assembly</option><option>TV Mounting</option>
+      <option>Home Repairs</option><option>Smart Home</option>
+      <option>Junk Removal</option><option>Other / Custom</option>
+    </select>
+    <label class="modal-label">Address</label>
+    <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
+      <input type="checkbox" id="eb-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
+      Notify customer of changes by email
+    </label>
+    <div class="modal-error" id="eb-error" style="display:none;margin-top:0.75rem"></div>
+    <div class="modal-actions" style="margin-top:1.25rem">
+      <button class="btn" id="eb-cancel">Cancel</button>
+      <button class="btn btn-teal" id="eb-save">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Assembler Detail Modal ─── -->
 <div class="modal-overlay" id="asm-detail-modal">
   <div class="modal" style="max-width:540px">
@@ -1075,8 +1119,8 @@ function intelQuick(msg) {
     $detailRef.textContent = b.ref;
     $detailGrid.innerHTML = [
       field('Customer', b.customer_name),
-      field('Email', b.customer_email),
-      field('Phone', b.customer_phone || '—'),
+      field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
+      field('Phone', b.customer_phone ? '<a href="tel:'+esc(b.customer_phone)+'" style="color:var(--teal);text-decoration:none;font-weight:600">'+esc(b.customer_phone)+'</a>' : '—'),
       field('Service', b.service),
       field('Total', b.total_price ? '$' + Number(b.total_price / 100).toFixed(2) : '—'),
       field('Status', '<span class="badge badge-' + b.status + '">' + b.status + '</span>'),
@@ -1090,6 +1134,7 @@ function intelQuick(msg) {
     ].join('');
     renderActions(b);
     renderAssignSection(b);
+    renderOwnerNotes(b);
     loadMessages(b.id);
   }
 
@@ -1101,11 +1146,13 @@ function intelQuick(msg) {
     var btns = [];
     if (b.status === 'pending') {
       btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">&#10003; Confirm</button>');
+      btns.push('<button class="btn btn-outline" data-action="edit" data-id="' + b.id + '">&#9998; Edit</button>');
       btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">&#10007; Decline</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
     }
     if (b.status === 'confirmed') {
       btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">&#10003; Mark Complete</button>');
+      btns.push('<button class="btn btn-outline" data-action="edit" data-id="' + b.id + '">&#9998; Edit</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
     if (b.status === 'completed') {
@@ -1140,7 +1187,17 @@ function intelQuick(msg) {
     var action = btn.dataset.action;
     var id = btn.dataset.id;
 
-    if (action === 'review-request') {
+    if (action === 'edit') {
+      var bEdit = allBookings.find(function(x){ return x.id == id; });
+      if (!bEdit) return;
+      document.getElementById('eb-id').value = id;
+      document.getElementById('eb-date').value = bEdit.date || '';
+      document.getElementById('eb-time').value = bEdit.time || '';
+      document.getElementById('eb-service').value = bEdit.service || '';
+      document.getElementById('eb-address').value = bEdit.address || '';
+      document.getElementById('eb-error').style.display = 'none';
+      document.getElementById('edit-booking-modal').classList.add('open');
+    } else if (action === 'review-request') {
       btn.disabled = true;
       btn.textContent = 'Sending…';
       fetch('/api/review-request', { method:'POST', headers: headers(), body: JSON.stringify({ bookingId: id }) })
@@ -2200,6 +2257,65 @@ function intelQuick(msg) {
       loadAssemblerList();
     } catch { toast('Failed to suspend assembler', 'error'); }
   };
+
+  // ─── Edit Booking ───
+  document.getElementById('eb-cancel').addEventListener('click', function() { document.getElementById('edit-booking-modal').classList.remove('open'); });
+  document.getElementById('edit-booking-modal').addEventListener('click', function(e) { if(e.target===this) this.classList.remove('open'); });
+  document.getElementById('eb-save').addEventListener('click', async function() {
+    var btn = this;
+    var id      = document.getElementById('eb-id').value;
+    var date    = document.getElementById('eb-date').value;
+    var time    = document.getElementById('eb-time').value;
+    var service = document.getElementById('eb-service').value;
+    var address = document.getElementById('eb-address').value.trim();
+    var notify  = document.getElementById('eb-notify').checked;
+    var errEl   = document.getElementById('eb-error');
+    if (!date && !time && !service && !address) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      var payload = { bookingId: id, notifyCustomer: notify };
+      if (date)    payload.date    = date;
+      if (time)    payload.time    = time;
+      if (service) payload.service = service;
+      if (address) payload.address = address;
+      var r = await fetch('/api/owner/edit-booking', { method:'POST', headers:headers(), body:JSON.stringify(payload) });
+      var d = await r.json();
+      if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
+      document.getElementById('edit-booking-modal').classList.remove('open');
+      toast('Booking updated' + (notify ? ' — customer notified' : ''), 'success');
+      await loadBookings();
+      if (selectedId) selectBooking(selectedId);
+    } catch { errEl.textContent = 'Failed to save. Try again.'; errEl.style.display = ''; }
+    finally { btn.disabled=false; btn.textContent='Save Changes'; }
+  });
+
+  // ─── Owner Notes ───
+  function renderOwnerNotes(b) {
+    var existing = document.getElementById('owner-notes-section');
+    if (existing) existing.remove();
+    var section = document.createElement('div');
+    section.id = 'owner-notes-section';
+    section.style.cssText = 'margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)';
+    section.innerHTML = '<div class="detail-section-title" style="margin-bottom:0.5rem">Internal Notes <span style="font-size:0.68rem;color:var(--muted);font-weight:400">(not visible to customer)</span></div>'
+      + '<textarea id="owner-notes-input" rows="3" placeholder="Add private notes about this booking…" style="width:100%;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.6rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);resize:vertical;outline:none;box-sizing:border-box">' + esc(b.owner_notes || '') + '</textarea>'
+      + '<button id="owner-notes-save" class="btn btn-teal" style="margin-top:0.4rem;font-size:0.78rem;padding:4px 14px">Save Note</button>';
+    var msgSection = document.querySelector('.detail-section-title');
+    var panel = document.getElementById('detail-panel');
+    panel.insertBefore(section, panel.querySelector('.detail-section-title'));
+    document.getElementById('owner-notes-save').addEventListener('click', async function() {
+      var notes = document.getElementById('owner-notes-input').value;
+      this.disabled = true; this.textContent = 'Saving…';
+      try {
+        var r = await fetch('/api/owner/notes', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId:b.id, notes }) });
+        var d = await r.json();
+        if (d.error) { toast(d.error,'error'); return; }
+        var bk = allBookings.find(function(x){return x.id===b.id;});
+        if (bk) bk.owner_notes = notes;
+        toast('Note saved','success');
+      } catch { toast('Failed to save note','error'); }
+      finally { this.disabled=false; this.textContent='Save Note'; }
+    });
+  }
 
   document.getElementById('asm-detail-close').addEventListener('click', function() { document.getElementById('asm-detail-modal').classList.remove('open'); });
   document.getElementById('asm-detail-modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
