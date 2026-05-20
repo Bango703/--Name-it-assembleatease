@@ -326,6 +326,9 @@
 
       <!-- ─── ASSEMBLERS VIEW ─── -->
       <div id="assemblers-view" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+          <button class="btn btn-teal" id="add-easer-btn">&#43; Add Easer (Fee Waived)</button>
+        </div>
         <div class="stats-row" id="asm-stats-row">
           <div class="stat neutral"><div class="stat-value" id="asm-total">—</div><div class="stat-label">Total</div></div>
           <div class="stat amber"><div class="stat-value" id="asm-pending">—</div><div class="stat-label">Pending</div></div>
@@ -699,6 +702,69 @@ function intelQuick(msg) {
     <div class="modal-actions" style="margin-top:1.25rem">
       <button class="btn" id="eb-cancel">Cancel</button>
       <button class="btn btn-teal" id="eb-save">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Add Easer (Fee Waived) Modal ─── -->
+<div class="modal-overlay" id="add-easer-modal">
+  <div class="modal" style="max-width:520px">
+    <h3>Add Easer — Fee Waived</h3>
+    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Creates their account, skips the $30 fee, and sends them a welcome email with identity verification + password setup links. They appear as <strong>Pending</strong> until you approve them after ID verification.</p>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Full name *</label>
+        <input type="text" class="modal-input" id="ae-name" placeholder="Jane Smith"/>
+      </div>
+      <div>
+        <label class="modal-label">Phone</label>
+        <input type="tel" class="modal-input" id="ae-phone" placeholder="737-000-0000"/>
+      </div>
+    </div>
+    <label class="modal-label">Email address *</label>
+    <input type="email" class="modal-input" id="ae-email" placeholder="easer@email.com"/>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">City *</label>
+        <input type="text" class="modal-input" id="ae-city" placeholder="Austin"/>
+      </div>
+      <div>
+        <label class="modal-label">Zip</label>
+        <input type="text" class="modal-input" id="ae-zip" placeholder="78701"/>
+      </div>
+    </div>
+    <label class="modal-label">Services</label>
+    <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem" id="ae-services-wrap">
+      <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;cursor:pointer"><input type="checkbox" value="Furniture Assembly" style="accent-color:var(--teal)"> Furniture Assembly</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;cursor:pointer"><input type="checkbox" value="TV & Display Mounting" style="accent-color:var(--teal)"> TV Mounting</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;cursor:pointer"><input type="checkbox" value="Home Repairs" style="accent-color:var(--teal)"> Home Repairs</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;cursor:pointer"><input type="checkbox" value="Smart Home Installation" style="accent-color:var(--teal)"> Smart Home</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:0.82rem;cursor:pointer"><input type="checkbox" value="Junk Removal" style="accent-color:var(--teal)"> Junk Removal</label>
+    </div>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Years experience</label>
+        <input type="number" class="modal-input" id="ae-exp" placeholder="2" min="0" max="30"/>
+      </div>
+      <div>
+        <label class="modal-label">Has own tools?</label>
+        <select class="modal-input" id="ae-tools">
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+    </div>
+    <label class="modal-label">Has own transport?</label>
+    <select class="modal-input" id="ae-transport" style="margin-bottom:1rem">
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+    <label class="modal-label">Notes / Bio (optional)</label>
+    <textarea class="modal-input" id="ae-bio" rows="2" placeholder="Any notes about this Easer…" style="resize:vertical"></textarea>
+    <div class="modal-error" id="ae-error" style="display:none;margin-top:0.75rem"></div>
+    <div class="modal-actions" style="margin-top:1.25rem">
+      <button class="btn" id="ae-cancel">Cancel</button>
+      <button class="btn btn-teal" id="ae-submit">Add Easer &amp; Send Welcome Email</button>
     </div>
   </div>
 </div>
@@ -2435,6 +2501,58 @@ function intelQuick(msg) {
 
   document.getElementById('asm-detail-close').addEventListener('click', function() { document.getElementById('asm-detail-modal').classList.remove('open'); });
   document.getElementById('asm-detail-modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+
+  // ─── Add Easer (Fee Waived) ───
+  document.getElementById('add-easer-btn').addEventListener('click', function() {
+    document.getElementById('ae-name').value = '';
+    document.getElementById('ae-phone').value = '';
+    document.getElementById('ae-email').value = '';
+    document.getElementById('ae-city').value = 'Austin';
+    document.getElementById('ae-zip').value = '';
+    document.getElementById('ae-exp').value = '';
+    document.getElementById('ae-bio').value = '';
+    document.getElementById('ae-error').style.display = 'none';
+    document.querySelectorAll('#ae-services-wrap input[type=checkbox]').forEach(function(c){ c.checked = false; });
+    document.getElementById('add-easer-modal').classList.add('open');
+  });
+  document.getElementById('ae-cancel').addEventListener('click', function() { document.getElementById('add-easer-modal').classList.remove('open'); });
+  document.getElementById('add-easer-modal').addEventListener('click', function(e) { if(e.target===this) this.classList.remove('open'); });
+  document.getElementById('ae-submit').addEventListener('click', async function() {
+    var btn = this;
+    var errEl = document.getElementById('ae-error');
+    errEl.style.display = 'none';
+    var name  = document.getElementById('ae-name').value.trim();
+    var email = document.getElementById('ae-email').value.trim();
+    var city  = document.getElementById('ae-city').value.trim();
+    var services = Array.from(document.querySelectorAll('#ae-services-wrap input:checked')).map(function(c){return c.value;});
+    if (!name)  { errEl.textContent='Full name is required.'; errEl.style.display=''; return; }
+    if (!email) { errEl.textContent='Email is required.'; errEl.style.display=''; return; }
+    if (!city)  { errEl.textContent='City is required.'; errEl.style.display=''; return; }
+    btn.disabled=true; btn.textContent='Adding…';
+    try {
+      var r = await fetch('/api/owner/add-easer', {
+        method:'POST', headers:headers(),
+        body: JSON.stringify({
+          fullName: name,
+          email,
+          phone: document.getElementById('ae-phone').value.trim(),
+          city,
+          zip: document.getElementById('ae-zip').value.trim(),
+          services,
+          hasTools: document.getElementById('ae-tools').value === 'true',
+          hasTransport: document.getElementById('ae-transport').value === 'true',
+          yearsExperience: parseInt(document.getElementById('ae-exp').value)||0,
+          bio: document.getElementById('ae-bio').value.trim(),
+        })
+      });
+      var d = await r.json();
+      if (d.error) { errEl.textContent=d.error; errEl.style.display=''; return; }
+      document.getElementById('add-easer-modal').classList.remove('open');
+      toast(name + ' added — welcome email sent with ID verification + password setup links', 'success');
+      loadAssemblerList();
+    } catch { errEl.textContent='Failed. Check your connection.'; errEl.style.display=''; }
+    finally { btn.disabled=false; btn.textContent='Add Easer & Send Welcome Email'; }
+  });
   $reasonModal.addEventListener('click', function(e) { if (e.target === this) { this.classList.remove('open'); pendingAction = null; } });
 
   // ─── Marketplace ───
