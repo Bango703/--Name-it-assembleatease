@@ -183,6 +183,32 @@
         </div>
       </div>
 
+      <!-- Membership -->
+      <div class="form-section" id="membership-section" style="border-color:rgba(0,151,167,0.3);background:linear-gradient(135deg,rgba(0,151,167,0.04),rgba(0,131,143,0.06))">
+        <div class="form-section-title" style="color:#0097a7">&#11088; Priority Membership</div>
+        <div id="membership-active" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+            <span style="font-size:1.5rem">&#10003;</span>
+            <div>
+              <div style="font-size:0.9rem;font-weight:600;color:var(--pro-text)">Membership Active</div>
+              <div style="font-size:0.8rem;color:var(--pro-muted)" id="membership-expires">Renews automatically</div>
+            </div>
+          </div>
+          <p style="font-size:0.83rem;color:var(--pro-soft);line-height:1.6;margin-bottom:1rem">You have priority access to jobs. You're notified first — before non-members of the same tier.</p>
+          <button id="membership-portal-btn" class="btn" style="font-size:0.82rem">Manage Billing</button>
+        </div>
+        <div id="membership-inactive">
+          <p style="font-size:0.875rem;color:var(--pro-soft);line-height:1.65;margin-bottom:0.75rem"><strong>Get priority job dispatch.</strong> Members are notified first for every job in their area — before non-members, regardless of tier.</p>
+          <ul style="font-size:0.83rem;color:var(--pro-soft);line-height:1.8;margin:0 0 1.25rem 1.25rem">
+            <li>First access to every job offer</li>
+            <li>Priority over non-members of the same tier</li>
+            <li>Cancel anytime — no long-term commitment</li>
+          </ul>
+          <button id="membership-subscribe-btn" class="btn btn-teal" style="width:100%;font-size:0.9rem;padding:0.75rem">Become a Member</button>
+          <p id="membership-price-note" style="text-align:center;font-size:0.75rem;color:var(--pro-muted);margin-top:0.5rem">Monthly subscription via Stripe — secure checkout</p>
+        </div>
+      </div>
+
       <!-- My Reviews -->
       <div class="form-section">
         <div class="form-section-title">My Reviews <span id="review-count-label" style="font-weight:400;font-size:0.82rem;color:var(--pro-muted)"></span></div>
@@ -328,6 +354,49 @@
     if (!profile.identity_verified) {
       document.getElementById('identity-verify-section').style.display = '';
     }
+
+    // ── Membership UI ──────────────────────────────────────────────────
+    (async function() {
+      try {
+        var mResp = await fetch('/api/assembler/membership', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'status', userId: user.id, email: user.email }),
+        });
+        var mData = await mResp.json();
+        if (mData.active) {
+          document.getElementById('membership-active').style.display = '';
+          document.getElementById('membership-inactive').style.display = 'none';
+          if (mData.expiresAt) {
+            document.getElementById('membership-expires').textContent =
+              'Renews ' + new Date(mData.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+          }
+          document.getElementById('membership-portal-btn').addEventListener('click', async function() {
+            this.disabled = true; this.textContent = 'Opening…';
+            var r = await fetch('/api/assembler/membership', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'portal', userId: user.id, email: user.email }),
+            });
+            var d = await r.json();
+            if (d.url) window.location.href = d.url;
+            else { this.disabled = false; this.textContent = 'Manage Billing'; }
+          });
+        } else {
+          document.getElementById('membership-active').style.display = 'none';
+          document.getElementById('membership-inactive').style.display = '';
+          document.getElementById('membership-subscribe-btn').addEventListener('click', async function() {
+            this.disabled = true; this.textContent = 'Loading…';
+            var r = await fetch('/api/assembler/membership', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'subscribe', userId: user.id, email: user.email }),
+            });
+            var d = await r.json();
+            if (d.url) window.location.href = d.url;
+            else { this.disabled = false; this.textContent = 'Become a Member'; APP.showAlert('page-alert', d.error || 'Membership not yet configured. Check back soon.', 'error'); }
+          });
+        }
+      } catch(e) { console.warn('Membership status error:', e); }
+    })();
 
     if (profile.profile_photo) {
       document.getElementById('photo-preview').innerHTML = `<img src="${profile.profile_photo}" alt="Profile" />`;

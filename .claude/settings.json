@@ -13,10 +13,22 @@
       "Bash(sed -i 's/<section class=\"section\" id=\"services\" style=\"display:none\">/<section class=\"section\" id=\"services-hdr\">/' index.html)",
       "Bash(sed -i 's/<section class=\"section\" id=\"how-it-works\" style=\"display:none\">/<section class=\"section\" id=\"how-it-works\">/' index.html)",
       "Bash(sed -i 's/<section class=\"section section-alt\" id=\"service-area\" style=\"display:none\">/<section class=\"section section-alt\" id=\"service-area\">/' index.html)",
-      "Bash(sed -i 's/<section class=\"cta-section\" style=\"display:none\">/<section class=\"cta-section\">/' index.html)"
+      "Bash(sed -i 's/<section class=\"cta-section\" style=\"display:none\">/<section class=\"cta-section\">/' index.html)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(find \"C:\\\\Users\\\\tgbiz\\\\Trackadem\" -name \"*.html\" -o -name \"*.css\" 2>/dev/null | head -20)",
+      "Read(//c/Users/tgbiz/Trackadem/**)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "WebFetch(domain:www.assembleatease.com)",
+      "Read(//c/Users/tgbiz/Downloads/**)",
+      "Bash(npm install *)",
+      "Bash(node generate-vapid.mjs)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory"
+      "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",
+      "c:\\Users\\tgbiz\\landing-page-edit",
+      "c:\\Users\\tgbiz\\Trackadem\\client\\src\\components"
     ]
   }
 }

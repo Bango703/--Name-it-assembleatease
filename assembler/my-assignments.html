@@ -234,6 +234,42 @@
     if (!auth) return;
     const session = auth.session;
 
+    // ── Handle dispatch accept from email/push link ──────────────────
+    (async function() {
+      var params = new URLSearchParams(window.location.search);
+      var bookingId = params.get('accept');
+      var token     = params.get('token');
+      if (!bookingId || !token) return;
+      // Clean URL
+      history.replaceState({}, '', window.location.pathname);
+      // Show accepting banner
+      var banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#0097a7;color:#fff;text-align:center;padding:0.75rem;font-size:0.9rem;font-weight:600;z-index:9999';
+      banner.textContent = 'Accepting job…';
+      document.body.prepend(banner);
+      try {
+        var r = await fetch('/api/booking/accept-dispatch', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+          body: JSON.stringify({ bookingId: bookingId, token: token, assemblerId: auth.user.id }),
+        });
+        var d = await r.json();
+        if (r.ok && d.ok) {
+          banner.style.background = '#059669';
+          banner.textContent = '✓ Job accepted! Ref: ' + (d.ref||'') + ' — loading your assignments…';
+          setTimeout(function(){ banner.remove(); }, 4000);
+        } else {
+          banner.style.background = '#ef4444';
+          banner.textContent = d.error || 'Could not accept job — it may already be taken.';
+          setTimeout(function(){ banner.remove(); }, 5000);
+        }
+      } catch(e) {
+        banner.style.background = '#ef4444';
+        banner.textContent = 'Failed to accept. Check your connection.';
+        setTimeout(function(){ banner.remove(); }, 5000);
+      }
+    })();
+
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
       await supabaseClient.auth.signOut();
