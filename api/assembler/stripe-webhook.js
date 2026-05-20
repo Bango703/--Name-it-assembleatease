@@ -334,6 +334,70 @@ export default async function handler(req, res) {
         break;
       }
 
+      // ── Easer Membership: subscription activated ──
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const sub = event.data.object;
+        const userId = sub.metadata?.userId;
+        if (!userId) break;
+        const active = sub.status === 'active' || sub.status === 'trialing';
+        await sb.from('profiles').update({
+          has_membership: active,
+          membership_expires_at: active ? new Date(sub.current_period_end * 1000).toISOString() : null,
+          stripe_subscription_id: sub.id,
+          membership_tier: active ? 'member' : null,
+        }).eq('id', userId);
+        if (active) {
+          const { data: p } = await sb.from('profiles').select('full_name, email').eq('id', userId).maybeSingle();
+          if (p) {
+            sendEmail({
+              to: p.email,
+              from: 'AssembleAtEase <booking@assembleatease.com>',
+              subject: 'Membership Active — You now get priority jobs!',
+              html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
+                <h2 style="color:#0097a7">Your membership is active!</h2>
+                <p>Hi ${esc((p.full_name||'').split(' ')[0])}, you now have priority access to jobs on AssembleAtEase. You'll be notified first for jobs in your area before non-members.</p>
+                <p style="color:#6b7280;font-size:0.875rem">Questions? Email service@assembleatease.com</p>
+              </div>`,
+            }).catch(e => console.error('Membership welcome email error:', e));
+          }
+        }
+        break;
+      }
+
+      // ── Easer Membership: subscription cancelled/expired ──
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object;
+        const userId = sub.metadata?.userId;
+        if (!userId) break;
+        await sb.from('profiles').update({
+          has_membership: false,
+          membership_expires_at: null,
+          stripe_subscription_id: null,
+          membership_tier: null,
+        }).eq('id', userId);
+        break;
+      }
+
+      // ── Easer Membership: invoice paid (renewal) ──
+      case 'invoice.payment_succeeded': {
+        const inv = event.data.object;
+        if (inv.subscription && inv.metadata?.role !== 'assembler_membership') {
+          // Try to find by subscription ID
+          const { data: profiles } = await sb.from('profiles')
+            .select('id').eq('stripe_subscription_id', inv.subscription).limit(1);
+          if (profiles && profiles[0]) {
+            const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY);
+            const sub = await stripe2.subscriptions.retrieve(inv.subscription);
+            await sb.from('profiles').update({
+              has_membership: true,
+              membership_expires_at: new Date(sub.current_period_end * 1000).toISOString(),
+            }).eq('id', profiles[0].id);
+          }
+        }
+        break;
+      }
+
       default:
         // Unhandled event type — ignore silently
         break;

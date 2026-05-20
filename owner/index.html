@@ -327,7 +327,8 @@
       <!-- ─── ASSEMBLERS VIEW ─── -->
       <div id="assemblers-view" style="display:none">
         <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-          <button class="btn btn-teal" id="add-easer-btn">&#43; Add Easer (Fee Waived)</button>
+          <button class="btn" id="check-phones-btn" style="font-size:0.78rem">&#128222; Email Missing Phones</button>
+        <button class="btn btn-teal" id="add-easer-btn">&#43; Add Easer (Fee Waived)</button>
         </div>
         <div class="stats-row" id="asm-stats-row">
           <div class="stat neutral"><div class="stat-value" id="asm-total">—</div><div class="stat-label">Total</div></div>
@@ -1318,6 +1319,9 @@ function intelQuick(msg) {
     }
     if (b.status === 'confirmed') {
       btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">&#10003; Mark Complete</button>');
+      if (!b.assembler_id) {
+        btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '" style="background:linear-gradient(135deg,#0097a7,#005f6b)">&#128640; Smart Dispatch</button>');
+      }
       btns.push('<button class="btn btn-outline" data-action="edit" data-id="' + b.id + '">&#9998; Edit</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
@@ -1353,7 +1357,23 @@ function intelQuick(msg) {
     var action = btn.dataset.action;
     var id = btn.dataset.id;
 
-    if (action === 'edit') {
+    if (action === 'dispatch') {
+      btn.disabled = true; btn.textContent = 'Dispatching…';
+      try {
+        var r = await fetch('/api/booking/dispatch', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: id }) });
+        var d = await r.json();
+        if (d.error) { toast(d.error, 'error'); return; }
+        if (d.dispatched === 0) {
+          toast(d.message || 'No available Easers found in the area right now', 'error');
+        } else {
+          var names = (d.offeredTo||[]).map(function(e){ return e.name + (e.member?' ⭐':'') + ' ('+e.tier+')'; }).join(', ');
+          toast('Dispatched to ' + d.dispatched + ' Easer(s): ' + names + ' — first to accept gets the job', 'success');
+          await loadBookings();
+          if (selectedId) selectBooking(selectedId);
+        }
+      } catch { toast('Dispatch failed', 'error'); }
+      finally { btn.disabled=false; btn.innerHTML='&#128640; Smart Dispatch'; }
+    } else if (action === 'edit') {
       var bEdit = allBookings.find(function(x){ return x.id == id; });
       if (!bEdit) return;
       document.getElementById('eb-id').value = id;
@@ -2260,7 +2280,7 @@ function intelQuick(msg) {
     tbody.innerHTML = filtered.map(function(a) {
       var isRejected = a.application_status === 'rejected';
       return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
-        + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong><br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span></td>'
+        + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong>' + (a.has_membership ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;vertical-align:middle">MEMBER</span>' : '') + '<br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span>' + (!a.phone ? ' <span style="font-size:0.7rem;color:#ef4444;font-weight:600">⚠ No phone</span>' : '') + '</td>'
         + '<td style="' + rs + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
         + '<td style="' + rs + '">' + (isRejected ? '<span class="badge badge-declined">rejected</span>' : tierBadge(a.tier)) + '</td>'
         + '<td style="' + rs + '">' + identityStatus(a) + '</td>'
@@ -2503,6 +2523,17 @@ function intelQuick(msg) {
   document.getElementById('asm-detail-modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
 
   // ─── Add Easer (Fee Waived) ───
+  document.getElementById('check-phones-btn').addEventListener('click', async function() {
+    var btn = this; btn.disabled=true; btn.textContent='Sending…';
+    try {
+      var r = await fetch('/api/owner/check-phones', { method:'POST', headers:headers() });
+      var d = await r.json();
+      if (d.error) { toast(d.error,'error'); return; }
+      toast(d.sent > 0 ? 'Sent phone request to ' + d.sent + ' Easer(s)' : d.message || 'All Easers have a phone on file', 'success');
+    } catch { toast('Failed','error'); }
+    finally { btn.disabled=false; btn.textContent='📞 Email Missing Phones'; }
+  });
+
   document.getElementById('add-easer-btn').addEventListener('click', function() {
     document.getElementById('ae-name').value = '';
     document.getElementById('ae-phone').value = '';

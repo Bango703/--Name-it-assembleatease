@@ -348,7 +348,19 @@
     var wn=document.getElementById('welcome-name');if(wn)wn.textContent=greet+', '+firstName;
     document.getElementById('topbar-greeting').textContent=greet+', '+firstName;
 
-    if(!profile.hourly_rate||!profile.city||!profile.bio){
+    // Phone number is required for job dispatch
+    if(!profile.phone){
+      var phoneBanner = document.getElementById('profile-banner');
+      if(phoneBanner){
+        phoneBanner.classList.remove('hidden');
+        phoneBanner.style.background='rgba(239,68,68,0.06)';
+        phoneBanner.style.borderColor='rgba(239,68,68,0.2)';
+        phoneBanner.querySelector('.pro-banner-title').textContent='Phone number required to receive jobs';
+        phoneBanner.querySelector('.pro-banner-sub').textContent='Easers without a phone number cannot be dispatched. Add it now to start getting job offers.';
+        phoneBanner.querySelector('a').textContent='Add Phone Number →';
+        phoneBanner.querySelector('a').style.background='#ef4444';
+      }
+    } else if(!profile.hourly_rate||!profile.city||!profile.bio){
       document.getElementById('profile-banner').classList.remove('hidden');
     }
 
