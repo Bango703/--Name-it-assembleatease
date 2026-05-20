@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     const { data: linkData } = await sb.auth.admin.generateLink({
       type: 'recovery',
       email: cleanEmail,
-      options: { redirectTo: SITE + '/assembler' },
+      options: { redirectTo: SITE + '/auth/set-password' },
     });
     if (linkData?.properties?.action_link) {
       passwordSetUrl = linkData.properties.action_link;
