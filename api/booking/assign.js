@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { sendPushToUser } from '../_push.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -91,6 +92,15 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('Assignment email error:', e);
   }
+
+  // Push notification — non-blocking
+  sendPushToUser(assemblerId, {
+    title: '🔧 New Job Assigned!',
+    body:  (booking.service || 'Service') + ' · ' + (booking.date || '') + (booking.time ? ' · ' + booking.time : ''),
+    url:   '/assembler/my-assignments',
+    jobId: booking.id,
+    urgent: true,
+  }).catch(e => console.error('Push notification error:', e));
 
   return res.status(200).json({ ok: true, assignedTo: assembler.full_name });
 }
