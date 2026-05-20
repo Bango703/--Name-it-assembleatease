@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   const userId = authData.user.id;
 
-  // Create fully approved profile
+  // Step 1 — core profile (columns guaranteed to exist)
   const { error: profileErr } = await sb.from('profiles').upsert({
     id: userId,
     full_name: 'Test Easer',
@@ -49,29 +49,33 @@ export default async function handler(req, res) {
     role: 'assembler',
     city: 'Austin',
     zip: '78701',
-    services_offered: ['Furniture Assembly', 'TV & Display Mounting', 'Home Repairs'],
-    has_tools: true,
-    has_transport: true,
-    years_experience: 3,
-    bio: 'Test account for platform testing.',
     tier: 'starter',
     identity_verified: true,
     identity_verified_at: new Date().toISOString(),
     application_status: 'approved',
     payment_confirmed: true,
-    application_fee_paid: false,
-    fee_waived_by_owner: true,
-    code_of_conduct_agreed_at: new Date().toISOString(),
-    is_available: true,
-    hourly_rate: 25,
-    rating: 4.8,
-    completed_jobs: 5,
+    application_fee_paid: true,
   }, { onConflict: 'id' });
 
   if (profileErr) {
     console.error('Test easer profile error:', profileErr);
-    return res.status(500).json({ error: profileErr.message });
+    return res.status(500).json({ error: 'Profile create failed: ' + profileErr.message });
   }
+
+  // Step 2 — extended fields (non-fatal if columns don't exist yet)
+  await sb.from('profiles').update({
+    services_offered: ['Furniture Assembly', 'TV & Display Mounting', 'Home Repairs'],
+    has_tools: true,
+    has_transport: true,
+    years_experience: 3,
+    bio: 'Test account for platform testing.',
+    hourly_rate: 25,
+    rating: 4.8,
+    completed_jobs: 5,
+    is_available: true,
+  }).eq('id', userId).then(({ error: e }) => {
+    if (e) console.warn('Extended profile fields skipped:', e.message);
+  });
 
   return res.status(200).json({
     ok: true,
