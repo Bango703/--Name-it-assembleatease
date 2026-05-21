@@ -461,20 +461,23 @@
     selectedBookingId = bookingId;
     const canCheckIn = b.status === 'confirmed' && b.assembler_accepted_at && !b.checked_in_at;
 
+    const accepted = !!b.assembler_accepted_at;
     document.getElementById('asgn-modal-body').innerHTML = [
       '<h3 style="margin:0 0 0.75rem;font-size:1.1rem">' + esc(b.service) + '</h3>',
       b.checked_in_at ? '<div class="checkin-banner">&#10003; Checked in at ' + new Date(b.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div>' : '',
       '<div style="font-size:0.875rem;color:var(--pro-muted);display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem">',
         b.date ? '<span>&#128197; ' + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') + '</span>' : '',
         b.address ? '<span>&#128205; ' + esc(b.address) + '</span>' : '',
+        // Customer contact — only shown after Easer has accepted
+        accepted && b.customer_phone ? '<span style="color:var(--pro-text);font-weight:500">&#128222; <a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_phone) + '</a></span>' : '',
+        accepted && b.customer_email ? '<span>&#9993; <a href="mailto:' + esc(b.customer_email) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_email) + '</a></span>' : '',
         b.details ? '<span>&#128221; ' + esc(b.details) + '</span>' : '',
         '<span style="color:var(--pro-muted);font-size:0.78rem">Ref: ' + esc(b.ref) + '</span>',
       '</div>',
+      // Accept button for manually assigned jobs not yet accepted
+      !accepted && b.assignment_token ? '<div id="accept-job-section" style="margin-bottom:1rem"><button id="accept-job-btn" class="btn btn-teal" style="width:100%">&#10003; Accept This Job</button></div>' : '',
     ].join('');
 
-    document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
-    const canComplete = b.status === 'confirmed' && b.assembler_accepted_at && b.checked_in_at;
-    document.getElementById('complete-section').style.display = canComplete ? 'block' : 'none';
     const btn = document.getElementById('checkin-btn');
     btn.disabled = false;
     btn.innerHTML = '&#128205; Check In &mdash; I\'ve Arrived';
@@ -482,6 +485,32 @@
     completeBtn.disabled = false;
     completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
+    document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
+    const canComplete2 = b.status === 'confirmed' && b.assembler_accepted_at && b.checked_in_at;
+    document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
+
+    // Accept job button (manually assigned, not yet accepted)
+    const acceptBtn = document.getElementById('accept-job-btn');
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', async function() {
+        acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting…';
+        try {
+          const r = await fetch('/api/booking/accept-dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+            body: JSON.stringify({ bookingId: b.id, token: b.assignment_token, assemblerId: auth.user.id }),
+          });
+          const d = await r.json();
+          if (!r.ok || d.error) { alert(d.error || 'Could not accept job'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept This Job'; return; }
+          document.getElementById('accept-job-section').innerHTML = '<div style="color:#059669;font-weight:600;padding:0.5rem 0">&#10003; Job accepted! Customer contact info is now visible.</div>';
+          // Refresh list
+          const { data: { session: s } } = await supabaseClient.auth.getSession();
+          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (s || session).access_token } });
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
+        } catch(e) { alert('Connection error'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept This Job'; }
+      });
+    }
+
     document.getElementById('asgn-modal').classList.add('open');
     // Load messages from Supabase
     supabaseClient.from('messages').select('*').eq('booking_id', bookingId).order('created_at',{ascending:true})

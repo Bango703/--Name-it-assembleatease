@@ -31,7 +31,8 @@
       "Bash(awk 'NR>=1620 && NR<=1800 {print NR\": \"$0}' owner/index.html)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\tgbiz\\\\Handyman-marketplace\" -Recurse -Directory)",
       "Bash(Select-Object -First 30 FullName)",
-      "Bash(awk 'NR>=396 && NR<=430 {print NR\": \"$0}' owner/index.html)"
+      "Bash(awk 'NR>=396 && NR<=430 {print NR\": \"$0}' owner/index.html)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",

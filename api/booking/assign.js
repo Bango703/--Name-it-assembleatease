@@ -14,13 +14,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { bookingId, assemblerId } = req.body;
+  const { bookingId, assemblerId, reassign } = req.body;
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
   if (!assemblerId) return res.status(400).json({ error: 'assemblerId is required' });
 
   const sb = getSupabase();
 
-  // Verify booking exists and is confirmed
   const { data: booking, error: bErr } = await sb
     .from('bookings')
     .select('*')
@@ -29,7 +28,7 @@ export default async function handler(req, res) {
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.status !== 'confirmed') return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
-  if (booking.assembler_id) return res.status(400).json({ error: 'Booking is already assigned' });
+  if (booking.assembler_id && !reassign) return res.status(400).json({ error: 'Booking already assigned. Pass reassign:true to override.' });
 
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
@@ -50,13 +49,17 @@ export default async function handler(req, res) {
   // Generate secure assignment token
   const token = crypto.randomUUID();
 
-  // Update booking
   const { error: updateErr } = await sb
     .from('bookings')
     .update({
       assembler_id: assemblerId,
+      assembler_name: assembler.full_name,
+      assembler_tier: assembler.tier,
       assigned_at: new Date().toISOString(),
       assignment_token: token,
+      assembler_accepted_at: null, // reset if reassigning
+      dispatch_token: null,
+      dispatch_status: null,
     })
     .eq('id', bookingId);
 
@@ -67,8 +70,8 @@ export default async function handler(req, res) {
 
   // Send assembler notification email with Accept/Decline links
   const firstName = (assembler.full_name || 'Assembler').split(' ')[0];
-  const acceptUrl = `${SITE}/api/booking/accept?token=${token}&action=accept`;
-  const declineUrl = `${SITE}/api/booking/accept?token=${token}&action=decline`;
+  const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
+  const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
 
   try {
     await sendEmail({

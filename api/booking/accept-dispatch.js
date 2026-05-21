@@ -25,28 +25,51 @@ export default async function handler(req, res) {
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.status !== 'confirmed') return res.status(400).json({ error: 'This booking is no longer available' });
-  if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job. Check your dashboard for other assignments.' });
-  if (booking.dispatch_token !== token) return res.status(403).json({ error: 'Invalid or expired offer token' });
 
-  // Verify this Easer was offered the job
-  const offeredTo = booking.dispatch_offered_to || [];
-  if (!offeredTo.includes(assemblerId)) {
-    return res.status(403).json({ error: 'This job offer was not sent to your account' });
+  // Support both dispatch token (offered to multiple) and assignment token (directly assigned)
+  const isDispatch = booking.dispatch_token && booking.dispatch_token === token;
+  const isAssignment = booking.assignment_token && booking.assignment_token === token &&
+    booking.assembler_id === assemblerId; // manual assign: already assigned to this Easer
+
+  if (!isDispatch && !isAssignment) {
+    return res.status(403).json({ error: 'Invalid or expired offer token' });
+  }
+
+  // For dispatch offers: verify this Easer was in the offer list
+  if (isDispatch) {
+    if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
+    const offeredTo = booking.dispatch_offered_to || [];
+    if (!offeredTo.includes(assemblerId)) {
+      return res.status(403).json({ error: 'This job offer was not sent to your account' });
+    }
   }
 
   // Get Easer profile
   const { data: easer } = await sb.from('profiles').select('full_name, email, tier, has_membership').eq('id', assemblerId).single();
   if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
 
-  // Assign the job
-  const { error: assignErr } = await sb.from('bookings').update({
-    assembler_id: assemblerId,
-    assembler_name: easer.full_name,
-    assembler_tier: easer.tier,
-    assigned_at: new Date().toISOString(),
+  // Accept the job — set assembler_accepted_at so check-in button appears
+  const updateData = {
+    assembler_accepted_at: new Date().toISOString(),
     dispatch_status: 'accepted',
-    dispatch_token: null, // invalidate token
-  }).eq('id', bookingId).is('assembler_id', null); // atomic — only if still unassigned
+    dispatch_token: null,
+    assignment_token: null,
+  };
+  if (isDispatch) {
+    // Also assign for dispatch flow (not yet assigned)
+    Object.assign(updateData, {
+      assembler_id: assemblerId,
+      assembler_name: easer.full_name,
+      assembler_tier: easer.tier,
+      assigned_at: new Date().toISOString(),
+    });
+  }
+
+  const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId);
+  // For dispatch: atomic check — only if still unassigned
+  const { error: assignErr } = isDispatch
+    ? await updateQuery.is('assembler_id', null)
+    : await updateQuery;
 
   if (assignErr) {
     console.error('Accept dispatch assign error:', assignErr);

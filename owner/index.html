@@ -1735,9 +1735,9 @@ function intelQuick(msg) {
     section.style.display = '';
     if (b.assembler_id) {
       var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; });
-      var aName = a ? a.full_name : '(assigned assembler)';
-      var accepted = b.assembler_accepted_at ? ' &bull; <span style="color:#1d9e75">Accepted</span>' : ' &bull; <span style="color:#f59e0b">Pending response</span>';
-      status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted;
+      var aName = a ? a.full_name : (b.assembler_name || 'Assigned Easer');
+      var accepted = b.assembler_accepted_at ? ' &bull; <span style="color:#1d9e75">Accepted</span>' : ' &bull; <span style="color:#f59e0b">Pending acceptance</span>';
+      status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted + ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>';
       controls.style.display = 'none';
     } else {
       status.textContent = 'No assembler assigned yet.';
@@ -1750,6 +1750,14 @@ function intelQuick(msg) {
     }
   }
 
+  window.toggleReassign = function() {
+    var controls = document.getElementById('assign-controls');
+    var btn = document.getElementById('assign-btn');
+    controls.style.display = controls.style.display === 'none' ? 'flex' : 'none';
+    if (btn) btn.textContent = 'Reassign';
+    if (btn) btn.dataset.reassign = 'true';
+  };
+
   document.getElementById('assign-select').addEventListener('change', function() {
     document.getElementById('assign-btn').disabled = !this.value;
   });
@@ -1757,11 +1765,15 @@ function intelQuick(msg) {
   document.getElementById('assign-btn').addEventListener('click', async function() {
     var assemblerId = document.getElementById('assign-select').value;
     if (!assemblerId || !selectedId) return;
-    this.disabled = true; this.textContent = 'Assigning...';
+    var isReassign = this.dataset.reassign === 'true';
+    this.disabled = true; this.textContent = isReassign ? 'Reassigning...' : 'Assigning...';
     try {
-      var data = await apiPost('/assign', { bookingId: selectedId, assemblerId: assemblerId });
+      var body = { bookingId: selectedId, assemblerId: assemblerId };
+      if (isReassign) body.reassign = true;
+      var data = await apiPost('/assign', body);
       if (data.error) { toast(data.error, 'error'); return; }
-      toast('Assigned to ' + (data.assignedTo || 'assembler'), 'success');
+      toast((isReassign ? 'Reassigned' : 'Assigned') + ' to ' + (data.assignedTo || 'Easer'), 'success');
+      delete this.dataset.reassign;
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch(e) { toast('Failed to assign', 'error'); }

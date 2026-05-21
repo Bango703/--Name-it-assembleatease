@@ -1,6 +1,7 @@
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { rateLimit } from './_ratelimit.js';
+import { dispatchBooking } from './booking/_dispatch-internal.js';
 
 /**
  * POST /api/booking-confirmed
@@ -33,12 +34,10 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Booking not found' });
   }
 
-  // Mark card as authorized in Supabase so booking/complete.js can capture the charge.
-  // This is critical — without this update, payment_status stays 'pending' and the
-  // Stripe capture block in complete.js is skipped, meaning revenue is never collected.
+  // Confirm booking + mark card authorized. Promotes status so dispatch can run.
   const { error: updateErr } = await sb
     .from('bookings')
-    .update({ payment_status: 'authorized' })
+    .update({ payment_status: 'authorized', status: 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: 'payment' })
     .eq('id', bookingId);
 
   if (updateErr) {
@@ -173,6 +172,9 @@ export default async function handler(req, res) {
     html: ownerHtml,
     replyTo: email,
   });
+
+  // Auto-dispatch to Easers — non-blocking, runs after response
+  dispatchBooking(bookingId).catch(e => console.error('Auto-dispatch error:', e.message));
 
   return res.status(200).json({ success: true });
 }
