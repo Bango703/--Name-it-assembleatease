@@ -97,7 +97,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
-    const auth = await APP.requireVerifiedAssembler();
+    const auth = await APP.requireAuth(["assembler"]);
     if (!auth) return;
     document.body.style.visibility = 'visible';
     const session = auth.session;
