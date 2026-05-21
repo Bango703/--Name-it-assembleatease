@@ -60,9 +60,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Easer is already active.' });
     }
 
+    // Always update tier (definitely exists); best-effort update new columns
+    await sb.from('profiles').update({ tier: 'starter' }).eq('id', assemblerId);
     await sb.from('profiles').update({
       status: 'active',
-      tier: 'starter',
       application_status: 'approved',
       approved_at: new Date().toISOString(),
       welcome_email_sent: true,
@@ -125,9 +126,11 @@ export default async function handler(req, res) {
     if (profile.status === 'suspended') return res.status(400).json({ error: 'Already suspended.' });
     if (profile.status !== 'active') return res.status(400).json({ error: 'Only active Easers can be suspended.' });
 
+    // tier column definitely exists — use it as fallback suspended marker
+    await sb.from('profiles').update({ tier: 'suspended' }).eq('id', assemblerId);
     await sb.from('profiles').update({
       status: 'suspended',
-      previous_tier: profile.tier, // preserve so reinstate restores correctly
+      previous_tier: profile.tier,
     }).eq('id', assemblerId);
 
     return res.status(200).json({ ok: true, action: 'suspended', previous_tier: profile.tier });
@@ -135,12 +138,14 @@ export default async function handler(req, res) {
 
   // ── REINSTATE ────────────────────────────────────────────────────────────
   if (action === 'reinstate') {
-    if (profile.status !== 'suspended') return res.status(400).json({ error: 'Easer is not suspended.' });
+    if (profile.status !== 'suspended' && profile.tier !== 'suspended') {
+      return res.status(400).json({ error: 'Easer is not suspended.' });
+    }
 
     const restoredTier = profile.previous_tier || 'starter';
+    await sb.from('profiles').update({ tier: restoredTier }).eq('id', assemblerId);
     await sb.from('profiles').update({
       status: 'active',
-      tier: restoredTier,
       previous_tier: null,
     }).eq('id', assemblerId);
 
@@ -199,11 +204,17 @@ export default async function handler(req, res) {
 
   // ── MARK ID VERIFIED ─────────────────────────────────────────────────────
   if (action === 'mark_id_verified') {
-    await sb.from('profiles').update({
+    // Always update identity_verified first (this column definitely exists)
+    const { error: idErr } = await sb.from('profiles').update({
       identity_verified: true,
       identity_verified_at: new Date().toISOString(),
-      id_verification_status: 'verified',
     }).eq('id', assemblerId);
+    if (idErr) {
+      console.error('mark_id_verified core update error:', idErr);
+      return res.status(500).json({ error: 'Failed to update identity_verified' });
+    }
+    // Best-effort: also update new columns if they exist
+    await sb.from('profiles').update({ id_verification_status: 'verified' }).eq('id', assemblerId);
 
     sendEmail({
       to: ownerEmail(),
