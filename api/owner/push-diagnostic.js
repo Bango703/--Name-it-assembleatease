@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   try {
     const { data, error, count } = await sb
       .from('push_subscriptions')
-      .select('user_id, created_at', { count: 'exact' })
+      .select('user_id, endpoint, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -29,6 +29,12 @@ export default async function handler(req, res) {
       report.recent = (data || []).map(r => ({
         user_id: r.user_id,
         saved: r.created_at,
+        endpoint_type: r.endpoint
+          ? r.endpoint.includes('apple') ? 'iOS/Safari'
+            : r.endpoint.includes('googleapis') || r.endpoint.includes('fcm') ? 'Android/Chrome'
+            : r.endpoint.includes('mozilla') ? 'Firefox'
+            : r.endpoint.slice(0, 50) + '…'
+          : 'unknown',
       }));
     }
   } catch(e) {
