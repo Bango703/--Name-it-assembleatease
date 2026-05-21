@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { verifyOwner } from '../_email.js';
 import { getSupabase } from '../_supabase.js';
+import { dispatchBooking } from '../booking/_dispatch-internal.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -113,6 +114,19 @@ export default async function handler(req, res) {
     topServices: Object.entries(svcMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, c]) => s + ': ' + c + ' bookings'),
   };
 
+  // ── Auto-dispatch confirmed unassigned bookings ─────────────────
+  const unassigned = confirmed.filter(b => !b.assembler_id && !b.dispatch_offered_at);
+  const dispatchResults = [];
+  for (const b of unassigned) {
+    try {
+      const r = await dispatchBooking(b.id);
+      dispatchResults.push({ ref: b.ref, result: r.message, dispatched: r.dispatched });
+    } catch(e) { dispatchResults.push({ ref: b.ref, result: 'error: ' + e.message }); }
+  }
+  if (dispatchResults.length) {
+    platformData.autoDispatchedNow = dispatchResults;
+  }
+
   // ── Ask Claude Haiku to synthesize ──────────────────────────────
   const client = new Anthropic({ apiKey: key });
 
@@ -139,13 +153,18 @@ CRITICAL FORMATTING RULES — you must follow these exactly:
 - Never say "I notice" or "I'd suggest" — just state it`;
 
   const userMsg = isChat ? message.trim()
-    : `Run a full platform health check. Give me:
-1. URGENT (things needing action today)
-2. REVENUE STATUS (money in/out snapshot)
-3. GROWTH SIGNAL (trend and what's driving it)
-4. ONE THING I should do right now to grow faster
+    : `Today is ${todayStr}. Run a full platform health check.
 
-Be brief and specific.`;
+${dispatchResults.length ? `NOTE: I just auto-dispatched ${dispatchResults.length} confirmed unassigned booking(s) to Easers: ${dispatchResults.map(r => r.ref + ' (' + r.result + ')').join(', ')}.` : ''}
+
+Give me:
+1. URGENT — anything that needs attention right now (stale pending, missed jobs, uncontacted customers)
+2. REVENUE — snapshot of money in/out, pending payouts
+3. TODAY — what's on the schedule today
+4. GROWTH — booking trend, what's working
+5. ACTION — the single most important thing I should do in the next hour
+
+Use the actual numbers from the data. Be direct.`;
 
   const aiMsg = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
