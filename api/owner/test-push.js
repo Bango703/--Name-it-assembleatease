@@ -1,6 +1,6 @@
 import { sendPushToUser } from '../_push.js';
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner } from '../_auth.js';
+import { verifyOwner } from '../_email.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
