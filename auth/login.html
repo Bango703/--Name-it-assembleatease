@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Log In — AssembleAtEase</title>
+  <title>Easer Sign In — AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" /><link rel="icon" type="image/jpeg" href="/images/logo.jpg" />
@@ -13,7 +13,7 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
-  <script src="../assets/js/auth.js" defer></script>
+  <!-- auth.js not loaded here — login.html has its own handler to avoid duplicates -->
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'DM Sans', sans-serif; color: #0d1117; background: #f8fafc; -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -188,13 +188,13 @@
   <div class="auth-brand">
     <div class="auth-brand-inner">
       <a href="/" class="brand-logo">Assemble<span>AtEase</span></a>
-      <h1 class="brand-headline">Welcome back to AssembleAtEase</h1>
-      <p class="brand-sub">Manage your bookings, track your appointments, and book new services — all in one place.</p>
+      <h1 class="brand-headline">Easer Portal</h1>
+      <p class="brand-sub">Your professional dashboard for managing jobs, tracking earnings, and growing your reputation.</p>
       <div class="brand-bullets">
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>View and manage all your bookings</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Book new services in minutes</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Message your assigned Easer</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Pay securely after job completion</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Receive job assignments instantly</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Track your earnings and payouts</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Build your reviews and tier</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Get priority jobs with membership</div>
       </div>
     </div>
   </div>
@@ -202,8 +202,8 @@
   <!-- RIGHT — Form -->
   <div class="auth-form-panel">
     <div class="auth-form-inner">
-      <h2 class="form-heading">Log in</h2>
-      <p class="form-sub">Don't have an account? <a href="signup">Sign up free</a></p>
+      <h2 class="form-heading">Sign in</h2>
+      <p class="form-sub">Easer Portal &mdash; <a href="/">Back to site</a></p>
 
       <div id="auth-alert" class="alert hidden"></div>
 
@@ -235,7 +235,7 @@
       </form>
 
       <div class="form-divider">
-        New to AssembleAtEase? <a href="signup">Create a free account</a>
+        Not an Easer yet? <a href="/apply">Apply to join</a>
       </div>
     </div>
   </div>

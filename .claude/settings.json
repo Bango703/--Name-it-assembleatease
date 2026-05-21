@@ -23,7 +23,15 @@
       "WebFetch(domain:www.assembleatease.com)",
       "Read(//c/Users/tgbiz/Downloads/**)",
       "Bash(npm install *)",
-      "Bash(node generate-vapid.mjs)"
+      "Bash(node generate-vapid.mjs)",
+      "Bash(awk -F: '{print $1}')",
+      "Bash(awk -F: '{print $1\" \"$0}')",
+      "Read(//tmp/**)",
+      "Bash(awk 'NR>=1490 && NR<=1560 {print NR\": \"$0}' owner/index.html)",
+      "Bash(awk 'NR>=1620 && NR<=1800 {print NR\": \"$0}' owner/index.html)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\tgbiz\\\\Handyman-marketplace\" -Recurse -Directory)",
+      "Bash(Select-Object -First 30 FullName)",
+      "Bash(awk 'NR>=396 && NR<=430 {print NR\": \"$0}' owner/index.html)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",

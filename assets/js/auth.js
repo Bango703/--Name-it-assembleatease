@@ -138,9 +138,7 @@
         console.error('[auth.js] Profile upsert error:', profileError);
       }
 
-      window.location.href = role === 'assembler'
-        ? '../assembler/'
-        : '../customer/';
+      window.location.href = '/assembler/';
 
     } catch (err) {
       console.error('[auth.js] Signup error:', err);
@@ -195,11 +193,8 @@
         return;
       }
 
-      window.location.href = profile.role === 'assembler'
-        ? '../assembler/'
-        : profile.role === 'owner'
-          ? '../owner/'
-          : '../customer/';
+      window.location.href = profile.role === 'assembler' ? '/assembler/'
+        : profile.role === 'owner' ? '/owner/' : '/';
 
     } catch (err) {
       console.error('[auth.js] Login error:', err);

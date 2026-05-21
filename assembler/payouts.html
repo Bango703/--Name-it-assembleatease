@@ -105,12 +105,14 @@
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href = '../';
+      window.location.href = '/';
     });
 
     try {
+      const { data: { session: fresh } } = await supabaseClient.auth.getSession();
+      const token = (fresh || session).access_token;
       const resp = await fetch('/api/booking/my-assignments', {
-        headers: { 'Authorization': 'Bearer ' + session.access_token },
+        headers: { 'Authorization': 'Bearer ' + token },
       });
       if (!resp.ok) throw new Error('Failed to load');
       const data = await resp.json();

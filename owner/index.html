@@ -365,48 +365,18 @@
         </div>
       </div>
 
-      <!-- ─── MARKETPLACE VIEW ─── -->
+      <!-- MARKETPLACE VIEW REMOVED —  jobs are dispatched by owner, no bidding system -->
       <div id="marketplace-view" style="display:none">
-        <div class="stats-row">
-          <div class="stat neutral"><div class="stat-value" id="mkt-total">—</div><div class="stat-label">All Jobs</div></div>
-          <div class="stat teal"><div class="stat-value" id="mkt-open">—</div><div class="stat-label">Open</div></div>
-          <div class="stat amber"><div class="stat-value" id="mkt-assigned">—</div><div class="stat-label">Assigned</div></div>
-          <div class="stat orange"><div class="stat-value" id="mkt-completed">—</div><div class="stat-label">Completed</div></div>
-        </div>
-        <div class="tabs" id="mkt-tabs">
-          <button class="tab active" data-mkt-status="all">All</button>
-          <button class="tab" data-mkt-status="open">Open</button>
-          <button class="tab" data-mkt-status="assigned">Assigned</button>
-          <button class="tab" data-mkt-status="in_progress">In Progress</button>
-          <button class="tab" data-mkt-status="completed">Completed</button>
-          <button class="tab" data-mkt-status="cancelled">Cancelled</button>
-        </div>
+        <div style="padding:3rem;text-align:center;color:var(--muted)">Marketplace removed.</div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem">
             <thead>
               <tr style="text-align:left">
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Title</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Category</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:center">Bids</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Budget</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Posted</th>
               </tr>
             </thead>
             <tbody id="mkt-tbody"></tbody>
           </table>
-        </div>
-        <div class="detail-panel" id="mkt-detail" style="margin-top:1.5rem">
-          <div class="detail-header">
-            <h2 id="mkt-detail-title">Job Detail</h2>
-            <button class="detail-close" id="mkt-detail-close">&#10005;</button>
-          </div>
-          <div class="detail-grid" id="mkt-detail-grid"></div>
-          <div class="detail-section-title" style="margin-top:1rem;margin-bottom:0.75rem">Bids</div>
-          <div id="mkt-bids-list" style="font-size:0.85rem"></div>
-          <div id="mkt-detail-actions" style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap"></div>
         </div>
       </div>
 
@@ -1800,7 +1770,7 @@ function intelQuick(msg) {
   var $intelligenceView = document.getElementById('intelligence-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$waitlistView,$assemblersView,$marketplaceView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView];
+  var allViews = [$bookingsView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView];
 
   // Expose headers globally so scripts outside IIFE can use it
   window._ownerHeaders = function() { return headers(); };
@@ -2600,174 +2570,8 @@ function intelQuick(msg) {
   });
   $reasonModal.addEventListener('click', function(e) { if (e.target === this) { this.classList.remove('open'); pendingAction = null; } });
 
-  // ─── Marketplace ───
-  var allMarketplaceJobs = [];
-  var currentMktStatus = 'all';
-
-  async function loadMarketplaceJobs() {
-    document.getElementById('mkt-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading marketplace jobs...</td></tr>';
-    document.getElementById('mkt-detail').classList.remove('open');
-    try {
-      var r = await fetch('/api/owner/jobs', { headers: headers() });
-      if (!r.ok) throw new Error('Failed');
-      var data = await r.json();
-      allMarketplaceJobs = data.jobs || [];
-      var open = allMarketplaceJobs.filter(function(j){ return j.status==='open'; }).length;
-      var assigned = allMarketplaceJobs.filter(function(j){ return j.status==='assigned'||j.status==='in_progress'; }).length;
-      var completed = allMarketplaceJobs.filter(function(j){ return j.status==='completed'; }).length;
-      document.getElementById('mkt-total').textContent = allMarketplaceJobs.length;
-      document.getElementById('mkt-open').textContent = open;
-      document.getElementById('mkt-assigned').textContent = assigned;
-      document.getElementById('mkt-completed').textContent = completed;
-      var $navMkt = document.getElementById('nav-marketplace');
-      if (open > 0) { $navMkt.textContent = open; $navMkt.style.display = ''; }
-      else $navMkt.style.display = 'none';
-      renderMarketplaceTable();
-    } catch(e) {
-      document.getElementById('mkt-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load marketplace jobs</td></tr>';
-    }
-  }
-
-  document.getElementById('mkt-tabs').addEventListener('click', function(e) {
-    var tab = e.target.closest('.tab');
-    if (!tab) return;
-    document.querySelectorAll('#mkt-tabs .tab').forEach(function(t){ t.classList.remove('active'); });
-    tab.classList.add('active');
-    currentMktStatus = tab.dataset.mktStatus;
-    renderMarketplaceTable();
-  });
-
-  function mktStatusBadge(status) {
-    var map = { open:'badge-pending', assigned:'badge-confirmed', in_progress:'badge-confirmed', completed:'badge-completed', cancelled:'badge-cancelled' };
-    return '<span class="badge ' + (map[status]||'') + '">' + esc(status||'—') + '</span>';
-  }
-
-  function formatBudget(job) {
-    if (job.budget_type === 'fixed' && job.fixed_price) return '$' + job.fixed_price;
-    if (job.budget_type === 'range' && (job.budget_min || job.budget_max)) return '$' + (job.budget_min||0) + '–$' + (job.budget_max||'?');
-    return '—';
-  }
-
-  function renderMarketplaceTable() {
-    var filtered = currentMktStatus === 'all' ? allMarketplaceJobs : allMarketplaceJobs.filter(function(j){ return j.status===currentMktStatus; });
-    document.querySelectorAll('#mkt-tabs .tab').forEach(function(t) {
-      var s = t.dataset.mktStatus;
-      var c = s === 'all' ? allMarketplaceJobs.length : allMarketplaceJobs.filter(function(j){ return j.status===s; }).length;
-      var span = t.querySelector('.tab-count');
-      if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
-      span.textContent = c;
-    });
-    var tbody = document.getElementById('mkt-tbody');
-    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No ' + (currentMktStatus==='all'?'':currentMktStatus+' ') + 'jobs found</td></tr>'; return; }
-    var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
-    tbody.innerHTML = filtered.map(function(j) {
-      var bidCount = (j.bids && j.bids.length) ? (j.bids[0].count || 0) : 0;
-      return '<tr style="cursor:pointer" data-mkt-job-id="' + j.id + '">'
-        + '<td style="' + rs + '"><strong>' + esc(j.title) + '</strong></td>'
-        + '<td style="' + rs + '">' + (j.customer ? esc(j.customer.full_name) : '—') + '</td>'
-        + '<td style="' + rs + '">' + esc(j.category||'—') + '</td>'
-        + '<td style="' + rs + '">' + (j.customer ? esc(j.customer.city||'—') : '—') + (j.state ? ', ' + esc(j.state) : '') + '</td>'
-        + '<td style="' + rs + '">' + mktStatusBadge(j.status) + '</td>'
-        + '<td style="' + rs + ';text-align:center">' + bidCount + '</td>'
-        + '<td style="' + rs + '">' + formatBudget(j) + '</td>'
-        + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(j.created_at) + '</td>'
-        + '</tr>';
-    }).join('');
-  }
-
-  document.getElementById('mkt-tbody').addEventListener('click', async function(e) {
-    var row = e.target.closest('[data-mkt-job-id]');
-    if (row) await loadMarketplaceJobDetail(row.dataset.mktJobId);
-  });
-
-  async function loadMarketplaceJobDetail(jobId) {
-    var $panel = document.getElementById('mkt-detail');
-    var $grid  = document.getElementById('mkt-detail-grid');
-    var $title = document.getElementById('mkt-detail-title');
-    var $bids  = document.getElementById('mkt-bids-list');
-    $panel.classList.add('open');
-    $title.textContent = 'Loading…';
-    $grid.innerHTML = '';
-    $bids.innerHTML = '<div style="color:var(--muted);padding:1rem 0">Loading bids…</div>';
-    $panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
-    try {
-      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { headers:headers() });
-      if (!r.ok) throw new Error('Failed');
-      var data = await r.json();
-      var j = data.job;
-      if (!j) throw new Error('No job');
-      $title.textContent = j.title;
-      $grid.innerHTML = [
-        field('Customer', j.customer ? esc(j.customer.full_name) : '—'),
-        field('Customer Email', j.customer ? esc(j.customer.email) : '—'),
-        field('Category', esc(j.category||'—')),
-        field('Location', esc((j.city||'') + (j.state ? ', ' + j.state : '')||'—')),
-        field('Status', mktStatusBadge(j.status)),
-        field('Budget', formatBudget(j)),
-        field('Description', '<span style="white-space:pre-wrap">' + esc(j.description||'—') + '</span>'),
-        field('Posted', formatDateTime(j.created_at)),
-        j.assigned_at ? field('Assigned', formatDateTime(j.assigned_at)) : '',
-        j.completed_at ? field('Completed', formatDateTime(j.completed_at)) : '',
-      ].filter(Boolean).join('');
-      var bids = j.bids || [];
-      if (!bids.length) {
-        $bids.innerHTML = '<div style="color:var(--muted);padding:0.75rem 0">No bids yet</div>';
-      } else {
-        $bids.innerHTML = bids.map(function(b) {
-          var asmName = b.assembler ? esc(b.assembler.full_name) : 'Unknown';
-          var bidAmt  = b.bid_type === 'fixed' ? '$' + (b.amount||'?') : '$' + (b.amount||'?') + '/hr';
-          var statusColor = b.status === 'accepted' ? '#1d9e75' : b.status === 'rejected' ? 'var(--red)' : 'var(--muted)';
-          return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
-            + '<div style="display:flex;justify-content:space-between;align-items:center"><strong>' + asmName + '</strong><span style="font-weight:600;color:var(--teal)">' + bidAmt + '</span></div>'
-            + '<div style="font-size:0.8rem;color:var(--muted);margin-top:2px">' + (b.assembler ? esc(b.assembler.city||'') : '') + (b.assembler && b.assembler.rating ? ' &bull; ' + Number(b.assembler.rating).toFixed(1) + ' &#9733;' : '') + (b.assembler && b.assembler.completed_jobs ? ' &bull; ' + b.assembler.completed_jobs + ' jobs' : '') + '</div>'
-            + (b.note ? '<div style="font-size:0.8rem;color:var(--soft);margin-top:4px;font-style:italic">' + esc(b.note) + '</div>' : '')
-            + '<div style="font-size:0.75rem;color:' + statusColor + ';margin-top:4px;font-weight:600">' + (b.status||'pending').toUpperCase() + ' &bull; ' + formatDate(b.created_at) + '</div>'
-            + '</div>';
-        }).join('');
-      }
-      var $actions = document.getElementById('mkt-detail-actions');
-      $actions.innerHTML = '';
-      if (j.status === 'open') {
-        var closeBtn = document.createElement('button');
-        closeBtn.className = 'btn btn-amber';
-        closeBtn.textContent = 'Close Job';
-        closeBtn.onclick = function() { closeMarketplaceJob(j.id, 'cancelled'); };
-        $actions.appendChild(closeBtn);
-      }
-      var deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn btn-red';
-      deleteBtn.textContent = 'Delete Job';
-      deleteBtn.onclick = function() { deleteMarketplaceJob(j.id); };
-      $actions.appendChild(deleteBtn);
-    } catch(e) {
-      $title.textContent = 'Error';
-      $bids.innerHTML = '<div style="color:var(--red);padding:1rem 0">Failed to load job detail</div>';
-    }
-  }
-
-  document.getElementById('mkt-detail-close').addEventListener('click', function() { document.getElementById('mkt-detail').classList.remove('open'); });
-
-  async function closeMarketplaceJob(jobId, newStatus) {
-    if (!confirm('Change this job to "' + newStatus + '"?')) return;
-    try {
-      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { method:'PATCH', headers:headers(), body:JSON.stringify({ status:newStatus }) });
-      if (!r.ok) throw new Error();
-      toast('Job updated to ' + newStatus);
-      document.getElementById('mkt-detail').classList.remove('open');
-      await loadMarketplaceJobs();
-    } catch(e) { toast('Failed to update job', 'error'); }
-  }
-
-  async function deleteMarketplaceJob(jobId) {
-    if (!confirm('Permanently delete this job and all its bids? This cannot be undone.')) return;
-    try {
-      var r = await fetch('/api/owner/jobs?id=' + encodeURIComponent(jobId), { method:'DELETE', headers:headers() });
-      if (!r.ok) throw new Error();
-      toast('Job deleted');
-      document.getElementById('mkt-detail').classList.remove('open');
-      await loadMarketplaceJobs();
-    } catch(e) { toast('Failed to delete job', 'error'); }
-  }
+  // ─── Marketplace removed — jobs dispatched by owner ───
+  async function loadMarketplaceJobs() { /* removed */ }
 
 })();
 </script>
