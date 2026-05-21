@@ -78,14 +78,22 @@ export default async function handler(req, res) {
     }
   }
 
-  const { error: updateErr } = await sb
-    .from('bookings')
+  // Try full update first; fall back to just status if optional columns don't exist yet
+  let updateErr;
+  ({ error: updateErr } = await sb.from('bookings')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: reason || null, cancellation_fee: feeCaptured || null })
-    .eq('id', booking.id);
+    .eq('id', booking.id));
+
+  if (updateErr) {
+    console.warn('Cancel full update failed, trying status-only:', updateErr.message);
+    ({ error: updateErr } = await sb.from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', booking.id));
+  }
 
   if (updateErr) {
     console.error('Cancel update error:', updateErr);
-    return res.status(500).json({ error: 'Failed to update booking' });
+    return res.status(500).json({ error: 'Failed to cancel booking: ' + updateErr.message });
   }
 
   // Send cancellation email to customer
