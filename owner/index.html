@@ -883,6 +883,8 @@ function intelQuick(msg) {
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
     loadBookings();
+    loadAssemblers();
+    // Nav badge: pending Easer applications
     fetch('/api/assembler/list?tier=pending', { headers: headers() })
       .then(function(r) { return r.json(); })
       .then(function(d) {
@@ -890,6 +892,15 @@ function intelQuick(msg) {
         var $navApps = document.getElementById('nav-pending-apps');
         if (ct > 0) { $navApps.textContent = ct; $navApps.style.display = ''; }
         else $navApps.style.display = 'none';
+      }).catch(function(){});
+    // Nav badge: pending waitlist entries
+    fetch('/api/owner/waitlist?status=pending', { headers: headers() })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var pending = ((d.stats || {}).pending) || 0;
+        var $navWl = document.getElementById('nav-waitlist');
+        if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
+        else $navWl.style.display = 'none';
       }).catch(function(){});
   }
 
@@ -1713,7 +1724,7 @@ function intelQuick(msg) {
     } catch(e) { console.error('Failed to load assemblers:', e); }
   }
 
-  loadAssemblers();
+  if (password) loadAssemblers();
 
   function renderAssignSection(b) {
     var section  = document.getElementById('assign-section');
@@ -2170,7 +2181,7 @@ function intelQuick(msg) {
     }
   });
 
-  (async function() {
+  if (password) (async function() {
     try {
       var r = await fetch('/api/owner/waitlist?status=pending', { headers: headers() });
       if (r.ok) {
