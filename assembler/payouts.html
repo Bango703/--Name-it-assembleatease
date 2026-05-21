@@ -5,6 +5,7 @@
   <title>My Payouts — AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>body{visibility:hidden}</style>
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
@@ -98,6 +99,7 @@
   document.addEventListener('DOMContentLoaded', async function() {
     const auth = await APP.requireVerifiedAssembler();
     if (!auth) return;
+    document.body.style.visibility = 'visible';
     const session = auth.session;
 
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {

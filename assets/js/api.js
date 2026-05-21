@@ -309,12 +309,15 @@ const API = {
 
     // Active assignments from bookings
     const assignedJobs = allBookings.filter(b => b.status === 'confirmed').length;
+    // Completed jobs = marketplace jobs + completed platform bookings
+    const completedBookings = allBookings.filter(b => b.status === 'completed').length;
+    const completedJobs = allJobs.filter(j => j.status === 'completed').length + completedBookings;
 
     return {
       totalBids:    allBids.length,
       pendingBids:  allBids.filter(b => b.status === 'pending').length,
       acceptedBids: allBids.filter(b => b.status === 'accepted').length,
-      completedJobs: allJobs.filter(j => j.status === 'completed').length,
+      completedJobs,
       assignedJobs,
       totalEarned,
     };
