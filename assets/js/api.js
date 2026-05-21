@@ -276,49 +276,25 @@ const API = {
   },
 
   async getAssemblerStats(assemblerId) {
-    const [bidsRes, jobsRes, bookingsRes] = await Promise.all([
-      supabaseClient
-        .from('bids')
-        .select('id, status')
-        .eq('assembler_id', assemblerId),
-      supabaseClient
-        .from('jobs')
-        .select('id, status, agreed_amount')
-        .eq('assembler_id', assemblerId),
-      supabaseClient
-        .from('bookings')
-        .select('id, status, assembler_due')
-        .eq('assembler_id', assemblerId),
-    ]);
+    // Only query bookings — marketplace (bids/jobs) tables removed from platform
+    const { data: allBookings } = await supabaseClient
+      .from('bookings')
+      .select('id, status, assembler_due')
+      .eq('assembler_id', assemblerId);
 
-    const allBids = bidsRes.data || [];
-    const allJobs = jobsRes.data || [];
-    const allBookings = bookingsRes.data || [];
+    const bookings = allBookings || [];
 
-    // Marketplace job earnings
-    const marketplaceEarned = allJobs
-      .filter(j => j.status === 'completed')
-      .reduce((sum, j) => sum + (j.agreed_amount || 0), 0);
-
-    // Platform booking earnings (assembler_due is in cents → convert to dollars)
-    const bookingEarned = allBookings
-      .filter(b => b.status === 'completed' && b.assembler_due)
+    const completedBookings = bookings.filter(b => b.status === 'completed');
+    const totalEarned = completedBookings
+      .filter(b => b.assembler_due)
       .reduce((sum, b) => sum + (b.assembler_due || 0), 0) / 100;
 
-    const totalEarned = marketplaceEarned + bookingEarned;
-
-    // Active assignments from bookings
-    const assignedJobs = allBookings.filter(b => b.status === 'confirmed').length;
-    // Completed jobs = marketplace jobs + completed platform bookings
-    const completedBookings = allBookings.filter(b => b.status === 'completed').length;
-    const completedJobs = allJobs.filter(j => j.status === 'completed').length + completedBookings;
-
     return {
-      totalBids:    allBids.length,
-      pendingBids:  allBids.filter(b => b.status === 'pending').length,
-      acceptedBids: allBids.filter(b => b.status === 'accepted').length,
-      completedJobs,
-      assignedJobs,
+      totalBids:     0,
+      pendingBids:   0,
+      acceptedBids:  0,
+      completedJobs: completedBookings.length,
+      assignedJobs:  bookings.filter(b => b.status === 'confirmed').length,
       totalEarned,
     };
   },

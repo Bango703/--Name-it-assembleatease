@@ -474,7 +474,7 @@
     // Load messages from Supabase
     supabaseClient.from('messages').select('*').eq('booking_id', bookingId).order('created_at',{ascending:true})
       .then(function(r){
-        var msgs=r.data||[];
+        var msgs=(r.error ? [] : r.data)||[];
         var thread=document.getElementById('asgn-msg-thread');
         if(!msgs.length){
           thread.innerHTML='<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
