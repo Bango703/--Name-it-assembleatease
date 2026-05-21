@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { logActivity } from './_activity.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -78,6 +79,26 @@ export default async function handler(req, res) {
 
   // Update Easer's last assigned time for fairness tracking
   await sb.from('profiles').update({ last_assigned_at: new Date().toISOString() }).eq('id', assemblerId);
+
+  // Log activity
+  logActivity(sb, { bookingId, eventType: 'easer_accepted', actorType: 'easer', actorId: assemblerId, actorName: easer.full_name, description: `${easer.full_name} accepted the job`, metadata: { tier: easer.tier } });
+
+  // Notify customer — "Your Easer is confirmed"
+  if (booking.customer_email) {
+    sendEmail({
+      to: booking.customer_email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Your Easer is confirmed — ' + esc(booking.ref),
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
+        <h2 style="color:#0097a7">Your Easer is confirmed!</h2>
+        <p>Hi ${esc((booking.customer_name||'').split(' ')[0])},</p>
+        <p>A professional Easer has been assigned to your job and will arrive on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time||'the scheduled time')}</strong>.</p>
+        <p style="margin-top:1rem">You will receive another notification when your Easer is on their way. Questions? Reply to this email.</p>
+        <p style="margin-top:1rem;color:#6b7280;font-size:0.85rem">Booking ref: ${esc(booking.ref)}</p>
+      </div>`,
+      replyTo: ownerEmail(),
+    }).catch(() => {});
+  }
 
   // Notify owner
   try {

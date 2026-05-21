@@ -2,6 +2,7 @@ import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
+import { logActivity } from './booking/_activity.js';
 
 /**
  * POST /api/booking-confirmed
@@ -173,7 +174,8 @@ export default async function handler(req, res) {
     replyTo: email,
   });
 
-  // Auto-dispatch to Easers — non-blocking, runs after response
+  const sb2 = getSupabase();
+  logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — card authorized. ${booking.service} on ${booking.date}.`, metadata: { amount: booking.total_price } });
   dispatchBooking(bookingId).catch(e => console.error('Auto-dispatch error:', e.message));
 
   return res.status(200).json({ success: true });

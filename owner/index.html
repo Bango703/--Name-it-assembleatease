@@ -316,11 +316,32 @@
                   <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
                 </div>
               </div>
-              <div class="detail-section-title">Messages</div>
-              <div class="msg-thread" id="msg-thread"></div>
-              <div class="msg-compose">
-                <textarea class="msg-input" id="msg-input" placeholder="Type a message..." rows="1"></textarea>
-                <button class="btn btn-teal" id="msg-send">Send</button>
+              <!-- Tabs -->
+              <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+                <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
+                <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
+                <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
+              </div>
+
+              <!-- Messages tab -->
+              <div id="tab-messages">
+                <div class="msg-thread" id="msg-thread"></div>
+                <div class="msg-compose">
+                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="1"></textarea>
+                  <button class="btn btn-teal" id="msg-send">Send</button>
+                </div>
+              </div>
+
+              <!-- Timeline tab -->
+              <div id="tab-timeline" style="display:none">
+                <div id="timeline-content" style="font-size:0.85rem">Loading…</div>
+              </div>
+
+              <!-- Notes tab -->
+              <div id="tab-notes" style="display:none">
+                <div id="notes-content" style="margin-bottom:0.75rem;font-size:0.85rem">Loading…</div>
+                <textarea id="new-note-input" placeholder="Add internal note (only visible to you)..." style="width:100%;min-height:60px;padding:0.6rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;resize:vertical;outline:none;box-sizing:border-box"></textarea>
+                <button id="save-note-btn" class="btn btn-teal" style="margin-top:0.5rem;width:100%" onclick="saveNote()">Save Note</button>
               </div>
             </div>
             <div class="empty" id="detail-placeholder" style="margin-top:0">Select a booking to view details</div>
@@ -1334,7 +1355,86 @@ function intelQuick(msg) {
     renderAssignSection(b);
     renderOwnerNotes(b);
     loadMessages(b.id);
+    // Reset to messages tab on new booking select
+    switchDetailTab('messages', document.querySelector('[data-tab="messages"]'));
+    // Pre-load timeline and notes in background
+    loadTimeline(b.id);
+    loadNotes(b.id);
   }
+
+  function switchDetailTab(tab, el) {
+    document.querySelectorAll('.detail-tab').forEach(function(t) {
+      t.style.color = 'var(--muted)';
+      t.style.borderBottom = 'none';
+    });
+    if (el) { el.style.color = 'var(--teal)'; el.style.borderBottom = '2px solid var(--teal)'; }
+    document.getElementById('tab-messages').style.display = tab === 'messages' ? '' : 'none';
+    document.getElementById('tab-timeline').style.display = tab === 'timeline' ? '' : 'none';
+    document.getElementById('tab-notes').style.display = tab === 'notes' ? '' : 'none';
+    if (tab === 'timeline' && selectedId) loadTimeline(selectedId);
+    if (tab === 'notes' && selectedId) loadNotes(selectedId);
+  }
+  window.switchDetailTab = switchDetailTab;
+
+  async function loadTimeline(bookingId) {
+    var el = document.getElementById('timeline-content');
+    if (!el) return;
+    try {
+      var r = await fetch('/api/booking/activity?bookingId=' + bookingId, { headers: headers() });
+      if (!r.ok) { el.innerHTML = '<div style="color:var(--muted)">No activity yet</div>'; return; }
+      var d = await r.json();
+      var items = d.activity || [];
+      if (!items.length) { el.innerHTML = '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>'; return; }
+      var icons = { booking_created:'📋', confirmed:'✅', dispatched:'📤', easer_accepted:'🤝', en_route:'🚗', arrived:'📍', in_progress:'🔧', completed:'✅', cancelled:'❌', refunded:'💰', note_added:'📝', payout_released:'💸', reassigned:'🔄', cancelled:'❌' };
+      el.innerHTML = '<div style="position:relative;padding-left:20px">'
+        + items.map(function(a) {
+          var icon = icons[a.event_type] || '•';
+          var time = new Date(a.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+          return '<div style="position:relative;padding:0.6rem 0;border-bottom:1px solid var(--border)">'
+            + '<div style="position:absolute;left:-20px;top:12px;width:16px;height:16px;border-radius:50%;background:var(--elevated);border:2px solid var(--border-md);display:flex;align-items:center;justify-content:center;font-size:10px">' + icon + '</div>'
+            + '<div style="font-weight:500;color:var(--text);font-size:0.82rem">' + esc(a.description) + '</div>'
+            + '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(a.actor_name || a.actor_type) + ' &bull; ' + time + '</div>'
+            + '</div>';
+        }).join('')
+        + '</div>';
+    } catch(e) { el.innerHTML = '<div style="color:var(--muted)">Could not load timeline</div>'; }
+  }
+
+  async function loadNotes(bookingId) {
+    var el = document.getElementById('notes-content');
+    if (!el) return;
+    try {
+      var r = await fetch('/api/booking/notes?bookingId=' + bookingId, { headers: headers() });
+      if (!r.ok) { el.innerHTML = ''; return; }
+      var d = await r.json();
+      var notes = d.notes || [];
+      if (!notes.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;margin-bottom:0.5rem">No notes yet</div>'; return; }
+      el.innerHTML = notes.map(function(n) {
+        var time = new Date(n.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+        return '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin-bottom:0.5rem">'
+          + '<div style="font-size:0.85rem;color:var(--text);white-space:pre-wrap">' + esc(n.note) + '</div>'
+          + '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px">' + esc(n.author) + ' &bull; ' + time + '</div>'
+          + '</div>';
+      }).join('');
+    } catch(e) { el.innerHTML = ''; }
+  }
+
+  window.saveNote = async function() {
+    var input = document.getElementById('new-note-input');
+    var note = input ? input.value.trim() : '';
+    var btn = document.getElementById('save-note-btn');
+    if (!note || !selectedId) return;
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      var r = await fetch('/api/booking/notes', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: selectedId, note }) });
+      var d = await r.json();
+      if (d.error) { toast(d.error, 'error'); return; }
+      input.value = '';
+      toast('Note saved', 'success');
+      loadNotes(selectedId);
+    } catch { toast('Failed to save note', 'error'); }
+    finally { btn.disabled = false; btn.textContent = 'Save Note'; }
+  };
 
   function field(label, value) {
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';

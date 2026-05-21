@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -142,6 +143,8 @@ export default async function handler(req, res) {
   } catch (emailErr) {
     console.error('Cancel email error:', emailErr);
   }
+
+  logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount } });
 
   return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'cancelled' }, refundAmount, feeCaptured, withinCancellationWindow });
 }

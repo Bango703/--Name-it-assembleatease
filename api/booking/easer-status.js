@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
 
 const STAGES = {
   en_route:    { status: 'en_route',    field: 'en_route_at',    label: 'On the way' },
@@ -42,21 +43,44 @@ export default async function handler(req, res) {
     if (e2) return res.status(500).json({ error: 'Failed to update status' });
   }
 
-  // Notify owner of significant stage changes
-  if (stage === 'en_route' || stage === 'in_progress') {
+  const easerFirstName = (booking.assembler_name || 'Your Easer').split(' ')[0];
+  const customerFirstName = (booking.customer_name || 'there').split(' ')[0];
+
+  // Log activity
+  logActivity(sb, { bookingId, eventType: stage, actorType: 'easer', actorId: user.id, actorName: booking.assembler_name || 'Easer', description: `${booking.assembler_name || 'Easer'} — ${label}` });
+
+  // Notify owner
+  sendEmail({
+    to: ownerEmail(),
+    from: 'AssembleAtEase <booking@assembleatease.com>',
+    subject: `${label} — ${esc(booking.ref)} · ${esc(booking.service)}`,
+    html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem"><p style="font-size:1.1rem;font-weight:700;color:#0097a7">${label}</p><p><strong>${esc(booking.assembler_name||'Easer')}</strong> — ${esc(booking.service)}<br>Customer: ${esc(booking.customer_name)}<br>Address: ${esc(booking.address)}</p><p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">View Dashboard</a></p></div>`,
+  }).catch(() => {});
+
+  // Notify customer at key stages
+  const customerMessages = {
+    en_route: {
+      subject: `Your Easer is on the way — ${esc(booking.ref)}`,
+      body: `${easerFirstName} is heading to you now and should arrive soon at ${esc(booking.time || 'the scheduled time')}.`,
+    },
+    arrived: {
+      subject: `Your Easer has arrived — ${esc(booking.ref)}`,
+      body: `${easerFirstName} has arrived at your location and is ready to get started.`,
+    },
+    in_progress: {
+      subject: `Your job is underway — ${esc(booking.ref)}`,
+      body: `Great news — ${easerFirstName} has started working on your ${esc(booking.service)}.`,
+    },
+  };
+
+  if (booking.customer_email && customerMessages[stage]) {
+    const msg = customerMessages[stage];
     sendEmail({
-      to: ownerEmail(),
+      to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `${label} — ${esc(booking.ref)} · ${esc(booking.service)}`,
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem">
-        <p style="font-size:1.1rem;font-weight:700;color:#0097a7">${label}</p>
-        <p><strong>${esc(booking.assembler_name || 'Easer')}</strong> updated status to <strong>${label}</strong></p>
-        <p>Booking: <strong>${esc(booking.ref)}</strong> — ${esc(booking.service)}<br>
-        Customer: ${esc(booking.customer_name)}<br>
-        Address: ${esc(booking.address)}<br>
-        Time: ${esc(booking.time || 'TBD')}</p>
-        <p style="margin-top:1rem"><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">View in Dashboard</a></p>
-      </div>`,
+      subject: msg.subject,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#0097a7">${label}</h2><p>Hi ${esc(customerFirstName)},</p><p>${msg.body}</p><p style="margin-top:1rem;color:#6b7280;font-size:0.85rem">Booking: ${esc(booking.ref)} · Questions? Reply to this email.</p></div>`,
+      replyTo: ownerEmail(),
     }).catch(() => {});
   }
 
