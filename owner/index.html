@@ -326,9 +326,10 @@
 
       <!-- ─── ASSEMBLERS VIEW ─── -->
       <div id="assemblers-view" style="display:none">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+        <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
           <button class="btn" id="check-phones-btn" style="font-size:0.78rem">&#128222; Email Missing Phones</button>
-        <button class="btn btn-teal" id="add-easer-btn">&#43; Add Easer (Fee Waived)</button>
+          <button class="btn" id="test-push-btn" style="font-size:0.78rem">&#128276; Test Push Notification</button>
+          <button class="btn btn-teal" id="add-easer-btn">&#43; Add Easer (Fee Waived)</button>
         </div>
         <div class="stats-row" id="asm-stats-row">
           <div class="stat neutral"><div class="stat-value" id="asm-total">—</div><div class="stat-label">Total</div></div>
@@ -2532,6 +2533,18 @@ function intelQuick(msg) {
       toast(d.sent > 0 ? 'Sent phone request to ' + d.sent + ' Easer(s)' : d.message || 'All Easers have a phone on file', 'success');
     } catch { toast('Failed','error'); }
     finally { btn.disabled=false; btn.textContent='📞 Email Missing Phones'; }
+  });
+
+  document.getElementById('test-push-btn').addEventListener('click', async function() {
+    var btn = this; btn.disabled=true; btn.textContent='Sending…';
+    try {
+      var r = await fetch('/api/owner/test-push', { method:'POST', headers:headers(), body:'{}' });
+      var d = await r.json();
+      if (d.error) { toast(d.error,'error'); return; }
+      if (d.sent === 0) toast(d.message || 'No subscriptions yet — log into the Easer app and allow notifications first', 'error');
+      else toast('Test push sent to ' + d.sent + ' Easer(s)!', 'success');
+    } catch { toast('Failed to send test push','error'); }
+    finally { btn.disabled=false; btn.textContent='🔔 Test Push Notification'; }
   });
 
   document.getElementById('add-easer-btn').addEventListener('click', function() {
