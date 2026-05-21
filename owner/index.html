@@ -866,7 +866,8 @@ function intelQuick(msg) {
 <script>
 (function(){
   const API = '/api/booking';
-  const _ownerSession = JSON.parse(sessionStorage.getItem('owner_pw') || 'null');
+  let _ownerSession = null;
+  try { _ownerSession = JSON.parse(sessionStorage.getItem('owner_pw') || 'null'); } catch(e) { sessionStorage.removeItem('owner_pw'); }
   let password = (_ownerSession && _ownerSession.expires > Date.now()) ? _ownerSession.password : '';
   if (_ownerSession && _ownerSession.expires <= Date.now()) sessionStorage.removeItem('owner_pw');
   let allBookings = [];
