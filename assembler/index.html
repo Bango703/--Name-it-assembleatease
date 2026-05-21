@@ -214,7 +214,7 @@
             <div class="pro-banner-sub" id="identity-banner-sub">Your identity verification is in progress. We'll notify you once complete.</div>
           </div>
         </div>
-        <a id="identity-verify-btn" href="apply" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem;display:none">Complete Verification</a>
+        <a id="identity-verify-btn" href="/apply" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem;display:none">Complete Verification</a>
       </div>
 
       <div id="profile-banner" class="pro-banner hidden">
@@ -384,7 +384,7 @@
       } else {
         // Identity not verified — show the verify button
         var verifyBtn=document.getElementById('identity-verify-btn');
-        if(profile.stripe_verification_id){if(sub) sub.textContent='Check your welcome email for the identity verification link. Need help? Email service@assembleatease.com.';}else{var verifyBtn=document.getElementById('identity-verify-btn');if(verifyBtn){verifyBtn.style.display='';verifyBtn.href='apply';}}
+        if(profile.stripe_verification_id){if(sub) sub.textContent='Check your welcome email for the identity verification link. Need help? Email service@assembleatease.com.';}else{var verifyBtn=document.getElementById('identity-verify-btn');if(verifyBtn){verifyBtn.style.display='';verifyBtn.href='/apply';}}
       }
       // Disable sidebar nav links except Dashboard and Profile
       document.querySelectorAll('.sidebar-nav a').forEach(function(a){

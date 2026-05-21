@@ -237,6 +237,14 @@
     document.body.style.visibility = 'visible';
     const session = auth.session;
 
+    // Always get a fresh token — avoids 401s from stale session
+    async function getToken() {
+      try {
+        const { data: { session: s } } = await supabaseClient.auth.getSession();
+        return (s || session).access_token;
+      } catch { return session.access_token; }
+    }
+
     // ── Handle dispatch accept from email/push link ──────────────────
     (async function() {
       var params = new URLSearchParams(window.location.search);
@@ -253,7 +261,7 @@
       try {
         var r = await fetch('/api/booking/accept-dispatch', {
           method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await getToken())},
           body: JSON.stringify({ bookingId: bookingId, token: token, assemblerId: auth.user.id }),
         });
         var d = await r.json();
@@ -316,7 +324,7 @@
           // Refresh the full assignments list
           try {
             const r = await fetch('/api/booking/my-assignments', {
-              headers: { 'Authorization': 'Bearer ' + session.access_token },
+              headers: { 'Authorization': 'Bearer ' + (await getToken()) },
             });
             if (!r.ok) return;
             const d = await r.json();
@@ -360,7 +368,7 @@
       try {
         const r = await fetch('/api/booking/assembler-complete', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingId: selectedBookingId }),
         });
         const d = await r.json();
@@ -396,7 +404,7 @@
       try {
         const r = await fetch('/api/booking/checkin', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingId: selectedBookingId }),
         });
         const d = await r.json();
@@ -438,7 +446,7 @@
       try {
         const r = await fetch('/api/booking/message', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingId: selectedBookingId, body, sender: 'assembler' }),
         });
         const d = await r.json();

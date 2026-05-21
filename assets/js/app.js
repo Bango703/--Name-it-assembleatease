@@ -43,18 +43,14 @@ const APP = {
     const auth = await this.getAuth();
 
     if (!auth) {
-      window.location.href = this._authPath('login');
+      window.location.href = '/auth/login';
       return null;
     }
 
     if (allowedRoles.length && !allowedRoles.includes(auth.profile.role)) {
-      // Redirect to their correct dashboard
       const role = auth.profile.role;
-      window.location.href = role === 'assembler'
-        ? this._rootPath('assembler/')
-        : role === 'owner'
-          ? this._rootPath('owner/')
-          : this._rootPath('customer/');
+      window.location.href = role === 'assembler' ? '/assembler/'
+        : role === 'owner' ? '/owner/' : '/';
       return null;
     }
 
@@ -67,7 +63,7 @@ const APP = {
     const auth = await this.requireAuth(['assembler']);
     if (!auth) return null;
     if (auth.profile.tier === 'pending' || auth.profile.identity_verified !== true) {
-      window.location.href = this._rootPath('assembler/');
+      window.location.href = '/assembler/';
       return null;
     }
     return auth;
@@ -78,11 +74,8 @@ const APP = {
     const auth = await this.getAuth();
     if (!auth) return;
     const role = auth.profile.role;
-    window.location.href = role === 'assembler'
-      ? this._rootPath('assembler/')
-      : role === 'owner'
-        ? this._rootPath('owner/')
-        : this._rootPath('customer/');
+    window.location.href = role === 'assembler' ? '/assembler/'
+      : role === 'owner' ? '/owner/' : '/';
   },
 
   // ── PATH HELPERS ────────────────────────────────────────
@@ -114,28 +107,16 @@ const APP = {
 
     if (role === 'assembler') {
       links = `
-        <li><a href="${root}assembler/browse-jobs">Browse Jobs</a></li>
-        <li><a href="${root}assembler/my-bids">My Bids</a></li>
-        <li><a href="${root}assembler/my-jobs">My Jobs</a></li>
+        <li><a href="/assembler/my-assignments">My Assignments</a></li>
+        <li><a href="/assembler/payouts">Payouts</a></li>
       `;
       actions = `
-        <a href="${root}assembler/profile" class="btn btn-ghost btn-sm">Profile</a>
-        <button class="btn btn-outline btn-sm" id="nav-logout">Log out</button>
-      `;
-    } else if (role === 'customer') {
-      links = `
-        <li><a href="${root}customer/post-job">Post a Job</a></li>
-        <li><a href="${root}customer/my-jobs">My Jobs</a></li>
-        <li><a href="${root}customer/browse-assemblers">Browse Assemblers</a></li>
-      `;
-      actions = `
-        <a href="${root}customer/profile" class="btn btn-ghost btn-sm">Profile</a>
+        <a href="/assembler/profile" class="btn btn-ghost btn-sm">Profile</a>
         <button class="btn btn-outline btn-sm" id="nav-logout">Log out</button>
       `;
     } else {
       actions = `
-        <a href="${root}auth/login" class="btn btn-ghost btn-sm">Log in</a>
-        <a href="${root}auth/signup" class="btn btn-primary btn-sm">Sign up free</a>
+        <a href="/auth/login" class="btn btn-ghost btn-sm">Log in</a>
       `;
     }
 

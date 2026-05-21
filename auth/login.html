@@ -305,8 +305,8 @@
           return;
         }
 
-        window.location.href = profile.role === 'assembler' ? '../assembler/'
-          : profile.role === 'owner' ? '../owner/' : '../customer/';
+        window.location.href = profile.role === 'assembler' ? '/assembler/'
+          : profile.role === 'owner' ? '/owner/' : '/';
 
       } catch (err) {
         console.error('Login error:', err);
