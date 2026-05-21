@@ -6,6 +6,7 @@
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AE Easer" />
@@ -291,8 +292,11 @@
     });
 
     try {
+      // Get fresh token to avoid stale session issues
+      const { data: { session: freshSession } } = await supabaseClient.auth.getSession();
+      const token = (freshSession || session).access_token;
       const resp = await fetch('/api/booking/my-assignments', {
-        headers: { 'Authorization': 'Bearer ' + session.access_token },
+        headers: { 'Authorization': 'Bearer ' + token },
       });
       if (!resp.ok) throw new Error('Failed to load assignments');
       const data = await resp.json();
