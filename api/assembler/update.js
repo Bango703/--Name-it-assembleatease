@@ -36,12 +36,20 @@ export default async function handler(req, res) {
 
   const { data: profile, error: lookupErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, status, tier, identity_verified, id_verification_status, previous_tier, application_status')
+    .select('*')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
 
   if (lookupErr || !profile) return res.status(404).json({ error: 'Easer not found' });
+
+  // Normalise: derive status from tier if DB column doesn't exist yet
+  if (!profile.status) {
+    if (profile.application_status === 'rejected' || profile.tier === 'rejected') profile.status = 'rejected';
+    else if (profile.tier === 'suspended') profile.status = 'suspended';
+    else if (profile.tier === 'pending' || !profile.tier) profile.status = 'pending';
+    else profile.status = 'active';
+  }
 
   // ── APPROVE ──────────────────────────────────────────────────────────────
   if (action === 'approve') {
