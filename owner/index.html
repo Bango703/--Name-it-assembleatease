@@ -163,6 +163,111 @@
     @media(max-width:1100px){.content-grid{grid-template-columns:1fr !important}}
     @media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:500px){.stats-row{grid-template-columns:1fr}.content{padding:1.25rem}}
+
+    /* ── Professional design system additions ── */
+    :root {
+      --green:#10b981;--green-dim:rgba(16,185,129,0.15);
+      --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.15);
+      --purple:#8b5cf6;--purple-dim:rgba(139,92,246,0.15);
+      --surface-raised:#232b3e;
+    }
+
+    /* Stat cards — professional */
+    .stat { transition:border-color 0.15s,box-shadow 0.15s; }
+    .stat:hover { border-color:var(--border-md); }
+    .stat-value { font-size:2rem;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:-0.02em; }
+    .stat-delta { font-size:0.72rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px; }
+    .stat-delta.up { color:var(--green); }
+    .stat-delta.down { color:var(--red); }
+
+    /* Extended status badges */
+    .badge-assigned   { background:var(--purple-dim);color:#a78bfa;border:1px solid rgba(139,92,246,0.25); }
+    .badge-en_route   { background:var(--blue-dim);color:#60a5fa;border:1px solid rgba(59,130,246,0.25); }
+    .badge-in_progress{ background:var(--green-dim);color:#34d399;border:1px solid rgba(52,211,153,0.25); }
+    .badge-arrived    { background:rgba(29,158,117,0.15);color:#1d9e75;border:1px solid rgba(29,158,117,0.25); }
+    .badge-dispatched { background:var(--purple-dim);color:#818cf8;border:1px solid rgba(99,102,241,0.25); }
+    .badge-new        { background:var(--blue-dim);color:#60a5fa;border:1px solid rgba(59,130,246,0.25); }
+    .badge-complete   { background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.25); }
+
+    /* Status dot indicators */
+    .dot { width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block; }
+    .dot-green  { background:var(--green); }
+    .dot-red    { background:var(--red); }
+    .dot-amber  { background:var(--amber); }
+    .dot-muted  { background:var(--muted); }
+    .dot-active { background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,0.2); }
+    .dot-critical { background:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,0.18); }
+
+    /* Operational alert rows */
+    .alert-row { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:0.4rem;font-size:0.82rem; }
+    .alert-row.critical { background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18); }
+    .alert-row.high     { background:rgba(232,106,46,0.07);border:1px solid rgba(232,106,46,0.18); }
+    .alert-row.medium   { background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.18); }
+    .alert-row.low      { background:var(--elevated);border:1px solid var(--border); }
+    .alert-label { font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:60px;flex-shrink:0; }
+    .alert-row.critical .alert-label { color:var(--red); }
+    .alert-row.high     .alert-label { color:var(--orange); }
+    .alert-row.medium   .alert-label { color:var(--amber); }
+    .alert-row.low      .alert-label { color:var(--muted); }
+
+    /* Ops panel cards */
+    .ops-panel { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;height:100%; }
+    .ops-panel-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border); }
+    .ops-panel-title { font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);display:flex;align-items:center;gap:0.5rem; }
+
+    /* Pipeline / timeline */
+    .timeline-item { position:relative;padding:0.6rem 0 0.6rem 1.5rem;border-bottom:1px solid var(--border); }
+    .timeline-item:last-child { border-bottom:none; }
+    .timeline-dot { position:absolute;left:0;top:12px;width:8px;height:8px;border-radius:50%;border:2px solid var(--border-md);background:var(--bg); }
+    .timeline-dot.done { background:var(--green);border-color:var(--green); }
+    .timeline-dot.active { background:var(--teal);border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-glow); }
+    .timeline-event { font-size:0.82rem;color:var(--text);font-weight:500; }
+    .timeline-meta { font-size:0.72rem;color:var(--muted);margin-top:2px; }
+
+    /* Table professional */
+    .pro-table { width:100%;border-collapse:collapse;font-size:0.85rem; }
+    .pro-table th { padding:0.55rem 0.875rem;text-align:left;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap; }
+    .pro-table td { padding:0.7rem 0.875rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle; }
+    .pro-table tr:last-child td { border-bottom:none; }
+    .pro-table tbody tr:hover td { background:rgba(255,255,255,0.02); }
+
+    /* Professional empty state */
+    .empty-state { display:flex;flex-direction:column;align-items:center;padding:3rem 2rem;text-align:center; }
+    .empty-state-icon { width:44px;height:44px;border-radius:10px;background:var(--elevated);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:1rem; }
+    .empty-state-title { font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:0.4rem; }
+    .empty-state-desc { font-size:0.82rem;color:var(--muted);line-height:1.6;max-width:260px; }
+
+    /* Tier badges refined */
+    .tier-starter   { background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
+    .tier-verified  { background:rgba(29,158,117,0.15);color:#1d9e75;border:1px solid rgba(29,158,117,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
+    .tier-elite     { background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
+    .tier-suspended { background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
+    .tier-pending   { background:rgba(107,114,128,0.12);color:#6b7280;border:1px solid rgba(107,114,128,0.2);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
+
+    /* Section header with actions */
+    .view-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:1rem; }
+    .view-header-left h2 { font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:2px; }
+    .view-header-left p { font-size:0.8rem;color:var(--muted); }
+
+    /* Toast info state */
+    .toast.info { background:#1e3a5f;color:#93c5fd;border:1px solid rgba(59,130,246,0.3); }
+
+    /* Topbar refinement */
+    .topbar { border-bottom:1px solid var(--border); }
+    .topbar-title { font-size:0.875rem;font-weight:600;color:var(--text);letter-spacing:-0.01em; }
+
+    /* Sidebar refinement */
+    .sidebar-label { font-size:0.62rem;font-weight:700;letter-spacing:0.12em; }
+    .sidebar-nav a { font-size:0.825rem;font-weight:400;letter-spacing:-0.01em; }
+    .sidebar-nav a.active { font-weight:500; }
+
+    /* Button refinement */
+    .btn { font-size:0.78rem;font-weight:500;letter-spacing:-0.01em; }
+    .btn svg { flex-shrink:0; }
+
+    /* Input focus refinement */
+    .search-input { transition:border-color 0.15s,box-shadow 0.15s; }
+    .search-input:focus { box-shadow:0 0 0 3px rgba(29,158,117,0.1); }
   </style>
 </head>
 <body>
@@ -187,7 +292,7 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Operations</div>
       <ul class="sidebar-nav">
-        <li><a data-view="liveops"><span class="nav-icon">🔴</span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
+        <li><a data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" style="display:none">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
@@ -212,10 +317,10 @@
     <div class="topbar">
       <div class="topbar-title">Bookings</div>
       <div class="topbar-right">
-        <button class="btn btn-red" id="bulk-delete-btn" style="display:none">&#128465; Delete Selected (<span id="bulk-count">0</span>)</button>
-        <button class="btn btn-outline" id="export-csv-btn" style="font-size:0.78rem">&#8595; Export PDF</button>
-        <button class="btn btn-teal" id="new-booking-btn">&#43; New Booking</button>
-        <button class="btn" id="refresh-btn">&#8635; Refresh</button>
+        <button class="btn btn-red" id="bulk-delete-btn" style="display:none">Delete Selected (<span id="bulk-count">0</span>)</button>
+        <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Export CSV</button>
+        <button class="btn btn-teal" id="new-booking-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Booking</button>
+        <button class="btn" id="refresh-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>
       </div>
     </div>
 
@@ -235,29 +340,47 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem" class="content-grid">
 
           <!-- Unassigned -->
-          <div class="detail-panel open" style="grid-column:span 1">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-              <div class="detail-section-title" style="margin:0">&#128204; Needs Easer</div>
-              <button id="ops-dispatch-all-btn" class="btn btn-teal" style="font-size:0.75rem;padding:4px 12px" onclick="opsDispatchAll()">Dispatch All</button>
+          <div class="ops-panel" style="grid-column:span 1">
+            <div class="ops-panel-header">
+              <div class="ops-panel-title">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Unassigned Jobs
+              </div>
+              <button id="ops-dispatch-all-btn" class="btn btn-teal" style="font-size:0.73rem;padding:3px 10px" onclick="opsDispatchAll()">Dispatch All</button>
             </div>
             <div id="ops-unassigned">—</div>
           </div>
 
           <!-- Active jobs -->
-          <div class="detail-panel open" style="grid-column:span 1">
-            <div class="detail-section-title" style="margin-bottom:1rem">&#9889; Active Right Now</div>
+          <div class="ops-panel" style="grid-column:span 1">
+            <div class="ops-panel-header">
+              <div class="ops-panel-title">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                Active Jobs
+              </div>
+            </div>
             <div id="ops-active">—</div>
           </div>
 
           <!-- Online Easers -->
-          <div class="detail-panel open" style="grid-column:span 1">
-            <div class="detail-section-title" style="margin-bottom:1rem">&#128100; Easer Status</div>
+          <div class="ops-panel" style="grid-column:span 1">
+            <div class="ops-panel-header">
+              <div class="ops-panel-title">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Easer Availability
+              </div>
+            </div>
             <div id="ops-easers">—</div>
           </div>
 
           <!-- Today schedule -->
-          <div class="detail-panel open" style="grid-column:span 1">
-            <div class="detail-section-title" style="margin-bottom:1rem">&#128197; Today's Schedule</div>
+          <div class="ops-panel" style="grid-column:span 1">
+            <div class="ops-panel-header">
+              <div class="ops-panel-title">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Today's Schedule
+              </div>
+            </div>
             <div id="ops-today">—</div>
           </div>
 
@@ -265,7 +388,7 @@
 
         <div style="text-align:center;margin-top:1rem;font-size:0.75rem;color:var(--muted)">
           Auto-refreshes every 30s &bull; <span id="ops-last-updated">—</span>
-          &nbsp;<button class="btn" onclick="loadLiveOps()" style="font-size:0.72rem;padding:2px 10px">&#8635; Refresh</button>
+          &nbsp;<button class="btn" onclick="loadLiveOps()" style="font-size:0.72rem;padding:2px 10px">Refresh</button>
         </div>
       </div>
 
@@ -344,7 +467,11 @@
                 <button id="save-note-btn" class="btn btn-teal" style="margin-top:0.5rem;width:100%" onclick="saveNote()">Save Note</button>
               </div>
             </div>
-            <div class="empty" id="detail-placeholder" style="margin-top:0">Select a booking to view details</div>
+            <div class="empty-state" id="detail-placeholder" style="margin-top:0">
+              <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div class="empty-state-title">No booking selected</div>
+              <div class="empty-state-desc">Select a booking from the list to view details, take action, or review the timeline.</div>
+            </div>
           </div>
         </div>
       </div><!-- /bookings-view -->
@@ -358,7 +485,11 @@
           <div class="stat neutral"><div class="stat-value" id="today-done">—</div><div class="stat-label">Completed</div></div>
         </div>
         <div id="today-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem"></div>
-        <div id="today-empty" class="empty" style="display:none">No jobs scheduled for today.</div>
+        <div id="today-empty" class="empty-state" style="display:none">
+          <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="empty-state-title">No jobs today</div>
+          <div class="empty-state-desc">Nothing is scheduled for today. Create a new booking to get started.</div>
+        </div>
       </div>
 
       <!-- ─── WAITLIST VIEW ─── -->
@@ -396,9 +527,9 @@
       <!-- ─── ASSEMBLERS VIEW ─── -->
       <div id="assemblers-view" style="display:none">
         <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
-          <button class="btn" id="check-phones-btn" style="font-size:0.78rem">&#128222; Email Missing Phones</button>
-          <button class="btn" id="test-push-btn" style="font-size:0.78rem">&#128276; Test Push Notification</button>
-          <button class="btn btn-teal" id="add-easer-btn">&#43; Add Easer (Fee Waived)</button>
+          <button class="btn" id="check-phones-btn" style="font-size:0.78rem">Email Missing Phones</button>
+          <button class="btn" id="test-push-btn" style="font-size:0.78rem">Send Test Push</button>
+          <button class="btn btn-teal" id="add-easer-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Easer</button>
         </div>
         <div class="stats-row" id="asm-stats-row">
           <div class="stat neutral"><div class="stat-value" id="asm-total">—</div><div class="stat-label">Total</div></div>
@@ -463,8 +594,8 @@
           <!-- AI Briefing -->
           <div class="detail-panel open" style="grid-column:1/-1">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
-              <div class="detail-section-title" style="margin:0">&#129302; AI Platform Briefing</div>
-              <button id="intel-refresh-btn" onclick="runIntelligence()" class="btn btn-teal" style="font-size:0.78rem;padding:4px 14px">&#8635; Run Check</button>
+              <div class="detail-section-title" style="margin:0">Platform Intelligence</div>
+              <button id="intel-refresh-btn" onclick="runIntelligence()" class="btn btn-teal" style="font-size:0.78rem;padding:4px 14px">Run Analysis</button>
             </div>
             <div id="intel-briefing" style="font-size:0.875rem;color:var(--soft);line-height:1.75;white-space:pre-wrap;min-height:80px;background:var(--elevated);border-radius:8px;padding:1rem">
               Click "Run Check" to get a full AI analysis of your platform.
@@ -473,7 +604,7 @@
 
           <!-- Alert Cards -->
           <div class="detail-panel open">
-            <div class="detail-section-title" style="margin-bottom:0.75rem">&#9888; Active Alerts</div>
+            <div class="detail-section-title" style="margin-bottom:0.75rem">Active Alerts</div>
             <div id="intel-alert-list" style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem">
               <div style="color:var(--muted)">Run a check to see alerts.</div>
             </div>
@@ -510,7 +641,11 @@
           <div class="stat amber"><div class="stat-value" id="rev-pending">—</div><div class="stat-label">Hidden</div></div>
         </div>
         <div id="reviews-list" style="display:flex;flex-direction:column;gap:0.75rem;margin-top:1rem"></div>
-        <div id="reviews-empty" class="empty" style="display:none">No reviews yet. Send review requests to completed bookings.</div>
+        <div id="reviews-empty" class="empty-state" style="display:none">
+          <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div class="empty-state-title">No reviews yet</div>
+          <div class="empty-state-desc">Reviews are collected after job completion. Select a completed booking and click <strong>Request Review</strong> to prompt the customer.</div>
+        </div>
       </div>
 
       <!-- ─── CUSTOMERS VIEW ─── -->
@@ -1057,7 +1192,7 @@ function intelQuick(msg) {
       else await loadBookings();
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '&#8635; Refresh';
+      btn.innerHTML = 'Refresh';
     }
   });
 
@@ -1292,7 +1427,9 @@ function intelQuick(msg) {
       });
     }
     if (!filtered.length) {
-      $list.innerHTML = '<div class="empty">' + (searchQuery ? 'No results for &ldquo;' + esc(searchQuery) + '&rdquo;' : 'No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings') + '</div>';
+      $list.innerHTML = searchQuery
+        ? '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-desc">No bookings match &ldquo;' + esc(searchQuery) + '&rdquo;</div></div>'
+        : '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-title">No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings</div><div class="empty-state-desc">New bookings will appear here as customers submit requests.</div></div>';
       return;
     }
     $list.innerHTML = filtered.map(function(b) {
@@ -1305,7 +1442,7 @@ function intelQuick(msg) {
         + '</label>'
         + '<div class="card-top" style="padding-right:1.75rem"><h4>' + esc(b.customer_name) + '</h4><span class="badge badge-' + b.status + '">' + b.status + '</span></div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
-        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">&#128736; Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + b.assembler_tier : '') + '</div>' : '')
+        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + b.assembler_tier : '') + '</div>' : '')
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
@@ -1347,7 +1484,7 @@ function intelQuick(msg) {
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
       field('Details', b.details || '—'),
-      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + '&#9733;' : '') : '<span style="color:var(--muted)">Unassigned</span>'),
+      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', b.source === 'manual' ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
@@ -1385,15 +1522,15 @@ function intelQuick(msg) {
       var d = await r.json();
       var items = d.activity || [];
       if (!items.length) { el.innerHTML = '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>'; return; }
-      var icons = { booking_created:'📋', confirmed:'✅', dispatched:'📤', easer_accepted:'🤝', en_route:'🚗', arrived:'📍', in_progress:'🔧', completed:'✅', cancelled:'❌', refunded:'💰', note_added:'📝', payout_released:'💸', reassigned:'🔄', cancelled:'❌' };
-      el.innerHTML = '<div style="position:relative;padding-left:20px">'
+      var dotColors = { booking_created:'#3b82f6', confirmed:'#1d9e75', dispatched:'#8b5cf6', easer_accepted:'#1d9e75', en_route:'#3b82f6', arrived:'#1d9e75', in_progress:'#10b981', completed:'#1d9e75', cancelled:'#ef4444', refunded:'#f59e0b', note_added:'#6b7280', payout_released:'#10b981', reassigned:'#f59e0b', owner_action:'#0097a7' };
+      el.innerHTML = '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
-          var icon = icons[a.event_type] || '•';
+          var dotColor = dotColors[a.event_type] || 'var(--muted)';
           var time = new Date(a.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
-          return '<div style="position:relative;padding:0.6rem 0;border-bottom:1px solid var(--border)">'
-            + '<div style="position:absolute;left:-20px;top:12px;width:16px;height:16px;border-radius:50%;background:var(--elevated);border:2px solid var(--border-md);display:flex;align-items:center;justify-content:center;font-size:10px">' + icon + '</div>'
-            + '<div style="font-weight:500;color:var(--text);font-size:0.82rem">' + esc(a.description) + '</div>'
-            + '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(a.actor_name || a.actor_type) + ' &bull; ' + time + '</div>'
+          return '<div class="timeline-item">'
+            + '<span class="timeline-dot done" style="background:' + dotColor + ';border-color:' + dotColor + '"></span>'
+            + '<div class="timeline-event">' + esc(a.description) + '</div>'
+            + '<div class="timeline-meta">' + esc(a.actor_name || a.actor_type) + ' &middot; ' + time + '</div>'
             + '</div>';
         }).join('')
         + '</div>';
@@ -1443,29 +1580,29 @@ function intelQuick(msg) {
   function renderActions(b) {
     var btns = [];
     if (b.status === 'pending') {
-      btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">&#10003; Confirm</button>');
-      btns.push('<button class="btn btn-outline" data-action="edit" data-id="' + b.id + '">&#9998; Edit</button>');
-      btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">&#10007; Decline</button>');
+      btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">Confirm</button>');
+      btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
+      btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
     }
     if (b.status === 'confirmed') {
-      btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">&#10003; Mark Complete</button>');
+      btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
       if (!b.assembler_id) {
-        btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '" style="background:linear-gradient(135deg,#0097a7,#005f6b)">&#128640; Smart Dispatch</button>');
+        btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '">Smart Dispatch</button>');
       }
-      btns.push('<button class="btn btn-outline" data-action="edit" data-id="' + b.id + '">&#9998; Edit</button>');
+      btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
     if (b.status === 'completed') {
       if (!b.review_requested_at) {
-        btns.push('<button class="btn btn-teal" data-action="review-request" data-id="' + b.id + '">&#11088; Send Review Request</button>');
+        btns.push('<button class="btn btn-teal" data-action="review-request" data-id="' + b.id + '">Request Review</button>');
       } else {
-        btns.push('<button class="btn" disabled style="opacity:0.5;cursor:not-allowed;font-size:0.78rem">&#11088; Review Sent</button>');
+        btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Review Requested</button>');
       }
       if (b.payment_status === 'captured') {
         btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
         if (b.assembler_id && b.payout_status !== 'paid') {
-          btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">&#36; Record Payout</button>');
+          btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">Record Payout</button>');
         }
       }
     }
@@ -1497,13 +1634,13 @@ function intelQuick(msg) {
         if (d.dispatched === 0) {
           toast(d.message || 'No available Easers found in the area right now', 'error');
         } else {
-          var names = (d.offeredTo||[]).map(function(e){ return e.name + (e.member?' ⭐':'') + ' ('+e.tier+')'; }).join(', ');
+          var names = (d.offeredTo||[]).map(function(e){ return e.name + (e.member?' [Member]':'') + ' ('+e.tier+')'; }).join(', ');
           toast('Dispatched to ' + d.dispatched + ' Easer(s): ' + names + ' — first to accept gets the job', 'success');
           await loadBookings();
           if (selectedId) selectBooking(selectedId);
         }
       } catch { toast('Dispatch failed', 'error'); }
-      finally { btn.disabled=false; btn.innerHTML='&#128640; Smart Dispatch'; }
+      finally { btn.disabled=false; btn.textContent='Smart Dispatch'; }
     } else if (action === 'edit') {
       var bEdit = allBookings.find(function(x){ return x.id == id; });
       if (!bEdit) return;
@@ -2005,17 +2142,16 @@ function intelQuick(msg) {
     // Alert bar
     var alertsEl = document.getElementById('ops-alerts-bar');
     if (d.alerts && d.alerts.length) {
-      alertsEl.innerHTML = d.alerts.slice(0, 5).map(function(a) {
-        var colors = { critical: '#dc2626', high: '#ea580c', medium: '#d97706', low: '#6b7280' };
-        var color = colors[a.severity] || '#6b7280';
-        var actionBtn = a.action ? '<button onclick="opsAction(\'' + a.action + '\',\'' + a.bookingId + '\')" style="background:'+color+';color:#fff;border:none;border-radius:6px;padding:2px 10px;font-size:0.72rem;cursor:pointer;margin-left:8px">'+a.action.toUpperCase()+'</button>' : '';
-        return '<div style="display:flex;align-items:center;background:rgba('+hexToRgb(color)+',0.08);border:1px solid rgba('+hexToRgb(color)+',0.2);border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:0.4rem">'
-          + '<span style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin-right:0.6rem"></span>'
-          + '<span style="font-size:0.82rem;color:var(--text);flex:1">'+esc(a.message)+'</span>'
+      alertsEl.innerHTML = d.alerts.slice(0, 6).map(function(a) {
+        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking' };
+        var actionBtn = a.action ? '<button onclick="opsAction(\'' + a.action + '\',\'' + a.bookingId + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + (actionLabels[a.action]||a.action) + '</button>' : '';
+        return '<div class="alert-row ' + a.severity + '">'
+          + '<span class="alert-label">' + a.severity.toUpperCase() + '</span>'
+          + '<span style="font-size:0.82rem;color:var(--text);flex:1;line-height:1.4">' + esc(a.message) + '</span>'
           + actionBtn + '</div>';
       }).join('');
     } else {
-      alertsEl.innerHTML = '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.6rem 0.9rem;font-size:0.82rem;color:#166534">&#10003; All clear — no alerts right now</div>';
+      alertsEl.innerHTML = '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:0.6rem 0.9rem;font-size:0.82rem;color:#10b981;display:flex;align-items:center;gap:0.5rem"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0"></span> No active alerts</div>';
     }
 
     // Summary chips
@@ -2038,7 +2174,7 @@ function intelQuick(msg) {
     var unassignedEl = document.getElementById('ops-unassigned');
     var needs = (d.unassigned || []).concat(d.awaitingDispatch || []);
     if (!needs.length) {
-      unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">&#10003; All bookings have an Easer</div>';
+      unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">All active bookings are assigned</div>';
     } else {
       unassignedEl.innerHTML = needs.map(function(b) {
         var label = b.dispatch_offered_at ? 'Offer sent — no response' : 'No Easer yet';
@@ -2070,7 +2206,7 @@ function intelQuick(msg) {
           + '<div style="font-size:0.78rem;color:var(--muted)">'+(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
           + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">'+stage+'</span>'
           + '</div>'
-          + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">&#128205; '+esc(b.address)+'</div>' : '')
+          + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">'+esc(b.address)+'</div>' : '')
           + '</div>';
       }).join('');
     }
@@ -2083,17 +2219,18 @@ function intelQuick(msg) {
     } else {
       easersEl.innerHTML = easers.map(function(e) {
         var isWorking = e.status === 'working';
-        var dot = isWorking ? '#059669' : '#0097a7';
-        var label = isWorking ? 'Working' : 'Available';
-        return '<div style="display:flex;align-items:center;gap:8px;padding:0.5rem 0;border-bottom:1px solid var(--border)">'
-          + '<span style="width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0"></span>'
-          + '<span style="font-size:0.875rem;font-weight:500;color:var(--text);flex:1">'+esc(e.full_name)+'</span>'
-          + '<span style="font-size:0.75rem;color:var(--muted)">'+esc(e.tier)+'</span>'
-          + '<span style="font-size:0.72rem;background:rgba('+hexToRgb(dot)+',0.1);color:'+dot+';padding:1px 7px;border-radius:99px">'+label+'</span>'
+        var dotClass = isWorking ? 'dot dot-active' : 'dot dot-green';
+        var label = isWorking ? 'On Job' : 'Available';
+        var labelColor = isWorking ? '#f59e0b' : '#10b981';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
+          + '<span class="' + dotClass + '"></span>'
+          + '<span style="font-size:0.85rem;font-weight:500;color:var(--text);flex:1">' + esc(e.full_name) + '</span>'
+          + '<span class="' + (isWorking ? 'tier-verified' : 'tier-starter') + '" style="font-size:0.68rem">' + esc(e.tier) + '</span>'
+          + '<span style="font-size:0.7rem;color:' + labelColor + ';font-weight:600">' + label + '</span>'
           + '</div>';
       }).join('');
       if (d.offlineCount > 0) {
-        easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0">+'+d.offlineCount+' Easer(s) offline</div>';
+        easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0;border-top:1px solid var(--border);margin-top:2px">' + d.offlineCount + ' Easer' + (d.offlineCount > 1 ? 's' : '') + ' offline</div>';
       }
     }
 
@@ -2101,17 +2238,19 @@ function intelQuick(msg) {
     var todayEl = document.getElementById('ops-today');
     var todayJobs = d.todaySchedule || [];
     if (!todayJobs.length) {
-      todayEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No jobs scheduled for today</div>';
+      todayEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No jobs scheduled today</div>';
     } else {
       todayEl.innerHTML = todayJobs.map(function(b) {
-        var statusColors = { confirmed:'#0097a7', pending:'#d97706', completed:'#059669', cancelled:'#6b7280' };
-        var color = statusColors[b.status] || '#6b7280';
-        return '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between">'
-          + '<div style="font-size:0.875rem;font-weight:600">'+esc(b.time||'TBD')+' — '+esc(b.service)+'</div>'
-          + '<span style="font-size:0.68rem;background:rgba('+hexToRgb(color)+',0.1);color:'+color+';padding:2px 7px;border-radius:99px">'+b.status+'</span>'
+        var badgeCls = 'badge-' + b.status;
+        var statusLabel = { confirmed:'Confirmed', pending:'Pending', completed:'Completed', cancelled:'Cancelled', en_route:'En Route', in_progress:'In Progress', arrived:'Arrived' }[b.status] || b.status;
+        return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
+          + '<div>'
+          + '<div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(b.time||'Time TBD') + ' &mdash; ' + esc(b.service) + '</div>'
+          + '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">' + esc(b.assembler_name||'Unassigned') + ' &bull; ' + esc(b.customer_name||'') + '</div>'
           + '</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted)">'+(b.assembler_name||'Unassigned')+' &bull; '+esc(b.customer_name||'')+'</div>'
+          + '<span class="badge ' + badgeCls + '">' + statusLabel + '</span>'
+          + '</div>'
           + '</div>';
       }).join('');
     }
@@ -2466,7 +2605,7 @@ function intelQuick(msg) {
       var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
       var expired = w.invite_expires_at && new Date(w.invite_expires_at) < new Date();
       var actions = '';
-      var deleteBtn = '<button class="btn btn-red" data-wl-delete="' + w.id + '" data-wl-name="' + esc(w.name) + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">&#128465; Delete</button>';
+      var deleteBtn = '<button class="btn btn-red" data-wl-delete="' + w.id + '" data-wl-name="' + esc(w.name) + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Remove</button>';
       if (w.status === 'pending') {
         actions = '<button class="btn btn-teal" data-wl-invite="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Invite</button> <button class="btn btn-red" data-wl-reject="' + w.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> ' + deleteBtn;
       } else if (w.status === 'invited' && expired) {
@@ -2571,16 +2710,16 @@ function intelQuick(msg) {
   });
 
   function tierBadge(tier) {
-    var colors = { pending:'badge-pending', starter:'badge-confirmed', verified:'badge-completed', elite:'badge-pending' };
-    var icons = { pending:'&#9679;', starter:'&#10003;', verified:'&#10003;', elite:'&#9733;' };
-    return '<span class="badge ' + (colors[tier]||'') + '">' + (icons[tier]||'') + ' ' + (tier||'—') + '</span>';
+    var cls = { pending:'tier-pending', starter:'tier-starter', verified:'tier-verified', elite:'tier-elite', suspended:'tier-suspended' };
+    var labels = { pending:'Pending', starter:'Starter', verified:'Verified', elite:'Elite', suspended:'Suspended' };
+    return '<span class="' + (cls[tier]||'tier-pending') + '">' + (labels[tier]||tier||'—') + '</span>';
   }
 
   function identityStatus(a) {
-    if (a.identity_verified) return '<span style="color:#1d9e75">&#10003; Verified</span>';
-    if (a.stripe_verification_id) return '<span style="color:var(--amber)">In progress</span>';
-    if (a.payment_confirmed) return '<span style="color:#0097a7">Paid, pending ID</span>';
-    return '<span style="color:var(--muted)">Not started</span>';
+    if (a.identity_verified) return '<span style="color:#1d9e75;font-weight:500">Verified</span>';
+    if (a.stripe_verification_id) return '<span style="color:var(--amber)">In Progress</span>';
+    if (a.payment_confirmed) return '<span style="color:#0097a7">Paid — Pending</span>';
+    return '<span style="color:var(--muted)">Not Started</span>';
   }
 
   function renderAssemblerTable() {
@@ -2611,7 +2750,7 @@ function intelQuick(msg) {
         + '<td style="' + rs + '">' + (isRejected ? '<span class="badge badge-declined">rejected</span>' : tierBadge(a.tier)) + '</td>'
         + '<td style="' + rs + '">' + identityStatus(a) + '</td>'
         + '<td style="' + rs + '">' + (a.completed_jobs||0) + '</td>'
-        + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : '—') + '</td>'
+        + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' ★' : '—') + '</td>'
         + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
         + '<td style="' + rs + '">'
           + (isRejected
@@ -2677,31 +2816,31 @@ function intelQuick(msg) {
 
   function showAssemblerDetail(a) {
     document.getElementById('asm-detail-name').textContent = a.full_name;
-    var approveBtn = a.tier === 'pending' ? (a.identity_verified ? '<button class="btn btn-teal" onclick="approveFromDetail(\'' + a.id + '\')">&#10003; Approve → Starter</button>' : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed">&#10003; Approve → Starter</button>') : '';
-    var rejectBtn = a.tier === 'pending' ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">&#10007; Reject</button>' : '';
+    var approveBtn = a.tier === 'pending' ? (a.identity_verified ? '<button class="btn btn-teal" onclick="approveFromDetail(\'' + a.id + '\')">Approve as Starter</button>' : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="ID verification required">Approve as Starter</button>') : '';
+    var rejectBtn = a.tier === 'pending' ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button>' : '';
     var promoteBtn = '';
-    if (a.tier === 'starter') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'verified\')">&#8593; Promote → Verified</button>';
-    if (a.tier === 'verified') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'elite\')">&#8593; Promote → Elite</button>';
+    if (a.tier === 'starter') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'verified\')">Promote to Verified</button>';
+    if (a.tier === 'verified') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'elite\')">Promote to Elite</button>';
     var downgradeBtn = '';
-    if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">&#8595; Demote → Verified</button>';
-    if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">&#8595; Demote → Starter</button>';
+    if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">Downgrade to Verified</button>';
+    if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">Downgrade to Starter</button>';
     var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended') ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">Suspend</button>' : '';
-    var reinstateBtn = a.tier === 'suspended' ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">&#10003; Reinstate → Starter</button>' : '';
+    var reinstateBtn = a.tier === 'suspended' ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">Reinstate as Starter</button>' : '';
     document.getElementById('asm-detail-body').innerHTML = [
       '<strong>Email:</strong> ' + esc(a.email),
       '<strong>Phone:</strong> ' + esc(a.phone||'—'),
       '<strong>Location:</strong> ' + esc(a.city||'—') + ', ' + esc(a.zip||''),
       '<strong>Tier:</strong> ' + tierBadge(a.tier),
       '<strong>ID Verification:</strong> ' + identityStatus(a),
-      '<strong>Payment:</strong> ' + (a.payment_confirmed ? '<span style="color:#1d9e75">&#10003; Confirmed</span>' : '<span style="color:var(--muted)">Not confirmed</span>'),
+      '<strong>Payment:</strong> ' + (a.payment_confirmed ? '<span style="color:#1d9e75;font-weight:500">Confirmed</span>' : '<span style="color:var(--muted)">Not confirmed</span>'),
       '<strong>Services:</strong> ' + esc((a.services_offered||[]).join(', ')||'—'),
       '<strong>Experience:</strong> ' + (a.years_experience||0) + ' year(s)',
       '<strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
       a.bio ? '<strong>Bio:</strong> ' + esc(a.bio) : '',
-      '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' &#9733;' : 'N/A'),
+      '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' ★' : 'N/A'),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Send Password Reset</button>' + '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">&#128465; Delete Easer</button>' + '</div>',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Reset Password</button>' + '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">Remove Easer</button>' + '</div>',
     ].filter(Boolean).join('<br>');
     document.getElementById('asm-detail-modal').classList.add('open');
   }
