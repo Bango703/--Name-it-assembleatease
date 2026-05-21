@@ -398,9 +398,16 @@
       return;
     }
 
+    // Get fresh token to avoid stale session 401s
+    var freshTok = session.access_token;
+    try{
+      var fs=await supabaseClient.auth.getSession();
+      if(fs.data&&fs.data.session) freshTok=fs.data.session.access_token;
+    }catch(e){}
+
     // Load assigned bookings from server (active = confirmed only)
     try{
-      var bResp=await fetch('/api/booking/my-assignments?status=confirmed',{headers:{'Authorization':'Bearer '+session.access_token}});
+      var bResp=await fetch('/api/booking/my-assignments?status=confirmed',{headers:{'Authorization':'Bearer '+freshTok}});
       if(bResp.ok){
         var bData=await bResp.json();
         var bookings=bData.bookings||[];
@@ -424,7 +431,7 @@
 
     // Load completed assignments
     try{
-      var cResp=await fetch('/api/booking/my-assignments?status=completed',{headers:{'Authorization':'Bearer '+session.access_token}});
+      var cResp=await fetch('/api/booking/my-assignments?status=completed',{headers:{'Authorization':'Bearer '+freshTok}});
       if(cResp.ok){
         var cData=await cResp.json();
         var completed=cData.bookings||[];
@@ -540,24 +547,30 @@
   }
 
   async function subscribePush() {
-    if (!_swReg || !_userId) return;
+    if (!_swReg || !_userId) { console.warn('Push: SW or userId not ready', {sw:!!_swReg, uid:_userId}); return; }
     try {
       // Get VAPID public key from server
       var r = await fetch('/api/assembler/push-subscribe');
-      if (!r.ok) return;
+      if (!r.ok) { console.warn('Push: VAPID key fetch failed', r.status, await r.text()); return; }
       var d = await r.json();
-      if (!d.publicKey) return;
+      if (!d.publicKey) { console.warn('Push: no publicKey in response', d); return; }
 
       var sub = await _swReg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(d.publicKey),
       });
 
-      await fetch('/api/assembler/push-subscribe', {
+      var saveResp = await fetch('/api/assembler/push-subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: _userId, subscription: sub.toJSON() }),
       });
+      var saveData = await saveResp.json();
+      if (!saveResp.ok || saveData.error) {
+        console.warn('Push: subscription save failed', saveData);
+      } else {
+        console.log('Push: subscription saved successfully for user', _userId);
+      }
     } catch(e) { console.warn('Push subscribe error:', e); }
   }
 
