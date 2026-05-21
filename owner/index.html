@@ -187,6 +187,7 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Operations</div>
       <ul class="sidebar-nav">
+        <li><a data-view="liveops"><span class="nav-icon">🔴</span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" style="display:none">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
@@ -221,6 +222,53 @@
     <div class="content">
 
       <!-- ─── BOOKINGS VIEW ─── -->
+      <!-- ─── LIVE OPS VIEW ─── -->
+      <div id="liveops-view" style="display:none">
+
+        <!-- Alert bar -->
+        <div id="ops-alerts-bar" style="margin-bottom:1.25rem"></div>
+
+        <!-- Summary chips -->
+        <div id="ops-summary" style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:1.5rem"></div>
+
+        <!-- Main grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem" class="content-grid">
+
+          <!-- Unassigned -->
+          <div class="detail-panel open" style="grid-column:span 1">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div class="detail-section-title" style="margin:0">&#128204; Needs Easer</div>
+              <button id="ops-dispatch-all-btn" class="btn btn-teal" style="font-size:0.75rem;padding:4px 12px" onclick="opsDispatchAll()">Dispatch All</button>
+            </div>
+            <div id="ops-unassigned">—</div>
+          </div>
+
+          <!-- Active jobs -->
+          <div class="detail-panel open" style="grid-column:span 1">
+            <div class="detail-section-title" style="margin-bottom:1rem">&#9889; Active Right Now</div>
+            <div id="ops-active">—</div>
+          </div>
+
+          <!-- Online Easers -->
+          <div class="detail-panel open" style="grid-column:span 1">
+            <div class="detail-section-title" style="margin-bottom:1rem">&#128100; Easer Status</div>
+            <div id="ops-easers">—</div>
+          </div>
+
+          <!-- Today schedule -->
+          <div class="detail-panel open" style="grid-column:span 1">
+            <div class="detail-section-title" style="margin-bottom:1rem">&#128197; Today's Schedule</div>
+            <div id="ops-today">—</div>
+          </div>
+
+        </div>
+
+        <div style="text-align:center;margin-top:1rem;font-size:0.75rem;color:var(--muted)">
+          Auto-refreshes every 30s &bull; <span id="ops-last-updated">—</span>
+          &nbsp;<button class="btn" onclick="loadLiveOps()" style="font-size:0.72rem;padding:2px 10px">&#8635; Refresh</button>
+        </div>
+      </div>
+
       <div id="bookings-view">
         <div class="stats-row" id="stats-row">
           <div class="stat amber" id="stat-pending"><div class="stat-value">—</div><div class="stat-label">Pending</div></div>
@@ -1791,9 +1839,11 @@ function intelQuick(msg) {
   var $customersView    = document.getElementById('customers-view');
   var $analyticsView    = document.getElementById('analytics-view');
   var $intelligenceView = document.getElementById('intelligence-view');
+  var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView];
+  var allViews = [$bookingsView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView,$liveopsView];
+  var _liveOpsTimer = null;
 
   // Expose headers globally so scripts outside IIFE can use it
   window._ownerHeaders = function() { return headers(); };
@@ -1812,8 +1862,9 @@ function intelQuick(msg) {
       link.classList.add('active');
       hideAllViews();
       $newBookingBtn.style.display = view === 'bookings' ? '' : 'none';
-      if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; }
-      else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; loadWaitlist(); }
+      if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
+      else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
+      else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
       else if (view === 'today')       { $todayView.style.display='';       $topbarTitle.textContent='Today\'s Schedule'; renderTodayView(); }
@@ -1823,6 +1874,186 @@ function intelQuick(msg) {
       else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; runIntelligence(); }
     });
   });
+
+  // ─── LIVE OPS ─────────────────────────────────────────────────────────────
+  function startLiveOps() {
+    loadLiveOps();
+    if (_liveOpsTimer) clearInterval(_liveOpsTimer);
+    _liveOpsTimer = setInterval(loadLiveOps, 30000);
+  }
+  function stopLiveOps() {
+    if (_liveOpsTimer) { clearInterval(_liveOpsTimer); _liveOpsTimer = null; }
+  }
+
+  async function loadLiveOps() {
+    try {
+      var r = await fetch('/api/owner/live-ops', { headers: headers() });
+      if (!r.ok) return;
+      var d = await r.json();
+      renderLiveOps(d);
+    } catch(e) { console.error('Live ops error:', e); }
+  }
+
+  function renderLiveOps(d) {
+    var s = d.summary;
+
+    // Alert badge in nav
+    var alertBadge = document.getElementById('nav-liveops-alerts');
+    if (s.criticalAlerts > 0) { alertBadge.textContent = s.criticalAlerts; alertBadge.style.display = ''; }
+    else alertBadge.style.display = 'none';
+
+    // Alert bar
+    var alertsEl = document.getElementById('ops-alerts-bar');
+    if (d.alerts && d.alerts.length) {
+      alertsEl.innerHTML = d.alerts.slice(0, 5).map(function(a) {
+        var colors = { critical: '#dc2626', high: '#ea580c', medium: '#d97706', low: '#6b7280' };
+        var color = colors[a.severity] || '#6b7280';
+        var actionBtn = a.action ? '<button onclick="opsAction(\'' + a.action + '\',\'' + a.bookingId + '\')" style="background:'+color+';color:#fff;border:none;border-radius:6px;padding:2px 10px;font-size:0.72rem;cursor:pointer;margin-left:8px">'+a.action.toUpperCase()+'</button>' : '';
+        return '<div style="display:flex;align-items:center;background:rgba('+hexToRgb(color)+',0.08);border:1px solid rgba('+hexToRgb(color)+',0.2);border-radius:8px;padding:0.6rem 0.9rem;margin-bottom:0.4rem">'
+          + '<span style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0;margin-right:0.6rem"></span>'
+          + '<span style="font-size:0.82rem;color:var(--text);flex:1">'+esc(a.message)+'</span>'
+          + actionBtn + '</div>';
+      }).join('');
+    } else {
+      alertsEl.innerHTML = '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.6rem 0.9rem;font-size:0.82rem;color:#166534">&#10003; All clear — no alerts right now</div>';
+    }
+
+    // Summary chips
+    var chips = [
+      { label: 'Active Jobs', val: s.totalActive, color: '#0097a7' },
+      { label: 'Needs Easer', val: s.unassigned + s.awaitingDispatch, color: s.unassigned > 0 ? '#dc2626' : '#6b7280' },
+      { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: s.awaitingAcceptance > 0 ? '#ea580c' : '#6b7280' },
+      { label: 'En Route', val: s.enRoute, color: '#0097a7' },
+      { label: 'In Progress', val: s.inProgress, color: '#059669' },
+      { label: 'Today', val: s.todayJobs, color: '#7c3aed' },
+      { label: 'Free Easers', val: s.freeEasers, color: s.freeEasers === 0 ? '#dc2626' : '#059669' },
+    ];
+    document.getElementById('ops-summary').innerHTML = chips.map(function(c) {
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.85rem;font-size:0.82rem;display:flex;align-items:center;gap:6px">'
+        + '<span style="font-weight:700;color:'+c.color+'">'+c.val+'</span>'
+        + '<span style="color:var(--muted)">'+c.label+'</span></div>';
+    }).join('');
+
+    // Unassigned / needs Easer
+    var unassignedEl = document.getElementById('ops-unassigned');
+    var needs = (d.unassigned || []).concat(d.awaitingDispatch || []);
+    if (!needs.length) {
+      unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">&#10003; All bookings have an Easer</div>';
+    } else {
+      unassignedEl.innerHTML = needs.map(function(b) {
+        var label = b.dispatch_offered_at ? 'Offer sent — no response' : 'No Easer yet';
+        var badgeColor = b.dispatch_offered_at ? '#ea580c' : '#dc2626';
+        return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+          + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
+          + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time?' at '+esc(b.time):'')+'</div></div>'
+          + '<span style="background:rgba('+hexToRgb(badgeColor)+',0.1);color:'+badgeColor+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+label+'</span>'
+          + '</div>'
+          + '<button onclick="opsAction(\'dispatch\',\''+b.id+'\')" style="margin-top:0.4rem;background:var(--teal);color:#fff;border:none;border-radius:6px;padding:3px 12px;font-size:0.75rem;cursor:pointer">Dispatch Now</button>'
+          + '</div>';
+      }).join('');
+    }
+
+    // Active jobs (en route, arrived, in progress, accepted)
+    var activeEl = document.getElementById('ops-active');
+    var active = (d.enRoute || []).concat(d.arrived || []).concat(d.inProgress || []).concat(d.awaitingAcceptance || []);
+    if (!active.length) {
+      activeEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No active jobs right now</div>';
+    } else {
+      activeEl.innerHTML = active.map(function(b) {
+        var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : b.assembler_accepted_at ? 'Accepted' : 'Awaiting Accept';
+        var stageColors = { 'In Progress':'#059669','Arrived':'#0097a7','En Route':'#7c3aed','Accepted':'#0097a7','Awaiting Accept':'#ea580c' };
+        var color = stageColors[stage] || '#6b7280';
+        return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+          + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
+          + '<div style="font-size:0.78rem;color:var(--muted)">'+(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
+          + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">'+stage+'</span>'
+          + '</div>'
+          + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">&#128205; '+esc(b.address)+'</div>' : '')
+          + '</div>';
+      }).join('');
+    }
+
+    // Easers
+    var easersEl = document.getElementById('ops-easers');
+    var easers = d.onlineEasers || [];
+    if (!easers.length) {
+      easersEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No Easers online right now</div>';
+    } else {
+      easersEl.innerHTML = easers.map(function(e) {
+        var isWorking = e.status === 'working';
+        var dot = isWorking ? '#059669' : '#0097a7';
+        var label = isWorking ? 'Working' : 'Available';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:0.5rem 0;border-bottom:1px solid var(--border)">'
+          + '<span style="width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0"></span>'
+          + '<span style="font-size:0.875rem;font-weight:500;color:var(--text);flex:1">'+esc(e.full_name)+'</span>'
+          + '<span style="font-size:0.75rem;color:var(--muted)">'+esc(e.tier)+'</span>'
+          + '<span style="font-size:0.72rem;background:rgba('+hexToRgb(dot)+',0.1);color:'+dot+';padding:1px 7px;border-radius:99px">'+label+'</span>'
+          + '</div>';
+      }).join('');
+      if (d.offlineCount > 0) {
+        easersEl.innerHTML += '<div style="font-size:0.78rem;color:var(--muted);padding:0.5rem 0">+'+d.offlineCount+' Easer(s) offline</div>';
+      }
+    }
+
+    // Today schedule
+    var todayEl = document.getElementById('ops-today');
+    var todayJobs = d.todaySchedule || [];
+    if (!todayJobs.length) {
+      todayEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">No jobs scheduled for today</div>';
+    } else {
+      todayEl.innerHTML = todayJobs.map(function(b) {
+        var statusColors = { confirmed:'#0097a7', pending:'#d97706', completed:'#059669', cancelled:'#6b7280' };
+        var color = statusColors[b.status] || '#6b7280';
+        return '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;justify-content:space-between">'
+          + '<div style="font-size:0.875rem;font-weight:600">'+esc(b.time||'TBD')+' — '+esc(b.service)+'</div>'
+          + '<span style="font-size:0.68rem;background:rgba('+hexToRgb(color)+',0.1);color:'+color+';padding:2px 7px;border-radius:99px">'+b.status+'</span>'
+          + '</div>'
+          + '<div style="font-size:0.78rem;color:var(--muted)">'+(b.assembler_name||'Unassigned')+' &bull; '+esc(b.customer_name||'')+'</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    // Last updated
+    document.getElementById('ops-last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  async function opsAction(action, bookingId) {
+    if (action === 'dispatch' || action === 'redispatch') {
+      var btn = event.target;
+      btn.disabled = true; btn.textContent = 'Dispatching…';
+      try {
+        var r = await fetch('/api/booking/dispatch', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: bookingId }) });
+        var d = await r.json();
+        if (d.error) { toast(d.error, 'error'); } else { toast('Dispatched to ' + (d.dispatched||0) + ' Easer(s)', 'success'); }
+      } catch { toast('Dispatch failed', 'error'); }
+      finally { loadLiveOps(); }
+    } else if (action === 'reassign') {
+      toast('Open booking in Bookings tab to reassign', 'info');
+    }
+  }
+
+  window.opsAction = opsAction;
+  window.opsDispatchAll = async function() {
+    var btn = document.getElementById('ops-dispatch-all-btn');
+    btn.disabled = true; btn.textContent = 'Dispatching…';
+    try {
+      var r = await fetch('/api/cron/auto-dispatch', { method:'GET', headers:headers() });
+      var d = await r.json();
+      toast('Dispatched ' + (d.dispatched||0) + ' booking(s)', 'success');
+    } catch { toast('Dispatch failed', 'error'); }
+    finally { btn.disabled = false; btn.textContent = 'Dispatch All'; loadLiveOps(); }
+  };
+
+  window.loadLiveOps = loadLiveOps;
+
+  function hexToRgb(hex) {
+    if (!hex.startsWith('#')) return '0,0,0';
+    var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return r+','+g+','+b;
+  }
 
   // ─── TODAY VIEW ───
   function renderTodayView() {

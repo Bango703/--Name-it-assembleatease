@@ -486,8 +486,48 @@
     completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
-    const canComplete2 = b.status === 'confirmed' && b.assembler_accepted_at && b.checked_in_at;
+    const canComplete2 = (b.status === 'confirmed' || b.status === 'en_route' || b.status === 'in_progress') && b.assembler_accepted_at && b.checked_in_at;
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
+
+    // Pipeline status buttons — shown after acceptance
+    const existingPipeline = document.getElementById('pipeline-btns');
+    if (existingPipeline) existingPipeline.remove();
+    if (accepted && b.status !== 'completed') {
+      const pipeline = document.createElement('div');
+      pipeline.id = 'pipeline-btns';
+      pipeline.style.cssText = 'display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem';
+      const stages = [];
+      if (!b.en_route_at && !b.checked_in_at) stages.push({ stage: 'en_route', label: '🚗 I\'m On My Way', color: 'var(--pro-teal)' });
+      if (b.en_route_at && !b.checked_in_at) stages.push({ stage: 'arrived', label: '📍 I\'ve Arrived', color: 'var(--pro-teal)' });
+      if (b.checked_in_at && !b.job_started_at) stages.push({ stage: 'in_progress', label: '🔧 Job Started', color: '#059669' });
+      stages.forEach(function(s) {
+        const btn2 = document.createElement('button');
+        btn2.className = 'btn';
+        btn2.style.cssText = 'background:' + s.color + ';color:#fff;font-weight:600';
+        btn2.textContent = s.label;
+        btn2.addEventListener('click', async function() {
+          btn2.disabled = true; btn2.textContent = 'Updating…';
+          try {
+            const r = await fetch('/api/booking/easer-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+              body: JSON.stringify({ bookingId: b.id, stage: s.stage }),
+            });
+            const d = await r.json();
+            if (!r.ok || d.error) { alert(d.error || 'Failed to update'); btn2.disabled = false; btn2.textContent = s.label; return; }
+            // Refresh assignments
+            const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(allAssignments); }
+            document.getElementById('asgn-modal').classList.remove('open');
+          } catch { alert('Connection error'); btn2.disabled = false; btn2.textContent = s.label; }
+        });
+        pipeline.appendChild(btn2);
+      });
+      if (pipeline.children.length) {
+        const checkinSection = document.getElementById('checkin-section');
+        checkinSection.parentNode.insertBefore(pipeline, checkinSection);
+      }
+    }
 
     // Accept job button (manually assigned, not yet accepted)
     const acceptBtn = document.getElementById('accept-job-btn');
