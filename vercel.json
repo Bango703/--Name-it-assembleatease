@@ -4,6 +4,10 @@
   "redirects": [],
   "crons": [
     {
+      "path": "/api/cron/auto-dispatch",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/review-request",
       "schedule": "0 14 * * *"
     },
