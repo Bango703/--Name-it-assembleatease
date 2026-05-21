@@ -138,7 +138,7 @@
         console.error('[auth.js] Profile upsert error:', profileError);
       }
 
-      window.location.href = '/assembler/';
+      window.location.href = '/';
 
     } catch (err) {
       console.error('[auth.js] Signup error:', err);

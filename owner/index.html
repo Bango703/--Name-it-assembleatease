@@ -969,7 +969,7 @@ function intelQuick(msg) {
     try {
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'waitlist') await loadWaitlist();
-      else if (currentView === 'marketplace') await loadMarketplaceJobs();
+      // marketplace removed
       else if (currentView === 'reviews') { await loadReviews(); }
       else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
       else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
@@ -1762,7 +1762,7 @@ function intelQuick(msg) {
   var $bookingsView   = document.getElementById('bookings-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
-  var $marketplaceView= document.getElementById('marketplace-view');
+  var $marketplaceView= null; // removed
   var $todayView        = document.getElementById('today-view');
   var $reviewsView      = document.getElementById('reviews-view');
   var $customersView    = document.getElementById('customers-view');
@@ -1792,7 +1792,7 @@ function intelQuick(msg) {
       if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
-      else if (view === 'marketplace') { $marketplaceView.style.display=''; $topbarTitle.textContent='Marketplace'; loadMarketplaceJobs(); }
+      // marketplace removed
       else if (view === 'today')       { $todayView.style.display='';       $topbarTitle.textContent='Today\'s Schedule'; renderTodayView(); }
       else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
       else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
