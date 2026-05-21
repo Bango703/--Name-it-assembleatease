@@ -41,9 +41,9 @@ export default async function handler(req, res) {
     .from('profiles')
     .select('id, full_name, email, phone, city, zip, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at, services_offered')
     .eq('role', 'assembler')
+    .eq('status', 'active')
     .eq('identity_verified', true)
-    .in('tier', ['starter', 'verified', 'elite'])
-    .neq('tier', 'suspended');
+    .in('tier', ['starter', 'professional', 'elite']);
 
   if (!easers || !easers.length) {
     return res.status(200).json({ dispatched: 0, message: 'No eligible Easers found' });
@@ -72,8 +72,8 @@ export default async function handler(req, res) {
     var score = 0;
     // Tier score (base)
     if (e.tier === 'elite')    score += 300;
-    if (e.tier === 'verified') score += 200;
-    if (e.tier === 'starter')  score += 100;
+    if (e.tier === 'professional') score += 200;
+    if (e.tier === 'starter')      score += 100;
     // Membership bonus — applied on top of tier
     if (e.has_membership) score += 150;
     // Proximity bonus (same zip)
@@ -159,7 +159,7 @@ function extractZip(address) {
 function buildOfferEmail(easer, booking, city, acceptUrl) {
   var firstName = (easer.full_name || 'there').split(' ')[0];
   var memberBadge = easer.has_membership ? '<span style="background:#0097a7;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:6px">MEMBER</span>' : '';
-  var tierLabel = { starter: 'Starter', verified: '✓ Verified', elite: '★ Elite' }[easer.tier] || easer.tier;
+  var tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[easer.tier] || easer.tier;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111">
 <div style="max-width:560px;margin:0 auto;padding:20px 16px">
   <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1)">

@@ -32,10 +32,11 @@ export async function dispatchBooking(bookingId) {
 
   const { data: easers } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at')
+    .select('id, full_name, email, phone, city, zip, status, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at')
     .eq('role', 'assembler')
-    .eq('identity_verified', true)
-    .in('tier', ['starter', 'verified', 'elite']);
+    .eq('status', 'active')              // status gate: only active Easers
+    .eq('identity_verified', true)        // ID verification gate
+    .in('tier', ['starter', 'professional', 'elite']); // tier gate (professional replaces verified)
 
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers' };
 
@@ -52,7 +53,7 @@ export async function dispatchBooking(bookingId) {
   if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
 
   const scored = eligible.map(e => {
-    let score = e.tier === 'elite' ? 300 : e.tier === 'verified' ? 200 : 100;
+    let score = e.tier === 'elite' ? 300 : e.tier === 'professional' ? 200 : 100;
     if (e.has_membership) score += 150;
     if (bookingZip && e.zip && e.zip === bookingZip) score += 50;
     if (e.rating) score += Math.round(Number(e.rating) * 10);

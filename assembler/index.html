@@ -310,21 +310,24 @@
 
     // Tier badge
     var tierEl=document.getElementById('sidebar-tier');
-    if(profile.tier && profile.tier !== 'pending'){
-      var tierLabels={starter:'Starter',verified:'✓ Verified',elite:'★ Elite'};
-      tierEl.innerHTML='<span class="tier-badge tier-'+(profile.tier||'starter')+'">'+(tierLabels[profile.tier]||profile.tier)+'</span>';
-    } else if(profile.tier==='pending'){
+    if(profile.status==='active' && profile.tier){
+      var tierLabels={starter:'Starter',professional:'Professional',elite:'Elite'};
+      var tierCls={starter:'tier-starter',professional:'tier-verified',elite:'tier-elite'};
+      tierEl.innerHTML='<span class="tier-badge '+(tierCls[profile.tier]||'tier-starter')+'">'+(tierLabels[profile.tier]||profile.tier)+'</span>';
+    } else if(profile.status==='pending'){
       tierEl.innerHTML='<span class="tier-badge tier-pending">Pending</span>';
+    } else if(profile.status==='suspended'){
+      tierEl.innerHTML='<span class="tier-badge tier-pending">Suspended</span>';
     }
 
-    // Tier status banner
+    // Status banner
     var tsBanner=document.getElementById('tier-status-banner');
-    if(profile.tier==='pending'){
+    if(profile.status==='pending'){
       tsBanner.classList.remove('hidden');
       document.getElementById('tier-status-icon').innerHTML='&#9202;';
       document.getElementById('tier-status-title').textContent='Your application is under review';
       document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
-    } else if(profile.tier==='starter' && profile.completed_jobs===0){
+    } else if(profile.status==='active' && profile.tier==='starter' && profile.completed_jobs===0){
       tsBanner.classList.remove('hidden');
       tsBanner.style.background='rgba(0,151,167,0.06)';
       tsBanner.style.borderColor='rgba(0,151,167,0.15)';
@@ -373,14 +376,17 @@
     });
 
     // ── VERIFICATION GATE ──
-    if(profile.tier==='pending' || profile.identity_verified!==true){
+    if(profile.status==='pending' || profile.status==='suspended' || profile.identity_verified!==true){
       document.getElementById('stats-row').style.display='none';
       // Show the appropriate banner
       var banner=document.getElementById('identity-banner');
       if(banner) banner.classList.remove('hidden');
-      if(profile.tier==='pending'){
+      if(profile.status==='pending'){
         var sub=document.getElementById('identity-banner-sub');
         if(sub) sub.textContent='Your application is under review. We\'ll email you once approved.';
+      } else if(profile.status==='suspended'){
+        var sub=document.getElementById('identity-banner-sub');
+        if(sub) sub.textContent='Your account is currently suspended. Please contact support.';
       } else {
         // Identity not verified — show the verify button
         var verifyBtn=document.getElementById('identity-verify-btn');

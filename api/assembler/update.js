@@ -6,247 +6,228 @@ const SITE = 'https://www.assembleatease.com';
 
 /**
  * POST /api/assembler/update
- * Owner-only: update assembler tier, suspend/reactivate, or reject.
- * Body: { assemblerId, tier?, suspended?, action? }
- * action: 'reject' | undefined (use tier/suspended for other updates)
+ * Owner-only: manage Easer status, tier, ID verification.
+ *
+ * CLEAN SEPARATION:
+ *   status               — platform access: pending | active | suspended | rejected
+ *   tier                 — quality level:   starter | professional | elite
+ *   id_verification_status — identity:      pending | verified | failed
+ *   has_membership       — subscription (managed by /api/assembler/membership)
+ *
+ * Actions:
+ *   approve          → status=active, tier=starter (requires id_verified=true)
+ *   reject           → status=rejected
+ *   suspend          → status=suspended, saves previous_tier
+ *   reinstate        → status=active, restores previous_tier (not forced to starter)
+ *   promote          → tier upgrade (status must be active)
+ *   demote           → tier downgrade (status must be active)
+ *   mark_id_verified → id_verified=true, id_verification_status=verified
+ *   delete           → permanently remove (pending/rejected only)
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { assemblerId, tier, suspended, action, rejectionReason } = req.body;
+  const { assemblerId, action, tier, rejectionReason } = req.body;
   if (!assemblerId) return res.status(400).json({ error: 'assemblerId is required' });
-
-  const validTiers = ['pending', 'starter', 'verified', 'elite', 'suspended'];
-  if (tier && !validTiers.includes(tier)) {
-    return res.status(400).json({ error: 'Invalid tier' });
-  }
+  if (!action) return res.status(400).json({ error: 'action is required' });
 
   const sb = getSupabase();
 
-  // Verify assembler exists
   const { data: profile, error: lookupErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, tier, identity_verified')
+    .select('id, full_name, email, status, tier, identity_verified, id_verification_status, previous_tier, application_status')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
 
-  if (lookupErr || !profile) {
-    return res.status(404).json({ error: 'Assembler not found' });
-  }
+  if (lookupErr || !profile) return res.status(404).json({ error: 'Easer not found' });
 
-  // ── Handle rejection ──
-  if (action === 'reject') {
-    const { error: rejectErr } = await sb
-      .from('profiles')
-      .update({
-        tier: 'pending', // keep pending, won't be approved
-        application_status: 'rejected',
-        rejected_at: new Date().toISOString(),
-        rejection_reason: rejectionReason?.trim() || null,
-      })
-      .eq('id', assemblerId);
-
-    if (rejectErr) {
-      // Try without new columns if they don't exist yet
-      await sb.from('profiles').update({ tier: 'pending' }).eq('id', assemblerId);
+  // ── APPROVE ──────────────────────────────────────────────────────────────
+  if (action === 'approve') {
+    if (!profile.identity_verified) {
+      return res.status(400).json({ error: 'Identity must be verified before approval. Mark ID verified first.' });
+    }
+    if (profile.status === 'active') {
+      return res.status(400).json({ error: 'Easer is already active.' });
     }
 
-    // Update waitlist status
-    try {
-      await sb.from('assembler_waitlist')
-        .update({ status: 'rejected' })
-        .eq('email', profile.email.toLowerCase());
-    } catch (e) { console.error('Waitlist reject update error:', e); }
+    await sb.from('profiles').update({
+      status: 'active',
+      tier: 'starter',
+      application_status: 'approved',
+      approved_at: new Date().toISOString(),
+      welcome_email_sent: true,
+    }).eq('id', assemblerId);
 
-    // Send rejection email
-    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    try {
-      await sendEmail({
-        to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: 'Your AssembleAtEase Application',
-        replyTo: 'service@assembleatease.com',
-        html: buildRejectionEmail(firstName, rejectionReason?.trim() || null),
-      });
-    } catch (e) { console.error('Rejection email error:', e); }
+    sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
 
-    return res.status(200).json({ success: true, assemblerId, action: 'rejected' });
-  }
-
-  // ── Handle permanent deletion of rejected applicants ──
-  if (action === 'delete') {
-    // Only allow deleting rejected or pending assemblers (not active ones)
-    if (!['pending', 'suspended'].includes(profile.tier) && profile.application_status !== 'rejected') {
-      return res.status(400).json({ error: 'Can only delete pending or rejected applications' });
-    }
-
-    // Delete from waitlist
-    try {
-      await sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase());
-    } catch (e) { console.error('Waitlist delete error:', e); }
-
-    // Delete the profile row
-    const { error: profileDeleteErr } = await sb.from('profiles').delete().eq('id', assemblerId);
-    if (profileDeleteErr) {
-      console.error('Profile delete error:', profileDeleteErr);
-      return res.status(500).json({ error: 'Failed to delete profile' });
-    }
-
-    // Attempt to delete the auth user (requires service role — non-blocking if it fails)
-    try {
-      await sb.auth.admin.deleteUser(assemblerId);
-    } catch (e) { console.error('Auth user delete error (non-fatal):', e); }
-
-    return res.status(200).json({ success: true, assemblerId, action: 'deleted' });
-  }
-
-  // Block approval of unverified assemblers
-  if (tier && tier !== 'pending' && profile.tier === 'pending' && !profile.identity_verified) {
-    return res.status(400).json({
-      error: 'Assembler must complete identity verification before approval',
-    });
-  }
-
-  const updates = {};
-  if (tier) updates.tier = tier;
-  if (typeof suspended === 'boolean') updates.suspended = suspended;
-
-  if (!Object.keys(updates).length) {
-    return res.status(400).json({ error: 'No updates provided' });
-  }
-
-  const { error: updateErr } = await sb
-    .from('profiles')
-    .update(updates)
-    .eq('id', assemblerId);
-
-  if (updateErr) {
-    console.error('Assembler update error:', updateErr);
-    return res.status(500).json({ error: 'Failed to update assembler' });
-  }
-
-  // ── If approving (pending → starter/verified/elite), send welcome email with password reset link ──
-  if (tier && tier !== 'pending' && profile.tier === 'pending') {
-    // Remove from waitlist — approved Easers no longer need to be listed there
-    try {
-      await sb.from('assembler_waitlist')
-        .delete()
-        .eq('email', profile.email.toLowerCase());
-    } catch (e) { console.error('Waitlist remove on approve error:', e); }
-
-    // Generate password reset link — assembler uses this to set their own password
     let resetUrl = SITE + '/auth/set-password';
     try {
-      const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+      const { data: linkData } = await sb.auth.admin.generateLink({
         type: 'recovery',
         email: profile.email,
         options: { redirectTo: SITE + '/auth/set-password' },
       });
-      if (!linkErr && linkData?.properties?.action_link) {
-        resetUrl = linkData.properties.action_link;
-      } else {
-        console.warn('generateLink warning:', linkErr?.message);
-      }
-    } catch (e) { console.error('generateLink error:', e); }
+      if (linkData?.properties?.action_link) resetUrl = linkData.properties.action_link;
+    } catch(e) { console.warn('generateLink error:', e.message); }
 
-    // Update application status (non-blocking — columns may not exist yet)
-    sb.from('profiles').update({
-      application_status: 'approved',
-      approved_at: new Date().toISOString(),
-      welcome_email_sent: true,
-    }).eq('id', assemblerId).then(({ error: e }) => {
-      if (e) console.warn('application_status update skipped:', e.message);
-    });
-
-    // Send welcome email with password reset link
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    try {
-      await sendEmail({
-        to: profile.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: 'Welcome to AssembleAtEase — Set your password to get started',
-        replyTo: 'service@assembleatease.com',
-        html: buildWelcomeEmail(firstName, profile.email, tier, resetUrl),
-      });
-    } catch (e) { console.error('Welcome email error:', e); }
+    sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Welcome to AssembleAtEase — Set your password to get started',
+      replyTo: 'service@assembleatease.com',
+      html: buildApprovalEmail(firstName, profile.email, resetUrl),
+    }).catch(e => console.error('Approval email error:', e));
+
+    return res.status(200).json({ ok: true, action: 'approved', status: 'active', tier: 'starter' });
   }
 
-  return res.status(200).json({ success: true, assemblerId, updates });
+  // ── REJECT ───────────────────────────────────────────────────────────────
+  if (action === 'reject') {
+    if (profile.status === 'active') {
+      return res.status(400).json({ error: 'Cannot reject an active Easer. Use suspend instead.' });
+    }
+
+    await sb.from('profiles').update({
+      status: 'rejected',
+      tier: null,
+      application_status: 'rejected',
+      rejected_at: new Date().toISOString(),
+      rejection_reason: rejectionReason?.trim() || null,
+    }).eq('id', assemblerId);
+
+    sb.from('assembler_waitlist').update({ status: 'rejected' }).eq('email', profile.email.toLowerCase()).then(() => {});
+
+    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Your AssembleAtEase Application',
+      replyTo: 'service@assembleatease.com',
+      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null),
+    }).catch(e => console.error('Rejection email error:', e));
+
+    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected' });
+  }
+
+  // ── SUSPEND ──────────────────────────────────────────────────────────────
+  if (action === 'suspend') {
+    if (profile.status === 'suspended') return res.status(400).json({ error: 'Already suspended.' });
+    if (profile.status !== 'active') return res.status(400).json({ error: 'Only active Easers can be suspended.' });
+
+    await sb.from('profiles').update({
+      status: 'suspended',
+      previous_tier: profile.tier, // preserve so reinstate restores correctly
+    }).eq('id', assemblerId);
+
+    return res.status(200).json({ ok: true, action: 'suspended', previous_tier: profile.tier });
+  }
+
+  // ── REINSTATE ────────────────────────────────────────────────────────────
+  if (action === 'reinstate') {
+    if (profile.status !== 'suspended') return res.status(400).json({ error: 'Easer is not suspended.' });
+
+    const restoredTier = profile.previous_tier || 'starter';
+    await sb.from('profiles').update({
+      status: 'active',
+      tier: restoredTier,
+      previous_tier: null,
+    }).eq('id', assemblerId);
+
+    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[restoredTier] || restoredTier;
+    sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Your AssembleAtEase account has been reinstated',
+      replyTo: 'service@assembleatease.com',
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#0097a7">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer and you can now receive job assignments again.</p><p><a href="${SITE}/assembler/" style="color:#0097a7">Open your dashboard</a></p></div>`,
+    }).catch(() => {});
+
+    return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier });
+  }
+
+  // ── PROMOTE / DEMOTE ─────────────────────────────────────────────────────
+  if (action === 'promote' || action === 'demote') {
+    if (profile.status !== 'active') {
+      return res.status(400).json({ error: 'Only active Easers can have their tier changed.' });
+    }
+
+    const validTiers = ['starter', 'professional', 'elite'];
+    if (!tier || !validTiers.includes(tier)) {
+      return res.status(400).json({ error: 'tier must be one of: starter, professional, elite' });
+    }
+
+    const tierRank = { starter: 1, professional: 2, elite: 3 };
+    const currentRank = tierRank[profile.tier] || 0;
+    const newRank = tierRank[tier];
+
+    if (action === 'promote' && newRank <= currentRank) {
+      return res.status(400).json({ error: `Cannot promote to ${tier} — must be higher than current tier (${profile.tier}).` });
+    }
+    if (action === 'demote' && newRank >= currentRank) {
+      return res.status(400).json({ error: `Cannot demote to ${tier} — must be lower than current tier (${profile.tier}).` });
+    }
+
+    await sb.from('profiles').update({ tier }).eq('id', assemblerId);
+
+    const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[tier];
+    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+
+    if (action === 'promote') {
+      sendEmail({
+        to: profile.email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `You have been promoted to ${tierLabel}`,
+        replyTo: 'service@assembleatease.com',
+        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#0097a7">Tier Promotion</h2><p>Congratulations, ${esc(firstName)}! You have been promoted to <strong>${esc(tierLabel)}</strong>. This reflects your excellent performance and service quality.</p><p><a href="${SITE}/assembler/" style="color:#0097a7">View your dashboard</a></p></div>`,
+      }).catch(() => {});
+    }
+
+    return res.status(200).json({ ok: true, action, tier, previous: profile.tier });
+  }
+
+  // ── MARK ID VERIFIED ─────────────────────────────────────────────────────
+  if (action === 'mark_id_verified') {
+    await sb.from('profiles').update({
+      identity_verified: true,
+      identity_verified_at: new Date().toISOString(),
+      id_verification_status: 'verified',
+    }).eq('id', assemblerId);
+
+    sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `ID Verified — ${esc(profile.full_name)} ready to approve`,
+      html: `<div style="font-family:sans-serif;padding:1.5rem"><p><strong>${esc(profile.full_name)}</strong> identity manually verified. They can now be approved. <a href="${SITE}/owner/" style="color:#0097a7">Open dashboard</a></p></div>`,
+    }).catch(() => {});
+
+    return res.status(200).json({ ok: true, action: 'id_verified', identity_verified: true });
+  }
+
+  // ── DELETE ───────────────────────────────────────────────────────────────
+  if (action === 'delete') {
+    if (profile.status === 'active') {
+      return res.status(400).json({ error: 'Cannot delete an active Easer. Suspend first.' });
+    }
+
+    sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
+    const { error: profileDeleteErr } = await sb.from('profiles').delete().eq('id', assemblerId);
+    if (profileDeleteErr) return res.status(500).json({ error: 'Failed to delete profile' });
+    sb.auth.admin.deleteUser(assemblerId).catch(() => {});
+
+    return res.status(200).json({ ok: true, action: 'deleted' });
+  }
+
+  return res.status(400).json({ error: `Unknown action: ${action}` });
 }
 
-function buildWelcomeEmail(firstName, email, tier, resetUrl) {
-  var tierLabel = { starter: 'Starter', verified: 'Verified', elite: 'Elite' }[tier] || tier;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">Congratulations, ${esc(firstName)}!</p>
-    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your application has been approved. You are now an official <strong>AssembleAtEase</strong> assembler at the <strong>${esc(tierLabel)}</strong> tier.</p>
-
-    <p style="margin:0 0 12px;font-size:15px;color:#52525b;line-height:1.7">Click the button below to set your password and access your dashboard:</p>
-
-    <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0 20px">
-      <a href="${resetUrl}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700">Set Password &amp; Open Dashboard &rarr;</a>
-    </td></tr></table>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;margin-bottom:24px"><tr><td style="padding:12px 16px">
-      <p style="margin:0;font-size:13px;color:#92400e">&#9888; This link expires in 24 hours. If it expires, use the <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> page to get a new one.</p>
-    </td></tr></table>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:0 0 16px"><tr><td style="padding:18px 20px">
-      <p style="margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What happens next</p>
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="width:24px;vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">1</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">Set your password using the button above</td></tr>
-        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">2</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">Complete your profile on the dashboard</td></tr>
-        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">3</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">We will assign you jobs based on your skills and location</td></tr>
-        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">4</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">You will receive email notifications for each new job opportunity</td></tr>
-      </table>
-    </td></tr></table>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:14px 18px">
-      <p style="margin:0;font-size:13px;color:#52525b"><strong>Your login email:</strong> ${esc(email)}</p>
-    </td></tr></table>
-
-    <p style="margin:20px 0 0;font-size:13px;color:#52525b;line-height:1.6">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#0097a7;text-decoration:none">service@assembleatease.com</a>.</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0;font-size:11px;color:#a1a1aa">Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
-  </td></tr></table>
-</div></body></html>`;
+function buildApprovalEmail(firstName, email, resetUrl) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden"><div style="background:linear-gradient(135deg,#003d47,#0097a7);padding:2rem;text-align:center"><img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/><h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1></div><div style="padding:2rem"><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Congratulations, ${esc(firstName)}!</p><p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official Starter Easer on AssembleAtEase.</p><p style="color:#52525b;margin:0 0 16px">Click the button below to set your password and access your dashboard:</p><div style="text-align:center;margin:1.5rem 0"><a href="${resetUrl}" style="display:inline-block;background:#0097a7;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px"><p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p></div><p style="font-size:0.85rem;color:#71717a"><strong>Your login:</strong> ${esc(email)}</p></div></div></div></body></html>`;
 }
 
 function buildRejectionEmail(firstName, reason) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1a1a1a">Hi ${esc(firstName)},</p>
-    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">
-      Thank you for your interest in joining AssembleAtEase and for taking the time to apply. We appreciate you going through the application process.
-    </p>
-    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">
-      After careful review, we are not able to move forward with your application at this time. This decision is not a reflection of your worth or abilities — we receive many strong applications and can only accept a limited number of assemblers in each area.
-    </p>
-    ${reason ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px"><p style="margin:0;font-size:14px;color:#52525b;line-height:1.6"><strong>Feedback:</strong> ${esc(reason)}</p></td></tr></table>` : ''}
-    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">
-      You are welcome to reapply after 90 days if your situation changes. We wish you the very best.
-    </p>
-    <p style="margin:20px 0 0;font-size:13px;color:#52525b;line-height:1.6">Questions? Contact us at <a href="mailto:service@assembleatease.com" style="color:#0097a7;text-decoration:none">service@assembleatease.com</a>.</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0;font-size:11px;color:#a1a1aa">Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
-  </td></tr></table>
-</div></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a></p></div></div></body></html>`;
 }

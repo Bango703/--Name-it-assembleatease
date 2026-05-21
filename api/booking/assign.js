@@ -33,17 +33,20 @@ export default async function handler(req, res) {
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, tier, identity_verified')
+    .select('id, full_name, email, status, tier, identity_verified')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .single();
 
   if (aErr || !assembler) return res.status(404).json({ error: 'Assembler not found' });
-  if (!['starter', 'verified', 'elite'].includes(assembler.tier)) {
-    return res.status(400).json({ error: 'Assembler must be at least starter tier' });
+  if (assembler.status !== 'active') {
+    return res.status(400).json({ error: `Assembler account is ${assembler.status || 'not active'}. Only active Easers can be assigned.` });
+  }
+  if (!['starter', 'professional', 'elite'].includes(assembler.tier)) {
+    return res.status(400).json({ error: 'Assembler must have a valid tier (Starter, Professional, or Elite).' });
   }
   if (!assembler.identity_verified) {
-    return res.status(400).json({ error: 'Assembler must be identity verified' });
+    return res.status(400).json({ error: 'Assembler must be identity verified before assignment.' });
   }
 
   // Generate secure assignment token

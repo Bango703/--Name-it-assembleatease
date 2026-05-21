@@ -2679,8 +2679,13 @@ function intelQuick(msg) {
   var allAssemblerProfiles = [];
   var currentTierFilter = 'all';
 
+  // ─── EASER MANAGEMENT — CLEAN STATUS/TIER/ID ARCHITECTURE ──────────────────
+  // status: pending | active | suspended | rejected  (platform access)
+  // tier:   starter | professional | elite           (quality/priority)
+  // id_verification_status: pending | verified | failed
+
   async function loadAssemblerList() {
-    document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading assemblers...</td></tr>';
+    document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading Easers...</td></tr>';
     try {
       var r = await fetch('/api/assembler/list', { headers: headers() });
       if (!r.ok) throw new Error('Failed');
@@ -2689,14 +2694,14 @@ function intelQuick(msg) {
       var stats = data.stats || {};
       document.getElementById('asm-total').textContent = stats.total || 0;
       document.getElementById('asm-pending').textContent = stats.pending || 0;
-      document.getElementById('asm-active').textContent = (stats.starter || 0) + (stats.verified || 0);
+      document.getElementById('asm-active').textContent = stats.active || 0;
       document.getElementById('asm-elite').textContent = stats.elite || 0;
       var $navApps = document.getElementById('nav-pending-apps');
       if (stats.pending > 0) { $navApps.textContent = stats.pending; $navApps.style.display = ''; }
       else $navApps.style.display = 'none';
       renderAssemblerTable();
     } catch(e) {
-      document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load assemblers</td></tr>';
+      document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load Easers</td></tr>';
     }
   }
 
@@ -2709,64 +2714,88 @@ function intelQuick(msg) {
     renderAssemblerTable();
   });
 
-  function tierBadge(tier) {
-    var cls = { pending:'tier-pending', starter:'tier-starter', verified:'tier-verified', elite:'tier-elite', suspended:'tier-suspended' };
-    var labels = { pending:'Pending', starter:'Starter', verified:'Verified', elite:'Elite', suspended:'Suspended' };
-    return '<span class="' + (cls[tier]||'tier-pending') + '">' + (labels[tier]||tier||'—') + '</span>';
+  function statusBadge(status) {
+    var cls = { pending:'tier-pending', active:'tier-verified', suspended:'tier-suspended', rejected:'tier-suspended' };
+    var labels = { pending:'Pending', active:'Active', suspended:'Suspended', rejected:'Rejected' };
+    return '<span class="' + (cls[status]||'tier-pending') + '">' + (labels[status]||status||'—') + '</span>';
   }
 
-  function identityStatus(a) {
-    if (a.identity_verified) return '<span style="color:#1d9e75;font-weight:500">Verified</span>';
-    if (a.stripe_verification_id) return '<span style="color:var(--amber)">In Progress</span>';
-    if (a.payment_confirmed) return '<span style="color:#0097a7">Paid — Pending</span>';
+  function tierBadge(tier) {
+    var cls = { starter:'tier-starter', professional:'tier-verified', elite:'tier-elite' };
+    var labels = { starter:'Starter', professional:'Professional', elite:'Elite' };
+    if (!tier) return '<span class="tier-pending">—</span>';
+    return '<span class="' + (cls[tier]||'tier-pending') + '">' + (labels[tier]||tier) + '</span>';
+  }
+
+  function idVerificationBadge(a) {
+    var status = a.id_verification_status || (a.identity_verified ? 'verified' : 'pending');
+    if (status === 'verified') return '<span style="color:#1d9e75;font-weight:500">Verified</span>';
+    if (status === 'failed') return '<span style="color:var(--red);font-weight:500">Failed</span>';
+    if (a.stripe_identity_session_id || a.stripe_verification_id) return '<span style="color:var(--amber)">In Progress</span>';
+    if (a.application_fee_paid || a.fee_waived_by_owner) return '<span style="color:#0097a7">Paid — Pending</span>';
     return '<span style="color:var(--muted)">Not Started</span>';
   }
 
   function renderAssemblerTable() {
     var filtered;
-    if (currentTierFilter === 'all') filtered = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; });
-    else if (currentTierFilter === 'rejected') filtered = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; });
-    else if (currentTierFilter === 'pending') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; });
-    else filtered = allAssemblerProfiles.filter(function(a){ return a.tier === currentTierFilter; });
+    var f = currentTierFilter;
+    if (f === 'all') filtered = allAssemblerProfiles;
+    else if (f === 'pending') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'pending'; });
+    else if (f === 'active') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'active'; });
+    else if (f === 'suspended') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'suspended'; });
+    else if (f === 'rejected') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'rejected'; });
+    else if (f === 'starter') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'starter'; });
+    else if (f === 'professional') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'professional'; });
+    else if (f === 'elite') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'elite'; });
+    else filtered = allAssemblerProfiles;
+
     document.querySelectorAll('#asm-tabs .tab').forEach(function(t) {
       var s = t.dataset.tier;
-      var c;
-      if (s === 'all') c = allAssemblerProfiles.filter(function(a){ return a.application_status !== 'rejected'; }).length;
-      else if (s === 'rejected') c = allAssemblerProfiles.filter(function(a){ return a.application_status === 'rejected'; }).length;
-      else if (s === 'pending') c = allAssemblerProfiles.filter(function(a){ return a.tier === 'pending' && a.application_status !== 'rejected'; }).length;
-      else c = allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
+      var c = s === 'all' ? allAssemblerProfiles.length
+        : s === 'active' ? allAssemblerProfiles.filter(function(a){ return a.status === 'active'; }).length
+        : s === 'pending' ? allAssemblerProfiles.filter(function(a){ return a.status === 'pending'; }).length
+        : s === 'suspended' ? allAssemblerProfiles.filter(function(a){ return a.status === 'suspended'; }).length
+        : s === 'rejected' ? allAssemblerProfiles.filter(function(a){ return a.status === 'rejected'; }).length
+        : allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
     });
+
     var tbody = document.getElementById('asm-tbody');
-    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No assemblers found</td></tr>'; return; }
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }
     var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
+
     tbody.innerHTML = filtered.map(function(a) {
-      var isRejected = a.application_status === 'rejected';
+      // Quick action buttons based on status
+      var quickActions = '';
+      if (a.status === 'pending') {
+        if (a.identity_verified) {
+          quickActions += '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Approve</button> ';
+        } else {
+          quickActions += '<button class="btn" data-mark-id-verified="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Mark ID Verified</button> ';
+        }
+        quickActions += '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Reject</button> ';
+      }
+      if (a.status === 'rejected') {
+        quickActions += '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Delete</button> ';
+      }
+      quickActions += '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">View</button>';
+
       return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
-        + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong>' + (a.has_membership ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;vertical-align:middle">MEMBER</span>' : '') + '<br><span style="font-size:0.75rem;color:var(--muted)">' + esc(a.email) + '</span>' + (!a.phone ? ' <span style="font-size:0.7rem;color:#ef4444;font-weight:600">⚠ No phone</span>' : '') + '</td>'
-        + '<td style="' + rs + '">' + esc(a.city||'—') + ', ' + esc(a.zip||'') + '</td>'
-        + '<td style="' + rs + '">' + (isRejected ? '<span class="badge badge-declined">rejected</span>' : tierBadge(a.tier)) + '</td>'
-        + '<td style="' + rs + '">' + identityStatus(a) + '</td>'
+        + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong>'
+          + (a.has_membership ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">MEMBER</span>' : '')
+          + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
+          + (!a.phone ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">No phone</span>' : '')
+          + '</td>'
+        + '<td style="' + rs + '">' + statusBadge(a.status) + '</td>'
+        + '<td style="' + rs + '">' + tierBadge(a.tier) + '</td>'
+        + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + (a.completed_jobs||0) + '</td>'
-        + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) + ' ★' : '—') + '</td>'
+        + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) : '—') + '</td>'
         + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
-        + '<td style="' + rs + '">'
-          + (isRejected
-            ? '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Delete</button>'
-            : (a.tier === 'pending'
-              ? (a.identity_verified
-                ? '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Approve</button> '
-                : '<button class="btn" disabled title="Identity verification not yet complete." style="font-size:0.75rem;padding:0.3rem 0.6rem;opacity:0.45;cursor:not-allowed">Approve</button> ')
-              : '')
-            + (!isRejected && a.tier === 'pending'
-              ? '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">Reject</button> '
-              : '')
-            + (!isRejected
-              ? '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.75rem;padding:0.3rem 0.6rem">View</button>'
-              : ''))
-        + '</td></tr>';
+        + '<td style="' + rs + '">' + quickActions + '</td>'
+        + '</tr>';
     }).join('');
   }
 
@@ -2774,14 +2803,29 @@ function intelQuick(msg) {
     var approveBtn = e.target.closest('[data-approve]');
     if (approveBtn) {
       var aId = approveBtn.dataset.approve;
-      approveBtn.disabled = true; approveBtn.textContent = '...';
+      approveBtn.disabled = true; approveBtn.textContent = 'Approving…';
       try {
-        var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, tier:'starter' }) });
-        var data = await r.json();
-        if (data.error) { toast(data.error, 'error'); return; }
-        toast('Assembler approved', 'success');
+        var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, action:'approve' }) });
+        var d = await r.json();
+        if (d.error) { toast(d.error, 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; return; }
+        toast('Easer approved — welcome email sent', 'success');
         loadAssemblerList(); loadAssemblers();
-      } catch { toast('Failed to approve', 'error'); }
+      } catch { toast('Failed to approve', 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; }
+      return;
+    }
+    var markIdBtn = e.target.closest('[data-mark-id-verified]');
+    if (markIdBtn) {
+      var aId2 = markIdBtn.dataset.markIdVerified;
+      if (!confirm('Mark this Easer as ID verified? Only do this after confirming their identity through Stripe or another method.')) return;
+      markIdBtn.disabled = true; markIdBtn.textContent = '…';
+      try {
+        var r2 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId2, action:'mark_id_verified' }) });
+        var d2 = await r2.json();
+        if (d2.error) { toast(d2.error, 'error'); return; }
+        toast('ID marked as verified — you can now approve this Easer', 'success');
+        loadAssemblerList();
+      } catch { toast('Failed', 'error'); }
+      finally { markIdBtn.disabled = false; markIdBtn.textContent = 'Mark ID Verified'; }
       return;
     }
     var viewBtn = e.target.closest('[data-view-asm]');
@@ -2794,8 +2838,8 @@ function intelQuick(msg) {
     if (rejectAsmBtn) {
       pendingAction = { type:'reject-assembler', assemblerId:rejectAsmBtn.dataset.rejectAsm };
       document.getElementById('reason-modal-title').textContent = 'Reject Application';
-      document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback to the assembler. They will receive an email.';
-      document.getElementById('reason-confirm').textContent = 'Reject';
+      document.getElementById('reason-modal-desc').textContent = 'Optionally explain why. The Easer will receive an email.';
+      document.getElementById('reason-confirm').textContent = 'Reject Application';
       document.getElementById('reason-confirm').className = 'btn btn-red';
       $reasonText.value = '';
       $reasonModal.classList.add('open');
@@ -2804,64 +2848,122 @@ function intelQuick(msg) {
     var deleteAsmBtn = e.target.closest('[data-delete-asm]');
     if (deleteAsmBtn) {
       if (!confirm('Permanently delete this rejected application? This cannot be undone.')) return;
-      deleteAsmBtn.disabled = true; deleteAsmBtn.textContent = '...';
+      deleteAsmBtn.disabled = true; deleteAsmBtn.textContent = '…';
       try {
-        var r2 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
-        var d2 = await r2.json();
-        if (d2.error) { toast(d2.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = 'Delete'; return; }
-        toast('Application deleted', 'success'); loadAssemblerList();
-      } catch { toast('Failed to delete application', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.innerHTML = 'Delete'; }
+        var r3 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
+        var d3 = await r3.json();
+        if (d3.error) { toast(d3.error, 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.textContent = 'Delete'; return; }
+        toast('Easer deleted', 'success'); loadAssemblerList();
+      } catch { toast('Failed to delete', 'error'); deleteAsmBtn.disabled = false; deleteAsmBtn.textContent = 'Delete'; }
     }
   });
 
   function showAssemblerDetail(a) {
     document.getElementById('asm-detail-name').textContent = a.full_name;
-    var approveBtn = a.tier === 'pending' ? (a.identity_verified ? '<button class="btn btn-teal" onclick="approveFromDetail(\'' + a.id + '\')">Approve as Starter</button>' : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="ID verification required">Approve as Starter</button>') : '';
-    var rejectBtn = a.tier === 'pending' ? '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button>' : '';
-    var promoteBtn = '';
-    if (a.tier === 'starter') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'verified\')">Promote to Verified</button>';
-    if (a.tier === 'verified') promoteBtn = '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'elite\')">Promote to Elite</button>';
-    var downgradeBtn = '';
-    if (a.tier === 'elite') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'verified\')">Downgrade to Verified</button>';
-    if (a.tier === 'verified') downgradeBtn = '<button class="btn btn-amber" onclick="downgradeAssembler(\'' + a.id + '\',\'starter\')">Downgrade to Starter</button>';
-    var suspendBtn = (a.tier !== 'pending' && a.tier !== 'suspended') ? '<button class="btn btn-red" onclick="suspendAssembler(\'' + a.id + '\')">Suspend</button>' : '';
-    var reinstateBtn = a.tier === 'suspended' ? '<button class="btn btn-teal" onclick="promoteAssembler(\'' + a.id + '\',\'starter\')">Reinstate as Starter</button>' : '';
+
+    // Status is now the authority — build buttons based on status + tier cleanly
+    var idStatus = a.id_verification_status || (a.identity_verified ? 'verified' : 'pending');
+    var actionBtns = '';
+
+    // APPLICATION ACTIONS (pending status)
+    if (a.status === 'pending') {
+      if (idStatus !== 'verified') {
+        actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'mark_id_verified\')">Mark ID Verified</button> ';
+      }
+      actionBtns += (idStatus === 'verified')
+        ? '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'approve\')">Approve Application</button> '
+        : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="Verify ID first">Approve Application</button> ';
+      actionBtns += '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button> ';
+    }
+
+    // TIER ACTIONS (active status)
+    if (a.status === 'active') {
+      if (a.tier === 'starter') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'professional\')">Promote to Professional</button> ';
+      if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';
+      if (a.tier === 'elite') actionBtns += '<button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'professional\')">Demote to Professional</button> ';
+      actionBtns += '<button class="btn btn-red" onclick="asmAction(\'' + a.id + '\',\'suspend\')">Suspend</button> ';
+    }
+
+    // REINSTATE (suspended)
+    if (a.status === 'suspended') {
+      var prevLabel = { starter:'Starter', professional:'Professional', elite:'Elite' }[a.previous_tier] || 'Starter';
+      actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'reinstate\')">Reinstate (' + prevLabel + ')</button> ';
+    }
+
+    // REJECTED actions
+    if (a.status === 'rejected') {
+      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')">Delete Application</button> ';
+    }
+
+    // ALWAYS available
+    actionBtns += '<button class="btn" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Reset Password</button>';
+    if (a.status !== 'rejected') {
+      actionBtns += ' <button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">Remove Easer</button>';
+    }
+
+    // Dispatch eligibility indicator
+    var canDispatch = a.status === 'active' && a.identity_verified && ['starter','professional','elite'].includes(a.tier);
+    var dispatchStatus = canDispatch
+      ? '<span style="color:#10b981;font-weight:500">Eligible</span>'
+      : '<span style="color:var(--red)">' + (a.status !== 'active' ? 'Not active' : !a.identity_verified ? 'ID not verified' : 'No valid tier') + '</span>';
+
     document.getElementById('asm-detail-body').innerHTML = [
+      // Status row
+      '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Account Status</div>' + statusBadge(a.status) + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
+        + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#0097a7;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchStatus + '</div>'
+        + '</div>',
       '<strong>Email:</strong> ' + esc(a.email),
-      '<strong>Phone:</strong> ' + esc(a.phone||'—'),
-      '<strong>Location:</strong> ' + esc(a.city||'—') + ', ' + esc(a.zip||''),
-      '<strong>Tier:</strong> ' + tierBadge(a.tier),
-      '<strong>ID Verification:</strong> ' + identityStatus(a),
-      '<strong>Payment:</strong> ' + (a.payment_confirmed ? '<span style="color:#1d9e75;font-weight:500">Confirmed</span>' : '<span style="color:var(--muted)">Not confirmed</span>'),
+      '<strong>Phone:</strong> ' + (a.phone ? esc(a.phone) : '<span style="color:var(--red)">Missing — cannot be dispatched</span>'),
+      '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : ''),
       '<strong>Services:</strong> ' + esc((a.services_offered||[]).join(', ')||'—'),
-      '<strong>Experience:</strong> ' + (a.years_experience||0) + ' year(s)',
-      '<strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
-      a.bio ? '<strong>Bio:</strong> ' + esc(a.bio) : '',
-      '<strong>Jobs:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' ★' : 'N/A'),
+      '<strong>Experience:</strong> ' + (a.years_experience||0) + ' yr(s) &nbsp;&bull;&nbsp; <strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
+      '<strong>Jobs Completed:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' (' + (a.review_count||0) + ' reviews)' : 'No reviews'),
+      '<strong>Application Fee:</strong> ' + (a.fee_waived_by_owner ? '<span style="color:#0097a7">Waived by owner</span>' : (a.application_fee_paid ? '<span style="color:#1d9e75">Paid</span>' : '<span style="color:var(--muted)">Not confirmed</span>')),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
-      a.identity_verified_at ? '<strong>ID Verified:</strong> ' + formatDate(a.identity_verified_at) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + approveBtn + rejectBtn + promoteBtn + downgradeBtn + suspendBtn + reinstateBtn + '<button class="btn" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Reset Password</button>' + '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">Remove Easer</button>' + '</div>',
+      a.approved_at ? '<strong>Approved:</strong> ' + formatDate(a.approved_at) : '',
+      a.rejected_at ? '<strong>Rejected:</strong> ' + formatDate(a.rejected_at) + (a.rejection_reason ? ' — ' + esc(a.rejection_reason) : '') : '',
+      a.previous_tier ? '<strong>Previous tier (before suspension):</strong> ' + tierBadge(a.previous_tier) : '',
+      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + actionBtns + '</div>',
     ].filter(Boolean).join('<br>');
     document.getElementById('asm-detail-modal').classList.add('open');
   }
 
-  window.approveFromDetail = async function(id) {
+  // Universal Easer action handler
+  window.asmAction = async function(id, action, tier) {
     document.getElementById('asm-detail-modal').classList.remove('open');
+    var labels = { approve:'Approving…', reject:'Rejecting…', suspend:'Suspending…', reinstate:'Reinstating…', promote:'Promoting…', demote:'Demoting…', mark_id_verified:'Verifying…' };
+    var body = { assemblerId: id, action };
+    if (tier) body.tier = tier;
     try {
-      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:'starter' }) });
-      var data = await r.json();
-      if (data.error) { toast(data.error, 'error'); return; }
-      toast('Assembler approved — welcome email sent', 'success');
+      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify(body) });
+      var d = await r.json();
+      if (!r.ok || d.error) { toast(d.error || 'Action failed', 'error'); return; }
+      var successMsgs = {
+        approve: 'Easer approved — welcome email sent',
+        reject: 'Application rejected',
+        suspend: 'Easer suspended (tier preserved for reinstatement)',
+        reinstate: 'Easer reinstated — dispatch eligibility restored',
+        promote: 'Promoted to ' + (tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : tier),
+        demote: 'Demoted to ' + (tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : tier),
+        mark_id_verified: 'ID marked verified — you can now approve',
+      };
+      toast(successMsgs[action] || 'Updated', 'success');
       loadAssemblerList(); loadAssemblers();
-    } catch { toast('Failed to approve', 'error'); }
+    } catch { toast('Action failed — check connection', 'error'); }
   };
+
+  window.approveFromDetail = function(id) { asmAction(id, 'approve'); };
 
   window.rejectFromDetail = function(id) {
     document.getElementById('asm-detail-modal').classList.remove('open');
     pendingAction = { type:'reject-assembler', assemblerId:id };
     document.getElementById('reason-modal-title').textContent = 'Reject Application';
-    document.getElementById('reason-modal-desc').textContent = 'Optionally provide feedback. They will receive an email.';
-    document.getElementById('reason-confirm').textContent = 'Reject';
+    document.getElementById('reason-modal-desc').textContent = 'Optionally explain why. The Easer will receive an email.';
+    document.getElementById('reason-confirm').textContent = 'Reject Application';
     document.getElementById('reason-confirm').className = 'btn btn-red';
     $reasonText.value = '';
     $reasonModal.classList.add('open');
@@ -2874,56 +2976,26 @@ function intelQuick(msg) {
       var r = await fetch('/api/owner/reset-password', { method:'POST', headers:headers(), body:JSON.stringify({ email }) });
       var d = await r.json();
       if (d.success) toast('Password reset email sent to ' + email, 'success');
-      else toast(d.error || 'Failed to send reset email', 'error');
+      else toast(d.error || 'Failed', 'error');
     } catch { toast('Failed to send reset email', 'error'); }
   };
 
-  window.promoteAssembler = async function(id, newTier) {
-    document.getElementById('asm-detail-modal').classList.remove('open');
-    try {
-      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:newTier }) });
-      var data = await r.json();
-      if (data.error) { toast(data.error, 'error'); return; }
-      toast('Assembler promoted to ' + newTier.charAt(0).toUpperCase() + newTier.slice(1), 'success');
-      loadAssemblerList();
-    } catch { toast('Failed to update tier', 'error'); }
-  };
-
-  window.downgradeAssembler = async function(id, newTier) {
-    if (!confirm('Demote this assembler to ' + newTier + '?')) return;
-    document.getElementById('asm-detail-modal').classList.remove('open');
-    try {
-      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:newTier }) });
-      var data = await r.json();
-      if (data.error) { toast(data.error, 'error'); return; }
-      toast('Assembler demoted to ' + newTier.charAt(0).toUpperCase() + newTier.slice(1), 'success');
-      loadAssemblerList();
-    } catch { toast('Failed to update tier', 'error'); }
-  };
-
   window.deleteEaser = async function(id, name) {
-    if (!confirm('Permanently delete ' + name + '? This cannot be undone.\n\nThey will lose all access. Completed job history is preserved.')) return;
+    if (!confirm('Permanently delete ' + name + '? This cannot be undone.\n\nCompleted job history is preserved but they will lose all access.')) return;
     document.getElementById('asm-detail-modal').classList.remove('open');
     try {
-      var r = await fetch('/api/owner/delete-easer', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId: id }) });
+      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, action:'delete' }) });
       var d = await r.json();
       if (d.error) { toast(d.error, 'error'); return; }
-      toast(name + ' has been deleted', 'success');
+      toast(name + ' removed', 'success');
       loadAssemblerList();
-    } catch { toast('Failed to delete Easer', 'error'); }
+    } catch { toast('Failed to remove Easer', 'error'); }
   };
 
-  window.suspendAssembler = async function(id) {
-    if (!confirm('Suspend this assembler?')) return;
-    document.getElementById('asm-detail-modal').classList.remove('open');
-    try {
-      var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:id, tier:'suspended' }) });
-      var data = await r.json();
-      if (data.error) { toast(data.error, 'error'); return; }
-      toast('Assembler suspended', 'success');
-      loadAssemblerList();
-    } catch { toast('Failed to suspend assembler', 'error'); }
-  };
+  // Legacy compatibility — kept to not break any remaining calls
+  window.promoteAssembler = function(id, tier) { asmAction(id, 'promote', tier); };
+  window.downgradeAssembler = function(id, tier) { asmAction(id, 'demote', tier); };
+  window.suspendAssembler = function(id) { asmAction(id, 'suspend'); };
 
   // ─── Edit Booking ───
   document.getElementById('eb-cancel').addEventListener('click', function() { document.getElementById('edit-booking-modal').classList.remove('open'); });
