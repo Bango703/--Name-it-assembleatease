@@ -1,5 +1,5 @@
 // AssembleAtEase Easer Service Worker
-const CACHE = 'aae-easer-v1';
+const CACHE = 'aae-easer-v2';
 const OFFLINE_URL = '/assembler/';
 
 // ── Install: cache the core Easer shell ──────────────────────────────
@@ -30,9 +30,11 @@ self.addEventListener('activate', function(e) {
   self.clients.claim();
 });
 
-// ── Fetch: network-first for API, cache-first for assets ─────────────
+// ── Fetch: only handle same-origin requests ───────────────────────────
 self.addEventListener('fetch', function(e) {
   var url = new URL(e.request.url);
+  // Skip all cross-origin requests — let browser handle Supabase, fonts, CDNs etc.
+  if (url.origin !== self.location.origin) return;
   // Always go network for API calls
   if (url.pathname.startsWith('/api/')) return;
   // Network-first for navigation
