@@ -1353,7 +1353,7 @@ function intelQuick(msg) {
 
   var pendingAction = null;
 
-  $detailAct.addEventListener('click', function(e) {
+  $detailAct.addEventListener('click', async function(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
     var action = btn.dataset.action;
