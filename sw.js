@@ -1,5 +1,5 @@
 // AssembleAtEase Easer Service Worker
-const CACHE = 'aae-easer-v2';
+const CACHE = 'aae-easer-v3';
 const OFFLINE_URL = '/assembler/';
 
 // ── Install: cache the core Easer shell ──────────────────────────────
@@ -65,28 +65,27 @@ self.addEventListener('push', function(e) {
   var data = {};
   try { data = e.data ? e.data.json() : {}; } catch(err) {}
 
-  var title   = data.title   || 'New Job Available!';
-  var body    = data.body    || 'A new job has been assigned to you.';
-  var url     = data.url     || '/assembler/my-assignments';
-  var jobId   = data.jobId   || '';
-  var urgency = data.urgent  || false;
+  var title = data.title || 'New Job Available!';
+  var body  = data.body  || 'A new job has been assigned to you.';
+  var url   = data.url   || '/assembler/my-assignments';
+  var jobId = data.jobId || String(Date.now());
 
+  // Keep options minimal for maximum iOS/Android compatibility.
+  // iOS ignores vibrate/requireInteraction/actions — including them
+  // can silently prevent the notification from showing on some versions.
   var options = {
-    body:    body,
-    icon:    '/images/logo.jpg',
-    badge:   '/images/logo.jpg',
-    tag:     'job-' + jobId,           // replaces previous if same job
-    renotify: true,
-    requireInteraction: true,          // stays until Easer taps it
-    vibrate: urgency ? [300, 100, 300, 100, 300] : [200, 100, 200],
-    data:    { url: url },
-    actions: [
-      { action: 'view', title: 'View Job' },
-      { action: 'dismiss', title: 'Dismiss' },
-    ],
+    body: body,
+    icon: '/images/logo.webp',
+    tag:  'aae-job-' + jobId,
+    data: { url: url },
   };
 
-  e.waitUntil(self.registration.showNotification(title, options));
+  e.waitUntil(
+    self.registration.showNotification(title, options).catch(function(err) {
+      // Fallback: try with no options at all if showNotification rejects
+      return self.registration.showNotification(title, { body: body });
+    })
+  );
 });
 
 // ── Notification click: open or focus the app ─────────────────────────
