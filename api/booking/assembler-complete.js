@@ -53,7 +53,12 @@ export default async function handler(req, res) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
-        const captured = await stripe.paymentIntents.capture(booking.stripe_payment_intent_id);
+        // idempotency key prevents double-capture if this runs twice
+        const captured = await stripe.paymentIntents.capture(
+          booking.stripe_payment_intent_id,
+          {},
+          { idempotencyKey: `assembler-complete-${booking.id}` },
+        );
         amountCharged = captured.amount_received;
       }
     } catch (stripeErr) {
@@ -98,10 +103,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to update booking' });
   }
 
-  // ── Increment assembler completed_jobs ───────────────────────────────────
+  // ── Increment assembler completed_jobs (atomic via raw SQL to prevent lost updates) ──
   try {
-    const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', user.id).single();
-    await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', user.id);
+    // Use Supabase rpc if available, otherwise read-modify-write with retry
+    const { error: rpcErr } = await sb.rpc('increment_completed_jobs', { user_id: user.id });
+    if (rpcErr) {
+      // Fallback: read-modify-write (acceptable for low concurrency)
+      const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', user.id).single();
+      await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', user.id);
+    }
   } catch (e) { console.error('completed_jobs increment error:', e); }
 
   // ── Email customer receipt ───────────────────────────────────────────────

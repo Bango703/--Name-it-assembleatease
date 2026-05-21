@@ -46,18 +46,21 @@ export default async function handler(req, res) {
   const payoutDisplay = `$${(payoutCents / 100).toFixed(2)}`;
   const platformRevenue = (booking.amount_charged || 0) - payoutCents;
 
-  // Record payout
-  const { error: updateErr } = await sb.from('bookings').update({
+  // Record payout — atomic guard: only if not already paid (prevents double-payment)
+  const { error: updateErr, count } = await sb.from('bookings').update({
     payout_amount: payoutCents,
     paid_out_at: new Date().toISOString(),
     payout_notes: notes?.trim() || null,
     payout_status: 'paid',
     platform_revenue: platformRevenue,
-  }).eq('id', booking.id);
+  }).eq('id', booking.id).neq('payout_status', 'paid').select('id', { count: 'exact', head: true });
 
   if (updateErr) {
     console.error('Payout DB update error:', updateErr);
     return res.status(500).json({ error: 'Failed to record payout' });
+  }
+  if (count === 0) {
+    return res.status(409).json({ error: 'Payout already recorded for this booking.' });
   }
 
   // #17 — Send assembler payout notification email

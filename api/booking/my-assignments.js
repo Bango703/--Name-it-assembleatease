@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, assignment_token')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, assignment_token, has_membership, total_price')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -34,12 +34,46 @@ export default async function handler(req, res) {
     query = query.eq('status', statusFilter);
   }
 
-  const { data, error } = await query;
+  const { data: bookings, error } = await query;
 
   if (error) {
     console.error('My assignments error:', error);
     return res.status(500).json({ error: 'Failed to load assignments' });
   }
 
-  return res.status(200).json({ bookings: data || [] });
+  // Enrich with open dispatch offer expiry time (for offer countdown timer)
+  const pendingBookings = (bookings || []).filter(b => !b.assembler_accepted_at);
+  if (pendingBookings.length > 0) {
+    const { data: openOffers } = await sb
+      .from('dispatch_offers')
+      .select('booking_id, expires_at, token, dispatch_score')
+      .in('booking_id', pendingBookings.map(b => b.id))
+      .eq('easer_id', user.id)
+      .eq('offer_status', 'sent')
+      .gt('expires_at', new Date().toISOString());
+
+    if (openOffers?.length) {
+      const offerMap = {};
+      openOffers.forEach(o => { offerMap[o.booking_id] = o; });
+      (bookings || []).forEach(b => {
+        if (offerMap[b.id]) {
+          b._offer_expires_at = offerMap[b.id].expires_at;
+          b._offer_token = offerMap[b.id].token;
+          b._offer_score = offerMap[b.id].dispatch_score;
+        }
+      });
+    }
+  }
+
+  // Add pay estimate for accepted/pending jobs (helps Easer see expected payout)
+  (bookings || []).forEach(b => {
+    if (b.total_price) {
+      const feePct = b.has_membership ? 18 : 25;
+      b._pay_estimate_lo = Math.round(b.total_price * (1 - feePct / 100) * 0.97);
+      b._pay_estimate_hi = Math.round(b.total_price * (1 - feePct / 100));
+      b._fee_pct = feePct;
+    }
+  });
+
+  return res.status(200).json({ bookings: bookings || [] });
 }

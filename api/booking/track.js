@@ -38,11 +38,32 @@ export default async function handler(req, res) {
     });
   }
 
+  // Derive clean customer-facing status label
+  function getCustomerLabel(b) {
+    if (b.status === 'cancelled') return { label: 'Booking cancelled', detail: null };
+    if (b.status === 'declined')  return { label: 'Booking could not be confirmed', detail: 'Please contact us to reschedule.' };
+    if (b.status === 'completed') return { label: 'Job complete — thank you!', detail: 'Payment has been processed.' };
+    if (b.status === 'in_progress' || b.job_started_at) return { label: 'Work is underway', detail: null };
+    if (b.status === 'arrived' || b.checked_in_at)      return { label: 'Your service pro has arrived', detail: null };
+    if (b.status === 'en_route'  || b.en_route_at)      return { label: 'Your service pro is on the way', detail: null };
+    if (b.assembler_accepted_at && b.assembler_name) {
+      const first = (b.assembler_name || '').split(' ')[0];
+      return { label: `${first} is confirmed for your job`, detail: `Arriving ${b.date}${b.time ? ' at ' + b.time.split('-')[0].trim() : ''}.` };
+    }
+    if (b.assembler_id) return { label: 'Matching you with a service pro', detail: 'Your pro will confirm shortly.' };
+    if (b.status === 'confirmed') return { label: 'Matching you with a service pro', detail: 'We will notify you once your service pro is confirmed.' };
+    return { label: 'Booking received', detail: 'We will confirm your appointment shortly.' };
+  }
+
+  const customerStatus = getCustomerLabel(booking);
+
   // Return only safe/public fields — never expose Stripe IDs, phone, raw payment data
   const safe = {
     id: booking.id,
     ref: booking.ref,
     status: booking.status,
+    customer_status: customerStatus.label,
+    customer_status_detail: customerStatus.detail,
     service: booking.service,
     date: booking.date,
     time: booking.time,

@@ -442,6 +442,7 @@
               <!-- Tabs -->
               <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
                 <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
+                <button class="detail-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
                 <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
                 <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
               </div>
@@ -453,6 +454,14 @@
                   <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="1"></textarea>
                   <button class="btn btn-teal" id="msg-send">Send</button>
                 </div>
+              </div>
+
+              <!-- Dispatch tab -->
+              <div id="tab-dispatch" style="display:none">
+                <!-- Dispatch controls bar -->
+                <div id="dispatch-controls-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem"></div>
+                <!-- Offer log table -->
+                <div id="dispatch-log-content" style="font-size:0.83rem;color:var(--muted)">Loading dispatch log…</div>
               </div>
 
               <!-- Timeline tab -->
@@ -1506,12 +1515,146 @@ function intelQuick(msg) {
     });
     if (el) { el.style.color = 'var(--teal)'; el.style.borderBottom = '2px solid var(--teal)'; }
     document.getElementById('tab-messages').style.display = tab === 'messages' ? '' : 'none';
+    document.getElementById('tab-dispatch').style.display = tab === 'dispatch' ? '' : 'none';
     document.getElementById('tab-timeline').style.display = tab === 'timeline' ? '' : 'none';
     document.getElementById('tab-notes').style.display = tab === 'notes' ? '' : 'none';
     if (tab === 'timeline' && selectedId) loadTimeline(selectedId);
     if (tab === 'notes' && selectedId) loadNotes(selectedId);
+    if (tab === 'dispatch' && selectedId) loadDispatchLog(selectedId);
   }
   window.switchDetailTab = switchDetailTab;
+
+  // ── Dispatch Log ────────────────────────────────────────────────────────────
+  async function loadDispatchLog(bookingId) {
+    var logEl     = document.getElementById('dispatch-log-content');
+    var ctrlEl    = document.getElementById('dispatch-controls-bar');
+    if (!logEl) return;
+    logEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Loading dispatch log…</div>';
+
+    // Fetch the current booking for state
+    var booking = allBookings.find(function(b){ return b.id === bookingId; });
+
+    // Render control buttons
+    var ctrls = '';
+    if (booking && booking.status === 'confirmed' && !booking.assembler_id) {
+      ctrls += '<button class="btn btn-teal" onclick="dispatchWithConfirm(\'' + bookingId + '\')" style="font-size:0.78rem">Dispatch Now</button>';
+      ctrls += '<button class="btn" onclick="dispatchControl(\'' + bookingId + '\',\'dry_run\')" style="font-size:0.78rem">Preview Scoring</button>';
+      if (booking.dispatch_paused) {
+        ctrls += '<button class="btn btn-amber" onclick="dispatchControl(\'' + bookingId + '\',\'unpause\')" style="font-size:0.78rem">Resume Auto-Dispatch</button>';
+      } else {
+        ctrls += '<button class="btn" onclick="dispatchControl(\'' + bookingId + '\',\'pause\')" style="font-size:0.78rem">Pause Auto-Dispatch</button>';
+      }
+      if (booking.needs_manual_dispatch || booking.dispatch_attempt > 0) {
+        ctrls += '<button class="btn btn-amber" onclick="dispatchControl(\'' + bookingId + '\',\'retry\')" style="font-size:0.78rem">Retry Dispatch</button>';
+      }
+      ctrls += '<button class="btn btn-red" onclick="dispatchControl(\'' + bookingId + '\',\'cancel\')" style="font-size:0.78rem">Cancel Offers</button>';
+    }
+    if (booking && booking.needs_manual_dispatch) {
+      ctrls = '<span style="color:#ef4444;font-size:0.78rem;font-weight:600">Needs Manual Assignment</span> ' + ctrls;
+    }
+    if (ctrlEl) ctrlEl.innerHTML = ctrls;
+
+    try {
+      var r = await fetch('/api/booking/dispatch-log?bookingId=' + encodeURIComponent(bookingId), { headers: headers() });
+      var d = await r.json();
+      var offers = d.offers || [];
+
+      if (!offers.length) {
+        logEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No dispatch offers sent yet for this booking.</div>';
+        return;
+      }
+
+      // Group by attempt
+      var attemptGroups = {};
+      offers.forEach(function(o) {
+        if (!attemptGroups[o.attempt]) attemptGroups[o.attempt] = [];
+        attemptGroups[o.attempt].push(o);
+      });
+
+      var statusColors = { sent:'#f59e0b', accepted:'#1d9e75', declined:'#ef4444', expired:'#6b7280', cancelled:'#6b7280', superseded:'#6b7280' };
+
+      var html = Object.keys(attemptGroups).sort().map(function(attempt) {
+        var rows = attemptGroups[attempt];
+        return '<div style="margin-bottom:1.25rem">'
+          + '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.5rem">Attempt ' + attempt + '</div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:0.8rem">'
+          + '<thead><tr style="border-bottom:1px solid var(--border)">'
+          + '<th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Easer</th>'
+          + '<th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Tier</th>'
+          + '<th style="text-align:right;padding:4px 8px;color:var(--muted);font-weight:500">Score</th>'
+          + '<th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Status</th>'
+          + '<th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Response</th>'
+          + '</tr></thead><tbody>'
+          + rows.map(function(o) {
+            var color = statusColors[o.offer_status] || '#6b7280';
+            return '<tr style="border-bottom:1px solid var(--border)">'
+              + '<td style="padding:5px 8px;font-weight:500;color:var(--text)">' + esc(o.easer_name) + (o.easer_member ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">M</span>' : '') + '</td>'
+              + '<td style="padding:5px 8px;color:var(--soft)">' + esc(o.easer_tier||'—') + '</td>'
+              + '<td style="padding:5px 8px;text-align:right;color:var(--soft)">' + (o.dispatch_score||0) + '</td>'
+              + '<td style="padding:5px 8px"><span style="font-size:0.72rem;font-weight:700;color:' + color + ';text-transform:capitalize">' + o.offer_status + '</span>'
+              + (o.decline_reason ? ' <span style="color:var(--muted);font-size:0.7rem">(' + o.decline_reason.replace(/_/g,' ') + ')</span>' : '') + '</td>'
+              + '<td style="padding:5px 8px;color:var(--muted)">' + esc(o.response_time||'—') + '</td>'
+              + '</tr>';
+          }).join('')
+          + '</tbody></table></div>';
+      }).join('');
+
+      logEl.innerHTML = html;
+    } catch(e) {
+      logEl.innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load dispatch log</div>';
+    }
+  }
+
+  window.dispatchWithConfirm = async function(bookingId) {
+    // Preview scoring first, then confirm
+    var previewEl = document.getElementById('dispatch-log-content');
+    if (previewEl) previewEl.innerHTML = '<div style="color:var(--muted)">Previewing Easer matches…</div>';
+    try {
+      var pr = await fetch('/api/booking/dispatch-control', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: bookingId, action: 'dry_run' }) });
+      var pd = await pr.json();
+      var offeredTo = pd.offeredTo || [];
+
+      var previewText = offeredTo.length
+        ? 'Top ' + offeredTo.length + ' Easer(s):\n' + offeredTo.map(function(e){ return '  • ' + e.name + ' (' + e.tier + ', score ' + e.score + ')'; }).join('\n')
+        : 'No eligible Easers found. Check Easer availability and city settings.';
+
+      if (!offeredTo.length) {
+        toast('No eligible Easers — check availability and location settings', 'error');
+        if (previewEl) loadDispatchLog(bookingId);
+        return;
+      }
+
+      if (!confirm('Dispatch this job?\n\n' + previewText + '\n\nThis will send email + push notifications to these Easers. Offers expire in 20 minutes.')) {
+        if (previewEl) loadDispatchLog(bookingId);
+        return;
+      }
+
+      var r = await fetch('/api/booking/dispatch', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: bookingId }) });
+      var d = await r.json();
+      if (d.error) { toast(d.error, 'error'); }
+      else { toast('Dispatched to ' + (d.dispatched||0) + ' Easer(s) — offers expire in 20 min', 'success'); }
+    } catch(e) { toast('Dispatch failed', 'error'); }
+    loadDispatchLog(bookingId);
+    loadLiveOps();
+  };
+
+  window.dispatchControl = async function(bookingId, action) {
+    try {
+      var r = await fetch('/api/booking/dispatch-control', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: bookingId, action: action }) });
+      var d = await r.json();
+      if (d.error) { toast(d.error, 'error'); }
+      else {
+        var msgs = { pause:'Auto-dispatch paused', unpause:'Auto-dispatch resumed', cancel:'Offers cancelled', retry:'Retrying dispatch…', mark_manual:'Flagged for manual assignment' };
+        toast(msgs[action] || d.message || 'Done', 'success');
+        if (action === 'dry_run' && d.offeredTo) {
+          var names = (d.offeredTo||[]).map(function(e){ return e.name + ' (' + e.tier + ', score ' + e.score + ')'; }).join('\n  • ');
+          alert('Dispatch Preview (no notifications sent):\n\nWould offer to:\n  • ' + (names || 'No eligible Easers'));
+        }
+      }
+    } catch(e) { toast('Action failed', 'error'); }
+    loadDispatchLog(bookingId);
+    loadLiveOps();
+  };
 
   async function loadTimeline(bookingId) {
     var el = document.getElementById('timeline-content');
@@ -2261,15 +2404,11 @@ function intelQuick(msg) {
 
   async function opsAction(action, bookingId) {
     if (action === 'dispatch' || action === 'redispatch') {
-      var btn = event.target;
-      btn.disabled = true; btn.textContent = 'Dispatching…';
-      try {
-        var r = await fetch('/api/booking/dispatch', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: bookingId }) });
-        var d = await r.json();
-        if (d.error) { toast(d.error, 'error'); } else { toast('Dispatched to ' + (d.dispatched||0) + ' Easer(s)', 'success'); }
-      } catch { toast('Dispatch failed', 'error'); }
-      finally { loadLiveOps(); }
-    } else if (action === 'reassign') {
+      // Confirm before sending real notifications
+      await window.dispatchWithConfirm(bookingId);
+      return;
+    }
+    if (action === 'reassign') {
       toast('Open booking in Bookings tab to reassign', 'info');
     }
   }

@@ -474,9 +474,42 @@
         b.details ? '<span>&#128221; ' + esc(b.details) + '</span>' : '',
         '<span style="color:var(--pro-muted);font-size:0.78rem">Ref: ' + esc(b.ref) + '</span>',
       '</div>',
-      // Accept button for manually assigned jobs not yet accepted
-      !accepted && b.assignment_token ? '<div id="accept-job-section" style="margin-bottom:1rem"><button id="accept-job-btn" class="btn btn-teal" style="width:100%">&#10003; Accept This Job</button></div>' : '',
+      // Pay estimate — shown before accepting
+      (!accepted && b.total_price && b._pay_estimate_lo) ? '<div style="background:rgba(0,151,167,0.07);border:1px solid rgba(0,151,167,0.2);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem">'
+        + '<span style="color:var(--pro-text)">Est. pay: </span>'
+        + '<strong style="color:var(--pro-teal)">$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong>'
+        + '<span style="color:var(--pro-muted);font-size:0.75rem"> (' + (b._fee_pct||25) + '% platform fee)</span></div>' : '',
+      // Offer expiry countdown
+      (!accepted && b._offer_expires_at) ? '<div id="offer-timer-box-' + b.id + '" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem;display:flex;align-items:center;gap:6px">'
+        + '<span style="font-size:0.9rem">&#9201;</span>'
+        + '<span style="color:#92400e">Offer expires in <strong id="offer-countdown-' + b.id + '">—</strong></span></div>' : '',
+      // Accept/Decline buttons for dispatch or assignment offers
+      !accepted && (b.assignment_token || b._offer_token) ? '<div id="accept-job-section" style="display:flex;gap:0.5rem;margin-bottom:1rem">'
+        + '<button id="accept-job-btn" class="btn btn-teal" style="flex:1;font-weight:600">&#10003; Accept Job</button>'
+        + (b._offer_token ? '<button id="decline-job-btn" class="btn" style="flex:0 0 auto;color:var(--pro-muted)">Decline</button>' : '')
+        + '</div>' : '',
     ].join('');
+
+    // Start offer countdown timer
+    if (!accepted && b._offer_expires_at) {
+      const countdownEl = document.getElementById('offer-countdown-' + b.id);
+      const timerBox    = document.getElementById('offer-timer-box-' + b.id);
+      if (countdownEl) {
+        function updateCountdown() {
+          const msLeft = new Date(b._offer_expires_at) - Date.now();
+          if (msLeft <= 0) {
+            countdownEl.textContent = 'expired';
+            if (timerBox) timerBox.style.background = 'rgba(239,68,68,0.08)';
+            return;
+          }
+          const m = Math.floor(msLeft / 60000);
+          const s = Math.floor((msLeft % 60000) / 1000);
+          countdownEl.textContent = m + ':' + String(s).padStart(2,'0');
+          setTimeout(updateCountdown, 1000);
+        }
+        updateCountdown();
+      }
+    }
 
     const btn = document.getElementById('checkin-btn');
     btn.disabled = false;
@@ -529,25 +562,54 @@
       }
     }
 
-    // Accept job button (manually assigned, not yet accepted)
+    // Accept job button (dispatch offer or assignment)
     const acceptBtn = document.getElementById('accept-job-btn');
     if (acceptBtn) {
       acceptBtn.addEventListener('click', async function() {
         acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting…';
+        const useToken = b._offer_token || b.assignment_token;
         try {
           const r = await fetch('/api/booking/accept-dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-            body: JSON.stringify({ bookingId: b.id, token: b.assignment_token, assemblerId: auth.user.id }),
+            body: JSON.stringify({ bookingId: b.id, token: useToken, assemblerId: auth.user.id }),
           });
           const d = await r.json();
-          if (!r.ok || d.error) { alert(d.error || 'Could not accept job'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept This Job'; return; }
+          if (!r.ok || d.error) { alert(d.error || 'Could not accept job'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept Job'; return; }
           document.getElementById('accept-job-section').innerHTML = '<div style="color:#059669;font-weight:600;padding:0.5rem 0">&#10003; Job accepted! Customer contact info is now visible.</div>';
           // Refresh list
           const { data: { session: s } } = await supabaseClient.auth.getSession();
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (s || session).access_token } });
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
-        } catch(e) { alert('Connection error'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept This Job'; }
+        } catch(e) { alert('Connection error'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept Job'; }
+      });
+    }
+
+    // Decline offer button (dispatch offers only — has _offer_token)
+    const declineBtn = document.getElementById('decline-job-btn');
+    if (declineBtn && b._offer_token) {
+      declineBtn.addEventListener('click', async function() {
+        const reasons = ['Scheduling conflict', 'Too far', 'Not my skill set', 'Currently unavailable', 'Other'];
+        const reason  = prompt('Reason for declining (optional):\n\n' + reasons.map((r,i)=>(i+1)+'. '+r).join('\n') + '\n\nType a number 1-5 or leave blank:');
+        const reasonMap = { '1':'scheduling_conflict','2':'too_far','3':'not_my_skill','4':'unavailable','5':'other' };
+        const reasonCode = reasonMap[reason?.trim()] || (reason?.trim() ? 'other' : null);
+
+        declineBtn.disabled = true; declineBtn.textContent = 'Declining…';
+        try {
+          const r = await fetch('/api/booking/decline-dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+            body: JSON.stringify({ bookingId: b.id, token: b._offer_token, reason: reasonCode }),
+          });
+          const d = await r.json();
+          if (!r.ok || d.error) { alert(d.error || 'Could not decline'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; return; }
+          document.getElementById('accept-job-section').innerHTML = '<div style="color:#6b7280;font-size:0.85rem;padding:0.5rem 0">Offer declined. The owner will be notified.</div>';
+          // Refresh list after short delay
+          setTimeout(async function() {
+            const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
+          }, 1500);
+        } catch(e) { alert('Connection error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }
       });
     }
 

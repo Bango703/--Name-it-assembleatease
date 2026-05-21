@@ -49,26 +49,44 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Assembler must be identity verified before assignment.' });
   }
 
+  // Cancel any open dispatch offers so Easers don't get a stale offer email
+  await sb.from('dispatch_offers')
+    .update({ offer_status: 'cancelled' })
+    .eq('booking_id', bookingId)
+    .eq('offer_status', 'sent');
+
   // Generate secure assignment token
   const token = crypto.randomUUID();
 
-  const { error: updateErr } = await sb
-    .from('bookings')
-    .update({
-      assembler_id: assemblerId,
-      assembler_name: assembler.full_name,
-      assembler_tier: assembler.tier,
-      assigned_at: new Date().toISOString(),
-      assignment_token: token,
-      assembler_accepted_at: null, // reset if reassigning
-      dispatch_token: null,
-      dispatch_status: null,
-    })
-    .eq('id', bookingId);
+  // Atomic CAS: for new assignments, only proceed if still unassigned
+  const updateQuery = sb.from('bookings').update({
+    assembler_id: assemblerId,
+    assembler_name: assembler.full_name,
+    assembler_tier: assembler.tier,
+    assigned_at: new Date().toISOString(),
+    assignment_token: token,
+    assembler_accepted_at: null,
+    dispatch_token: null,
+    dispatch_status: null,
+    dispatch_paused: true,       // pause auto-dispatch once manually assigned
+    needs_manual_dispatch: false,
+  }).eq('id', bookingId);
+
+  const { error: updateErr } = reassign
+    ? await updateQuery                            // reassign: override any current assignment
+    : await updateQuery.is('assembler_id', null);  // new assign: atomic guard
 
   if (updateErr) {
     console.error('Assign booking error:', updateErr);
     return res.status(500).json({ error: 'Failed to assign booking' });
+  }
+
+  // Verify the assignment actually landed (for non-reassign CAS check)
+  if (!reassign) {
+    const { data: check } = await sb.from('bookings').select('assembler_id').eq('id', bookingId).single();
+    if (!check || check.assembler_id !== assemblerId) {
+      return res.status(409).json({ error: 'Booking was just assigned to another Easer. Refresh and try again.' });
+    }
   }
 
   // Send assembler notification email with Accept/Decline links
