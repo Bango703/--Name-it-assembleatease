@@ -72,7 +72,11 @@ export default async function handler(req, res) {
   }
 
   const finalAmount = amountCharged || booking.total_price || 0;
-  const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
+
+  // Tiered fee: members pay 18%, non-members pay 25%
+  const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
+  const isMember = easerProf?.has_membership === true;
+  const PLATFORM_FEE_PCT = isMember ? 18 : 25;
   const platformFee = Math.round(finalAmount * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmount - platformFee;
 

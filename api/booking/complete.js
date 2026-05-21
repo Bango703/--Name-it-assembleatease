@@ -90,8 +90,13 @@ export default async function handler(req, res) {
 
   const finalAmountCharged = amountCharged || booking.total_price || 0;
 
-  // Platform revenue split — configurable via PLATFORM_FEE_PCT env var (default 20%)
-  const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
+  // Tiered fee: members pay 18%, non-members pay 25%
+  let isMember = false;
+  if (booking.assembler_id) {
+    const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
+    isMember = asmProf?.has_membership === true;
+  }
+  const PLATFORM_FEE_PCT = isMember ? 18 : 25;
   const platformFee = Math.round(finalAmountCharged * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmountCharged - platformFee;
 
