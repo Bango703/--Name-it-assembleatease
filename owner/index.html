@@ -7,6 +7,7 @@
   <meta name="robots" content="noindex, nofollow" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/status.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -107,12 +108,8 @@
     .card-desc{font-size:0.82rem;color:var(--muted);line-height:1.55;margin-bottom:0.4rem}
     .card-meta{font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .meta-dot{width:3px;height:3px;border-radius:50%;background:var(--muted);flex-shrink:0}
+    /* Status badges — all classes live in /assets/status.css */
     .badge{display:inline-flex;align-items:center;padding:0.18rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:500;white-space:nowrap;flex-shrink:0}
-    .badge-pending{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25)}
-    .badge-confirmed{background:rgba(29,158,117,0.15);color:#1d9e75;border:1px solid rgba(29,158,117,0.25)}
-    .badge-completed{background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.25)}
-    .badge-declined{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.25)}
-    .badge-cancelled{background:rgba(107,114,128,0.15);color:#6b7280;border:1px solid rgba(107,114,128,0.25)}
 
     /* ── Detail panel ── */
     .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;display:none}
@@ -180,14 +177,7 @@
     .stat-delta.up { color:var(--green); }
     .stat-delta.down { color:var(--red); }
 
-    /* Extended status badges */
-    .badge-assigned   { background:var(--purple-dim);color:#a78bfa;border:1px solid rgba(139,92,246,0.25); }
-    .badge-en_route   { background:var(--blue-dim);color:#60a5fa;border:1px solid rgba(59,130,246,0.25); }
-    .badge-in_progress{ background:var(--green-dim);color:#34d399;border:1px solid rgba(52,211,153,0.25); }
-    .badge-arrived    { background:rgba(29,158,117,0.15);color:#1d9e75;border:1px solid rgba(29,158,117,0.25); }
-    .badge-dispatched { background:var(--purple-dim);color:#818cf8;border:1px solid rgba(99,102,241,0.25); }
-    .badge-new        { background:var(--blue-dim);color:#60a5fa;border:1px solid rgba(59,130,246,0.25); }
-    .badge-complete   { background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.25); }
+    /* Extended status badges — canonical classes live in /assets/status.css */
 
     /* Status dot indicators */
     .dot { width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block; }
@@ -237,12 +227,7 @@
     .empty-state-title { font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:0.4rem; }
     .empty-state-desc { font-size:0.82rem;color:var(--muted);line-height:1.6;max-width:260px; }
 
-    /* Tier badges refined */
-    .tier-starter   { background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
-    .tier-verified  { background:rgba(29,158,117,0.15);color:#1d9e75;border:1px solid rgba(29,158,117,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
-    .tier-elite     { background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
-    .tier-suspended { background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
-    .tier-pending   { background:rgba(107,114,128,0.12);color:#6b7280;border:1px solid rgba(107,114,128,0.2);border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.55rem;display:inline-block; }
+    /* Tier badges — canonical classes live in /assets/status.css; .tier-* retained as aliases */
 
     /* Section header with actions */
     .view-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:1rem; }
@@ -1327,8 +1312,8 @@ function intelQuick(msg) {
       var n = g - f;
       var p = Number(b.assembler_due)||0;
       var profit = n - p;
-      var statusColor = {completed:'#065f46',confirmed:'#0097a7',pending:'#92400e',cancelled:'#6b7280',declined:'#6b7280'}[b.status]||'#374151';
-      var statusBg = {completed:'#d1fae5',confirmed:'#e0f7fa',pending:'#fef3c7',cancelled:'#f4f4f5',declined:'#f4f4f5'}[b.status]||'#f4f4f5';
+      var statusColor = {completed:'#065f46',confirmed:'#0369a1',pending:'#92400e',cancelled:'#475569',declined:'#be123c',refunded:'#c2410c',en_route:'#1d4ed8',in_progress:'#059669'}[b.status]||'#374151';
+      var statusBg = {completed:'#d1fae5',confirmed:'#e0f2fe',pending:'#fef3c7',cancelled:'#f1f5f9',declined:'#fff1f2',refunded:'#fff7ed',en_route:'#dbeafe',in_progress:'#d1fae5'}[b.status]||'#f4f4f5';
       return '<tr>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:11px;color:#6b7280">'+b.ref+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+b.customer_name+'</div><div style="color:#9ca3af;font-size:10px">'+b.service+'</div></td>'
@@ -1449,7 +1434,7 @@ function intelQuick(msg) {
         + '<label onclick="event.stopPropagation()" style="position:absolute;top:10px;right:10px;cursor:pointer;z-index:2">'
           + '<input type="checkbox" ' + (chk?'checked':'') + ' data-chk="' + b.id + '" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer" onclick="event.stopPropagation();toggleSelect(this)">'
         + '</label>'
-        + '<div class="card-top" style="padding-right:1.75rem"><h4>' + esc(b.customer_name) + '</h4><span class="badge badge-' + b.status + '">' + b.status + '</span></div>'
+        + '<div class="card-top" style="padding-right:1.75rem"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + b.assembler_tier : '') + '</div>' : '')
         + '<div class="card-meta">'
@@ -1488,7 +1473,7 @@ function intelQuick(msg) {
       field('Phone', b.customer_phone ? '<a href="tel:'+esc(b.customer_phone)+'" style="color:var(--teal);text-decoration:none;font-weight:600">'+esc(b.customer_phone)+'</a>' : '—'),
       field('Service', b.service),
       field('Total', b.total_price ? '$' + Number(b.total_price / 100).toFixed(2) : '—'),
-      field('Status', '<span class="badge badge-' + b.status + '">' + b.status + '</span>'),
+      field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(b.payment_status) : '')),
       field('Payment', b.payment_status ? b.payment_status.replace(/_/g, ' ') : '—'),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
@@ -1571,8 +1556,6 @@ function intelQuick(msg) {
         attemptGroups[o.attempt].push(o);
       });
 
-      var statusColors = { sent:'#f59e0b', accepted:'#1d9e75', declined:'#ef4444', expired:'#6b7280', cancelled:'#6b7280', superseded:'#6b7280' };
-
       var html = Object.keys(attemptGroups).sort().map(function(attempt) {
         var rows = attemptGroups[attempt];
         return '<div style="margin-bottom:1.25rem">'
@@ -1586,12 +1569,11 @@ function intelQuick(msg) {
           + '<th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Response</th>'
           + '</tr></thead><tbody>'
           + rows.map(function(o) {
-            var color = statusColors[o.offer_status] || '#6b7280';
             return '<tr style="border-bottom:1px solid var(--border)">'
               + '<td style="padding:5px 8px;font-weight:500;color:var(--text)">' + esc(o.easer_name) + (o.easer_member ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">M</span>' : '') + '</td>'
-              + '<td style="padding:5px 8px;color:var(--soft)">' + esc(o.easer_tier||'—') + '</td>'
+              + '<td style="padding:5px 8px">' + easerTierBadge(o.easer_tier) + '</td>'
               + '<td style="padding:5px 8px;text-align:right;color:var(--soft)">' + (o.dispatch_score||0) + '</td>'
-              + '<td style="padding:5px 8px"><span style="font-size:0.72rem;font-weight:700;color:' + color + ';text-transform:capitalize">' + o.offer_status + '</span>'
+              + '<td style="padding:5px 8px">' + offerStatusBadge(o.offer_status)
               + (o.decline_reason ? ' <span style="color:var(--muted);font-size:0.7rem">(' + o.decline_reason.replace(/_/g,' ') + ')</span>' : '') + '</td>'
               + '<td style="padding:5px 8px;color:var(--muted)">' + esc(o.response_time||'—') + '</td>'
               + '</tr>';
@@ -2116,6 +2098,110 @@ function intelQuick(msg) {
   // ─── Helpers ───
   function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
+  // ── Centralized badge helpers ──────────────────────────────────────────────
+  // Each function maps a DB value to a <span class="sb {category-class}">.
+  // Color meanings: emerald=done/active  amber=waiting  sky=processing/motion
+  //   violet=dispatching  teal=easer confirmed  green=in-progress
+  //   orange=recoverable warning  red=permanent failure  slate=neutral terminal
+
+  function bookingBadge(b) {
+    // Derives the richest possible booking state from available fields
+    var s = b.status;
+    var cls, label;
+    if (s === 'pending') {
+      cls = 'bk-pending'; label = 'Pending';
+    } else if (s === 'confirmed') {
+      if (!b.assembler_id && b.dispatch_status === 'offered') {
+        cls = 'bk-dispatched'; label = 'Dispatching';
+      } else if (!b.assembler_id && b.needs_manual_dispatch) {
+        cls = 'bk-dispatched'; label = 'Needs Easer';
+      } else if (!b.assembler_id) {
+        cls = 'bk-confirmed'; label = 'Confirmed';
+      } else if (b.assembler_id && !b.assembler_accepted_at) {
+        cls = 'bk-dispatched'; label = 'Awaiting Accept';
+      } else {
+        cls = 'bk-accepted'; label = 'Accepted';
+      }
+    } else if (s === 'en_route') {
+      cls = 'bk-en-route'; label = 'En Route';
+    } else if (s === 'arrived') {
+      cls = 'bk-arrived'; label = 'Arrived';
+    } else if (s === 'in_progress') {
+      cls = 'bk-in-progress'; label = 'In Progress';
+    } else if (s === 'completed') {
+      cls = 'bk-completed'; label = 'Completed';
+    } else if (s === 'cancelled') {
+      cls = 'bk-cancelled'; label = 'Cancelled';
+    } else if (s === 'declined') {
+      cls = 'bk-declined'; label = 'Declined';
+    } else if (s === 'refunded') {
+      cls = 'bk-refunded'; label = 'Refunded';
+    } else {
+      cls = 'bk-confirmed'; label = s || '—';
+    }
+    return '<span class="sb ' + cls + '">' + label + '</span>';
+  }
+
+  function easerAccountBadge(status) {
+    var map = {
+      pending:   ['ea-pending',   'Pending Review'],
+      active:    ['ea-active',    'Active'],
+      suspended: ['ea-suspended', 'Suspended'],
+      rejected:  ['ea-rejected',  'Rejected'],
+    };
+    var v = map[status] || ['ea-pending', status || '—'];
+    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+  }
+
+  function easerTierBadge(tier) {
+    if (!tier || tier === 'pending' || tier === 'suspended') return '';
+    var map = {
+      starter:      ['et-starter',      'Starter'],
+      professional: ['et-professional', 'Professional'],
+      elite:        ['et-elite',        'Elite'],
+    };
+    var v = map[tier] || ['et-starter', tier];
+    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+  }
+
+  function verificationBadge(a) {
+    var s = a.id_verification_status || (a.identity_verified ? 'verified' : 'pending');
+    if (s === 'verified') return '<span class="sb vr-verified">Verified</span>';
+    if (s === 'failed')   return '<span class="sb vr-failed">Failed</span>';
+    if (a.stripe_identity_session_id || a.stripe_verification_id)
+      return '<span class="sb vr-in-progress">In Progress</span>';
+    if (a.application_fee_paid || a.fee_waived_by_owner)
+      return '<span class="sb vr-paid-pending">Paid — Pending</span>';
+    return '<span class="sb vr-not-started">Not Started</span>';
+  }
+
+  function paymentBadge(status) {
+    var map = {
+      pending:      ['py-pending',      'Pending'],
+      not_required: ['py-not-required', 'Not Required'],
+      authorized:   ['py-authorized',   'Authorized'],
+      deposit_paid: ['py-deposit-paid', 'Deposit Paid'],
+      captured:     ['py-captured',     'Paid'],
+      refunded:     ['py-refunded',     'Refunded'],
+      failed:       ['py-failed',       'Failed'],
+    };
+    var v = map[status] || ['py-pending', status || '—'];
+    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+  }
+
+  function offerStatusBadge(status) {
+    var map = {
+      sent:       ['do-sent',       'Sent'],
+      accepted:   ['do-accepted',   'Accepted'],
+      declined:   ['do-declined',   'Declined'],
+      expired:    ['do-expired',    'Expired'],
+      cancelled:  ['do-cancelled',  'Cancelled'],
+      superseded: ['do-superseded', 'Taken'],
+    };
+    var v = map[status] || ['do-expired', status || '—'];
+    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+  }
+
   function formatDate(d) {
     if (!d) return '—';
     try {
@@ -2368,7 +2454,7 @@ function intelQuick(msg) {
         return '<div style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
           + '<span class="' + dotClass + '"></span>'
           + '<span style="font-size:0.85rem;font-weight:500;color:var(--text);flex:1">' + esc(e.full_name) + '</span>'
-          + '<span class="' + (isWorking ? 'tier-verified' : 'tier-starter') + '" style="font-size:0.68rem">' + esc(e.tier) + '</span>'
+          + easerTierBadge(e.tier)
           + '<span style="font-size:0.7rem;color:' + labelColor + ';font-weight:600">' + label + '</span>'
           + '</div>';
       }).join('');
@@ -2384,15 +2470,13 @@ function intelQuick(msg) {
       todayEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No jobs scheduled today</div>';
     } else {
       todayEl.innerHTML = todayJobs.map(function(b) {
-        var badgeCls = 'badge-' + b.status;
-        var statusLabel = { confirmed:'Confirmed', pending:'Pending', completed:'Completed', cancelled:'Cancelled', en_route:'En Route', in_progress:'In Progress', arrived:'Arrived' }[b.status] || b.status;
         return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
           + '<div>'
           + '<div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(b.time||'Time TBD') + ' &mdash; ' + esc(b.service) + '</div>'
           + '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">' + esc(b.assembler_name||'Unassigned') + ' &bull; ' + esc(b.customer_name||'') + '</div>'
           + '</div>'
-          + '<span class="badge ' + badgeCls + '">' + statusLabel + '</span>'
+          + bookingBadge(b)
           + '</div>'
           + '</div>';
       }).join('');
@@ -2450,8 +2534,6 @@ function intelQuick(msg) {
     if(!jobs.length){ list.innerHTML=''; empty.style.display=''; return; }
     empty.style.display='none';
     list.innerHTML = jobs.map(function(b){
-      var statusColors = {pending:'var(--amber)',confirmed:'var(--teal)',completed:'#22c55e',cancelled:'var(--muted)'};
-      var col = statusColors[b.status]||'var(--muted)';
       return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
         +'<div style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+(b.time||'—')+'</div>'
         +'<div style="flex:1;min-width:0">'
@@ -2459,7 +2541,7 @@ function intelQuick(msg) {
           +'<div style="font-size:0.8rem;color:var(--muted)">'+(b.service||'—')+' &bull; '+(b.address||'—')+'</div>'
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:0.5rem">'
-          +'<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;background:'+col+'22;color:'+col+';border:1px solid '+col+'44">'+b.status.toUpperCase()+'</span>'
+          + bookingBadge(b)
           +(b.customer_phone?'<a href="tel:'+esc(b.customer_phone)+'" style="font-size:0.78rem;color:var(--teal);text-decoration:none;font-weight:600">Call</a>':'')
         +'</div>'
       +'</div>';
@@ -2669,7 +2751,7 @@ function intelQuick(msg) {
     allBookings.forEach(function(b){statusMap[b.status]=(statusMap[b.status]||0)+1;});
     document.getElementById('an-status').innerHTML = statuses.filter(function(s){return statusMap[s];}).map(function(s){
       var pct2 = Math.round((statusMap[s]||0)/Math.max(1,allBookings.length)*100);
-      var colors = {pending:'#f59e0b',confirmed:'var(--teal)',completed:'#22c55e',cancelled:'var(--muted)',declined:'#ef4444'};
+      var colors = {pending:'#b45309',confirmed:'#0369a1',completed:'#047857',cancelled:'#475569',declined:'#be123c',refunded:'#c2410c',en_route:'#1d4ed8',in_progress:'#059669'};
       return '<div style="margin-bottom:0.75rem">'
         +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px"><span style="color:var(--text);font-weight:500;text-transform:capitalize">'+s+'</span><span style="color:var(--muted)">'+statusMap[s]+' ('+pct2+'%)</span></div>'
         +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:'+(colors[s]||'var(--muted)')+';border-radius:999px;width:'+pct2+'%"></div></div>'
@@ -2853,27 +2935,10 @@ function intelQuick(msg) {
     renderAssemblerTable();
   });
 
-  function statusBadge(status) {
-    var cls = { pending:'tier-pending', active:'tier-verified', suspended:'tier-suspended', rejected:'tier-suspended' };
-    var labels = { pending:'Pending', active:'Active', suspended:'Suspended', rejected:'Rejected' };
-    return '<span class="' + (cls[status]||'tier-pending') + '">' + (labels[status]||status||'—') + '</span>';
-  }
-
-  function tierBadge(tier) {
-    var cls = { starter:'tier-starter', professional:'tier-verified', elite:'tier-elite' };
-    var labels = { starter:'Starter', professional:'Professional', elite:'Elite' };
-    if (!tier) return '<span class="tier-pending">—</span>';
-    return '<span class="' + (cls[tier]||'tier-pending') + '">' + (labels[tier]||tier) + '</span>';
-  }
-
-  function idVerificationBadge(a) {
-    var status = a.id_verification_status || (a.identity_verified ? 'verified' : 'pending');
-    if (status === 'verified') return '<span style="color:#1d9e75;font-weight:500">Verified</span>';
-    if (status === 'failed') return '<span style="color:var(--red);font-weight:500">Failed</span>';
-    if (a.stripe_identity_session_id || a.stripe_verification_id) return '<span style="color:var(--amber)">In Progress</span>';
-    if (a.application_fee_paid || a.fee_waived_by_owner) return '<span style="color:#0097a7">Paid — Pending</span>';
-    return '<span style="color:var(--muted)">Not Started</span>';
-  }
+  // Easer table badge functions — delegate to centralized helpers defined above
+  function statusBadge(status) { return easerAccountBadge(status); }
+  function tierBadge(tier)     { return easerTierBadge(tier); }
+  function idVerificationBadge(a) { return verificationBadge(a); }
 
   function renderAssemblerTable() {
     var filtered;

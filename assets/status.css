@@ -1,0 +1,304 @@
+/**
+ * AssembleAtEase — Centralized Status Badge System
+ *
+ * DESIGN PRINCIPLES
+ * ─────────────────
+ * 1. Each COLOR maps to exactly one SEMANTIC meaning across all systems:
+ *    Emerald   = positive final state (completed, active account, verified identity)
+ *    Amber     = waiting / needs action (pending confirmation, pending review)
+ *    Sky Blue  = in motion / processing (dispatching, en route, authorized payment)
+ *    Violet    = dispatch offered (offer in-flight to Easer)
+ *    Teal      = accepted / confirmed by Easer
+ *    Green     = actively underway (in progress / working)
+ *    Cyan      = on-site / arrived
+ *    Orange    = recoverable warning (suspended, declined, refunded)
+ *    Red       = permanent failure / rejection (rejected account, failed verification)
+ *    Slate     = neutral terminal (cancelled, expired, superseded)
+ *    Indigo    = tier: starter
+ *    Purple    = tier: professional
+ *    Gold      = tier: elite
+ *
+ * 2. Category prefixes prevent cross-contamination:
+ *    .bk-*   Booking lifecycle
+ *    .ea-*   Easer account (access control)
+ *    .et-*   Easer tier (quality level)
+ *    .vr-*   Verification
+ *    .do-*   Dispatch offer (dispatch_offers table)
+ *    .py-*   Payment
+ *    .po-*   Payout
+ */
+
+/* ── Base badge ─────────────────────────────────────────────────────────────── */
+.sb {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  line-height: 1.5;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BOOKING LIFECYCLE  (.bk-*)
+   Amber → Blue → Violet → Teal → Sky → Cyan → Green → Emerald
+   Slate = cancelled     Orange-Red = declined     Orange = refunded
+   ══════════════════════════════════════════════════════════════════ */
+
+/* pending — needs owner confirmation */
+.bk-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* confirmed — confirmed, not yet dispatched */
+.bk-confirmed {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.22);
+}
+
+/* dispatched — offer sent to Easers, waiting for acceptance */
+.bk-dispatched {
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+  border-color: rgba(124, 58, 237, 0.22);
+}
+
+/* accepted — Easer accepted, job is assigned */
+.bk-accepted {
+  background: rgba(0, 151, 167, 0.1);
+  color: #0e7490;
+  border-color: rgba(0, 151, 167, 0.22);
+}
+
+/* en_route — Easer traveling to job */
+.bk-en-route {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+/* arrived — Easer on site */
+.bk-arrived {
+  background: rgba(6, 182, 212, 0.1);
+  color: #0891b2;
+  border-color: rgba(6, 182, 212, 0.22);
+}
+
+/* in_progress — work underway */
+.bk-in-progress {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+/* completed — job done, payment captured */
+.bk-completed {
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
+/* cancelled — terminated before completion */
+.bk-cancelled {
+  background: rgba(100, 116, 139, 0.1);
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.2);
+}
+
+/* declined — owner/system rejected booking */
+.bk-declined {
+  background: rgba(225, 29, 72, 0.08);
+  color: #be123c;
+  border-color: rgba(225, 29, 72, 0.2);
+}
+
+/* refunded — payment reversed */
+.bk-refunded {
+  background: rgba(249, 115, 22, 0.1);
+  color: #c2410c;
+  border-color: rgba(249, 115, 22, 0.22);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EASER ACCOUNT STATUS  (.ea-*)
+   Controls platform access — distinct from tier quality
+   Amber = needs review     Emerald = full access
+   Orange = temp blocked    Red = permanent block
+   ══════════════════════════════════════════════════════════════════ */
+
+/* pending — application submitted, awaiting owner review */
+.ea-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* active — approved, can receive jobs */
+.ea-active {
+  background: rgba(5, 150, 105, 0.12);
+  color: #065f46;
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
+/* suspended — temporarily blocked, recoverable */
+.ea-suspended {
+  background: rgba(234, 88, 12, 0.1);
+  color: #c2410c;
+  border-color: rgba(234, 88, 12, 0.22);
+}
+
+/* rejected — permanently denied */
+.ea-rejected {
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EASER TIER  (.et-*)
+   Quality level — independent of account access status
+   Indigo = starter     Purple = professional     Gold = elite
+   ══════════════════════════════════════════════════════════════════ */
+
+/* starter — entry level */
+.et-starter {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+  border-color: rgba(99, 102, 241, 0.22);
+}
+
+/* professional — mid tier */
+.et-professional {
+  background: rgba(124, 58, 237, 0.1);
+  color: #5b21b6;
+  border-color: rgba(124, 58, 237, 0.22);
+}
+
+/* elite — top tier */
+.et-elite {
+  background: rgba(180, 83, 9, 0.1);
+  color: #92400e;
+  border-color: rgba(180, 83, 9, 0.25);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   IDENTITY VERIFICATION  (.vr-*)
+   Not started → In Progress → Verified / Failed
+   ══════════════════════════════════════════════════════════════════ */
+
+/* not started */
+.vr-not-started {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+  border-color: rgba(100, 116, 139, 0.2);
+}
+
+/* in progress — session open / selfie submitted */
+.vr-in-progress {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.22);
+}
+
+/* paid, pending verification */
+.vr-paid-pending {
+  background: rgba(0, 151, 167, 0.1);
+  color: #0e7490;
+  border-color: rgba(0, 151, 167, 0.2);
+}
+
+/* verified — identity confirmed */
+.vr-verified {
+  background: rgba(5, 150, 105, 0.12);
+  color: #065f46;
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
+/* failed — identity check failed */
+.vr-failed {
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DISPATCH OFFER STATUS  (.do-*)
+   dispatch_offers table — tracks per-Easer offer lifecycle
+   ══════════════════════════════════════════════════════════════════ */
+
+/* sent — offer active, waiting for Easer response */
+.do-sent {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* accepted — this Easer took the job */
+.do-accepted {
+  background: rgba(5, 150, 105, 0.12);
+  color: #065f46;
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
+/* declined — Easer explicitly said no */
+.do-declined {
+  background: rgba(234, 88, 12, 0.1);
+  color: #c2410c;
+  border-color: rgba(234, 88, 12, 0.22);
+}
+
+/* expired — offer timed out (no response within TTL) */
+.do-expired {
+  background: rgba(100, 116, 139, 0.08);
+  color: #64748b;
+  border-color: rgba(100, 116, 139, 0.18);
+}
+
+/* cancelled — owner cancelled / job was manually assigned */
+.do-cancelled {
+  background: rgba(100, 116, 139, 0.08);
+  color: #64748b;
+  border-color: rgba(100, 116, 139, 0.18);
+}
+
+/* superseded — another Easer accepted first */
+.do-superseded {
+  background: rgba(100, 116, 139, 0.06);
+  color: #94a3b8;
+  border-color: rgba(100, 116, 139, 0.15);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PAYMENT STATUS  (.py-*)
+   ══════════════════════════════════════════════════════════════════ */
+
+.py-pending      { background: rgba(100,116,139,0.1);  color:#475569;  border-color:rgba(100,116,139,0.2); }
+.py-not-required { background: rgba(100,116,139,0.07); color:#94a3b8;  border-color:rgba(100,116,139,0.15); }
+.py-authorized   { background: rgba(14,165,233,0.1);   color:#0369a1;  border-color:rgba(14,165,233,0.22); }
+.py-deposit-paid { background: rgba(0,151,167,0.1);    color:#0e7490;  border-color:rgba(0,151,167,0.2); }
+.py-captured     { background: rgba(5,150,105,0.12);   color:#065f46;  border-color:rgba(5,150,105,0.25); }
+.py-refunded     { background: rgba(249,115,22,0.1);   color:#c2410c;  border-color:rgba(249,115,22,0.22); }
+.py-failed       { background: rgba(220,38,38,0.08);   color:#991b1b;  border-color:rgba(220,38,38,0.2); }
+
+/* ══════════════════════════════════════════════════════════════════
+   PAYOUT STATUS  (.po-*)
+   ══════════════════════════════════════════════════════════════════ */
+
+.po-pending         { background: rgba(245,158,11,0.1);  color:#92400e; border-color:rgba(245,158,11,0.22); }
+.po-paid            { background: rgba(5,150,105,0.12);  color:#065f46; border-color:rgba(5,150,105,0.25); }
+.po-not-applicable  { background: rgba(100,116,139,0.07);color:#94a3b8; border-color:rgba(100,116,139,0.15); }
+
+/* ── Legacy aliases (kept for backwards compat during migration) ──────────── */
+/* These map old class names to the new system so nothing breaks immediately */
+.tier-pending    { background:rgba(100,116,139,0.1);  color:#475569;  border:1px solid rgba(100,116,139,0.2); display:inline-flex;align-items:center;font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px; }
+.tier-starter    { background:rgba(99,102,241,0.1);   color:#4338ca;  border:1px solid rgba(99,102,241,0.22); display:inline-flex;align-items:center;font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px; }
+.tier-verified   { background:rgba(5,150,105,0.12);   color:#065f46;  border:1px solid rgba(5,150,105,0.25); display:inline-flex;align-items:center;font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px; }
+.tier-elite      { background:rgba(180,83,9,0.1);     color:#92400e;  border:1px solid rgba(180,83,9,0.25); display:inline-flex;align-items:center;font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px; }
+.tier-suspended  { background:rgba(234,88,12,0.1);    color:#c2410c;  border:1px solid rgba(234,88,12,0.22); display:inline-flex;align-items:center;font-size:0.68rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px; }

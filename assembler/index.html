@@ -20,6 +20,7 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <link rel="stylesheet" href="../assets/css/dashboard.css" />
+  <link rel="stylesheet" href="../assets/status.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#4a5568;--teal:#0097a7;--teal-glow:rgba(0,151,167,0.08);--teal-dark:#00838f;--orange:#e86a2e;--orange-glow:rgba(232,106,46,0.06);--amber:#f59e0b;--sidebar-w:260px}
@@ -310,14 +311,14 @@
 
     // Tier badge
     var tierEl=document.getElementById('sidebar-tier');
-    if(profile.status==='active' && profile.tier){
-      var tierLabels={starter:'Starter',professional:'Professional',elite:'Elite'};
-      var tierCls={starter:'tier-starter',professional:'tier-verified',elite:'tier-elite'};
-      tierEl.innerHTML='<span class="tier-badge '+(tierCls[profile.tier]||'tier-starter')+'">'+(tierLabels[profile.tier]||profile.tier)+'</span>';
+    var tierCls={starter:'et-starter',professional:'et-professional',elite:'et-elite'};
+    var tierLabels={starter:'Starter',professional:'Professional',elite:'Elite'};
+    if(profile.status==='active' && profile.tier && tierCls[profile.tier]){
+      tierEl.innerHTML='<span class="sb '+(tierCls[profile.tier])+'">'+(tierLabels[profile.tier]||profile.tier)+'</span>';
     } else if(profile.status==='pending'){
-      tierEl.innerHTML='<span class="tier-badge tier-pending">Pending</span>';
+      tierEl.innerHTML='<span class="sb ea-pending">Pending Review</span>';
     } else if(profile.status==='suspended'){
-      tierEl.innerHTML='<span class="tier-badge tier-pending">Suspended</span>';
+      tierEl.innerHTML='<span class="sb ea-suspended">Suspended</span>';
     }
 
     // Status banner
@@ -422,10 +423,10 @@
         if(bookings.length){
           bSection.style.display='';
           bList.innerHTML=bookings.map(function(b){
-            var statusBadge=b.assembler_accepted_at?'badge-new':'badge-pending';
-            var statusText=b.assembler_accepted_at?'Accepted':'Pending Response';
+            var sBadgeCls=b.assembler_accepted_at?'sb bk-accepted':'sb bk-dispatched';
+            var sText=b.assembler_accepted_at?'Accepted':'Pending Response';
             return '<div class="booking-card"><div class="booking-card-top"><h4>'+
-              esc(b.service||'Service')+'</h4><span class="badge '+statusBadge+'">'+statusText+'</span></div>'+
+              esc(b.service||'Service')+'</h4><span class="'+sBadgeCls+'">'+sText+'</span></div>'+
               '<div class="booking-card-meta">'+
               (b.customer_name?esc(b.customer_name.split(' ')[0])+' &bull; ':'')+
               esc(b.date||'Date TBD')+(b.time?' at '+esc(b.time):'')+' &bull; '+
@@ -447,7 +448,7 @@
           cSection.style.display='';
           cList.innerHTML=completed.slice(0,5).map(function(b){
             return '<div class="booking-card"><div class="booking-card-top"><h4>'+
-              esc(b.service||'Service')+'</h4><span class="badge badge-complete">Completed</span></div>'+
+              esc(b.service||'Service')+'</h4><span class="sb bk-completed">Completed</span></div>'+
               '<div class="booking-card-meta">'+
               (b.customer_name?esc(b.customer_name.split(' ')[0])+' &bull; ':'')+
               esc(b.date||'')+(b.completed_at?' &bull; Done '+timeAgo(b.completed_at):'')+

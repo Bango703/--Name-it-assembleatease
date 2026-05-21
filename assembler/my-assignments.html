@@ -14,6 +14,7 @@
   <link rel="apple-touch-icon" href="/images/logo.jpg" />
   <style>body{visibility:hidden}</style>
   <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
@@ -204,8 +205,8 @@
       const customerFirst = (b.customer_name || 'Customer').split(' ')[0];
       const isCompleted = b.status === 'completed';
       const isActive = b.status === 'confirmed';
-      const badgeClass = isCompleted ? 'badge-complete' : (b.assembler_accepted_at ? 'badge-accepted' : 'badge-pending');
-      const badgeText = isCompleted ? 'Completed' : (b.assembler_accepted_at ? 'Accepted' : 'Pending Your Response');
+      const badgeClass = isCompleted ? 'sb bk-completed' : (b.assembler_accepted_at ? 'sb bk-accepted' : 'sb bk-dispatched');
+      const badgeText = isCompleted ? 'Completed' : (b.assembler_accepted_at ? 'Accepted' : 'Pending Response');
 
       return '<div class="asgn-card" style="cursor:pointer" onclick="openDetail(\'' + b.id + '\')">' +
         '<div class="asgn-card-top">' +
