@@ -1,46 +1,49 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 
-/**
- * POST /api/owner/create-test-easer
- * Creates a fully approved test Easer account for internal testing.
- * Bypasses fee, verification, and sets a known password immediately.
- * Owner-auth required.
- */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const sb = getSupabase();
-
   const testEmail    = 'testeaser@assembleatease.com';
   const testPassword = 'TestEaser2024!';
 
-  // Delete existing test account if any
+  let userId;
+
+  // Find existing auth user by listing (admin API has no getUserByEmail)
   try {
-    const { data: existing } = await sb.from('profiles').select('id').eq('email', testEmail).maybeSingle();
-    if (existing) {
-      await sb.from('profiles').delete().eq('id', existing.id);
-      await sb.auth.admin.deleteUser(existing.id).catch(() => {});
+    const { data: list } = await sb.auth.admin.listUsers({ perPage: 1000 });
+    const found = (list?.users || []).find(u => u.email === testEmail);
+    if (found) {
+      // Reset password on existing account — no delete/recreate needed
+      await sb.auth.admin.updateUserById(found.id, {
+        password: testPassword,
+        email_confirm: true,
+        user_metadata: { role: 'assembler', full_name: 'Test Easer' },
+      });
+      userId = found.id;
     }
-  } catch(e) { /* non-fatal */ }
-
-  // Create auth user with known password
-  const { data: authData, error: authErr } = await sb.auth.admin.createUser({
-    email: testEmail,
-    password: testPassword,
-    email_confirm: true,
-    user_metadata: { role: 'assembler', full_name: 'Test Easer' },
-  });
-
-  if (authErr) {
-    console.error('Test easer auth error:', authErr);
-    return res.status(500).json({ error: authErr.message });
+  } catch(e) {
+    console.warn('Auth user lookup failed:', e.message);
   }
 
-  const userId = authData.user.id;
+  // Not found — create fresh
+  if (!userId) {
+    const { data: authData, error: authErr } = await sb.auth.admin.createUser({
+      email: testEmail,
+      password: testPassword,
+      email_confirm: true,
+      user_metadata: { role: 'assembler', full_name: 'Test Easer' },
+    });
+    if (authErr) {
+      console.error('Test easer create error:', authErr);
+      return res.status(500).json({ error: authErr.message });
+    }
+    userId = authData.user.id;
+  }
 
-  // Step 1 — core profile (columns guaranteed to exist)
+  // Upsert core profile
   const { error: profileErr } = await sb.from('profiles').upsert({
     id: userId,
     full_name: 'Test Easer',
@@ -59,14 +62,13 @@ export default async function handler(req, res) {
 
   if (profileErr) {
     console.error('Test easer profile error:', profileErr);
-    return res.status(500).json({ error: 'Profile create failed: ' + profileErr.message });
+    return res.status(500).json({ error: 'Profile upsert failed: ' + profileErr.message });
   }
 
-  // Step 2 — extended fields (non-fatal if columns don't exist yet)
+  // Extended fields — non-fatal if columns missing
   await sb.from('profiles').update({
     services_offered: ['Furniture Assembly', 'TV & Display Mounting', 'Home Repairs'],
-    has_tools: true,
-    has_transport: true,
+    has_tools: true, has_transport: true,
     years_experience: 3,
     bio: 'Test account for platform testing.',
     hourly_rate: 25,
@@ -74,7 +76,7 @@ export default async function handler(req, res) {
     completed_jobs: 5,
     is_available: true,
   }).eq('id', userId).then(({ error: e }) => {
-    if (e) console.warn('Extended profile fields skipped:', e.message);
+    if (e) console.warn('Extended fields skipped:', e.message);
   });
 
   return res.status(200).json({
