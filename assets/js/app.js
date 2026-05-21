@@ -9,21 +9,32 @@ const APP = {
 
   // Get the current session and profile. Returns null if not logged in.
   async getAuth() {
-    try {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
-      if (error || !session) return null;
+    const attempt = async () => {
+      try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error || !session) return null;
 
-      const { data: profile, error: profileError } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-      if (profileError || !profile) return null;
-      return { user: session.user, session, profile };
-    } catch {
-      return null;
-    }
+        if (profileError || !profile) return null;
+        return { user: session.user, session, profile };
+      } catch {
+        return null;
+      }
+    };
+
+    // First attempt
+    let result = await attempt();
+    if (result) return result;
+
+    // Retry once after 800ms — handles Supabase session load race condition
+    // where createClient() hasn't finished restoring the session from storage yet
+    await new Promise(r => setTimeout(r, 800));
+    return attempt();
   },
 
   // Require auth + optional role check. Redirects to login if not authenticated.

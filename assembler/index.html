@@ -12,6 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="AE Easer" />
   <meta name="theme-color" content="#0097a7" />
   <link rel="apple-touch-icon" href="/images/logo.jpg" />
+  <style>body{visibility:hidden}</style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
@@ -282,6 +283,7 @@
   document.addEventListener('DOMContentLoaded',async function(){
     var auth=await APP.requireAuth(['assembler']);
     if(!auth)return;
+    document.body.style.visibility='visible';
     var user=auth.user;
     var session=auth.session;
     var profile=auth.profile;
