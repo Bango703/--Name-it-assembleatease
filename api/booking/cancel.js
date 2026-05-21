@@ -50,7 +50,16 @@ export default async function handler(req, res) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-      if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+      if (booking.payment_status === 'pending' || !booking.stripe_payment_intent_id) {
+        // Card was never authorized — no Stripe action needed
+      } else if (booking.payment_status === 'captured') {
+        // Payment already captured (job was marked complete then cancelled) — issue full refund
+        const refund = await stripe.refunds.create({
+          payment_intent: booking.stripe_payment_intent_id,
+          metadata: { bookingRef: booking.ref, reason: 'owner_cancelled_post_capture' },
+        });
+        refundAmount = refund.amount;
+      } else if (booking.payment_status === 'authorized') {
         if (!waiveFee && withinCancellationWindow && (booking.total_price || 0) > 0) {
           // Within 24hr window — capture 50% as cancellation fee
           const feeCents = Math.round((booking.total_price || 0) * 0.5);

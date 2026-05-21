@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { logActivity } from './_activity.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -133,6 +134,9 @@ export default async function handler(req, res) {
 
   // Mark booking as dispatched
   await sb.from('bookings').update({ dispatch_status: 'offered' }).eq('id', bookingId);
+
+  const names = topEasers.map(e => e.full_name).join(', ');
+  logActivity(sb, { bookingId, eventType: 'dispatched', actorType: 'owner', actorName: 'Owner', description: `Job offered to ${notified} Easer(s): ${names}`, metadata: { dispatched: notified } });
 
   return res.status(200).json({
     dispatched: notified,

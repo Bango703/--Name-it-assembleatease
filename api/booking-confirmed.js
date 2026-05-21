@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   // Confirm booking + mark card authorized. Promotes status so dispatch can run.
   const { error: updateErr } = await sb
     .from('bookings')
-    .update({ payment_status: 'authorized', status: 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: 'payment' })
+    .update({ payment_status: 'authorized', payment_authorized_at: new Date().toISOString(), status: 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: 'payment' })
     .eq('id', bookingId);
 
   if (updateErr) {

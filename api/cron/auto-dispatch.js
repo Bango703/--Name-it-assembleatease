@@ -10,9 +10,17 @@ import { sendEmail, ownerEmail } from '../_email.js';
  * 3. Emails owner if any booking can't find an Easer.
  */
 export default async function handler(req, res) {
-  // Vercel cron calls with GET — allow internal calls too
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  // Require CRON_SECRET to prevent unauthorized triggers
+  // Vercel sets Authorization: Bearer <CRON_SECRET> automatically on scheduled calls
+  const secret = process.env.CRON_SECRET;
+  if (secret) {
+    const auth = req.headers.authorization || '';
+    if (auth !== 'Bearer ' + secret) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
   }
 
   const sb = getSupabase();

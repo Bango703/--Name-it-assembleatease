@@ -58,5 +58,26 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to save review. Please try again.' });
   }
 
+  // Update Easer's average rating on their profile
+  try {
+    const { data: bookingFull } = await sb.from('bookings').select('assembler_id').eq('id', booking.id).single();
+    if (bookingFull?.assembler_id) {
+      const { data: allReviews } = await sb
+        .from('reviews')
+        .select('rating')
+        .eq('approved', true)
+        .in('booking_id',
+          (await sb.from('bookings').select('id').eq('assembler_id', bookingFull.assembler_id)).data?.map(b => b.id) || []
+        );
+      if (allReviews?.length) {
+        const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+        await sb.from('profiles').update({
+          rating: Math.round(avg * 10) / 10,
+          review_count: allReviews.length,
+        }).eq('id', bookingFull.assembler_id);
+      }
+    }
+  } catch(e) { console.warn('Rating update failed (non-fatal):', e.message); }
+
   return res.status(200).json({ success: true });
 }

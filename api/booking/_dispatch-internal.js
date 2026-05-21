@@ -18,6 +18,15 @@ export async function dispatchBooking(bookingId) {
   if (booking.status !== 'confirmed') return { dispatched: 0, message: 'Booking not confirmed' };
   if (booking.assembler_id) return { dispatched: 0, message: 'Already assigned' };
 
+  // Deduplication: don't re-dispatch if an offer was sent within the last 30 minutes
+  // (prevents email spam to Easers when cron and manual dispatch overlap)
+  if (booking.dispatch_offered_at && booking.dispatch_status === 'offered') {
+    const minsAgo = (Date.now() - new Date(booking.dispatch_offered_at).getTime()) / 60000;
+    if (minsAgo < 30) {
+      return { dispatched: 0, message: `Offer already sent ${Math.round(minsAgo)}min ago — waiting for Easer response` };
+    }
+  }
+
   const bookingCity = extractCity(booking.address || '');
   const bookingZip  = extractZip(booking.address || '');
 

@@ -30,6 +30,9 @@ export default async function handler(req, res) {
   if (!booking.assembler_id) {
     return res.status(400).json({ error: 'No assembler assigned to this booking' });
   }
+  if (booking.payout_status === 'paid') {
+    return res.status(400).json({ error: 'Payout already recorded for this booking.' });
+  }
 
   // Auto-derive payout from assembler_due (recorded at job completion), or fall back to 80% of amount_charged
   const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
