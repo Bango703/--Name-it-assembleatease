@@ -42,6 +42,14 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_dispatch_declined_at TIMESTAM
 
 -- ── RLS: allow service role full access ──────────────────────
 ALTER TABLE dispatch_offers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "service_role_all" ON dispatch_offers
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'dispatch_offers' AND policyname = 'service_role_all'
+  ) THEN
+    CREATE POLICY "service_role_all" ON dispatch_offers
+      USING (auth.role() = 'service_role')
+      WITH CHECK (auth.role() = 'service_role');
+  END IF;
+END $$;
