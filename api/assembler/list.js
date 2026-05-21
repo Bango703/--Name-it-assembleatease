@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   let query = sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, status, tier, previous_tier, identity_verified, identity_verified_at, id_verification_status, stripe_identity_session_id, stripe_verification_id, stripe_customer_id, application_fee_paid, fee_waived_by_owner, has_membership, services_offered, has_tools, has_transport, years_experience, rating, review_count, completed_jobs, created_at, approved_at, rejected_at, rejection_reason, application_status, is_available, last_assigned_at')
+    .select('*')
     .eq('role', 'assembler')
     .order('created_at', { ascending: false });
 
@@ -31,6 +31,19 @@ export default async function handler(req, res) {
   }
 
   const assemblers = data || [];
+
+  // Normalise: if DB hasn't been migrated yet (no status column), derive status from tier
+  assemblers.forEach(a => {
+    if (!a.status) {
+      if (a.application_status === 'rejected' || a.tier === 'rejected') a.status = 'rejected';
+      else if (a.tier === 'suspended') a.status = 'suspended';
+      else if (a.tier === 'pending' || !a.tier) a.status = 'pending';
+      else a.status = 'active';
+    }
+    // Map old 'verified' tier label to 'professional'
+    if (a.tier === 'verified') a.tier = 'professional';
+  });
+
   const stats = {
     total:         assemblers.length,
     pending:       assemblers.filter(a => a.status === 'pending').length,
