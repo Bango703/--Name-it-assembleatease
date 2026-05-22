@@ -72,8 +72,8 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'A review has already been submitted for this booking.' });
   }
 
-  // Insert review
-  const { data: inserted, error: insErr } = await sb
+  // Insert review — plain insert without select/single to avoid read-back conflicts
+  const { error: insErr } = await sb
     .from('reviews')
     .insert({
       booking_id:    booking.id,
@@ -82,9 +82,7 @@ export default async function handler(req, res) {
       rating:        parseInt(rating, 10),
       body:          body.trim(),
       approved:      true,
-    })
-    .select('id')
-    .single();
+    });
 
   if (insErr) {
     console.error('Review insert error:', insErr.code, insErr.message);
@@ -98,7 +96,7 @@ export default async function handler(req, res) {
     actorType:   'customer',
     actorName:   booking.customer_name,
     description: `Customer left a ${rating}-star review`,
-    metadata:    { rating: parseInt(rating, 10), reviewId: inserted?.id },
+    metadata:    { rating: parseInt(rating, 10) },
   });
 
   // Recalculate Easer's average rating from all their approved reviews
