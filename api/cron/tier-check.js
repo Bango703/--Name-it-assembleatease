@@ -20,6 +20,53 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
+
+  // ── Phase 0a: Reset active_jobs_today for all Easers ─────────────────────
+  // This column powers the overload penalty in dispatch scoring (-50 per extra
+  // job today). Without a daily reset it only ever grows and penalises everyone.
+  const { error: resetErr } = await sb
+    .from('profiles')
+    .update({ active_jobs_today: 0 })
+    .eq('role', 'assembler');
+  if (resetErr) console.error('active_jobs_today reset error:', resetErr.message);
+
+  // ── Phase 0b: Recalculate acceptance_rate for each Easer ─────────────────
+  // Rate = accepted / (accepted + declined + expired) over last 30 days.
+  // Excludes: 'sent' (still open), 'superseded' (Easer had no decision to make),
+  //           'cancelled' (booking was cancelled before a decision).
+  // Powers the 50-point acceptance_rate scoring factor in dispatch.
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: offerStats, error: statsErr } = await sb
+      .from('dispatch_offers')
+      .select('easer_id, offer_status')
+      .gte('created_at', thirtyDaysAgo)
+      .in('offer_status', ['accepted', 'declined', 'expired']);
+
+    if (!statsErr && offerStats?.length) {
+      const rates = {};
+      offerStats.forEach(o => {
+        if (!rates[o.easer_id]) rates[o.easer_id] = { accepted: 0, total: 0 };
+        rates[o.easer_id].total++;
+        if (o.offer_status === 'accepted') rates[o.easer_id].accepted++;
+      });
+
+      await Promise.allSettled(
+        Object.entries(rates).map(([easerId, stats]) => {
+          const rate = stats.total >= 3
+            ? parseFloat((stats.accepted / stats.total * 100).toFixed(2))
+            : null; // require at least 3 data points before penalising
+          return sb.from('profiles').update({ acceptance_rate: rate }).eq('id', easerId);
+        })
+      );
+      console.log(`acceptance_rate updated for ${Object.keys(rates).length} Easer(s)`);
+    } else if (statsErr) {
+      console.error('acceptance_rate stats query error:', statsErr.message);
+    }
+  } catch (arErr) {
+    console.error('acceptance_rate calculation error:', arErr.message);
+  }
+
   const promoted = { toProfessional: 0, toElite: 0 };
 
   // starter → professional
