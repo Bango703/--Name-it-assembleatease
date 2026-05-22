@@ -166,11 +166,6 @@
         box-shadow:4px 0 24px rgba(0,0,0,0.12)
       }
       .sidebar.open{transform:translateX(0)}
-      .sidebar-overlay{
-        display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);
-        z-index:199;opacity:0;transition:opacity 0.22s ease
-      }
-      .sidebar-overlay.open{display:block;opacity:1}
       .mobile-menu-btn{display:flex !important}
       .stats-row{grid-template-columns:repeat(2,1fr)}
     }
@@ -181,6 +176,12 @@
       background:var(--elevated);color:var(--soft);cursor:pointer;flex-shrink:0
     }
     .mobile-menu-btn:hover{background:rgba(0,0,0,0.05)}
+    /* Overlay is always fixed — never participates in any layout flow */
+    .sidebar-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,0.35);
+      z-index:199;display:none
+    }
+    .sidebar-overlay.open{display:block}
 
     /* ── Professional design system additions ── */
     :root {
@@ -289,9 +290,11 @@
   </div>
 </div>
 
+<!-- Overlay lives outside the grid — never participates in column layout -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 <!-- ─── MAIN LAYOUT ─── -->
 <div class="layout hidden" id="layout">
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <a href=".">Assemble<span>AtEase</span></a>
