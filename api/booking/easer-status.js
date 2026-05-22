@@ -28,18 +28,24 @@ export default async function handler(req, res) {
 
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.assembler_id !== user.id) return res.status(403).json({ error: 'Not your booking' });
-  if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status) && booking.status !== 'confirmed') {
-    return res.status(400).json({ error: 'Cannot update status for this booking' });
+
+  // Hard-block terminal states — completed/cancelled bookings must never be updated
+  if (['completed', 'cancelled', 'declined', 'refunded'].includes(booking.status)) {
+    return res.status(400).json({ error: `Cannot update a ${booking.status} booking` });
+  }
+  if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) {
+    return res.status(400).json({ error: 'Booking is not in an updatable state' });
   }
 
   const { status, field, label } = STAGES[stage];
   const now = new Date().toISOString();
 
+  // Primary update: status + pipeline_stage + timestamp field
   const update = { status, pipeline_stage: stage, [field]: now };
   const { error: updateErr } = await sb.from('bookings').update(update).eq('id', bookingId);
   if (updateErr) {
-    // Fallback: some columns might not exist yet
-    const { error: e2 } = await sb.from('bookings').update({ status }).eq('id', bookingId);
+    // Fallback: pipeline_stage column may not exist — preserve the timestamp field
+    const { error: e2 } = await sb.from('bookings').update({ status, [field]: now }).eq('id', bookingId);
     if (e2) return res.status(500).json({ error: 'Failed to update status' });
   }
 
@@ -55,6 +61,7 @@ export default async function handler(req, res) {
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `${label} — ${esc(booking.ref)} · ${esc(booking.service)}`,
     html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem"><p style="font-size:1.1rem;font-weight:700;color:#0097a7">${label}</p><p><strong>${esc(booking.assembler_name||'Easer')}</strong> — ${esc(booking.service)}<br>Customer: ${esc(booking.customer_name)}<br>Address: ${esc(booking.address)}</p><p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">View Dashboard</a></p></div>`,
+    meta: { bookingId, notificationType: stage, recipientType: 'owner' },
   }).catch(() => {});
 
   // Notify customer at key stages
@@ -81,6 +88,7 @@ export default async function handler(req, res) {
       subject: msg.subject,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#0097a7">${label}</h2><p>Hi ${esc(customerFirstName)},</p><p>${msg.body}</p><p style="margin-top:1rem;color:#6b7280;font-size:0.85rem">Booking: ${esc(booking.ref)} · Questions? Reply to this email.</p></div>`,
       replyTo: ownerEmail(),
+      meta: { bookingId, notificationType: stage, recipientType: 'customer' },
     }).catch(() => {});
   }
 

@@ -272,12 +272,25 @@
   var currentUserId=null;
 
   document.getElementById('avail-toggle').addEventListener('click',async function(){
-    available=!available;
-    document.getElementById('avail-pill').classList.toggle('on',available);
-    document.getElementById('avail-toggle').classList.toggle('on',available);
-    document.getElementById('avail-label').textContent=available?'Online':'Offline';
-    if(currentUserId){
-      await supabaseClient.from('profiles').update({is_available:available}).eq('id',currentUserId);
+    if(!currentUserId) return;
+    var newVal = !available;
+
+    // Optimistic UI update
+    available = newVal;
+    document.getElementById('avail-pill').classList.toggle('on', newVal);
+    document.getElementById('avail-toggle').classList.toggle('on', newVal);
+    document.getElementById('avail-label').textContent = newVal ? 'Online' : 'Offline';
+
+    try {
+      var res = await supabaseClient.from('profiles').update({ is_available: newVal }).eq('id', currentUserId);
+      if (res.error) throw res.error;
+    } catch(e) {
+      // Server update failed — revert UI to match actual DB state
+      available = !newVal;
+      document.getElementById('avail-pill').classList.toggle('on', !newVal);
+      document.getElementById('avail-toggle').classList.toggle('on', !newVal);
+      document.getElementById('avail-label').textContent = !newVal ? 'Online' : 'Offline';
+      console.error('Availability update failed:', e.message);
     }
   });
 

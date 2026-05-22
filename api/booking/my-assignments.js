@@ -24,6 +24,12 @@ export default async function handler(req, res) {
   // Default: return all assigned bookings (all statuses)
   const statusFilter = req.query?.status || null;
 
+  // Active statuses: jobs the Easer needs to act on or track
+  // Completed: last 30 days for earnings history
+  // Excluded: cancelled, declined, refunded — Easer should not see these
+  const ACTIVE_STATUSES   = ['confirmed', 'en_route', 'arrived', 'in_progress'];
+  const VISIBLE_STATUSES  = [...ACTIVE_STATUSES, 'completed'];
+
   let query = sb
     .from('bookings')
     .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, assignment_token, has_membership, total_price')
@@ -31,7 +37,15 @@ export default async function handler(req, res) {
     .order('assigned_at', { ascending: false });
 
   if (statusFilter) {
-    query = query.eq('status', statusFilter);
+    // Explicit filter requested — honour it but still exclude cancelled/declined
+    if (VISIBLE_STATUSES.includes(statusFilter)) {
+      query = query.eq('status', statusFilter);
+    } else {
+      query = query.in('status', VISIBLE_STATUSES);
+    }
+  } else {
+    // Default: only statuses that make sense for an Easer to see
+    query = query.in('status', VISIBLE_STATUSES);
   }
 
   const { data: bookings, error } = await query;
@@ -65,13 +79,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // Add pay estimate for accepted/pending jobs (helps Easer see expected payout)
+  // Add pay estimate — uses same formula as assembler-complete.js so the
+  // displayed estimate matches the actual payout (removed the spurious 0.97 multiplier)
   (bookings || []).forEach(b => {
-    if (b.total_price) {
-      const feePct = b.has_membership ? 18 : 25;
-      b._pay_estimate_lo = Math.round(b.total_price * (1 - feePct / 100) * 0.97);
-      b._pay_estimate_hi = Math.round(b.total_price * (1 - feePct / 100));
-      b._fee_pct = feePct;
+    const price = Number(b.amount_charged || b.total_price) || 0;
+    if (price > 0) {
+      const feePct     = b.has_membership ? 18 : 25;
+      const payout     = Math.round(price * (1 - feePct / 100));
+      b._pay_estimate_lo = payout; // exact match to actual payout formula
+      b._pay_estimate_hi = payout;
+      b._fee_pct         = feePct;
     }
   });
 
