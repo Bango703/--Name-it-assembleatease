@@ -95,6 +95,52 @@
       padding: 0.75rem 1rem; font-size: 0.875rem; color: #065f46;
       display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
     }
+
+    /* ── Bottom-sheet confirmation — replaces window.confirm() ── */
+    .sheet-overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .sheet-box {
+      background: #fff; border-radius: 18px 18px 0 0;
+      padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem);
+      width: 100%; max-width: 540px;
+      transform: translateY(100%); transition: transform 0.25s ease;
+    }
+    .sheet-overlay.open .sheet-box { transform: translateY(0); }
+    .sheet-title { font-size: 1.05rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem; }
+    .sheet-body  { font-size: 0.875rem; color: #6b7280; line-height: 1.65; margin-bottom: 1.25rem; }
+    .sheet-body strong { color: #374151; }
+    .sheet-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .sheet-btn-primary {
+      background: #0097a7; color: #fff; border: none; border-radius: 999px;
+      padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; width: 100%;
+    }
+    .sheet-btn-cancel {
+      background: none; border: 1px solid #e5e7eb; border-radius: 999px;
+      padding: 0.75rem 1rem; font-size: 0.9rem; color: #6b7280;
+      font-family: inherit; cursor: pointer; width: 100%;
+    }
+    .decline-reason-btn {
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px;
+      padding: 0.75rem 1rem; font-size: 0.9rem; color: #374151;
+      font-family: inherit; cursor: pointer; width: 100%; text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .decline-reason-btn:hover { border-color: #0097a7; background: rgba(0,151,167,0.05); }
+
+    /* Offline banner */
+    .offline-banner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1500;
+      background: #dc2626; color: #fff; text-align: center;
+      padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 500;
+      display: none;
+    }
+    .offline-banner.show { display: block; }
   </style>
 </head>
 <body class="theme-pro">
@@ -238,13 +284,47 @@
     document.body.style.visibility = 'visible';
     const session = auth.session;
 
-    // Always get a fresh token — avoids 401s from stale session
+    // Get a valid token — attempts session refresh before falling back to
+    // the initial session token. Prevents 401s when the app wakes from sleep.
     async function getToken() {
       try {
         const { data: { session: s } } = await supabaseClient.auth.getSession();
-        return (s || session).access_token;
-      } catch { return session.access_token; }
+        if (s?.access_token) return s.access_token;
+        // Session appears expired — try refresh
+        const { data: refreshed } = await supabaseClient.auth.refreshSession();
+        if (refreshed?.session?.access_token) return refreshed.session.access_token;
+      } catch {}
+      return session.access_token; // last resort
     }
+
+    // ── Reconnect on visibility change (app returns from background) ──
+    document.addEventListener('visibilitychange', async function() {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const tok = await getToken();
+        const r = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + tok } });
+        if (!r.ok) return;
+        const d = await r.json();
+        allAssignments = d.bookings || [];
+        const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+        renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(b => b.status === cf));
+      } catch {}
+    });
+
+    // ── Offline / online detection ────────────────────────────────────
+    var offlineBanner = document.getElementById('offline-banner');
+    window.addEventListener('offline', function() { if (offlineBanner) offlineBanner.classList.add('show'); });
+    window.addEventListener('online',  async function() {
+      if (offlineBanner) offlineBanner.classList.remove('show');
+      try {
+        const tok = await getToken();
+        const r = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + tok } });
+        if (!r.ok) return;
+        const d = await r.json();
+        allAssignments = d.bookings || [];
+        renderAssignments(allAssignments);
+      } catch {}
+    });
 
     // ── Handle dispatch accept from email/push link ──────────────────
     (async function() {
@@ -352,48 +432,53 @@
       if (e.target === this) this.classList.remove('open');
     });
 
-    // Mark Complete button
-    document.getElementById('complete-btn').addEventListener('click', async function() {
+    // Mark Complete — opens bottom sheet instead of window.confirm()
+    var _pendingCompleteBookingId = null;
+
+    document.getElementById('complete-btn').addEventListener('click', function() {
       if (!selectedBookingId) return;
-      const confirmed = window.confirm(
-        'Are you sure the job is 100% complete?\n\n' +
-        'By confirming, you acknowledge that:\n' +
-        '• The work is fully finished to the customer\'s satisfaction\n' +
-        '• The customer\'s card will be charged immediately\n' +
-        '• Falsely marking a job as done is a violation of our terms and will result in account suspension\n\n' +
-        'Click OK only when the job is truly complete.'
-      );
-      if (!confirmed) return;
-      this.disabled = true;
-      this.textContent = 'Processing…';
+      _pendingCompleteBookingId = selectedBookingId;
+      document.getElementById('complete-sheet').classList.add('open');
+    });
+
+    document.getElementById('complete-sheet-cancel').addEventListener('click', function() {
+      document.getElementById('complete-sheet').classList.remove('open');
+      _pendingCompleteBookingId = null;
+    });
+
+    document.getElementById('complete-sheet-yes').addEventListener('click', async function() {
+      document.getElementById('complete-sheet').classList.remove('open');
+      var bookingIdToComplete = _pendingCompleteBookingId;
+      _pendingCompleteBookingId = null;
+      if (!bookingIdToComplete) return;
+
+      var completeBtn = document.getElementById('complete-btn');
+      if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Processing…'; }
+
       try {
         const r = await fetch('/api/booking/assembler-complete', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedBookingId }),
+          body: JSON.stringify({ bookingId: bookingIdToComplete }),
         });
         const d = await r.json();
         if (d.success) {
           document.getElementById('complete-section').style.display = 'none';
           const banner = document.createElement('div');
           banner.className = 'checkin-banner';
-          banner.innerHTML = '&#10003; Job marked complete. Payment has been captured and the customer has been notified.';
+          banner.innerHTML = '&#10003; Job marked complete. Payment captured and customer notified.';
           document.getElementById('asgn-modal-body').appendChild(banner);
-          const b = allAssignments.find(x => x.id === selectedBookingId);
+          const b = allAssignments.find(x => x.id === bookingIdToComplete);
           if (b) b.status = 'completed';
-          const activeTab = document.querySelector('.filter-tab.active');
-          const cf = activeTab?.dataset.filter || 'all';
-          const filtered = cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf);
-          renderAssignments(filtered);
+          const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+          renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf));
         } else {
-          alert(d.error || 'Failed to mark complete. Please try again.');
-          this.disabled = false;
-          this.innerHTML = '&#10003; Mark Job as Complete';
+          if (completeBtn) { completeBtn.disabled = false; completeBtn.innerHTML = '&#10003; Mark Job as Complete'; }
+          APP.showAlert('page-alert', d.error || 'Failed to mark complete. Please try again.', 'error');
         }
       } catch {
-        alert('Something went wrong. Please try again.');
-        this.disabled = false;
-        this.innerHTML = '&#10003; Mark Job as Complete';
+        if (completeBtn) { completeBtn.disabled = false; completeBtn.innerHTML = '&#10003; Mark Job as Complete'; }
+        APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
       }
     });
 
@@ -413,23 +498,21 @@
           document.getElementById('checkin-section').style.display = 'none';
           const banner = document.createElement('div');
           banner.className = 'checkin-banner';
-          banner.innerHTML = '&#10003; You have checked in! The customer has been notified.';
+          banner.innerHTML = '&#10003; Checked in. The customer has been notified.';
           document.getElementById('asgn-modal-body').appendChild(banner);
           const b = allAssignments.find(x => x.id === selectedBookingId);
           if (b) b.checked_in_at = d.checkedInAt || new Date().toISOString();
-          const activeTab = document.querySelector('.filter-tab.active');
-          const cf = activeTab?.dataset.filter || 'all';
-          const filtered = cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf);
-          renderAssignments(filtered);
+          const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+          renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf));
         } else {
-          alert(d.error || 'Check-in failed');
+          APP.showAlert('page-alert', d.error || 'Check-in failed. Please try again.', 'error');
           this.disabled = false;
-          this.textContent = '&#128205; Check In \u2014 I\'ve Arrived';
+          this.textContent = 'Check In \u2014 Arrived';
         }
       } catch {
-        alert('Check-in failed. Please try again.');
+        APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
         this.disabled = false;
-        this.textContent = '&#128205; Check In \u2014 I\'ve Arrived';
+        this.textContent = 'Check In \u2014 Arrived';
       }
     });
 
@@ -531,9 +614,9 @@
       pipeline.id = 'pipeline-btns';
       pipeline.style.cssText = 'display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem';
       const stages = [];
-      if (!b.en_route_at && !b.checked_in_at) stages.push({ stage: 'en_route', label: '🚗 I\'m On My Way', color: 'var(--pro-teal)' });
-      if (b.en_route_at && !b.checked_in_at) stages.push({ stage: 'arrived', label: '📍 I\'ve Arrived', color: 'var(--pro-teal)' });
-      if (b.checked_in_at && !b.job_started_at) stages.push({ stage: 'in_progress', label: '🔧 Job Started', color: '#059669' });
+      if (!b.en_route_at && !b.checked_in_at) stages.push({ stage: 'en_route',    label: 'On My Way',   color: 'var(--pro-teal)' });
+      if (b.en_route_at && !b.checked_in_at)  stages.push({ stage: 'arrived',     label: 'Arrived',      color: 'var(--pro-teal)' });
+      if (b.checked_in_at && !b.job_started_at) stages.push({ stage: 'in_progress', label: 'Job Started', color: '#059669' });
       stages.forEach(function(s) {
         const btn2 = document.createElement('button');
         btn2.className = 'btn';
@@ -548,12 +631,12 @@
               body: JSON.stringify({ bookingId: b.id, stage: s.stage }),
             });
             const d = await r.json();
-            if (!r.ok || d.error) { alert(d.error || 'Failed to update'); btn2.disabled = false; btn2.textContent = s.label; return; }
+            if (!r.ok || d.error) { APP.showAlert('page-alert', d.error || 'Failed to update status', 'error'); btn2.disabled = false; btn2.textContent = s.label; return; }
             // Refresh assignments
             const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
             if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(allAssignments); }
             document.getElementById('asgn-modal').classList.remove('open');
-          } catch { alert('Connection error'); btn2.disabled = false; btn2.textContent = s.label; }
+          } catch { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); btn2.disabled = false; btn2.textContent = s.label; }
         });
         pipeline.appendChild(btn2);
       });
@@ -576,41 +659,56 @@
             body: JSON.stringify({ bookingId: b.id, token: useToken, assemblerId: auth.user.id }),
           });
           const d = await r.json();
-          if (!r.ok || d.error) { alert(d.error || 'Could not accept job'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept Job'; return; }
+          if (!r.ok || d.error) { APP.showAlert('page-alert', d.error || 'Could not accept job — it may already be taken', 'error'); acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; return; }
           document.getElementById('accept-job-section').innerHTML = '<div style="color:#059669;font-weight:600;padding:0.5rem 0">&#10003; Job accepted! Customer contact info is now visible.</div>';
           // Refresh list
           const { data: { session: s } } = await supabaseClient.auth.getSession();
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (s || session).access_token } });
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
-        } catch(e) { alert('Connection error'); acceptBtn.disabled = false; acceptBtn.textContent = '✓ Accept Job'; }
+        } catch(e) { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; }
       });
     }
 
-    // Decline offer button (dispatch offers only — has _offer_token)
+    // Decline offer button — opens reason sheet instead of window.prompt()
     const declineBtn = document.getElementById('decline-job-btn');
     if (declineBtn && b._offer_token) {
-      declineBtn.addEventListener('click', async function() {
-        const reasons = ['Scheduling conflict', 'Too far', 'Not my skill set', 'Currently unavailable', 'Other'];
-        const reason  = prompt('Reason for declining (optional):\n\n' + reasons.map((r,i)=>(i+1)+'. '+r).join('\n') + '\n\nType a number 1-5 or leave blank:');
-        const reasonMap = { '1':'scheduling_conflict','2':'too_far','3':'not_my_skill','4':'unavailable','5':'other' };
-        const reasonCode = reasonMap[reason?.trim()] || (reason?.trim() ? 'other' : null);
+      const declineSheet   = document.getElementById('decline-sheet');
+      const declineCancel  = document.getElementById('decline-sheet-cancel');
+      const declineReasons = document.getElementById('decline-reason-list');
 
+      declineBtn.addEventListener('click', function() {
+        declineSheet.classList.add('open');
+      });
+
+      declineCancel.addEventListener('click', function() {
+        declineSheet.classList.remove('open');
+      });
+
+      async function doDecline(reasonCode) {
+        declineSheet.classList.remove('open');
         declineBtn.disabled = true; declineBtn.textContent = 'Declining…';
         try {
           const r = await fetch('/api/booking/decline-dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-            body: JSON.stringify({ bookingId: b.id, token: b._offer_token, reason: reasonCode }),
+            body: JSON.stringify({ bookingId: b.id, token: b._offer_token, reason: reasonCode || null }),
           });
           const d = await r.json();
-          if (!r.ok || d.error) { alert(d.error || 'Could not decline'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; return; }
-          document.getElementById('accept-job-section').innerHTML = '<div style="color:#6b7280;font-size:0.85rem;padding:0.5rem 0">Offer declined. The owner will be notified.</div>';
-          // Refresh list after short delay
+          if (!r.ok || d.error) {
+            APP.showAlert('page-alert', d.error || 'Could not decline', 'error');
+            declineBtn.disabled = false; declineBtn.textContent = 'Decline'; return;
+          }
+          document.getElementById('accept-job-section').innerHTML =
+            '<div style="color:#6b7280;font-size:0.85rem;padding:0.5rem 0">Offer declined. You will not receive another offer for this job.</div>';
           setTimeout(async function() {
             const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
             if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
           }, 1500);
-        } catch(e) { alert('Connection error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }
+        } catch { APP.showAlert('page-alert', 'Connection error', 'error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }
+      }
+
+      declineReasons.querySelectorAll('.decline-reason-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { doDecline(this.dataset.reason); });
       });
     }
 
@@ -636,5 +734,41 @@
   };
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
+
+<!-- Offline indicator -->
+<div class="offline-banner" id="offline-banner">No connection — updates paused</div>
+
+<!-- Complete job confirmation sheet -->
+<div class="sheet-overlay" id="complete-sheet">
+  <div class="sheet-box">
+    <div class="sheet-title">Mark job as complete?</div>
+    <div class="sheet-body">
+      By confirming you acknowledge that:<br>
+      <strong>The work is fully finished</strong> to the customer's satisfaction<br>
+      <strong>The customer's card will be charged immediately</strong><br>
+      Falsely marking a job complete is a terms violation and leads to account suspension.
+    </div>
+    <div class="sheet-actions">
+      <button class="sheet-btn-primary" id="complete-sheet-yes">Yes, job is complete</button>
+      <button class="sheet-btn-cancel" id="complete-sheet-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Decline offer reason sheet -->
+<div class="sheet-overlay" id="decline-sheet">
+  <div class="sheet-box">
+    <div class="sheet-title">Why are you declining?</div>
+    <div class="sheet-body">This helps us improve dispatch matching. Optional.</div>
+    <div class="sheet-actions" id="decline-reason-list">
+      <button class="decline-reason-btn" data-reason="scheduling_conflict">Scheduling conflict</button>
+      <button class="decline-reason-btn" data-reason="too_far">Too far from my location</button>
+      <button class="decline-reason-btn" data-reason="not_my_skill">Not my skill set</button>
+      <button class="decline-reason-btn" data-reason="unavailable">Currently unavailable</button>
+      <button class="decline-reason-btn" data-reason="">Skip — no reason</button>
+    </div>
+    <button class="sheet-btn-cancel" id="decline-sheet-cancel" style="margin-top:0.5rem">Cancel</button>
+  </div>
+</div>
 </body>
 </html>
