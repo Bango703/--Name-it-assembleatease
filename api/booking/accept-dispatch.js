@@ -50,8 +50,10 @@ export default async function handler(req, res) {
     const { data: easer } = await sb.from('profiles').select('full_name, email, tier, has_membership').eq('id', assemblerId).single();
     if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
 
-    // ── Atomic CAS: assign if still unassigned ──
-    const { error: assignErr } = await sb.from('bookings').update({
+    // ── Atomic CAS: assign only if assembler_id is still null ───────────────
+    // .select('id') returns the updated row(s). If 0 rows returned, the guard
+    // condition failed — another Easer won the race. No separate read needed.
+    const { data: assignedRows, error: assignErr } = await sb.from('bookings').update({
       assembler_id:          assemblerId,
       assembler_name:        easer.full_name,
       assembler_tier:        easer.tier,
@@ -60,15 +62,12 @@ export default async function handler(req, res) {
       dispatch_status:       'accepted',
       dispatch_token:        null,
       assignment_token:      null,
-    }).eq('id', bookingId).is('assembler_id', null); // atomic guard
+    })
+    .eq('id', bookingId)
+    .is('assembler_id', null)
+    .select('id');
 
-    if (assignErr) {
-      // assignErr can be null even if 0 rows updated — check the count separately
-    }
-
-    // Verify assignment actually happened (assembler_id was null)
-    const { data: updated } = await sb.from('bookings').select('assembler_id').eq('id', bookingId).single();
-    if (!updated || updated.assembler_id !== assemblerId) {
+    if (assignErr || !assignedRows || assignedRows.length === 0) {
       return res.status(409).json({ error: 'Sorry — another Easer accepted this job first.' });
     }
 
