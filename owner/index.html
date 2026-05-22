@@ -745,6 +745,34 @@
             <div id="an-rev-service"></div>
           </div>
         </div>
+
+        <!-- Payout Ledger — full width below charts -->
+        <div class="detail-panel open" style="margin-top:1.5rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <div class="detail-section-title" style="margin:0">Easer Payout Ledger</div>
+            <div id="an-payout-totals" style="font-size:0.78rem;color:var(--muted)"></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem" id="an-payout-table">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border)">
+                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Easer</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Tier</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Jobs</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Charged</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Owed</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Paid</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:right;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Pending</th>
+                  <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Last Job</th>
+                  <th style="padding:0.5rem 0.75rem;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em"></th>
+                </tr>
+              </thead>
+              <tbody id="an-payout-body">
+                <tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -2788,6 +2816,55 @@ function intelQuick(msg) {
         +'<div style="height:6px;background:var(--border);border-radius:999px"><div style="height:6px;background:#f59e0b;border-radius:999px;width:'+pct3+'%"></div></div>'
       +'</div>';
     }).join('') || '<div style="color:var(--muted);font-size:0.85rem">No completed jobs yet.</div>';
+
+    // Payout ledger — fetched from API, not derived from allBookings
+    loadPayoutLedger();
+  }
+
+  async function loadPayoutLedger() {
+    var tbody = document.getElementById('an-payout-body');
+    var totalsEl = document.getElementById('an-payout-totals');
+    if (!tbody) return;
+    try {
+      var r = await fetch('/api/owner/payouts', { headers: headers() });
+      var d = await r.json();
+      var easers = d.easers || [];
+      var totals = d.totals || {};
+
+      if (totalsEl && totals.total_pending !== undefined) {
+        var pendingDollars = (totals.total_pending / 100).toFixed(2);
+        var paidDollars    = (totals.total_paid    / 100).toFixed(2);
+        totalsEl.innerHTML = '<span style="color:var(--amber);font-weight:600">$' + pendingDollars + ' pending</span>'
+          + ' &nbsp;·&nbsp; $' + paidDollars + ' paid &nbsp;·&nbsp; '
+          + totals.jobs + ' job' + (totals.jobs !== 1 ? 's' : '');
+      }
+
+      if (!easers.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed jobs with assigned Easers yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = easers.map(function(e) {
+        var hasPending = e.total_pending > 0;
+        var pendingStyle = hasPending ? 'font-weight:700;color:#b45309' : 'color:var(--muted)';
+        var unpaidRefs = (e.unpaid_jobs || []).map(function(j){ return j.ref; }).join(', ');
+        return '<tr style="border-bottom:1px solid var(--border)">'
+          + '<td style="padding:0.6rem 0.75rem;font-weight:600;color:var(--text)">' + esc(e.assembler_name) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem">' + easerTierBadge(e.assembler_tier) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--soft)">' + e.jobs + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--soft)">$' + (e.total_charged / 100).toFixed(2) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--text)">$' + (e.total_owed    / 100).toFixed(2) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right;color:var(--green)">$' + (e.total_paid    / 100).toFixed(2) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;text-align:right;' + pendingStyle + '">$' + (e.total_pending / 100).toFixed(2) + '</td>'
+          + '<td style="padding:0.6rem 0.75rem;font-size:0.78rem;color:var(--muted)">' + (e.last_job_date ? formatDate(e.last_job_date) : '—') + '</td>'
+          + '<td style="padding:0.6rem 0.75rem">'
+            + (hasPending && unpaidRefs ? '<span title="Unpaid jobs: ' + esc(unpaidRefs) + '" style="font-size:0.72rem;color:var(--amber);cursor:default">' + e.unpaid_jobs.length + ' unpaid</span>' : '')
+          + '</td>'
+        + '</tr>';
+      }).join('');
+    } catch(e) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Failed to load payout data</td></tr>';
+    }
   }
 
   // ─── Waitlist ───
@@ -3170,7 +3247,15 @@ function intelQuick(msg) {
     try {
       var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify(body) });
       var d = await r.json();
-      if (!r.ok || d.error) { toast(d.error || 'Action failed', 'error'); return; }
+      if (!r.ok || d.error) {
+        var msg = d.error || 'Action failed';
+        if (d.activeJobs && d.activeJobs.length) {
+          msg += '\n\nActive jobs:\n' + d.activeJobs.map(function(j){ return '  ' + j.ref + ' — ' + j.service + ' (' + (j.date||'no date') + ')'; }).join('\n');
+        }
+        toast(d.error || 'Action failed', 'error');
+        if (d.activeJobs) alert(msg);
+        return;
+      }
       var successMsgs = {
         approve: 'Easer approved — welcome email sent',
         reject: 'Application rejected',

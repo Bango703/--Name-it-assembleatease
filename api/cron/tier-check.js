@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { logCron } from './_cron-logger.js';
 
 /**
  * GET /api/cron/tier-check
@@ -106,5 +107,6 @@ export default async function handler(req, res) {
   }
 
   console.log('Tier-check complete:', promoted);
+  await logCron('tier-check', { records: promoted.toProfessional + promoted.toElite });
   return res.status(200).json({ ok: true, promoted });
 }

@@ -126,6 +126,20 @@ export default async function handler(req, res) {
     if (profile.status === 'suspended') return res.status(400).json({ error: 'Already suspended.' });
     if (profile.status !== 'active') return res.status(400).json({ error: 'Only active Easers can be suspended.' });
 
+    // Block suspension if Easer has live assigned bookings — reassign them first
+    const { data: activeJobs } = await sb
+      .from('bookings')
+      .select('id, ref, service, date')
+      .eq('assembler_id', assemblerId)
+      .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
+
+    if (activeJobs?.length) {
+      return res.status(409).json({
+        error: `Cannot suspend — this Easer has ${activeJobs.length} active job(s). Reassign or complete them first.`,
+        activeJobs: activeJobs.map(b => ({ ref: b.ref, service: b.service, date: b.date })),
+      });
+    }
+
     // tier column definitely exists — use it as fallback suspended marker
     await sb.from('profiles').update({ tier: 'suspended' }).eq('id', assemblerId);
     await sb.from('profiles').update({

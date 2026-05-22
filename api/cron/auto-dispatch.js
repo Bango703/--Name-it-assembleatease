@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { sendEmail, ownerEmail } from '../_email.js';
+import { logCron } from './_cron-logger.js';
 
 /**
  * GET /api/cron/auto-dispatch
@@ -93,12 +94,14 @@ export default async function handler(req, res) {
     }).catch(() => {});
   }
 
-  console.log('auto-dispatch:', { processed: toDispatch.length, dispatched: results.filter(r => r.dispatched > 0).length, failed: failed.length });
+  const dispatchedCount = results.filter(r => r.dispatched > 0).length;
+  console.log('auto-dispatch:', { processed: toDispatch.length, dispatched: dispatchedCount, failed: failed.length });
+  await logCron('auto-dispatch', { records: dispatchedCount, status: failed.length ? 'partial' : 'ok' });
 
   return res.status(200).json({
     ok: true,
     processed: toDispatch.length,
-    dispatched: results.filter(r => r.dispatched > 0).length,
+    dispatched: dispatchedCount,
     failed: failed.length,
     results,
   });

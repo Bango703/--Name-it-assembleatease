@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
+import { logCron } from './_cron-logger.js';
 
 const MAX_ATTEMPTS = parseInt(process.env.DISPATCH_MAX_ATTEMPTS || '3', 10);
 const SITE = 'https://www.assembleatease.com';
@@ -107,5 +108,10 @@ export default async function handler(req, res) {
   }
 
   console.log('expire-offers complete:', results);
+  await logCron('expire-offers', {
+    records: results.expired + results.retried.length + results.flagged.length,
+    status: results.errors.length ? 'partial' : 'ok',
+    error: results.errors.length ? results.errors.join('; ') : null,
+  });
   return res.status(200).json({ ok: true, ...results });
 }
