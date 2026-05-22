@@ -193,9 +193,9 @@ export default async function handler(req, res) {
       sendEmail({
         to: profile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `You have been promoted to ${tierLabel}`,
+        subject: `Congratulations — you've been promoted to ${tierLabel}`,
         replyTo: 'service@assembleatease.com',
-        html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#0097a7">Tier Promotion</h2><p>Congratulations, ${esc(firstName)}! You have been promoted to <strong>${esc(tierLabel)}</strong>. This reflects your excellent performance and service quality.</p><p><a href="${SITE}/assembler/" style="color:#0097a7">View your dashboard</a></p></div>`,
+        html: buildPromotionEmail(firstName, tierLabel, tier),
       }).catch(() => {});
     }
 
@@ -245,6 +245,85 @@ export default async function handler(req, res) {
 
 function buildApprovalEmail(firstName, email, resetUrl) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden"><div style="background:linear-gradient(135deg,#003d47,#0097a7);padding:2rem;text-align:center"><img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/><h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1></div><div style="padding:2rem"><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Congratulations, ${esc(firstName)}!</p><p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official Starter Easer on AssembleAtEase.</p><p style="color:#52525b;margin:0 0 16px">Click the button below to set your password and access your dashboard:</p><div style="text-align:center;margin:1.5rem 0"><a href="${resetUrl}" style="display:inline-block;background:#0097a7;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px"><p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p></div><p style="font-size:0.85rem;color:#71717a"><strong>Your login:</strong> ${esc(email)}</p></div></div></div></body></html>`;
+}
+
+function buildPromotionEmail(firstName, tierLabel, tier) {
+  const perks = {
+    professional: [
+      'Higher dispatch priority — you rank above Starter Easers for every job',
+      'Access to larger, higher-value service requests',
+      'Increased earning potential per completed job',
+    ],
+    elite: [
+      'Top dispatch priority across the entire platform',
+      'First access to premium and same-day jobs',
+      'Highest earning rate and dedicated support',
+    ],
+  };
+  const tierColor = tier === 'elite' ? '#92400e' : '#5b21b6';
+  const tierBg    = tier === 'elite' ? '#fef3c7' : '#ede9fe';
+  const items = (perks[tier] || ['You now have an elevated tier on AssembleAtEase.']).map(p =>
+    `<li style="margin-bottom:8px;color:#374151">${p}</li>`
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#003d47,#0097a7);padding:2rem;text-align:center">
+      <img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+      <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem;font-weight:700">You've been promoted</h1>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:2rem">
+      <p style="font-size:1rem;font-weight:700;margin:0 0 6px">Congratulations, ${esc(firstName)}!</p>
+      <p style="color:#52525b;line-height:1.7;margin:0 0 1.25rem">
+        Your dedication and service quality have earned you a tier upgrade. You are now a
+        <strong style="color:${tierColor}">${esc(tierLabel)} Easer</strong> on AssembleAtEase.
+      </p>
+
+      <!-- Tier badge -->
+      <div style="text-align:center;margin:0 0 1.5rem">
+        <span style="display:inline-block;background:${tierBg};color:${tierColor};font-size:1rem;font-weight:700;padding:10px 32px;border-radius:999px;letter-spacing:0.04em;text-transform:uppercase">
+          ${esc(tierLabel)}
+        </span>
+      </div>
+
+      <!-- What this means -->
+      <div style="background:#f9fafb;border:1px solid #e4e4e7;border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:1.5rem">
+        <p style="margin:0 0 10px;font-size:0.875rem;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:0.06em">What this means for you</p>
+        <ul style="margin:0;padding-left:1.25rem;font-size:0.9rem;line-height:1.7">
+          ${items}
+        </ul>
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:1.5rem 0">
+        <a href="${SITE}/assembler/" style="display:inline-block;background:#0097a7;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">
+          Open Your Dashboard
+        </a>
+      </div>
+
+      <p style="font-size:0.82rem;color:#71717a;line-height:1.6;margin:0">
+        Questions or feedback? Reply to this email or reach us at
+        <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="border-top:1px solid #e4e4e7;padding:1rem 2rem;text-align:center">
+      <p style="margin:0;font-size:0.75rem;color:#a1a1aa">
+        AssembleAtEase &bull; Austin, TX &bull;
+        <a href="${SITE}" style="color:#0097a7;text-decoration:none">assembleatease.com</a>
+      </p>
+    </div>
+  </div>
+</div>
+</body></html>`;
 }
 
 function buildRejectionEmail(firstName, reason) {

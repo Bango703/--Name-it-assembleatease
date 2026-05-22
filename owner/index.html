@@ -522,7 +522,7 @@
       <div id="assemblers-view" style="display:none">
         <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
           <button class="btn" id="check-phones-btn" style="font-size:0.78rem">Email Missing Phones</button>
-          <button class="btn" id="test-push-btn" style="font-size:0.78rem">Send Test Push</button>
+          <button class="btn" id="test-push-btn" style="font-size:0.78rem">Test Push Notification</button>
           <button class="btn btn-teal" id="add-easer-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Easer</button>
         </div>
         <div class="stats-row" id="asm-stats-row">
@@ -3084,10 +3084,10 @@ function intelQuick(msg) {
     }
 
     // Dispatch eligibility indicator
-    var canDispatch = a.status === 'active' && a.identity_verified && ['starter','professional','elite'].includes(a.tier);
+    var canDispatch = a.status === 'active' && a.identity_verified && a.phone && ['starter','professional','elite'].includes(a.tier);
     var dispatchStatus = canDispatch
       ? '<span style="color:#10b981;font-weight:500">Eligible</span>'
-      : '<span style="color:var(--red)">' + (a.status !== 'active' ? 'Not active' : !a.identity_verified ? 'ID not verified' : 'No valid tier') + '</span>';
+      : '<span style="color:var(--red)">' + (a.status !== 'active' ? 'Not active' : !a.identity_verified ? 'ID not verified' : !a.phone ? 'No phone number' : 'No valid tier') + '</span>';
 
     document.getElementById('asm-detail-body').innerHTML = [
       // Status row
