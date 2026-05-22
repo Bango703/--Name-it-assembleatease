@@ -36,8 +36,12 @@ export default async function handler(req, res) {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
       if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
-        // Capture the full held amount
-        const captured = await stripe.paymentIntents.capture(booking.stripe_payment_intent_id);
+        // Capture the full held amount — idempotency key prevents double-capture on retry/double-click
+        const captured = await stripe.paymentIntents.capture(
+          booking.stripe_payment_intent_id,
+          {},
+          { idempotencyKey: `complete-owner-${booking.id}` },
+        );
         amountCharged = captured.amount_received;
 
       } else if (booking.payment_status === 'deposit_paid' && booking.stripe_customer_id && booking.stripe_payment_method_id) {
@@ -101,7 +105,10 @@ export default async function handler(req, res) {
   const platformFee = Math.round(finalAmountCharged * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmountCharged - platformFee;
 
-  const { error: updateErr } = await sb
+  // Atomic guard: only update if not already completed or captured.
+  // If another request beat us here (double-click, retry, race with assembler-complete),
+  // 0 rows will be updated and we return 400 instead of overwriting.
+  const { error: updateErr, data: updatedRows } = await sb
     .from('bookings')
     .update({
       status: 'completed',
@@ -113,28 +120,33 @@ export default async function handler(req, res) {
       platform_fee: platformFee,
       assembler_due: assemblerDue,
     })
-    .eq('id', booking.id);
+    .eq('id', booking.id)
+    .neq('status', 'completed')
+    .neq('payment_status', 'captured')
+    .select('id');
 
   if (updateErr) {
     console.error('Complete update error:', updateErr);
     return res.status(500).json({ error: 'Failed to update booking' });
   }
+  if (!updatedRows || updatedRows.length === 0) {
+    return res.status(400).json({ error: 'Booking already completed — payment has already been captured.' });
+  }
 
-  // Increment assembler's completed_jobs count
+  // Increment assembler's completed_jobs atomically via RPC (prevents lost-update race
+  // between simultaneous owner + assembler complete calls).
+  // Requires: CREATE FUNCTION increment_completed_jobs(user_id UUID) in Supabase (see migrations).
   if (booking.assembler_id) {
     try {
-      const { data: prof } = await sb
-        .from('profiles')
-        .select('completed_jobs')
-        .eq('id', booking.assembler_id)
-        .single();
-      await sb
-        .from('profiles')
-        .update({ completed_jobs: (prof?.completed_jobs || 0) + 1 })
-        .eq('id', booking.assembler_id);
+      const { error: rpcErr } = await sb.rpc('increment_completed_jobs', { user_id: booking.assembler_id });
+      if (rpcErr) {
+        // RPC not yet created — fall back to read-modify-write and log a warning
+        console.warn('increment_completed_jobs RPC missing — run the P0 migration SQL in Supabase.');
+        const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', booking.assembler_id).single();
+        await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', booking.assembler_id);
+      }
     } catch (countErr) {
       console.error('completed_jobs increment error:', countErr);
-      // Non-fatal — don't block the response
     }
   }
   try {

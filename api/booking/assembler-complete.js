@@ -85,8 +85,8 @@ export default async function handler(req, res) {
   const platformFee = Math.round(finalAmount * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmount - platformFee;
 
-  // ── Update booking ───────────────────────────────────────────────────────
-  const { error: updateErr } = await sb.from('bookings').update({
+  // ── Update booking (atomic guard — prevents double-complete race) ────────
+  const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
     status: 'completed',
     completed_at: new Date().toISOString(),
     payment_status: 'captured',
@@ -96,11 +96,18 @@ export default async function handler(req, res) {
     platform_fee: platformFee,
     assembler_due: assemblerDue,
     completed_by: 'assembler',
-  }).eq('id', booking.id);
+  })
+  .eq('id', booking.id)
+  .neq('status', 'completed')
+  .neq('payment_status', 'captured')
+  .select('id');
 
   if (updateErr) {
     console.error('Assembler-complete update error:', updateErr);
     return res.status(500).json({ error: 'Failed to update booking' });
+  }
+  if (!updatedRows || updatedRows.length === 0) {
+    return res.status(400).json({ error: 'Booking already completed — payment has already been captured.' });
   }
 
   // ── Increment assembler completed_jobs (atomic via raw SQL to prevent lost updates) ──
