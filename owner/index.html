@@ -303,7 +303,7 @@
       <div class="topbar-title">Bookings</div>
       <div class="topbar-right">
         <button class="btn btn-red" id="bulk-delete-btn" style="display:none">Delete Selected (<span id="bulk-count">0</span>)</button>
-        <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Export CSV</button>
+        <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
         <button class="btn btn-teal" id="new-booking-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Booking</button>
         <button class="btn" id="refresh-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>
       </div>
@@ -535,7 +535,7 @@
           <button class="tab active" data-tier="all">All</button>
           <button class="tab" data-tier="pending">Pending</button>
           <button class="tab" data-tier="starter">Starter</button>
-          <button class="tab" data-tier="verified">Verified</button>
+          <button class="tab" data-tier="professional">Professional</button>
           <button class="tab" data-tier="elite">Elite</button>
           <button class="tab" data-tier="suspended">Suspended</button>
           <button class="tab" data-tier="rejected">Rejected</button>
@@ -545,7 +545,7 @@
             <thead>
               <tr style="text-align:left">
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Name</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Location</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Tier</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">ID Verification</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Jobs</th>
@@ -555,21 +555,6 @@
               </tr>
             </thead>
             <tbody id="asm-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- MARKETPLACE VIEW REMOVED —  jobs are dispatched by owner, no bidding system -->
-      <div id="marketplace-view" style="display:none">
-        <div style="padding:3rem;text-align:center;color:var(--muted)">Marketplace removed.</div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.85rem">
-            <thead>
-              <tr style="text-align:left">
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Title</th>
-              </tr>
-            </thead>
-            <tbody id="mkt-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -744,7 +729,7 @@ async function runIntelligence() {
   if (_intelRunning) return;
   _intelRunning = true;
   var btn = document.getElementById('intel-refresh-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Analyzing…'; }
   document.getElementById('intel-briefing').textContent = 'Running full platform analysis…';
   try {
     var r = await fetch('/api/owner/monitor', {
@@ -1178,7 +1163,6 @@ function intelQuick(msg) {
     try {
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'waitlist') await loadWaitlist();
-      // marketplace removed
       else if (currentView === 'reviews') { await loadReviews(); }
       else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
       else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
@@ -1284,7 +1268,7 @@ function intelQuick(msg) {
       updateBulkBar();
       await loadBookings();
     } catch { toast('Delete failed', 'error'); }
-    finally { this.disabled=false; document.getElementById('bulk-count').textContent=selectedIds.size; document.getElementById('bulk-delete-btn').textContent='🗑 Delete Selected ('+selectedIds.size+')'; }
+    finally { this.disabled=false; document.getElementById('bulk-count').textContent=selectedIds.size; document.getElementById('bulk-delete-btn').textContent='Delete Selected ('+selectedIds.size+')'; }
   });
 
   // ─── PDF Financial Report ───
@@ -1751,21 +1735,9 @@ function intelQuick(msg) {
     var id = btn.dataset.id;
 
     if (action === 'dispatch') {
-      btn.disabled = true; btn.textContent = 'Dispatching…';
-      try {
-        var r = await fetch('/api/booking/dispatch', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: id }) });
-        var d = await r.json();
-        if (d.error) { toast(d.error, 'error'); return; }
-        if (d.dispatched === 0) {
-          toast(d.message || 'No available Easers found in the area right now', 'error');
-        } else {
-          var names = (d.offeredTo||[]).map(function(e){ return e.name + (e.member?' [Member]':'') + ' ('+e.tier+')'; }).join(', ');
-          toast('Dispatched to ' + d.dispatched + ' Easer(s): ' + names + ' — first to accept gets the job', 'success');
-          await loadBookings();
-          if (selectedId) selectBooking(selectedId);
-        }
-      } catch { toast('Dispatch failed', 'error'); }
-      finally { btn.disabled=false; btn.textContent='Smart Dispatch'; }
+      await window.dispatchWithConfirm(id);
+      await loadBookings();
+      if (selectedId) selectBooking(selectedId);
     } else if (action === 'edit') {
       var bEdit = allBookings.find(function(x){ return x.id == id; });
       if (!bEdit) return;
@@ -1782,13 +1754,13 @@ function intelQuick(msg) {
       fetch('/api/review-request', { method:'POST', headers: headers(), body: JSON.stringify({ bookingId: id }) })
         .then(function(r){ return r.json(); })
         .then(function(d){
-          if (d.error) { toast(d.error, 'error'); btn.disabled=false; btn.textContent='⭐ Send Review Request'; return; }
+          if (d.error) { toast(d.error, 'error'); btn.disabled=false; btn.textContent='Request Review'; return; }
           toast('Review request sent ✓', 'success');
           // Update local booking so button changes to "Review Sent"
           var bk = allBookings.find(function(x){ return x.id == id; });
           if (bk) { bk.review_requested_at = new Date().toISOString(); renderActions(bk); }
         })
-        .catch(function(){ toast('Failed to send — check your connection', 'error'); btn.disabled=false; btn.textContent='⭐ Send Review Request'; });
+        .catch(function(){ toast('Failed to send — check your connection', 'error'); btn.disabled=false; btn.textContent='Request Review'; });
     } else if (action === 'confirm') {
       doAction('/confirm', { bookingId: id }, 'Booking confirmed ✓');
     } else if (action === 'complete') {
@@ -2299,7 +2271,6 @@ function intelQuick(msg) {
   var $bookingsView   = document.getElementById('bookings-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
-  var $marketplaceView= null; // removed
   var $todayView        = document.getElementById('today-view');
   var $reviewsView      = document.getElementById('reviews-view');
   var $customersView    = document.getElementById('customers-view');
@@ -2337,7 +2308,7 @@ function intelQuick(msg) {
       else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
       else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
       else if (view === 'analytics')     { $analyticsView.style.display='';     $topbarTitle.textContent='Analytics'; renderAnalytics(); }
-      else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; runIntelligence(); }
+      else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; }
     });
   });
 
@@ -2807,8 +2778,15 @@ function intelQuick(msg) {
   });
 
   function wlStatusBadge(status) {
-    var map = { pending:'badge-cancelled', invited:'badge-pending', applied:'badge-completed', approved:'badge-confirmed', rejected:'badge-declined' };
-    return '<span class="badge ' + (map[status]||'') + '">' + esc(status||'—') + '</span>';
+    var map = {
+      pending:  ['ea-pending',   'Pending'],
+      invited:  ['bk-confirmed', 'Invited'],
+      applied:  ['ea-active',    'Applied'],
+      approved: ['bk-completed', 'Approved'],
+      rejected: ['ea-rejected',  'Rejected'],
+    };
+    var v = map[status] || ['ea-pending', esc(status||'—')];
+    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
   }
 
   function renderWaitlistTable() {
@@ -3247,7 +3225,7 @@ function intelQuick(msg) {
       if (d.error) { toast(d.error,'error'); return; }
       toast(d.sent > 0 ? 'Sent phone request to ' + d.sent + ' Easer(s)' : d.message || 'All Easers have a phone on file', 'success');
     } catch { toast('Failed','error'); }
-    finally { btn.disabled=false; btn.textContent='📞 Email Missing Phones'; }
+    finally { btn.disabled=false; btn.textContent='Email Missing Phones'; }
   });
 
   document.getElementById('test-push-btn').addEventListener('click', async function() {
@@ -3259,7 +3237,7 @@ function intelQuick(msg) {
       if (d.sent === 0) toast(d.message || 'No subscriptions yet — log into the Easer app and allow notifications first', 'error');
       else toast('Test push sent to ' + d.sent + ' Easer(s)!', 'success');
     } catch { toast('Failed to send test push','error'); }
-    finally { btn.disabled=false; btn.textContent='🔔 Test Push Notification'; }
+    finally { btn.disabled=false; btn.textContent='Test Push Notification'; }
   });
 
   document.getElementById('add-easer-btn').addEventListener('click', function() {
