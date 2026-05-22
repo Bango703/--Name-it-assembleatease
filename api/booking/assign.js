@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { adjustActiveJobs } from './_active-jobs.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -87,6 +88,15 @@ export default async function handler(req, res) {
     if (!check || check.assembler_id !== assemblerId) {
       return res.status(409).json({ error: 'Booking was just assigned to another Easer. Refresh and try again.' });
     }
+  }
+
+  // Update active_jobs_today counters (best-effort, non-blocking):
+  // - Increment the new Easer's count
+  // - If this is a reassignment to a *different* Easer, decrement the old one
+  const prevEaserId = booking.assembler_id; // captured before the DB update
+  adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
+  if (reassign && prevEaserId && prevEaserId !== assemblerId) {
+    adjustActiveJobs(sb, prevEaserId, -1).catch(() => {});
   }
 
   // Send assembler notification email with Accept/Decline links

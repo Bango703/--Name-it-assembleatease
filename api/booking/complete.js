@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
+import { adjustActiveJobs } from './_active-jobs.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -140,14 +141,15 @@ export default async function handler(req, res) {
     try {
       const { error: rpcErr } = await sb.rpc('increment_completed_jobs', { user_id: booking.assembler_id });
       if (rpcErr) {
-        // RPC not yet created — fall back to read-modify-write and log a warning
-        console.warn('increment_completed_jobs RPC missing — run the P0 migration SQL in Supabase.');
+        console.warn('increment_completed_jobs RPC missing — run migration 002 in Supabase.');
         const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', booking.assembler_id).single();
         await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', booking.assembler_id);
       }
     } catch (countErr) {
       console.error('completed_jobs increment error:', countErr);
     }
+    // Job is done — release the Easer's daily slot
+    adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
   }
   try {
     const reviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(booking.ref)}&email=${encodeURIComponent(booking.customer_email)}`;

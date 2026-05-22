@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
+import { adjustActiveJobs } from './_active-jobs.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -87,6 +88,9 @@ export default async function handler(req, res) {
     await sb.from('profiles')
       .update({ last_assigned_at: now })
       .eq('id', assemblerId);
+
+    // Increment active_jobs_today — the CAS guard ensures this runs exactly once
+    adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
 
     logActivity(sb, {
       bookingId,

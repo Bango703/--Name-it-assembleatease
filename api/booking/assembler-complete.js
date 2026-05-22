@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
+import { adjustActiveJobs } from './_active-jobs.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -112,14 +113,15 @@ export default async function handler(req, res) {
 
   // ── Increment assembler completed_jobs (atomic via raw SQL to prevent lost updates) ──
   try {
-    // Use Supabase rpc if available, otherwise read-modify-write with retry
     const { error: rpcErr } = await sb.rpc('increment_completed_jobs', { user_id: user.id });
     if (rpcErr) {
-      // Fallback: read-modify-write (acceptable for low concurrency)
       const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', user.id).single();
       await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', user.id);
     }
   } catch (e) { console.error('completed_jobs increment error:', e); }
+
+  // Job is done — release the Easer's daily slot
+  adjustActiveJobs(sb, user.id, -1).catch(() => {});
 
   // ── Email customer receipt ───────────────────────────────────────────────
   try {

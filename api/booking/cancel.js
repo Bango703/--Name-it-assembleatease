@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import { adjustActiveJobs } from './_active-jobs.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -114,6 +115,11 @@ export default async function handler(req, res) {
     .then(({ error: doErr }) => {
       if (doErr) console.error('dispatch_offers cancel cleanup error:', doErr.message);
     });
+
+  // Release the assigned Easer's daily job slot (if one was assigned)
+  if (booking.assembler_id) {
+    adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
+  }
 
   // Send cancellation email to customer
   try {

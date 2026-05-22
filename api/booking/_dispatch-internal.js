@@ -63,9 +63,10 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
 
   // ── Filter by availability and service area ───────────────────────────────
-  const eligible = easers.filter(e => {
+  // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
+  // Do NOT filter on active_jobs_today here — the profile counter can be stale.
+  let eligible = easers.filter(e => {
     if (!e.is_available) return false;
-    if ((e.active_jobs_today || 0) >= MAX_DAILY_JOBS) return false;
     if (bookingCity && e.city) {
       const bc = bookingCity.toLowerCase();
       const ec = (e.city || '').toLowerCase();
@@ -75,6 +76,33 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   });
 
   if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
+
+  // ── Authoritative same-day workload from bookings table ───────────────────
+  // Query real active job counts for the booking's scheduled date.
+  // This replaces the profile counter (which can drift) and is always accurate.
+  // "Active" = booking assigned to this Easer on the same date and not yet done.
+  if (booking.date) {
+    const { data: sameDayJobs } = await sb
+      .from('bookings')
+      .select('assembler_id')
+      .in('assembler_id', eligible.map(e => e.id))
+      .eq('date', booking.date)
+      .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
+
+    const sameDayMap = {};
+    (sameDayJobs || []).forEach(b => {
+      sameDayMap[b.assembler_id] = (sameDayMap[b.assembler_id] || 0) + 1;
+    });
+
+    // Override the stale profile counter with the real-time count
+    eligible.forEach(e => { e.active_jobs_today = sameDayMap[e.id] || 0; });
+
+    // Apply the hard daily cap with accurate data
+    eligible = eligible.filter(e => e.active_jobs_today < MAX_DAILY_JOBS);
+    if (!eligible.length) {
+      return { dispatched: 0, message: `All eligible Easers are at the ${MAX_DAILY_JOBS}-job daily limit for ${booking.date}` };
+    }
+  }
 
   // Filter out Easers who already have an open offer for this booking
   const easerIdsWithOpenOffers = new Set();

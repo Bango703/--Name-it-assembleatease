@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { adjustActiveJobs } from './_active-jobs.js';
 
 /**
  * POST /api/booking/customer-cancel
@@ -95,6 +96,11 @@ export default async function handler(req, res) {
     .then(({ error: doErr }) => {
       if (doErr) console.error('dispatch_offers customer-cancel cleanup error:', doErr.message);
     });
+
+  // Release the assigned Easer's daily job slot (if one was assigned)
+  if (booking.assembler_id) {
+    adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
+  }
 
   // Email customer
   try {
