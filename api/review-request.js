@@ -42,11 +42,12 @@ export default async function handler(req, res) {
 </div></body></html>`;
 
   const result = await sendEmail({
-    to: b.customer_email,
-    from: 'AssembleAtEase <booking@assembleatease.com>',
+    to:      b.customer_email,
+    from:    'AssembleAtEase <booking@assembleatease.com>',
     subject: 'How did your Easer do? Leave a quick review',
     html,
     replyTo: ownerEmail(),
+    meta:    { bookingId, notificationType: 'review_request', recipientType: 'customer' },
   });
 
   if (!result.ok) {
