@@ -291,9 +291,15 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
 
 // ── Address helpers ───────────────────────────────────────────────────────────
 function extractCity(address) {
+  if (!address) return '';
+  // Format A: "Street, City ST ZIP" — city embedded in last segment before state+zip
+  const m = address.match(/,\s*([A-Za-z][A-Za-z\s]+?)\s+[A-Z]{2}\s+\d{5}/);
+  if (m) return m[1].trim();
+  // Format B: "Street, City, ST ZIP" — city is second-to-last comma segment
   const parts = address.split(',');
-  if (parts.length >= 2) return parts[parts.length - 2].trim().replace(/\s+\w{2}\s*$/, '').trim();
-  return 'Austin';
+  if (parts.length >= 3) return parts[parts.length - 2].trim();
+  // No city parseable — return empty so city filter is skipped (not defaulted)
+  return '';
 }
 
 function extractZip(address) {
