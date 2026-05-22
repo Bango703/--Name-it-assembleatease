@@ -87,6 +87,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
   }
 
+  // Cancel all open dispatch offers so Easers cannot accept a cancelled booking
+  sb.from('dispatch_offers')
+    .update({ offer_status: 'cancelled' })
+    .eq('booking_id', booking.id)
+    .eq('offer_status', 'sent')
+    .then(({ error: doErr }) => {
+      if (doErr) console.error('dispatch_offers customer-cancel cleanup error:', doErr.message);
+    });
+
   // Email customer
   try {
     const feeHtml = feeCaptured > 0
