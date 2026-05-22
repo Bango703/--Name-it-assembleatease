@@ -10,14 +10,39 @@ export default async function handler(req, res) {
     const { bookingId } = req.query;
     if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
 
-    const { data, error } = await sb
-      .from('activity_logs')
-      .select('*')
-      .eq('booking_id', bookingId)
-      .order('created_at', { ascending: true });
+    // Fetch activity events and notification log in parallel
+    const [activityRes, notifRes] = await Promise.all([
+      sb.from('activity_logs')
+        .select('*')
+        .eq('booking_id', bookingId)
+        .order('created_at', { ascending: true }),
+      sb.from('notification_log')
+        .select('id, channel, notification_type, recipient_type, recipient_email, subject, status, error_text, sent_at')
+        .eq('booking_id', bookingId)
+        .order('sent_at', { ascending: true }),
+    ]);
 
-    if (error) return res.status(500).json({ error: 'Failed to load activity: ' + error.message });
-    return res.status(200).json({ activity: data || [] });
+    if (activityRes.error) return res.status(500).json({ error: 'Failed to load activity: ' + activityRes.error.message });
+
+    // Normalise notification_log rows into the same shape as activity_log rows
+    const notifEvents = (notifRes.data || []).map(n => ({
+      id:          n.id,
+      booking_id:  bookingId,
+      event_type:  'notification_sent',
+      actor_type:  n.channel,           // 'email' | 'push'
+      actor_name:  n.channel === 'email' ? 'Email' : 'Push',
+      description: formatNotifDescription(n),
+      metadata:    { status: n.status, error: n.error_text, notificationType: n.notification_type },
+      created_at:  n.sent_at,
+      _source:     'notification',
+      _status:     n.status,            // 'sent' | 'failed' — used for dot color in UI
+    }));
+
+    // Merge and sort by timestamp
+    const all = [...(activityRes.data || []), ...notifEvents]
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    return res.status(200).json({ activity: all });
   }
 
   if (req.method === 'POST') {
@@ -38,4 +63,31 @@ export default async function handler(req, res) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+function formatNotifDescription(n) {
+  const typeLabels = {
+    dispatch_offer:  'Dispatch offer',
+    job_accepted:    'Job accepted notification',
+    completion:      'Completion receipt',
+    cancellation:    'Cancellation notification',
+    review_request:  'Review request',
+    reminder:        'Appointment reminder',
+    payout_summary:  'Payout summary',
+    transactional:   'Email',
+  };
+  const recipientLabels = {
+    customer: 'customer',
+    easer:    'Easer',
+    owner:    'owner',
+  };
+  const label = typeLabels[n.notification_type] || n.notification_type;
+  const to    = recipientLabels[n.recipient_type] || n.recipient_type || '';
+  const via   = n.channel === 'push' ? 'push notification' : 'email';
+
+  if (n.status === 'failed') {
+    return `${label} ${via} to ${to} FAILED — ${n.error_text || 'unknown error'}`;
+  }
+  const recipient = n.recipient_email || to;
+  return `${label} sent via ${via} to ${recipient}`;
 }

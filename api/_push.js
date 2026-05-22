@@ -15,8 +15,9 @@ function configure() {
 /**
  * Send a push notification to all subscriptions for a given userId.
  * payload: { title, body, url, jobId, urgent }
+ * meta (optional): { bookingId, notificationType, recipientType }
  */
-export async function sendPushToUser(userId, payload) {
+export async function sendPushToUser(userId, payload, meta = {}) {
   try {
     configure();
   } catch (e) {
@@ -34,24 +35,45 @@ export async function sendPushToUser(userId, payload) {
 
   const message = JSON.stringify(payload);
   const dead = [];
+  const logRows = [];
 
   await Promise.all(subs.map(async (s) => {
+    let status = 'sent';
+    let errorText = null;
     try {
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         message,
-        { TTL: 3600 } // keep in queue 1 hour if device offline
+        { TTL: 3600 }
       );
     } catch (e) {
       if (e.statusCode === 410 || e.statusCode === 404) {
-        dead.push(s.endpoint); // subscription expired — clean up
+        dead.push(s.endpoint);
+        status = 'failed';
+        errorText = 'Subscription expired (410/404)';
       } else {
+        status = 'failed';
+        errorText = String(e.statusCode || '') + ' ' + String(e.body || e.message || '');
         console.error('Push send error:', e.statusCode, e.body);
       }
     }
+    logRows.push({
+      channel:           'push',
+      booking_id:        meta.bookingId        || null,
+      notification_type: meta.notificationType || 'push',
+      recipient_type:    meta.recipientType    || 'easer',
+      recipient_user_id: userId,
+      subject:           payload.title         || null,
+      provider_id:       s.endpoint.slice(-40), // last 40 chars of endpoint as identifier
+      status,
+      error_text:        errorText,
+    });
   }));
 
-  // Remove expired subscriptions
+  // Non-blocking: log all push attempts and clean up dead subscriptions
+  if (logRows.length) {
+    sb.from('notification_log').insert(logRows).then(() => {}).catch(() => {});
+  }
   if (dead.length) {
     await sb.from('push_subscriptions').delete().in('endpoint', dead);
   }

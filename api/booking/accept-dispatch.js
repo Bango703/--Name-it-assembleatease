@@ -167,6 +167,8 @@ export default async function handler(req, res) {
 }
 
 function sendNotifications(sb, booking, easer, assemblerId) {
+  const bookingId = booking.id;
+
   // Customer: "Your Easer is confirmed"
   if (booking.customer_email) {
     sendEmail({
@@ -181,6 +183,7 @@ function sendNotifications(sb, booking, easer, assemblerId) {
         <p style="color:#6b7280;font-size:0.85rem">Booking ref: ${esc(booking.ref)}</p>
       </div>`,
       replyTo: ownerEmail(),
+      meta: { bookingId, notificationType: 'job_accepted', recipientType: 'customer' },
     }).catch(() => {});
   }
 
@@ -197,5 +200,6 @@ function sendNotifications(sb, booking, easer, assemblerId) {
       <strong>Customer:</strong> ${esc(booking.customer_name)}</p>
       <p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">View in owner dashboard</a></p>
     </div>`,
+    meta: { bookingId, notificationType: 'job_accepted', recipientType: 'owner' },
   }).catch(() => {});
 }

@@ -214,7 +214,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
       url:   acceptUrl,
       jobId: bookingId,
       urgent: true,
-    }).catch(() => {});
+    }, { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer' }).catch(() => {});
 
     try {
       await sendEmail({
@@ -223,6 +223,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
         subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity}`,
         html:     buildOfferEmail(easer, booking, bookingCity, acceptUrl, declineUrl, expiresAt),
         replyTo:  'service@assembleatease.com',
+        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id },
       });
       // Mark notification sent
       await sb.from('dispatch_offers')

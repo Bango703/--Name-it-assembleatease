@@ -189,6 +189,7 @@ export default async function handler(req, res) {
       subject: `Payment Receipt & Job Complete — ${booking.ref}`,
       html,
       replyTo: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'customer' },
     });
   } catch (emailErr) {
     console.error('Complete email error:', emailErr);

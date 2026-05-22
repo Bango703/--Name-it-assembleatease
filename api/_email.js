@@ -1,4 +1,6 @@
 import { timingSafeEqual } from 'crypto';
+import { getSupabase } from './_supabase.js';
+
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
 
@@ -6,22 +8,66 @@ export function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-export async function sendEmail({ to, from, subject, html, replyTo }) {
+/**
+ * Send a transactional email via Resend and log the attempt to notification_log.
+ *
+ * meta (optional) — context for the log row:
+ *   bookingId       UUID   — links the log entry to a booking
+ *   notificationType TEXT  — e.g. 'dispatch_offer', 'job_accepted', 'completion'
+ *   recipientType   TEXT   — 'customer' | 'easer' | 'owner'
+ *   recipientUserId UUID   — Supabase user ID if known
+ */
+export async function sendEmail({ to, from, subject, html, replyTo, meta = {} }) {
   const KEY = process.env.RESEND_API_KEY;
   if (!KEY) throw new Error('Missing RESEND_API_KEY');
+
+  const recipient = Array.isArray(to) ? to[0] : to;
   const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
   if (replyTo) body.reply_to = replyTo;
-  const resp = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) {
-    const err = await resp.text();
-    console.error('Resend error:', err);
-    return { ok: false, error: err };
+
+  let providerId = null;
+  let status = 'sent';
+  let errorText = null;
+
+  try {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      errorText = await resp.text();
+      status = 'failed';
+      console.error('Resend error:', errorText);
+    } else {
+      const data = await resp.json().catch(() => ({}));
+      providerId = data?.id || null;
+    }
+  } catch (fetchErr) {
+    errorText = fetchErr.message;
+    status = 'failed';
+    console.error('Resend fetch error:', fetchErr.message);
   }
-  return { ok: true };
+
+  // Non-blocking log — never let logging failure break the caller
+  try {
+    const sb = getSupabase();
+    await sb.from('notification_log').insert({
+      channel:           'email',
+      booking_id:        meta.bookingId        || null,
+      notification_type: meta.notificationType || 'transactional',
+      recipient_type:    meta.recipientType    || null,
+      recipient_email:   recipient,
+      recipient_user_id: meta.recipientUserId  || null,
+      subject,
+      status,
+      provider_id:  providerId,
+      error_text:   errorText,
+    });
+  } catch (_) { /* non-fatal */ }
+
+  if (status === 'failed') return { ok: false, error: errorText };
+  return { ok: true, providerId };
 }
 
 export function ownerEmail() {

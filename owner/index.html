@@ -1242,7 +1242,9 @@ function intelQuick(msg) {
     allBookings.forEach(function(b) {
       if (counts[b.status] !== undefined) counts[b.status]++;
       if (b.status === 'completed') {
-        var charged  = Number(b.total_price) || 0;
+        // Use amount_charged (actual captured amount) — falls back to total_price
+        // for legacy bookings that pre-date the amount_charged column.
+        var charged  = Number(b.amount_charged || b.total_price) || 0;
         var sfee     = stripeFeeCalc(charged);
         var net      = charged - sfee;
         var payout   = Number(b.assembler_due) || 0;
@@ -1314,14 +1316,14 @@ function intelQuick(msg) {
     var completed = allBookings.filter(function(b){return b.status==='completed';});
     var totGross=0, totFee=0, totPayout=0;
     completed.forEach(function(b){
-      var g=Number(b.total_price)||0; totGross+=g;
+      var g=Number(b.amount_charged || b.total_price)||0; totGross+=g;
       totFee += sfee(g); totPayout += Number(b.assembler_due)||0;
     });
     var totNet = totGross - totFee;
     var totProfit = totNet - totPayout;
 
     var rows = allBookings.map(function(b) {
-      var g = Number(b.total_price)||0;
+      var g = Number(b.amount_charged || b.total_price)||0;
       var f = sfee(g);
       var n = g - f;
       var p = Number(b.assembler_due)||0;
@@ -1661,15 +1663,29 @@ function intelQuick(msg) {
       var d = await r.json();
       var items = d.activity || [];
       if (!items.length) { el.innerHTML = '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>'; return; }
-      var dotColors = { booking_created:'#3b82f6', confirmed:'#1d9e75', dispatched:'#8b5cf6', easer_accepted:'#1d9e75', en_route:'#3b82f6', arrived:'#1d9e75', in_progress:'#10b981', completed:'#1d9e75', cancelled:'#ef4444', refunded:'#f59e0b', note_added:'#6b7280', payout_released:'#10b981', reassigned:'#f59e0b', owner_action:'#0097a7' };
+      var dotColors = {
+        booking_created:'#3b82f6', confirmed:'#1d9e75', dispatched:'#8b5cf6',
+        easer_accepted:'#1d9e75', en_route:'#3b82f6', arrived:'#0097a7',
+        in_progress:'#10b981', completed:'#065f46', cancelled:'#ef4444',
+        refunded:'#f59e0b', note_added:'#6b7280', payout_released:'#10b981',
+        reassigned:'#f59e0b', owner_action:'#0097a7',
+      };
       el.innerHTML = '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
-          var dotColor = dotColors[a.event_type] || 'var(--muted)';
+          var isNotif = a._source === 'notification';
+          var isFailed = isNotif && a._status === 'failed';
+          var dotColor = isNotif
+            ? (isFailed ? '#ef4444' : '#94a3b8')
+            : (dotColors[a.event_type] || '#6b7280');
           var time = new Date(a.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+          var descStyle = isNotif
+            ? 'font-size:0.78rem;color:' + (isFailed ? 'var(--red)' : 'var(--muted)')
+            : 'font-size:0.82rem;color:var(--text);font-weight:500';
+          var dotStyle = 'position:absolute;left:0;top:12px;width:8px;height:8px;border-radius:50%;background:' + dotColor + ';border:2px solid ' + dotColor;
           return '<div class="timeline-item">'
-            + '<span class="timeline-dot done" style="background:' + dotColor + ';border-color:' + dotColor + '"></span>'
-            + '<div class="timeline-event">' + esc(a.description) + '</div>'
-            + '<div class="timeline-meta">' + esc(a.actor_name || a.actor_type) + ' &middot; ' + time + '</div>'
+            + '<span style="' + dotStyle + '"></span>'
+            + '<div style="' + descStyle + '">' + esc(a.description) + '</div>'
+            + '<div class="timeline-meta">' + esc(a.actor_name || a.actor_type || '') + ' &middot; ' + time + '</div>'
             + '</div>';
         }).join('')
         + '</div>';
@@ -2673,7 +2689,8 @@ function intelQuick(msg) {
     var completed = allBookings.filter(function(b){return b.status==='completed';});
     var gross=0, fees=0, payouts=0;
     completed.forEach(function(b){
-      var charged = Number(b.total_price)||0;
+      // amount_charged = actual captured amount; falls back for legacy rows
+      var charged = Number(b.amount_charged || b.total_price)||0;
       var sf = stripeFee(charged);
       var payout = Number(b.assembler_due)||0;
       gross += charged; fees += sf; payouts += payout;
@@ -2695,7 +2712,7 @@ function intelQuick(msg) {
       tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed jobs yet.</td></tr>';
     } else {
       tbody.innerHTML = completed.slice().sort(function(a,b){return (b.completed_at||b.created_at).localeCompare(a.completed_at||a.created_at);}).map(function(b){
-        var charged = Number(b.total_price)||0;
+        var charged = Number(b.amount_charged || b.total_price)||0;
         var sf = stripeFee(charged);
         var netJob = charged - sf;
         var payout = Number(b.assembler_due)||0;
@@ -2761,7 +2778,7 @@ function intelQuick(msg) {
 
     // Revenue by service
     var revMap = {};
-    completed.forEach(function(b){ var s=b.service||'Other'; revMap[s]=(revMap[s]||0)+(Number(b.total_price)||0); });
+    completed.forEach(function(b){ var s=b.service||'Other'; revMap[s]=(revMap[s]||0)+(Number(b.amount_charged||b.total_price)||0); });
     var revSvcs = Object.entries(revMap).sort(function(a,b){return b[1]-a[1];});
     var maxRev = revSvcs.length ? revSvcs[0][1] : 1;
     document.getElementById('an-rev-service').innerHTML = revSvcs.map(function(s){
