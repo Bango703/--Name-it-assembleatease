@@ -42,10 +42,6 @@
     {
       "path": "/api/cron/auto-blog",
       "schedule": "0 9 1,15 * *"
-    },
-    {
-      "path": "/api/cron/watchdog",
-      "schedule": "45 * * * *"
     }
   ],
   "headers": [
