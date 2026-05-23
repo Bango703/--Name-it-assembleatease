@@ -19,7 +19,7 @@
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
-  <link rel="stylesheet" href="../assets/css/dashboard.css" />
+  <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -195,65 +195,41 @@
   </style>
 </head>
 <body>
-<div class="pro-layout">
-  <aside class="pro-sidebar">
-    <div class="sidebar-brand">
-      <a href="/assembler/" class="sidebar-brand-logo">Assemble<span>AtEase</span></a>
-      <div class="avail-toggle" id="avail-toggle">
-        <div class="avail-pill" id="avail-pill"></div>
-        <span id="avail-label">Offline</span>
-      </div>
-    </div>
-    <div class="sidebar-profile">
-      <div class="sidebar-avatar" id="sidebar-avatar">?</div>
-      <div>
-        <div class="sidebar-name" id="sidebar-name">Loading...</div>
-        <div class="sidebar-role">Professional Assembler <span id="sidebar-tier"></span></div>
-      </div>
-    </div>
-    <div class="sidebar-earnings">
-      <div class="sidebar-earnings-label">Total earned</div>
-      <div class="sidebar-earnings-value" id="sidebar-earnings">$0</div>
-      <div class="sidebar-earnings-sub">All time</div>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Workspace</div>
-      <ul class="sidebar-nav">
-        <li><a href="/assembler/" class="active"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard</a></li>
-        <li><a href="/assembler/my-assignments"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> My Assignments</a></li>
-        <li><a href="/assembler/payouts"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Payouts</a></li>
-      </ul>
-    </div>
-    <div class="sidebar-section" style="margin-top:1rem">
-      <div class="sidebar-section-label">Account</div>
-      <ul class="sidebar-nav">
-        <li><a href="/assembler/profile"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:currentColor;vertical-align:middle"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg></span> Log out</a></li>
-      </ul>
-    </div>
-    <div class="sidebar-footer">
-      <div style="font-size:0.72rem;color:var(--pro-muted);line-height:1.7">
-        <div>Rating: <span id="sidebar-rating" style="color:var(--amber)">New</span></div>
-        <div>Completed: <span id="sidebar-jobs-done" style="color:var(--pro-soft)">0</span></div>
-      </div>
-    </div>
-  </aside>
-  <div class="pro-sidebar-overlay" id="pro-sidebar-overlay" onclick="closeSidebar()"></div>
 
-  <div class="pro-main">
-    <div class="pro-topbar">
-      <button class="mob-hamburger" onclick="toggleSidebar()" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-      <div class="topbar-title" id="topbar-greeting">Dashboard</div>
-      <div class="topbar-right">
-        <a href="/assembler/my-assignments" class="topbar-btn primary"><span>My Assignments</span></a>
-        <a href="/assembler/profile" class="topbar-btn"><span>Profile</span></a>
-      </div>
-    </div><!-- /pro-topbar -->
+<!-- Offline indicator -->
+<div class="e-offline" id="e-offline">No connection — updates paused</div>
 
-    <div class="pro-content">
-      
+<!-- Top header -->
+<header class="easer-header">
+  <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
+  <div class="easer-header-title" id="topbar-greeting">Dashboard</div>
+  <div class="easer-header-right">
+    <div class="avail-row" id="avail-toggle" role="button" tabindex="0" aria-label="Toggle availability">
+      <div class="avail-pill" id="avail-pill"></div>
+      <span class="avail-label" id="avail-label">Offline</span>
+    </div>
+  </div>
+</header>
+
+<!-- Sticky active-job bar (shown when a live job exists) -->
+<div class="e-sticky-bar" id="e-sticky-bar">
+  <div class="e-sticky-bar-info">
+    <div class="e-sticky-bar-service" id="sticky-service"></div>
+    <div class="e-sticky-bar-status" id="sticky-status"></div>
+  </div>
+  <a href="/assembler/my-assignments" class="e-btn e-btn-primary e-btn-sm e-btn-inline e-sticky-bar-btn">Open Job</a>
+</div>
+
+<div class="easer-page">
+      <!-- hidden elements kept for JS compatibility -->
+      <span id="sidebar-earnings" style="display:none">$0</span>
+      <span id="sidebar-rating"   style="display:none">New</span>
+      <span id="sidebar-jobs-done" style="display:none">0</span>
+      <span id="sidebar-tier"     style="display:none"></span>
+      <span id="sidebar-name"     style="display:none"></span>
+      <span id="sidebar-avatar"   style="display:none"></span>
+      <a href="#" id="sidebar-logout" style="display:none"></a>
+
       <!-- Account status banners -->
       <div id="tier-status-banner" class="pro-banner hidden">
         <div style="display:flex;align-items:center;gap:12px">
@@ -337,10 +313,26 @@
         <div id="completed-list"></div>
       </div>
 
+</div><!-- /easer-page -->
 
-    </div>
-  </div>
-</div>
+<nav class="easer-nav">
+  <a href="/assembler/" class="easer-nav-item active">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="/assembler/my-assignments" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Jobs</span>
+  </a>
+  <a href="/assembler/payouts" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <span>Payouts</span>
+  </a>
+  <a href="/assembler/profile" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </a>
+</nav>
 
 <script>
   function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
@@ -474,7 +466,7 @@
 
     // ── VERIFICATION GATE ──
     if(profile.status==='pending' || profile.status==='suspended' || profile.identity_verified!==true){
-      document.getElementById('stats-row').style.display='none';
+      document.getElementById('metric-strip').style.display='none';
       // Show the appropriate banner
       var banner=document.getElementById('identity-banner');
       if(banner) banner.classList.remove('hidden');
@@ -489,15 +481,7 @@
         var verifyBtn=document.getElementById('identity-verify-btn');
         if(profile.stripe_verification_id){if(sub) sub.textContent='Check your welcome email for the identity verification link. Need help? Email service@assembleatease.com.';}else{var verifyBtn=document.getElementById('identity-verify-btn');if(verifyBtn){verifyBtn.style.display='';verifyBtn.href='/apply';}}
       }
-      // Disable sidebar nav links except Dashboard and Profile
-      document.querySelectorAll('.sidebar-nav a').forEach(function(a){
-        var href=a.getAttribute('href')||'';
-        if(href!=='.'&&href!=='profile'&&!a.id){
-          a.style.opacity='0.4';
-          a.style.pointerEvents='none';
-          a.title='Complete verification to access this section';
-        }
-      });
+      disableNavLinks();
       return;
     }
 
@@ -643,26 +627,15 @@
         return prefix + (time ? ' · ' + time : '');
       } catch { return date; }
     }
-    // Close sidebar when nav link clicked (mobile)
-    document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
-      a.addEventListener('click', closeSidebar);
-    });
   });
 
-  function toggleSidebar() {
-    var s = document.querySelector('.pro-sidebar');
-    var o = document.getElementById('pro-sidebar-overlay');
-    if (!s) return;
-    var isOpen = s.classList.toggle('open');
-    if (o) o.classList.toggle('open', isOpen);
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-  }
-  function closeSidebar() {
-    var s = document.querySelector('.pro-sidebar');
-    var o = document.getElementById('pro-sidebar-overlay');
-    if (s) s.classList.remove('open');
-    if (o) o.classList.remove('open');
-    document.body.style.overflow = '';
+  // Disable sidebar nav links (no-op guard for unverified users)
+  function disableNavLinks() {
+    document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a) {
+      a.style.opacity = '0.4';
+      a.style.pointerEvents = 'none';
+      a.title = 'Complete verification to access this section';
+    });
   }
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
