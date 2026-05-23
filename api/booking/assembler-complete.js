@@ -41,8 +41,8 @@ export default async function handler(req, res) {
   if (booking.status === 'completed') {
     return res.status(400).json({ error: 'Booking is already marked complete' });
   }
-  if (booking.status !== 'confirmed') {
-    return res.status(400).json({ error: 'Only confirmed bookings can be completed' });
+  if (!['confirmed', 'arrived', 'in_progress'].includes(booking.status)) {
+    return res.status(400).json({ error: 'Job must be confirmed, arrived, or in progress to mark complete' });
   }
   if (!booking.assembler_accepted_at) {
     return res.status(400).json({ error: 'You must accept the assignment before marking it complete' });
