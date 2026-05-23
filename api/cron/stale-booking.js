@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { logCron } from './_cron-logger.js';
 
 const STALE_DAYS = 7;       // auto-decline bookings still pending after 7 days
 const ACCEPT_HOURS = 24;    // auto-cancel assigned bookings not accepted within 24 hours
@@ -10,6 +11,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const t = Date.now();
   const sb = getSupabase();
 
   // ── 1. Cancel confirmed bookings where assembler has not accepted within 24 hours ──
@@ -80,10 +82,12 @@ export default async function handler(req, res) {
 
   if (error) {
     console.error('Stale booking cron error:', error);
+    await logCron('stale-booking', { status: 'error', error: error.message, duration: Date.now() - t });
     return res.status(500).json({ error: 'Query failed' });
   }
 
   if (!bookings || !bookings.length) {
+    await logCron('stale-booking', { status: 'ok', records: autoRequeued, duration: Date.now() - t });
     return res.status(200).json({ declined: 0, message: 'No stale bookings' });
   }
 
@@ -151,5 +155,6 @@ export default async function handler(req, res) {
     }
   }
 
+  await logCron('stale-booking', { status: 'ok', records: declined + autoRequeued, duration: Date.now() - t });
   return res.status(200).json({ declined, total: bookings.length, autoRequeued });
 }

@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
+import { logCron } from './_cron-logger.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const t = Date.now();
   const sb = getSupabase();
 
   // Find confirmed bookings with a date within the next 25 hours
@@ -130,6 +132,7 @@ export default async function handler(req, res) {
     } catch (e) { console.error('Auth expiry warning email error:', e); }
   }
 
+  await logCron('reminders', { status: 'ok', records: sent, duration: Date.now() - t });
   return res.status(200).json({ ok: true, sent, expiringAuthsWarned: expiringAuths?.length || 0, errors: errors.length ? errors : undefined });
 }
 

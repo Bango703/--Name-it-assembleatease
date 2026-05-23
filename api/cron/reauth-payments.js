@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
+import { logCron } from './_cron-logger.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -32,6 +33,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const t = Date.now();
   const sb = getSupabase();
 
   // Target: booking date is exactly 5 days from today (YYYY-MM-DD)
@@ -49,10 +51,12 @@ export default async function handler(req, res) {
 
   if (queryErr) {
     console.error('reauth-payments query error:', queryErr);
+    await logCron('reauth-payments', { status: 'error', error: queryErr.message, duration: Date.now() - t });
     return res.status(500).json({ error: 'Query failed' });
   }
 
   if (!bookings || bookings.length === 0) {
+    await logCron('reauth-payments', { status: 'ok', records: 0, duration: Date.now() - t });
     return res.status(200).json({ ok: true, reauthed: 0, message: 'No bookings require re-authorization today' });
   }
 
@@ -167,6 +171,7 @@ export default async function handler(req, res) {
     }
   }
 
+  await logCron('reauth-payments', { status: errors.length ? 'partial' : 'ok', records: reauthed, duration: Date.now() - t });
   return res.status(200).json({
     ok: true,
     reauthed,
