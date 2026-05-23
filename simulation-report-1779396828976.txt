@@ -1,0 +1,72 @@
+════════════════════════════════════════════════════════════════════════
+  ASSEMBLEATEASE — MARKETPLACE SIMULATION REPORT
+  Generated: 5/21/2026, 3:53:48 PM
+════════════════════════════════════════════════════════════════════════
+
+── TEST SUMMARY ─────────────────────────────────────────────────────
+  TOTAL TESTS   : 90
+  PASSED        : 62  (69%)
+  FAILED        : 18
+  WARNINGS      : 10
+  GAPS (JWT/env): 3
+
+── EASERS CREATED ───────────────────────────────────────────────────
+
+── BOOKINGS CREATED ─────────────────────────────────────────────────
+  #1   standard-complete          Furniture Assembly               ref=AAE-MPFYRG9D
+  #2   standard-complete          TV Mounting                      ref=AAE-MPFYRS1V
+  #3   standard-complete          Furniture Assembly               ref=AAE-MPFYS3TD
+  #4   standard-complete          Home Repair                      ref=AAE-MPFYSFIP
+  #5   large-combo-complete       Furniture Assembly, TV Mountin   ref=AAE-MPFYSQVZ
+  #6   urgent-complete            Furniture Assembly               ref=AAE-MPFYT2QX
+  #7   standard-complete          Junk Removal                     ref=AAE-MPFYTEA6
+  #8   customer-cancel            TV Mounting                      ref=AAE-MPFYTPVI
+  #9   no-easer-available         Furniture Assembly               ref=AAE-MPFYU1GC
+  #10  reassignment               Home Repair                      ref=AAE-MPFYUD6O
+  #11  standard-complete          Furniture Assembly               ref=AAE-MPFYUORM
+  #12  quote-request              Custom Built-in Shelving + Pai   ref=AAE-MPFYV0CB
+  #13  no-payment-complete        TV Mounting                      ref=AAE-MPFYVBVW
+  #14  manual-booking             Junk Removal                     ref=AAE-MPFYVNGX
+  #15  easer-decline              Furniture Assembly               ref=AAE-MPFYVZ4J
+  #16  stale-pending              Home Repair                      ref=AAE-MPFYWAI3
+
+── FAILURES ─────────────────────────────────────────────────────────
+  [FAIL] Mark ID verified — [SIM] Marcus Webb: Easer not found
+  [FAIL] Mark ID verified — [SIM] Diane Okafor: Easer not found
+  [FAIL] Mark ID verified — [SIM] Ray Delgado: Easer not found
+  [FAIL] Mark ID verified — [SIM] Priya Menon: Easer not found
+  [FAIL] Mark ID verified — [SIM] Thomas Reyes: Easer not found
+  [FAIL] Mark ID verified — [SIM] Keisha Lawson: Easer not found
+  [FAIL] Direct assign [standard-complete]: Assembler not found
+  [FAIL] Direct assign [standard-complete]: Assembler not found
+  [FAIL] Direct assign [standard-complete]: Assembler not found
+  [FAIL] Direct assign [standard-complete]: Assembler not found
+  [FAIL] Direct assign [large-combo-complete]: Assembler not found
+  [FAIL] Direct assign [urgent-complete]: Assembler not found
+  [FAIL] Direct assign [standard-complete]: Assembler not found
+  [FAIL] Direct assign [reassignment]: Assembler not found
+  [FAIL] Direct assign [standard-complete]: Assembler not found
+  [FAIL] Direct assign [no-payment-complete]: Assembler not found
+  [FAIL] Direct assign [manual-booking]: Only confirmed bookings can be assigned
+  [FAIL] Direct assign [easer-decline]: Assembler not found
+
+── WARNINGS ─────────────────────────────────────────────────────────
+  [WARN] Create Easer — [SIM] Marcus Webb: Already exists (409) — will try to find and use
+  [WARN] Create Easer — [SIM] Diane Okafor: Already exists (409) — will try to find and use
+  [WARN] Create Easer — [SIM] Ray Delgado: Already exists (409) — will try to find and use
+  [WARN] Create Easer — [SIM] Priya Menon: Already exists (409) — will try to find and use
+  [WARN] Create Easer — [SIM] Thomas Reyes: Already exists (409) — will try to find and use
+  [WARN] Create Easer — [SIM] Keisha Lawson: Already exists (409) — will try to find and use
+  [WARN] Active Easer count lower than expected: Got 2, want ≥5
+  [WARN] Manual booking may need confirm step: Not found in confirmed list
+  [WARN] Live Ops stale alert not detected: Stale pending booking may not trigger alert within same-day test
+  [WARN] Sim jobs not visible in Live Ops active list: May be filtered by date or status
+
+── SIMULATION GAPS (requires Easer JWT or external env) ─────────────
+  [GAP]  Easer en-route / arrived / in-progress updates: POST /api/booking/easer-status requires a valid Supabase JWT for the assigned Easer — cannot simulate without Easer login
+  [GAP]  Tier-check cron dry run: CRON_SECRET not set — cannot authenticate cron endpoint
+  [GAP]  Auto-dispatch cron dry run: CRON_SECRET not set
+
+════════════════════════════════════════════════════════════════════════
+  PRODUCTION READINESS SCORE: 69% (62/90 tests passing)
+════════════════════════════════════════════════════════════════════════

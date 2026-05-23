@@ -133,6 +133,65 @@
       .pro-content{padding:1rem}
       .topbar-btn span{display:none}
     }
+
+    /* ── Active job hero ─────────────────────────────────────────────── */
+    .active-job-hero {
+      background: var(--pro-surface); border: 2px solid var(--teal);
+      border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+      box-shadow: 0 0 0 4px rgba(0,151,167,0.07), 0 4px 16px rgba(0,0,0,0.06);
+      display: none;
+    }
+    .active-job-hero.show { display: block; }
+    .active-job-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; }
+    .active-job-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--teal); margin-bottom: 4px; }
+    .active-job-service { font-size: 1.15rem; font-weight: 600; color: var(--pro-text); line-height: 1.3; }
+    .active-job-details { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.75rem 0 1rem; }
+    .active-job-detail { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--pro-soft); }
+    .active-job-detail a { color: var(--teal); text-decoration: none; font-weight: 500; }
+    .active-job-detail a:hover { text-decoration: underline; }
+    .active-job-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .active-btn {
+      width: 100%; padding: 0.85rem 1rem; border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .active-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .active-btn.primary { background: var(--teal); color: #fff; }
+    .active-btn.primary:hover:not(:disabled) { background: var(--teal-dark); }
+    .active-btn.secondary { background: var(--pro-elevated); color: var(--pro-text); border: 1px solid var(--pro-border-md); }
+
+    /* ── Compact metric strip ────────────────────────────────────────── */
+    .metric-strip { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 4px; }
+    .metric-strip::-webkit-scrollbar { display: none; }
+    .metric-item {
+      flex: 0 0 auto; background: var(--pro-surface);
+      border: 1px solid var(--pro-border); border-radius: 10px;
+      padding: 0.75rem 1rem; min-width: 90px; text-align: center;
+    }
+    .metric-value { font-size: 1.2rem; font-weight: 600; color: var(--pro-text); line-height: 1; margin-bottom: 3px; }
+    .metric-label { font-size: 0.68rem; color: var(--pro-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .metric-item.highlight .metric-value { color: var(--teal); }
+
+    /* ── Next assignment card ─────────────────────────────────────────── */
+    .next-job-card {
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
+      border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.6rem;
+    }
+    .next-job-when { font-size: 0.78rem; font-weight: 600; color: var(--teal); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .next-job-service { font-size: 0.95rem; font-weight: 500; color: var(--pro-text); margin-bottom: 4px; }
+    .next-job-meta { font-size: 0.8rem; color: var(--pro-muted); }
+
+    /* ── Empty / wait state ──────────────────────────────────────────── */
+    .waiting-state {
+      text-align: center; padding: 2.5rem 1rem; color: var(--pro-muted);
+    }
+    .waiting-state-icon {
+      width: 48px; height: 48px; border-radius: 12px; background: var(--pro-elevated);
+      border: 1px solid var(--pro-border); display: flex; align-items: center;
+      justify-content: center; margin: 0 auto 1rem;
+    }
+    .waiting-state h3 { font-size: 0.9rem; font-weight: 600; color: var(--pro-text); margin-bottom: 0.35rem; }
+    .waiting-state p { font-size: 0.82rem; line-height: 1.6; max-width: 260px; margin: 0 auto; }
   </style>
 </head>
 <body>
@@ -160,15 +219,15 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Workspace</div>
       <ul class="sidebar-nav">
-        <li><a href="/assembler/" class="active"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="/assembler/my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
-        <li><a href="/assembler/payouts"><span class="nav-icon">&#128176;</span> Payouts</a></li>
+        <li><a href="/assembler/" class="active"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard</a></li>
+        <li><a href="/assembler/my-assignments"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> My Assignments</a></li>
+        <li><a href="/assembler/payouts"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Payouts</a></li>
       </ul>
     </div>
     <div class="sidebar-section" style="margin-top:1rem">
       <div class="sidebar-section-label">Account</div>
       <ul class="sidebar-nav">
-        <li><a href="/assembler/profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
+        <li><a href="/assembler/profile"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> My Profile</a></li>
         <li><a href="#" id="sidebar-logout"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:currentColor;vertical-align:middle"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg></span> Log out</a></li>
       </ul>
     </div>
@@ -188,14 +247,14 @@
       </button>
       <div class="topbar-title" id="topbar-greeting">Dashboard</div>
       <div class="topbar-right">
-        <a href="/assembler/my-assignments" class="topbar-btn primary">&#128197; <span>My Assignments</span></a>
-        <a href="/assembler/profile" class="topbar-btn">&#9881; <span>Profile</span></a>
+        <a href="/assembler/my-assignments" class="topbar-btn primary"><span>My Assignments</span></a>
+        <a href="/assembler/profile" class="topbar-btn"><span>Profile</span></a>
       </div>
     </div><!-- /pro-topbar -->
 
     <div class="pro-content">
       
-      <!-- Tier status banner -->
+      <!-- Account status banners -->
       <div id="tier-status-banner" class="pro-banner hidden">
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:1.3rem" id="tier-status-icon">&#9202;</span>
@@ -205,53 +264,77 @@
           </div>
         </div>
       </div>
-
-      <!-- Identity verification banner -->
       <div id="identity-banner" class="pro-banner identity hidden">
         <div style="display:flex;align-items:center;gap:12px">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <div>
             <div class="pro-banner-title">Identity verification pending</div>
-            <div class="pro-banner-sub" id="identity-banner-sub">Your identity verification is in progress. We'll notify you once complete.</div>
+            <div class="pro-banner-sub" id="identity-banner-sub">Your identity verification is in progress.</div>
           </div>
         </div>
         <a id="identity-verify-btn" href="/apply" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem;display:none">Complete Verification</a>
       </div>
-
       <div id="profile-banner" class="pro-banner hidden">
         <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:1.3rem">&#9889;</span>
           <div>
-            <div class="pro-banner-title">Complete your profile to get more jobs</div>
-            <div class="pro-banner-sub">Add your skills, hourly rate, and bio to appear in searches.</div>
+            <div class="pro-banner-title" id="profile-banner-title">Complete your profile to get more jobs</div>
+            <div class="pro-banner-sub" id="profile-banner-sub">Add your skills, hourly rate, and bio.</div>
           </div>
         </div>
-        <a href="/assembler/profile" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem">Complete Profile</a>
+        <a href="/assembler/profile" class="topbar-btn primary" id="profile-banner-cta" style="flex-shrink:0;font-size:0.78rem">Complete Profile</a>
       </div>
 
-      <div class="stats-row" id="stats-row">
-        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
-        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
-        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
-        <div class="pro-stat neutral"><div class="skeleton" style="height:60px"></div></div>
-      </div>
-
-      <!-- Assigned Bookings Section -->
-      <div id="bookings-section" style="display:none;margin-bottom:2rem">
-        <div class="pro-section-header">
-          <div class="pro-section-title"><span class="dot" style="background:var(--teal)"></span>Active Assignments</div>
-          <a href="/assembler/my-assignments" class="pro-link">View all &#8594;</a>
+      <!-- ── ACTIVE JOB HERO ────────────────────────────────────────── -->
+      <!-- Shows prominently when Easer has a live job (en_route/arrived/in_progress) -->
+      <div class="active-job-hero" id="active-job-hero">
+        <div class="active-job-top">
+          <div>
+            <div class="active-job-label">Active Job</div>
+            <div class="active-job-service" id="hero-service">—</div>
+          </div>
+          <span id="hero-status-badge"></span>
         </div>
-        <div id="bookings-list"></div>
+        <div class="active-job-details">
+          <div class="active-job-detail" id="hero-datetime"></div>
+          <div class="active-job-detail" id="hero-address"></div>
+          <div class="active-job-detail" id="hero-customer"></div>
+        </div>
+        <div class="active-job-actions" id="hero-actions"></div>
       </div>
 
-      <!-- Completed Assignments Section -->
-      <div id="completed-assignments-section" style="display:none;margin-bottom:2rem">
+      <!-- ── METRIC STRIP ───────────────────────────────────────────── -->
+      <div class="metric-strip" id="metric-strip">
+        <div class="metric-item highlight"><div class="metric-value skeleton" style="height:1.2rem;width:40px;margin:0 auto 3px"></div><div class="metric-label">Earned</div></div>
+        <div class="metric-item"><div class="metric-value skeleton" style="height:1.2rem;width:30px;margin:0 auto 3px"></div><div class="metric-label">Done</div></div>
+        <div class="metric-item"><div class="metric-value skeleton" style="height:1.2rem;width:30px;margin:0 auto 3px"></div><div class="metric-label">Rating</div></div>
+        <div class="metric-item"><div class="metric-value skeleton" style="height:1.2rem;width:40px;margin:0 auto 3px"></div><div class="metric-label">Pending</div></div>
+      </div>
+
+      <!-- ── UPCOMING ASSIGNMENTS ───────────────────────────────────── -->
+      <div id="upcoming-section" style="display:none;margin-bottom:1.5rem">
         <div class="pro-section-header">
-          <div class="pro-section-title"><span class="dot" style="background:#1d9e75"></span>Completed Assignments</div>
-          <a href="/assembler/my-assignments" class="pro-link">View all &#8594;</a>
+          <div class="pro-section-title"><span class="dot"></span>Upcoming</div>
+          <a href="/assembler/my-assignments" class="pro-link">View all</a>
         </div>
-        <div id="completed-assignments-list"></div>
+        <div id="upcoming-list"></div>
+      </div>
+
+      <!-- ── NO ACTIVE STATE ───────────────────────────────────────── -->
+      <div class="waiting-state" id="waiting-state" style="display:none">
+        <div class="waiting-state-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>Available for work</h3>
+        <p>You are online and eligible for dispatch. Job offers will appear here and via email.</p>
+      </div>
+
+      <!-- ── RECENT COMPLETED ──────────────────────────────────────── -->
+      <div id="completed-section" style="display:none;margin-bottom:1.5rem">
+        <div class="pro-section-header">
+          <div class="pro-section-title"><span class="dot" style="background:#1d9e75"></span>Recent Completed</div>
+          <a href="/assembler/my-assignments" class="pro-link">View all</a>
+        </div>
+        <div id="completed-list"></div>
       </div>
 
 
@@ -418,69 +501,147 @@
       return;
     }
 
-    // Get fresh token to avoid stale session 401s
+    // Get fresh token
     var freshTok = session.access_token;
     try{
-      var fs=await supabaseClient.auth.getSession();
-      if(fs.data&&fs.data.session) freshTok=fs.data.session.access_token;
+      var fs = await supabaseClient.auth.getSession();
+      if(fs.data&&fs.data.session) freshTok = fs.data.session.access_token;
+      if(!freshTok) { var rf = await supabaseClient.auth.refreshSession(); if(rf.data&&rf.data.session) freshTok = rf.data.session.access_token; }
     }catch(e){}
 
-    // Load assigned bookings from server (active = confirmed only)
-    try{
-      var bResp=await fetch('/api/booking/my-assignments?status=confirmed',{headers:{'Authorization':'Bearer '+freshTok}});
-      if(bResp.ok){
-        var bData=await bResp.json();
-        var bookings=bData.bookings||[];
-        var bSection=document.getElementById('bookings-section');
-        var bList=document.getElementById('bookings-list');
-        if(bookings.length){
-          bSection.style.display='';
-          bList.innerHTML=bookings.map(function(b){
-            var sBadgeCls=b.assembler_accepted_at?'sb bk-accepted':'sb bk-dispatched';
-            var sText=b.assembler_accepted_at?'Accepted':'Pending Response';
-            return '<div class="booking-card"><div class="booking-card-top"><h4>'+
-              esc(b.service||'Service')+'</h4><span class="'+sBadgeCls+'">'+sText+'</span></div>'+
-              '<div class="booking-card-meta">'+
-              (b.customer_name?esc(b.customer_name.split(' ')[0])+' &bull; ':'')+
-              esc(b.date||'Date TBD')+(b.time?' at '+esc(b.time):'')+' &bull; '+
-              esc(b.ref||'')+'</div></div>';
-          }).join('');
-        }
+    // ── Load all assignments and sort by operational priority ──────────
+    var allBookings = [];
+    try {
+      var bResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + freshTok } });
+      if (bResp.ok) {
+        var bData = await bResp.json();
+        allBookings = bData.bookings || [];
       }
-    }catch(e){console.error('Bookings load error:',e);}
+    } catch(e) { console.error('Assignments load error:', e); }
 
-    // Load completed assignments
-    try{
-      var cResp=await fetch('/api/booking/my-assignments?status=completed',{headers:{'Authorization':'Bearer '+freshTok}});
-      if(cResp.ok){
-        var cData=await cResp.json();
-        var completed=cData.bookings||[];
-        var cSection=document.getElementById('completed-assignments-section');
-        var cList=document.getElementById('completed-assignments-list');
-        if(completed.length&&cSection){
-          cSection.style.display='';
-          cList.innerHTML=completed.slice(0,5).map(function(b){
-            return '<div class="booking-card"><div class="booking-card-top"><h4>'+
-              esc(b.service||'Service')+'</h4><span class="sb bk-completed">Completed</span></div>'+
-              '<div class="booking-card-meta">'+
-              (b.customer_name?esc(b.customer_name.split(' ')[0])+' &bull; ':'')+
-              esc(b.date||'')+(b.completed_at?' &bull; Done '+timeAgo(b.completed_at):'')+
-              '</div></div>';
-          }).join('');
-        }
+    // Categorise
+    var liveStatuses  = ['en_route', 'arrived', 'in_progress'];
+    var liveJobs      = allBookings.filter(function(b){ return liveStatuses.includes(b.status); });
+    var upcomingJobs  = allBookings.filter(function(b){ return b.status === 'confirmed' && b.assembler_accepted_at; });
+    var completedJobs = allBookings.filter(function(b){ return b.status === 'completed'; });
+
+    // ── Active job hero ──────────────────────────────────────────────
+    var hero = document.getElementById('active-job-hero');
+    if (liveJobs.length > 0) {
+      var lj = liveJobs[0]; // most recently active
+      hero.classList.add('show');
+
+      var statusLabels = { en_route:'En Route', arrived:'On Site', in_progress:'Working' };
+      var statusClasses = { en_route:'bk-en-route', arrived:'bk-arrived', in_progress:'bk-in-progress' };
+      document.getElementById('hero-service').textContent = lj.service || 'Active Job';
+      document.getElementById('hero-status-badge').innerHTML = '<span class="sb ' + (statusClasses[lj.status]||'bk-confirmed') + '">' + (statusLabels[lj.status]||lj.status) + '</span>';
+
+      var dtEl = document.getElementById('hero-datetime');
+      if (lj.date) dtEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' + esc(lj.date) + (lj.time ? ' · ' + esc(lj.time) : '');
+
+      var addrEl = document.getElementById('hero-address');
+      if (lj.address) {
+        var mapsUrl = 'https://maps.google.com/?q=' + encodeURIComponent(lj.address);
+        addrEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> <a href="' + mapsUrl + '" target="_blank" rel="noopener">' + esc(lj.address) + '</a>';
       }
-    }catch(e){console.error('Completed assignments load error:',e);}
 
-    try{
-      var s=await API.getAssemblerStats(user.id)||{};
-      document.getElementById('sidebar-earnings').textContent='$'+Number(s.totalEarned||0).toLocaleString('en-US',{maximumFractionDigits:0});
-      var winRate=0;
-      document.getElementById('stats-row').innerHTML=
-        '<div class="pro-stat teal"><div class="pro-stat-value">$'+Number(s.totalEarned||0).toLocaleString('en-US',{maximumFractionDigits:0})+'</div><div class="pro-stat-label">Total Earned</div></div>'+
-        '<div class="pro-stat amber"><div class="pro-stat-value">'+(s.completedJobs||0)+'</div><div class="pro-stat-label">Jobs Completed</div></div>'+
-        '<div class="pro-stat neutral"><div class="pro-stat-value">'+(s.assignedJobs||0)+'</div><div class="pro-stat-label">Active Assignments</div></div>';
-    }catch(err){
-      document.getElementById('stats-row').innerHTML='<div style="grid-column:1/-1" class="pro-error">Could not load stats.</div>';
+      var custEl = document.getElementById('hero-customer');
+      if (lj.customer_phone) {
+        custEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg> <a href="tel:' + esc(lj.customer_phone) + '">' + esc(lj.customer_name ? lj.customer_name.split(' ')[0] : 'Customer') + ' · ' + esc(lj.customer_phone) + '</a>';
+      }
+
+      // Next action button
+      var actionsEl = document.getElementById('hero-actions');
+      actionsEl.innerHTML = '';
+
+      async function heroAction(stage, label, btn) {
+        btn.disabled = true; btn.textContent = 'Updating…';
+        try {
+          var r = await fetch('/api/booking/easer-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + freshTok },
+            body: JSON.stringify({ bookingId: lj.id, stage: stage }),
+          });
+          var d = await r.json();
+          if (!r.ok || d.error) { btn.disabled = false; btn.textContent = label; return; }
+          window.location.reload();
+        } catch { btn.disabled = false; btn.textContent = label; }
+      }
+
+      if (lj.status === 'en_route') {
+        var arrBtn = document.createElement('button');
+        arrBtn.className = 'active-btn primary'; arrBtn.textContent = 'I\'ve Arrived';
+        arrBtn.addEventListener('click', function(){ heroAction('arrived', 'I\'ve Arrived', arrBtn); });
+        actionsEl.appendChild(arrBtn);
+      } else if (lj.status === 'arrived') {
+        var startBtn = document.createElement('button');
+        startBtn.className = 'active-btn primary'; startBtn.textContent = 'Start Job';
+        startBtn.addEventListener('click', function(){ heroAction('in_progress', 'Start Job', startBtn); });
+        actionsEl.appendChild(startBtn);
+      }
+
+      var viewBtn = document.createElement('a');
+      viewBtn.className = 'active-btn secondary'; viewBtn.href = '/assembler/my-assignments';
+      viewBtn.style.display = 'block'; viewBtn.style.textAlign = 'center'; viewBtn.style.textDecoration = 'none';
+      viewBtn.textContent = 'Open Full Job Detail';
+      actionsEl.appendChild(viewBtn);
+    }
+
+    // ── Metric strip ─────────────────────────────────────────────────
+    try {
+      var s = await API.getAssemblerStats(user.id) || {};
+      var earned  = '$' + Number(s.totalEarned||0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+      var rating  = profile.rating ? Number(profile.rating).toFixed(1) : '—';
+      var pending = s.pendingPayout ? '$' + Number(s.pendingPayout/100).toFixed(0) : '$0';
+      document.getElementById('sidebar-earnings').textContent = earned;
+      document.getElementById('metric-strip').innerHTML =
+        '<div class="metric-item highlight"><div class="metric-value">' + earned + '</div><div class="metric-label">Earned</div></div>' +
+        '<div class="metric-item"><div class="metric-value">' + (s.completedJobs||0) + '</div><div class="metric-label">Done</div></div>' +
+        '<div class="metric-item"><div class="metric-value">' + rating + '</div><div class="metric-label">Rating</div></div>' +
+        '<div class="metric-item"><div class="metric-value">' + pending + '</div><div class="metric-label">Pending</div></div>';
+    } catch(e) {
+      document.getElementById('metric-strip').innerHTML = '<div class="metric-item"><div class="metric-value">—</div><div class="metric-label">Earned</div></div>';
+    }
+
+    // ── Upcoming jobs ────────────────────────────────────────────────
+    if (upcomingJobs.length) {
+      document.getElementById('upcoming-section').style.display = '';
+      document.getElementById('upcoming-list').innerHTML = upcomingJobs.slice(0, 3).map(function(b) {
+        var when = b.date ? formatWhen(b.date, b.time) : 'Date TBD';
+        return '<div class="next-job-card">' +
+          '<div class="next-job-when">' + esc(when) + '</div>' +
+          '<div class="next-job-service">' + esc(b.service||'Service') + '</div>' +
+          '<div class="next-job-meta">' + esc(b.address||'Address TBD') + '</div>' +
+          '</div>';
+      }).join('');
+    } else if (liveJobs.length === 0) {
+      // No active AND no upcoming — show waiting state
+      if (profile.status === 'active' && profile.identity_verified && available) {
+        document.getElementById('waiting-state').style.display = '';
+      }
+    }
+
+    // ── Recent completed ─────────────────────────────────────────────
+    if (completedJobs.length) {
+      document.getElementById('completed-section').style.display = '';
+      document.getElementById('completed-list').innerHTML = completedJobs.slice(0, 4).map(function(b) {
+        var earned = b.assembler_due ? ' · $' + (b.assembler_due/100).toFixed(0) : '';
+        return '<div class="next-job-card" style="cursor:default">' +
+          '<div class="next-job-when" style="color:var(--pro-muted)">' + esc(b.date||'') + earned + '</div>' +
+          '<div class="next-job-service">' + esc(b.service||'Service') + '</div>' +
+          '<div class="next-job-meta">' + esc(b.ref||'') + (b.completed_at ? ' · ' + timeAgo(b.completed_at) : '') + '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function formatWhen(date, time) {
+      try {
+        var d = new Date(date);
+        var now = new Date();
+        var diff = Math.round((d - new Date(now.toDateString())) / 86400000);
+        var prefix = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+        return prefix + (time ? ' · ' + time : '');
+      } catch { return date; }
     }
     // Close sidebar when nav link clicked (mobile)
     document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
