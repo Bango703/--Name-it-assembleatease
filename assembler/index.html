@@ -72,32 +72,6 @@
     .booking-card h4{font-size:0.9rem;font-weight:500;color:var(--pro-text);line-height:1.3}
     .booking-card-meta{font-size:0.78rem;color:var(--pro-muted);margin-top:0.25rem}
 
-    /* ── Active job hero ─────────────────────────────────────────────── */
-    .active-job-hero {
-      background: var(--pro-surface); border: 2px solid var(--teal);
-      border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
-      box-shadow: 0 0 0 4px rgba(0,151,167,0.07), 0 4px 16px rgba(0,0,0,0.06);
-      display: none;
-    }
-    .active-job-hero.show { display: block; }
-    .active-job-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; }
-    .active-job-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--teal); margin-bottom: 4px; }
-    .active-job-service { font-size: 1.15rem; font-weight: 600; color: var(--pro-text); line-height: 1.3; }
-    .active-job-details { display: flex; flex-direction: column; gap: 0.35rem; margin: 0.75rem 0 1rem; }
-    .active-job-detail { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--pro-soft); }
-    .active-job-detail a { color: var(--teal); text-decoration: none; font-weight: 500; }
-    .active-job-detail a:hover { text-decoration: underline; }
-    .active-job-actions { display: flex; flex-direction: column; gap: 0.5rem; }
-    .active-btn {
-      width: 100%; padding: 0.85rem 1rem; border: none; border-radius: 10px;
-      font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: opacity 0.15s;
-    }
-    .active-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .active-btn.primary { background: var(--teal); color: #fff; }
-    .active-btn.primary:hover:not(:disabled) { background: var(--teal-dark); }
-    .active-btn.secondary { background: var(--pro-elevated); color: var(--pro-text); border: 1px solid var(--pro-border-md); }
-
     /* ── Compact metric strip ────────────────────────────────────────── */
     .metric-strip { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 4px; }
     .metric-strip::-webkit-scrollbar { display: none; }
@@ -208,21 +182,26 @@
       </a>
 
       <!-- ── ACTIVE JOB HERO ────────────────────────────────────────── -->
-      <!-- Shows prominently when Easer has a live job (en_route/arrived/in_progress) -->
-      <div class="active-job-hero" id="active-job-hero">
-        <div class="active-job-top">
-          <div>
-            <div class="active-job-label">Active Job</div>
-            <div class="active-job-service" id="hero-service">—</div>
-          </div>
+      <div class="e-job-hero e-job-hero-gradient" id="active-job-hero" style="display:none">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:0.35rem">
+          <div class="e-job-hero-label">Active Job</div>
           <span id="hero-status-badge"></span>
         </div>
-        <div class="active-job-details">
-          <div class="active-job-detail" id="hero-datetime"></div>
-          <div class="active-job-detail" id="hero-address"></div>
-          <div class="active-job-detail" id="hero-customer"></div>
+        <div class="e-job-hero-service" id="hero-service">—</div>
+        <div class="e-hero-link-row" id="hero-links" style="display:none">
+          <a id="hero-maps-btn" href="#" target="_blank" rel="noopener" class="e-hero-link-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Maps
+          </a>
+          <a id="hero-call-btn" href="#" class="e-hero-link-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg>
+            Call
+          </a>
         </div>
-        <div class="active-job-actions" id="hero-actions"></div>
+        <div class="e-hero-stage-divider" id="hero-stage-section" style="display:none">
+          <div class="e-stage-track" id="hero-stage-track"></div>
+        </div>
+        <button class="e-hero-primary" id="hero-primary-btn" style="display:none"></button>
       </div>
 
       <!-- ── METRIC STRIP ───────────────────────────────────────────── -->
@@ -239,7 +218,7 @@
           <div class="pro-section-title"><span class="dot"></span>Upcoming</div>
           <a href="/assembler/my-assignments" class="pro-link">View all</a>
         </div>
-        <div id="upcoming-list"></div>
+        <div class="e-upcoming-scroll" id="upcoming-list"></div>
       </div>
 
       <!-- ── NO ACTIVE STATE ───────────────────────────────────────── -->
@@ -469,63 +448,78 @@
     // ── Active job hero ──────────────────────────────────────────────
     var hero = document.getElementById('active-job-hero');
     if (liveJobs.length > 0) {
-      var lj = liveJobs[0]; // most recently active
-      hero.classList.add('show');
+      var lj = liveJobs[0];
+      hero.style.display = '';
 
-      var statusLabels = { en_route:'En Route', arrived:'On Site', in_progress:'Working' };
-      var statusClasses = { en_route:'bk-en-route', arrived:'bk-arrived', in_progress:'bk-in-progress' };
+      var statusLabels  = { en_route: 'En Route', arrived: 'On Site', in_progress: 'Working' };
+      var statusClasses = { en_route: 'bk-en-route', arrived: 'bk-arrived', in_progress: 'bk-in-progress' };
       document.getElementById('hero-service').textContent = lj.service || 'Active Job';
-      document.getElementById('hero-status-badge').innerHTML = '<span class="sb ' + (statusClasses[lj.status]||'bk-confirmed') + '">' + (statusLabels[lj.status]||lj.status) + '</span>';
+      document.getElementById('hero-status-badge').innerHTML =
+        '<span class="sb ' + (statusClasses[lj.status] || 'bk-confirmed') + '">' + (statusLabels[lj.status] || lj.status) + '</span>';
 
-      var dtEl = document.getElementById('hero-datetime');
-      if (lj.date) dtEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' + esc(lj.date) + (lj.time ? ' · ' + esc(lj.time) : '');
-
-      var addrEl = document.getElementById('hero-address');
-      if (lj.address) {
-        var mapsUrl = 'https://maps.google.com/?q=' + encodeURIComponent(lj.address);
-        addrEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> <a href="' + mapsUrl + '" target="_blank" rel="noopener">' + esc(lj.address) + '</a>';
+      // Maps + Call buttons
+      var hasAddr = !!lj.address, hasPhone = !!lj.customer_phone;
+      if (hasAddr || hasPhone) {
+        document.getElementById('hero-links').style.display = '';
+        if (hasAddr) {
+          document.getElementById('hero-maps-btn').href = 'https://maps.google.com/?q=' + encodeURIComponent(lj.address);
+        } else {
+          document.getElementById('hero-maps-btn').style.display = 'none';
+        }
+        if (hasPhone) {
+          document.getElementById('hero-call-btn').href = 'tel:' + lj.customer_phone;
+        } else {
+          document.getElementById('hero-call-btn').style.display = 'none';
+        }
       }
 
-      var custEl = document.getElementById('hero-customer');
-      if (lj.customer_phone) {
-        custEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg> <a href="tel:' + esc(lj.customer_phone) + '">' + esc(lj.customer_name ? lj.customer_name.split(' ')[0] : 'Customer') + ' · ' + esc(lj.customer_phone) + '</a>';
+      // 4-segment stage track: Accepted → En Route → Arrived → Working
+      var stageOrder  = ['confirmed', 'en_route', 'arrived', 'in_progress'];
+      var stageLabels = ['Accepted', 'En Route', 'Arrived', 'Working'];
+      var curIdx = stageOrder.indexOf(lj.status);
+      if (curIdx < 0) curIdx = 0;
+      document.getElementById('hero-stage-section').style.display = '';
+      document.getElementById('hero-stage-track').innerHTML = stageOrder.map(function(s, i) {
+        var done    = i < curIdx;
+        var current = i === curIdx;
+        var dotCls  = current ? ' current' : done ? ' done' : '';
+        var lnCls   = done ? ' done' : '';
+        return '<div class="e-stage-node">'
+          + '<div class="e-stage-dot' + dotCls + '"></div>'
+          + '<div class="e-stage-dot-label' + dotCls + '">' + stageLabels[i] + '</div>'
+          + '</div>'
+          + (i < stageOrder.length - 1 ? '<div class="e-stage-line' + lnCls + '"></div>' : '');
+      }).join('');
+
+      // Sticky primary action button
+      var primaryBtn  = document.getElementById('hero-primary-btn');
+      var nextLabel   = '';
+      var nextStage   = '';
+      if (lj.status === 'en_route')         { nextLabel = "I've Arrived"; nextStage = 'arrived'; }
+      else if (lj.status === 'arrived')     { nextLabel = 'Start Job';    nextStage = 'in_progress'; }
+      else if (lj.status === 'in_progress') { nextLabel = 'Open Job Detail'; }
+
+      if (nextStage) {
+        primaryBtn.textContent = nextLabel;
+        primaryBtn.style.display = '';
+        primaryBtn.addEventListener('click', async function() {
+          primaryBtn.disabled = true; primaryBtn.textContent = 'Updating…';
+          try {
+            var r = await fetch('/api/booking/easer-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + freshTok },
+              body: JSON.stringify({ bookingId: lj.id, stage: nextStage }),
+            });
+            var d = await r.json();
+            if (!r.ok || d.error) { primaryBtn.disabled = false; primaryBtn.textContent = nextLabel; return; }
+            window.location.reload();
+          } catch { primaryBtn.disabled = false; primaryBtn.textContent = nextLabel; }
+        });
+      } else if (lj.status === 'in_progress') {
+        primaryBtn.textContent = 'Open Job Detail';
+        primaryBtn.style.display = '';
+        primaryBtn.addEventListener('click', function() { window.location.href = '/assembler/my-assignments'; });
       }
-
-      // Next action button
-      var actionsEl = document.getElementById('hero-actions');
-      actionsEl.innerHTML = '';
-
-      async function heroAction(stage, label, btn) {
-        btn.disabled = true; btn.textContent = 'Updating…';
-        try {
-          var r = await fetch('/api/booking/easer-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + freshTok },
-            body: JSON.stringify({ bookingId: lj.id, stage: stage }),
-          });
-          var d = await r.json();
-          if (!r.ok || d.error) { btn.disabled = false; btn.textContent = label; return; }
-          window.location.reload();
-        } catch { btn.disabled = false; btn.textContent = label; }
-      }
-
-      if (lj.status === 'en_route') {
-        var arrBtn = document.createElement('button');
-        arrBtn.className = 'active-btn primary'; arrBtn.textContent = 'I\'ve Arrived';
-        arrBtn.addEventListener('click', function(){ heroAction('arrived', 'I\'ve Arrived', arrBtn); });
-        actionsEl.appendChild(arrBtn);
-      } else if (lj.status === 'arrived') {
-        var startBtn = document.createElement('button');
-        startBtn.className = 'active-btn primary'; startBtn.textContent = 'Start Job';
-        startBtn.addEventListener('click', function(){ heroAction('in_progress', 'Start Job', startBtn); });
-        actionsEl.appendChild(startBtn);
-      }
-
-      var viewBtn = document.createElement('a');
-      viewBtn.className = 'active-btn secondary'; viewBtn.href = '/assembler/my-assignments';
-      viewBtn.style.display = 'block'; viewBtn.style.textAlign = 'center'; viewBtn.style.textDecoration = 'none';
-      viewBtn.textContent = 'Open Full Job Detail';
-      actionsEl.appendChild(viewBtn);
     }
 
     // ── Metric strip ─────────────────────────────────────────────────
@@ -547,12 +541,13 @@
     // ── Upcoming jobs ────────────────────────────────────────────────
     if (upcomingJobs.length) {
       document.getElementById('upcoming-section').style.display = '';
-      document.getElementById('upcoming-list').innerHTML = upcomingJobs.slice(0, 3).map(function(b) {
-        var when = b.date ? formatWhen(b.date, b.time) : 'Date TBD';
-        return '<div class="next-job-card">' +
-          '<div class="next-job-when">' + esc(when) + '</div>' +
-          '<div class="next-job-service">' + esc(b.service||'Service') + '</div>' +
-          '<div class="next-job-meta">' + esc(b.address||'Address TBD') + '</div>' +
+      document.getElementById('upcoming-list').innerHTML = upcomingJobs.slice(0, 5).map(function(b) {
+        var dateShort = b.date ? new Date(b.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '—';
+        var timeStr   = b.time ? b.time.replace(/:00$/, '').replace(/\s?([AP]M)/i, function(m, p){ return p.toLowerCase(); }) : '';
+        return '<div class="e-card e-upcoming-mini" onclick="window.location.href=\'/assembler/my-assignments\'">' +
+          '<div class="e-upcoming-mini-date"><span>' + esc(dateShort) + '</span>' + (timeStr ? '<span>' + esc(timeStr) + '</span>' : '') + '</div>' +
+          '<div class="e-upcoming-mini-service">' + esc(b.service || 'Service') + '</div>' +
+          '<div class="e-upcoming-mini-address">' + esc(b.address || 'Address TBD') + '</div>' +
           '</div>';
       }).join('');
     } else if (liveJobs.length === 0) {

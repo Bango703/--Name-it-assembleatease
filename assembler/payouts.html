@@ -23,15 +23,6 @@
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
     .logout-link:hover{color:var(--e-text)}
 
-    body.theme-pro .summary-bar {
-      background: var(--pro-surface); border: 1px solid var(--pro-border);
-      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
-    }
-    body.theme-pro .summary-stat { text-align: center; }
-    body.theme-pro .summary-stat-value { font-size: 1.5rem; font-weight: 700; color: var(--pro-text); }
-    body.theme-pro .summary-stat-label { font-size: 0.75rem; color: var(--pro-muted); margin-top: 2px; }
-
     body.theme-pro .payout-card {
       background: var(--pro-surface); border: 1px solid var(--pro-border);
       border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
@@ -74,10 +65,14 @@
     <button class="e-period-tab" data-period="week">This Week</button>
   </div>
 
-  <div class="summary-bar" id="summary-bar">
-    <div class="summary-stat"><div class="e-skeleton" style="height:40px"></div></div>
-    <div class="summary-stat"><div class="e-skeleton" style="height:40px"></div></div>
-    <div class="summary-stat"><div class="e-skeleton" style="height:40px"></div></div>
+  <div class="e-card e-earn-hero-card" id="summary-bar">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.7)">Total Earned</div>
+    <div class="e-earn-total e-skeleton" style="width:120px;height:2.4rem" id="earn-total-val"></div>
+    <div class="e-earn-split" id="earn-split">
+      <div class="e-earn-split-item"><div class="e-skeleton" style="height:1rem;width:60px;margin-bottom:4px"></div><span>Paid Out</span></div>
+      <div class="e-earn-split-item"><div class="e-skeleton" style="height:1rem;width:40px;margin-bottom:4px"></div><span>Jobs</span></div>
+      <div class="e-earn-split-item"><div class="e-skeleton" style="height:1rem;width:60px;margin-bottom:4px"></div><span>Fees</span></div>
+    </div>
   </div>
 
   <div id="payouts-list">
@@ -139,10 +134,12 @@
     var totalEarned = list.reduce(function(s, b){ return s + (b.assembler_due || 0); }, 0);
     var totalFees   = list.reduce(function(s, b){ return s + (b.platform_fee || 0); }, 0);
 
-    document.getElementById('summary-bar').innerHTML =
-      '<div class="summary-stat"><div class="summary-stat-value" style="color:#059669">' + fmt(totalEarned) + '</div><div class="summary-stat-label">Total Earned</div></div>' +
-      '<div class="summary-stat"><div class="summary-stat-value">' + list.length + '</div><div class="summary-stat-label">Jobs</div></div>' +
-      '<div class="summary-stat"><div class="summary-stat-value" style="color:#dc2626">' + fmt(totalFees) + '</div><div class="summary-stat-label">Fees</div></div>';
+    document.getElementById('earn-total-val').textContent = fmt(totalEarned);
+    document.getElementById('earn-total-val').classList.remove('e-skeleton');
+    document.getElementById('earn-split').innerHTML =
+      '<div class="e-earn-split-item"><strong>' + fmt(totalEarned - totalFees) + '</strong><span>Paid Out</span></div>' +
+      '<div class="e-earn-split-item"><strong>' + list.length + '</strong><span>Jobs</span></div>' +
+      '<div class="e-earn-split-item"><strong>' + fmt(totalFees) + '</strong><span>Fees</span></div>';
 
     var el = document.getElementById('payouts-list');
     if (!list.length) {

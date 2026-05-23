@@ -459,6 +459,151 @@ body {
 }
 .e-stage-line.done { background: var(--e-teal); }
 
+/* ── Nav active — pill background (overrides dot indicator above) ────── */
+.easer-nav-item.active {
+  color: var(--e-teal);
+  background: var(--e-teal-dim);
+  border-radius: 10px;
+}
+.easer-nav-item.active::before { display: none; }
+
+/* ── Active job hero — gradient card ─────────────────────────────────── */
+.e-job-hero-gradient {
+  background: linear-gradient(170deg, #005a65, #0097a7);
+  border: 0 !important;
+  color: white;
+  box-shadow: 0 16px 32px rgba(0,151,167,0.28);
+}
+.e-job-hero-gradient .e-job-hero-label { color: rgba(255,255,255,0.72); }
+.e-job-hero-gradient .e-job-hero-service { color: white; }
+.e-job-hero-gradient .e-job-hero-row,
+.e-job-hero-gradient .e-job-hero-row a { color: rgba(255,255,255,0.88); }
+
+/* Maps/Call quick-action links inside gradient hero */
+.e-hero-link-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0.625rem 0;
+}
+.e-hero-link-btn {
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.12);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+.e-hero-link-btn:active { opacity: 0.8; }
+
+/* Divider + stage track inside gradient hero */
+.e-hero-stage-divider {
+  border-top: 1px solid rgba(255,255,255,0.22);
+  padding-top: 12px;
+  margin-top: 10px;
+}
+
+/* Sticky next-action button */
+.e-hero-primary {
+  position: sticky;
+  bottom: calc(var(--e-nav-h) + var(--e-safe-bottom) + 8px);
+  z-index: 10;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--e-teal);
+  color: white;
+  font-family: var(--e-font);
+  font-size: 0.975rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 8px 20px rgba(0,151,167,0.32);
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+.e-hero-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.e-hero-primary:active:not(:disabled) { opacity: 0.85; }
+
+/* ── Upcoming horizontal scroll (Home page) ──────────────────────────── */
+.e-upcoming-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin: 0 -1.25rem;
+  padding: 0 1.25rem 4px;
+  scroll-snap-type: x mandatory;
+}
+.e-upcoming-scroll::-webkit-scrollbar { display: none; }
+.e-upcoming-mini {
+  min-width: 150px;
+  max-width: 185px;
+  flex: 0 0 auto;
+  padding: 12px;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+.e-upcoming-mini-date {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--e-teal);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+.e-upcoming-mini-service {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--e-text);
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+.e-upcoming-mini-address {
+  font-size: 0.72rem;
+  color: var(--e-muted);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Earnings gradient hero ──────────────────────────────────────────── */
+.e-earn-hero-card {
+  background: linear-gradient(170deg, #005a65, #0097a7);
+  border: 0 !important;
+  color: white;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 16px 32px rgba(0,151,167,0.24);
+}
+.e-earn-total {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  margin: 0.35rem 0 0.875rem;
+  color: white;
+}
+.e-earn-split {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(255,255,255,0.22);
+  padding-top: 0.875rem;
+  gap: 0.5rem;
+}
+.e-earn-split-item strong { display: block; font-size: 1rem; font-weight: 700; color: white; }
+.e-earn-split-item span   { font-size: 0.72rem; color: rgba(255,255,255,0.72); }
+
 /* ── Offer alert banner (Home page) ──────────────────────────────────── */
 .e-offer-alert {
   background: var(--e-amber-dim); border: 1px solid rgba(245,158,11,0.25);
