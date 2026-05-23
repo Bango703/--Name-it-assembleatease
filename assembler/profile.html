@@ -114,6 +114,12 @@
               <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:3px">Only your first name is shown to customers until a job is confirmed.</p>
               <span class="field-error" id="full-name-error"></span>
             </div>
+            <div class="form-group">
+              <label for="phone">Phone number</label>
+              <input type="tel" id="phone" class="form-control" placeholder="e.g. (512) 555-0123" />
+              <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:3px">Required for dispatch — you won't receive job offers without a verified phone number.</p>
+              <span class="field-error" id="phone-error"></span>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="city">City</label>
@@ -352,6 +358,7 @@
     });
 
     document.getElementById('full-name').value   = profile.full_name   || '';
+    document.getElementById('phone').value       = profile.phone       || '';
     document.getElementById('city').value        = profile.city        || '';
     document.getElementById('state').value       = profile.state       || '';
     document.getElementById('hourly-rate').value = profile.hourly_rate || '';
@@ -437,9 +444,11 @@
       e.preventDefault();
       APP.hideAlert('page-alert');
       const fullName   = document.getElementById('full-name').value.trim();
+      const phone      = document.getElementById('phone').value.trim();
       const hourlyRate = parseFloat(document.getElementById('hourly-rate').value);
       let hasError = false;
       if (!fullName) { APP.fieldError('full-name', 'Full name is required.'); hasError = true; }
+      if (phone && !/^\+?[\d\s\-(). ]{7,}$/.test(phone)) { APP.fieldError('phone', 'Enter a valid phone number.'); hasError = true; }
       if (document.getElementById('hourly-rate').value && (isNaN(hourlyRate)||hourlyRate<=0)) { APP.fieldError('hourly-rate','Enter a valid hourly rate.'); hasError = true; }
       if (hasError) return;
 
@@ -447,6 +456,7 @@
       try {
         const updates = {
           full_name:   fullName,
+          phone:       phone || null,
           city:        document.getElementById('city').value.trim() || null,
           state:       document.getElementById('state').value.trim() || null,
           hourly_rate: hourlyRate || null,

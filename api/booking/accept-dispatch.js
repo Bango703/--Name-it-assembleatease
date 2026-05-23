@@ -9,16 +9,27 @@ const SITE = 'https://www.assembleatease.com';
 /**
  * POST /api/booking/accept-dispatch
  * Easer accepts a dispatched job offer.
+ * Requires Bearer JWT — assemblerId is taken from the verified token, not the body.
  * Supports: dispatch_offers table (new) and legacy inline tokens (backwards compat).
- * Body: { bookingId, token, assemblerId }
+ * Body: { bookingId, token }
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { bookingId, token, assemblerId } = req.body;
-  if (!bookingId || !token || !assemblerId) {
-    return res.status(400).json({ error: 'bookingId, token, and assemblerId are required' });
+  // Verify JWT — assemblerId MUST come from the token, not the request body
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
+
+  const { bookingId, token } = req.body;
+  if (!bookingId || !token) {
+    return res.status(400).json({ error: 'bookingId and token are required' });
   }
+
+  // Identity is the JWT user — never trust body-supplied assemblerId
+  const assemblerId = user.id;
 
   const sb = getSupabase();
   const now = new Date().toISOString();

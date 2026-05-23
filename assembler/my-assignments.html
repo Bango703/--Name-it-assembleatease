@@ -52,18 +52,21 @@
     }
     body.theme-pro .asgn-status { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
-    /* Detail modal */
+    /* Detail panel — bottom sheet on mobile */
     body.theme-pro .modal-overlay {
       position: fixed; inset: 0; z-index: 1000;
-      background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center;
-      padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      background: rgba(0,0,0,0.55); display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
     }
     body.theme-pro .modal-overlay.open { opacity: 1; pointer-events: all; }
     body.theme-pro .modal-box {
-      background: var(--pro-surface); border: 1px solid var(--pro-border-md);
-      border-radius: 14px; padding: 1.5rem; max-width: 580px; width: 100%;
-      max-height: 90vh; overflow-y: auto; position: relative;
+      background: var(--pro-surface);
+      border-radius: 18px 18px 0 0; padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem);
+      width: 100%; max-width: 640px;
+      max-height: 90svh; overflow-y: auto; position: relative;
+      transform: translateY(100%); transition: transform 0.25s ease;
     }
+    body.theme-pro .modal-overlay.open .modal-box { transform: translateY(0); }
     body.theme-pro .modal-close {
       position: absolute; top: 1rem; right: 1rem; background: none; border: none;
       font-size: 1.3rem; color: var(--pro-muted); cursor: pointer; line-height: 1;
@@ -262,8 +265,34 @@
           (b.checked_in_at ? '<span style="color:#059669">&#10003; Checked in ' + timeAgo(b.checked_in_at) + '</span>' : '') +
           (!isCompleted && b.assembler_accepted_at && !b.checked_in_at ? '<span style="color:var(--pro-teal)">Tap to check in &rarr;</span>' : '') +
         '</div>' +
+        // Offer actions row — shown for unaccepted dispatch/assignment offers
+        (!b.assembler_accepted_at && (b._offer_token || b.assignment_token) ?
+          '<div style="padding:0.75rem 0 0;border-top:1px solid var(--pro-border);margin-top:0.25rem">' +
+            (b._offer_expires_at ? '<div style="font-size:0.78rem;color:#92400e;margin-bottom:0.5rem">&#9201; Offer expires in <strong id="cc-' + b.id + '">—</strong></div>' : '') +
+            '<div style="display:flex;gap:0.5rem">' +
+              '<button class="card-accept-btn btn btn-teal" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '" style="flex:1;font-size:0.875rem;padding:0.6rem 0.5rem;font-weight:600" onclick="event.stopPropagation()">&#10003; Accept</button>' +
+              (b._offer_token ? '<button class="card-decline-btn btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '" style="font-size:0.875rem;padding:0.6rem 1rem;color:var(--pro-muted)" onclick="event.stopPropagation()">Decline</button>' : '') +
+            '</div>' +
+          '</div>' : '') +
       '</div>';
     }).join('');
+    startCardCountdowns();
+  }
+
+  function startCardCountdowns() {
+    allAssignments.forEach(function(b) {
+      if (!b._offer_expires_at || b.assembler_accepted_at) return;
+      var el = document.getElementById('cc-' + b.id);
+      if (!el) return;
+      (function tick() {
+        var ms = new Date(b._offer_expires_at) - Date.now();
+        if (ms <= 0) { el.textContent = 'Expired'; return; }
+        var m = Math.floor(ms / 60000);
+        var s = Math.floor((ms % 60000) / 1000);
+        el.textContent = m + ':' + String(s).padStart(2, '0');
+        setTimeout(tick, 1000);
+      })();
+    });
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -414,6 +443,45 @@
       .subscribe();
     window.addEventListener('beforeunload', () => assignmentsChannel.unsubscribe());
 
+    // Card-level Accept / Decline event delegation
+    document.getElementById('assignments-list').addEventListener('click', async function(e) {
+      const acceptBtn = e.target.closest('.card-accept-btn');
+      const declineBtn = e.target.closest('.card-decline-btn');
+
+      if (acceptBtn && !acceptBtn.disabled) {
+        e.stopPropagation();
+        const bid   = acceptBtn.dataset.bid;
+        const token = acceptBtn.dataset.token;
+        acceptBtn.disabled = true; acceptBtn.innerHTML = 'Accepting&#8230;';
+        try {
+          const r = await fetch('/api/booking/accept-dispatch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+            body: JSON.stringify({ bookingId: bid, token, assemblerId: auth.user.id }),
+          });
+          const d = await r.json();
+          if (!r.ok || d.error) {
+            APP.showAlert('page-alert', d.error || 'Could not accept — job may already be taken', 'error');
+            acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
+            return;
+          }
+          APP.showAlert('page-alert', '&#10003; Job accepted! Ref: ' + (d.ref || ''), 'success');
+          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
+        } catch {
+          APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
+          acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
+        }
+      }
+
+      if (declineBtn && !declineBtn.disabled) {
+        e.stopPropagation();
+        // Open the booking modal for the offer details, then pop the decline sheet
+        openDetail(declineBtn.dataset.bid);
+        document.getElementById('decline-sheet').classList.add('open');
+      }
+    });
+
     // Modal close
     document.getElementById('asgn-modal-close').addEventListener('click', function() {
       document.getElementById('asgn-modal').classList.remove('open');
@@ -472,26 +540,26 @@
       }
     });
 
-    // Check-in button
+    // Check-in button \u2014 routes through easer-status 'arrived' (single source of truth)
     document.getElementById('checkin-btn').addEventListener('click', async function() {
       if (!selectedBookingId) return;
       this.disabled = true;
       this.textContent = 'Checking in\u2026';
       try {
-        const r = await fetch('/api/booking/checkin', {
+        const r = await fetch('/api/booking/easer-status', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedBookingId }),
+          body: JSON.stringify({ bookingId: selectedBookingId, stage: 'arrived' }),
         });
         const d = await r.json();
         if (d.ok) {
           document.getElementById('checkin-section').style.display = 'none';
           const banner = document.createElement('div');
           banner.className = 'checkin-banner';
-          banner.innerHTML = '&#10003; Checked in. The customer has been notified.';
+          banner.innerHTML = '&#10003; Arrived \u2014 customer notified.';
           document.getElementById('asgn-modal-body').appendChild(banner);
           const b = allAssignments.find(x => x.id === selectedBookingId);
-          if (b) b.checked_in_at = d.checkedInAt || new Date().toISOString();
+          if (b) { b.checked_in_at = new Date().toISOString(); b.status = 'arrived'; }
           const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
           renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf));
         } else {
@@ -533,7 +601,7 @@
     const b = allAssignments.find(x => x.id === bookingId);
     if (!b) return;
     selectedBookingId = bookingId;
-    const canCheckIn = b.status === 'confirmed' && b.assembler_accepted_at && !b.checked_in_at;
+    const canCheckIn = ['confirmed', 'en_route'].includes(b.status) && b.assembler_accepted_at && !b.checked_in_at && !b.en_route_at;
 
     const accepted = !!b.assembler_accepted_at;
     document.getElementById('asgn-modal-body').innerHTML = [
@@ -593,7 +661,7 @@
     completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
-    const canComplete2 = (b.status === 'confirmed' || b.status === 'en_route' || b.status === 'in_progress') && b.assembler_accepted_at && b.checked_in_at;
+    const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && b.assembler_accepted_at;
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
 
     // Pipeline status buttons — shown after acceptance
