@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -9,7 +10,18 @@ const SITE = 'https://www.assembleatease.com';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { action, userId, email } = req.body;
+  // Verify JWT — userId must come from the verified token, not the request body
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
+
+  const { action } = req.body;
+  // Always derive userId and email from the verified JWT — never trust the body
+  const userId = user.id;
+  const email  = user.email;
+
   if (!userId || !email) return res.status(400).json({ error: 'userId and email required' });
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);

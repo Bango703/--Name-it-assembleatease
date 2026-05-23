@@ -174,9 +174,6 @@
   <div class="modal-box">
     <button class="modal-close" id="asgn-modal-close">&#10005;</button>
     <div id="asgn-modal-body"></div>
-    <div id="checkin-section" style="display:none">
-      <button class="btn btn-teal" id="checkin-btn" style="width:100%;margin-bottom:1rem">&#128205; Check In — I've Arrived</button>
-    </div>
     <div id="complete-section" style="display:none">
       <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:0.75rem 1rem;font-size:0.8rem;color:#854d0e;margin-bottom:0.75rem;line-height:1.55">
         <strong>&#9888; Important:</strong> Only mark a job complete when the work is fully finished to the customer's satisfaction. Falsely marking a job as done before completion is a serious violation of our terms and will result in immediate account suspension.
@@ -319,6 +316,8 @@
     // ── Reconnect on visibility change (app returns from background) ──
     document.addEventListener('visibilitychange', async function() {
       if (document.visibilityState !== 'visible') return;
+      // Close any open modal to prevent stale data being visible after app wake
+      document.getElementById('asgn-modal').classList.remove('open');
       try {
         const tok = await getToken();
         const r = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + tok } });
@@ -362,7 +361,7 @@
         var r = await fetch('/api/booking/accept-dispatch', {
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await getToken())},
-          body: JSON.stringify({ bookingId: bookingId, token: token, assemblerId: auth.user.id }),
+          body: JSON.stringify({ bookingId: bookingId, token: token }),
         });
         var d = await r.json();
         if (r.ok && d.ok) {
@@ -418,31 +417,44 @@
     }
 
     // Realtime: live updates when a booking is assigned or status changes
+    // Debounce re-renders — ignore rapid successive updates from the same event
+    let _rtDebounce = null;
+    async function refreshAssignments(alertOnNew, oldPayload) {
+      try {
+        const r = await fetch('/api/booking/my-assignments', {
+          headers: { 'Authorization': 'Bearer ' + (await getToken()) },
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        allAssignments = d.bookings || [];
+        const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+        const filtered = cf === 'all' ? allAssignments : cf === 'confirmed' ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status)) : allAssignments.filter(b => b.status === cf);
+        renderAssignments(filtered);
+        if (alertOnNew) APP.showAlert('page-alert', '&#128276; You have been assigned a new booking!', 'success');
+      } catch {}
+    }
+
     const assignmentsChannel = supabaseClient
       .channel('assembler-assignments-' + auth.user.id)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'bookings', filter: 'assembler_id=eq.' + auth.user.id },
-        async (payload) => {
-          // Refresh the full assignments list
-          try {
-            const r = await fetch('/api/booking/my-assignments', {
-              headers: { 'Authorization': 'Bearer ' + (await getToken()) },
-            });
-            if (!r.ok) return;
-            const d = await r.json();
-            allAssignments = d.bookings || [];
-            const activeTab = document.querySelector('.filter-tab.active');
-            const cf = activeTab?.dataset.filter || 'all';
-            const filtered = cf === 'all' ? allAssignments : cf === 'confirmed' ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status)) : allAssignments.filter(b => b.status === cf);
-            renderAssignments(filtered);
-            // Alert on new assignment
-            if (payload.eventType === 'INSERT' || (payload.eventType === 'UPDATE' && payload.old?.assembler_id !== payload.new?.assembler_id)) {
-              APP.showAlert('page-alert', '&#128276; You have been assigned a new booking!', 'success');
-            }
-          } catch {}
+        (payload) => {
+          const isNewAssignment = payload.eventType === 'INSERT' ||
+            (payload.eventType === 'UPDATE' && payload.old?.assembler_id !== payload.new?.assembler_id);
+          clearTimeout(_rtDebounce);
+          _rtDebounce = setTimeout(() => refreshAssignments(isNewAssignment), 400);
         }
       )
-      .subscribe();
+      .on('system', {}, (status) => {
+        if (status === 'SUBSCRIBED') return;
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Realtime dropped — silently re-fetch once so list stays current
+          refreshAssignments(false);
+        }
+      })
+      .subscribe((status, err) => {
+        if (err) console.warn('Realtime subscription error:', err);
+      });
     window.addEventListener('beforeunload', () => assignmentsChannel.unsubscribe());
 
     // Card-level Accept / Decline event delegation
@@ -459,15 +471,18 @@
           const r = await fetch('/api/booking/accept-dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-            body: JSON.stringify({ bookingId: bid, token, assemblerId: auth.user.id }),
+            body: JSON.stringify({ bookingId: bid, token }),
           });
           const d = await r.json();
           if (!r.ok || d.error) {
-            APP.showAlert('page-alert', d.error || 'Could not accept — job may already be taken', 'error');
+            const msg = r.status === 409
+              ? 'This job was just accepted by another Easer.'
+              : (d.error || 'Could not accept — job may already be taken');
+            APP.showAlert('page-alert', msg, 'error');
             acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
             return;
           }
-          APP.showAlert('page-alert', '&#10003; Job accepted! Ref: ' + (d.ref || ''), 'success');
+          APP.showAlert('page-alert', '&#10003; Job accepted! Open the job card to see details.', 'success');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
         } catch {
@@ -542,40 +557,6 @@
       }
     });
 
-    // Check-in button \u2014 routes through easer-status 'arrived' (single source of truth)
-    document.getElementById('checkin-btn').addEventListener('click', async function() {
-      if (!selectedBookingId) return;
-      this.disabled = true;
-      this.textContent = 'Checking in\u2026';
-      try {
-        const r = await fetch('/api/booking/easer-status', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedBookingId, stage: 'arrived' }),
-        });
-        const d = await r.json();
-        if (d.ok) {
-          document.getElementById('checkin-section').style.display = 'none';
-          const banner = document.createElement('div');
-          banner.className = 'checkin-banner';
-          banner.innerHTML = '&#10003; Arrived \u2014 customer notified.';
-          document.getElementById('asgn-modal-body').appendChild(banner);
-          const b = allAssignments.find(x => x.id === selectedBookingId);
-          if (b) { b.checked_in_at = new Date().toISOString(); b.status = 'arrived'; }
-          const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
-          renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf));
-        } else {
-          APP.showAlert('page-alert', d.error || 'Check-in failed. Please try again.', 'error');
-          this.disabled = false;
-          this.textContent = 'Check In \u2014 Arrived';
-        }
-      } catch {
-        APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
-        this.disabled = false;
-        this.textContent = 'Check In \u2014 Arrived';
-      }
-    });
-
     // Message send
     document.getElementById('asgn-msg-send').addEventListener('click', sendMsg);
     document.getElementById('asgn-msg-input').addEventListener('keydown', function(e) {
@@ -603,8 +584,6 @@
     const b = allAssignments.find(x => x.id === bookingId);
     if (!b) return;
     selectedBookingId = bookingId;
-    const canCheckIn = ['confirmed', 'en_route'].includes(b.status) && b.assembler_accepted_at && !b.checked_in_at && !b.en_route_at;
-
     const accepted = !!b.assembler_accepted_at;
     document.getElementById('asgn-modal-body').innerHTML = [
       '<h3 style="margin:0 0 0.75rem;font-size:1.1rem">' + esc(b.service) + '</h3>',
@@ -658,14 +637,10 @@
       }
     }
 
-    const btn = document.getElementById('checkin-btn');
-    btn.disabled = false;
-    btn.innerHTML = '&#128205; Check In &mdash; I\'ve Arrived';
     const completeBtn = document.getElementById('complete-btn');
     completeBtn.disabled = false;
     completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
-    document.getElementById('checkin-section').style.display = canCheckIn ? 'block' : 'none';
     const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && b.assembler_accepted_at;
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
 
@@ -719,15 +694,23 @@
           const r = await fetch('/api/booking/accept-dispatch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-            body: JSON.stringify({ bookingId: b.id, token: useToken, assemblerId: auth.user.id }),
+            body: JSON.stringify({ bookingId: b.id, token: useToken }),
           });
           const d = await r.json();
-          if (!r.ok || d.error) { APP.showAlert('page-alert', d.error || 'Could not accept job — it may already be taken', 'error'); acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; return; }
-          document.getElementById('accept-job-section').innerHTML = '<div style="color:#059669;font-weight:600;padding:0.5rem 0">&#10003; Job accepted! Customer contact info is now visible.</div>';
-          // Refresh list
-          const { data: { session: s } } = await supabaseClient.auth.getSession();
-          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (s || session).access_token } });
-          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
+          if (!r.ok || d.error) {
+            APP.showAlert('page-alert', r.status === 409 ? 'This job was just accepted by another Easer.' : (d.error || 'Could not accept job — it may already be taken'), 'error');
+            acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; return;
+          }
+          // Refresh list and re-open modal with updated booking (shows contact info)
+          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+          if (resp.ok) {
+            const d2 = await resp.json();
+            allAssignments = d2.bookings || [];
+            renderAssignments(allAssignments);
+            // Re-open this booking detail so customer contact is immediately visible
+            openDetail(b.id);
+          }
+          APP.showAlert('page-alert', '&#10003; Job accepted! Customer contact info is now visible.', 'success');
         } catch(e) { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; }
       });
     }
@@ -761,12 +744,11 @@
             APP.showAlert('page-alert', d.error || 'Could not decline', 'error');
             declineBtn.disabled = false; declineBtn.textContent = 'Decline'; return;
           }
-          document.getElementById('accept-job-section').innerHTML =
-            '<div style="color:#6b7280;font-size:0.85rem;padding:0.5rem 0">Offer declined. You will not receive another offer for this job.</div>';
-          setTimeout(async function() {
-            const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-            if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
-          }, 1500);
+          // Close modal, refresh list
+          document.getElementById('asgn-modal').classList.remove('open');
+          APP.showAlert('page-alert', 'Offer declined.', 'info');
+          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
         } catch { APP.showAlert('page-alert', 'Connection error', 'error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }
       }
 

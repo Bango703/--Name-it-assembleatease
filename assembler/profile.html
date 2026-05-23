@@ -388,10 +388,14 @@
     // ── Membership UI ──────────────────────────────────────────────────
     (async function() {
       try {
+        const { data: { session: ms } } = await supabaseClient.auth.getSession();
+        const mToken = ms?.access_token || auth.session.access_token;
+        const mHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mToken };
+
         var mResp = await fetch('/api/assembler/membership', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'status', userId: user.id, email: user.email }),
+          headers: mHeaders,
+          body: JSON.stringify({ action: 'status' }),
         });
         var mData = await mResp.json();
         if (mData.active) {
@@ -403,9 +407,11 @@
           }
           document.getElementById('membership-portal-btn').addEventListener('click', async function() {
             this.disabled = true; this.textContent = 'Opening…';
+            const { data: { session: ps } } = await supabaseClient.auth.getSession();
             var r = await fetch('/api/assembler/membership', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'portal', userId: user.id, email: user.email }),
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ps?.access_token || mToken) },
+              body: JSON.stringify({ action: 'portal' }),
             });
             var d = await r.json();
             if (d.url) window.location.href = d.url;
@@ -416,9 +422,11 @@
           document.getElementById('membership-inactive').style.display = '';
           document.getElementById('membership-subscribe-btn').addEventListener('click', async function() {
             this.disabled = true; this.textContent = 'Loading…';
+            const { data: { session: ss } } = await supabaseClient.auth.getSession();
             var r = await fetch('/api/assembler/membership', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'subscribe', userId: user.id, email: user.email }),
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ss?.access_token || mToken) },
+              body: JSON.stringify({ action: 'subscribe' }),
             });
             var d = await r.json();
             if (d.url) window.location.href = d.url;
