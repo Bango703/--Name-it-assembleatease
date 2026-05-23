@@ -417,3 +417,57 @@ body {
   display: none;
 }
 .e-offline.show { display: block; }
+
+/* ── Period tabs (Earnings page) ─────────────────────────────────────── */
+.e-period-tabs {
+  display: flex;
+  background: var(--e-elevated); border-radius: 10px;
+  padding: 3px; margin-bottom: 1.25rem;
+}
+.e-period-tab {
+  flex: 1;
+  border: none; background: none; border-radius: 7px;
+  font-family: var(--e-font); font-size: 0.78rem; font-weight: 500;
+  color: var(--e-muted); cursor: pointer;
+  padding: 0.45rem 0.25rem; text-align: center;
+  white-space: nowrap; transition: all 0.15s;
+}
+.e-period-tab.active {
+  background: var(--e-surface); color: var(--e-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ── Stage progress track (active job cards in Jobs list) ────────────── */
+.e-stage-track {
+  display: flex; align-items: flex-start; margin-top: 0.7rem;
+}
+.e-stage-node { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; }
+.e-stage-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--e-border-md); transition: background 0.2s, box-shadow 0.2s;
+}
+.e-stage-dot.done    { background: var(--e-teal); }
+.e-stage-dot.current { background: var(--e-teal); box-shadow: 0 0 0 3px var(--e-teal-dim); }
+.e-stage-dot-label {
+  font-size: 0.6rem; color: var(--e-muted); white-space: nowrap;
+  line-height: 1;
+}
+.e-stage-dot-label.current { color: var(--e-teal); font-weight: 600; }
+.e-stage-line {
+  flex: 1; height: 2px; background: var(--e-border);
+  margin: 3px 2px 0; /* vertically center with dot centers */
+}
+.e-stage-line.done { background: var(--e-teal); }
+
+/* ── Offer alert banner (Home page) ──────────────────────────────────── */
+.e-offer-alert {
+  background: var(--e-amber-dim); border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 12px; padding: 0.875rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin-bottom: 1rem;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.e-offer-alert:active { opacity: 0.85; }
+.e-offer-alert-title { font-size: 0.875rem; font-weight: 600; color: #92400e; }
+.e-offer-alert-sub   { font-size: 0.75rem; color: #a16207; margin-top: 2px; }

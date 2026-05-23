@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Dashboard - AssembleAtEase</title>
+  <title>Home — AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <!-- PWA -->
@@ -198,6 +198,15 @@
         <a href="/assembler/profile" class="topbar-btn primary" id="profile-banner-cta" style="flex-shrink:0;font-size:0.78rem">Complete Profile</a>
       </div>
 
+      <!-- ── PENDING OFFER ALERT ──────────────────────────────────── -->
+      <a href="/assembler/my-assignments" class="e-offer-alert" id="offer-alert" style="display:none">
+        <div>
+          <div class="e-offer-alert-title" id="offer-alert-title">Job offer waiting</div>
+          <div class="e-offer-alert-sub" id="offer-alert-sub">Tap to view and accept — offer expires soon</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+
       <!-- ── ACTIVE JOB HERO ────────────────────────────────────────── -->
       <!-- Shows prominently when Easer has a live job (en_route/arrived/in_progress) -->
       <div class="active-job-hero" id="active-job-hero">
@@ -256,7 +265,7 @@
 <nav class="easer-nav">
   <a href="/assembler/" class="easer-nav-item active">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span>Dashboard</span>
+    <span>Home</span>
   </a>
   <a href="/assembler/my-assignments" class="easer-nav-item">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -264,7 +273,7 @@
   </a>
   <a href="/assembler/payouts" class="easer-nav-item">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    <span>Payouts</span>
+    <span>Earnings</span>
   </a>
   <a href="/assembler/profile" class="easer-nav-item">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -351,15 +360,15 @@
     var tsBanner=document.getElementById('tier-status-banner');
     if(profile.status==='pending'){
       tsBanner.classList.remove('hidden');
-      document.getElementById('tier-status-icon').innerHTML='&#9202;';
+      document.getElementById('tier-status-icon').innerHTML='';
       document.getElementById('tier-status-title').textContent='Your application is under review';
       document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
     } else if(profile.status==='active' && profile.tier==='starter' && profile.completed_jobs===0){
       tsBanner.classList.remove('hidden');
       tsBanner.style.background='rgba(0,151,167,0.06)';
       tsBanner.style.borderColor='rgba(0,151,167,0.15)';
-      document.getElementById('tier-status-icon').innerHTML='&#127881;';
-      document.getElementById('tier-status-title').textContent='Welcome to AssembleAtEase! You are approved and ready to receive jobs.';
+      document.getElementById('tier-status-icon').innerHTML='';
+      document.getElementById('tier-status-title').textContent='Welcome to AssembleAtEase — you are approved and ready to receive jobs.';
       document.getElementById('tier-status-sub').textContent='Complete your profile and we will start assigning jobs to you.';
     }
 
@@ -444,8 +453,18 @@
     // Categorise
     var liveStatuses  = ['en_route', 'arrived', 'in_progress'];
     var liveJobs      = allBookings.filter(function(b){ return liveStatuses.includes(b.status); });
-    var upcomingJobs  = allBookings.filter(function(b){ return b.status === 'confirmed' && b.assembler_accepted_at; });
+    var pendingOffers = allBookings.filter(function(b){ return b._is_pending_offer; });
+    var upcomingJobs  = allBookings.filter(function(b){ return b.status === 'confirmed' && b.assembler_accepted_at && !b._is_pending_offer; });
     var completedJobs = allBookings.filter(function(b){ return b.status === 'completed'; });
+
+    // Pending offer alert banner
+    if (pendingOffers.length > 0) {
+      var offerAlert = document.getElementById('offer-alert');
+      var n = pendingOffers.length;
+      document.getElementById('offer-alert-title').textContent = n === 1 ? 'Job offer waiting' : n + ' job offers waiting';
+      document.getElementById('offer-alert-sub').textContent   = n === 1 ? 'Tap to view and accept — offer expires soon' : 'Tap to view and accept your offers';
+      offerAlert.style.display = '';
+    }
 
     // ── Active job hero ──────────────────────────────────────────────
     var hero = document.getElementById('active-job-hero');
@@ -616,7 +635,7 @@
     banner.id = 'push-banner';
     banner.style.cssText = 'position:fixed;bottom:1rem;left:1rem;right:1rem;background:#0d1117;color:#fff;border-radius:14px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-wrap:wrap';
     banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">'
-      + '<span style="font-size:1.4rem">🔔</span>'
+      + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.75" style="flex-shrink:0"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
       + '<div><div style="font-size:0.875rem;font-weight:700;color:#fff">Get instant job alerts</div>'
       + '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:1px">Tap allow so we can notify you the second a job is assigned</div></div>'
       + '</div>'

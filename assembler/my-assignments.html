@@ -147,7 +147,7 @@
 
 <header class="easer-header">
   <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title">My Assignments</div>
+  <div class="easer-header-title">Jobs</div>
   <div class="easer-header-right">
     <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
   </div>
@@ -158,8 +158,9 @@
 
   <div class="filter-tabs" id="filter-tabs">
     <button class="filter-tab active" data-filter="all">All</button>
-    <button class="filter-tab" data-filter="confirmed">Active</button>
-    <button class="filter-tab" data-filter="completed">Completed</button>
+    <button class="filter-tab" data-filter="offers">Offers</button>
+    <button class="filter-tab" data-filter="active">Active</button>
+    <button class="filter-tab" data-filter="completed">Done</button>
   </div>
 
   <div id="assignments-list">
@@ -220,6 +221,34 @@
   }
 
   const ACTIVE_STATUSES = ['confirmed', 'en_route', 'arrived', 'in_progress'];
+  const LIVE_STATUSES   = ['en_route', 'arrived', 'in_progress'];
+
+  function filterList(list, filter) {
+    if (filter === 'offers')   return list.filter(function(b){ return b._is_pending_offer; });
+    if (filter === 'active')   return list.filter(function(b){ return LIVE_STATUSES.includes(b.status); });
+    if (filter === 'completed') return list.filter(function(b){ return b.status === 'completed'; });
+    return list; // 'all'
+  }
+
+  function renderStageTrack(b) {
+    var st = b.status;
+    var stageOrder = ['en_route', 'arrived', 'in_progress'];
+    var idx = stageOrder.indexOf(st);
+    var stages = [{ key: 'en_route', label: 'En Route' }, { key: 'arrived', label: 'Arrived' }, { key: 'in_progress', label: 'Working' }];
+    var html = '<div class="e-stage-track">';
+    stages.forEach(function(s, i) {
+      var sIdx = stageOrder.indexOf(s.key);
+      var isDone    = idx > sIdx;
+      var isCurrent = idx === sIdx;
+      html += '<div class="e-stage-node">'
+        + '<div class="e-stage-dot' + (isCurrent ? ' current' : isDone ? ' done' : '') + '"></div>'
+        + '<div class="e-stage-dot-label' + (isCurrent ? ' current' : '') + '">' + s.label + '</div>'
+        + '</div>';
+      if (i < stages.length - 1) html += '<div class="e-stage-line' + (idx > sIdx ? ' done' : '') + '"></div>';
+    });
+    html += '</div>';
+    return html;
+  }
 
   const STAGE_BADGE = {
     completed:   { cls: 'bk-completed', label: 'Completed' },
@@ -242,6 +271,7 @@
       const badgeClass  = 'sb ' + stageMeta.cls;
       const badgeText   = stageMeta.label;
 
+      const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
       return '<div class="asgn-card" style="cursor:pointer" onclick="openDetail(\'' + b.id + '\')">' +
         '<div class="asgn-card-top">' +
           '<div>' +
@@ -254,19 +284,18 @@
           '</div>' +
           '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
         '</div>' +
+        (isLive ? renderStageTrack(b) : '') +
         '<div class="asgn-card-footer">' +
           '<span>Ref: <code>' + esc(b.ref) + '</code></span>' +
           (b.address ? '<span>' + esc(b.address) + '</span>' : '') +
           (isCompleted && b.completed_at ? '<span>Done ' + timeAgo(b.completed_at) + '</span>' : '') +
-          (!isCompleted && b.assigned_at ? '<span>Assigned ' + timeAgo(b.assigned_at) + '</span>' : '') +
-          (b.checked_in_at ? '<span style="color:#059669">&#10003; Checked in ' + timeAgo(b.checked_in_at) + '</span>' : '') +
-          (!isCompleted && b.assembler_accepted_at && !b.checked_in_at ? '<span style="color:var(--pro-teal)">Tap to check in &rarr;</span>' : '') +
+          (!isCompleted && !isLive && b.assigned_at ? '<span>Assigned ' + timeAgo(b.assigned_at) + '</span>' : '') +
         '</div>' +
         // Offer actions row — shown for unaccepted dispatch/assignment offers
         (!b.assembler_accepted_at && (b._offer_token || b.assignment_token) ?
           '<div style="padding:0.75rem 0 0;border-top:1px solid var(--pro-border);margin-top:0.25rem">' +
-            (b._offer_expires_at ? '<div style="font-size:0.78rem;color:#92400e;margin-bottom:0.5rem">&#9201; Offer expires in <strong id="cc-' + b.id + '">—</strong></div>' : '') +
-            (b._custom_quote ? '<div style="font-size:0.78rem;color:var(--pro-muted);margin-bottom:0.5rem">&#128176; Custom quote — price set after review</div>' :
+            (b._offer_expires_at ? '<div style="font-size:0.78rem;color:#92400e;margin-bottom:0.5rem;display:flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Offer expires in <strong id="cc-' + b.id + '">—</strong></div>' : '') +
+            (b._custom_quote ? '<div style="font-size:0.78rem;color:var(--pro-muted);margin-bottom:0.5rem">Custom quote — price set after review</div>' :
               (b._pay_estimate_lo ? '<div style="font-size:0.78rem;color:var(--pro-teal);margin-bottom:0.5rem">Est. pay: <strong>$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong></div>' : '')) +
             '<div style="display:flex;gap:0.5rem">' +
               '<button class="card-accept-btn btn btn-teal" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '" style="flex:1;font-size:0.875rem;padding:0.6rem 0.5rem;font-weight:600" onclick="event.stopPropagation()">&#10003; Accept</button>' +
@@ -325,7 +354,7 @@
         const d = await r.json();
         allAssignments = d.bookings || [];
         const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
-        renderAssignments(cf === 'all' ? allAssignments : cf === 'confirmed' ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status)) : allAssignments.filter(b => b.status === cf));
+        renderAssignments(filterList(allAssignments, cf));
       } catch {}
     });
 
@@ -392,12 +421,7 @@
       document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       currentFilter = tab.dataset.filter;
-      const filtered = currentFilter === 'all'
-        ? allAssignments
-        : currentFilter === 'confirmed'
-          ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status))
-          : allAssignments.filter(b => b.status === currentFilter);
-      renderAssignments(filtered);
+      renderAssignments(filterList(allAssignments, currentFilter));
     });
 
     try {
@@ -428,9 +452,8 @@
         const d = await r.json();
         allAssignments = d.bookings || [];
         const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
-        const filtered = cf === 'all' ? allAssignments : cf === 'confirmed' ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status)) : allAssignments.filter(b => b.status === cf);
-        renderAssignments(filtered);
-        if (alertOnNew) APP.showAlert('page-alert', '&#128276; You have been assigned a new booking!', 'success');
+        renderAssignments(filterList(allAssignments, cf));
+        if (alertOnNew) APP.showAlert('page-alert', 'You have been assigned a new booking!', 'success');
       } catch {}
     }
 
@@ -589,25 +612,25 @@
       '<h3 style="margin:0 0 0.75rem;font-size:1.1rem">' + esc(b.service) + '</h3>',
       b.checked_in_at ? '<div class="checkin-banner">&#10003; Checked in at ' + new Date(b.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div>' : '',
       '<div style="font-size:0.875rem;color:var(--pro-muted);display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem">',
-        b.date ? '<span>&#128197; ' + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') + '</span>' : '',
-        b.address ? '<span>&#128205; ' + esc(b.address) + '</span>' : '',
+        b.date ? '<span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') + '</span>' : '',
+        b.address ? '<span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</span>' : '',
         // Customer contact — only shown after Easer has accepted
-        accepted && b.customer_phone ? '<span style="color:var(--pro-text);font-weight:500">&#128222; <a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_phone) + '</a></span>' : '',
-        accepted && b.customer_email ? '<span>&#9993; <a href="mailto:' + esc(b.customer_email) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_email) + '</a></span>' : '',
-        b.details ? '<span>&#128221; ' + esc(b.details) + '</span>' : '',
+        accepted && b.customer_phone ? '<span style="color:var(--pro-text);font-weight:500;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_phone) + '</a></span>' : '',
+        accepted && b.customer_email ? '<span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><a href="mailto:' + esc(b.customer_email) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_email) + '</a></span>' : '',
+        b.details ? '<span style="display:flex;align-items:flex-start;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' + esc(b.details) + '</span>' : '',
         '<span style="color:var(--pro-muted);font-size:0.78rem">Ref: ' + esc(b.ref) + '</span>',
       '</div>',
       // Pay estimate or custom quote notice — shown before accepting
       (!accepted && (b._pay_estimate_lo || b._custom_quote)) ? '<div style="background:rgba(0,151,167,0.07);border:1px solid rgba(0,151,167,0.2);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem">'
         + (b._custom_quote
-          ? '<span style="color:var(--pro-text)">&#128176; </span><strong style="color:var(--pro-teal)">Custom quote</strong><span style="color:var(--pro-muted);font-size:0.75rem"> — owner sets price after reviewing the job</span>'
+          ? '<strong style="color:var(--pro-teal)">Custom quote</strong><span style="color:var(--pro-muted);font-size:0.75rem"> — owner sets price after reviewing the job</span>'
           : '<span style="color:var(--pro-text)">Est. pay: </span>'
             + '<strong style="color:var(--pro-teal)">$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong>'
             + '<span style="color:var(--pro-muted);font-size:0.75rem"> (' + (b._fee_pct||25) + '% platform fee)</span>')
         + '</div>' : '',
       // Offer expiry countdown
       (!accepted && b._offer_expires_at) ? '<div id="offer-timer-box-' + b.id + '" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem;display:flex;align-items:center;gap:6px">'
-        + '<span style="font-size:0.9rem">&#9201;</span>'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
         + '<span style="color:#92400e">Offer expires in <strong id="offer-countdown-' + b.id + '">—</strong></span></div>' : '',
       // Accept/Decline buttons for dispatch or assignment offers
       !accepted && (b.assignment_token || b._offer_token) ? '<div id="accept-job-section" style="display:flex;gap:0.5rem;margin-bottom:1rem">'
@@ -679,8 +702,8 @@
         pipeline.appendChild(btn2);
       });
       if (pipeline.children.length) {
-        const checkinSection = document.getElementById('checkin-section');
-        checkinSection.parentNode.insertBefore(pipeline, checkinSection);
+        const completeSection = document.getElementById('complete-section');
+        if (completeSection) completeSection.parentNode.insertBefore(pipeline, completeSection);
       }
     }
 
@@ -783,7 +806,7 @@
 <nav class="easer-nav">
   <a href="/assembler/" class="easer-nav-item">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span>Dashboard</span>
+    <span>Home</span>
   </a>
   <a href="/assembler/my-assignments" class="easer-nav-item active">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -791,7 +814,7 @@
   </a>
   <a href="/assembler/payouts" class="easer-nav-item">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    <span>Payouts</span>
+    <span>Earnings</span>
   </a>
   <a href="/assembler/profile" class="easer-nav-item">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
