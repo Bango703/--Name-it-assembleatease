@@ -30,9 +30,17 @@ export default async function handler(req, res) {
   const ACTIVE_STATUSES   = ['confirmed', 'en_route', 'arrived', 'in_progress'];
   const VISIBLE_STATUSES  = [...ACTIVE_STATUSES, 'completed'];
 
+  // Look up the Easer's membership status from their profile (not on the booking record)
+  const { data: easerProfile } = await sb
+    .from('profiles')
+    .select('has_membership')
+    .eq('id', user.id)
+    .single();
+  const easerIsMember = easerProfile?.has_membership === true;
+
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, assignment_token, has_membership, total_price')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, assignment_token, total_price')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -84,7 +92,7 @@ export default async function handler(req, res) {
   (bookings || []).forEach(b => {
     const price = Number(b.amount_charged || b.total_price) || 0;
     if (price > 0) {
-      const feePct     = b.has_membership ? 18 : 25;
+      const feePct     = easerIsMember ? 18 : 25;
       const payout     = Math.round(price * (1 - feePct / 100));
       b._pay_estimate_lo = payout; // exact match to actual payout formula
       b._pay_estimate_hi = payout;

@@ -219,6 +219,16 @@
     return days + 'd ago';
   }
 
+  const ACTIVE_STATUSES = ['confirmed', 'en_route', 'arrived', 'in_progress'];
+
+  const STAGE_BADGE = {
+    completed:   { cls: 'bk-completed', label: 'Completed' },
+    in_progress: { cls: 'bk-in-progress', label: 'In Progress' },
+    arrived:     { cls: 'bk-arrived',     label: 'Arrived' },
+    en_route:    { cls: 'bk-en-route',    label: 'On the Way' },
+    confirmed:   { cls: 'bk-accepted',    label: 'Accepted' },
+  };
+
   function renderAssignments(list) {
     const el = document.getElementById('assignments-list');
     if (!list || !list.length) {
@@ -228,9 +238,9 @@
     el.innerHTML = list.map(function(b) {
       const customerFirst = (b.customer_name || 'Customer').split(' ')[0];
       const isCompleted = b.status === 'completed';
-      const isActive = b.status === 'confirmed';
-      const badgeClass = isCompleted ? 'sb bk-completed' : (b.assembler_accepted_at ? 'sb bk-accepted' : 'sb bk-dispatched');
-      const badgeText = isCompleted ? 'Completed' : (b.assembler_accepted_at ? 'Accepted' : 'Pending Response');
+      const stageMeta   = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls: 'bk-dispatched', label: 'Pending Response' });
+      const badgeClass  = 'sb ' + stageMeta.cls;
+      const badgeText   = stageMeta.label;
 
       return '<div class="asgn-card" style="cursor:pointer" onclick="openDetail(\'' + b.id + '\')">' +
         '<div class="asgn-card-top">' +
@@ -285,7 +295,7 @@
         const d = await r.json();
         allAssignments = d.bookings || [];
         const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
-        renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(b => b.status === cf));
+        renderAssignments(cf === 'all' ? allAssignments : cf === 'confirmed' ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status)) : allAssignments.filter(b => b.status === cf));
       } catch {}
     });
 
@@ -354,7 +364,9 @@
       currentFilter = tab.dataset.filter;
       const filtered = currentFilter === 'all'
         ? allAssignments
-        : allAssignments.filter(b => b.status === currentFilter);
+        : currentFilter === 'confirmed'
+          ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status))
+          : allAssignments.filter(b => b.status === currentFilter);
       renderAssignments(filtered);
     });
 
@@ -390,7 +402,7 @@
             allAssignments = d.bookings || [];
             const activeTab = document.querySelector('.filter-tab.active');
             const cf = activeTab?.dataset.filter || 'all';
-            const filtered = cf === 'all' ? allAssignments : allAssignments.filter(b => b.status === cf);
+            const filtered = cf === 'all' ? allAssignments : cf === 'confirmed' ? allAssignments.filter(b => ACTIVE_STATUSES.includes(b.status)) : allAssignments.filter(b => b.status === cf);
             renderAssignments(filtered);
             // Alert on new assignment
             if (payload.eventType === 'INSERT' || (payload.eventType === 'UPDATE' && payload.old?.assembler_id !== payload.new?.assembler_id)) {

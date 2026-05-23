@@ -4,13 +4,34 @@
   <meta charset="UTF-8" />
   <title>My Payouts — AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AE Easer" />
+  <meta name="theme-color" content="#0097a7" />
+  <link rel="apple-touch-icon" href="/images/logo.jpg" />
   <style>body{visibility:hidden}</style>
-  <link rel="stylesheet" href="../assets/css/style.css" />
+  <link rel="stylesheet" href="../assets/css/easer.css" />
+  <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <style>
+    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#0097a7;--pro-teal-dim:rgba(0,151,167,0.08);--teal:#0097a7}
+    .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
+    .logout-link:hover{color:var(--e-text)}
+
+    body.theme-pro .summary-bar {
+      background: var(--pro-surface); border: 1px solid var(--pro-border);
+      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+    }
+    body.theme-pro .summary-stat { text-align: center; }
+    body.theme-pro .summary-stat-value { font-size: 1.5rem; font-weight: 700; color: var(--pro-text); }
+    body.theme-pro .summary-stat-label { font-size: 0.75rem; color: var(--pro-muted); margin-top: 2px; }
+
     body.theme-pro .payout-card {
       background: var(--pro-surface); border: 1px solid var(--pro-border);
       border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 0.75rem;
@@ -30,57 +51,53 @@
     body.theme-pro .payout-amount-value { font-weight: 600; color: var(--pro-text); }
     body.theme-pro .payout-amount-value.green { color: #059669; }
     body.theme-pro .payout-amount-value.red { color: #dc2626; }
-    body.theme-pro .summary-bar {
-      background: var(--pro-surface); border: 1px solid var(--pro-border);
-      border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
-    }
-    body.theme-pro .summary-stat { text-align: center; }
-    body.theme-pro .summary-stat-value { font-size: 1.5rem; font-weight: 700; color: var(--pro-text); }
-    body.theme-pro .summary-stat-label { font-size: 0.75rem; color: var(--pro-muted); margin-top: 2px; }
   </style>
 </head>
 <body class="theme-pro">
-<div class="dashboard-layout">
-  <aside class="sidebar">
-    <a href="../" class="sidebar-logo">Assemble<span>AtEase</span></a>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Workspace</div>
-      <ul class="sidebar-nav">
-        <li><a href="/assembler/"><span class="nav-icon">&#9889;</span> Dashboard</a></li>
-        <li><a href="/assembler/my-assignments"><span class="nav-icon">&#128197;</span> My Assignments</a></li>
-        <li><a href="/assembler/payouts" class="active"><span class="nav-icon">&#128176;</span> Payouts</a></li>
-      </ul>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Account</div>
-      <ul class="sidebar-nav">
-        <li><a href="/assembler/profile"><span class="nav-icon">&#128100;</span> My Profile</a></li>
-        <li><a href="#" id="sidebar-logout"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:currentColor;vertical-align:middle"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg></span> Log out</a></li>
-      </ul>
-    </div>
-  </aside>
 
-  <main class="dashboard-main" style="padding:2rem">
-    <div class="page-header" style="margin-bottom:1.5rem">
-      <div>
-        <h1 style="font-size:1.5rem;font-weight:600;margin:0 0 0.25rem">My Payouts</h1>
-        <p style="font-size:0.875rem;color:var(--pro-muted);margin:0">Earnings breakdown for completed jobs.</p>
-      </div>
-    </div>
+<div class="e-offline" id="e-offline">No connection — updates paused</div>
 
-    <div id="page-alert" class="alert hidden"></div>
-    <div class="summary-bar" id="summary-bar">
-      <div class="summary-stat"><div class="skeleton" style="height:40px"></div></div>
-      <div class="summary-stat"><div class="skeleton" style="height:40px"></div></div>
-      <div class="summary-stat"><div class="skeleton" style="height:40px"></div></div>
-    </div>
-    <div id="payouts-list">
-      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
-      <div class="skeleton-card"><div class="skeleton" style="height:80px"></div></div>
-    </div>
-  </main>
+<header class="easer-header">
+  <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
+  <div class="easer-header-title">My Payouts</div>
+  <div class="easer-header-right">
+    <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
+  </div>
+</header>
+
+<div class="easer-page">
+  <div id="page-alert" class="alert hidden"></div>
+
+  <div class="summary-bar" id="summary-bar">
+    <div class="summary-stat"><div class="e-skeleton" style="height:40px"></div></div>
+    <div class="summary-stat"><div class="e-skeleton" style="height:40px"></div></div>
+    <div class="summary-stat"><div class="e-skeleton" style="height:40px"></div></div>
+  </div>
+
+  <div id="payouts-list">
+    <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
+    <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
+  </div>
 </div>
+
+<nav class="easer-nav">
+  <a href="/assembler/" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="/assembler/my-assignments" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Jobs</span>
+  </a>
+  <a href="/assembler/payouts" class="easer-nav-item active">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <span>Payouts</span>
+  </a>
+  <a href="/assembler/profile" class="easer-nav-item">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </a>
+</nav>
 
 <script>
   function fmt(cents) {
@@ -102,6 +119,11 @@
     document.body.style.visibility = 'visible';
     const session = auth.session;
 
+    // Offline / online detection
+    var offlineBanner = document.getElementById('e-offline');
+    window.addEventListener('offline', function() { if (offlineBanner) offlineBanner.classList.add('show'); });
+    window.addEventListener('online',  function() { if (offlineBanner) offlineBanner.classList.remove('show'); });
+
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
       await supabaseClient.auth.signOut();
@@ -118,10 +140,9 @@
       const data = await resp.json();
       const completed = (data.bookings || []).filter(function(b) { return b.status === 'completed'; });
 
-      // Summary
-      var totalEarned = completed.reduce(function(s, b) { return s + (b.assembler_due || 0); }, 0);
-      var totalCharged = completed.reduce(function(s, b) { return s + (b.amount_charged || 0); }, 0);
-      var totalFees = completed.reduce(function(s, b) { return s + (b.platform_fee || 0); }, 0);
+      // Summary stats
+      var totalEarned  = completed.reduce(function(s, b) { return s + (b.assembler_due || 0); }, 0);
+      var totalFees    = completed.reduce(function(s, b) { return s + (b.platform_fee || 0); }, 0);
 
       document.getElementById('summary-bar').innerHTML =
         '<div class="summary-stat"><div class="summary-stat-value" style="color:#059669">' + fmt(totalEarned) + '</div><div class="summary-stat-label">Total Earned</div></div>' +
@@ -130,7 +151,7 @@
 
       const list = document.getElementById('payouts-list');
       if (!completed.length) {
-        list.innerHTML = '<div class="pro-empty"><p>No completed jobs yet. Payouts will appear here once you mark jobs as complete.</p></div>';
+        list.innerHTML = '<div class="e-empty"><div class="e-empty-title">No payouts yet</div><div class="e-empty-desc">Payouts will appear here once you mark a job as complete.</div></div>';
         return;
       }
 
@@ -142,7 +163,7 @@
               '<h3>' + esc(b.service || 'Service') + '</h3>' +
               '<div class="payout-card-meta">' + esc(b.ref) + ' &bull; Completed ' + fmtDate(b.completed_at) + '</div>' +
             '</div>' +
-            '<span class="badge badge-complete">Completed</span>' +
+            '<span class="sb bk-completed">Completed</span>' +
           '</div>' +
           '<div class="payout-amounts">' +
             '<div class="payout-amount-item"><div class="payout-amount-label">Job Total</div><div class="payout-amount-value">' + fmt(b.amount_charged) + '</div></div>' +
@@ -154,7 +175,7 @@
 
     } catch (err) {
       document.getElementById('payouts-list').innerHTML =
-        '<div class="pro-error">&#9888; Could not load payout history. Please refresh.</div>';
+        '<div class="e-alert error show">&#9888; Could not load payout history. Please refresh.</div>';
     }
   });
 </script>
