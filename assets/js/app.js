@@ -43,7 +43,8 @@ const APP = {
     const auth = await this.getAuth();
 
     if (!auth) {
-      window.location.href = '/auth/login';
+      const returnTo = window.location.pathname + window.location.search + window.location.hash;
+      window.location.href = '/auth/login?return=' + encodeURIComponent(returnTo);
       return null;
     }
 

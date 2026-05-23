@@ -310,9 +310,9 @@ function extractZip(address) {
 // ── Offer email ───────────────────────────────────────────────────────────────
 function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt) {
   const firstName   = (easer.full_name || 'there').split(' ')[0];
-  const payEstimate = booking.total_price
+  const payEstimate = booking.total_price > 0
     ? '$' + Math.round((booking.total_price / 100) * (easer.has_membership ? 0.82 : 0.75)).toLocaleString() + '–$' + Math.round((booking.total_price / 100) * (easer.has_membership ? 0.85 : 0.78)).toLocaleString()
-    : null;
+    : 'Custom quote — price set by owner after review';
   const expiryMin   = Math.round((new Date(expiresAt) - Date.now()) / 60000);
   const tierLabel   = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[easer.tier] || easer.tier;
 
@@ -329,7 +329,7 @@ function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt)
         <p style="margin:0 0 8px;font-size:1.05rem;font-weight:700;color:#111">${esc(booking.service)}</p>
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Location: ${esc(city)}</p>
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date || 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
-        ${payEstimate ? `<p style="margin:8px 0 0;font-size:0.95rem;font-weight:700;color:#0097a7">Est. pay: ${payEstimate}</p>` : ''}
+        <p style="margin:8px 0 0;font-size:0.95rem;font-weight:${booking.total_price > 0 ? '700' : '500'};color:#0097a7">Est. pay: ${payEstimate}</p>
       </div>
       <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
         <span style="font-size:1rem">⏱</span>

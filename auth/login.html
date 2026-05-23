@@ -305,8 +305,13 @@
           return;
         }
 
-        window.location.href = profile.role === 'assembler' ? '/assembler/'
-          : profile.role === 'owner' ? '/owner/' : '/';
+        const returnTo = new URLSearchParams(window.location.search).get('return');
+        if (returnTo && returnTo.startsWith('/')) {
+          window.location.href = returnTo;
+        } else {
+          window.location.href = profile.role === 'assembler' ? '/assembler/'
+            : profile.role === 'owner' ? '/owner/' : '/';
+        }
 
       } catch (err) {
         console.error('Login error:', err);

@@ -241,7 +241,7 @@
     el.innerHTML = list.map(function(b) {
       const customerFirst = (b.customer_name || 'Customer').split(' ')[0];
       const isCompleted = b.status === 'completed';
-      const stageMeta   = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls: 'bk-dispatched', label: 'Pending Response' });
+      const stageMeta   = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : (b._is_pending_offer ? { cls: 'bk-dispatched', label: 'Offer Pending' } : { cls: 'bk-dispatched', label: 'Pending Response' }));
       const badgeClass  = 'sb ' + stageMeta.cls;
       const badgeText   = stageMeta.label;
 
@@ -269,6 +269,8 @@
         (!b.assembler_accepted_at && (b._offer_token || b.assignment_token) ?
           '<div style="padding:0.75rem 0 0;border-top:1px solid var(--pro-border);margin-top:0.25rem">' +
             (b._offer_expires_at ? '<div style="font-size:0.78rem;color:#92400e;margin-bottom:0.5rem">&#9201; Offer expires in <strong id="cc-' + b.id + '">—</strong></div>' : '') +
+            (b._custom_quote ? '<div style="font-size:0.78rem;color:var(--pro-muted);margin-bottom:0.5rem">&#128176; Custom quote — price set after review</div>' :
+              (b._pay_estimate_lo ? '<div style="font-size:0.78rem;color:var(--pro-teal);margin-bottom:0.5rem">Est. pay: <strong>$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong></div>' : '')) +
             '<div style="display:flex;gap:0.5rem">' +
               '<button class="card-accept-btn btn btn-teal" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '" style="flex:1;font-size:0.875rem;padding:0.6rem 0.5rem;font-weight:600" onclick="event.stopPropagation()">&#10003; Accept</button>' +
               (b._offer_token ? '<button class="card-decline-btn btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '" style="font-size:0.875rem;padding:0.6rem 1rem;color:var(--pro-muted)" onclick="event.stopPropagation()">Decline</button>' : '') +
@@ -616,11 +618,14 @@
         b.details ? '<span>&#128221; ' + esc(b.details) + '</span>' : '',
         '<span style="color:var(--pro-muted);font-size:0.78rem">Ref: ' + esc(b.ref) + '</span>',
       '</div>',
-      // Pay estimate — shown before accepting
-      (!accepted && b.total_price && b._pay_estimate_lo) ? '<div style="background:rgba(0,151,167,0.07);border:1px solid rgba(0,151,167,0.2);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem">'
-        + '<span style="color:var(--pro-text)">Est. pay: </span>'
-        + '<strong style="color:var(--pro-teal)">$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong>'
-        + '<span style="color:var(--pro-muted);font-size:0.75rem"> (' + (b._fee_pct||25) + '% platform fee)</span></div>' : '',
+      // Pay estimate or custom quote notice — shown before accepting
+      (!accepted && (b._pay_estimate_lo || b._custom_quote)) ? '<div style="background:rgba(0,151,167,0.07);border:1px solid rgba(0,151,167,0.2);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem">'
+        + (b._custom_quote
+          ? '<span style="color:var(--pro-text)">&#128176; </span><strong style="color:var(--pro-teal)">Custom quote</strong><span style="color:var(--pro-muted);font-size:0.75rem"> — owner sets price after reviewing the job</span>'
+          : '<span style="color:var(--pro-text)">Est. pay: </span>'
+            + '<strong style="color:var(--pro-teal)">$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong>'
+            + '<span style="color:var(--pro-muted);font-size:0.75rem"> (' + (b._fee_pct||25) + '% platform fee)</span>')
+        + '</div>' : '',
       // Offer expiry countdown
       (!accepted && b._offer_expires_at) ? '<div id="offer-timer-box-' + b.id + '" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem;display:flex;align-items:center;gap:6px">'
         + '<span style="font-size:0.9rem">&#9201;</span>'
