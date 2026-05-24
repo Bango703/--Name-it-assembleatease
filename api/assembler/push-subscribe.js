@@ -1,10 +1,5 @@
 import { getSupabase } from '../_supabase.js';
 
-/**
- * POST /api/assembler/push-subscribe
- * Save or delete a push subscription for the authenticated Easer.
- * Body: { userId, subscription } to save, { userId, endpoint } to delete.
- */
 export default async function handler(req, res) {
   try {
   if (req.method === 'GET') {
@@ -15,8 +10,21 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { userId, subscription, action } = req.body;
-  if (!userId) return res.status(400).json({ error: 'userId required' });
+  // Require Bearer JWT — userId from token, never from body
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Authentication required' });
+
+  const sb = getSupabase();
+  const { data: { user }, error: authErr } = await sb.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
+
+  // Verify Easer role
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle();
+  if (!profile || profile.role !== 'assembler') return res.status(403).json({ error: 'Forbidden' });
+
+  const userId = user.id;
+  const { subscription, action } = req.body;
 
   const sb = getSupabase();
 

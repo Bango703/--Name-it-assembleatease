@@ -687,7 +687,7 @@
 <script>
 (function(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
-  var _swReg=null, _userId=null;
+  var _swReg=null, _userId=null, _swToken=null;
 
   navigator.serviceWorker.register('/sw.js',{scope:'/assembler/'}).then(function(reg){
     _swReg=reg;
@@ -700,6 +700,7 @@
       var session=result.data&&result.data.session;
       if(!session) return;
       _userId=session.user.id;
+      _swToken=session.access_token;
       var permission=Notification.permission;
       if(permission==='granted') subscribePush();
       else if(permission==='default') showPushBanner();
@@ -726,14 +727,14 @@
   }
 
   async function subscribePush(){
-    if(!_swReg||!_userId) return;
+    if(!_swReg||!_swToken) return;
     try{
       var r=await fetch('/api/assembler/push-subscribe');
       if(!r.ok) return;
       var d=await r.json();
       if(!d.publicKey) return;
       var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(d.publicKey)});
-      await fetch('/api/assembler/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:_userId,subscription:sub.toJSON()})});
+      await fetch('/api/assembler/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_swToken},body:JSON.stringify({subscription:sub.toJSON()})});
     }catch(e){console.warn('Push:',e);}
   }
 

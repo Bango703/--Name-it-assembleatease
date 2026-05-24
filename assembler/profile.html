@@ -535,9 +535,14 @@
       finally { btn.disabled = false; btn.textContent = 'Send password reset email'; }
     });
 
-    document.getElementById('delete-account-btn').addEventListener('click', async () => {
-      if (!confirm('Delete your account? This cannot be undone.')) return;
-      if (!confirm('Last warning — all assignments, reviews, and earnings history will be permanently deleted.')) return;
+    document.getElementById('delete-account-btn').addEventListener('click', () => {
+      document.getElementById('delete-sheet').classList.add('open');
+    });
+    document.getElementById('delete-sheet-cancel').addEventListener('click', () => {
+      document.getElementById('delete-sheet').classList.remove('open');
+    });
+    document.getElementById('delete-sheet-confirm').addEventListener('click', async () => {
+      document.getElementById('delete-sheet').classList.remove('open');
       APP.setLoading('delete-account-btn', true, 'Deleting...');
       try {
         await supabaseClient.from('profiles').delete().eq('id', user.id);
@@ -577,6 +582,16 @@
     }
   });
 </script>
+<div class="sheet-overlay" id="delete-sheet">
+  <div class="sheet-box">
+    <div class="sheet-title" style="color:#dc2626">Delete Account</div>
+    <div class="sheet-body">This cannot be undone. All assignments, reviews, and earnings history will be permanently deleted.</div>
+    <div class="sheet-actions">
+      <button class="sheet-btn-danger" id="delete-sheet-confirm">Yes, delete my account</button>
+      <button class="sheet-btn-cancel" id="delete-sheet-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
