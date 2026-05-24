@@ -140,14 +140,16 @@ export default async function handler(req, res) {
   return res.status(200).json({
     generatedAt: now.toISOString(),
     summary: {
-      totalActive: bookings.length,
+      // Exclude 'pending' (awaiting payment) from Active Jobs count so the
+      // chip matches what's actually shown in the Active Jobs panel.
+      totalActive: bookings.filter(b => b.status !== 'pending').length,
+      pendingPayment: pendingConfirm.length,
       unassigned: unassigned.length,
       awaitingDispatch: awaitingDispatch.length,
       awaitingAcceptance: awaitingAcceptance.length,
       enRoute: enRoute.length,
       arrived: arrived.length,
       inProgress: inProgress.length,
-      pendingConfirm: pendingConfirm.length,
       alertCount: alerts.length,
       criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
       onlineEasers: onlineEasers.length,

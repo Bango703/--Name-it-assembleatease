@@ -2431,6 +2431,7 @@ function intelQuick(msg) {
     // Summary chips
     var chips = [
       { label: 'Active Jobs', val: s.totalActive, color: '#0097a7' },
+      { label: 'Pending', val: s.pendingPayment || 0, color: s.pendingPayment > 0 ? '#d97706' : '#6b7280' },
       { label: 'Needs Easer', val: s.unassigned + s.awaitingDispatch, color: s.unassigned > 0 ? '#dc2626' : '#6b7280' },
       { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: s.awaitingAcceptance > 0 ? '#ea580c' : '#6b7280' },
       { label: 'En Route', val: s.enRoute, color: '#0097a7' },
@@ -2444,24 +2445,42 @@ function intelQuick(msg) {
         + '<span style="color:var(--muted)">'+c.label+'</span></div>';
     }).join('');
 
-    // Unassigned / needs Easer
+    // Unassigned / needs Easer — also shows pending-payment bookings at top
     var unassignedEl = document.getElementById('ops-unassigned');
+    var pending = d.pendingConfirm || [];
     var needs = (d.unassigned || []).concat(d.awaitingDispatch || []);
-    if (!needs.length) {
+    if (!pending.length && !needs.length) {
       unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">All active bookings are assigned</div>';
     } else {
-      unassignedEl.innerHTML = needs.map(function(b) {
-        var label = b.dispatch_offered_at ? 'Offer sent — no response' : 'No Easer yet';
-        var badgeColor = b.dispatch_offered_at ? '#ea580c' : '#dc2626';
-        return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-          + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time?' at '+esc(b.time):'')+'</div></div>'
-          + '<span style="background:rgba('+hexToRgb(badgeColor)+',0.1);color:'+badgeColor+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+label+'</span>'
-          + '</div>'
-          + '<button onclick="opsAction(\'dispatch\',\''+b.id+'\')" style="margin-top:0.4rem;background:var(--teal);color:#fff;border:none;border-radius:6px;padding:3px 12px;font-size:0.75rem;cursor:pointer">Dispatch Now</button>'
-          + '</div>';
-      }).join('');
+      var html = '';
+      if (pending.length) {
+        html += pending.map(function(b) {
+          var age = Math.round((Date.now() - new Date(b.created_at).getTime()) / 60000);
+          return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
+            + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+            + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
+            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.customer_name||'Customer')+(b.date?' &bull; '+esc(b.date):'')+'</div></div>'
+            + '<span style="background:rgba(217,119,6,0.1);color:#d97706;font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">Pending Payment</span>'
+            + '</div>'
+            + '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Submitted '+age+'min ago — awaiting payment confirmation</div>'
+            + '</div>';
+        }).join('');
+      }
+      if (needs.length) {
+        html += needs.map(function(b) {
+          var label = b.dispatch_offered_at ? 'Offer sent — no response' : 'No Easer yet';
+          var badgeColor = b.dispatch_offered_at ? '#ea580c' : '#dc2626';
+          return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
+            + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+            + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
+            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time?' at '+esc(b.time):'')+'</div></div>'
+            + '<span style="background:rgba('+hexToRgb(badgeColor)+',0.1);color:'+badgeColor+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+label+'</span>'
+            + '</div>'
+            + '<button onclick="opsAction(\'dispatch\',\''+b.id+'\')" style="margin-top:0.4rem;background:var(--teal);color:#fff;border:none;border-radius:6px;padding:3px 12px;font-size:0.75rem;cursor:pointer">Dispatch Now</button>'
+            + '</div>';
+        }).join('');
+      }
+      unassignedEl.innerHTML = html;
     }
 
     // Active jobs (en route, arrived, in progress, accepted)
