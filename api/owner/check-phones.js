@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     .from('profiles')
     .select('id, full_name, email, phone')
     .eq('role', 'assembler')
-    .in('tier', ['starter', 'verified', 'elite'])
+    .in('tier', ['starter', 'professional', 'elite'])
     .or('phone.is.null,phone.eq.');
 
   if (!easers || !easers.length) {

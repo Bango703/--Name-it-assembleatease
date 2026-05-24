@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       .select('id, full_name, tier, rating, completed_jobs, is_available, has_membership, city, phone')
       .eq('role', 'assembler')
       .eq('identity_verified', true)
-      .in('tier', ['starter', 'verified', 'elite']),
+      .in('tier', ['starter', 'professional', 'elite']),
   ]);
 
   const bookings = bookingsRes.data || [];

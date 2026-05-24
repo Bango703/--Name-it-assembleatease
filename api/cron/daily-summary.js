@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         .eq('role', 'assembler').eq('application_status', 'applied')
         .gte('created_at', yStart).lt('created_at', yEnd),
       sb.from('profiles').select('id')
-        .eq('role', 'assembler').in('tier', ['starter', 'verified', 'elite']),
+        .eq('role', 'assembler').in('tier', ['starter', 'professional', 'elite']),
     ]);
 
     // Revenue: sum captured amounts from yesterday's completed bookings

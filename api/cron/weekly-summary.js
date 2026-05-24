@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       sb.from('profiles').select('id')
         .eq('role', 'assembler').eq('application_status', 'approved')
         .gte('approved_at', wStart).lt('approved_at', wEnd),
-      sb.from('profiles').select('id').eq('role', 'assembler').in('tier', ['starter', 'verified', 'elite']),
+      sb.from('profiles').select('id').eq('role', 'assembler').in('tier', ['starter', 'professional', 'elite']),
     ]);
 
     const revenue = (completedBookings || []).reduce((sum, b) => {

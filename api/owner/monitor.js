@@ -42,10 +42,10 @@ export default async function handler(req, res) {
   // Completed jobs with no review request sent
   const needsReview = completed.filter(b => !b.review_requested_at && b.customer_email);
 
-  // Revenue metrics
-  const gross = completed.reduce((s, b) => s + (Number(b.total_price) || 0), 0);
+  // Revenue metrics — use amount_charged (actual captured), fall back to total_price
+  const gross = completed.reduce((s, b) => s + (Number(b.amount_charged || b.total_price) || 0), 0);
   const stripeFees = completed.reduce((s, b) => {
-    const c = Number(b.total_price) || 0;
+    const c = Number(b.amount_charged || b.total_price) || 0;
     return s + (c > 0 ? Math.round(c * 0.029) + 30 : 0);
   }, 0);
   const netRevenue = gross - stripeFees;
