@@ -95,7 +95,7 @@ export default async function handler(req, res) {
           to: booking.customer_email,
           from: 'AssembleAtEase <booking@assembleatease.com>',
           replyTo: ownerEmail(),
-          subject: `Your Assembler is Confirmed — ${esc(booking.ref)}`,
+          subject: `Your Easer is Confirmed — ${esc(booking.ref)}`,
           html: buildCustomerNotifyEmail({
             customerFirst,
             assemblerFirst: assemblerDisplay,
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
     }
 
     return sendHtml(res, 'Job Accepted!',
-      `Thanks, ${esc(assemblerFirstName)}! You've accepted the assignment for <strong>${esc(booking.service)}</strong> on ${esc(booking.date || 'TBD')}. Check your assembler dashboard for details.`,
+      `Thanks, ${esc(assemblerFirstName)}! You've accepted the assignment for <strong>${esc(booking.service)}</strong> on ${esc(booking.date || 'TBD')}. Check your Easer dashboard for details.`,
       true);
 
   } else {
@@ -235,13 +235,13 @@ function buildCustomerNotifyEmail({ customerFirst, assemblerFirst, service, date
       <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
       <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
     </div>
-    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;text-align:center">Your Assembler is Confirmed!</p>
+    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;text-align:center">Your Easer is Confirmed!</p>
     <p style="margin:0 0 20px;font-size:14px;color:#52525b;text-align:center;line-height:1.6">Hi ${esc(customerFirst)}, great news! ${esc(assemblerFirst)} has been assigned to your job and has confirmed.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px">
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
         <tr><td style="padding:5px 0;color:#71717a;width:100px">Reference</td><td style="padding:5px 0;font-weight:600">${esc(ref)}</td></tr>
         <tr><td style="padding:5px 0;color:#71717a">Service</td><td style="padding:5px 0">${esc(service)}</td></tr>
-        <tr><td style="padding:5px 0;color:#71717a">Assembler</td><td style="padding:5px 0">${esc(assemblerFirst)}</td></tr>
+        <tr><td style="padding:5px 0;color:#71717a">Easer</td><td style="padding:5px 0">${esc(assemblerFirst)}</td></tr>
         <tr><td style="padding:5px 0;color:#71717a">Date</td><td style="padding:5px 0">${esc(date || 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
       </table>
     </td></tr></table>

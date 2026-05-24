@@ -100,7 +100,7 @@ export default async function handler(req, res) {
   }
 
   // Send assembler notification email with Accept/Decline links
-  const firstName = (assembler.full_name || 'Assembler').split(' ')[0];
+  const firstName = (assembler.full_name || 'Easer').split(' ')[0];
   const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
   const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
 

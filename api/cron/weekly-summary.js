@@ -151,11 +151,11 @@ function buildWeeklySummaryEmail({
       </tr>
     </table>
 
-    <!-- Assembler stats -->
+    <!-- Easer stats -->
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:16px 18px">
-      <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Assembler Stats</p>
+      <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Easer Stats</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px">
-        <tr><td style="padding:4px 0;color:#71717a;width:60%">Active Assemblers</td><td style="padding:4px 0;font-weight:600">${activeAssemblerCount}</td></tr>
+        <tr><td style="padding:4px 0;color:#71717a;width:60%">Active Easers</td><td style="padding:4px 0;font-weight:600">${activeAssemblerCount}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">New Applications</td><td style="padding:4px 0;font-weight:600${newAppCount > 0 ? ';color:#0097a7' : ''}">${newAppCount}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">Newly Approved</td><td style="padding:4px 0;font-weight:600${newApprovedCount > 0 ? ';color:#065f46' : ''}">${newApprovedCount}</td></tr>
       </table>

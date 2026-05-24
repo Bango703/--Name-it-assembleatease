@@ -123,12 +123,12 @@ export default async function handler(req, res) {
       await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-        subject: 'Assembler Message — ' + booking.ref,
+        subject: 'Easer Message — ' + booking.ref,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Booking ${esc(booking.ref)} &mdash; Assembler Message</p>
-    <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a1a">Message from your assembler</p>
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Booking ${esc(booking.ref)} &mdash; Easer Message</p>
+    <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a1a">Message from your Easer</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 18px">
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>

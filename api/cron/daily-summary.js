@@ -152,7 +152,7 @@ function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCo
           <td style="padding:4px 0;font-weight:600">${pendingCount} ${pendingCount > 5 ? '<span style="color:#dc2626">⚠ Action needed</span>' : ''}</td>
         </tr>
         <tr>
-          <td style="padding:4px 0;color:#71717a">Active Assemblers</td>
+          <td style="padding:4px 0;color:#71717a">Active Easers</td>
           <td style="padding:4px 0;font-weight:600">${activeAssemblerCount}</td>
         </tr>
         ${newApps.length > 0 ? `<tr><td style="padding:4px 0;color:#71717a">New Applications</td><td style="padding:4px 0;font-weight:600;color:#0097a7">${newApps.length} new</td></tr>` : ''}
@@ -172,7 +172,7 @@ function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCo
 
     ${newApps.length > 0 ? `
     <!-- New assembler applications -->
-    <p style="margin:0 0 10px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">New Assembler Applications</p>
+    <p style="margin:0 0 10px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">New Easer Applications</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:24px"><tr><td style="padding:14px 18px">
       <ul style="margin:0;padding-left:16px">${appRows}</ul>
     </td></tr></table>` : ''}
