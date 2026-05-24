@@ -218,7 +218,7 @@
         <div class="info-row"><span class="info-label">Jobs completed</span><span class="info-value" id="jobs-done">0</span></div>
         <div class="info-row"><span class="info-label">Rating</span><span class="info-value" id="rating-display">New</span></div>
         <div style="margin-top:1.25rem">
-          <button class="btn btn-outline" id="change-password-btn" type="button">Send password reset email</button>
+          <button class="btn btn-outline" id="change-password-btn" type="button">Reset my Easer password</button>
         </div>
       </div>
 
@@ -529,11 +529,27 @@
               body: JSON.stringify({ action: 'subscribe' }),
             });
             var d = await r.json();
-            if (d.url) window.location.href = d.url;
-            else { this.disabled = false; this.textContent = 'Become a Member'; APP.showAlert('page-alert', d.error || 'Membership not yet configured. Check back soon.', 'error'); }
+            if (d.url) {
+              window.location.href = d.url;
+            } else {
+              // Membership not yet configured — replace CTA with inline notice
+              document.getElementById('membership-inactive').innerHTML =
+                '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
+                + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
+                + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is not yet active on this account. Check back soon or contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a>.</p>'
+                + '</div>';
+            }
           });
         }
-      } catch(e) { console.warn('Membership status error:', e); }
+      } catch(e) {
+        console.warn('Membership status error:', e);
+        // On network/server error, show unavailable state rather than broken UI
+        document.getElementById('membership-inactive').innerHTML =
+          '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
+          + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Unavailable</p>'
+          + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Could not load membership status. Please refresh or contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a>.</p>'
+          + '</div>';
+      }
     })();
 
     if (profile.profile_photo) {
@@ -574,12 +590,21 @@
         };
         if (photoBase64) updates.profile_photo = photoBase64;
 
-        const { error } = await API.updateProfile(user.id, updates);
-        if (error) throw error;
+        const { data: savedData, error } = await API.updateProfile(user.id, updates);
+        if (error) {
+          console.error('[profile] updateProfile error:', error);
+          throw error;
+        }
+        if (!savedData) {
+          // 0 rows written — most likely RLS blocked the update
+          console.error('[profile] updateProfile returned no data — possible RLS policy missing or row not found');
+          throw new Error('Profile could not be saved. You may need to sign out and back in.');
+        }
+        photoBase64 = null; // clear staging variable after confirmed save
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
-        APP.showAlert('page-alert', err.message || 'Failed to save.', 'error');
+        APP.showAlert('page-alert', err.message || 'Failed to save profile. Please try again.', 'error');
       } finally { APP.setLoading('save-btn', false, 'Save profile'); }
     });
 
@@ -589,9 +614,9 @@
       try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/login' });
         if (error) throw error;
-        APP.showAlert('page-alert', 'Password reset email sent to ' + user.email, 'success');
+        APP.showAlert('page-alert', 'Password reset link sent to ' + user.email + '. Check your inbox to set a new password.', 'success');
       } catch (err) { APP.showAlert('page-alert', err.message, 'error'); }
-      finally { btn.disabled = false; btn.textContent = 'Send password reset email'; }
+      finally { btn.disabled = false; btn.textContent = 'Reset my Easer password'; }
     });
 
     document.getElementById('delete-account-btn').addEventListener('click', () => {
