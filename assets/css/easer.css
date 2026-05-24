@@ -427,10 +427,12 @@ body {
 .e-period-tab {
   flex: 1;
   border: none; background: none; border-radius: 7px;
+  -webkit-appearance: none; appearance: none;
   font-family: var(--e-font); font-size: 0.78rem; font-weight: 500;
   color: var(--e-muted); cursor: pointer;
   padding: 0.45rem 0.25rem; text-align: center;
   white-space: nowrap; transition: all 0.15s;
+  box-shadow: none; outline: none;
 }
 .e-period-tab.active {
   background: var(--e-surface); color: var(--e-text);
@@ -580,29 +582,31 @@ body {
 
 /* ── Earnings gradient hero ──────────────────────────────────────────── */
 .e-earn-hero-card {
-  background: linear-gradient(170deg, #005a65, #0097a7);
+  background: linear-gradient(170deg, #005a65, #0097a7) !important;
   border: 0 !important;
-  color: white;
-  padding: 1.25rem;
+  border-radius: 12px;
+  color: white !important;
+  padding: 1.25rem !important;
   margin-bottom: 1.25rem;
   box-shadow: 0 16px 32px rgba(0,151,167,0.24);
 }
 .e-earn-total {
-  font-size: 2.4rem;
+  font-size: 2.4rem !important;
   font-weight: 800;
   line-height: 1;
+  display: block;
   margin: 0.35rem 0 0.875rem;
-  color: white;
+  color: white !important;
 }
 .e-earn-split {
-  display: grid;
+  display: grid !important;
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid rgba(255,255,255,0.22);
   padding-top: 0.875rem;
   gap: 0.5rem;
 }
-.e-earn-split-item strong { display: block; font-size: 1rem; font-weight: 700; color: white; }
-.e-earn-split-item span   { font-size: 0.72rem; color: rgba(255,255,255,0.72); }
+.e-earn-split-item strong { display: block; font-size: 1rem; font-weight: 700; color: white !important; }
+.e-earn-split-item span   { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.72) !important; }
 
 /* ── Offer alert banner (Home page) ──────────────────────────────────── */
 .e-offer-alert {

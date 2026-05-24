@@ -78,7 +78,7 @@
     .metric-item {
       flex: 0 0 auto; background: var(--pro-surface);
       border: 1px solid var(--pro-border); border-radius: 10px;
-      padding: 0.75rem 1rem; min-width: 90px; text-align: center;
+      padding: 0.75rem 1rem; min-width: 80px; text-align: center;
     }
     .metric-value { font-size: 1.2rem; font-weight: 600; color: var(--pro-text); line-height: 1; margin-bottom: 3px; }
     .metric-label { font-size: 0.68rem; color: var(--pro-muted); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -433,7 +433,7 @@
     var liveStatuses  = ['en_route', 'arrived', 'in_progress'];
     var liveJobs      = allBookings.filter(function(b){ return liveStatuses.includes(b.status); });
     var pendingOffers = allBookings.filter(function(b){ return b._is_pending_offer; });
-    var upcomingJobs  = allBookings.filter(function(b){ return b.status === 'confirmed' && b.assembler_accepted_at && !b._is_pending_offer; });
+    var upcomingJobs  = allBookings.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
     var completedJobs = allBookings.filter(function(b){ return b.status === 'completed'; });
 
     // Pending offer alert banner
@@ -533,7 +533,7 @@
         '<div class="metric-item highlight"><div class="metric-value">' + earned + '</div><div class="metric-label">Earned</div></div>' +
         '<div class="metric-item"><div class="metric-value">' + (s.completedJobs||0) + '</div><div class="metric-label">Done</div></div>' +
         '<div class="metric-item"><div class="metric-value">' + rating + '</div><div class="metric-label">Rating</div></div>' +
-        '<div class="metric-item"><div class="metric-value">' + pending + '</div><div class="metric-label">Pending</div></div>';
+        '<div class="metric-item"><div class="metric-value">' + pending + '</div><div class="metric-label">Pend.</div></div>';
     } catch(e) {
       document.getElementById('metric-strip').innerHTML = '<div class="metric-item"><div class="metric-value">—</div><div class="metric-label">Earned</div></div>';
     }
@@ -552,8 +552,13 @@
       }).join('');
     } else if (liveJobs.length === 0) {
       // No active AND no upcoming — show waiting state
-      if (profile.status === 'active' && profile.identity_verified && available) {
-        document.getElementById('waiting-state').style.display = '';
+      if (profile.status === 'active' && profile.identity_verified) {
+        var ws = document.getElementById('waiting-state');
+        ws.style.display = '';
+        if (!available) {
+          ws.querySelector('h3').textContent = 'You are offline';
+          ws.querySelector('p').textContent = 'Toggle online above to start receiving job offers.';
+        }
       }
     }
 
