@@ -118,12 +118,19 @@
 
 <header class="easer-header">
   <div style="width:36px"></div>
-  <a href="/assembler/" style="text-decoration:none;font-size:1.2rem;font-weight:800;color:var(--e-teal);letter-spacing:-0.01em">Easer</a>
-  <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
+  <a href="/assembler/" style="text-decoration:none;display:flex;align-items:center;gap:7px">
+    <img src="/images/logo.jpg" alt="AE" style="width:26px;height:26px;border-radius:6px;object-fit:cover;flex-shrink:0">
+    <span style="font-size:1.2rem;font-weight:800;color:var(--e-teal);letter-spacing:-0.01em">Easer</span>
+  </a>
+  <button class="eh-bell-btn" aria-label="Notifications" id="eh-bell-btn">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
   </button>
 </header>
+<div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
+  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted);margin-bottom:0.75rem">Notifications</div>
+  <div id="notif-list" style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">No new notifications</div>
+</div>
 
 <div class="easer-page">
   <a href="#" id="sidebar-logout" style="display:none"></a>
@@ -287,7 +294,7 @@
       const payStr = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : '');
       const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
 
-      return '<div class="e-job-card" onclick="openDetail(\'' + b.id + '\')">' +
+      return '<div class="e-job-card" data-bid="' + b.id + '">' +
         '<div class="e-job-card-top">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
@@ -301,7 +308,7 @@
         (isLive ? renderPipeline5(b) : '') +
         (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned $' + Math.round(b.assembler_due/100) : '') + '</div>' : '') +
         (isPendingOffer ?
-          '<div class="e-job-card-actions" onclick="event.stopPropagation()">' +
+          '<div class="e-job-card-actions">' +
             '<button class="e-job-card-accept card-accept-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '">Accept</button>' +
             (b._offer_token ? '<button class="e-job-card-decline card-decline-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '">Decline</button>' : '<div></div>') +
           '</div>' : '') +
@@ -430,6 +437,16 @@
       window.location.href = '../';
     });
 
+    // Notification bell toggle
+    var notifPanel = document.getElementById('notif-panel');
+    document.getElementById('eh-bell-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      notifPanel.style.display = notifPanel.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', function() {
+      if (notifPanel) notifPanel.style.display = 'none';
+    });
+
     document.getElementById('filter-tabs').addEventListener('click', function(e) {
       const tab = e.target.closest('.e-filter-pill');
       if (!tab) return;
@@ -533,9 +550,15 @@
 
       if (declineBtn && !declineBtn.disabled) {
         e.stopPropagation();
-        // Open the booking modal for the offer details, then pop the decline sheet
         openDetail(declineBtn.dataset.bid);
         document.getElementById('decline-sheet').classList.add('open');
+        return;
+      }
+
+      // Tap anywhere else on the card → open detail
+      const card = e.target.closest('.e-job-card');
+      if (card && card.dataset.bid && !e.target.closest('.e-job-card-actions')) {
+        openDetail(card.dataset.bid);
       }
     });
 
@@ -850,12 +873,7 @@
 <div class="sheet-overlay" id="complete-sheet">
   <div class="sheet-box">
     <div class="sheet-title">Mark job as complete?</div>
-    <div class="sheet-body">
-      By confirming you acknowledge that:<br>
-      <strong>The work is fully finished</strong> to the customer's satisfaction<br>
-      <strong>The customer's card will be charged immediately</strong><br>
-      Falsely marking a job complete is a terms violation and leads to account suspension.
-    </div>
+    <div class="sheet-body">Only mark complete when the work is fully finished and the customer is satisfied. <strong>This will charge the customer's card.</strong></div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="complete-sheet-yes">Yes, job is complete</button>
       <button class="sheet-btn-cancel" id="complete-sheet-cancel">Cancel</button>
