@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Home — AssembleAtEase</title>
+  <title>Home — Easer</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="/manifest.json" />
@@ -124,6 +124,9 @@
     .eh-waiting-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .eh-waiting-title{font-size:0.9rem;font-weight:600;color:var(--e-text);margin-bottom:2px}
     .eh-waiting-sub{font-size:0.78rem;color:var(--e-muted)}
+    /* Sheet overlays: must be display:none when closed */
+    .sheet-overlay { display: none !important; }
+    .sheet-overlay.open { display: flex !important; }
   </style>
 </head>
 <body>

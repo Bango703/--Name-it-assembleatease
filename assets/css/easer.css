@@ -71,6 +71,8 @@ body {
   padding-left:  1.25rem;
   padding-right: 0.5rem;
 }
+/* Remove ALL link decoration inside header */
+.easer-header a { text-decoration: none !important; color: inherit; }
 /* Brand wordmark — left side of header */
 .easer-wordmark {
   text-decoration: none;
@@ -743,12 +745,13 @@ body {
 
 /* ── Shared utility: Buttons ─────────────────────────────────────────── */
 .btn {
+  -webkit-appearance: none; appearance: none;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 0.6rem 1.25rem; border-radius: 10px; font-family: var(--e-font);
   font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none;
   border: 1px solid var(--e-border-md); background: var(--e-surface); color: var(--e-text);
   transition: all 0.15s; -webkit-tap-highlight-color: transparent; white-space: nowrap;
-  line-height: 1.3;
+  line-height: 1.3; outline: none; box-sizing: border-box;
 }
 .btn:active { opacity: 0.85; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -784,7 +787,8 @@ textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.55; 
 .alert-info    { background: var(--e-teal-dim);  border: 1px solid rgba(0,151,167,0.2);  color: var(--e-teal); }
 
 /* ── Header bell button (shared across all Easer pages) ─────────────── */
-.eh-bell-btn { background: none; border: none; padding: 6px; min-width: 44px; min-height: 44px; cursor: pointer; color: var(--e-text); display: flex; align-items: center; justify-content: center; border-radius: 8px; -webkit-tap-highlight-color: transparent; position: relative; }
+.eh-bell-btn { -webkit-appearance: none; appearance: none; background: none; border: none; padding: 6px; min-width: 44px; min-height: 44px; cursor: pointer; color: var(--e-text); display: flex; align-items: center; justify-content: center; border-radius: 8px; -webkit-tap-highlight-color: transparent; position: relative; outline: none; }
+.eh-bell-btn:focus-visible { box-shadow: 0 0 0 2px var(--e-teal-dim); }
 .eh-bell-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .eh-bell-badge { position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border-radius: 999px; font-size: 0.55rem; font-weight: 700; padding: 1px 4px; min-width: 14px; text-align: center; line-height: 1.4; }
 
