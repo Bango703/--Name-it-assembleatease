@@ -774,7 +774,8 @@ textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.55; 
 .alert-info    { background: var(--e-teal-dim);  border: 1px solid rgba(0,151,167,0.2);  color: var(--e-teal); }
 
 /* ── Header bell button (shared across all Easer pages) ─────────────── */
-.eh-bell-btn { background: none; border: none; padding: 6px; cursor: pointer; color: var(--e-text); display: flex; align-items: center; justify-content: center; border-radius: 8px; -webkit-tap-highlight-color: transparent; position: relative; }
+.eh-bell-btn { background: none; border: none; padding: 6px; min-width: 44px; min-height: 44px; cursor: pointer; color: var(--e-text); display: flex; align-items: center; justify-content: center; border-radius: 8px; -webkit-tap-highlight-color: transparent; position: relative; }
+.eh-bell-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .eh-bell-badge { position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border-radius: 999px; font-size: 0.55rem; font-weight: 700; padding: 1px 4px; min-width: 14px; text-align: center; line-height: 1.4; }
 
 /* ── Bottom sheet (shared: complete job, decline, confirm actions) ───── */
