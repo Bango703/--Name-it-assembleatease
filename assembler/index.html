@@ -1,11 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Home — AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -13,8 +12,6 @@
   <meta name="theme-color" content="#0097a7" />
   <link rel="apple-touch-icon" href="/images/logo.jpg" />
   <style>body{visibility:hidden}</style>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
@@ -22,231 +19,288 @@
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#4a5568;--teal:#0097a7;--teal-glow:rgba(0,151,167,0.08);--teal-dark:#00838f;--orange:#e86a2e;--orange-glow:rgba(232,106,46,0.06);--amber:#f59e0b}
-    body{font-family:'DM Sans',sans-serif;background:var(--pro-bg);color:var(--pro-text);min-height:100vh;-webkit-font-smoothing:antialiased}
-    /* ── Topbar action button (used in identity verification banner) ── */
-    .topbar-btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 1rem;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid var(--pro-border);background:var(--pro-surface);color:var(--pro-soft);text-decoration:none;transition:all 0.15s}
-    .topbar-btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
-    .topbar-btn.primary:hover{background:var(--teal-dark)}
-    /* ── Section headers (upcoming / completed sections) ── */
-    .pro-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-    .pro-section-title{font-size:0.875rem;font-weight:500;color:var(--pro-text);display:flex;align-items:center;gap:8px}
-    .pro-section-title .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0}
-    .pro-link{font-size:0.78rem;color:var(--pro-muted);text-decoration:none;transition:color 0.15s}
-    .pro-link:hover{color:var(--teal)}
-    /* ── Job cards rendered in upcoming / completed lists ── */
-    .pro-card{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.6rem;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-    .pro-card:hover{border-color:var(--pro-border-md);box-shadow:0 4px 12px rgba(0,0,0,0.06)}
-    .pro-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.35rem}
-    .pro-card h4{font-size:0.9rem;font-weight:500;color:var(--pro-text);line-height:1.3}
-    .pro-card-desc{font-size:0.82rem;color:var(--pro-muted);line-height:1.55;margin-bottom:0.4rem}
-    .pro-card-meta{font-size:0.75rem;color:var(--pro-muted);display:flex;align-items:center;gap:8px}
-    .meta-dot{width:3px;height:3px;border-radius:50%;background:var(--pro-muted);flex-shrink:0}
-    .badge{display:inline-flex;align-items:center;padding:0.18rem 0.6rem;border-radius:999px;font-size:0.72rem;font-weight:500;white-space:nowrap;flex-shrink:0}
-    .badge-pending{background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.2)}
-    .skeleton{background:linear-gradient(90deg,var(--pro-elevated) 25%,var(--pro-border) 50%,var(--pro-elevated) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    .skeleton-card{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.6rem}
-    .pro-empty{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:2rem 1.5rem;text-align:center}
-    .pro-empty p{font-size:0.875rem;color:var(--pro-muted);margin-bottom:1rem}
-    .pro-error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:1rem 1.25rem;font-size:0.875rem;color:#ef4444}
-    /* ── Account status banners ── */
-    .pro-banner{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem}
-    .pro-banner.hidden{display:none}
-    .pro-banner-title{font-size:0.875rem;font-weight:500;color:#d97706}
-    .pro-banner-sub{font-size:0.78rem;color:rgba(217,119,6,0.7);margin-top:2px}
-    .pro-banner.identity{background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15)}
-    .pro-banner.identity .pro-banner-title{color:#3b82f6}
-    .pro-banner.identity .pro-banner-sub{color:rgba(59,130,246,0.7)}
-    /* ── Tier badges ── */
-    .tier-badge{display:inline-flex;align-items:center;gap:4px;padding:0.15rem 0.55rem;border-radius:999px;font-size:0.68rem;font-weight:600;margin-left:6px}
-    .tier-pending{background:rgba(245,158,11,0.1);color:#d97706;border:1px solid rgba(245,158,11,0.2)}
-    .tier-starter{background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2)}
-    .tier-verified{background:rgba(0,151,167,0.1);color:#0097a7;border:1px solid rgba(0,151,167,0.2)}
-    .tier-elite{background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid rgba(168,85,247,0.2)}
-    /* ── Booking cards (upcoming / completed lists) ── */
-    .booking-card{background:var(--pro-surface);border:1px solid var(--pro-border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.6rem;transition:border-color 0.15s,box-shadow 0.15s;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-    .booking-card:hover{border-color:var(--pro-border-md);box-shadow:0 4px 12px rgba(0,0,0,0.06)}
-    .booking-card-top{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.35rem}
-    .booking-card h4{font-size:0.9rem;font-weight:500;color:var(--pro-text);line-height:1.3}
-    .booking-card-meta{font-size:0.78rem;color:var(--pro-muted);margin-top:0.25rem}
+    /* ── Spec Home — eh-* classes ──────────────────────────────────── */
 
-    /* ── Compact metric strip ────────────────────────────────────────── */
-    .metric-strip { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 4px; }
-    .metric-strip::-webkit-scrollbar { display: none; }
-    .metric-item {
-      flex: 0 0 auto; background: var(--pro-surface);
-      border: 1px solid var(--pro-border); border-radius: 10px;
-      padding: 0.75rem 1rem; min-width: 80px; text-align: center;
-    }
-    .metric-value { font-size: 1.2rem; font-weight: 600; color: var(--pro-text); line-height: 1; margin-bottom: 3px; }
-    .metric-label { font-size: 0.68rem; color: var(--pro-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .metric-item.highlight .metric-value { color: var(--teal); }
+    /* Header overrides */
+    .eh-hamburger,.eh-bell-btn{background:none;border:none;padding:6px;cursor:pointer;color:var(--e-text);display:flex;align-items:center;justify-content:center;border-radius:8px;-webkit-tap-highlight-color:transparent}
+    .eh-logo-link{display:flex;align-items:center;gap:8px;text-decoration:none}
+    .eh-logo-icon{width:32px;height:32px;border-radius:8px;background:var(--e-teal);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1rem;font-family:var(--e-font);flex-shrink:0}
+    .eh-logo-text-wrap{line-height:1}
+    .eh-logo-top{font-size:0.82rem;font-weight:700;color:var(--e-text)}
+    .eh-logo-btm{font-size:0.6rem;font-weight:600;color:var(--e-muted);letter-spacing:0.12em;text-transform:uppercase}
+    .eh-bell-btn{position:relative}
+    .eh-bell-badge{position:absolute;top:2px;right:2px;background:#ef4444;color:white;border-radius:999px;font-size:0.55rem;font-weight:700;padding:1px 4px;min-width:14px;text-align:center;line-height:1.4}
 
-    /* ── Next assignment card ─────────────────────────────────────────── */
-    .next-job-card {
-      background: var(--pro-surface); border: 1px solid var(--pro-border);
-      border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.6rem;
-    }
-    .next-job-when { font-size: 0.78rem; font-weight: 600; color: var(--teal); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-    .next-job-service { font-size: 0.95rem; font-weight: 500; color: var(--pro-text); margin-bottom: 4px; }
-    .next-job-meta { font-size: 0.8rem; color: var(--pro-muted); }
+    /* Profile greeting row */
+    .eh-profile-row{display:flex;align-items:center;gap:0.875rem;margin-bottom:1.25rem}
+    .eh-avatar-wrap{position:relative;flex-shrink:0}
+    .eh-avatar{width:52px;height:52px;border-radius:50%;background:var(--e-teal);color:white;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid var(--e-border)}
+    .eh-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+    .eh-online-dot{position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#6b7280;border:2.5px solid var(--e-bg)}
+    .eh-online-dot.online{background:#22c55e}
+    .eh-greeting-col{flex:1;min-width:0}
+    .eh-greeting-name{font-size:1.1rem;font-weight:700;color:var(--e-text);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .eh-greeting-sub{font-size:0.78rem;color:var(--e-muted);margin-top:2px;display:flex;align-items:center;gap:5px}
+    .eh-greeting-sub-dot{width:7px;height:7px;border-radius:50%;background:#6b7280;flex-shrink:0}
+    .eh-greeting-sub-dot.online{background:#22c55e}
 
-    /* ── Empty / wait state ──────────────────────────────────────────── */
-    .waiting-state {
-      text-align: center; padding: 2.5rem 1rem; color: var(--pro-muted);
-    }
-    .waiting-state-icon {
-      width: 48px; height: 48px; border-radius: 12px; background: var(--pro-elevated);
-      border: 1px solid var(--pro-border); display: flex; align-items: center;
-      justify-content: center; margin: 0 auto 1rem;
-    }
-    .waiting-state h3 { font-size: 0.9rem; font-weight: 600; color: var(--pro-text); margin-bottom: 0.35rem; }
-    .waiting-state p { font-size: 0.82rem; line-height: 1.6; max-width: 260px; margin: 0 auto; }
+    /* Online/Offline pill toggle */
+    .eh-avail-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--e-border-md);border-radius:999px;padding:0.38rem 0.875rem;background:var(--e-surface);cursor:pointer;font-family:var(--e-font);font-size:0.8rem;font-weight:500;color:var(--e-text);white-space:nowrap;flex-shrink:0;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+    .eh-avail-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;transition:background 0.2s}
+    .eh-avail-pill.on{border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.06)}
+    .eh-avail-pill.on .eh-avail-dot{background:#22c55e}
+
+    /* Status banners */
+    .eh-banner{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:12px;padding:0.875rem 1.25rem;margin-bottom:1rem}
+    .eh-banner.hidden{display:none}
+    .eh-banner-title{font-size:0.875rem;font-weight:600;color:#d97706}
+    .eh-banner-sub{font-size:0.75rem;color:rgba(217,119,6,0.75);margin-top:2px}
+    .eh-banner.identity{background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15)}
+    .eh-banner.identity .eh-banner-title{color:#3b82f6}
+    .eh-banner.identity .eh-banner-sub{color:rgba(59,130,246,0.7)}
+    .eh-banner-btn{display:inline-flex;align-items:center;gap:6px;padding:0.4rem 1rem;border-radius:999px;font-family:var(--e-font);font-size:0.78rem;font-weight:500;cursor:pointer;border:none;background:var(--e-teal);color:#fff;text-decoration:none;white-space:nowrap;flex-shrink:0}
+
+    /* Section labels */
+    .eh-section-label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--e-text);margin-bottom:0.75rem;display:block}
+    .eh-section-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
+    .eh-section-label-row .eh-section-label{margin-bottom:0}
+    .eh-offer-count-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#ef4444;color:white;font-size:0.62rem;font-weight:700;margin-left:5px;vertical-align:middle}
+    .eh-view-all{font-size:0.78rem;color:var(--e-teal);text-decoration:none;font-weight:500;display:flex;align-items:center;gap:2px}
+
+    /* ── Active job card ──────────────────────────────────────────── */
+    .eh-job-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:16px;padding:1.125rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+    .eh-job-card-header{display:flex;align-items:flex-start;gap:0.875rem;margin-bottom:0.75rem}
+    .eh-job-icon{width:46px;height:46px;border-radius:12px;background:var(--e-teal);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .eh-job-main{flex:1;min-width:0}
+    .eh-job-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:3px}
+    .eh-job-title{font-size:1rem;font-weight:700;color:var(--e-text);line-height:1.3;flex:1;min-width:0}
+    .eh-job-customer{font-size:0.8rem;color:var(--e-muted)}
+    .eh-job-addr-row{display:flex;align-items:flex-start;gap:5px;margin:0.5rem 0;font-size:0.82rem;color:var(--e-muted);line-height:1.4}
+    .eh-job-dt-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .eh-job-dt-item{display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--e-muted)}
+    .eh-tos-block{margin-left:auto;text-align:right}
+    .eh-tos-lbl{font-size:0.68rem;color:var(--e-muted);display:block}
+    .eh-tos-val{font-size:1.15rem;font-weight:700;color:var(--e-teal);display:block;line-height:1}
+
+    /* Pipeline with timestamps */
+    .eh-pipeline{display:flex;align-items:flex-start;margin:0.875rem 0 0.75rem;padding-top:0.875rem;border-top:1px solid var(--e-border);overflow-x:auto}
+    .eh-pipeline::-webkit-scrollbar{display:none}
+    .eh-pipe-node{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;min-width:52px}
+    .eh-pipe-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--e-border-md);background:var(--e-bg);flex-shrink:0;transition:all 0.2s}
+    .eh-pipe-dot.done{background:var(--e-teal);border-color:var(--e-teal)}
+    .eh-pipe-dot.current{background:var(--e-teal);border-color:var(--e-teal);box-shadow:0 0 0 4px var(--e-teal-dim)}
+    .eh-pipe-label{font-size:0.6rem;color:var(--e-muted);text-align:center;white-space:nowrap;line-height:1.2}
+    .eh-pipe-label.active{color:var(--e-teal);font-weight:600}
+    .eh-pipe-time{font-size:0.58rem;color:var(--e-muted);text-align:center;margin-top:1px}
+    .eh-pipe-connector{flex:1;height:2px;background:var(--e-border);margin:5px 2px 0;min-width:8px}
+    .eh-pipe-connector.done{background:var(--e-teal)}
+
+    /* Action buttons */
+    .eh-action-row{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.625rem}
+    .eh-dir-btn,.eh-call-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem;border-radius:10px;font-family:var(--e-font);font-size:0.82rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity 0.15s}
+    .eh-dir-btn{background:var(--e-teal);color:white}
+    .eh-call-btn{background:var(--e-surface);color:var(--e-teal);border:1.5px solid var(--e-teal)}
+    .eh-dir-btn:active,.eh-call-btn:active{opacity:0.8}
+    .eh-cta-btn{width:100%;min-height:50px;border:none;border-radius:12px;background:#005a65;color:white;font-family:var(--e-font);font-size:0.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;-webkit-tap-highlight-color:transparent;transition:opacity 0.15s}
+    .eh-cta-btn.green{background:#059669}
+    .eh-cta-btn:active:not(:disabled){opacity:0.85}
+    .eh-cta-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+    /* ── Job offer card ───────────────────────────────────────────── */
+    .eh-offer-card{background:#fffbf0;border:1px solid rgba(245,158,11,0.22);border-radius:16px;padding:1.125rem 1.25rem;margin-bottom:0.875rem}
+    .eh-offer-card-top{display:flex;align-items:flex-start;gap:0.875rem;margin-bottom:0.875rem}
+    .eh-offer-icon{width:46px;height:46px;border-radius:12px;background:rgba(234,179,8,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .eh-offer-info{flex:1;min-width:0}
+    .eh-offer-title{font-size:0.95rem;font-weight:700;color:var(--e-text);margin-bottom:2px}
+    .eh-offer-spec{font-size:0.78rem;color:var(--e-muted);margin-bottom:5px}
+    .eh-offer-detail{display:flex;align-items:center;gap:4px;font-size:0.75rem;color:var(--e-muted);margin-bottom:3px}
+    .eh-offer-timer{display:flex;align-items:center;gap:4px;font-size:0.75rem;color:#92400e;font-weight:500}
+    .eh-offer-payout{text-align:right;flex-shrink:0}
+    .eh-offer-amount{font-size:1.5rem;font-weight:800;color:var(--e-teal);line-height:1}
+    .eh-offer-est{font-size:0.65rem;color:var(--e-muted);margin-top:3px}
+    .eh-offer-actions{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
+    .eh-offer-accept{background:var(--e-teal);color:white;border:none;border-radius:10px;padding:0.75rem;font-family:var(--e-font);font-size:0.9rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity 0.15s}
+    .eh-offer-accept:active{opacity:0.85}
+    .eh-offer-accept:disabled{opacity:0.5;cursor:not-allowed}
+    .eh-offer-decline{background:var(--e-surface);color:#dc2626;border:1.5px solid rgba(239,68,68,0.25);border-radius:10px;padding:0.75rem;font-family:var(--e-font);font-size:0.9rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .eh-offer-decline:active{opacity:0.8}
+
+    /* ── Stats card ───────────────────────────────────────────────── */
+    .eh-stats-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:16px;padding:1.25rem 0.5rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(4,1fr);gap:0;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+    .eh-stat-item{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 0.25rem;border-right:1px solid var(--e-border)}
+    .eh-stat-item:last-child{border-right:none}
+    .eh-stat-icon{width:36px;height:36px;border-radius:50%;background:var(--e-teal);display:flex;align-items:center;justify-content:center;margin-bottom:0.45rem}
+    .eh-stat-icon.green{background:#059669}
+    .eh-stat-value{font-size:0.95rem;font-weight:700;color:var(--e-text);line-height:1.2}
+    .eh-stat-label{font-size:0.58rem;color:var(--e-muted);margin-top:2px;line-height:1.3;text-align:center;padding:0 2px}
+
+    /* Upcoming cards */
+    .eh-upcoming-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.875rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .eh-upcoming-card:active{background:var(--e-elevated)}
+    .eh-upcoming-when{font-size:0.72rem;font-weight:700;color:var(--e-teal);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
+    .eh-upcoming-service{font-size:0.875rem;font-weight:500;color:var(--e-text)}
+    .eh-upcoming-addr{font-size:0.72rem;color:var(--e-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* Waiting state */
+    .eh-waiting-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .eh-waiting-title{font-size:0.9rem;font-weight:600;color:var(--e-text);margin-bottom:2px}
+    .eh-waiting-sub{font-size:0.78rem;color:var(--e-muted)}
   </style>
 </head>
 <body>
 
-<!-- Offline indicator -->
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
-<!-- Top header -->
+<!-- Header: hamburger + centered logo + bell -->
 <header class="easer-header">
-  <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title" id="topbar-greeting">Dashboard</div>
-  <div class="easer-header-right">
-    <div class="avail-row" id="avail-toggle" role="button" tabindex="0" aria-label="Toggle availability">
-      <div class="avail-pill" id="avail-pill"></div>
-      <span class="avail-label" id="avail-label">Offline</span>
+  <button class="eh-hamburger" aria-label="Menu" onclick="return false">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <a href="/assembler/" class="eh-logo-link">
+    <div class="eh-logo-icon">A</div>
+    <div class="eh-logo-text-wrap">
+      <div class="eh-logo-top">Assemble</div>
+      <div class="eh-logo-btm">AT EASE</div>
     </div>
-  </div>
+  </a>
+  <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
+  </button>
 </header>
 
-<!-- Sticky active-job bar (shown when a live job exists) -->
-<div class="e-sticky-bar" id="e-sticky-bar">
-  <div class="e-sticky-bar-info">
-    <div class="e-sticky-bar-service" id="sticky-service"></div>
-    <div class="e-sticky-bar-status" id="sticky-status"></div>
-  </div>
-  <a href="/assembler/my-assignments" class="e-btn e-btn-primary e-btn-sm e-btn-inline e-sticky-bar-btn">Open Job</a>
-</div>
-
 <div class="easer-page">
-      <!-- hidden elements kept for JS compatibility -->
-      <span id="sidebar-earnings" style="display:none">$0</span>
-      <span id="sidebar-rating"   style="display:none">New</span>
-      <span id="sidebar-jobs-done" style="display:none">0</span>
-      <span id="sidebar-tier"     style="display:none"></span>
-      <span id="sidebar-name"     style="display:none"></span>
-      <span id="sidebar-avatar"   style="display:none"></span>
-      <a href="#" id="sidebar-logout" style="display:none"></a>
 
-      <!-- Account status banners -->
-      <div id="tier-status-banner" class="pro-banner hidden">
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:1.3rem" id="tier-status-icon">&#9202;</span>
-          <div>
-            <div class="pro-banner-title" id="tier-status-title"></div>
-            <div class="pro-banner-sub" id="tier-status-sub"></div>
-          </div>
-        </div>
-      </div>
-      <div id="identity-banner" class="pro-banner identity hidden">
-        <div style="display:flex;align-items:center;gap:12px">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <div>
-            <div class="pro-banner-title">Identity verification pending</div>
-            <div class="pro-banner-sub" id="identity-banner-sub">Your identity verification is in progress.</div>
-          </div>
-        </div>
-        <a id="identity-verify-btn" href="/apply" class="topbar-btn primary" style="flex-shrink:0;font-size:0.78rem;display:none">Complete Verification</a>
-      </div>
-      <div id="profile-banner" class="pro-banner hidden">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div>
-            <div class="pro-banner-title" id="profile-banner-title">Complete your profile to get more jobs</div>
-            <div class="pro-banner-sub" id="profile-banner-sub">Add your skills, hourly rate, and bio.</div>
-          </div>
-        </div>
-        <a href="/assembler/profile" class="topbar-btn primary" id="profile-banner-cta" style="flex-shrink:0;font-size:0.78rem">Complete Profile</a>
-      </div>
+  <!-- Hidden compat elements kept for JS -->
+  <span id="sidebar-earnings" style="display:none">$0</span>
+  <span id="sidebar-rating"   style="display:none">New</span>
+  <span id="sidebar-jobs-done" style="display:none">0</span>
+  <span id="sidebar-tier"     style="display:none"></span>
+  <span id="sidebar-name"     style="display:none"></span>
+  <span id="sidebar-avatar"   style="display:none"></span>
+  <a href="#" id="sidebar-logout" style="display:none"></a>
 
-      <!-- ── PENDING OFFER ALERT ──────────────────────────────────── -->
-      <a href="/assembler/my-assignments" class="e-offer-alert" id="offer-alert" style="display:none">
-        <div>
-          <div class="e-offer-alert-title" id="offer-alert-title">Job offer waiting</div>
-          <div class="e-offer-alert-sub" id="offer-alert-sub">Tap to view and accept — offer expires soon</div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+  <!-- Profile greeting row -->
+  <div class="eh-profile-row">
+    <div class="eh-avatar-wrap">
+      <div class="eh-avatar" id="eh-avatar"></div>
+      <span class="eh-online-dot" id="eh-online-dot"></span>
+    </div>
+    <div class="eh-greeting-col">
+      <div class="eh-greeting-name" id="eh-greeting-name">Good morning</div>
+      <div class="eh-greeting-sub">
+        <span class="eh-greeting-sub-dot" id="eh-greeting-sub-dot"></span>
+        <span id="eh-greeting-sub-text">You're offline</span>
+      </div>
+    </div>
+    <button class="eh-avail-pill" id="avail-toggle" aria-label="Toggle availability">
+      <span class="eh-avail-dot" id="avail-pill"></span>
+      <span id="avail-label">Offline</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  </div>
+
+  <!-- Account status banners -->
+  <div id="tier-status-banner" class="eh-banner hidden">
+    <div>
+      <div class="eh-banner-title" id="tier-status-title"></div>
+      <div class="eh-banner-sub" id="tier-status-sub"></div>
+    </div>
+  </div>
+  <div id="identity-banner" class="eh-banner identity hidden">
+    <div>
+      <div class="eh-banner-title">Identity verification pending</div>
+      <div class="eh-banner-sub" id="identity-banner-sub">Your verification is in progress.</div>
+    </div>
+    <a id="identity-verify-btn" href="/apply" class="eh-banner-btn" style="display:none">Verify Now</a>
+  </div>
+  <div id="profile-banner" class="eh-banner hidden">
+    <div>
+      <div class="eh-banner-title" id="profile-banner-title">Complete your profile</div>
+      <div class="eh-banner-sub" id="profile-banner-sub">Add your skills and rate to get more jobs.</div>
+    </div>
+    <a href="/assembler/profile" class="eh-banner-btn" id="profile-banner-cta">Update Profile</a>
+  </div>
+
+  <!-- ── ACTIVE JOB ─────────────────────────────────────────────────── -->
+  <div id="active-section" style="display:none">
+    <div class="eh-section-label">Active Job</div>
+    <div class="eh-job-card" id="active-job-card"></div>
+  </div>
+
+  <!-- ── JOB OFFERS ─────────────────────────────────────────────────── -->
+  <div id="offers-section" style="display:none">
+    <div class="eh-section-label-row">
+      <span class="eh-section-label">
+        Job Offers
+        <span class="eh-offer-count-badge" id="offer-count-badge"></span>
+      </span>
+      <a href="/assembler/my-assignments" class="eh-view-all">
+        View all
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
+    </div>
+    <div id="offers-list"></div>
+  </div>
 
-      <!-- ── ACTIVE JOB HERO ────────────────────────────────────────── -->
-      <div class="e-job-hero e-job-hero-gradient" id="active-job-hero" style="display:none">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:0.35rem">
-          <div class="e-job-hero-label">Active Job</div>
-          <span id="hero-status-badge"></span>
-        </div>
-        <div class="e-job-hero-service" id="hero-service">—</div>
-        <div class="e-hero-link-row" id="hero-links" style="display:none">
-          <a id="hero-maps-btn" href="#" target="_blank" rel="noopener" class="e-hero-link-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            Maps
-          </a>
-          <a id="hero-call-btn" href="#" class="e-hero-link-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg>
-            Call
-          </a>
-        </div>
-        <div class="e-hero-stage-divider" id="hero-stage-section" style="display:none">
-          <div class="e-stage-track" id="hero-stage-track"></div>
-        </div>
-        <button class="e-hero-primary" id="hero-primary-btn" style="display:none"></button>
+  <!-- ── STATS CARD ──────────────────────────────────────────────────── -->
+  <div class="eh-stats-card" id="stats-card">
+    <div class="eh-stat-item">
+      <div class="eh-stat-icon green">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       </div>
+      <div class="eh-stat-value" id="stat-earned">—</div>
+      <div class="eh-stat-label">Earned This Month</div>
+    </div>
+    <div class="eh-stat-item">
+      <div class="eh-stat-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      </div>
+      <div class="eh-stat-value" id="stat-jobs">—</div>
+      <div class="eh-stat-label">Jobs Completed</div>
+    </div>
+    <div class="eh-stat-item">
+      <div class="eh-stat-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div class="eh-stat-value" id="stat-rating">—</div>
+      <div class="eh-stat-label">Rating</div>
+    </div>
+    <div class="eh-stat-item">
+      <div class="eh-stat-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="eh-stat-value" id="stat-pending">—</div>
+      <div class="eh-stat-label">Pending Payout</div>
+    </div>
+  </div>
 
-      <!-- ── METRIC STRIP ───────────────────────────────────────────── -->
-      <div class="metric-strip" id="metric-strip">
-        <div class="metric-item highlight"><div class="metric-value skeleton" style="height:1.2rem;width:40px;margin:0 auto 3px"></div><div class="metric-label">Earned</div></div>
-        <div class="metric-item"><div class="metric-value skeleton" style="height:1.2rem;width:30px;margin:0 auto 3px"></div><div class="metric-label">Done</div></div>
-        <div class="metric-item"><div class="metric-value skeleton" style="height:1.2rem;width:30px;margin:0 auto 3px"></div><div class="metric-label">Rating</div></div>
-        <div class="metric-item"><div class="metric-value skeleton" style="height:1.2rem;width:40px;margin:0 auto 3px"></div><div class="metric-label">Pending</div></div>
-      </div>
+  <!-- ── UPCOMING ────────────────────────────────────────────────────── -->
+  <div id="upcoming-section" style="display:none;margin-bottom:1.25rem">
+    <div class="eh-section-label-row">
+      <span class="eh-section-label">Upcoming</span>
+      <a href="/assembler/my-assignments" class="eh-view-all">
+        View all
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+    <div id="upcoming-list"></div>
+  </div>
 
-      <!-- ── UPCOMING ASSIGNMENTS ───────────────────────────────────── -->
-      <div id="upcoming-section" style="display:none;margin-bottom:1.5rem">
-        <div class="pro-section-header">
-          <div class="pro-section-title"><span class="dot"></span>Upcoming</div>
-          <a href="/assembler/my-assignments" class="pro-link">View all</a>
-        </div>
-        <div id="upcoming-list"></div>
-      </div>
-
-      <!-- ── AVAILABILITY CARD ─────────────────────────────────── -->
-      <div class="e-avail-card" id="waiting-state" style="display:none">
-        <div class="e-avail-card-text">
-          <strong id="avail-card-title">You're Online</strong>
-          <span id="avail-card-sub">You'll receive job offers</span>
-        </div>
-        <div class="avail-row" id="avail-toggle2" role="button" tabindex="0" aria-label="Toggle availability">
-          <div class="avail-pill" id="avail-pill2"></div>
-          <span class="avail-label" id="avail-label2">Offline</span>
-        </div>
-      </div>
-
-      <!-- ── RECENT COMPLETED ──────────────────────────────────────── -->
-      <div id="completed-section" style="display:none;margin-bottom:1.5rem">
-        <div class="pro-section-header">
-          <div class="pro-section-title"><span class="dot" style="background:#1d9e75"></span>Recent Completed</div>
-          <a href="/assembler/my-assignments" class="pro-link">View all</a>
-        </div>
-        <div id="completed-list"></div>
-      </div>
+  <!-- ── WAITING STATE (no active, no upcoming) ─────────────────────── -->
+  <div class="eh-waiting-card" id="waiting-state" style="display:none">
+    <div>
+      <div class="eh-waiting-title" id="avail-card-title">You're Online</div>
+      <div class="eh-waiting-sub" id="avail-card-sub">You'll receive job offers</div>
+    </div>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  </div>
 
 </div><!-- /easer-page -->
 
 <nav class="easer-nav">
   <a href="/assembler/" class="easer-nav-item active">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" stroke="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     <span>Home</span>
   </a>
   <a href="/assembler/my-assignments" class="easer-nav-item">
@@ -265,470 +319,452 @@
 
 <script>
   function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-  function truncate(str,len){len=len||75;return !str?'':str.length>len?str.substring(0,len)+'...':str;}
-  function timeAgo(d){
-    if(!d)return'';
-    var diff=Date.now()-new Date(d).getTime(),m=Math.floor(diff/60000),h=Math.floor(diff/3600000),days=Math.floor(diff/86400000);
-    if(m<1)return'Just now';if(m<60)return m+'m ago';if(h<24)return h+'h ago';if(days===1)return'Yesterday';return days+'d ago';
-  }
+  function fmtTime(ts){if(!ts)return'';return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
+  function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(d);var now=new Date();var diff=Math.round((dt-new Date(now.toDateString()))/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
+  function fmtPay(cents){if(!cents)return'$0';return'$'+(cents/100).toFixed(0);}
 
-  var available=false;
-  var currentUserId=null;
+  var available = false;
+  var currentUserId = null;
+  var freshTok = null;
+  var tosInterval = null;
+  var offerTimerInterval = null;
 
-  document.getElementById('avail-toggle').addEventListener('click',async function(){
-    if(!currentUserId) return;
+  // Availability toggle
+  document.getElementById('avail-toggle').addEventListener('click', async function(){
+    if (!currentUserId) return;
     var newVal = !available;
-
-    // Optimistic UI update
     available = newVal;
-    document.getElementById('avail-pill').classList.toggle('on', newVal);
-    document.getElementById('avail-toggle').classList.toggle('on', newVal);
-    document.getElementById('avail-label').textContent = newVal ? 'Online' : 'Offline';
-
+    setAvailUI(newVal);
     try {
-      var res = await supabaseClient.from('profiles').update({ is_available: newVal }).eq('id', currentUserId);
+      var res = await supabaseClient.from('profiles').update({is_available:newVal}).eq('id',currentUserId);
       if (res.error) throw res.error;
     } catch(e) {
-      // Server update failed — revert UI to match actual DB state
       available = !newVal;
-      document.getElementById('avail-pill').classList.toggle('on', !newVal);
-      document.getElementById('avail-toggle').classList.toggle('on', !newVal);
-      document.getElementById('avail-label').textContent = !newVal ? 'Online' : 'Offline';
-      console.error('Availability update failed:', e.message);
+      setAvailUI(!newVal);
     }
   });
 
-  document.addEventListener('DOMContentLoaded',async function(){
+  function setAvailUI(on) {
+    document.getElementById('avail-pill').classList.toggle('on', on);
+    document.getElementById('avail-toggle').classList.toggle('on', on);
+    document.getElementById('avail-label').textContent = on ? 'Online' : 'Offline';
+    document.getElementById('eh-online-dot').classList.toggle('online', on);
+    document.getElementById('eh-greeting-sub-dot').classList.toggle('online', on);
+    document.getElementById('eh-greeting-sub-text').textContent = on ? "You're online and available" : "You're currently offline";
+  }
+
+  // Build 4-step pipeline HTML
+  function buildPipeline(b) {
+    var steps = [
+      { label:'On My Way', time:b.en_route_at,    done:!!b.en_route_at,    current:b.status==='en_route' },
+      { label:'Arrived',   time:b.checked_in_at,  done:!!b.checked_in_at,  current:b.status==='arrived' },
+      { label:'Start Job', time:b.job_started_at, done:!!b.job_started_at, current:b.status==='in_progress' },
+      { label:'Complete',  time:null,              done:b.status==='completed', current:false },
+    ];
+    return '<div class="eh-pipeline">' + steps.map(function(s,i){
+      var dotCls  = s.current ? 'current' : s.done ? 'done' : '';
+      var lblCls  = s.current ? 'active' : '';
+      var timeStr = s.time ? fmtTime(s.time) : '';
+      var conn    = i < steps.length-1 ? '<div class="eh-pipe-connector'+(s.done?' done':'')+'"></div>' : '';
+      return '<div class="eh-pipe-node">'
+        +'<div class="eh-pipe-dot '+dotCls+'"></div>'
+        +'<div class="eh-pipe-label '+lblCls+'">'+s.label+'</div>'
+        +(timeStr?'<div class="eh-pipe-time">'+timeStr+'</div>':'')
+        +'</div>'+conn;
+    }).join('')+'</div>';
+  }
+
+  // Render the active job card
+  function renderActiveJob(lj) {
+    document.getElementById('active-section').style.display = '';
+    var statusLabel  = {en_route:'En Route',arrived:'On Site',in_progress:'In Progress'}[lj.status]||lj.status;
+    var statusClass  = {en_route:'bk-en-route',arrived:'bk-arrived',in_progress:'bk-in-progress'}[lj.status]||'bk-confirmed';
+    var dateStr      = lj.date ? new Date(lj.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    var timeStr      = lj.time || '—';
+    var addrStr      = lj.address || 'Address on file';
+    var customerName = lj.customer_name || lj.customer_email || '';
+    var mapsUrl      = lj.address ? 'https://maps.google.com/?q='+encodeURIComponent(lj.address) : '#';
+    var callUrl      = lj.customer_phone ? 'tel:'+lj.customer_phone : '#';
+    var showCall     = !!lj.customer_phone;
+
+    // CTA button
+    var ctaLabel='', ctaStage='', ctaGreen=false;
+    if(lj.status==='en_route')     { ctaLabel='Arrived at Location'; ctaStage='arrived'; }
+    else if(lj.status==='arrived') { ctaLabel='Start Job'; ctaStage='in_progress'; ctaGreen=true; }
+    else if(lj.status==='in_progress') { ctaLabel='Mark Job Complete'; ctaGreen=true; }
+
+    // Time on site
+    var tosHtml = '';
+    var tosStartTs = lj.job_started_at || lj.checked_in_at;
+    if(lj.status==='in_progress' && tosStartTs) {
+      tosHtml = '<div class="eh-tos-block"><span class="eh-tos-lbl">Time on site</span><span class="eh-tos-val" id="eh-tos-val">—</span></div>';
+    }
+
+    var html = '<div class="eh-job-card-header">'
+      +'<div class="eh-job-icon">'
+        +'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.75"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+      +'</div>'
+      +'<div class="eh-job-main">'
+        +'<div class="eh-job-title-row">'
+          +'<div class="eh-job-title">'+esc(lj.service||'Active Job')+'</div>'
+          +'<span class="sb '+statusClass+'" style="flex-shrink:0;font-size:0.68rem">'+esc(statusLabel)+'</span>'
+        +'</div>'
+        +(customerName?'<div class="eh-job-customer">for '+esc(customerName)+'</div>':'')
+      +'</div>'
+    +'</div>'
+    +'<div class="eh-job-addr-row">'
+      +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+      +esc(addrStr)
+    +'</div>'
+    +'<div class="eh-job-dt-row">'
+      +'<div class="eh-job-dt-item">'
+        +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+        +esc(dateStr)
+      +'</div>'
+      +'<div class="eh-job-dt-item">'
+        +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+        +esc(timeStr)
+      +'</div>'
+      +tosHtml
+    +'</div>'
+    +buildPipeline(lj)
+    +'<div class="eh-action-row">'
+      +'<a class="eh-dir-btn" href="'+mapsUrl+'" target="_blank" rel="noopener">'
+        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+        +'Get Directions'
+      +'</a>'
+      +(showCall
+        ?'<a class="eh-call-btn" href="'+callUrl+'">'
+          +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg>'
+          +'Call Customer'
+        +'</a>'
+        :'<span class="eh-call-btn" style="opacity:0.35;pointer-events:none">'
+          +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg>'
+          +'Call Customer'
+        +'</span>')
+    +'</div>'
+    +(ctaLabel
+      ?'<button class="eh-cta-btn'+(ctaGreen?' green':'')+'" id="eh-cta-btn">'
+        +esc(ctaLabel)
+        +(ctaStage?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>':'')
+      +'</button>'
+      :'');
+
+    document.getElementById('active-job-card').innerHTML = html;
+
+    // Wire up time-on-site counter
+    if(tosStartTs && lj.status==='in_progress') {
+      clearInterval(tosInterval);
+      function updateTOS(){
+        var mins=Math.floor((Date.now()-new Date(tosStartTs).getTime())/60000);
+        var h=Math.floor(mins/60);var m=mins%60;
+        var el=document.getElementById('eh-tos-val');
+        if(el) el.textContent=h>0?h+'h '+m+'m':mins+' min';
+      }
+      updateTOS();
+      tosInterval=setInterval(updateTOS,30000);
+    }
+
+    // Wire up CTA button
+    var ctaBtn = document.getElementById('eh-cta-btn');
+    if(ctaBtn && ctaStage) {
+      ctaBtn.addEventListener('click', async function(){
+        ctaBtn.disabled=true; ctaBtn.textContent='Updating…';
+        try {
+          var r=await fetch('/api/booking/easer-status',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
+            body:JSON.stringify({bookingId:lj.id,stage:ctaStage}),
+          });
+          var d=await r.json();
+          if(!r.ok||d.error){ctaBtn.disabled=false;ctaBtn.innerHTML=esc(ctaLabel)+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>';return;}
+          window.location.reload();
+        } catch{ctaBtn.disabled=false;ctaBtn.textContent=ctaLabel;}
+      });
+    } else if(ctaBtn && lj.status==='in_progress') {
+      ctaBtn.addEventListener('click', function(){
+        window.location.href='/assembler/my-assignments';
+      });
+    }
+  }
+
+  // Render offer cards on home page
+  function renderOffers(offers) {
+    if(!offers.length) return;
+    document.getElementById('offers-section').style.display='';
+    document.getElementById('offer-count-badge').textContent=offers.length;
+    document.getElementById('eh-bell-badge').textContent=offers.length;
+    document.getElementById('eh-bell-badge').style.display='';
+
+    document.getElementById('offers-list').innerHTML = offers.slice(0,2).map(function(b){
+      var pay = b.assembler_due ? fmtPay(b.assembler_due) : (b.total_price ? fmtPay(Math.round(b.total_price*0.75)) : '—');
+      var expiresAt = b.offer_expires_at || b.dispatch_offered_at;
+      return '<div class="eh-offer-card">'
+        +'<div class="eh-offer-card-top">'
+          +'<div class="eh-offer-icon">'
+            +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="1.75"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+          +'</div>'
+          +'<div class="eh-offer-info">'
+            +'<div class="eh-offer-title">'+esc(b.service||'Service Job')+'</div>'
+            +(b.description?'<div class="eh-offer-spec">'+esc(b.description.substring(0,50))+'</div>':'')
+            +(b.address?'<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'+esc(b.address)+'</div>':'')
+            +(expiresAt?'<div class="eh-offer-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-expires-at="'+esc(expiresAt)+'">—</span></div>':'')
+          +'</div>'
+          +'<div class="eh-offer-payout">'
+            +'<div class="eh-offer-amount">'+pay+'</div>'
+            +'<div class="eh-offer-est">Est. Payout</div>'
+          +'</div>'
+        +'</div>'
+        +'<div class="eh-offer-actions">'
+          +'<button class="eh-offer-accept" id="accept-btn-'+b.id+'" onclick="acceptOffer(\''+b.id+'\',\''+esc(b.dispatch_token||'')+'\')">'
+            +'Accept'
+          +'</button>'
+          +'<button class="eh-offer-decline" onclick="window.location.href=\'/assembler/my-assignments\'">'
+            +'Decline'
+          +'</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+
+    // Start countdown timers
+    clearInterval(offerTimerInterval);
+    function updateTimers(){
+      document.querySelectorAll('[data-expires-at]').forEach(function(el){
+        var remaining=new Date(el.dataset.expiresAt).getTime()-Date.now();
+        if(remaining<=0){el.textContent='Expired';return;}
+        var m=Math.floor(remaining/60000);
+        var s=Math.floor((remaining%60000)/1000);
+        el.textContent=m+':'+String(s).padStart(2,'0')+' remaining';
+      });
+    }
+    updateTimers();
+    offerTimerInterval=setInterval(updateTimers,1000);
+  }
+
+  async function acceptOffer(bookingId, token) {
+    var btn=document.getElementById('accept-btn-'+bookingId);
+    if(btn){btn.disabled=true;btn.textContent='Accepting…';}
+    try {
+      var r=await fetch('/api/booking/accept-dispatch',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
+        body:JSON.stringify({bookingId,token}),
+      });
+      var d=await r.json();
+      if(!r.ok||d.error){
+        alert(d.error||'Could not accept. Please try again.');
+        if(btn){btn.disabled=false;btn.textContent='Accept';}
+        return;
+      }
+      window.location.reload();
+    } catch{if(btn){btn.disabled=false;btn.textContent='Accept';}}
+  }
+
+  document.addEventListener('DOMContentLoaded', async function(){
     var auth=await APP.requireAuth(['assembler']);
-    if(!auth)return;
+    if(!auth) return;
     document.body.style.visibility='visible';
-    var user=auth.user;
-    var session=auth.session;
-    var profile=auth.profile;
+    var user=auth.user, session=auth.session, profile=auth.profile;
     currentUserId=user.id;
 
+    // Availability
     available=profile.is_available||false;
-    document.getElementById('avail-pill').classList.toggle('on',available);
-    document.getElementById('avail-toggle').classList.toggle('on',available);
-    document.getElementById('avail-label').textContent=available?'Online':'Offline';
+    setAvailUI(available);
 
-    var firstName=profile.full_name?profile.full_name.split(' ')[0]:'there';
+    // Avatar
+    var avatarEl=document.getElementById('eh-avatar');
     var initials=(profile.full_name||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
-
-    var avatarEl=document.getElementById('sidebar-avatar');
     if(profile.profile_photo){
-      avatarEl.innerHTML='<img src="'+esc(profile.profile_photo)+'" alt="'+esc(firstName)+'" />';
+      avatarEl.innerHTML='<img src="'+esc(profile.profile_photo)+'" alt="'+esc(initials)+'">';
     } else {
       avatarEl.textContent=initials;
     }
 
-    document.getElementById('sidebar-name').textContent=profile.full_name||'Assembler';
-    document.getElementById('sidebar-rating').textContent=profile.rating?Number(profile.rating).toFixed(1)+' star':'New';
-    document.getElementById('sidebar-jobs-done').textContent=profile.completed_jobs||0;
-
-    // Tier badge
-    var tierEl=document.getElementById('sidebar-tier');
-    var tierCls={starter:'et-starter',professional:'et-professional',elite:'et-elite'};
-    var tierLabels={starter:'Starter',professional:'Professional',elite:'Elite'};
-    if(profile.status==='active' && profile.tier && tierCls[profile.tier]){
-      tierEl.innerHTML='<span class="sb '+(tierCls[profile.tier])+'">'+(tierLabels[profile.tier]||profile.tier)+'</span>';
-    } else if(profile.status==='pending'){
-      tierEl.innerHTML='<span class="sb ea-pending">Pending Review</span>';
-    } else if(profile.status==='suspended'){
-      tierEl.innerHTML='<span class="sb ea-suspended">Suspended</span>';
-    }
-
-    // Status banner
-    var tsBanner=document.getElementById('tier-status-banner');
-    if(profile.status==='pending'){
-      tsBanner.classList.remove('hidden');
-      document.getElementById('tier-status-icon').innerHTML='';
-      document.getElementById('tier-status-title').textContent='Your application is under review';
-      document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
-    } else if(profile.status==='active' && profile.tier==='starter' && profile.completed_jobs===0){
-      tsBanner.classList.remove('hidden');
-      tsBanner.style.background='rgba(0,151,167,0.06)';
-      tsBanner.style.borderColor='rgba(0,151,167,0.15)';
-      document.getElementById('tier-status-icon').innerHTML='';
-      document.getElementById('tier-status-title').textContent='Welcome to AssembleAtEase — you are approved and ready to receive jobs.';
-      document.getElementById('tier-status-sub').textContent='Complete your profile and we will start assigning jobs to you.';
-    }
-
-    // Identity verification banner
-    if(!profile.identity_verified){
-      var iBanner=document.getElementById('identity-banner');
-      iBanner.classList.remove('hidden');
-      var iSub=document.getElementById('identity-banner-sub');
-      if(profile.stripe_verification_id){
-        iSub.textContent='Your identity verification is being processed. We\'ll notify you once complete.';
-      } else {
-        iSub.textContent='Identity verification is required to start accepting jobs. Contact support if you need help.';
-      }
-    }
-
+    // Greeting
+    var firstName=profile.full_name?profile.full_name.split(' ')[0]:'there';
     var hour=new Date().getHours();
-    var greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
-    var wn=document.getElementById('welcome-name');if(wn)wn.textContent=greet+', '+firstName;
-    document.getElementById('topbar-greeting').textContent=greet+', '+firstName;
+    var greet=hour<12?'Good morning, ':hour<17?'Good afternoon, ':'Good evening, ';
+    document.getElementById('eh-greeting-name').textContent=greet+firstName+'!';
 
-    // Phone number is required for job dispatch
-    if(!profile.phone){
-      var phoneBanner = document.getElementById('profile-banner');
-      if(phoneBanner){
-        phoneBanner.classList.remove('hidden');
-        phoneBanner.style.background='rgba(239,68,68,0.06)';
-        phoneBanner.style.borderColor='rgba(239,68,68,0.2)';
-        phoneBanner.querySelector('.pro-banner-title').textContent='Phone number required to receive jobs';
-        phoneBanner.querySelector('.pro-banner-sub').textContent='Easers without a phone number cannot be dispatched. Add it now to start getting job offers.';
-        phoneBanner.querySelector('a').textContent='Add Phone Number →';
-        phoneBanner.querySelector('a').style.background='#ef4444';
-      }
-    } else if(!profile.hourly_rate||!profile.city||!profile.bio){
-      document.getElementById('profile-banner').classList.remove('hidden');
-    }
+    // Offline banner
+    var offlineBanner=document.getElementById('e-offline');
+    window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
+    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show');});
 
+    // Logout
     document.getElementById('sidebar-logout').addEventListener('click',async function(e){
       e.preventDefault();
       await supabaseClient.auth.signOut();
       window.location.href='../';
     });
 
-    // ── VERIFICATION GATE ──
-    if(profile.status==='pending' || profile.status==='suspended' || profile.identity_verified!==true){
-      document.getElementById('metric-strip').style.display='none';
-      // Show the appropriate banner
-      var banner=document.getElementById('identity-banner');
-      if(banner) banner.classList.remove('hidden');
-      if(profile.status==='pending'){
-        var sub=document.getElementById('identity-banner-sub');
-        if(sub) sub.textContent='Your application is under review. We\'ll email you once approved.';
-      } else if(profile.status==='suspended'){
-        var sub=document.getElementById('identity-banner-sub');
-        if(sub) sub.textContent='Your account is currently suspended. Please contact support.';
+    // Status banners
+    var tsBanner=document.getElementById('tier-status-banner');
+    if(profile.status==='pending'){
+      tsBanner.classList.remove('hidden');
+      document.getElementById('tier-status-title').textContent='Your application is under review';
+      document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
+    } else if(profile.status==='active'&&profile.tier==='starter'&&profile.completed_jobs===0){
+      tsBanner.classList.remove('hidden');
+      tsBanner.style.background='rgba(0,151,167,0.06)';
+      tsBanner.style.borderColor='rgba(0,151,167,0.15)';
+      document.getElementById('tier-status-title').textContent='Welcome — you are approved and ready for jobs.';
+      document.getElementById('tier-status-sub').textContent='Complete your profile so we can start assigning jobs.';
+    }
+
+    if(!profile.identity_verified){
+      document.getElementById('identity-banner').classList.remove('hidden');
+      var iSub=document.getElementById('identity-banner-sub');
+      if(profile.stripe_verification_id){
+        iSub.textContent='Your identity verification is being processed. We\'ll notify you once complete.';
       } else {
-        // Identity not verified — show the verify button
-        var verifyBtn=document.getElementById('identity-verify-btn');
-        if(profile.stripe_verification_id){if(sub) sub.textContent='Check your welcome email for the identity verification link. Need help? Email service@assembleatease.com.';}else{var verifyBtn=document.getElementById('identity-verify-btn');if(verifyBtn){verifyBtn.style.display='';verifyBtn.href='/apply';}}
+        iSub.textContent='Identity verification required to receive jobs.';
+        var vBtn=document.getElementById('identity-verify-btn');
+        if(vBtn) vBtn.style.display='';
       }
-      disableNavLinks();
+    }
+
+    if(!profile.phone){
+      var pb=document.getElementById('profile-banner');
+      pb.classList.remove('hidden');
+      pb.style.background='rgba(239,68,68,0.06)';
+      pb.style.borderColor='rgba(239,68,68,0.2)';
+      document.getElementById('profile-banner-title').textContent='Phone number required to receive jobs';
+      document.getElementById('profile-banner-sub').textContent='Easers without a phone number cannot be dispatched.';
+      document.getElementById('profile-banner-cta').textContent='Add Phone';
+    } else if(!profile.hourly_rate||!profile.city||!profile.bio){
+      document.getElementById('profile-banner').classList.remove('hidden');
+    }
+
+    // Verification gate
+    if(profile.status==='pending'||profile.status==='suspended'||profile.identity_verified!==true){
+      document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a){
+        a.style.opacity='0.4';a.style.pointerEvents='none';
+      });
       return;
     }
 
-    // Get fresh token
-    var freshTok = session.access_token;
+    // Fresh token
+    freshTok=session.access_token;
     try{
-      var fs = await supabaseClient.auth.getSession();
-      if(fs.data&&fs.data.session) freshTok = fs.data.session.access_token;
-      if(!freshTok) { var rf = await supabaseClient.auth.refreshSession(); if(rf.data&&rf.data.session) freshTok = rf.data.session.access_token; }
+      var fs=await supabaseClient.auth.getSession();
+      if(fs.data&&fs.data.session) freshTok=fs.data.session.access_token;
     }catch(e){}
 
-    // ── Load all assignments and sort by operational priority ──────────
-    var allBookings = [];
-    try {
-      var bResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + freshTok } });
-      if (bResp.ok) {
-        var bData = await bResp.json();
-        allBookings = bData.bookings || [];
-      }
-    } catch(e) { console.error('Assignments load error:', e); }
+    // Load assignments
+    var allBookings=[];
+    try{
+      var bResp=await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok}});
+      if(bResp.ok){var bData=await bResp.json();allBookings=bData.bookings||[];}
+    }catch(e){console.error('Load error:',e);}
 
-    // Categorise
-    var liveStatuses  = ['en_route', 'arrived', 'in_progress'];
-    var liveJobs      = allBookings.filter(function(b){ return liveStatuses.includes(b.status); });
-    var pendingOffers = allBookings.filter(function(b){ return b._is_pending_offer; });
-    var upcomingJobs  = allBookings.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
-    var completedJobs = allBookings.filter(function(b){ return b.status === 'completed'; });
+    var liveStatuses=['en_route','arrived','in_progress'];
+    var liveJobs     =allBookings.filter(function(b){return liveStatuses.includes(b.status);});
+    var pendingOffers=allBookings.filter(function(b){return b._is_pending_offer;});
+    var upcomingJobs =allBookings.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
 
-    // Pending offer alert banner
-    if (pendingOffers.length > 0) {
-      var offerAlert = document.getElementById('offer-alert');
-      var n = pendingOffers.length;
-      document.getElementById('offer-alert-title').textContent = n === 1 ? 'Job offer waiting' : n + ' job offers waiting';
-      document.getElementById('offer-alert-sub').textContent   = n === 1 ? 'Tap to view and accept — offer expires soon' : 'Tap to view and accept your offers';
-      offerAlert.style.display = '';
-    }
+    // Active job
+    if(liveJobs.length>0) renderActiveJob(liveJobs[0]);
 
-    // ── Active job hero ──────────────────────────────────────────────
-    var hero = document.getElementById('active-job-hero');
-    if (liveJobs.length > 0) {
-      var lj = liveJobs[0];
-      hero.style.display = '';
+    // Job offers
+    if(pendingOffers.length>0) renderOffers(pendingOffers);
 
-      var statusLabels  = { en_route: 'En Route', arrived: 'On Site', in_progress: 'Working' };
-      var statusClasses = { en_route: 'bk-en-route', arrived: 'bk-arrived', in_progress: 'bk-in-progress' };
-      document.getElementById('hero-service').textContent = lj.service || 'Active Job';
-      document.getElementById('hero-status-badge').innerHTML =
-        '<span class="sb ' + (statusClasses[lj.status] || 'bk-confirmed') + '">' + (statusLabels[lj.status] || lj.status) + '</span>';
+    // Stats
+    try{
+      var s=await API.getAssemblerStats(user.id)||{};
+      document.getElementById('stat-earned').textContent='$'+Number(s.totalEarned||0).toLocaleString('en-US',{maximumFractionDigits:0});
+      document.getElementById('stat-jobs').textContent=s.completedJobs||0;
+      document.getElementById('stat-rating').textContent=profile.rating?Number(profile.rating).toFixed(1):'New';
+      document.getElementById('stat-pending').textContent=s.pendingPayout?'$'+Number(s.pendingPayout/100).toFixed(0):'$0';
+    }catch(e){/* leave as — */}
 
-      // Maps + Call buttons
-      var hasAddr = !!lj.address, hasPhone = !!lj.customer_phone;
-      if (hasAddr || hasPhone) {
-        document.getElementById('hero-links').style.display = '';
-        if (hasAddr) {
-          document.getElementById('hero-maps-btn').href = 'https://maps.google.com/?q=' + encodeURIComponent(lj.address);
-        } else {
-          document.getElementById('hero-maps-btn').style.display = 'none';
-        }
-        if (hasPhone) {
-          document.getElementById('hero-call-btn').href = 'tel:' + lj.customer_phone;
-        } else {
-          document.getElementById('hero-call-btn').style.display = 'none';
-        }
-      }
-
-      // 4-segment stage track: Accepted → En Route → Arrived → Working
-      var stageOrder  = ['confirmed', 'en_route', 'arrived', 'in_progress'];
-      var stageLabels = ['Accepted', 'En Route', 'Arrived', 'Working'];
-      var curIdx = stageOrder.indexOf(lj.status);
-      if (curIdx < 0) curIdx = 0;
-      document.getElementById('hero-stage-section').style.display = '';
-      document.getElementById('hero-stage-track').innerHTML = stageOrder.map(function(s, i) {
-        var done    = i < curIdx;
-        var current = i === curIdx;
-        var dotCls  = current ? ' current' : done ? ' done' : '';
-        var lnCls   = done ? ' done' : '';
-        return '<div class="e-stage-node">'
-          + '<div class="e-stage-dot' + dotCls + '"></div>'
-          + '<div class="e-stage-dot-label' + dotCls + '">' + stageLabels[i] + '</div>'
-          + '</div>'
-          + (i < stageOrder.length - 1 ? '<div class="e-stage-line' + lnCls + '"></div>' : '');
+    // Upcoming
+    if(upcomingJobs.length>0){
+      document.getElementById('upcoming-section').style.display='';
+      document.getElementById('upcoming-list').innerHTML=upcomingJobs.slice(0,3).map(function(b){
+        var dateStr=fmtDate(b.date);
+        var when=dateStr+(b.time?' · '+b.time:'');
+        return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
+          +'<div style="flex:1;min-width:0">'
+            +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
+            +'<div class="eh-upcoming-service">'+esc(b.service||'Service')+'</div>'
+            +'<div class="eh-upcoming-addr">'+esc(b.address||'Address TBD')+'</div>'
+          +'</div>'
+          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
+        +'</div>';
       }).join('');
-
-      // Sticky primary action button
-      var primaryBtn  = document.getElementById('hero-primary-btn');
-      var nextLabel   = '';
-      var nextStage   = '';
-      if (lj.status === 'en_route')         { nextLabel = "I've Arrived"; nextStage = 'arrived'; }
-      else if (lj.status === 'arrived')     { nextLabel = 'Start Job';    nextStage = 'in_progress'; }
-
-      if (nextStage) {
-        primaryBtn.textContent = nextLabel;
-        primaryBtn.style.display = '';
-        primaryBtn.addEventListener('click', async function() {
-          primaryBtn.disabled = true; primaryBtn.textContent = 'Updating…';
-          try {
-            var r = await fetch('/api/booking/easer-status', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + freshTok },
-              body: JSON.stringify({ bookingId: lj.id, stage: nextStage }),
-            });
-            var d = await r.json();
-            if (!r.ok || d.error) { primaryBtn.disabled = false; primaryBtn.textContent = nextLabel; return; }
-            window.location.reload();
-          } catch { primaryBtn.disabled = false; primaryBtn.textContent = nextLabel; }
-        });
-      } else if (lj.status === 'in_progress') {
-        // Mark Job Complete + Message Customer — spec layout
-        var completeBtn = document.createElement('button');
-        completeBtn.className = 'e-hero-complete-btn';
-        completeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Mark Job Complete';
-        completeBtn.style.display = '';
-        completeBtn.addEventListener('click', function() {
-          window.location.href = '/assembler/my-assignments';
-        });
-        primaryBtn.parentNode.insertBefore(completeBtn, primaryBtn);
-
-        var msgBtn = document.createElement('a');
-        msgBtn.className = 'e-hero-msg-btn';
-        msgBtn.href = '/assembler/my-assignments';
-        msgBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message Customer';
-        primaryBtn.parentNode.insertBefore(msgBtn, primaryBtn);
-      }
-    }
-
-    // ── Metric strip ─────────────────────────────────────────────────
-    try {
-      var s = await API.getAssemblerStats(user.id) || {};
-      var earned  = '$' + Number(s.totalEarned||0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-      var rating  = profile.rating ? Number(profile.rating).toFixed(1) : '—';
-      var pending = s.pendingPayout ? '$' + Number(s.pendingPayout/100).toFixed(0) : '$0';
-      document.getElementById('sidebar-earnings').textContent = earned;
-      document.getElementById('metric-strip').innerHTML =
-        '<div class="metric-item highlight"><div class="metric-value">' + earned + '</div><div class="metric-label">Earned</div></div>' +
-        '<div class="metric-item"><div class="metric-value">' + (s.completedJobs||0) + '</div><div class="metric-label">Done</div></div>' +
-        '<div class="metric-item"><div class="metric-value">' + rating + '</div><div class="metric-label">Rating</div></div>' +
-        '<div class="metric-item"><div class="metric-value">' + pending + '</div><div class="metric-label">Pend.</div></div>';
-    } catch(e) {
-      document.getElementById('metric-strip').innerHTML = '<div class="metric-item"><div class="metric-value">—</div><div class="metric-label">Earned</div></div>';
-    }
-
-    // ── Upcoming jobs ────────────────────────────────────────────────
-    if (upcomingJobs.length) {
-      document.getElementById('upcoming-section').style.display = '';
-      document.getElementById('upcoming-list').innerHTML = upcomingJobs.slice(0, 3).map(function(b) {
-        var dateShort = b.date ? new Date(b.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : 'TBD';
-        var timeStr   = b.time || '';
-        var when      = dateShort + (timeStr ? ' · ' + timeStr : '');
-        return '<div class="e-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">' +
-          '<div style="flex:1;min-width:0">' +
-            '<div class="e-upcoming-card-when">' + esc(when) + '</div>' +
-            '<div class="e-upcoming-card-service">' + esc(b.service || 'Service') + '</div>' +
-            '<div class="e-upcoming-card-addr">' + esc(b.address || 'Address TBD') + '</div>' +
-          '</div>' +
-          '<span class="sb bk-accepted" style="flex-shrink:0">Confirmed</span>' +
-        '</div>';
-      }).join('');
-    } else if (liveJobs.length === 0) {
-      // No active AND no upcoming — show waiting state
-      if (profile.status === 'active' && profile.identity_verified) {
-        var ws = document.getElementById('waiting-state');
-        ws.style.display = '';
-        document.getElementById('avail-pill2').classList.toggle('on', available);
-        document.getElementById('avail-toggle2').classList.toggle('on', available);
-        document.getElementById('avail-label2').textContent = available ? 'Online' : 'Offline';
-        document.getElementById('avail-card-title').textContent = available ? "You're Online" : "You're Offline";
-        document.getElementById('avail-card-sub').textContent   = available ? "You'll receive job offers" : "Toggle on to start receiving jobs";
-      }
-    }
-
-    // ── Recent completed ─────────────────────────────────────────────
-    if (completedJobs.length) {
-      document.getElementById('completed-section').style.display = '';
-      document.getElementById('completed-list').innerHTML = completedJobs.slice(0, 4).map(function(b) {
-        var earned = b.assembler_due ? ' · $' + (b.assembler_due/100).toFixed(0) : '';
-        return '<div class="next-job-card" style="cursor:default">' +
-          '<div class="next-job-when" style="color:var(--pro-muted)">' + esc(b.date||'') + earned + '</div>' +
-          '<div class="next-job-service">' + esc(b.service||'Service') + '</div>' +
-          '<div class="next-job-meta">' + esc(b.ref||'') + (b.completed_at ? ' · ' + timeAgo(b.completed_at) : '') + '</div>' +
-          '</div>';
-      }).join('');
-    }
-
-    function formatWhen(date, time) {
-      try {
-        var d = new Date(date);
-        var now = new Date();
-        var diff = Math.round((d - new Date(now.toDateString())) / 86400000);
-        var prefix = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-        return prefix + (time ? ' · ' + time : '');
-      } catch { return date; }
+    } else if(liveJobs.length===0&&pendingOffers.length===0){
+      var ws=document.getElementById('waiting-state');
+      ws.style.display='';
+      document.getElementById('avail-card-title').textContent=available?"You're Online":"You're Offline";
+      document.getElementById('avail-card-sub').textContent=available?"You'll receive job offers when they're available":"Toggle Online to start receiving job offers";
     }
   });
-
-  // Disable sidebar nav links (no-op guard for unverified users)
-  function disableNavLinks() {
-    document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a) {
-      a.style.opacity = '0.4';
-      a.style.pointerEvents = 'none';
-      a.title = 'Complete verification to access this section';
-    });
-  }
 </script>
-<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 
-<!-- ── PWA Service Worker + Push Notifications ── -->
+<!-- PWA Service Worker + Push Notifications -->
 <script>
-(function() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+(function(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  var _swReg=null, _userId=null;
 
-  var _swReg = null;
-  var _userId = null;
+  navigator.serviceWorker.register('/sw.js',{scope:'/assembler/'}).then(function(reg){
+    _swReg=reg;
+    setTimeout(initPush,1500);
+  }).catch(function(e){console.warn('SW:',e);});
 
-  // Register service worker
-  navigator.serviceWorker.register('/sw.js', { scope: '/assembler/' }).then(function(reg) {
-    _swReg = reg;
-    // Try to get userId from Supabase session
-    setTimeout(initPush, 1500); // wait for app.js to init
-  }).catch(function(e) { console.warn('SW registration failed:', e); });
-
-  async function initPush() {
-    try {
-      var result = await window.supabaseClient.auth.getSession();
-      var session = result.data && result.data.session;
-      if (!session) return;
-      _userId = session.user.id;
-
-      var permission = Notification.permission;
-      if (permission === 'granted') {
-        subscribePush();
-      } else if (permission === 'default') {
-        showPushBanner();
-      }
-    } catch(e) { /* silent */ }
+  async function initPush(){
+    try{
+      var result=await window.supabaseClient.auth.getSession();
+      var session=result.data&&result.data.session;
+      if(!session) return;
+      _userId=session.user.id;
+      var permission=Notification.permission;
+      if(permission==='granted') subscribePush();
+      else if(permission==='default') showPushBanner();
+    }catch(e){}
   }
 
-  function showPushBanner() {
-    var existing = document.getElementById('push-banner');
-    if (existing) return;
-    var banner = document.createElement('div');
-    banner.id = 'push-banner';
-    banner.style.cssText = 'position:fixed;bottom:1rem;left:1rem;right:1rem;background:#0d1117;color:#fff;border-radius:14px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-wrap:wrap';
-    banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">'
-      + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.75" style="flex-shrink:0"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
-      + '<div><div style="font-size:0.875rem;font-weight:700;color:#fff">Get instant job alerts</div>'
-      + '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6);margin-top:1px">Tap allow so we can notify you the second a job is assigned</div></div>'
-      + '</div>'
-      + '<div style="display:flex;gap:0.5rem;flex-shrink:0">'
-      + '<button id="push-allow" style="background:#0097a7;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer">Allow</button>'
-      + '<button id="push-later" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:none;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.78rem;cursor:pointer">Later</button>'
-      + '</div>';
+  function showPushBanner(){
+    if(document.getElementById('push-banner')||sessionStorage.getItem('push-snoozed')) return;
+    var banner=document.createElement('div');
+    banner.id='push-banner';
+    banner.style.cssText='position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));left:1rem;right:1rem;background:#0d1117;color:#fff;border-radius:14px;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-wrap:wrap';
+    banner.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">'
+      +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.75" style="flex-shrink:0"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+      +'<div><div style="font-size:0.875rem;font-weight:700">Get instant job alerts</div>'
+      +'<div style="font-size:0.75rem;color:rgba(255,255,255,0.6)">Allow notifications for new job offers</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:0.5rem;flex-shrink:0">'
+      +'<button id="push-allow" style="background:#0097a7;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer">Allow</button>'
+      +'<button id="push-later" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:none;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.78rem;cursor:pointer">Later</button>'
+      +'</div>';
     document.body.appendChild(banner);
-
-    document.getElementById('push-allow').addEventListener('click', function() {
-      banner.remove();
-      Notification.requestPermission().then(function(p) {
-        if (p === 'granted') subscribePush();
-      });
-    });
-    document.getElementById('push-later').addEventListener('click', function() {
-      banner.remove();
-      sessionStorage.setItem('push-snoozed', '1');
-    });
+    document.getElementById('push-allow').onclick=function(){banner.remove();Notification.requestPermission().then(function(p){if(p==='granted')subscribePush();});};
+    document.getElementById('push-later').onclick=function(){banner.remove();sessionStorage.setItem('push-snoozed','1');};
   }
 
-  async function subscribePush() {
-    if (!_swReg || !_userId) { console.warn('Push: SW or userId not ready', {sw:!!_swReg, uid:_userId}); return; }
-    try {
-      // Get VAPID public key from server
-      var r = await fetch('/api/assembler/push-subscribe');
-      if (!r.ok) { console.warn('Push: VAPID key fetch failed', r.status, await r.text()); return; }
-      var d = await r.json();
-      if (!d.publicKey) { console.warn('Push: no publicKey in response', d); return; }
-
-      var sub = await _swReg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(d.publicKey),
-      });
-
-      var saveResp = await fetch('/api/assembler/push-subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: _userId, subscription: sub.toJSON() }),
-      });
-      var saveData = await saveResp.json();
-      if (!saveResp.ok || saveData.error) {
-        console.warn('Push: subscription save failed', saveData);
-      } else {
-        console.log('Push: subscription saved successfully for user', _userId);
-      }
-    } catch(e) { console.warn('Push subscribe error:', e); }
+  async function subscribePush(){
+    if(!_swReg||!_userId) return;
+    try{
+      var r=await fetch('/api/assembler/push-subscribe');
+      if(!r.ok) return;
+      var d=await r.json();
+      if(!d.publicKey) return;
+      var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(d.publicKey)});
+      await fetch('/api/assembler/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:_userId,subscription:sub.toJSON()})});
+    }catch(e){console.warn('Push:',e);}
   }
 
-  function urlBase64ToUint8Array(base64String) {
-    var padding = '='.repeat((4 - base64String.length % 4) % 4);
-    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    var rawData = atob(base64);
-    var output = new Uint8Array(rawData.length);
-    for (var i = 0; i < rawData.length; ++i) output[i] = rawData.charCodeAt(i);
-    return output;
+  function urlBase64ToUint8Array(b64){
+    var padding='='.repeat((4-b64.length%4)%4);
+    var base64=(b64+padding).replace(/-/g,'+').replace(/_/g,'/');
+    var raw=atob(base64);var out=new Uint8Array(raw.length);
+    for(var i=0;i<raw.length;++i) out[i]=raw.charCodeAt(i);
+    return out;
   }
 })();
 </script>
+<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
