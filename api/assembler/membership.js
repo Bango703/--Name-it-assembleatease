@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const sb = getSupabase();
-  const priceId = process.env.EASER_MEMBERSHIP_PRICE_ID;
+  const priceId = process.env.AAE_EASER_MEMBERSHIP;
 
   // ── GET STATUS ────────────────────────────────────────────────────
   if (action === 'status') {
