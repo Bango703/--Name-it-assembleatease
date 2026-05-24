@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -85,6 +86,15 @@ export default async function handler(req, res) {
       console.error('Payout email error:', e);
     }
   }
+
+  logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'payout_recorded',
+    actorType: 'owner',
+    actorName: 'Owner',
+    description: `Payout recorded: ${payoutDisplay} to ${assembler?.full_name || 'Easer'}${notes ? ' — ' + notes : ''}`,
+    metadata: { payoutCents, platformRevenue, amountCharged: booking.amount_charged || 0 },
+  });
 
   return res.status(200).json({
     success: true,

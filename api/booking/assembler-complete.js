@@ -4,6 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { logActivity } from './_activity.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -194,14 +195,22 @@ export default async function handler(req, res) {
     await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `Job Completed by Assembler — ${booking.ref}`,
-      html: `<p>Booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) has been marked complete by the assembler.</p>
-<p>Customer: ${esc(booking.customer_name)} | Amount: $${(finalAmount/100).toFixed(2)} | Assembler due: $${(assemblerDue/100).toFixed(2)}</p>`,
+      subject: `Job Completed by Easer — ${booking.ref}`,
+      html: `<p>Booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) has been marked complete by the Easer.</p>
+<p>Customer: ${esc(booking.customer_name)} | Amount: $${(finalAmount/100).toFixed(2)} | Easer due: $${(assemblerDue/100).toFixed(2)}</p>`,
     });
   } catch (e) { console.error('Owner notify error:', e); }
 
-  // Audit log
-  console.log(JSON.stringify({ audit: true, action: 'booking_complete', actor: 'assembler', assemblerId: user.id, bookingId: booking.id, ref: booking.ref, amountCharged: finalAmount, assemblerDue, timestamp: new Date().toISOString() }));
+  // Activity log (surfaces in owner Timeline tab)
+  logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'completed',
+    actorType: 'easer',
+    actorId: user.id,
+    actorName: booking.assembler_name || 'Easer',
+    description: `Job marked complete by Easer. Amount charged: $${(finalAmount / 100).toFixed(2)}. Easer due: $${(assemblerDue / 100).toFixed(2)}`,
+    metadata: { amountCharged: finalAmount, platformFee, assemblerDue, platformFeePct: PLATFORM_FEE_PCT },
+  });
 
   if (booking.hubspot_deal_id) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot error:', e));
