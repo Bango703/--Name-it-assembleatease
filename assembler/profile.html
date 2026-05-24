@@ -49,6 +49,8 @@
     body.theme-pro .skill-tag button { background:none; border:none; cursor:pointer; color:var(--pro-teal); font-size:0.9rem; line-height:1; padding:0; opacity:0.7; }
     body.theme-pro .skill-tag button:hover { opacity:1; }
     body.theme-pro .skills-input { border:none; outline:none; font-family:var(--font-body); font-size:0.875rem; color:var(--pro-text); background:transparent; min-width:140px; flex:1; padding:0.2rem 0; }
+    /* Prevent double-spacing: easer.css .form-group has margin-bottom:1.1rem which stacks with the flex gap */
+    body.theme-pro .form-fields > .form-group { margin-bottom: 0; }
     body.theme-pro .skills-input::placeholder { color:var(--pro-muted); }
 
     /* Completion */
@@ -375,15 +377,24 @@
       const file = e.target.files[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) { document.getElementById('photo-status').textContent = 'File too large (max 5MB)'; return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        photoBase64 = ev.target.result;
-        const preview = document.getElementById('photo-preview');
-        preview.innerHTML = `<img src="${photoBase64}" alt="Preview" />`;
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 800;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('photo-preview').innerHTML = `<img src="${photoBase64}" alt="Preview" />`;
         document.getElementById('photo-status').textContent = file.name;
         updateCompletion();
+        URL.revokeObjectURL(img.src);
       };
-      reader.readAsDataURL(file);
+      img.src = URL.createObjectURL(file);
     });
   });
 

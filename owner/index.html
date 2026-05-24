@@ -1987,9 +1987,9 @@ function intelQuick(msg) {
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
-        toast('Assembler rejected and notified', 'success');
+        toast('Easer rejected and notified', 'success');
         loadAssemblerList();
-      } catch { toast('Failed to reject assembler', 'error'); }
+      } catch { toast('Failed to reject Easer', 'error'); }
       return;
     }
 
@@ -2300,9 +2300,9 @@ function intelQuick(msg) {
       status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted + ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>';
       controls.style.display = 'none';
     } else {
-      status.textContent = 'No assembler assigned yet.';
+      status.textContent = 'No Easer assigned yet.';
       controls.style.display = 'flex';
-      select.innerHTML = '<option value="">Select an assembler...</option>';
+      select.innerHTML = '<option value="">Select an Easer...</option>';
       eligibleAssemblers.forEach(function(a) {
         var tierBadge = a.tier === 'elite' ? ' ★' : a.tier === 'verified' ? ' ✓' : '';
         select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';

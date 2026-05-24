@@ -24,11 +24,9 @@ export default async function handler(req, res) {
 
   if (!userId || !email) return res.status(400).json({ error: 'userId and email required' });
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const sb = getSupabase();
-  const priceId = process.env.AAE_EASER_MEMBERSHIP;
 
-  // ── GET STATUS ────────────────────────────────────────────────────
+  // ── GET STATUS — Supabase only, no Stripe needed ──────────────────
   if (action === 'status') {
     const { data: profile } = await sb.from('profiles').select('has_membership, membership_expires_at, stripe_subscription_id').eq('id', userId).single();
     return res.status(200).json({
@@ -38,9 +36,15 @@ export default async function handler(req, res) {
     });
   }
 
+  // For all other actions Stripe is required — instantiate here so a
+  // missing STRIPE_SECRET_KEY never crashes the status check above.
+  if (!process.env.STRIPE_SECRET_KEY) return res.status(503).json({ error: 'Membership not yet configured.' });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const priceId = process.env.AAE_EASER_MEMBERSHIP;
+
   // ── SUBSCRIBE — create Stripe checkout session ────────────────────
   if (action === 'subscribe') {
-    if (!priceId) return res.status(500).json({ error: 'Membership not configured. Contact support.' });
+    if (!priceId) return res.status(503).json({ error: 'Membership not configured. Contact support.' });
 
     // Get or create Stripe customer
     const { data: profile } = await sb.from('profiles').select('stripe_customer_id').eq('id', userId).single();
