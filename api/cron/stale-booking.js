@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         status: 'pending',
         assembler_id: null,
         assigned_at: null,
-        decline_reason: 'Assembler did not accept within 24 hours — returned to queue',
+        decline_reason: 'Easer did not accept within 24 hours — returned to queue',
       }).eq('id', b.id);
 
       // Notify owner to reassign

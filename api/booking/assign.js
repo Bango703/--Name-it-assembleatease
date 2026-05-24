@@ -39,15 +39,15 @@ export default async function handler(req, res) {
     .eq('role', 'assembler')
     .single();
 
-  if (aErr || !assembler) return res.status(404).json({ error: 'Assembler not found' });
+  if (aErr || !assembler) return res.status(404).json({ error: 'Easer not found' });
   if (assembler.status !== 'active') {
-    return res.status(400).json({ error: `Assembler account is ${assembler.status || 'not active'}. Only active Easers can be assigned.` });
+    return res.status(400).json({ error: `Easer account is ${assembler.status || 'not active'}. Only active Easers can be assigned.` });
   }
   if (!['starter', 'professional', 'elite'].includes(assembler.tier)) {
-    return res.status(400).json({ error: 'Assembler must have a valid tier (Starter, Professional, or Elite).' });
+    return res.status(400).json({ error: 'Easer must have a valid tier (Starter, Professional, or Elite).' });
   }
   if (!assembler.identity_verified) {
-    return res.status(400).json({ error: 'Assembler must be identity verified before assignment.' });
+    return res.status(400).json({ error: 'Easer must be identity verified before assignment.' });
   }
 
   // Cancel any open dispatch offers so Easers don't get a stale offer email
