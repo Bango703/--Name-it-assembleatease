@@ -29,7 +29,7 @@
     .login-input{width:100%;padding:0.65rem 1rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;margin-bottom:1rem}
     .login-input:focus{border-color:var(--teal)}
     .login-btn{width:100%;padding:0.7rem;background:var(--teal);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:0.9rem;font-weight:500;cursor:pointer;transition:background 0.15s}
-    .login-btn:hover{background:#17845f}
+    .login-btn:hover{background:#00838f}
     .login-error{color:var(--red);font-size:0.82rem;margin-bottom:0.75rem;display:none}
 
     /* ── Main layout ── */
@@ -61,7 +61,7 @@
     .btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 1rem;border-radius:8px;font-family:inherit;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid var(--border-md);background:var(--elevated);color:var(--soft);text-decoration:none;transition:all 0.15s}
     .btn:hover{background:rgba(0,0,0,0.05);color:var(--text)}
     .btn-teal{background:var(--teal);border-color:var(--teal);color:#fff}
-    .btn-teal:hover{background:#17845f}
+    .btn-teal:hover{background:#00838f}
     .btn-red{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:var(--red)}
     .btn-red:hover{background:rgba(239,68,68,0.25)}
     .btn-amber{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:var(--amber)}
@@ -445,11 +445,11 @@
               <div class="detail-grid" id="detail-grid"></div>
               <div class="detail-actions" id="detail-actions"></div>
               <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
-                <div class="detail-section-title">Assembler Assignment</div>
+                <div class="detail-section-title">Easer Assignment</div>
                 <div id="assign-status" style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"></div>
                 <div id="assign-controls" style="display:flex;gap:0.5rem;align-items:center">
                   <select id="assign-select" style="flex:1;padding:0.5rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;cursor:pointer">
-                    <option value="">Select an assembler...</option>
+                    <option value="">Select an Easer...</option>
                   </select>
                   <button class="btn btn-teal" id="assign-btn" disabled>Assign</button>
                 </div>
@@ -607,7 +607,7 @@
               <button id="intel-refresh-btn" onclick="runIntelligence()" class="btn btn-teal" style="font-size:0.78rem;padding:4px 14px">Run Analysis</button>
             </div>
             <div id="intel-briefing" style="font-size:0.875rem;color:var(--soft);line-height:1.75;white-space:pre-wrap;min-height:80px;background:var(--elevated);border-radius:8px;padding:1rem">
-              Click "Run Check" to get a full AI analysis of your platform.
+              Click "Run Analysis" to get a full AI analysis of your platform.
             </div>
           </div>
 
@@ -838,7 +838,7 @@ async function runIntelligence() {
     document.getElementById('intel-briefing').textContent = 'Failed to run analysis. Check your connection.';
   } finally {
     _intelRunning = false;
-    if (btn) { btn.disabled = false; btn.textContent = '↻ Run Check'; }
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Run Analysis'; }
   }
 }
 
@@ -985,7 +985,7 @@ function intelQuick(msg) {
 <!-- ─── Assembler Detail Modal ─── -->
 <div class="modal-overlay" id="asm-detail-modal">
   <div class="modal" style="max-width:540px">
-    <h3 id="asm-detail-name">Assembler</h3>
+    <h3 id="asm-detail-name">Easer</h3>
     <div id="asm-detail-body" style="font-size:0.85rem;color:var(--soft);line-height:1.7;margin-bottom:1rem"></div>
     <div class="modal-actions">
       <button class="btn" id="asm-detail-close">Close</button>
@@ -1854,9 +1854,9 @@ function intelQuick(msg) {
       var assemblerDueCents = bPayout && bPayout.assembler_due ? bPayout.assembler_due : null;
       var assemblerDueDollars = assemblerDueCents ? (assemblerDueCents / 100).toFixed(2) : null;
       pendingAction = { path: '/payout', id: id, type: 'payout', assemblerDueCents: assemblerDueCents };
-      document.getElementById('reason-modal-title').textContent = 'Record Assembler Payout';
+      document.getElementById('reason-modal-title').textContent = 'Record Easer Payout';
       if (assemblerDueDollars) {
-        document.getElementById('reason-modal-desc').textContent = 'Assembler due: $' + assemblerDueDollars + '. Confirm to record payout, or enter a different amount below.';
+        document.getElementById('reason-modal-desc').textContent = 'Easer due: $' + assemblerDueDollars + '. Confirm to record payout, or enter a different amount below.';
         $reasonText.value = assemblerDueDollars;
         $reasonText.placeholder = 'Amount in dollars (pre-filled from job)';
       } else {
@@ -1898,7 +1898,7 @@ function intelQuick(msg) {
         } catch(e) {}
       }
       document.getElementById('reason-modal-desc').textContent = withinWindow
-        ? '⚠️ Within 24 hours of appointment — a 50% cancellation fee will be charged. Add a reason or check "Waive fee" below.'
+        ? 'Within 24 hours of appointment — a 50% cancellation fee will be charged. Add a reason or check "Waive fee" below.'
         : 'Optionally explain why this booking is being cancelled.';
       document.getElementById('reason-confirm').textContent = 'Cancel Booking';
       document.getElementById('reason-confirm').className = 'btn btn-amber';

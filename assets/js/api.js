@@ -32,7 +32,7 @@ const API = {
       .select('*')
       .eq('role', 'assembler')
       .eq('identity_verified', true)
-      .in('tier', ['starter', 'verified', 'elite'])
+      .in('tier', ['starter', 'professional', 'elite'])
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

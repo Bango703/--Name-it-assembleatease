@@ -23,11 +23,8 @@ export default async function handler(req, res) {
   }
 
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.authorization || '';
-    if (auth !== 'Bearer ' + secret) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+  if (!secret || req.headers.authorization !== 'Bearer ' + secret) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const sb = getSupabase();
