@@ -22,13 +22,7 @@
     /* ── Spec Home — eh-* classes ──────────────────────────────────── */
 
     /* Header overrides */
-    .eh-hamburger,.eh-bell-btn{background:none;border:none;padding:6px;cursor:pointer;color:var(--e-text);display:flex;align-items:center;justify-content:center;border-radius:8px;-webkit-tap-highlight-color:transparent}
-    .eh-logo-link{display:flex;align-items:center;gap:8px;text-decoration:none}
-    .eh-logo-icon{width:32px;height:32px;border-radius:8px;background:var(--e-teal);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1rem;font-family:var(--e-font);flex-shrink:0}
-    .eh-logo-text-wrap{line-height:1}
-    .eh-logo-top{font-size:0.82rem;font-weight:700;color:var(--e-text)}
-    .eh-logo-btm{font-size:0.6rem;font-weight:600;color:var(--e-muted);letter-spacing:0.12em;text-transform:uppercase}
-    .eh-bell-btn{position:relative}
+    .eh-bell-btn{background:none;border:none;padding:6px;cursor:pointer;color:var(--e-text);display:flex;align-items:center;justify-content:center;border-radius:8px;-webkit-tap-highlight-color:transparent;position:relative}
     .eh-bell-badge{position:absolute;top:2px;right:2px;background:#ef4444;color:white;border-radius:999px;font-size:0.55rem;font-weight:700;padding:1px 4px;min-width:14px;text-align:center;line-height:1.4}
 
     /* Profile greeting row */
@@ -40,9 +34,7 @@
     .eh-online-dot.online{background:#22c55e}
     .eh-greeting-col{flex:1;min-width:0}
     .eh-greeting-name{font-size:1.1rem;font-weight:700;color:var(--e-text);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .eh-greeting-sub{font-size:0.78rem;color:var(--e-muted);margin-top:2px;display:flex;align-items:center;gap:5px}
-    .eh-greeting-sub-dot{width:7px;height:7px;border-radius:50%;background:#6b7280;flex-shrink:0}
-    .eh-greeting-sub-dot.online{background:#22c55e}
+    .eh-greeting-sub{font-size:0.78rem;color:var(--e-muted);margin-top:2px}
 
     /* Online/Offline pill toggle */
     .eh-avail-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--e-border-md);border-radius:999px;padding:0.38rem 0.875rem;background:var(--e-surface);cursor:pointer;font-family:var(--e-font);font-size:0.8rem;font-weight:500;color:var(--e-text);white-space:nowrap;flex-shrink:0;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
@@ -153,16 +145,8 @@
 
 <!-- Header: hamburger + centered logo + bell -->
 <header class="easer-header">
-  <button class="eh-hamburger" aria-label="Menu" onclick="return false">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-  </button>
-  <a href="/assembler/" class="eh-logo-link">
-    <div class="eh-logo-icon">A</div>
-    <div class="eh-logo-text-wrap">
-      <div class="eh-logo-top">Assemble</div>
-      <div class="eh-logo-btm">AT EASE</div>
-    </div>
-  </a>
+  <div style="width:36px"></div>
+  <a href="/assembler/" style="text-decoration:none;font-size:1.15rem;font-weight:800;color:var(--e-text);letter-spacing:-0.01em">Easer</a>
   <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
@@ -189,7 +173,6 @@
     <div class="eh-greeting-col">
       <div class="eh-greeting-name" id="eh-greeting-name">Good morning</div>
       <div class="eh-greeting-sub">
-        <span class="eh-greeting-sub-dot" id="eh-greeting-sub-dot"></span>
         <span id="eh-greeting-sub-text">You're offline</span>
       </div>
     </div>
@@ -349,7 +332,6 @@
     document.getElementById('avail-toggle').classList.toggle('on', on);
     document.getElementById('avail-label').textContent = on ? 'Online' : 'Offline';
     document.getElementById('eh-online-dot').classList.toggle('online', on);
-    document.getElementById('eh-greeting-sub-dot').classList.toggle('online', on);
     document.getElementById('eh-greeting-sub-text').textContent = on ? "You're online and available" : "You're currently offline";
   }
 
