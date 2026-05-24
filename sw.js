@@ -1,5 +1,5 @@
 // AssembleAtEase Easer Service Worker
-const CACHE = 'aae-easer-v3';
+const CACHE = 'aae-easer-v4';
 const OFFLINE_URL = '/assembler/';
 
 // ── Install: cache the core Easer shell ──────────────────────────────
