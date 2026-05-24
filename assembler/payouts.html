@@ -50,14 +50,16 @@
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
 <header class="easer-header">
-  <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title">Earnings</div>
-  <div class="easer-header-right">
-    <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
-  </div>
+  <div style="width:36px"></div>
+  <a href="/assembler/" style="text-decoration:none;font-size:1.2rem;font-weight:800;color:var(--e-teal);letter-spacing:-0.01em">Easer</a>
+  <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
+  </button>
 </header>
 
 <div class="easer-page">
+  <a href="#" id="sidebar-logout" style="display:none"></a>
   <div id="page-alert" class="alert hidden"></div>
 
   <div class="e-period-tabs" id="period-tabs">

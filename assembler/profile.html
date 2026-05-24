@@ -72,11 +72,12 @@
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
 <header class="easer-header">
-  <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title">Profile</div>
-  <div class="easer-header-right">
-    <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
-  </div>
+  <div style="width:36px"></div>
+  <a href="/assembler/" style="text-decoration:none;font-size:1.2rem;font-weight:800;color:var(--e-teal);letter-spacing:-0.01em">Easer</a>
+  <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
+  </button>
 </header>
 
 <div class="easer-page">
@@ -235,21 +236,20 @@
       <!-- Payout settings -->
       <div class="form-section">
         <div class="form-section-title">Payout settings</div>
-        <p style="font-size:0.875rem;color:var(--pro-soft);line-height:1.65;margin-bottom:1.25rem">
-          Set up your payout method to receive payments when jobs are completed. Funds are released after you mark the job complete in your dashboard.
-        </p>
-        <div class="payout-empty">
-          <div style="margin-bottom:0.75rem"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-          <h4>No payout method added</h4>
-          <p>Connect your bank account or debit card to receive payments directly. We use Stripe to process all payouts securely.</p>
-          <button class="btn btn-outline btn-sm" type="button" disabled>Connect bank account</button>
-          <div style="margin-top:0.75rem"><span style="font-size:0.72rem;color:var(--pro-muted)">Secured by Stripe — coming soon</span></div>
+        <div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;font-size:0.875rem;color:var(--pro-soft);line-height:1.65">
+          <p style="margin:0 0 0.75rem;font-weight:600;color:var(--pro-text)">How payouts work</p>
+          <p style="margin:0 0 0.5rem">After you mark a job complete, your earnings are calculated automatically. Our team reviews and processes your payout within <strong>3–5 business days</strong>.</p>
+          <p style="margin:0;color:var(--pro-muted);font-size:0.8rem">Questions about a payout? Email us at <a href="mailto:hello@assembleatease.com" style="color:var(--pro-teal)">hello@assembleatease.com</a></p>
         </div>
         <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--pro-border)">
           <div class="info-row"><span class="info-label">Total earned</span><span class="info-value" id="total-earned">$0</span></div>
-          <div class="info-row"><span class="info-label">Pending payout</span><span class="info-value">$0</span></div>
-          <div class="info-row"><span class="info-label">Payout schedule</span><span class="info-value">Weekly — coming soon</span></div>
+          <div class="info-row"><span class="info-label">Pending payout</span><span class="info-value" id="pending-payout">$0</span></div>
         </div>
+      </div>
+
+      <!-- Sign out -->
+      <div class="form-section" style="text-align:center;padding-top:0.5rem">
+        <a href="#" id="sidebar-logout" class="btn btn-outline" style="width:100%;justify-content:center">Sign out</a>
       </div>
 
       <!-- Danger zone -->

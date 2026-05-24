@@ -21,10 +21,6 @@
   <style>
     /* ── Spec Home — eh-* classes ──────────────────────────────────── */
 
-    /* Header overrides */
-    .eh-bell-btn{background:none;border:none;padding:6px;cursor:pointer;color:var(--e-text);display:flex;align-items:center;justify-content:center;border-radius:8px;-webkit-tap-highlight-color:transparent;position:relative}
-    .eh-bell-badge{position:absolute;top:2px;right:2px;background:#ef4444;color:white;border-radius:999px;font-size:0.55rem;font-weight:700;padding:1px 4px;min-width:14px;text-align:center;line-height:1.4}
-
     /* Profile greeting row */
     .eh-profile-row{display:flex;align-items:center;gap:0.875rem;margin-bottom:1.25rem}
     .eh-avatar-wrap{position:relative;flex-shrink:0}
@@ -117,15 +113,6 @@
     .eh-offer-decline{background:var(--e-surface);color:#dc2626;border:1.5px solid rgba(239,68,68,0.25);border-radius:10px;padding:0.75rem;font-family:var(--e-font);font-size:0.9rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .eh-offer-decline:active{opacity:0.8}
 
-    /* ── Stats card ───────────────────────────────────────────────── */
-    .eh-stats-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:16px;padding:1.25rem 0.5rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(4,1fr);gap:0;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
-    .eh-stat-item{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 0.25rem;border-right:1px solid var(--e-border)}
-    .eh-stat-item:last-child{border-right:none}
-    .eh-stat-icon{width:36px;height:36px;border-radius:50%;background:var(--e-teal);display:flex;align-items:center;justify-content:center;margin-bottom:0.45rem}
-    .eh-stat-icon.green{background:#059669}
-    .eh-stat-value{font-size:0.95rem;font-weight:700;color:var(--e-text);line-height:1.2}
-    .eh-stat-label{font-size:0.58rem;color:var(--e-muted);margin-top:2px;line-height:1.3;text-align:center;padding:0 2px}
-
     /* Upcoming cards */
     .eh-upcoming-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.875rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
     .eh-upcoming-card:active{background:var(--e-elevated)}
@@ -146,7 +133,7 @@
 <!-- Header: hamburger + centered logo + bell -->
 <header class="easer-header">
   <div style="width:36px"></div>
-  <a href="/assembler/" style="text-decoration:none;font-size:1.15rem;font-weight:800;color:var(--e-text);letter-spacing:-0.01em">Easer</a>
+  <a href="/assembler/" style="text-decoration:none;font-size:1.2rem;font-weight:800;color:var(--e-teal);letter-spacing:-0.01em">Easer</a>
   <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
@@ -226,38 +213,6 @@
     <div id="offers-list"></div>
   </div>
 
-  <!-- ── STATS CARD ──────────────────────────────────────────────────── -->
-  <div class="eh-stats-card" id="stats-card">
-    <div class="eh-stat-item">
-      <div class="eh-stat-icon green">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      </div>
-      <div class="eh-stat-value" id="stat-earned">—</div>
-      <div class="eh-stat-label">Earned This Month</div>
-    </div>
-    <div class="eh-stat-item">
-      <div class="eh-stat-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-      </div>
-      <div class="eh-stat-value" id="stat-jobs">—</div>
-      <div class="eh-stat-label">Jobs Completed</div>
-    </div>
-    <div class="eh-stat-item">
-      <div class="eh-stat-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      </div>
-      <div class="eh-stat-value" id="stat-rating">—</div>
-      <div class="eh-stat-label">Rating</div>
-    </div>
-    <div class="eh-stat-item">
-      <div class="eh-stat-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-      </div>
-      <div class="eh-stat-value" id="stat-pending">—</div>
-      <div class="eh-stat-label">Pending Payout</div>
-    </div>
-  </div>
-
   <!-- ── UPCOMING ────────────────────────────────────────────────────── -->
   <div id="upcoming-section" style="display:none;margin-bottom:1.25rem">
     <div class="eh-section-label-row">
@@ -311,6 +266,7 @@
   var freshTok = null;
   var tosInterval = null;
   var offerTimerInterval = null;
+  var _pendingCompleteBookingId = null;
 
   // Availability toggle
   document.getElementById('avail-toggle').addEventListener('click', async function(){
@@ -465,7 +421,8 @@
       });
     } else if(ctaBtn && lj.status==='in_progress') {
       ctaBtn.addEventListener('click', function(){
-        window.location.href='/assembler/my-assignments';
+        _pendingCompleteBookingId = lj.id;
+        document.getElementById('home-complete-sheet').classList.add('open');
       });
     }
   }
@@ -573,6 +530,42 @@
     window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
     window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show');});
 
+    // Reconnect: refresh home on app wake (same pattern as Jobs page)
+    document.addEventListener('visibilitychange',function(){
+      if(document.visibilityState==='visible') window.location.reload();
+    });
+
+    // Complete job sheet handlers
+    document.getElementById('home-complete-cancel').addEventListener('click',function(){
+      document.getElementById('home-complete-sheet').classList.remove('open');
+      _pendingCompleteBookingId=null;
+    });
+    document.getElementById('home-complete-yes').addEventListener('click',async function(){
+      document.getElementById('home-complete-sheet').classList.remove('open');
+      var bookingId=_pendingCompleteBookingId;
+      _pendingCompleteBookingId=null;
+      if(!bookingId) return;
+      var btn=document.getElementById('eh-cta-btn');
+      if(btn){btn.disabled=true;btn.textContent='Processing…';}
+      try{
+        var r=await fetch('/api/booking/assembler-complete',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
+          body:JSON.stringify({bookingId:bookingId}),
+        });
+        var d=await r.json();
+        if(!r.ok||d.error){
+          if(btn){btn.disabled=false;btn.textContent='Mark Job Complete';}
+          alert(d.error||'Could not complete job. Please try again.');
+          return;
+        }
+        window.location.reload();
+      }catch(e){
+        if(btn){btn.disabled=false;btn.textContent='Mark Job Complete';}
+        alert('Network error — please try again.');
+      }
+    });
+
     // Logout
     document.getElementById('sidebar-logout').addEventListener('click',async function(e){
       e.preventDefault();
@@ -651,15 +644,6 @@
     // Job offers
     if(pendingOffers.length>0) renderOffers(pendingOffers);
 
-    // Stats
-    try{
-      var s=await API.getAssemblerStats(user.id)||{};
-      document.getElementById('stat-earned').textContent='$'+Number(s.totalEarned||0).toLocaleString('en-US',{maximumFractionDigits:0});
-      document.getElementById('stat-jobs').textContent=s.completedJobs||0;
-      document.getElementById('stat-rating').textContent=profile.rating?Number(profile.rating).toFixed(1):'New';
-      document.getElementById('stat-pending').textContent=s.pendingPayout?'$'+Number(s.pendingPayout/100).toFixed(0):'$0';
-    }catch(e){/* leave as — */}
-
     // Upcoming
     if(upcomingJobs.length>0){
       document.getElementById('upcoming-section').style.display='';
@@ -683,6 +667,21 @@
     }
   });
 </script>
+
+<!-- Complete job confirmation sheet -->
+<div class="sheet-overlay" id="home-complete-sheet">
+  <div class="sheet-box">
+    <div class="sheet-title">Mark job as complete?</div>
+    <div class="sheet-body">
+      Only mark complete when the work is fully finished and the customer is satisfied.<br><br>
+      <strong>This will charge the customer's card and record your payout.</strong>
+    </div>
+    <div class="sheet-actions">
+      <button class="sheet-btn-primary" id="home-complete-yes">Yes, job is complete</button>
+      <button class="sheet-btn-cancel" id="home-complete-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- PWA Service Worker + Push Notifications -->
 <script>

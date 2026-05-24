@@ -102,35 +102,6 @@
       display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
     }
 
-    /* ── Bottom-sheet confirmation — replaces window.confirm() ── */
-    .sheet-overlay {
-      position: fixed; inset: 0; z-index: 2000;
-      background: rgba(0,0,0,0.55);
-      display: flex; align-items: flex-end; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.2s;
-    }
-    .sheet-overlay.open { opacity: 1; pointer-events: all; }
-    .sheet-box {
-      background: #fff; border-radius: 18px 18px 0 0;
-      padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem);
-      width: 100%; max-width: 540px;
-      transform: translateY(100%); transition: transform 0.25s ease;
-    }
-    .sheet-overlay.open .sheet-box { transform: translateY(0); }
-    .sheet-title { font-size: 1.05rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem; }
-    .sheet-body  { font-size: 0.875rem; color: #6b7280; line-height: 1.65; margin-bottom: 1.25rem; }
-    .sheet-body strong { color: #374151; }
-    .sheet-actions { display: flex; flex-direction: column; gap: 0.5rem; }
-    .sheet-btn-primary {
-      background: #0097a7; color: #fff; border: none; border-radius: 999px;
-      padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600;
-      font-family: inherit; cursor: pointer; width: 100%;
-    }
-    .sheet-btn-cancel {
-      background: none; border: 1px solid #e5e7eb; border-radius: 999px;
-      padding: 0.75rem 1rem; font-size: 0.9rem; color: #6b7280;
-      font-family: inherit; cursor: pointer; width: 100%;
-    }
     .decline-reason-btn {
       background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px;
       padding: 0.75rem 1rem; font-size: 0.9rem; color: #374151;
@@ -146,14 +117,16 @@
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
 <header class="easer-header">
-  <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title">My Jobs</div>
-  <div class="easer-header-right">
-    <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
-  </div>
+  <div style="width:36px"></div>
+  <a href="/assembler/" style="text-decoration:none;font-size:1.2rem;font-weight:800;color:var(--e-teal);letter-spacing:-0.01em">Easer</a>
+  <button class="eh-bell-btn" aria-label="Notifications" onclick="return false">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
+  </button>
 </header>
 
 <div class="easer-page">
+  <a href="#" id="sidebar-logout" style="display:none"></a>
   <div id="page-alert" class="alert hidden"></div>
 
   <div class="e-filter-row" id="filter-tabs">
@@ -174,20 +147,35 @@
 <!-- Assignment Detail Modal -->
 <div class="modal-overlay" id="asgn-modal">
   <div class="modal-box">
-    <button class="modal-close" id="asgn-modal-close">&#10005;</button>
+    <!-- drag handle -->
+    <div style="width:40px;height:4px;border-radius:999px;background:var(--pro-border-md);margin:0 auto 1.25rem"></div>
+    <button class="modal-close" id="asgn-modal-close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
     <div id="asgn-modal-body"></div>
     <div id="complete-section" style="display:none">
-      <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:0.75rem 1rem;font-size:0.8rem;color:#854d0e;margin-bottom:0.75rem;line-height:1.55">
-        <strong>&#9888; Important:</strong> Only mark a job complete when the work is fully finished to the customer's satisfaction. Falsely marking a job as done before completion is a serious violation of our terms and will result in immediate account suspension.
+      <div style="background:#fffbeb;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem 1rem;font-size:0.8rem;color:#92400e;margin-bottom:0.875rem;line-height:1.55">
+        Only mark complete when the work is fully finished to the customer's satisfaction.
       </div>
-      <button class="btn btn-teal" id="complete-btn" style="width:100%;margin-bottom:1rem;background:#059669;border-color:#059669">&#10003; Mark Job as Complete</button>
+      <button class="btn btn-teal" id="complete-btn" style="width:100%;margin-bottom:1rem;background:#059669;border-color:#059669;border-radius:12px;min-height:48px;font-size:0.95rem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Mark Job as Complete
+      </button>
     </div>
-    <hr style="border:none;border-top:1px solid var(--pro-border);margin:1rem 0"/>
-    <h4 style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.75rem">Messages</h4>
+    <div style="border-top:1px solid var(--pro-border);margin:1rem 0 1rem"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+      <div>
+        <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
+        <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </div>
     <div class="msg-thread" id="asgn-msg-thread"></div>
     <div class="msg-input-row">
-      <textarea id="asgn-msg-input" rows="2" placeholder="Type a message…"></textarea>
-      <button class="btn btn-teal" id="asgn-msg-send">Send</button>
+      <textarea id="asgn-msg-input" rows="2" placeholder="Message support…"></textarea>
+      <button class="btn btn-teal" id="asgn-msg-send" style="min-width:60px;border-radius:10px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
     </div>
   </div>
 </div>
@@ -637,34 +625,41 @@
     if (!b) return;
     selectedBookingId = bookingId;
     const accepted = !!b.assembler_accepted_at;
+    const isPendingOffer = b._is_pending_offer;
+    const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
+    const payEst = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : null);
+
     document.getElementById('asgn-modal-body').innerHTML = [
-      '<h3 style="margin:0 0 0.75rem;font-size:1.1rem">' + esc(b.service) + '</h3>',
-      b.checked_in_at ? '<div class="checkin-banner">&#10003; Checked in at ' + new Date(b.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div>' : '',
-      '<div style="font-size:0.875rem;color:var(--pro-muted);display:flex;flex-direction:column;gap:0.35rem;margin-bottom:1rem">',
-        b.date ? '<span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') + '</span>' : '',
-        b.address ? '<span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</span>' : '',
-        // Customer contact — only shown after Easer has accepted
-        accepted && b.customer_phone ? '<span style="color:var(--pro-text);font-weight:500;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_phone) + '</a></span>' : '',
-        accepted && b.customer_email ? '<span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><a href="mailto:' + esc(b.customer_email) + '" style="color:var(--pro-teal);text-decoration:none">' + esc(b.customer_email) + '</a></span>' : '',
-        b.details ? '<span style="display:flex;align-items:flex-start;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' + esc(b.details) + '</span>' : '',
-        '<span style="color:var(--pro-muted);font-size:0.78rem">Ref: ' + esc(b.ref) + '</span>',
+      // Header row: service title + status badge
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.875rem">',
+        '<div style="font-size:1.1rem;font-weight:700;color:var(--pro-text);line-height:1.3">' + esc(b.service || 'Job') + '</div>',
+        '<span class="sb ' + stageMeta.cls + '" style="flex-shrink:0">' + stageMeta.label + '</span>',
       '</div>',
-      // Pay estimate or custom quote notice — shown before accepting
-      (!accepted && (b._pay_estimate_lo || b._custom_quote)) ? '<div style="background:rgba(0,151,167,0.07);border:1px solid rgba(0,151,167,0.2);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem">'
-        + (b._custom_quote
-          ? '<strong style="color:var(--pro-teal)">Custom quote</strong><span style="color:var(--pro-muted);font-size:0.75rem"> — owner sets price after reviewing the job</span>'
-          : '<span style="color:var(--pro-text)">Est. pay: </span>'
-            + '<strong style="color:var(--pro-teal)">$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong>'
-            + '<span style="color:var(--pro-muted);font-size:0.75rem"> (' + (b._fee_pct||25) + '% platform fee)</span>')
-        + '</div>' : '',
+
+      // Pay estimate pill (for offers / accepted)
+      payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,151,167,0.08);border:1px solid rgba(0,151,167,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
+        + '<strong style="color:var(--pro-teal)">' + payEst + '</strong>'
+        + '<span style="color:var(--pro-muted);font-size:0.72rem">Est. payout' + (b._fee_pct ? ' · ' + b._fee_pct + '% fee' : '') + '</span>'
+        + '</div><br>' : '',
+
+      // Detail rows
+      '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
+        b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + esc(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
+        b.address ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
+        accepted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(b.customer_phone) + '</a></div>' : '',
+        b.details ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + esc(b.details) + '</span></div>' : '',
+        b.ref ? '<div style="font-size:0.72rem;color:var(--pro-muted)">Ref: ' + esc(b.ref) + '</div>' : '',
+      '</div>',
+
       // Offer expiry countdown
-      (!accepted && b._offer_expires_at) ? '<div id="offer-timer-box-' + b.id + '" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:0.6rem 0.875rem;margin-bottom:0.75rem;font-size:0.85rem;display:flex;align-items:center;gap:6px">'
+      isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
         + '<span style="color:#92400e">Offer expires in <strong id="offer-countdown-' + b.id + '">—</strong></span></div>' : '',
-      // Accept/Decline buttons for dispatch or assignment offers
-      !accepted && (b.assignment_token || b._offer_token) ? '<div id="accept-job-section" style="display:flex;gap:0.5rem;margin-bottom:1rem">'
-        + '<button id="accept-job-btn" class="btn btn-teal" style="flex:1;font-weight:600">&#10003; Accept Job</button>'
-        + (b._offer_token ? '<button id="decline-job-btn" class="btn" style="flex:0 0 auto;color:var(--pro-muted)">Decline</button>' : '')
+
+      // Accept / Decline buttons — shown for pending offers
+      isPendingOffer ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1rem" id="accept-job-section">'
+        + '<button id="accept-job-btn" class="btn btn-teal" style="min-height:48px;border-radius:12px;font-size:0.95rem">Accept Job</button>'
+        + '<button id="decline-job-btn" class="btn" style="min-height:48px;border-radius:12px;color:#dc2626;border-color:rgba(239,68,68,0.25)">Decline</button>'
         + '</div>' : '',
     ].join('');
 
@@ -736,12 +731,13 @@
       }
     }
 
-    // Accept job button (dispatch offer or assignment)
+    // Accept job button
     const acceptBtn = document.getElementById('accept-job-btn');
     if (acceptBtn) {
       acceptBtn.addEventListener('click', async function() {
         acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting…';
-        const useToken = b._offer_token || b.assignment_token;
+        // Try all possible token fields in priority order
+        const useToken = b._offer_token || b.dispatch_token || b.assignment_token || '';
         try {
           const r = await fetch('/api/booking/accept-dispatch', {
             method: 'POST',
@@ -750,26 +746,25 @@
           });
           const d = await r.json();
           if (!r.ok || d.error) {
-            APP.showAlert('page-alert', r.status === 409 ? 'This job was just accepted by another Easer.' : (d.error || 'Could not accept job — it may already be taken'), 'error');
-            acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; return;
+            const msg = r.status === 409 ? 'This job was just accepted by another Easer.' : (d.error || 'Could not accept — please try again.');
+            APP.showAlert('page-alert', msg, 'error');
+            acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job'; return;
           }
-          // Refresh list and re-open modal with updated booking (shows contact info)
+          document.getElementById('asgn-modal').classList.remove('open');
+          APP.showAlert('page-alert', 'Job accepted! Check Active tab for details.', 'success');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-          if (resp.ok) {
-            const d2 = await resp.json();
-            allAssignments = d2.bookings || [];
-            renderAssignments(allAssignments);
-            // Re-open this booking detail so customer contact is immediately visible
-            openDetail(b.id);
-          }
-          APP.showAlert('page-alert', '&#10003; Job accepted! Customer contact info is now visible.', 'success');
-        } catch(e) { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept Job'; }
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); updateFilterCounts(allAssignments); }
+        } catch(e) {
+          APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
+          acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job';
+        }
       });
     }
 
-    // Decline offer button — opens reason sheet instead of window.prompt()
+    // Decline offer button
     const declineBtn = document.getElementById('decline-job-btn');
-    if (declineBtn && b._offer_token) {
+    if (declineBtn && (b._offer_token || b.dispatch_token)) {
+      if (!b._offer_token) b._offer_token = b.dispatch_token; // normalize
       const declineSheet   = document.getElementById('decline-sheet');
       const declineCancel  = document.getElementById('decline-sheet-cancel');
       const declineReasons = document.getElementById('decline-reason-list');
