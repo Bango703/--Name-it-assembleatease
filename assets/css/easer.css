@@ -620,3 +620,113 @@ body {
 .e-offer-alert:active { opacity: 0.85; }
 .e-offer-alert-title { font-size: 0.875rem; font-weight: 600; color: #92400e; }
 .e-offer-alert-sub   { font-size: 0.75rem; color: #a16207; margin-top: 2px; }
+
+/* ── Spec redesign additions ─────────────────────────────────────────── */
+
+/* Filter tabs with counts (Jobs page) */
+.e-filter-row { display: flex; gap: 6px; margin-bottom: 1.25rem; overflow-x: auto; padding-bottom: 2px; }
+.e-filter-row::-webkit-scrollbar { display: none; }
+.e-filter-pill {
+  flex: 0 0 auto; padding: 0.4rem 0.875rem; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--e-border-md); background: var(--e-surface);
+  color: var(--e-muted); white-space: nowrap;
+  -webkit-appearance: none; appearance: none; transition: all 0.15s;
+}
+.e-filter-pill.active { background: var(--e-teal); border-color: var(--e-teal); color: white; }
+.e-filter-pill .e-pill-count { opacity: 0.8; font-size: 0.72em; }
+
+/* Section headers (JOB OFFERS / ACTIVE JOBS) */
+.e-section-header {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--e-muted);
+  margin: 1.25rem 0 0.625rem; display: flex; align-items: center; gap: 6px;
+}
+.e-section-header:first-child { margin-top: 0; }
+
+/* Job card — spec layout */
+.e-job-card {
+  background: var(--e-surface); border: 1px solid var(--e-border);
+  border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
+}
+.e-job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.35rem; }
+.e-job-card-title { font-size: 0.95rem; font-weight: 600; color: var(--e-text); line-height: 1.3; }
+.e-job-card-sub { font-size: 0.8rem; color: var(--e-muted); margin-top: 2px; }
+.e-job-card-pay { font-size: 1.05rem; font-weight: 700; color: var(--e-teal); flex-shrink: 0; }
+.e-job-card-pay small { display: block; font-size: 0.65rem; font-weight: 500; color: var(--e-muted); text-align: right; }
+.e-job-card-row { font-size: 0.8rem; color: var(--e-muted); display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+.e-job-card-timer { font-size: 0.78rem; color: #92400e; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 4px; margin-top: 0.5rem; }
+.e-job-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--e-border); }
+.e-job-card-accept { background: var(--e-teal); color: white; border: none; border-radius: 10px; padding: 0.6rem; font-size: 0.875rem; font-weight: 600; font-family: var(--e-font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.e-job-card-decline { background: rgba(239,68,68,0.06); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 0.6rem; font-size: 0.875rem; font-weight: 600; font-family: var(--e-font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+/* 5-step pipeline track */
+.e-pipeline-track { display: flex; align-items: flex-start; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--e-border); overflow-x: auto; }
+.e-pipeline-track::-webkit-scrollbar { display: none; }
+.e-pipeline-node { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; min-width: 48px; }
+.e-pipeline-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--e-border-md); transition: background 0.2s; border: 2px solid var(--e-border-md); }
+.e-pipeline-dot.done    { background: var(--e-teal); border-color: var(--e-teal); }
+.e-pipeline-dot.current { background: var(--e-teal); border-color: var(--e-teal); box-shadow: 0 0 0 3px var(--e-teal-dim); }
+.e-pipeline-label { font-size: 0.58rem; color: var(--e-muted); white-space: nowrap; text-align: center; line-height: 1.2; }
+.e-pipeline-label.current { color: var(--e-teal); font-weight: 600; }
+.e-pipeline-connector { flex: 1; height: 2px; background: var(--e-border); margin: 3px 2px 0; min-width: 8px; }
+.e-pipeline-connector.done { background: var(--e-teal); }
+
+/* Upcoming job card (vertical, home page) */
+.e-upcoming-card {
+  background: var(--e-surface); border: 1px solid var(--e-border);
+  border-radius: 10px; padding: 0.875rem 1rem; margin-bottom: 0.5rem;
+  display: flex; align-items: center; gap: 0.875rem;
+  text-decoration: none; cursor: pointer;
+}
+.e-upcoming-card-when { font-size: 0.72rem; font-weight: 700; color: var(--e-teal); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.e-upcoming-card-service { font-size: 0.875rem; font-weight: 500; color: var(--e-text); }
+.e-upcoming-card-addr { font-size: 0.75rem; color: var(--e-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Home active hero — updated button styles */
+.e-hero-complete-btn {
+  width: 100%; min-height: 48px; border: none; border-radius: 12px;
+  background: #059669; color: white; font-family: var(--e-font);
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  margin-top: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 6px;
+  -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+}
+.e-hero-complete-btn:active { opacity: 0.85; }
+.e-hero-msg-btn {
+  width: 100%; min-height: 40px; border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 10px; background: rgba(255,255,255,0.1); color: white;
+  font-family: var(--e-font); font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; margin-top: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.e-hero-msg-btn:active { opacity: 0.85; }
+
+/* Online toggle row */
+.e-avail-card {
+  background: var(--e-surface); border: 1px solid var(--e-border);
+  border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.e-avail-card-text strong { display: block; font-size: 0.9rem; font-weight: 600; color: var(--e-text); }
+.e-avail-card-text span { font-size: 0.78rem; color: var(--e-muted); }
+
+/* Earnings payout list items */
+.e-payout-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; padding: 0.875rem 0; border-bottom: 1px solid var(--e-border);
+}
+.e-payout-row:last-child { border-bottom: none; }
+.e-payout-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--e-elevated); border: 1px solid var(--e-border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.e-payout-info { flex: 1; min-width: 0; }
+.e-payout-service { font-size: 0.875rem; font-weight: 500; color: var(--e-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.e-payout-date { font-size: 0.72rem; color: var(--e-muted); margin-top: 1px; }
+.e-payout-right { text-align: right; flex-shrink: 0; }
+.e-payout-amount { font-size: 0.95rem; font-weight: 700; color: var(--e-text); }
+.e-payout-badge-paid { font-size: 0.68rem; font-weight: 600; color: #059669; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.2); border-radius: 999px; padding: 0.1rem 0.4rem; }
+.e-payout-badge-pending { font-size: 0.68rem; font-weight: 600; color: #d97706; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 999px; padding: 0.1rem 0.4rem; }
+
+/* Payout summary section */
+.e-payout-summary { background: var(--e-elevated); border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+.e-payout-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; font-size: 0.85rem; }
+.e-payout-summary-row span { color: var(--e-muted); }
+.e-payout-summary-row strong { color: var(--e-text); font-weight: 600; }

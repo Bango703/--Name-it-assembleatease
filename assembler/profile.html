@@ -73,7 +73,7 @@
 
 <header class="easer-header">
   <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title">My Profile</div>
+  <div class="easer-header-title">Profile</div>
   <div class="easer-header-right">
     <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
   </div>
@@ -82,6 +82,18 @@
 <div class="easer-page">
     <div class="profile-wrap">
       <div id="page-alert" class="alert hidden"></div>
+
+      <!-- Profile identity card -->
+      <div class="e-card" id="profile-id-card" style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:1rem 1.25rem">
+        <div id="profile-id-avatar" style="width:60px;height:60px;border-radius:50%;background:var(--e-elevated);border:2px solid var(--e-border-md);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--e-teal);flex-shrink:0;overflow:hidden"></div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
+            <span id="profile-id-name" style="font-size:1rem;font-weight:700;color:var(--e-text)"></span>
+            <span id="profile-id-tier" style="font-size:0.68rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:999px;background:rgba(0,151,167,0.1);color:#0097a7;border:1px solid rgba(0,151,167,0.2)"></span>
+          </div>
+          <div id="profile-id-rating" style="font-size:0.8rem;color:var(--e-muted)"></div>
+        </div>
+      </div>
 
       <div class="completion-wrap">
         <div class="completion-label"><span>Profile completion</span><span id="completion-pct">0%</span></div>
@@ -364,6 +376,36 @@
     document.getElementById('hourly-rate').value = profile.hourly_rate || '';
     document.getElementById('bio').value         = profile.bio         || '';
     document.getElementById('email-display').textContent  = user.email;
+
+    // Populate identity card
+    var idCard = document.getElementById('profile-id-card');
+    var idAvatar = document.getElementById('profile-id-avatar');
+    var idName = document.getElementById('profile-id-name');
+    var idTier = document.getElementById('profile-id-tier');
+    var idRating = document.getElementById('profile-id-rating');
+    if (idName) idName.textContent = profile.full_name || 'Your Name';
+    if (idTier && profile.tier) {
+      var tierMap = { starter: 'Starter', professional: 'Professional', elite: 'Elite Easer', verified: 'Verified' };
+      idTier.textContent = tierMap[profile.tier] || profile.tier;
+    }
+    if (idRating) {
+      if (profile.rating) {
+        var stars = '';
+        for (var i = 0; i < 5; i++) stars += i < Math.round(profile.rating) ? '★' : '☆';
+        idRating.textContent = stars + ' ' + Number(profile.rating).toFixed(1) + (profile.review_count ? ' (' + profile.review_count + ' reviews)' : '');
+        idRating.style.color = '#f59e0b';
+      } else {
+        idRating.textContent = 'No reviews yet';
+      }
+    }
+    if (idAvatar) {
+      if (profile.profile_photo) {
+        idAvatar.innerHTML = '<img src="' + profile.profile_photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      } else {
+        var initials2 = (profile.full_name || 'E').split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
+        idAvatar.textContent = initials2;
+      }
+    }
     document.getElementById('jobs-done').textContent      = profile.completed_jobs || 0;
     document.getElementById('rating-display').textContent = profile.rating
       ? Number(profile.rating).toFixed(1) + ' \u2605' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')

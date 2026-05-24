@@ -22,6 +22,7 @@
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#0097a7;--pro-teal-dim:rgba(0,151,167,0.08);--teal:#0097a7}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
     .logout-link:hover{color:var(--e-text)}
+    #summary-bar .e-earn-split { grid-template-columns: repeat(2, 1fr); }
 
     body.theme-pro .payout-card {
       background: var(--pro-surface); border: 1px solid var(--pro-border);
@@ -135,10 +136,11 @@
     var totalFees   = list.reduce(function(s, b){ return s + (b.platform_fee || 0); }, 0);
 
     document.getElementById('earn-total-val').textContent = fmt(totalEarned);
+    var totalPaid    = list.filter(function(b){ return b.payout_status === 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
+    var totalPending = list.filter(function(b){ return b.payout_status !== 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
     document.getElementById('earn-split').innerHTML =
-      '<div class="e-earn-split-item"><strong>' + fmt(totalEarned - totalFees) + '</strong><span>Paid Out</span></div>' +
-      '<div class="e-earn-split-item"><strong>' + list.length + '</strong><span>Jobs</span></div>' +
-      '<div class="e-earn-split-item"><strong>' + fmt(totalFees) + '</strong><span>Fees</span></div>';
+      '<div class="e-earn-split-item"><strong>' + fmt(totalPaid) + '</strong><span>Paid</span></div>' +
+      '<div class="e-earn-split-item"><strong>' + fmt(totalPending) + '</strong><span>Pending</span></div>';
 
     var el = document.getElementById('payouts-list');
     if (!list.length) {
@@ -146,23 +148,34 @@
       return;
     }
 
-    el.innerHTML = list.slice().reverse().map(function(b) {
-      var feePct = b.platform_fee_pct ? b.platform_fee_pct + '%' : '—';
-      return '<div class="payout-card">' +
-        '<div class="payout-card-top">' +
-          '<div>' +
-            '<h3>' + esc(b.service || 'Service') + '</h3>' +
-            '<div class="payout-card-meta">' + esc(b.ref) + ' &bull; ' + fmtDate(b.completed_at) + '</div>' +
-          '</div>' +
-          '<div class="payout-amount-value green" style="font-size:1rem">' + fmt(b.assembler_due) + '</div>' +
+    var jobsIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>';
+    var payoutRows = list.slice().reverse().map(function(b) {
+      var isPaid = b.payout_status === 'paid';
+      var badge  = isPaid
+        ? '<span class="e-payout-badge-paid">Paid</span>'
+        : '<span class="e-payout-badge-pending">Pending</span>';
+      return '<div class="e-payout-row">' +
+        '<div class="e-payout-icon">' + jobsIcon + '</div>' +
+        '<div class="e-payout-info">' +
+          '<div class="e-payout-service">' + esc(b.service || 'Service') + '</div>' +
+          '<div class="e-payout-date">' + fmtDate(b.completed_at) + '</div>' +
         '</div>' +
-        '<div class="payout-amounts">' +
-          '<div class="payout-amount-item"><div class="payout-amount-label">Job Total</div><div class="payout-amount-value">' + fmt(b.amount_charged) + '</div></div>' +
-          '<div class="payout-amount-item"><div class="payout-amount-label">Platform Fee (' + feePct + ')</div><div class="payout-amount-value red">&minus;' + fmt(b.platform_fee) + '</div></div>' +
-          '<div class="payout-amount-item"><div class="payout-amount-label">Your Payout</div><div class="payout-amount-value green">' + fmt(b.assembler_due) + '</div></div>' +
+        '<div class="e-payout-right">' +
+          '<div class="e-payout-amount">' + fmt(b.assembler_due) + '</div>' +
+          badge +
         '</div>' +
       '</div>';
     }).join('');
+
+    var feePct = list.length && list[0].platform_fee_pct ? list[0].platform_fee_pct : 25;
+    var totalFeesPaid = list.reduce(function(s,b){ return s + (b.platform_fee||0); }, 0);
+    var summary = '<div class="e-payout-summary">'
+      + '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted);margin-bottom:0.5rem">Payout Summary</div>'
+      + '<div class="e-payout-summary-row"><span>Jobs Completed</span><strong>' + list.length + '</strong></div>'
+      + '<div class="e-payout-summary-row"><span>Platform Fees (' + feePct + '%)</span><strong style="color:#dc2626">-' + fmt(totalFeesPaid) + '</strong></div>'
+      + '</div>';
+
+    el.innerHTML = '<div class="e-card" style="padding:0 1rem">' + payoutRows + '</div>' + summary;
   }
 
   document.addEventListener('DOMContentLoaded', async function() {

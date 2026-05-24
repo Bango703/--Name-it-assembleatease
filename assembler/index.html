@@ -218,16 +218,19 @@
           <div class="pro-section-title"><span class="dot"></span>Upcoming</div>
           <a href="/assembler/my-assignments" class="pro-link">View all</a>
         </div>
-        <div class="e-upcoming-scroll" id="upcoming-list"></div>
+        <div id="upcoming-list"></div>
       </div>
 
-      <!-- ── NO ACTIVE STATE ───────────────────────────────────────── -->
-      <div class="waiting-state" id="waiting-state" style="display:none">
-        <div class="waiting-state-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <!-- ── AVAILABILITY CARD ─────────────────────────────────── -->
+      <div class="e-avail-card" id="waiting-state" style="display:none">
+        <div class="e-avail-card-text">
+          <strong id="avail-card-title">You're Online</strong>
+          <span id="avail-card-sub">You'll receive job offers</span>
         </div>
-        <h3>Available for work</h3>
-        <p>You are online and eligible for dispatch. Job offers will appear here and via email.</p>
+        <div class="avail-row" id="avail-toggle2" role="button" tabindex="0" aria-label="Toggle availability">
+          <div class="avail-pill" id="avail-pill2"></div>
+          <span class="avail-label" id="avail-label2">Offline</span>
+        </div>
       </div>
 
       <!-- ── RECENT COMPLETED ──────────────────────────────────────── -->
@@ -497,7 +500,6 @@
       var nextStage   = '';
       if (lj.status === 'en_route')         { nextLabel = "I've Arrived"; nextStage = 'arrived'; }
       else if (lj.status === 'arrived')     { nextLabel = 'Start Job';    nextStage = 'in_progress'; }
-      else if (lj.status === 'in_progress') { nextLabel = 'Open Job Detail'; }
 
       if (nextStage) {
         primaryBtn.textContent = nextLabel;
@@ -516,9 +518,21 @@
           } catch { primaryBtn.disabled = false; primaryBtn.textContent = nextLabel; }
         });
       } else if (lj.status === 'in_progress') {
-        primaryBtn.textContent = 'Open Job Detail';
-        primaryBtn.style.display = '';
-        primaryBtn.addEventListener('click', function() { window.location.href = '/assembler/my-assignments'; });
+        // Mark Job Complete + Message Customer — spec layout
+        var completeBtn = document.createElement('button');
+        completeBtn.className = 'e-hero-complete-btn';
+        completeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Mark Job Complete';
+        completeBtn.style.display = '';
+        completeBtn.addEventListener('click', function() {
+          window.location.href = '/assembler/my-assignments';
+        });
+        primaryBtn.parentNode.insertBefore(completeBtn, primaryBtn);
+
+        var msgBtn = document.createElement('a');
+        msgBtn.className = 'e-hero-msg-btn';
+        msgBtn.href = '/assembler/my-assignments';
+        msgBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Message Customer';
+        primaryBtn.parentNode.insertBefore(msgBtn, primaryBtn);
       }
     }
 
@@ -541,24 +555,29 @@
     // ── Upcoming jobs ────────────────────────────────────────────────
     if (upcomingJobs.length) {
       document.getElementById('upcoming-section').style.display = '';
-      document.getElementById('upcoming-list').innerHTML = upcomingJobs.slice(0, 5).map(function(b) {
-        var dateShort = b.date ? new Date(b.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '—';
-        var timeStr   = b.time ? b.time.replace(/:00$/, '').replace(/\s?([AP]M)/i, function(m, p){ return p.toLowerCase(); }) : '';
-        return '<div class="e-card e-upcoming-mini" onclick="window.location.href=\'/assembler/my-assignments\'">' +
-          '<div class="e-upcoming-mini-date"><span>' + esc(dateShort) + '</span>' + (timeStr ? '<span>' + esc(timeStr) + '</span>' : '') + '</div>' +
-          '<div class="e-upcoming-mini-service">' + esc(b.service || 'Service') + '</div>' +
-          '<div class="e-upcoming-mini-address">' + esc(b.address || 'Address TBD') + '</div>' +
-          '</div>';
+      document.getElementById('upcoming-list').innerHTML = upcomingJobs.slice(0, 3).map(function(b) {
+        var dateShort = b.date ? new Date(b.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : 'TBD';
+        var timeStr   = b.time || '';
+        var when      = dateShort + (timeStr ? ' · ' + timeStr : '');
+        return '<div class="e-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="e-upcoming-card-when">' + esc(when) + '</div>' +
+            '<div class="e-upcoming-card-service">' + esc(b.service || 'Service') + '</div>' +
+            '<div class="e-upcoming-card-addr">' + esc(b.address || 'Address TBD') + '</div>' +
+          '</div>' +
+          '<span class="sb bk-accepted" style="flex-shrink:0">Confirmed</span>' +
+        '</div>';
       }).join('');
     } else if (liveJobs.length === 0) {
       // No active AND no upcoming — show waiting state
       if (profile.status === 'active' && profile.identity_verified) {
         var ws = document.getElementById('waiting-state');
         ws.style.display = '';
-        if (!available) {
-          ws.querySelector('h3').textContent = 'You are offline';
-          ws.querySelector('p').textContent = 'Toggle online above to start receiving job offers.';
-        }
+        document.getElementById('avail-pill2').classList.toggle('on', available);
+        document.getElementById('avail-toggle2').classList.toggle('on', available);
+        document.getElementById('avail-label2').textContent = available ? 'Online' : 'Offline';
+        document.getElementById('avail-card-title').textContent = available ? "You're Online" : "You're Offline";
+        document.getElementById('avail-card-sub').textContent   = available ? "You'll receive job offers" : "Toggle on to start receiving jobs";
       }
     }
 

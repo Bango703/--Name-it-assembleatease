@@ -147,7 +147,7 @@
 
 <header class="easer-header">
   <a href="/assembler/" class="easer-header-brand">Assemble<span>AtEase</span></a>
-  <div class="easer-header-title">Jobs</div>
+  <div class="easer-header-title">My Jobs</div>
   <div class="easer-header-right">
     <a href="#" id="sidebar-logout" class="logout-link">Sign out</a>
   </div>
@@ -156,11 +156,12 @@
 <div class="easer-page">
   <div id="page-alert" class="alert hidden"></div>
 
-  <div class="filter-tabs" id="filter-tabs">
-    <button class="filter-tab active" data-filter="all">All</button>
-    <button class="filter-tab" data-filter="offers">Offers</button>
-    <button class="filter-tab" data-filter="active">Active</button>
-    <button class="filter-tab" data-filter="completed">Done</button>
+  <div class="e-filter-row" id="filter-tabs">
+    <button class="e-filter-pill active" data-filter="all">All</button>
+    <button class="e-filter-pill" data-filter="offers">Offers <span class="e-pill-count" id="fc-offers"></span></button>
+    <button class="e-filter-pill" data-filter="active">Active <span class="e-pill-count" id="fc-active"></span></button>
+    <button class="e-filter-pill" data-filter="upcoming">Upcoming <span class="e-pill-count" id="fc-upcoming"></span></button>
+    <button class="e-filter-pill" data-filter="completed">Completed <span class="e-pill-count" id="fc-completed"></span></button>
   </div>
 
   <div id="assignments-list">
@@ -225,26 +226,44 @@
 
   function filterList(list, filter) {
     if (filter === 'offers')   return list.filter(function(b){ return b._is_pending_offer; });
-    if (filter === 'active')   return list.filter(function(b){ return LIVE_STATUSES.includes(b.status); });
+    if (filter === 'active')   return list.filter(function(b){ return LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at; });
+    if (filter === 'upcoming') return list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
     if (filter === 'completed') return list.filter(function(b){ return b.status === 'completed'; });
     return list; // 'all'
   }
 
-  function renderStageTrack(b) {
-    var st = b.status;
-    var stageOrder = ['en_route', 'arrived', 'in_progress'];
-    var idx = stageOrder.indexOf(st);
-    var stages = [{ key: 'en_route', label: 'En Route' }, { key: 'arrived', label: 'Arrived' }, { key: 'in_progress', label: 'Working' }];
-    var html = '<div class="e-stage-track">';
-    stages.forEach(function(s, i) {
-      var sIdx = stageOrder.indexOf(s.key);
-      var isDone    = idx > sIdx;
-      var isCurrent = idx === sIdx;
-      html += '<div class="e-stage-node">'
-        + '<div class="e-stage-dot' + (isCurrent ? ' current' : isDone ? ' done' : '') + '"></div>'
-        + '<div class="e-stage-dot-label' + (isCurrent ? ' current' : '') + '">' + s.label + '</div>'
+  function updateFilterCounts(list) {
+    var offers    = list.filter(function(b){ return b._is_pending_offer; }).length;
+    var active    = list.filter(function(b){ return LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at; }).length;
+    var upcoming  = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; }).length;
+    var completed = list.filter(function(b){ return b.status === 'completed'; }).length;
+    var el;
+    el = document.getElementById('fc-offers');    if (el) el.textContent = offers    ? '(' + offers    + ')' : '';
+    el = document.getElementById('fc-active');    if (el) el.textContent = active    ? '(' + active    + ')' : '';
+    el = document.getElementById('fc-upcoming');  if (el) el.textContent = upcoming  ? '(' + upcoming  + ')' : '';
+    el = document.getElementById('fc-completed'); if (el) el.textContent = completed ? '(' + completed + ')' : '';
+  }
+
+  function renderPipeline5(b) {
+    // 5-step pipeline: Accepted | On My Way | Arrived | Start Job | Complete
+    var steps = [
+      { label: 'Accepted',   done: !!b.assembler_accepted_at, isCurrent: b.status === 'confirmed' && !!b.assembler_accepted_at },
+      { label: 'On My Way',  done: !!b.en_route_at,          isCurrent: b.status === 'en_route' },
+      { label: 'Arrived',    done: !!b.checked_in_at,        isCurrent: b.status === 'arrived' },
+      { label: 'Start Job',  done: !!b.job_started_at,       isCurrent: b.status === 'in_progress' },
+      { label: 'Complete',   done: b.status === 'completed',  isCurrent: false },
+    ];
+    var html = '<div class="e-pipeline-track">';
+    steps.forEach(function(s, i) {
+      var dotCls = s.isCurrent ? ' current' : s.done ? ' done' : '';
+      var lblCls = s.isCurrent ? ' current' : '';
+      html += '<div class="e-pipeline-node">'
+        + '<div class="e-pipeline-dot' + dotCls + '"></div>'
+        + '<div class="e-pipeline-label' + lblCls + '">' + s.label + '</div>'
         + '</div>';
-      if (i < stages.length - 1) html += '<div class="e-stage-line' + (idx > sIdx ? ' done' : '') + '"></div>';
+      if (i < steps.length - 1) {
+        html += '<div class="e-pipeline-connector' + (s.done ? ' done' : '') + '"></div>';
+      }
     });
     html += '</div>';
     return html;
@@ -261,49 +280,57 @@
   function renderAssignments(list) {
     const el = document.getElementById('assignments-list');
     if (!list || !list.length) {
-      el.innerHTML = '<div class="pro-empty"><p>No assignments found for this filter.</p></div>';
+      el.innerHTML = '<div class="e-empty"><div class="e-empty-title">No jobs here</div><div class="e-empty-desc">Jobs will appear when assigned to you.</div></div>';
       return;
     }
-    el.innerHTML = list.map(function(b) {
-      const customerFirst = (b.customer_name || 'Customer').split(' ')[0];
-      const isCompleted = b.status === 'completed';
-      const stageMeta   = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : (b._is_pending_offer ? { cls: 'bk-dispatched', label: 'Offer Pending' } : { cls: 'bk-dispatched', label: 'Pending Response' }));
-      const badgeClass  = 'sb ' + stageMeta.cls;
-      const badgeText   = stageMeta.label;
 
+    // When showing 'all', group by section
+    const isAll = currentFilter === 'all';
+    const offers   = list.filter(function(b){ return b._is_pending_offer; });
+    const active   = list.filter(function(b){ return LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at; });
+    const upcoming = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
+    const completed = list.filter(function(b){ return b.status === 'completed'; });
+
+    function cardHtml(b) {
+      const isPendingOffer = b._is_pending_offer || (!b.assembler_accepted_at && (b._offer_token || b.assignment_token));
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
-      return '<div class="asgn-card" style="cursor:pointer" onclick="openDetail(\'' + b.id + '\')">' +
-        '<div class="asgn-card-top">' +
-          '<div>' +
-            '<h3>' + esc(b.service || 'Service') + '</h3>' +
-            '<div class="asgn-card-meta">' +
-              esc(customerFirst) +
-              (b.date ? ' &bull; ' + esc(b.date) : '') +
-              (b.time ? ' at ' + esc(b.time) : '') +
-            '</div>' +
+      const isCompleted = b.status === 'completed';
+      const customerFirst = (b.customer_name || 'Customer').split(' ')[0];
+      const payStr = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : '');
+      const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
+
+      return '<div class="e-job-card" onclick="openDetail(\'' + b.id + '\')">' +
+        '<div class="e-job-card-top">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
+            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerFirst) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
           '</div>' +
-          '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
+          (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
+          (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
         '</div>' +
-        (isLive ? renderStageTrack(b) : '') +
-        '<div class="asgn-card-footer">' +
-          '<span>Ref: <code>' + esc(b.ref) + '</code></span>' +
-          (b.address ? '<span>' + esc(b.address) + '</span>' : '') +
-          (isCompleted && b.completed_at ? '<span>Done ' + timeAgo(b.completed_at) + '</span>' : '') +
-          (!isCompleted && !isLive && b.assigned_at ? '<span>Assigned ' + timeAgo(b.assigned_at) + '</span>' : '') +
-        '</div>' +
-        // Offer actions row — shown for unaccepted dispatch/assignment offers
-        (!b.assembler_accepted_at && (b._offer_token || b.assignment_token) ?
-          '<div style="padding:0.75rem 0 0;border-top:1px solid var(--pro-border);margin-top:0.25rem">' +
-            (b._offer_expires_at ? '<div style="font-size:0.78rem;color:#92400e;margin-bottom:0.5rem;display:flex;align-items:center;gap:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Offer expires in <strong id="cc-' + b.id + '">—</strong></div>' : '') +
-            (b._custom_quote ? '<div style="font-size:0.78rem;color:var(--pro-muted);margin-bottom:0.5rem">Custom quote — price set after review</div>' :
-              (b._pay_estimate_lo ? '<div style="font-size:0.78rem;color:var(--pro-teal);margin-bottom:0.5rem">Est. pay: <strong>$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) + '</strong></div>' : '')) +
-            '<div style="display:flex;gap:0.5rem">' +
-              '<button class="card-accept-btn btn btn-teal" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '" style="flex:1;font-size:0.875rem;padding:0.6rem 0.5rem;font-weight:600" onclick="event.stopPropagation()">&#10003; Accept</button>' +
-              (b._offer_token ? '<button class="card-decline-btn btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '" style="font-size:0.875rem;padding:0.6rem 1rem;color:var(--pro-muted)" onclick="event.stopPropagation()">Decline</button>' : '') +
-            '</div>' +
+        (b.address ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
+        (isPendingOffer && b._offer_expires_at ? '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
+        (isLive ? renderPipeline5(b) : '') +
+        (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned $' + Math.round(b.assembler_due/100) : '') + '</div>' : '') +
+        (isPendingOffer ?
+          '<div class="e-job-card-actions" onclick="event.stopPropagation()">' +
+            '<button class="e-job-card-accept card-accept-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '">Accept</button>' +
+            (b._offer_token ? '<button class="e-job-card-decline card-decline-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '">Decline</button>' : '<div></div>') +
           '</div>' : '') +
       '</div>';
-    }).join('');
+    }
+
+    if (isAll) {
+      var html = '';
+      if (offers.length)   html += '<div class="e-section-header"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Job Offers</div>' + offers.map(cardHtml).join('');
+      if (active.length)   html += '<div class="e-section-header"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Active Jobs</div>' + active.map(cardHtml).join('');
+      if (upcoming.length) html += '<div class="e-section-header">Upcoming</div>' + upcoming.map(cardHtml).join('');
+      if (completed.length) html += '<div class="e-section-header">Recent Completed</div>' + completed.map(cardHtml).join('');
+      if (!html) html = '<div class="e-empty"><div class="e-empty-title">All clear</div><div class="e-empty-desc">No jobs right now. Stay online for offers.</div></div>';
+      el.innerHTML = html;
+    } else {
+      el.innerHTML = list.map(cardHtml).join('');
+    }
     startCardCountdowns();
   }
 
@@ -353,7 +380,7 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
-        const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+        const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
       } catch {}
     });
@@ -416,9 +443,9 @@
     });
 
     document.getElementById('filter-tabs').addEventListener('click', function(e) {
-      const tab = e.target.closest('.filter-tab');
+      const tab = e.target.closest('.e-filter-pill');
       if (!tab) return;
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.e-filter-pill').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       currentFilter = tab.dataset.filter;
       renderAssignments(filterList(allAssignments, currentFilter));
@@ -435,6 +462,7 @@
       const data = await resp.json();
       allAssignments = data.bookings || [];
       renderAssignments(allAssignments);
+      updateFilterCounts(allAssignments);
     } catch (err) {
       document.getElementById('assignments-list').innerHTML =
         '<div class="pro-error">&#9888; Could not load assignments. Please refresh.</div>';
@@ -451,8 +479,9 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
-        const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+        const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
+        updateFilterCounts(allAssignments);
         if (alertOnNew) APP.showAlert('page-alert', 'You have been assigned a new booking!', 'success');
       } catch {}
     }
@@ -568,7 +597,7 @@
           document.getElementById('asgn-modal-body').appendChild(banner);
           const b = allAssignments.find(x => x.id === bookingIdToComplete);
           if (b) b.status = 'completed';
-          const cf = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+          const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
           renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf));
         } else {
           if (completeBtn) { completeBtn.disabled = false; completeBtn.innerHTML = '&#10003; Mark Job as Complete'; }
