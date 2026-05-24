@@ -53,6 +53,39 @@
     body.theme-pro .form-fields > .form-group { margin-bottom: 0; }
     body.theme-pro .skills-input::placeholder { color:var(--pro-muted); }
 
+    /* ── Self-contained form + button system ──────────────────────────
+       These mirror easer.css globals but are scoped to body.theme-pro so
+       this page renders correctly even if the external stylesheet is
+       delayed, cached-stale, or unavailable. */
+    body.theme-pro .form-group label { display:block; font-size:0.82rem; font-weight:500; color:var(--pro-muted); margin-bottom:5px; }
+    body.theme-pro .form-control { width:100%; padding:0.65rem 0.875rem; border-radius:8px; border:1px solid var(--pro-border-md); background:var(--pro-surface); color:var(--pro-text); font-size:0.875rem; transition:border-color 0.15s; outline:none; box-sizing:border-box; }
+    body.theme-pro .form-control:focus { border-color:var(--pro-teal); box-shadow:0 0 0 3px var(--pro-teal-dim); }
+    body.theme-pro textarea.form-control { resize:vertical; min-height:100px; line-height:1.55; display:block; }
+    body.theme-pro .form-row { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+    @media (max-width:400px) { body.theme-pro .form-row { grid-template-columns:1fr; } }
+    body.theme-pro .field-error { font-size:0.72rem; color:#dc2626; margin-top:4px; display:none; }
+    body.theme-pro .field-error.visible { display:block; }
+    body.theme-pro .btn {
+      -webkit-appearance:none; appearance:none;
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      padding:0.6rem 1.25rem; border-radius:10px;
+      font-size:0.875rem; font-weight:600; cursor:pointer; text-decoration:none;
+      border:1px solid var(--pro-border-md); background:var(--pro-surface); color:var(--pro-text);
+      white-space:nowrap; line-height:1.3; box-sizing:border-box; transition:opacity 0.15s;
+    }
+    body.theme-pro .btn:active { opacity:0.85; }
+    body.theme-pro .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    body.theme-pro .btn-teal  { background:var(--pro-teal); border-color:var(--pro-teal); color:#fff; }
+    body.theme-pro .btn-outline{ background:transparent; border-color:var(--pro-border-md); color:var(--pro-text); }
+    body.theme-pro .btn-danger { background:#ef4444; border-color:#ef4444; color:#fff; }
+    body.theme-pro .btn-lg { padding:0.75rem 1.5rem; font-size:0.95rem; border-radius:12px; }
+    body.theme-pro .btn-sm { padding:0.38rem 0.875rem; font-size:0.78rem; }
+    body.theme-pro .alert { padding:0.75rem 1rem; border-radius:10px; font-size:0.875rem; margin-bottom:1rem; line-height:1.5; }
+    body.theme-pro .alert.hidden { display:none; }
+    body.theme-pro .alert-error   { background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.2); color:#b91c1c; }
+    body.theme-pro .alert-success { background:rgba(5,150,105,0.09); border:1px solid rgba(5,150,105,0.2); color:#065f46; }
+    body.theme-pro .alert-info    { background:var(--pro-teal-dim); border:1px solid rgba(0,151,167,0.2); color:var(--pro-teal); }
+
     /* Completion */
     body.theme-pro .completion-wrap { margin-bottom:1.5rem; }
     body.theme-pro .completion-label { font-size:0.82rem; color:var(--pro-muted); margin-bottom:6px; display:flex; justify-content:space-between; }
@@ -77,8 +110,8 @@
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
 <header class="easer-header">
-  <a href="/assembler/" class="easer-wordmark" aria-label="Easer home">
-    <span class="easer-wordmark-text">Easer</span>
+  <a href="/assembler/" class="easer-wordmark" aria-label="Easer home" style="text-decoration:none;display:flex;align-items:center">
+    <span class="easer-wordmark-text" style="font-size:1.2rem;font-weight:800;color:#0097a7;letter-spacing:-0.03em;line-height:1">Easer</span>
   </a>
   <button class="eh-bell-btn" aria-label="Notifications" id="eh-bell-btn">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
