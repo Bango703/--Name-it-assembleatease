@@ -193,6 +193,18 @@
   let sessionToken = null;
   let selectedBookingId = null;
 
+  // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
+  // sessionToken is set to the initial session access_token once auth completes.
+  async function getToken() {
+    try {
+      const { data: { session: s } } = await supabaseClient.auth.getSession();
+      if (s?.access_token) return s.access_token;
+      const { data: refreshed } = await supabaseClient.auth.refreshSession();
+      if (refreshed?.session?.access_token) return refreshed.session.access_token;
+    } catch {}
+    return sessionToken;
+  }
+
   function esc(str) {
     if (!str) return '';
     return String(str)
@@ -350,19 +362,8 @@
     if (!auth) return;
     document.body.style.visibility = 'visible';
     const session = auth.session;
-
-    // Get a valid token — attempts session refresh before falling back to
-    // the initial session token. Prevents 401s when the app wakes from sleep.
-    async function getToken() {
-      try {
-        const { data: { session: s } } = await supabaseClient.auth.getSession();
-        if (s?.access_token) return s.access_token;
-        // Session appears expired — try refresh
-        const { data: refreshed } = await supabaseClient.auth.refreshSession();
-        if (refreshed?.session?.access_token) return refreshed.session.access_token;
-      } catch {}
-      return session.access_token; // last resort
-    }
+    // Set module-level sessionToken so getToken() (defined above) has a fallback
+    sessionToken = session.access_token;
 
     // ── Reconnect on visibility change (app returns from background) ──
     document.addEventListener('visibilitychange', async function() {
@@ -742,7 +743,7 @@
             if (!r.ok || d.error) { APP.showAlert('page-alert', d.error || 'Failed to update status', 'error'); btn2.disabled = false; btn2.textContent = s.label; return; }
             // Refresh assignments
             const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-            if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(allAssignments); }
+            if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
             document.getElementById('asgn-modal').classList.remove('open');
           } catch { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); btn2.disabled = false; btn2.textContent = s.label; }
         });
@@ -776,7 +777,7 @@
           document.getElementById('asgn-modal').classList.remove('open');
           APP.showAlert('page-alert', 'Job accepted! Check Active tab for details.', 'success');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); updateFilterCounts(allAssignments); }
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
         } catch(e) {
           APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
           acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job';
@@ -818,7 +819,7 @@
           document.getElementById('asgn-modal').classList.remove('open');
           APP.showAlert('page-alert', 'Offer declined.', 'info');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
         } catch { APP.showAlert('page-alert', 'Connection error', 'error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }
       }
 
