@@ -731,11 +731,20 @@
       return;
     }
 
-    // Fresh token
+    // Fresh token — check expiry and refresh if needed
     freshTok=session.access_token;
     try{
       var fs=await supabaseClient.auth.getSession();
-      if(fs.data&&fs.data.session) freshTok=fs.data.session.access_token;
+      if(fs.data&&fs.data.session){
+        var _s=fs.data.session;
+        var _now=Math.floor(Date.now()/1000);
+        if(!_s.expires_at||_s.expires_at>_now+60){
+          freshTok=_s.access_token;
+        } else {
+          var _r=await supabaseClient.auth.refreshSession();
+          if(_r.data&&_r.data.session) freshTok=_r.data.session.access_token;
+        }
+      }
     }catch(e){}
 
     // Load assignments

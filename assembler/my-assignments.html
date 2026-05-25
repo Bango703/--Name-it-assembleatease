@@ -214,7 +214,12 @@
   async function getToken() {
     try {
       const { data: { session: s } } = await supabaseClient.auth.getSession();
-      if (s?.access_token) return s.access_token;
+      if (s?.access_token) {
+        // Only return the token if it's not expired (with 60s buffer)
+        const now = Math.floor(Date.now() / 1000);
+        if (!s.expires_at || s.expires_at > now + 60) return s.access_token;
+      }
+      // Token missing or expired — try to refresh
       const { data: refreshed } = await supabaseClient.auth.refreshSession();
       if (refreshed?.session?.access_token) return refreshed.session.access_token;
     } catch {}
@@ -483,12 +488,12 @@
     });
 
     try {
-      // Get fresh token to avoid stale session issues
-      const { data: { session: freshSession } } = await supabaseClient.auth.getSession();
-      const token = (freshSession || session).access_token;
+      const token = await getToken();
+      if (!token) { window.location.href = '/auth/login.html'; return; }
       const resp = await fetch('/api/booking/my-assignments', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
+      if (resp.status === 401) { window.location.href = '/auth/login.html'; return; }
       if (!resp.ok) throw new Error('Failed to load assignments');
       const data = await resp.json();
       allAssignments = data.bookings || [];
