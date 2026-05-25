@@ -47,8 +47,10 @@ export default async function handler(req, res) {
     b.status === 'en_route' || b.pipeline_stage === 'en_route'
   );
 
+  // A booking is "arrived" when status = 'arrived' OR it has checked_in_at but no job_started_at
+  // (easer-status.js sets status='arrived' when Easer checks in)
   const arrived = bookings.filter(b =>
-    b.checked_in_at && !b.job_started_at && b.status === 'confirmed'
+    b.status === 'arrived' || (b.checked_in_at && !b.job_started_at && b.status !== 'in_progress')
   );
 
   const inProgress = bookings.filter(b =>

@@ -36,12 +36,18 @@
 .booking-status-badge{display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:0.38rem 0.9rem;border-radius:999px}
 .status-pending{background:#fffbeb;color:#92400e;border:1px solid #fcd34d}
 .status-confirmed{background:var(--cyan-light);color:var(--cyan-dark);border:1px solid var(--cyan-mid)}
+.status-en_route{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+.status-arrived{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.status-in_progress{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
 .status-completed{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
 .status-cancelled{background:#f4f4f5;color:#71717a;border:1px solid #d4d4d8}
 .status-declined{background:#f4f4f5;color:#71717a;border:1px solid #d4d4d8}
 .booking-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .status-pending .booking-status-dot{background:#f59e0b;animation:status-pulse 2s infinite}
 .status-confirmed .booking-status-dot{background:var(--cyan);animation:status-pulse 2s infinite}
+.status-en_route .booking-status-dot{background:#3b82f6;animation:status-pulse 2s infinite}
+.status-arrived .booking-status-dot{background:#22c55e;animation:status-pulse 2s infinite}
+.status-in_progress .booking-status-dot{background:#22c55e;animation:status-pulse 2s infinite}
 .status-completed .booking-status-dot{background:#22c55e}
 .status-cancelled .booking-status-dot{background:#a1a1aa}
 @keyframes status-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
@@ -185,6 +191,7 @@
           </span>
         </div>
         <div class="booking-service-name" id="bService"></div>
+        <div id="bStatusDetail" style="font-size:0.875rem;color:var(--muted);margin-top:4px;line-height:1.5;display:none"></div>
         <div class="booking-created" id="bCreated"></div>
       </div>
 
@@ -366,21 +373,50 @@ function renderBooking(b) {
     addrWrap.style.display = 'none';
   }
 
-  // Status badge
+  // Status badge — use customer_status from API when available for pipeline states,
+  // since the raw status (en_route, arrived, in_progress) would be confusing to a customer.
   const badge = document.getElementById('bStatusBadge');
   const statusText = (b.status || '').toLowerCase();
-  const statusLabels = { pending:'Pending', confirmed:'Confirmed', completed:'Completed', cancelled:'Cancelled', declined:'Unable to Complete' };
-  badge.className = 'booking-status-badge status-' + (statusText === 'declined' ? 'cancelled' : statusText || 'pending');
-  document.getElementById('bStatusText').textContent = statusLabels[statusText] || capitalize(b.status || 'pending');
+  const PIPELINE = ['en_route', 'arrived', 'in_progress'];
+  const statusLabels = {
+    pending: 'Pending Confirmation',
+    confirmed: 'Confirmed',
+    en_route: 'On the Way',
+    arrived: 'Service Pro Arrived',
+    in_progress: 'Work in Progress',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    declined: 'Unable to Complete',
+  };
+  // Badge CSS class: pipeline statuses use specific classes; declined maps to cancelled
+  var badgeClass = PIPELINE.includes(statusText) ? statusText : (statusText === 'declined' ? 'cancelled' : statusText || 'pending');
+  badge.className = 'booking-status-badge status-' + badgeClass;
+  // Prefer the customer-friendly label from the API (includes Easer first name when accepted)
+  document.getElementById('bStatusText').textContent = b.customer_status || statusLabels[statusText] || capitalize(b.status || 'pending');
 
-  // Cancellability
-  const actions  = document.getElementById('bookingActions');
-  const feeWarn  = document.getElementById('cancelFeeWarn');
+  // Show customer_status detail message below service name
+  var detailEl = document.getElementById('bStatusDetail');
+  if (detailEl) {
+    if (b.customer_status_detail) {
+      detailEl.textContent = b.customer_status_detail;
+      detailEl.style.display = '';
+    } else {
+      detailEl.style.display = 'none';
+    }
+  }
+
+  // Cancellability: cannot cancel if already terminal or job is actively in progress
+  const ACTIVE_PIPELINE = ['en_route', 'arrived', 'in_progress'];
   const cancelBtn = document.getElementById('btnCancelOpen');
+  const feeWarn  = document.getElementById('cancelFeeWarn');
 
-  if (b.status === 'cancelled' || b.status === 'completed' || b.status === 'declined') {
+  if (['cancelled', 'completed', 'declined'].includes(b.status) || ACTIVE_PIPELINE.includes(b.status)) {
     cancelBtn.style.display = 'none';
     feeWarn.style.display   = 'none';
+    if (ACTIVE_PIPELINE.includes(b.status)) {
+      // Show a note that cancellation is not possible while job is active
+      cancelBtn.insertAdjacentHTML('afterend', '<p style="font-size:0.82rem;color:var(--muted);text-align:center;margin-top:0">To change or cancel while a service pro is en route, please <a href="/contact" style="color:var(--cyan-dark);font-weight:600">contact us directly</a>.</p>');
+    }
   } else {
     cancelBtn.style.display = '';
     // Check 24hr window

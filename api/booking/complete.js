@@ -26,8 +26,11 @@ export default async function handler(req, res) {
   if (booking.payment_status === 'captured') {
     return res.status(400).json({ error: 'Payment already captured for this booking.' });
   }
-  if (booking.status !== 'confirmed') {
-    return res.status(400).json({ error: 'Only confirmed bookings can be completed. Current status: ' + booking.status });
+  // Allow completion from any active pipeline state — Easer may have progressed through
+  // en_route → arrived → in_progress before the owner marks it done.
+  const COMPLETABLE = ['confirmed', 'en_route', 'arrived', 'in_progress'];
+  if (!COMPLETABLE.includes(booking.status)) {
+    return res.status(400).json({ error: 'Only active bookings can be completed. Current status: ' + booking.status });
   }
 
   // ── Stripe: capture payment (or charge balance for deposit jobs) ──

@@ -502,9 +502,10 @@
 
       <!-- ─── TODAY VIEW ─── -->
       <div id="today-view" style="display:none">
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem">All bookings <strong>scheduled for today</strong> (<span id="today-date-display"></span>). These are jobs customers have booked on this date, regardless of confirmation status.</p>
         <div class="stats-row" id="today-stats-row">
           <div class="stat teal"><div class="stat-value" id="today-count">—</div><div class="stat-label">Jobs Today</div></div>
-          <div class="stat amber"><div class="stat-value" id="today-pending">—</div><div class="stat-label">Pending</div></div>
+          <div class="stat amber"><div class="stat-value" id="today-pending">—</div><div class="stat-label">Unconfirmed</div></div>
           <div class="stat orange"><div class="stat-value" id="today-confirmed">—</div><div class="stat-label">Confirmed</div></div>
           <div class="stat neutral"><div class="stat-value" id="today-done">—</div><div class="stat-label">Completed</div></div>
         </div>
@@ -512,7 +513,7 @@
         <div id="today-empty" class="empty-state" style="display:none">
           <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
           <div class="empty-state-title">No jobs today</div>
-          <div class="empty-state-desc">Nothing is scheduled for today. Create a new booking to get started.</div>
+          <div class="empty-state-desc">Nothing is scheduled for today's date. Pending bookings in the sidebar may be for a different date &mdash; click <strong>Bookings</strong> to see all.</div>
         </div>
       </div>
 
@@ -1264,11 +1265,15 @@ function intelQuick(msg) {
 
   // ─── Stats ───
   function stripeFeeCalc(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
+  // Pipeline statuses that are logically "confirmed" (job is active / in flight)
+  var PIPELINE_STATUSES = ['en_route', 'arrived', 'in_progress'];
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
     let profit = 0;
     allBookings.forEach(function(b) {
-      if (counts[b.status] !== undefined) counts[b.status]++;
+      // Count pipeline statuses as Confirmed — they are active/accepted jobs
+      var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
+      if (counts[cat] !== undefined) counts[cat]++;
       if (b.status === 'completed') {
         // Use amount_charged (actual captured amount) — falls back to total_price
         // for legacy bookings that pre-date the amount_charged column.
@@ -1290,7 +1295,9 @@ function intelQuick(msg) {
     else $navP.style.display = 'none';
     document.querySelectorAll('#tabs .tab').forEach(function(t) {
       var s = t.dataset.status;
-      var c = s === 'all' ? allBookings.length : allBookings.filter(function(b){return b.status===s}).length;
+      var c = s === 'all' ? allBookings.length : s === 'confirmed'
+        ? allBookings.filter(function(b){return b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length
+        : allBookings.filter(function(b){return b.status===s}).length;
       var span = t.querySelector('.tab-count');
       if (!span) { span = document.createElement('span'); span.className = 'tab-count'; t.appendChild(span); }
       span.textContent = c;
@@ -1774,6 +1781,11 @@ function intelQuick(msg) {
         btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '">Smart Dispatch</button>');
       }
       btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
+      btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
+    }
+    // Pipeline statuses: Easer is actively working — still allow owner to mark complete or cancel
+    if (['en_route', 'arrived', 'in_progress'].includes(b.status)) {
+      btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
     if (b.status === 'completed') {
@@ -2584,14 +2596,20 @@ function intelQuick(msg) {
   // ─── TODAY VIEW ───
   function renderTodayView() {
     var today = new Date().toISOString().slice(0,10);
+    // Show the date so the owner knows exactly what date is being shown
+    var dateDisplay = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+    var dd = document.getElementById('today-date-display');
+    if (dd) dd.textContent = dateDisplay;
     var jobs = allBookings.filter(function(b){ return b.date === today; });
     jobs.sort(function(a,b){ return (a.time||'').localeCompare(b.time||''); });
     document.getElementById('today-count').textContent = jobs.length;
+    // "Unconfirmed" = status is still pending (customer submitted, owner hasn't confirmed)
     document.getElementById('today-pending').textContent = jobs.filter(function(b){return b.status==='pending';}).length;
-    document.getElementById('today-confirmed').textContent = jobs.filter(function(b){return b.status==='confirmed';}).length;
+    // "Confirmed" = actively managed jobs (confirmed + all pipeline stages)
+    document.getElementById('today-confirmed').textContent = jobs.filter(function(b){return b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
     document.getElementById('today-done').textContent = jobs.filter(function(b){return b.status==='completed';}).length;
     var navToday = document.getElementById('nav-today');
-    var active = jobs.filter(function(b){return b.status==='pending'||b.status==='confirmed';}).length;
+    var active = jobs.filter(function(b){return b.status==='pending'||b.status==='confirmed'||PIPELINE_STATUSES.includes(b.status);}).length;
     if(active>0){navToday.textContent=active;navToday.style.display='';}else{navToday.style.display='none';}
     var list = document.getElementById('today-list');
     var empty = document.getElementById('today-empty');
