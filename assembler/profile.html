@@ -178,35 +178,45 @@
       <form id="profile-form">
         <!-- Basic info -->
         <div class="form-section">
-          <div class="form-section-title">Basic information</div>
-          <div class="form-fields">
-            <div class="form-group">
-              <label for="full-name">Full name</label>
-              <input type="text" id="full-name" class="form-control" placeholder="Jane Smith" required />
-              <span class="field-error" id="full-name-error"></span>
-            </div>
-            <div class="form-group">
-              <label for="phone">Phone number</label>
-              <input type="tel" id="phone" class="form-control" placeholder="e.g. (512) 555-0123" />
-              <span class="field-error" id="phone-error"></span>
-            </div>
-            <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:0.75rem">
-              <div class="form-group">
-                <label for="city">City</label>
-                <input type="text" id="city" class="form-control" placeholder="Austin" />
-              </div>
-              <div class="form-group">
-                <label for="state">State</label>
-                <input type="text" id="state" class="form-control" placeholder="TX" maxlength="2" />
-              </div>
-              <div class="form-group">
-                <label for="zip">ZIP</label>
-                <input type="text" id="zip" class="form-control" placeholder="78701" maxlength="10" inputmode="numeric" />
-              </div>
-            </div>
+          <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Basic information</span>
+            <button type="button" id="basic-edit-btn" onclick="expandBasicSection()" style="display:none;font-size:0.72rem;font-weight:600;color:var(--pro-teal);background:none;border:none;cursor:pointer;padding:0;letter-spacing:0.01em">Edit</button>
           </div>
-          <div style="margin-top:0.75rem">
-            <button type="submit" id="save-btn" class="btn btn-teal" style="width:100%">Save</button>
+          <div id="basic-summary" style="display:none">
+            <div id="basic-summary-name" style="font-size:0.875rem;color:var(--pro-text);font-weight:600;margin-bottom:0.25rem"></div>
+            <div id="basic-summary-phone" style="font-size:0.82rem;color:var(--pro-muted);margin-bottom:0.2rem"></div>
+            <div id="basic-summary-location" style="font-size:0.82rem;color:var(--pro-muted)"></div>
+          </div>
+          <div id="basic-fields">
+            <div class="form-fields">
+              <div class="form-group">
+                <label for="full-name">Full name</label>
+                <input type="text" id="full-name" class="form-control" placeholder="Jane Smith" required />
+                <span class="field-error" id="full-name-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone number</label>
+                <input type="tel" id="phone" class="form-control" placeholder="e.g. (512) 555-0123" />
+                <span class="field-error" id="phone-error"></span>
+              </div>
+              <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:0.75rem">
+                <div class="form-group">
+                  <label for="city">City</label>
+                  <input type="text" id="city" class="form-control" placeholder="Austin" />
+                </div>
+                <div class="form-group">
+                  <label for="state">State</label>
+                  <input type="text" id="state" class="form-control" placeholder="TX" maxlength="2" />
+                </div>
+                <div class="form-group">
+                  <label for="zip">ZIP</label>
+                  <input type="text" id="zip" class="form-control" placeholder="78701" maxlength="10" inputmode="numeric" />
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:0.75rem">
+              <button type="submit" id="save-btn" class="btn btn-teal" style="width:100%">Save</button>
+            </div>
           </div>
         </div>
 
@@ -335,6 +345,28 @@
 <script>
   let skills = [];
   let photoBase64 = null;
+
+  function collapseBasicSection() {
+    var name  = document.getElementById('full-name').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var city  = document.getElementById('city').value.trim();
+    var state = document.getElementById('state').value.trim();
+    var zip   = document.getElementById('zip').value.trim();
+    document.getElementById('basic-summary-name').textContent = name || '—';
+    document.getElementById('basic-summary-phone').textContent = phone || '';
+    var loc = [city, state].filter(Boolean).join(', ');
+    if (zip) loc += (loc ? ' ' : '') + zip;
+    document.getElementById('basic-summary-location').textContent = loc;
+    document.getElementById('basic-summary').style.display = '';
+    document.getElementById('basic-fields').style.display = 'none';
+    document.getElementById('basic-edit-btn').style.display = '';
+  }
+  function expandBasicSection() {
+    document.getElementById('basic-summary').style.display = 'none';
+    document.getElementById('basic-fields').style.display = '';
+    document.getElementById('basic-edit-btn').style.display = 'none';
+    document.getElementById('full-name').focus();
+  }
 
   function collapseProfSection() {
     var rate   = document.getElementById('hourly-rate').value;
@@ -643,6 +675,9 @@
     }
     renderSkills();
     updateCompletion();
+    // Auto-collapse sections on load if data already exists
+    if (profile.full_name) collapseBasicSection();
+    if (profile.hourly_rate || (Array.isArray(profile.skills) ? profile.skills.length : profile.skills)) collapseProfSection();
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -686,6 +721,7 @@
           throw new Error('Profile could not be saved. You may need to sign out and back in.');
         }
         photoBase64 = null;
+        collapseBasicSection();
         collapseProfSection();
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });

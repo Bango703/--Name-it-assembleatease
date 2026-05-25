@@ -63,10 +63,11 @@
       background: var(--pro-surface);
       border-radius: 18px 18px 0 0; padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem);
       width: 100%; max-width: 640px;
-      max-height: 90svh; overflow-y: auto; position: relative;
+      max-height: 90vh; max-height: 90dvh; overflow-y: auto; position: relative;
       transform: translateY(100%); transition: transform 0.25s ease;
     }
     body.theme-pro .modal-overlay.open .modal-box { transform: translateY(0); }
+    body:has(.modal-overlay.open) { overflow: hidden; }
     body.theme-pro .modal-close {
       position: absolute; top: 1rem; right: 1rem; background: none; border: none;
       font-size: 1.3rem; color: var(--pro-muted); cursor: pointer; line-height: 1;
@@ -311,11 +312,17 @@
     const upcoming = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
     const completed = list.filter(function(b){ return b.status === 'completed'; });
 
+  function maskName(n) {
+    if (!n) return 'Customer';
+    var p = n.trim().split(/\s+/);
+    return p[0] + (p.length > 1 ? ' ' + p[p.length-1][0].toUpperCase() + '.' : '');
+  }
+
     function cardHtml(b) {
       const isPendingOffer = b._is_pending_offer || (!b.assembler_accepted_at && (b._offer_token || b.assignment_token));
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
       const isCompleted = b.status === 'completed';
-      const customerFirst = (b.customer_name || 'Customer').split(' ')[0];
+      const customerName = maskName(b.customer_name);
       const payStr = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : '');
       const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
 
@@ -323,12 +330,12 @@
         '<div class="e-job-card-top">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
-            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerFirst) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
+            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerName) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
           '</div>' +
           (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
           (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
         '</div>' +
-        (b.address ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
+        (b.address && !isCompleted ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
         (isPendingOffer && b._offer_expires_at ? '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
         (isLive ? renderPipeline5(b) : '') +
         (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned $' + Math.round(b.assembler_due/100) : '') + '</div>' : '') +
@@ -666,6 +673,7 @@
     selectedBookingId = bookingId;
     const accepted = !!b.assembler_accepted_at;
     const isPendingOffer = b._is_pending_offer;
+    const isCompleted = b.status === 'completed';
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
     const payEst = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : null);
 
@@ -685,8 +693,8 @@
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
         b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
-        b.address ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
-        accepted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(b.customer_phone) + '</a></div>' : '',
+        b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
+        accepted && !isCompleted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(b.customer_phone) + '</a></div>' : '',
         b.details ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + esc(b.details) + '</span></div>' : '',
         b.ref ? '<div style="font-size:0.72rem;color:var(--pro-muted)">Ref: ' + esc(b.ref) + '</div>' : '',
       '</div>',

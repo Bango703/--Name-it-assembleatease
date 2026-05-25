@@ -26,8 +26,6 @@ export default async function handler(req, res) {
   const userId = user.id;
   const { subscription, action } = req.body;
 
-  const sb = getSupabase();
-
   // DELETE — unsubscribe
   if (action === 'unsubscribe' && subscription?.endpoint) {
     await sb.from('push_subscriptions').delete()
