@@ -483,7 +483,7 @@ body {
 
 /* ── Active job hero — gradient card ─────────────────────────────────── */
 .e-job-hero-gradient {
-  background: linear-gradient(170deg, #005a65, #00BFFF);
+  background: linear-gradient(170deg, #0077aa, #00BFFF);
   border: 0 !important;
   color: white;
   box-shadow: 0 16px 32px rgba(0,191,255,0.28);
@@ -594,7 +594,7 @@ body {
 
 /* ── Earnings gradient hero ──────────────────────────────────────────── */
 .e-earn-hero-card {
-  background: linear-gradient(170deg, #005a65, #00BFFF) !important;
+  background: linear-gradient(170deg, #0077aa, #00BFFF) !important;
   border: 0 !important;
   border-radius: 12px;
   color: white !important;

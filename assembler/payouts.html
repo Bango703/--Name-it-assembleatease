@@ -194,21 +194,13 @@
     }).join('');
 
     var feePct = list.length && list[0].platform_fee_pct ? list[0].platform_fee_pct : 25;
-    var gross = list.reduce(function(s,b){ return s + (b.amount_charged || b.total_price || 0); }, 0);
     var memberNote = feePct >= 25
-      ? '<div style="font-size:0.7rem;color:#d97706;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:0.5rem 0.75rem;margin-top:0.5rem;line-height:1.5">'
-        + '&#128073; Members pay only 18% — <a href="/assembler/profile#membership" style="color:#d97706;font-weight:600">join the member plan</a> to keep more of every job.'
+      ? '<div style="text-align:center;margin-top:1rem;font-size:0.72rem;color:var(--pro-muted)">'
+        + 'Save on fees with <a href="/assembler/profile#membership-section" style="color:var(--pro-teal);font-weight:600">Priority Membership</a>'
         + '</div>'
       : '';
-    var summary = '<div class="earn-summary-box">' +
-      '<div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--pro-muted);margin-bottom:0.5rem">Summary</div>' +
-      '<div class="earn-summary-row"><span>Gross billed to customers</span><span>' + fmt(gross) + '</span></div>' +
-      '<div class="earn-summary-row"><span>Platform fees (' + feePct + '%)</span><span style="color:#dc2626">−' + fmt(totalFees) + '</span></div>' +
-      '<div class="earn-summary-row total"><span>Your earnings</span><span style="color:#059669">' + fmt(totalEarned) + '</span></div>' +
-      memberNote +
-      '</div>';
 
-    el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>' + summary;
+    el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>' + memberNote;
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
