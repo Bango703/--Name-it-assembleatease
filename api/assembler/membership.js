@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 
 const SITE = 'https://www.assembleatease.com';
-// Monthly membership price — set EASER_MEMBERSHIP_PRICE_ID in Vercel env
+// Monthly membership price — set AAE_EASER_MEMBERSHIP in Vercel env
 // Create a recurring product in Stripe dashboard and paste the price ID there.
-// Default monthly amount shown to user: $39.99/month
+// Default monthly amount shown to user: $24.99/month
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -46,27 +46,32 @@ export default async function handler(req, res) {
   if (action === 'subscribe') {
     if (!priceId) return res.status(503).json({ error: 'Membership not configured. Contact support.' });
 
-    // Get or create Stripe customer
-    const { data: profile } = await sb.from('profiles').select('stripe_customer_id').eq('id', userId).single();
-    let customerId = profile?.stripe_customer_id;
-    if (!customerId) {
-      const customer = await stripe.customers.create({ email, metadata: { userId, role: 'assembler' } });
-      customerId = customer.id;
-      await sb.from('profiles').update({ stripe_customer_id: customerId }).eq('id', userId);
+    try {
+      // Get or create Stripe customer
+      const { data: profile } = await sb.from('profiles').select('stripe_customer_id').eq('id', userId).single();
+      let customerId = profile?.stripe_customer_id;
+      if (!customerId) {
+        const customer = await stripe.customers.create({ email, metadata: { userId, role: 'assembler' } });
+        customerId = customer.id;
+        await sb.from('profiles').update({ stripe_customer_id: customerId }).eq('id', userId);
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'subscription',
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: SITE + '/assembler/?membership=success',
+        cancel_url:  SITE + '/assembler/?membership=cancelled',
+        metadata: { userId, role: 'assembler_membership' },
+        subscription_data: { metadata: { userId } },
+        allow_promotion_codes: true,
+      });
+
+      return res.status(200).json({ url: session.url });
+    } catch (stripeErr) {
+      console.error('[membership] Stripe subscribe error:', stripeErr.message);
+      return res.status(502).json({ error: stripeErr.message || 'Payment provider error. Please try again.' });
     }
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: SITE + '/assembler/?membership=success',
-      cancel_url:  SITE + '/assembler/?membership=cancelled',
-      metadata: { userId, role: 'assembler_membership' },
-      subscription_data: { metadata: { userId } },
-      allow_promotion_codes: true,
-    });
-
-    return res.status(200).json({ url: session.url });
   }
 
   // ── CANCEL ────────────────────────────────────────────────────────

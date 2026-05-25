@@ -88,12 +88,6 @@
     /* Locked readonly fields */
     body.theme-pro .form-control[readonly] { background:var(--pro-elevated); color:var(--pro-muted); cursor:default; border-color:var(--pro-border); }
     body.theme-pro .locked-note { font-size:0.7rem; color:var(--pro-muted); margin-top:3px; line-height:1.4; }
-    /* Bio collapsed state */
-    body.theme-pro .bio-collapsed { display:none; }
-    body.theme-pro .bio-preview { font-size:0.875rem; color:var(--pro-soft); line-height:1.6; cursor:pointer; padding:0.5rem 0; }
-    body.theme-pro .bio-preview:hover { color:var(--pro-text); }
-    body.theme-pro .bio-expand-btn { font-size:0.75rem; color:var(--pro-teal); background:none; border:none; cursor:pointer; padding:0; margin-top:4px; }
-
     /* Completion */
     body.theme-pro .completion-wrap { margin-bottom:1.5rem; }
     body.theme-pro .completion-label { font-size:0.82rem; color:var(--pro-muted); margin-bottom:6px; display:flex; justify-content:space-between; }
@@ -222,8 +216,7 @@
           <!-- Collapsed summary (shown after save) -->
           <div id="prof-summary" style="display:none">
             <div id="prof-summary-rate" style="font-size:0.875rem;color:var(--pro-text);font-weight:600;margin-bottom:0.5rem"></div>
-            <div id="prof-summary-skills" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.5rem"></div>
-            <div id="prof-summary-bio" style="font-size:0.82rem;color:var(--pro-soft);line-height:1.55"></div>
+            <div id="prof-summary-skills" style="display:flex;flex-wrap:wrap;gap:5px"></div>
           </div>
           <!-- Edit fields -->
           <div class="form-fields" id="prof-fields">
@@ -237,10 +230,6 @@
               <div class="skills-wrap" id="skills-wrap">
                 <input class="skills-input" id="skills-input" placeholder="Type a skill and press Enter..." />
               </div>
-            </div>
-            <div class="form-group">
-              <label for="bio">Bio</label>
-              <textarea id="bio" class="form-control" rows="4" placeholder="Tell customers about your experience, what brands you know, and what makes you reliable..."></textarea>
             </div>
           </div>
         </div>
@@ -348,7 +337,6 @@
 
   function collapseProfSection() {
     var rate   = document.getElementById('hourly-rate').value;
-    var bioVal = document.getElementById('bio').value.trim();
     // Rate
     var rateEl = document.getElementById('prof-summary-rate');
     rateEl.textContent = rate ? '$' + rate + '/hr' : '';
@@ -357,9 +345,6 @@
     skillsEl.innerHTML = skills.map(function(s) {
       return '<span style="display:inline-flex;align-items:center;background:rgba(0,191,255,0.1);color:var(--pro-teal);border:1px solid rgba(0,191,255,0.18);padding:0.15rem 0.55rem;border-radius:999px;font-size:0.76rem;font-weight:500">' + s + '</span>';
     }).join('');
-    // Bio
-    var bioEl = document.getElementById('prof-summary-bio');
-    bioEl.textContent = bioVal ? (bioVal.length > 120 ? bioVal.slice(0,120) + '…' : bioVal) : '';
     // Toggle
     document.getElementById('prof-summary').style.display = '';
     document.getElementById('prof-fields').style.display = 'none';
@@ -402,7 +387,6 @@
       { label: 'ZIP',         ok: !!(document.getElementById('zip')?.value.trim()) },
       { label: 'Rate',        ok: !!(document.getElementById('hourly-rate')?.value.trim()) },
       { label: 'Skills',      ok: skills.length > 0 },
-      { label: 'Bio',         ok: !!(document.getElementById('bio')?.value.trim()) },
       { label: 'Photo',       ok: hasPhoto },
     ];
     const done = checks.filter(function(c){ return c.ok; }).length;
@@ -420,7 +404,7 @@
     }
   }
 
-  ['full-name','city','state','zip','hourly-rate','bio'].forEach(id => {
+  ['full-name','city','state','zip','hourly-rate'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', updateCompletion);
   });
 
@@ -497,7 +481,6 @@
     document.getElementById('state').value       = profile.state       || '';
     document.getElementById('zip').value         = profile.zip         || '';
     document.getElementById('hourly-rate').value = profile.hourly_rate && profile.hourly_rate >= 65 ? profile.hourly_rate : (profile.hourly_rate ? 65 : '');
-    document.getElementById('bio').value         = profile.bio         || '';
     document.getElementById('email-display').textContent  = user.email;
 
     // Lock name and location for verified users — cannot be changed after approval
@@ -628,19 +611,12 @@
               if (d.url) {
                 window.location.href = d.url;
               } else {
-                document.getElementById('membership-inactive').innerHTML =
-                  '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
-                  + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
-                  + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">support</a> to be notified.</p>'
-                  + '</div>';
+                btn.disabled = false; btn.textContent = 'Become a Member';
+                APP.showAlert('page-alert', d.error || 'Could not start checkout. Please try again.', 'error');
               }
             } catch(err) {
               btn.disabled = false; btn.textContent = 'Become a Member';
-              document.getElementById('membership-inactive').innerHTML =
-                '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
-                + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
-                + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">support</a> to be notified.</p>'
-                + '</div>';
+              APP.showAlert('page-alert', 'Could not connect to membership service. Please try again.', 'error');
             }
           });
         }
@@ -687,7 +663,6 @@
           phone: phone || null,
           hourly_rate: (!isNaN(hourlyRate) && hourlyRate >= 65) ? hourlyRate : null,
           skills: skills.length ? skills : null,
-          bio:    document.getElementById('bio').value.trim() || null,
         };
         // Only update locked fields if they are not readonly (non-verified users)
         if (!fullNameEl.readOnly) updates.full_name = fullName;
