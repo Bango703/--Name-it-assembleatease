@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   const assignedAt = booking.assigned_at ? new Date(booking.assigned_at).getTime() : 0;
   if (assignedAt && Date.now() - assignedAt > 48 * 3600000) {
     return sendHtml(res, 'Link Expired',
-      'This email link has expired (links are valid for 48 hours). Please log in to your <a href="/assembler/" style="color:#0097a7">assembler dashboard</a> to accept or decline this assignment.',
+      'This email link has expired (links are valid for 48 hours). Please log in to your <a href="/assembler/" style="color:#00BFFF">assembler dashboard</a> to accept or decline this assignment.',
       false);
   }
 
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         subject: `Job Accepted — ${esc(booking.ref)} — ${esc(assemblerName)}`,
         html: buildOwnerAlertEmail({
           title: 'Job Accepted',
-          color: '#0097a7',
+          color: '#00BFFF',
           lines: [
             { label: 'Reference', value: booking.ref },
             { label: 'Service', value: booking.service },
@@ -206,7 +206,7 @@ function buildAssemblerDeclineEmail(firstName, service, date) {
         <tr><td style="padding:5px 0;color:#71717a">Date</td><td style="padding:5px 0">${esc(date || 'TBD')}</td></tr>
       </table>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;text-align:center;line-height:1.6">Other jobs will come your way. Questions? Email <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+    <p style="margin:0;font-size:13px;color:#71717a;text-align:center;line-height:1.6">Other jobs will come your way. Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
 </div></body></html>`;
 }
@@ -218,7 +218,7 @@ function sendHtml(res, title, message, isSuccess) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.status(200).send(`<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>${title} — AssembleAtEase</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}.card{background:#fff;border-radius:12px;border:1px solid #e4e4e7;max-width:480px;width:100%;padding:2.5rem;text-align:center}.icon{font-size:3rem;color:${iconColor};margin-bottom:1rem}h1{font-size:1.5rem;margin-bottom:0.5rem;color:#1a1a1a}p{font-size:0.95rem;color:#52525b;line-height:1.6;margin-bottom:1.5rem}.btn{display:inline-block;background:#0097a7;color:#fff;padding:0.65rem 2rem;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.9rem}.btn:hover{background:#00838f}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}.card{background:#fff;border-radius:12px;border:1px solid #e4e4e7;max-width:480px;width:100%;padding:2.5rem;text-align:center}.icon{font-size:3rem;color:${iconColor};margin-bottom:1rem}h1{font-size:1.5rem;margin-bottom:0.5rem;color:#1a1a1a}p{font-size:0.95rem;color:#52525b;line-height:1.6;margin-bottom:1.5rem}.btn{display:inline-block;background:#00BFFF;color:#fff;padding:0.65rem 2rem;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.9rem}.btn:hover{background:#0099CC}</style>
 </head><body><div class="card">
   <div class="icon">${icon}</div>
   <h1>${title}</h1>

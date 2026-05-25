@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       <p><strong>${esc(easerName)}</strong> declined the offer for booking <strong>${esc(booking?.ref || '')}</strong> (${esc(booking?.service || '')}).</p>
       <p><strong>Reason:</strong> ${esc(reasonLabels[reason] || reason || 'No reason given')}</p>
       <p>The dispatch engine will automatically retry if other Easers are available.</p>
-      <p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">View in owner dashboard</a></p>
+      <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
     </div>`,
   }).catch(() => {});
 

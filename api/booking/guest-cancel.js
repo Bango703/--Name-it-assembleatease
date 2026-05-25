@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
         bodyHtml: `
           <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your booking for <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong> has been cancelled as requested.</p>
           ${feeHtml}
-          <p style="margin:0;font-size:14px;color:#52525b">Ready to rebook? <a href="https://www.assembleatease.com/book" style="color:#0097a7;font-weight:600">Schedule a new appointment</a> anytime.</p>`,
+          <p style="margin:0;font-size:14px;color:#52525b">Ready to rebook? <a href="https://www.assembleatease.com/book" style="color:#00BFFF;font-weight:600">Schedule a new appointment</a> anytime.</p>`,
       }),
       replyTo: ownerEmail(),
     });

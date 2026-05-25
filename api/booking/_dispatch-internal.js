@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+﻿import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
@@ -319,7 +319,7 @@ function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt)
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111">
 <div style="max-width:560px;margin:0 auto;padding:20px 16px">
   <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb">
-    <div style="background:linear-gradient(135deg,#003d47,#0097a7);padding:1.5rem;text-align:center">
+    <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:1.5rem;text-align:center">
       <p style="margin:0 0 4px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7)">${esc(tierLabel)} Easer</p>
       <h2 style="margin:0;color:#fff;font-size:1.25rem;font-weight:700">New Job Available</h2>
       <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:0.85rem">Hi ${esc(firstName)} — first to accept gets the job</p>
@@ -329,7 +329,7 @@ function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt)
         <p style="margin:0 0 8px;font-size:1.05rem;font-weight:700;color:#111">${esc(booking.service)}</p>
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Location: ${esc(city)}</p>
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date || 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
-        <p style="margin:8px 0 0;font-size:0.95rem;font-weight:${booking.total_price > 0 ? '700' : '500'};color:#0097a7">Est. pay: ${payEstimate}</p>
+        <p style="margin:8px 0 0;font-size:0.95rem;font-weight:${booking.total_price > 0 ? '700' : '500'};color:#00BFFF">Est. pay: ${payEstimate}</p>
       </div>
       <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
         <span style="font-size:1rem">⏱</span>
@@ -338,7 +338,7 @@ function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt)
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding-right:6px">
-            <a href="${esc(acceptUrl)}" style="display:block;text-align:center;background:#0097a7;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">Accept Job</a>
+            <a href="${esc(acceptUrl)}" style="display:block;text-align:center;background:#00BFFF;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">Accept Job</a>
           </td>
           <td style="padding-left:6px">
             <a href="${esc(declineUrl)}" style="display:block;text-align:center;background:#f9fafb;color:#6b7280;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;border:1px solid #e5e7eb">Decline</a>
@@ -347,7 +347,7 @@ function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt)
       </table>
     </div>
     <div style="padding:0.875rem 1.5rem;border-top:1px solid #f0f0f0;text-align:center;font-size:11px;color:#9ca3af">
-      View all your assignments at <a href="${SITE}/assembler/my-assignments" style="color:#0097a7">AssembleAtEase</a>
+      View all your assignments at <a href="${SITE}/assembler/my-assignments" style="color:#00BFFF">AssembleAtEase</a>
     </div>
   </div>
 </div></body></html>`;

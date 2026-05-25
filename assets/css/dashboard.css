@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    ASSEMBLEATEASE — DASHBOARD DESIGN SYSTEM
    Clean white theme · Cyan accents · Modern
    ============================================ */
@@ -15,10 +15,10 @@
   --dash-text:     #0d1117;
   --dash-muted:    #64748b;
   --dash-soft:     #4a5568;
-  --dash-primary:  #0097a7;
-  --dash-primary-dark: #00838f;
-  --dash-primary-light: rgba(0,151,167,0.08);
-  --dash-primary-glow: rgba(0,151,167,0.12);
+  --dash-primary:  #00BFFF;
+  --dash-primary-dark: #0099CC;
+  --dash-primary-light: rgba(0,191,255,0.08);
+  --dash-primary-glow: rgba(0,191,255,0.12);
   --dash-accent:   #e86a2e;
   --dash-amber:    #f59e0b;
   --dash-green:    #22c55e;
@@ -138,7 +138,7 @@
   height: 40px;
   border-radius: 50%;
   background: var(--dash-primary-light);
-  border: 2px solid rgba(0,151,167,0.2);
+  border: 2px solid rgba(0,191,255,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,7 +173,7 @@
 .dash-sidebar-earnings {
   margin: 1rem 1.25rem;
   background: var(--dash-primary-light);
-  border: 1px solid rgba(0,151,167,0.15);
+  border: 1px solid rgba(0,191,255,0.15);
   border-radius: var(--dash-radius);
   padding: 0.85rem 1rem;
 }
@@ -249,7 +249,7 @@
 .dash-sidebar-nav a.active {
   background: var(--dash-primary-light);
   color: var(--dash-primary);
-  border-color: rgba(0,151,167,0.15);
+  border-color: rgba(0,191,255,0.15);
   font-weight: 500;
 }
 
@@ -529,9 +529,9 @@
 }
 
 .dash-badge-pending   { background: rgba(245,158,11,0.1); color: #d97706; border: 1px solid rgba(245,158,11,0.2); }
-.dash-badge-new       { background: rgba(0,151,167,0.08); color: var(--dash-primary); border: 1px solid rgba(0,151,167,0.2); }
+.dash-badge-new       { background: rgba(0,191,255,0.08); color: var(--dash-primary); border: 1px solid rgba(0,191,255,0.2); }
 .dash-badge-open      { background: rgba(59,130,246,0.08); color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); }
-.dash-badge-assigned  { background: rgba(0,151,167,0.08); color: var(--dash-primary); border: 1px solid rgba(0,151,167,0.2); }
+.dash-badge-assigned  { background: rgba(0,191,255,0.08); color: var(--dash-primary); border: 1px solid rgba(0,191,255,0.2); }
 .dash-badge-progress  { background: rgba(168,85,247,0.08); color: #a855f7; border: 1px solid rgba(168,85,247,0.2); }
 .dash-badge-completed { background: rgba(34,197,94,0.08); color: #16a34a; border: 1px solid rgba(34,197,94,0.2); }
 .dash-badge-accepted  { background: rgba(34,197,94,0.08); color: #16a34a; border: 1px solid rgba(34,197,94,0.2); }
@@ -554,7 +554,7 @@
 
 .dash-tier-pending  { background: rgba(245,158,11,0.1); color: #d97706; border: 1px solid rgba(245,158,11,0.2); }
 .dash-tier-starter  { background: rgba(59,130,246,0.1); color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); }
-.dash-tier-verified { background: rgba(0,151,167,0.1); color: var(--dash-primary); border: 1px solid rgba(0,151,167,0.2); }
+.dash-tier-verified { background: rgba(0,191,255,0.1); color: var(--dash-primary); border: 1px solid rgba(0,191,255,0.2); }
 .dash-tier-elite    { background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid rgba(168,85,247,0.2); }
 
 /* ════════════════════════════════════════
@@ -665,7 +665,7 @@
 
 .dash-form-control:focus {
   border-color: var(--dash-primary);
-  box-shadow: 0 0 0 3px rgba(0,151,167,0.1);
+  box-shadow: 0 0 0 3px rgba(0,191,255,0.1);
 }
 
 .dash-form-control.error {
@@ -726,12 +726,12 @@ textarea.dash-form-control {
 .dash-banner.hidden { display: none; }
 
 .dash-banner-info {
-  background: rgba(0,151,167,0.06);
-  border: 1px solid rgba(0,151,167,0.15);
+  background: rgba(0,191,255,0.06);
+  border: 1px solid rgba(0,191,255,0.15);
 }
 
 .dash-banner-info .dash-banner-title { color: var(--dash-primary); }
-.dash-banner-info .dash-banner-sub { color: rgba(0,151,167,0.7); }
+.dash-banner-info .dash-banner-sub { color: rgba(0,191,255,0.7); }
 
 .dash-banner-warning {
   background: rgba(245,158,11,0.06);
@@ -804,7 +804,7 @@ textarea.dash-form-control {
 .dash-alert.hidden { display: none; }
 .dash-alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 .dash-alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
-.dash-alert-info    { background: rgba(0,151,167,0.06); border: 1px solid rgba(0,151,167,0.15); color: var(--dash-primary); }
+.dash-alert-info    { background: rgba(0,191,255,0.06); border: 1px solid rgba(0,191,255,0.15); color: var(--dash-primary); }
 
 /* ════════════════════════════════════════
    SKELETON LOADERS

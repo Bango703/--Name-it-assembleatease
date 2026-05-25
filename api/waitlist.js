@@ -1,4 +1,4 @@
-import { upsertContact, addNote } from './_hubspot.js';
+﻿import { upsertContact, addNote } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { getSupabase } from './_supabase.js';
 
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <!-- Header -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #0097a7"><tr><td style="padding:20px 24px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px">
     <table cellpadding="0" cellspacing="0"><tr>
       <td><img src="${LOGO}" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
       <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
@@ -130,8 +130,8 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
       <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Name</span><br/><span style="font-size:15px;font-weight:700;color:#1a1a1a">${sName}</span></td></tr>
-      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Email</span><br/><span style="font-size:15px;font-weight:700"><a href="mailto:${sEmail}" style="color:#0097a7;text-decoration:none">${sEmail}</a></span></td></tr>
-      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Phone</span><br/><span style="font-size:15px;font-weight:700"><a href="tel:${sPhone}" style="color:#0097a7;text-decoration:none">${sPhone}</a></span></td></tr>
+      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Email</span><br/><span style="font-size:15px;font-weight:700"><a href="mailto:${sEmail}" style="color:#00BFFF;text-decoration:none">${sEmail}</a></span></td></tr>
+      <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Phone</span><br/><span style="font-size:15px;font-weight:700"><a href="tel:${sPhone}" style="color:#00BFFF;text-decoration:none">${sPhone}</a></span></td></tr>
       <tr><td style="padding:4px 0"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a;letter-spacing:0.5px">Location</span><br/><span style="font-size:15px;font-weight:700;color:#1a1a1a">${sCity}, ${sState}</span></td></tr>
       </table>
     </td></tr></table>
@@ -170,21 +170,21 @@ export default async function handler(req, res) {
 
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What Happens Next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
-      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We review your request</strong> — Our team evaluates new applications as spots become available.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We reach out</strong> — When a spot opens in your area, you'll be among the first contacted.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0097a7;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Start earning</strong> — Get matched with local customers and begin completing jobs.</td></tr>
+      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We review your request</strong> — Our team evaluates new applications as spots become available.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We reach out</strong> — When a spot opens in your area, you'll be among the first contacted.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Start earning</strong> — Get matched with local customers and begin completing jobs.</td></tr>
     </table>
 
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Why Professionals Choose Us</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px">
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#0097a7;font-weight:700;margin-right:8px">&#10003;</span> Get matched with customers in your area</td></tr>
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#0097a7;font-weight:700;margin-right:8px">&#10003;</span> Earn competitive pay on every job</td></tr>
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#0097a7;font-weight:700;margin-right:8px">&#10003;</span> We handle customer booking &amp; scheduling</td></tr>
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5"><span style="color:#0097a7;font-weight:700;margin-right:8px">&#10003;</span> No upfront fees to join the platform</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> Get matched with customers in your area</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> Earn competitive pay on every job</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> We handle customer booking &amp; scheduling</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> No upfront fees to join the platform</td></tr>
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
-      <a href="${SITE}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Visit AssembleAtEase</a>
+      <a href="${SITE}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Visit AssembleAtEase</a>
     </td></tr></table>
   </td></tr></table>
 

@@ -27,3 +27,5 @@ npm-debug.log*
 # Sensitive files
 config.local.js
 secrets.js
+.vercel
+.env*

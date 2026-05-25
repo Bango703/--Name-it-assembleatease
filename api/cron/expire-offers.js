@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { logCron } from './_cron-logger.js';
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
             <p><strong>${esc(booking.ref)}</strong> — ${esc(booking.service)} for ${esc(booking.customer_name)}</p>
             <p>Auto-dispatch attempted <strong>${attempt} time(s)</strong> with no Easer accepting. No eligible Easers available or all declined.</p>
             <p>This booking has been flagged as <strong>Needs Manual Dispatch</strong>.</p>
-            <p><a href="${SITE}/owner/#bookings" style="color:#0097a7;font-weight:600">Open Owner Dashboard to assign manually</a></p>
+            <p><a href="${SITE}/owner/#bookings" style="color:#00BFFF;font-weight:600">Open Owner Dashboard to assign manually</a></p>
           </div>`,
         }).catch(e => console.error('expire-offers: alert email error', e));
 

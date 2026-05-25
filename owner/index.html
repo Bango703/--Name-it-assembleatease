@@ -14,7 +14,7 @@
       --bg:#f5f7fa;--surface:#ffffff;--elevated:#eef0f5;
       --border:rgba(0,0,0,0.08);--border-md:rgba(0,0,0,0.14);
       --text:#111827;--muted:#6b7280;--soft:#374151;
-      --teal:#0097a7;--teal-glow:rgba(0,151,167,0.08);
+      --teal:#00BFFF;--teal-glow:rgba(0,191,255,0.08);
       --orange:#e86a2e;--orange-glow:rgba(232,106,46,0.1);
       --amber:#d97706;--red:#dc2626;--sidebar-w:260px
     }
@@ -29,7 +29,7 @@
     .login-input{width:100%;padding:0.65rem 1rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;margin-bottom:1rem}
     .login-input:focus{border-color:var(--teal)}
     .login-btn{width:100%;padding:0.7rem;background:var(--teal);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:0.9rem;font-weight:500;cursor:pointer;transition:background 0.15s}
-    .login-btn:hover{background:#00838f}
+    .login-btn:hover{background:#0099CC}
     .login-error{color:var(--red);font-size:0.82rem;margin-bottom:0.75rem;display:none}
 
     /* ── Main layout ── */
@@ -61,7 +61,7 @@
     .btn{display:inline-flex;align-items:center;gap:6px;padding:0.45rem 1rem;border-radius:8px;font-family:inherit;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid var(--border-md);background:var(--elevated);color:var(--soft);text-decoration:none;transition:all 0.15s}
     .btn:hover{background:rgba(0,0,0,0.05);color:var(--text)}
     .btn-teal{background:var(--teal);border-color:var(--teal);color:#fff}
-    .btn-teal:hover{background:#00838f}
+    .btn-teal:hover{background:#0099CC}
     .btn-red{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:var(--red)}
     .btn-red:hover{background:rgba(239,68,68,0.25)}
     .btn-amber{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:var(--amber)}
@@ -1388,7 +1388,7 @@ function intelQuick(msg) {
       +'<div style="max-width:1100px;margin:0 auto;padding:2rem 0">'
 
       // Header
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:3px solid #0097a7">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:3px solid #00BFFF">'
         +'<div>'
           +'<div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-0.5px">AssembleAtEase</div>'
           +'<div style="font-size:12px;color:#6b7280;margin-top:2px">Professional Assembly &amp; Handyman Services &bull; Austin, TX</div>'
@@ -1404,7 +1404,7 @@ function intelQuick(msg) {
       // Summary cards
       +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:2rem">'
         +[
-          ['Gross Revenue',dollars(totGross),'#0097a7'],
+          ['Gross Revenue',dollars(totGross),'#00BFFF'],
           ['Stripe Fees','-'+dollars(totFee),'#ef4444'],
           ['Net After Stripe',dollars(totNet),'#374151'],
           ['Easer Payouts','-'+dollars(totPayout),'#f59e0b'],
@@ -1428,12 +1428,12 @@ function intelQuick(msg) {
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Stripe</th>'
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Net</th>'
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer Pay</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0097a7">Profit</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#00BFFF">Profit</th>'
           +'<th style="padding:10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Status</th>'
         +'</tr></thead>'
         +'<tbody>'+rows+'</tbody>'
         // Totals row
-        +'<tfoot><tr style="background:#f0fdf4;border-top:2px solid #0097a7">'
+        +'<tfoot><tr style="background:#f0fdf4;border-top:2px solid #00BFFF">'
           +'<td colspan="4" style="padding:10px;font-size:12px;font-weight:700;color:#065f46">TOTALS — Completed Jobs ('+completed.length+')</td>'
           +'<td style="padding:10px;text-align:right;font-weight:800;color:#111">'+dollars(totGross)+'</td>'
           +'<td style="padding:10px;text-align:right;font-weight:700;color:#ef4444">-'+dollars(totFee)+'</td>'
@@ -1621,7 +1621,7 @@ function intelQuick(msg) {
           + '</tr></thead><tbody>'
           + rows.map(function(o) {
             return '<tr style="border-bottom:1px solid var(--border)">'
-              + '<td style="padding:5px 8px;font-weight:500;color:var(--text)">' + esc(o.easer_name) + (o.easer_member ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">M</span>' : '') + '</td>'
+              + '<td style="padding:5px 8px;font-weight:500;color:var(--text)">' + esc(o.easer_name) + (o.easer_member ? ' <span style="background:#00BFFF;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">M</span>' : '') + '</td>'
               + '<td style="padding:5px 8px">' + easerTierBadge(o.easer_tier) + '</td>'
               + '<td style="padding:5px 8px;text-align:right;color:var(--soft)">' + (o.dispatch_score||0) + '</td>'
               + '<td style="padding:5px 8px">' + offerStatusBadge(o.offer_status)
@@ -1700,10 +1700,10 @@ function intelQuick(msg) {
       if (!items.length) { el.innerHTML = '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>'; return; }
       var dotColors = {
         booking_created:'#3b82f6', confirmed:'#1d9e75', dispatched:'#8b5cf6',
-        easer_accepted:'#1d9e75', en_route:'#3b82f6', arrived:'#0097a7',
+        easer_accepted:'#1d9e75', en_route:'#3b82f6', arrived:'#00BFFF',
         in_progress:'#10b981', completed:'#065f46', cancelled:'#ef4444',
         refunded:'#f59e0b', note_added:'#6b7280', payout_released:'#10b981',
-        reassigned:'#f59e0b', owner_action:'#0097a7',
+        reassigned:'#f59e0b', owner_action:'#00BFFF',
       };
       el.innerHTML = '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
@@ -2442,11 +2442,11 @@ function intelQuick(msg) {
 
     // Summary chips
     var chips = [
-      { label: 'Active Jobs', val: s.totalActive, color: '#0097a7' },
+      { label: 'Active Jobs', val: s.totalActive, color: '#00BFFF' },
       { label: 'Pending', val: s.pendingPayment || 0, color: s.pendingPayment > 0 ? '#d97706' : '#6b7280' },
       { label: 'Needs Easer', val: s.unassigned + s.awaitingDispatch, color: s.unassigned > 0 ? '#dc2626' : '#6b7280' },
       { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: s.awaitingAcceptance > 0 ? '#ea580c' : '#6b7280' },
-      { label: 'En Route', val: s.enRoute, color: '#0097a7' },
+      { label: 'En Route', val: s.enRoute, color: '#00BFFF' },
       { label: 'In Progress', val: s.inProgress, color: '#059669' },
       { label: 'Today', val: s.todayJobs, color: '#7c3aed' },
       { label: 'Free Easers', val: s.freeEasers, color: s.freeEasers === 0 ? '#dc2626' : '#059669' },
@@ -2503,7 +2503,7 @@ function intelQuick(msg) {
     } else {
       activeEl.innerHTML = active.map(function(b) {
         var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : b.assembler_accepted_at ? 'Accepted' : 'Awaiting Accept';
-        var stageColors = { 'In Progress':'#059669','Arrived':'#0097a7','En Route':'#7c3aed','Accepted':'#0097a7','Awaiting Accept':'#ea580c' };
+        var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#ea580c' };
         var color = stageColors[stage] || '#6b7280';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
@@ -3127,7 +3127,7 @@ function intelQuick(msg) {
 
       return '<tr style="cursor:pointer" data-asm-id="' + a.id + '">'
         + '<td style="' + rs + '"><strong>' + esc(a.full_name) + '</strong>'
-          + (a.has_membership ? ' <span style="background:#0097a7;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">MEMBER</span>' : '')
+          + (a.has_membership ? ' <span style="background:#00BFFF;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px">MEMBER</span>' : '')
           + '<br><span style="font-size:0.72rem;color:var(--muted)">' + esc(a.email) + '</span>'
           + (!a.phone ? ' <span style="font-size:0.68rem;color:#ef4444;font-weight:600">No phone</span>' : '')
           + '</td>'
@@ -3256,7 +3256,7 @@ function intelQuick(msg) {
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Account Status</div>' + statusBadge(a.status) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
-        + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#0097a7;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
+        + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#00BFFF;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchStatus + '</div>'
         + '</div>',
       '<strong>Email:</strong> ' + esc(a.email),
@@ -3265,7 +3265,7 @@ function intelQuick(msg) {
       '<strong>Services:</strong> ' + esc((a.services_offered||[]).join(', ')||'—'),
       '<strong>Experience:</strong> ' + (a.years_experience||0) + ' yr(s) &nbsp;&bull;&nbsp; <strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
       '<strong>Jobs Completed:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' (' + (a.review_count||0) + ' reviews)' : 'No reviews'),
-      '<strong>Application Fee:</strong> ' + (a.fee_waived_by_owner ? '<span style="color:#0097a7">Waived by owner</span>' : (a.application_fee_paid ? '<span style="color:#1d9e75">Paid</span>' : '<span style="color:var(--muted)">Not confirmed</span>')),
+      '<strong>Application Fee:</strong> ' + (a.fee_waived_by_owner ? '<span style="color:#00BFFF">Waived by owner</span>' : (a.application_fee_paid ? '<span style="color:#1d9e75">Paid</span>' : '<span style="color:var(--muted)">Not confirmed</span>')),
       '<strong>Applied:</strong> ' + formatDate(a.created_at),
       a.approved_at ? '<strong>Approved:</strong> ' + formatDate(a.approved_at) : '',
       a.rejected_at ? '<strong>Rejected:</strong> ' + formatDate(a.rejected_at) + (a.rejection_reason ? ' — ' + esc(a.rejection_reason) : '') : '',

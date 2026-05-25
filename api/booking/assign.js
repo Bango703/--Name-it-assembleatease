@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { adjustActiveJobs } from './_active-jobs.js';
@@ -160,7 +160,7 @@ function buildAssignmentEmail({ firstName, service, date, time, address, details
       </table>
     </td></tr></table>
     <div style="text-align:center;margin-bottom:16px">
-      <a href="${acceptUrl}" style="display:inline-block;background:#0097a7;color:#fff;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;margin-right:8px">Accept Job</a>
+      <a href="${acceptUrl}" style="display:inline-block;background:#00BFFF;color:#fff;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;margin-right:8px">Accept Job</a>
       <a href="${declineUrl}" style="display:inline-block;background:#f4f4f5;color:#71717a;font-size:14px;font-weight:600;padding:12px 36px;border-radius:6px;text-decoration:none;border:1px solid #e4e4e7">Decline</a>
     </div>
     <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">Please respond within 24 hours. If you don't respond, the job may be reassigned.</p>

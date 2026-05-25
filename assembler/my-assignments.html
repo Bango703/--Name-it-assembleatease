@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AE Easer" />
-  <meta name="theme-color" content="#0097a7" />
+  <meta name="theme-color" content="#00BFFF" />
   <link rel="apple-touch-icon" href="/images/logo.jpg" />
   <style>body{visibility:hidden}</style>
   <link rel="stylesheet" href="../assets/css/easer.css" />
@@ -19,7 +19,7 @@
   <script src="../config.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <style>
-    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#0097a7;--pro-teal-dim:rgba(0,151,167,0.08);--teal:#0097a7}
+    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
     .logout-link:hover{color:var(--e-text)}
     .filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
@@ -31,7 +31,7 @@
       cursor: pointer; transition: all 0.15s;
     }
     body.theme-pro .filter-tab:hover { border-color: var(--pro-teal); color: var(--pro-teal); }
-    body.theme-pro .filter-tab.active { background: rgba(0,151,167,0.08); color: var(--pro-teal); border-color: rgba(0,151,167,0.2); }
+    body.theme-pro .filter-tab.active { background: rgba(0,191,255,0.08); color: var(--pro-teal); border-color: rgba(0,191,255,0.2); }
 
     body.theme-pro .asgn-card {
       background: var(--pro-surface); border: 1px solid var(--pro-border);
@@ -85,7 +85,7 @@
       padding: 0.6rem 0.9rem; border-radius: 10px;
       font-size: 0.875rem; line-height: 1.5;
     }
-    body.theme-pro .msg-bubble.mine .msg-bubble-body { background: #0097a7; color: #fff; }
+    body.theme-pro .msg-bubble.mine .msg-bubble-body { background: #00BFFF; color: #fff; }
     body.theme-pro .msg-bubble.theirs .msg-bubble-body { background: var(--pro-border); color: var(--pro-text); }
     body.theme-pro .msg-bubble-meta { font-size: 0.7rem; color: var(--pro-muted); margin-top: 0.2rem; text-align: right; }
     body.theme-pro .msg-bubble.theirs .msg-bubble-meta { text-align: left; }
@@ -108,7 +108,7 @@
       font-family: inherit; cursor: pointer; width: 100%; text-align: left;
       transition: border-color 0.15s, background 0.15s;
     }
-    .decline-reason-btn:hover { border-color: #0097a7; background: rgba(0,151,167,0.05); }
+    .decline-reason-btn:hover { border-color: #00BFFF; background: rgba(0,191,255,0.05); }
 
     /* Sheet overlays: use display:none to guarantee invisible when closed */
     .sheet-overlay { display: none !important; }
@@ -419,7 +419,7 @@
       history.replaceState({}, '', window.location.pathname);
       // Show accepting banner
       var banner = document.createElement('div');
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#0097a7;color:#fff;text-align:center;padding:0.75rem;font-size:0.9rem;font-weight:600;z-index:9999';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#00BFFF;color:#fff;text-align:center;padding:0.75rem;font-size:0.9rem;font-weight:600;z-index:9999';
       banner.textContent = 'Accepting job…';
       document.body.prepend(banner);
       try {
@@ -677,7 +677,7 @@
       '</div>',
 
       // Pay estimate pill (for offers / accepted)
-      payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,151,167,0.08);border:1px solid rgba(0,151,167,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
+      payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
         + '<strong style="color:var(--pro-teal)">' + payEst + '</strong>'
         + '<span style="color:var(--pro-muted);font-size:0.72rem">Est. payout' + (b._fee_pct ? ' · ' + b._fee_pct + '% fee' : '') + '</span>'
         + '</div><br>' : '',

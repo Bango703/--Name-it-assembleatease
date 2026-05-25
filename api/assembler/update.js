@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase account has been reinstated',
       replyTo: 'service@assembleatease.com',
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#0097a7">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer and you can now receive job assignments again.</p><p><a href="${SITE}/assembler/" style="color:#0097a7">Open your dashboard</a></p></div>`,
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer and you can now receive job assignments again.</p><p><a href="${SITE}/assembler/" style="color:#00BFFF">Open your dashboard</a></p></div>`,
     }).catch(() => {});
 
     return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier });
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `ID Verified — ${esc(profile.full_name)} ready to approve`,
-      html: `<div style="font-family:sans-serif;padding:1.5rem"><p><strong>${esc(profile.full_name)}</strong> identity manually verified. They can now be approved. <a href="${SITE}/owner/" style="color:#0097a7">Open dashboard</a></p></div>`,
+      html: `<div style="font-family:sans-serif;padding:1.5rem"><p><strong>${esc(profile.full_name)}</strong> identity manually verified. They can now be approved. <a href="${SITE}/owner/" style="color:#00BFFF">Open dashboard</a></p></div>`,
     }).catch(() => {});
 
     return res.status(200).json({ ok: true, action: 'id_verified', identity_verified: true });
@@ -258,7 +258,7 @@ export default async function handler(req, res) {
 }
 
 function buildApprovalEmail(firstName, email, resetUrl) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden"><div style="background:linear-gradient(135deg,#003d47,#0097a7);padding:2rem;text-align:center"><img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/><h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1></div><div style="padding:2rem"><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Congratulations, ${esc(firstName)}!</p><p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official Starter Easer on AssembleAtEase.</p><p style="color:#52525b;margin:0 0 16px">Click the button below to set your password and access your dashboard:</p><div style="text-align:center;margin:1.5rem 0"><a href="${resetUrl}" style="display:inline-block;background:#0097a7;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px"><p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p></div><p style="font-size:0.85rem;color:#71717a"><strong>Your login:</strong> ${esc(email)}</p></div></div></div></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden"><div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:2rem;text-align:center"><img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/><h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1></div><div style="padding:2rem"><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Congratulations, ${esc(firstName)}!</p><p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official Starter Easer on AssembleAtEase.</p><p style="color:#52525b;margin:0 0 16px">Click the button below to set your password and access your dashboard:</p><div style="text-align:center;margin:1.5rem 0"><a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px"><p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p></div><p style="font-size:0.85rem;color:#71717a"><strong>Your login:</strong> ${esc(email)}</p></div></div></div></body></html>`;
 }
 
 function buildPromotionEmail(firstName, tierLabel, tier) {
@@ -287,7 +287,7 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
   <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
 
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#003d47,#0097a7);padding:2rem;text-align:center">
+    <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:2rem;text-align:center">
       <img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/>
       <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem;font-weight:700">You've been promoted</h1>
     </div>
@@ -317,14 +317,14 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
 
       <!-- CTA -->
       <div style="text-align:center;margin:1.5rem 0">
-        <a href="${SITE}/assembler/" style="display:inline-block;background:#0097a7;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">
+        <a href="${SITE}/assembler/" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">
           Open Your Dashboard
         </a>
       </div>
 
       <p style="font-size:0.82rem;color:#71717a;line-height:1.6;margin:0">
         Questions or feedback? Reply to this email or reach us at
-        <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.
+        <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.
       </p>
     </div>
 
@@ -332,7 +332,7 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
     <div style="border-top:1px solid #e4e4e7;padding:1rem 2rem;text-align:center">
       <p style="margin:0;font-size:0.75rem;color:#a1a1aa">
         AssembleAtEase &bull; Austin, TX &bull;
-        <a href="${SITE}" style="color:#0097a7;text-decoration:none">assembleatease.com</a>
+        <a href="${SITE}" style="color:#00BFFF;text-decoration:none">assembleatease.com</a>
       </p>
     </div>
   </div>
@@ -341,5 +341,5 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
 }
 
 function buildRejectionEmail(firstName, reason) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a></p></div></div></body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p></div></div></body></html>`;
 }

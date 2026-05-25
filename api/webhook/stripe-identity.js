@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 
@@ -66,10 +66,10 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `ID Verified — ${esc(profile.full_name)} is ready to approve`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-        <h2 style="color:#0097a7">Easer ID Verified</h2>
+        <h2 style="color:#00BFFF">Easer ID Verified</h2>
         <p><strong>${esc(profile.full_name)}</strong> (${esc(profile.email)}) has successfully completed Stripe Identity verification.</p>
         <p>Their account status is <strong>${esc(profile.status || 'pending')}</strong>. You can now approve their application.</p>
-        <p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">Open Owner Dashboard to Approve</a></p>
+        <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">Open Owner Dashboard to Approve</a></p>
       </div>`,
     }).catch(e => console.error('ID verified owner email error:', e));
 
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
         <h2 style="color:#dc2626">ID Verification Failed</h2>
         <p><strong>${esc(profile.full_name)}</strong> (${esc(profile.email)}) failed Stripe Identity verification.</p>
         <p><strong>Code:</strong> ${esc(failureCode)}<br><strong>Reason:</strong> ${esc(failureReason)}</p>
-        <p>Review their application in the <a href="https://www.assembleatease.com/owner/" style="color:#0097a7">owner dashboard</a> and decide whether to reject or request re-verification.</p>
+        <p>Review their application in the <a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">owner dashboard</a> and decide whether to reject or request re-verification.</p>
       </div>`,
     }).catch(e => console.error('ID failed owner email error:', e));
 

@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 
@@ -355,7 +355,7 @@ export default async function handler(req, res) {
               from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: 'Membership Active — You now get priority jobs!',
               html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-                <h2 style="color:#0097a7">Your membership is active!</h2>
+                <h2 style="color:#00BFFF">Your membership is active!</h2>
                 <p>Hi ${esc((p.full_name||'').split(' ')[0])}, you now have priority access to jobs on AssembleAtEase. You'll be notified first for jobs in your area before non-members.</p>
                 <p style="color:#6b7280;font-size:0.875rem">Questions? Email service@assembleatease.com</p>
               </div>`,
@@ -433,7 +433,7 @@ function buildCustomerReceiptEmail(booking, amountDisplay) {
         <tr><td style="padding:5px 0;color:#71717a">Date</td><td style="padding:5px 0">${esc(booking.date || 'Completed')}</td></tr>
       </table>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">A receipt was also sent to your card on file via Stripe. Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">A receipt was also sent to your card on file via Stripe. Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
@@ -444,7 +444,7 @@ function buildCustomerReceiptEmail(booking, amountDisplay) {
 function buildOwnerCaptureEmail(booking, amountDisplay) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #0097a7"><tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr>
     <td style="padding:20px 24px"><table cellpadding="0" cellspacing="0"><tr>
       <td><img src="${LOGO}" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
       <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
@@ -484,7 +484,7 @@ function buildCustomerDisputeEmail(firstName, ref, reason) {
       <strong>Dispute reason:</strong> ${esc(reason || 'Not specified')}<br/>
       <span style="margin-top:4px;display:block">Your bank typically resolves disputes within 7–10 business days.</span>
     </td></tr></table>
-    <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">If you'd like to resolve this directly, contact us at <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+    <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">If you'd like to resolve this directly, contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
@@ -531,7 +531,7 @@ function buildOwnerDisputeEmail(dispute, amountDisplay, booking) {
 function buildOwnerPaymentFailEmail(ref, reason, customerName) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #0097a7"><tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr>
     <td style="padding:20px 24px"><table cellpadding="0" cellspacing="0"><tr>
       <td><img src="${LOGO}" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
       <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
@@ -590,7 +590,7 @@ function buildAssemblerFailEmail(firstName, reason) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Action required, ${esc(firstName)}</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Your identity verification could not be completed. Reason: <strong>${esc(reason)}</strong></p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a> to resolve this.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> to resolve this.</p>
   </td></tr></table>
 </div></body></html>`;
 }
@@ -601,7 +601,7 @@ function buildPaymentFailEmail(firstName, reason) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Payment issue, ${esc(firstName)}</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We were unable to process your $30 application fee. Reason: <strong>${esc(reason)}</strong></p>
-    <p style="margin:0 0 0;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a> to retry.</p>
+    <p style="margin:0 0 0;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> to retry.</p>
   </td></tr></table>
 </div></body></html>`;
 }
@@ -628,7 +628,7 @@ function buildBookingConfirmEmail(booking, totalDisplay, depositDisplay) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
       <strong>Cancellation policy:</strong> Cancel at least 24 hours before your appointment for a full release. Cancellations within 24 hours may incur a 50% fee. No-shows will be charged the full amount.
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+    <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
 </div></body></html>`;
 }
@@ -640,7 +640,7 @@ function buildCustomerPaymentFailEmail(firstName, ref, reason) {
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Card authorization failed, ${esc(firstName)}</p>
     <p style="margin:0 0 8px;font-size:14px;color:#52525b;line-height:1.6">We were unable to authorize your card for booking <strong>${esc(ref)}</strong>.</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Reason: <strong>${esc(reason)}</strong></p>
-    <p style="margin:0;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a> to rebook with a different card.</p>
+    <p style="margin:0;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> to rebook with a different card.</p>
   </td></tr></table>
 </div></body></html>`;
 }

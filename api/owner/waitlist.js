@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+﻿import crypto from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 
@@ -173,7 +173,7 @@ function buildInviteEmail(firstName, inviteUrl) {
     <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">We reviewed your waitlist signup and we would like to invite you to complete a full application.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
-      <a href="${esc(inviteUrl)}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700">Complete Your Application &rarr;</a>
+      <a href="${esc(inviteUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700">Complete Your Application &rarr;</a>
     </td></tr></table>
 
     <p style="margin:24px 0 0;font-size:13px;color:#71717a;text-align:center">This invitation expires in 7 days.</p>
@@ -181,9 +181,9 @@ function buildInviteEmail(firstName, inviteUrl) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin:24px 0 0"><tr><td style="padding:18px 20px">
       <p style="margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What happens after you apply</p>
       <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="width:24px;vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">1</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">We review your application</td></tr>
-        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">2</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">You complete a quick identity verification</td></tr>
-        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#0097a7;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">3</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">We approve you and you start receiving jobs</td></tr>
+        <tr><td style="width:24px;vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#00BFFF;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">1</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">We review your application</td></tr>
+        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#00BFFF;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">2</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">You complete a quick identity verification</td></tr>
+        <tr><td style="vertical-align:top;padding:4px 0"><div style="width:20px;height:20px;background:#00BFFF;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:700;color:#fff">3</div></td><td style="padding:4px 0 4px 10px;font-size:14px;color:#52525b;line-height:1.5">We approve you and you start receiving jobs</td></tr>
       </table>
     </td></tr></table>
 

@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
@@ -218,7 +218,7 @@ function buildReauthEmail(booking) {
         </td></tr>
       </table>
 
-      <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Have questions? Reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+      <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Have questions? Reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
 
     </td></tr>
   </table>

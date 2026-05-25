@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'crypto';
+﻿import { timingSafeEqual } from 'crypto';
 import { getSupabase } from './_supabase.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -112,7 +112,7 @@ export function buildStatusEmail({ customerName, ref, status, statusColor, statu
     </td></tr></table>
     ${bodyHtml}
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td style="text-align:center;padding:8px 0">
-      <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Contact Us</a>
+      <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Contact Us</a>
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
@@ -192,7 +192,7 @@ function sendNotifications(sb, booking, easer, assemblerId) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your Easer is confirmed — ${esc(booking.ref)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-        <h2 style="color:#0097a7">Your Easer is confirmed!</h2>
+        <h2 style="color:#00BFFF">Your Easer is confirmed!</h2>
         <p>Hi ${esc((booking.customer_name||'').split(' ')[0])},</p>
         <p>A professional Easer has been assigned to your job and will arrive on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time||'the scheduled time')}</strong>.</p>
         <p>You will receive another notification when your Easer is on their way.</p>
@@ -209,12 +209,12 @@ function sendNotifications(sb, booking, easer, assemblerId) {
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Job Accepted — ${esc(booking.ref)} · ${esc(easer.full_name)}`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-      <h2 style="color:#0097a7">Job Accepted</h2>
+      <h2 style="color:#00BFFF">Job Accepted</h2>
       <p><strong>${esc(easer.full_name)}</strong> (${esc(easer.tier)}${easer.has_membership?' · Member':''}) accepted booking <strong>${esc(booking.ref)}</strong>.</p>
       <p><strong>Service:</strong> ${esc(booking.service)}<br>
       <strong>Date:</strong> ${esc(booking.date)} at ${esc(booking.time||'TBD')}<br>
       <strong>Customer:</strong> ${esc(booking.customer_name)}</p>
-      <p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">View in owner dashboard</a></p>
+      <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
     </div>`,
     meta: { bookingId, notificationType: 'job_accepted', recipientType: 'owner' },
   }).catch(() => {});

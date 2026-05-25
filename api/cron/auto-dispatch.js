@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { logCron } from './_cron-logger.js';
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
         <p>${noEaserFailed.length} booking(s) could not be dispatched — no eligible Easers in the service area:</p>
         <pre style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem;color:#991b1b">${list}</pre>
         <p>Check that Easers are marked available and have phone numbers on file.</p>
-        <p><a href="https://www.assembleatease.com/owner/" style="color:#0097a7">Open Owner Dashboard</a></p>
+        <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">Open Owner Dashboard</a></p>
       </div>`,
     }).catch(() => {});
   }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AE Easer" />
-  <meta name="theme-color" content="#0097a7" />
+  <meta name="theme-color" content="#00BFFF" />
   <link rel="apple-touch-icon" href="/images/logo.jpg" />
   <style>body{visibility:hidden}</style>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
@@ -665,8 +665,8 @@
       document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
     } else if(profile.status==='active'&&profile.tier==='starter'&&profile.completed_jobs===0){
       tsBanner.classList.remove('hidden');
-      tsBanner.style.background='rgba(0,151,167,0.06)';
-      tsBanner.style.borderColor='rgba(0,151,167,0.15)';
+      tsBanner.style.background='rgba(0,191,255,0.06)';
+      tsBanner.style.borderColor='rgba(0,191,255,0.15)';
       document.getElementById('tier-status-title').textContent='Welcome — you are approved and ready for jobs.';
       document.getElementById('tier-status-sub').textContent='Complete your profile so we can start assigning jobs.';
     }
@@ -814,7 +814,7 @@
       +'<div style="font-size:0.75rem;color:rgba(255,255,255,0.6)">Allow notifications for new job offers</div></div>'
       +'</div>'
       +'<div style="display:flex;gap:0.5rem;flex-shrink:0">'
-      +'<button id="push-allow" style="background:#0097a7;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer">Allow</button>'
+      +'<button id="push-allow" style="background:#00BFFF;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer">Allow</button>'
       +'<button id="push-later" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:none;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.78rem;cursor:pointer">Later</button>'
       +'</div>';
     document.body.appendChild(banner);

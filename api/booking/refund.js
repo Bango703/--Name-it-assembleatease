@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
             ${reason ? `<tr><td style="padding:5px 0;color:#71717a;vertical-align:top">Reason</td><td style="padding:5px 0">${esc(reason)}</td></tr>` : ''}
           </table>
         </td></tr></table>
-        <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Refunds typically appear within 5–10 business days depending on your bank. Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>`,
+        <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Refunds typically appear within 5–10 business days depending on your bank. Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>`,
     });
 
     await sendEmail({

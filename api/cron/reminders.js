@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
 
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
       <tr style="background:#fafafa"><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Ref</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Service</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Date</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Customer</th></tr>
       ${rows}
     </table>
-    <p style="margin:16px 0 0;font-size:13px;color:#71717a">Log in to the <a href="https://www.assembleatease.com/owner" style="color:#0097a7">owner dashboard</a> to take action.</p>
+    <p style="margin:16px 0 0;font-size:13px;color:#71717a">Log in to the <a href="https://www.assembleatease.com/owner" style="color:#00BFFF">owner dashboard</a> to take action.</p>
   </td></tr></table>
 </div></body></html>`,
       });

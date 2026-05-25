@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         <tr><td style="padding:5px 0;color:#71717a">Error</td><td style="padding:5px 0;color:#991b1b">${esc(stripeErr?.message || 'Unknown Stripe error')}</td></tr>
       </table>
     </td></tr></table>
-    <p style="font-size:13px;color:#71717a;line-height:1.6">Log in to the Stripe dashboard to manually capture or re-attempt payment. If the card was declined, contact the customer directly at <a href="mailto:${esc(booking.customer_email)}" style="color:#0097a7">${esc(booking.customer_email)}</a>.</p>
+    <p style="font-size:13px;color:#71717a;line-height:1.6">Log in to the Stripe dashboard to manually capture or re-attempt payment. If the card was declined, contact the customer directly at <a href="mailto:${esc(booking.customer_email)}" style="color:#00BFFF">${esc(booking.customer_email)}</a>.</p>
   </td></tr></table>
 </div></body></html>`,
         });
@@ -183,9 +183,9 @@ export default async function handler(req, res) {
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
           <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
           <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick review helps other Austin homeowners find trusted help — it takes 30 seconds and your booking is pre-filled.</p>
-          <a href="${reviewUrl}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#11088;</a>
+          <a href="${reviewUrl}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#11088;</a>
         </td></tr></table>
-        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#0097a7;font-weight:600">book your next service</a> anytime.</p>`,
+        <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#00BFFF;font-weight:600">book your next service</a> anytime.</p>`,
     });
 
     await sendEmail({

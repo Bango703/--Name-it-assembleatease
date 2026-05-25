@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
             <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
             <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick Google review helps Austin homeowners find trusted help — takes 30 seconds.</p>
-            <a href="${esc(reviewUrl)}" style="display:inline-block;background:#0097a7;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#9733;</a>
+            <a href="${esc(reviewUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#9733;</a>
           </td></tr></table>`,
       }),
       replyTo: ownerEmail(),
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
         <tr style="border-top:1px solid #bbf7d0"><td style="padding:8px 0 4px;font-weight:700;color:#065f46">Your payout</td><td style="padding:8px 0 4px;text-align:right;font-weight:700;color:#065f46;font-size:18px">$${(assemblerDue/100).toFixed(2)}</td></tr>
       </table>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Payouts are processed on our regular schedule. Contact <a href="mailto:${ownerEmail()}" style="color:#0097a7">${ownerEmail()}</a> with any questions.</p>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Payouts are processed on our regular schedule. Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a> with any questions.</p>
   </td></tr></table>
 </div></body></html>`,
       });

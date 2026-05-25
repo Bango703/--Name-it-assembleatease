@@ -1,4 +1,4 @@
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail } from '../_email.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -107,7 +107,7 @@ function buildWeeklySummaryEmail({
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:640px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #0097a7"><tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr>
     <td style="padding:20px 24px"><table cellpadding="0" cellspacing="0"><tr>
       <td><img src="${LOGO}" alt="AssembleAtEase" width="36" height="36" style="border-radius:50%;display:block"/></td>
       <td style="padding-left:12px;font-size:16px;font-weight:700;color:#1a1a1a">AssembleAtEase</td>
@@ -121,7 +121,7 @@ function buildWeeklySummaryEmail({
     <p style="margin:0 0 24px;font-size:14px;color:#52525b">Here's how last week went, Travis.</p>
 
     <!-- Revenue hero -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0097a7,#00838f);border-radius:8px;margin-bottom:24px"><tr><td style="padding:24px;text-align:center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#00BFFF,#0099CC);border-radius:8px;margin-bottom:24px"><tr><td style="padding:24px;text-align:center">
       <p style="margin:0 0 4px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.8)">Total Revenue Captured</p>
       <p style="margin:0;font-size:40px;font-weight:700;color:#ffffff">${revenue}</p>
       <p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,0.7)">Avg job value: ${avgJobValue}</p>
@@ -133,7 +133,7 @@ function buildWeeklySummaryEmail({
         <td style="width:33.3%;padding:0 6px 0 0">
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:14px 16px;text-align:center">
             <p style="margin:0 0 4px;font-size:11px;color:#71717a;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">New Bookings</p>
-            <p style="margin:0;font-size:24px;font-weight:700;color:#0097a7">${newBookingCount}</p>
+            <p style="margin:0;font-size:24px;font-weight:700;color:#00BFFF">${newBookingCount}</p>
           </td></tr></table>
         </td>
         <td style="width:33.3%;padding:0 6px">
@@ -156,7 +156,7 @@ function buildWeeklySummaryEmail({
       <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Easer Stats</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px">
         <tr><td style="padding:4px 0;color:#71717a;width:60%">Active Easers</td><td style="padding:4px 0;font-weight:600">${activeAssemblerCount}</td></tr>
-        <tr><td style="padding:4px 0;color:#71717a">New Applications</td><td style="padding:4px 0;font-weight:600${newAppCount > 0 ? ';color:#0097a7' : ''}">${newAppCount}</td></tr>
+        <tr><td style="padding:4px 0;color:#71717a">New Applications</td><td style="padding:4px 0;font-weight:600${newAppCount > 0 ? ';color:#00BFFF' : ''}">${newAppCount}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">Newly Approved</td><td style="padding:4px 0;font-weight:600${newApprovedCount > 0 ? ';color:#065f46' : ''}">${newApprovedCount}</td></tr>
       </table>
     </td></tr></table>

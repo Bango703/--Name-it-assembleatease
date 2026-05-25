@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AE Easer" />
-  <meta name="theme-color" content="#0097a7" />
+  <meta name="theme-color" content="#00BFFF" />
   <link rel="apple-touch-icon" href="/images/logo.jpg" />
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
@@ -19,7 +19,7 @@
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/api.js" defer></script>
   <style>body{visibility:hidden}
-    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#0097a7;--pro-teal-dim:rgba(0,151,167,0.08);--pro-teal-glow:rgba(0,151,167,0.08);--teal:#0097a7}
+    :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--pro-teal-glow:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
     .logout-link:hover{color:var(--e-text)}
     body.theme-pro .profile-wrap {
@@ -45,7 +45,7 @@
     /* Skills */
     body.theme-pro .skills-wrap { border:1px solid var(--pro-border-md); border-radius:8px; padding:0.5rem 0.75rem; display:flex; flex-wrap:wrap; gap:6px; background:var(--pro-elevated); cursor:text; transition:border-color 0.15s; min-height:46px; align-items:center; }
     body.theme-pro .skills-wrap:focus-within { border-color:var(--pro-teal); }
-    body.theme-pro .skill-tag { display:inline-flex; align-items:center; gap:5px; background:var(--pro-teal-glow); color:var(--pro-teal); border:1px solid rgba(0,151,167,0.15); padding:0.2rem 0.6rem; border-radius:999px; font-size:0.78rem; font-weight:500; }
+    body.theme-pro .skill-tag { display:inline-flex; align-items:center; gap:5px; background:var(--pro-teal-glow); color:var(--pro-teal); border:1px solid rgba(0,191,255,0.15); padding:0.2rem 0.6rem; border-radius:999px; font-size:0.78rem; font-weight:500; }
     body.theme-pro .skill-tag button { background:none; border:none; cursor:pointer; color:var(--pro-teal); font-size:0.9rem; line-height:1; padding:0; opacity:0.7; }
     body.theme-pro .skill-tag button:hover { opacity:1; }
     body.theme-pro .skills-input { border:none; outline:none; font-family:var(--font-body); font-size:0.875rem; color:var(--pro-text); background:transparent; min-width:140px; flex:1; padding:0.2rem 0; }
@@ -84,7 +84,7 @@
     body.theme-pro .alert.hidden { display:none; }
     body.theme-pro .alert-error   { background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.2); color:#b91c1c; }
     body.theme-pro .alert-success { background:rgba(5,150,105,0.09); border:1px solid rgba(5,150,105,0.2); color:#065f46; }
-    body.theme-pro .alert-info    { background:var(--pro-teal-dim); border:1px solid rgba(0,151,167,0.2); color:var(--pro-teal); }
+    body.theme-pro .alert-info    { background:var(--pro-teal-dim); border:1px solid rgba(0,191,255,0.2); color:var(--pro-teal); }
     /* Locked readonly fields */
     body.theme-pro .form-control[readonly] { background:var(--pro-elevated); color:var(--pro-muted); cursor:default; border-color:var(--pro-border); }
     body.theme-pro .locked-note { font-size:0.7rem; color:var(--pro-muted); margin-top:3px; line-height:1.4; }
@@ -119,7 +119,7 @@
 
 <header class="easer-header">
   <a href="/assembler/" class="easer-wordmark" aria-label="Easer home" style="text-decoration:none;display:flex;align-items:center">
-    <span class="easer-wordmark-text" style="font-size:1.2rem;font-weight:800;color:#0097a7;letter-spacing:-0.03em;line-height:1">Easer</span>
+    <span class="easer-wordmark-text" style="font-size:1.2rem;font-weight:800;color:#00BFFF;letter-spacing:-0.03em;line-height:1">Easer</span>
   </a>
   <button class="eh-bell-btn" aria-label="Notifications" id="eh-bell-btn">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -151,7 +151,7 @@
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px">
               <span id="profile-id-name" style="font-size:1.1rem;font-weight:700;color:var(--pro-text)"></span>
-              <span id="profile-id-tier" style="font-size:0.65rem;font-weight:700;padding:0.18rem 0.55rem;border-radius:999px;background:rgba(0,151,167,0.1);color:#0097a7;border:1px solid rgba(0,151,167,0.18);letter-spacing:0.03em;text-transform:uppercase"></span>
+              <span id="profile-id-tier" style="font-size:0.65rem;font-weight:700;padding:0.18rem 0.55rem;border-radius:999px;background:rgba(0,191,255,0.1);color:#00BFFF;border:1px solid rgba(0,191,255,0.18);letter-spacing:0.03em;text-transform:uppercase"></span>
             </div>
             <div id="profile-id-rating" style="font-size:0.8rem;color:var(--pro-muted)"></div>
           </div>
@@ -265,13 +265,13 @@
         <!-- Shown when not yet verified -->
         <div id="identity-verify-section" style="display:none;margin-top:1.25rem;padding:1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:10px">
           <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5">&#9888; Your identity verification is pending. You will be notified by email once complete.</p>
-          <p style="font-size:0.8rem;color:#92400e;margin:0">Need help? Email <a href="mailto:service@assembleatease.com" style="color:#0097a7">service@assembleatease.com</a>.</p>
+          <p style="font-size:0.8rem;color:#92400e;margin:0">Need help? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
         </div>
       </div>
 
       <!-- Membership -->
-      <div class="form-section" id="membership-section" style="border-color:rgba(0,151,167,0.3);background:linear-gradient(135deg,rgba(0,151,167,0.04),rgba(0,131,143,0.06))">
-        <div class="form-section-title" style="color:#0097a7">Priority Membership</div>
+      <div class="form-section" id="membership-section" style="border-color:rgba(0,191,255,0.3);background:linear-gradient(135deg,rgba(0,191,255,0.04),rgba(0,131,143,0.06))">
+        <div class="form-section-title" style="color:#00BFFF">Priority Membership</div>
         <div id="membership-active" style="display:none">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
             <span style="font-size:1.5rem">&#10003;</span>
@@ -530,7 +530,7 @@
       accountTypeEl.textContent = accountTypeMap[profile.tier] || (profile.tier ? 'Easer — ' + profile.tier : 'Easer');
     }
     document.getElementById('identity-value').innerHTML = profile.identity_verified
-      ? '<span style="color:#0097a7">&#10003; Verified</span>'
+      ? '<span style="color:#00BFFF">&#10003; Verified</span>'
       : profile.stripe_verification_id
         ? '<span style="color:#f59e0b">In progress</span>'
         : '<span style="color:#9ca3af">Not started</span>';
@@ -596,7 +596,7 @@
                 document.getElementById('membership-inactive').innerHTML =
                   '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
                   + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
-                  + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a> to be notified.</p>'
+                  + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">support</a> to be notified.</p>'
                   + '</div>';
               }
             } catch(err) {
@@ -604,7 +604,7 @@
               document.getElementById('membership-inactive').innerHTML =
                 '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
                 + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
-                + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a> to be notified.</p>'
+                + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">support</a> to be notified.</p>'
                 + '</div>';
             }
           });
@@ -615,7 +615,7 @@
         document.getElementById('membership-inactive').innerHTML =
           '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
           + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Unavailable</p>'
-          + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Could not load membership status. Please refresh or contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a>.</p>'
+          + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Could not load membership status. Please refresh or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">support</a>.</p>'
           + '</div>';
       }
     })();
@@ -736,7 +736,7 @@
             + '<span style="color:#f59e0b;font-size:0.85rem">' + stars + '</span>'
             + '</div>'
             + '<div style="color:var(--pro-soft);line-height:1.6">' + (r.comment || 'No comment.') + '</div>'
-            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,151,167,0.15)">&#10003; Would hire again</div>' : '')
+            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,191,255,0.15)">&#10003; Would hire again</div>' : '')
             + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
             + '</div>';
         }).join('');

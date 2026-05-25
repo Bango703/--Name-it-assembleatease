@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AssembleAtEase — Easer Workforce App Shell
  * Single source of truth for all Easer-facing pages.
  *
@@ -24,9 +24,9 @@
   --e-text:       #0d1117;
   --e-soft:       #374151;
   --e-muted:      #64748b;
-  --e-teal:       #0097a7;
-  --e-teal-dim:   rgba(0,151,167,0.09);
-  --e-teal-dark:  #00838f;
+  --e-teal:       #00BFFF;
+  --e-teal-dim:   rgba(0,191,255,0.09);
+  --e-teal-dark:  #0099CC;
   --e-green:      #059669;
   --e-green-dim:  rgba(5,150,105,0.09);
   --e-amber:      #d97706;
@@ -367,7 +367,7 @@ body {
   display: flex; align-items: flex-start; gap: 0.75rem;
 }
 .e-banner-warn  { background: var(--e-amber-dim); border: 1px solid rgba(217,119,6,0.2); color: #92400e; }
-.e-banner-info  { background: var(--e-teal-dim);  border: 1px solid rgba(0,151,167,0.2); color: var(--e-teal); }
+.e-banner-info  { background: var(--e-teal-dim);  border: 1px solid rgba(0,191,255,0.2); color: var(--e-teal); }
 .e-banner-error { background: var(--e-red-dim);   border: 1px solid rgba(220,38,38,0.2); color: var(--e-red); }
 .e-banner-ok    { background: var(--e-green-dim); border: 1px solid rgba(5,150,105,0.2); color: var(--e-green); }
 .e-banner svg   { flex-shrink: 0; margin-top: 1px; }
@@ -406,12 +406,12 @@ body {
 .e-alert.show { display: block; }
 .e-alert.success { background: var(--e-green-dim); color: var(--e-green); border: 1px solid rgba(5,150,105,0.2); }
 .e-alert.error   { background: var(--e-red-dim);   color: var(--e-red);   border: 1px solid rgba(220,38,38,0.2); }
-.e-alert.info    { background: var(--e-teal-dim);  color: var(--e-teal);  border: 1px solid rgba(0,151,167,0.2); }
+.e-alert.info    { background: var(--e-teal-dim);  color: var(--e-teal);  border: 1px solid rgba(0,191,255,0.2); }
 
 /* ── Avatar ──────────────────────────────────────────────────────────── */
 .e-avatar {
   width: 38px; height: 38px; border-radius: 50%;
-  background: var(--e-teal-dim); border: 2px solid rgba(0,151,167,0.2);
+  background: var(--e-teal-dim); border: 2px solid rgba(0,191,255,0.2);
   display: flex; align-items: center; justify-content: center;
   font-size: 0.8rem; font-weight: 600; color: var(--e-teal);
   overflow: hidden; flex-shrink: 0;
@@ -483,10 +483,10 @@ body {
 
 /* ── Active job hero — gradient card ─────────────────────────────────── */
 .e-job-hero-gradient {
-  background: linear-gradient(170deg, #005a65, #0097a7);
+  background: linear-gradient(170deg, #005a65, #00BFFF);
   border: 0 !important;
   color: white;
-  box-shadow: 0 16px 32px rgba(0,151,167,0.28);
+  box-shadow: 0 16px 32px rgba(0,191,255,0.28);
 }
 .e-job-hero-gradient .e-job-hero-label { color: rgba(255,255,255,0.72); }
 .e-job-hero-gradient .e-job-hero-service { color: white; }
@@ -540,7 +540,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   margin-top: 10px;
-  box-shadow: 0 8px 20px rgba(0,151,167,0.32);
+  box-shadow: 0 8px 20px rgba(0,191,255,0.32);
   -webkit-tap-highlight-color: transparent;
   transition: opacity 0.15s;
 }
@@ -594,13 +594,13 @@ body {
 
 /* ── Earnings gradient hero ──────────────────────────────────────────── */
 .e-earn-hero-card {
-  background: linear-gradient(170deg, #005a65, #0097a7) !important;
+  background: linear-gradient(170deg, #005a65, #00BFFF) !important;
   border: 0 !important;
   border-radius: 12px;
   color: white !important;
   padding: 1.25rem !important;
   margin-bottom: 1.25rem;
-  box-shadow: 0 16px 32px rgba(0,151,167,0.24);
+  box-shadow: 0 16px 32px rgba(0,191,255,0.24);
 }
 .e-earn-total {
   font-size: 2.4rem !important;
@@ -784,7 +784,7 @@ textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.55; 
 .alert.hidden { display: none; }
 .alert-error   { background: var(--e-red-dim);   border: 1px solid rgba(220,38,38,0.2);  color: #b91c1c; }
 .alert-success { background: var(--e-green-dim); border: 1px solid rgba(5,150,105,0.2);  color: #065f46; }
-.alert-info    { background: var(--e-teal-dim);  border: 1px solid rgba(0,151,167,0.2);  color: var(--e-teal); }
+.alert-info    { background: var(--e-teal-dim);  border: 1px solid rgba(0,191,255,0.2);  color: var(--e-teal); }
 
 /* ── Header bell button (shared across all Easer pages) ─────────────── */
 .eh-bell-btn { -webkit-appearance: none; appearance: none; background: none; border: none; padding: 6px; min-width: 44px; min-height: 44px; cursor: pointer; color: var(--e-text); display: flex; align-items: center; justify-content: center; border-radius: 8px; -webkit-tap-highlight-color: transparent; position: relative; outline: none; }
@@ -801,6 +801,6 @@ textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.55; 
 .sheet-body  { font-size: 0.875rem; color: #6b7280; line-height: 1.65; margin-bottom: 1.25rem; }
 .sheet-body strong { color: #374151; }
 .sheet-actions { display: flex; flex-direction: column; gap: 0.5rem; }
-.sheet-btn-primary { background: #0097a7; color: #fff; border: none; border-radius: 999px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%; }
+.sheet-btn-primary { background: #00BFFF; color: #fff; border: none; border-radius: 999px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%; }
 .sheet-btn-danger  { background: #ef4444; color: #fff; border: none; border-radius: 999px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%; }
 .sheet-btn-cancel  { background: none; border: 1px solid #e5e7eb; border-radius: 999px; padding: 0.75rem 1rem; font-size: 0.9rem; color: #6b7280; font-family: inherit; cursor: pointer; width: 100%; }

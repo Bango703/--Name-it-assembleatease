@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+﻿import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
     <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.7">You've been added to the AssembleAtEase Easer team. Complete two quick steps below to get started receiving jobs.</p>
 
     <p style="margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Step 1 — Set your password</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="background:#0097a7;border-radius:8px"><a href="${esc(passwordSetUrl)}" style="display:inline-block;padding:12px 28px;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px">Set My Password →</a></td></tr></table>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${esc(passwordSetUrl)}" style="display:inline-block;padding:12px 28px;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px">Set My Password →</a></td></tr></table>
 
     ${verificationUrl ? `<p style="margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Step 2 — Verify your identity</p>
     <p style="margin:0 0 12px;font-size:13px;color:#52525b;line-height:1.6">We require a quick ID verification for all Easers. It takes about 2 minutes — just your government ID and a selfie.</p>
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
         <li>You start receiving job assignments in Austin, TX</li>
       </ol>
     </td></tr></table>
-    <p style="margin:20px 0 0;font-size:13px;color:#52525b">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#0097a7;text-decoration:none">service@assembleatease.com</a></p>
+    <p style="margin:20px 0 0;font-size:13px;color:#52525b">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF;text-decoration:none">service@assembleatease.com</a></p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</td></tr></table>
 </div></body></html>`,

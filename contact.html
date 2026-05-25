@@ -29,7 +29,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
-.page-hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#00838f 100%);padding:4rem 2rem;text-align:center}
+.page-hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#0099CC 100%);padding:4rem 2rem;text-align:center}
 .page-hero-inner{max-width:700px;margin:0 auto}
 .page-back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.75);text-decoration:none;font-size:0.82rem;font-weight:500;margin-bottom:1.25rem;transition:color 0.15s}
 .page-back:hover{color:#fff}
@@ -79,7 +79,7 @@
 }
 </script></head>
 <body>
-<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#0097a7;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
+<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
@@ -158,7 +158,7 @@
   <p style="color:#6b7280;line-height:1.85;margin-bottom:1rem">Whether you have a question about pricing, want to schedule a service, or need a custom quote for a unique project, we are here to help. AssembleAtEase serves Austin, TX and surrounding areas including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, and more. Reach out to confirm availability in your zip code.</p>
   <p style="color:#6b7280;line-height:1.85;margin-bottom:1rem">Our team typically responds within 1 hour during business hours, Monday through Friday, 9am to 5pm. We offer free quotes on all services including furniture assembly, TV mounting, home repairs, smart home installation, and junk removal.</p>
   <p style="color:#6b7280;line-height:1.85;margin-bottom:1rem">No job is too big or too small. Fill out the form and we will get back to you with everything you need to know. Payment is only collected after the job is fully completed to your satisfaction.</p>
-  <p style="color:#6b7280;line-height:1.85;">You can also reach us directly at <a href="mailto:service@assembleatease.com" style="color:#00bcd4">service@assembleatease.com</a>. We look forward to hearing from you.</p>
+  <p style="color:#6b7280;line-height:1.85;">You can also reach us directly at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>. We look forward to hearing from you.</p>
 </section>
 
 
@@ -714,7 +714,7 @@ document.addEventListener('keydown', function(e) {
       .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
       .then(function(){
         var inner = f.closest('.waitlist-inner');
-        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
+        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
       })
       .catch(function(){
         btn.disabled = false; btn.textContent = 'Join Waitlist';
@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
   <div class="cookie-btns">
     <button class="cookie-btn cookie-decline" style="background:none;border:none;color:rgba(255,255,255,0.5);text-decoration:underline;cursor:pointer;font-size:0.8rem" onclick="declineCookies()">Decline</button>
-    <button class="cookie-btn cookie-accept" style="background:#0097a7;color:#fff;font-weight:700" onclick="acceptCookies()">Accept</button>
+    <button class="cookie-btn cookie-accept" style="background:#00BFFF;color:#fff;font-weight:700" onclick="acceptCookies()">Accept</button>
   </div>
 </div>
 <script>
