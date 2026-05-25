@@ -205,6 +205,9 @@
               </div>
             </div>
           </div>
+          <div style="margin-top:0.75rem">
+            <button type="submit" id="save-btn" class="btn btn-teal" style="width:100%">Save</button>
+          </div>
         </div>
 
         <!-- Professional -->
@@ -231,12 +234,10 @@
                 <input class="skills-input" id="skills-input" placeholder="Type a skill and press Enter..." />
               </div>
             </div>
+            <div style="margin-top:0.75rem">
+              <button type="submit" id="prof-save-btn" class="btn btn-teal" style="width:100%">Save</button>
+            </div>
           </div>
-        </div>
-
-        <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem">
-          <button type="submit" class="btn btn-teal btn-lg" id="save-btn" style="flex:1">Save profile</button>
-          <a href="/assembler/" class="btn btn-outline btn-lg" style="flex:1;text-align:center">Cancel</a>
         </div>
       </form>
 
@@ -657,6 +658,8 @@
       if (hasError) return;
 
       APP.setLoading('save-btn', true, 'Saving...');
+      var profSaveEl = document.getElementById('prof-save-btn');
+      if (profSaveEl) { profSaveEl.disabled = true; profSaveEl.textContent = 'Saving...'; }
       try {
         const cityEl = document.getElementById('city');
         const updates = {
@@ -688,7 +691,11 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         APP.showAlert('page-alert', err.message || 'Failed to save profile. Please try again.', 'error');
-      } finally { APP.setLoading('save-btn', false, 'Save profile'); }
+      } finally {
+        APP.setLoading('save-btn', false, 'Save');
+        var pse = document.getElementById('prof-save-btn');
+        if (pse) { pse.disabled = false; pse.textContent = 'Save'; }
+      }
     });
 
     document.getElementById('change-password-btn').addEventListener('click', async () => {

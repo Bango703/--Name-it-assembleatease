@@ -47,9 +47,20 @@ export default async function handler(req, res) {
     if (!priceId) return res.status(503).json({ error: 'Membership not configured. Contact support.' });
 
     try {
-      // Get or create Stripe customer
+      // Get or create Stripe customer — verify stored ID is still valid
       const { data: profile } = await sb.from('profiles').select('stripe_customer_id').eq('id', userId).single();
       let customerId = profile?.stripe_customer_id;
+      if (customerId) {
+        try {
+          await stripe.customers.retrieve(customerId);
+        } catch (custErr) {
+          // Stored customer doesn't exist in this Stripe environment — clear it
+          if (custErr.code === 'resource_missing') {
+            customerId = null;
+            await sb.from('profiles').update({ stripe_customer_id: null }).eq('id', userId);
+          } else { throw custErr; }
+        }
+      }
       if (!customerId) {
         const customer = await stripe.customers.create({ email, metadata: { userId, role: 'assembler' } });
         customerId = customer.id;
