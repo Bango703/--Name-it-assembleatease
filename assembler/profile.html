@@ -214,9 +214,19 @@
         </div>
 
         <!-- Professional -->
-        <div class="form-section">
-          <div class="form-section-title">Professional details</div>
-          <div class="form-fields">
+        <div class="form-section" id="prof-section">
+          <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Professional details</span>
+            <button type="button" id="prof-edit-btn" onclick="expandProfSection()" style="display:none;font-size:0.72rem;font-weight:600;color:var(--pro-teal);background:none;border:none;cursor:pointer;padding:0;letter-spacing:0.01em">Edit</button>
+          </div>
+          <!-- Collapsed summary (shown after save) -->
+          <div id="prof-summary" style="display:none">
+            <div id="prof-summary-rate" style="font-size:0.875rem;color:var(--pro-text);font-weight:600;margin-bottom:0.5rem"></div>
+            <div id="prof-summary-skills" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.5rem"></div>
+            <div id="prof-summary-bio" style="font-size:0.82rem;color:var(--pro-soft);line-height:1.55"></div>
+          </div>
+          <!-- Edit fields -->
+          <div class="form-fields" id="prof-fields">
             <div class="form-group">
               <label for="hourly-rate">Hourly rate ($)</label>
               <input type="number" id="hourly-rate" class="form-control" placeholder="e.g. 65" min="65" max="500" step="1" style="max-width:200px" />
@@ -227,11 +237,9 @@
               <div class="skills-wrap" id="skills-wrap">
                 <input class="skills-input" id="skills-input" placeholder="Type a skill and press Enter..." />
               </div>
-
             </div>
-            <div class="form-group" id="bio-group">
-              <label for="bio">Bio <button type="button" id="bio-expand-btn" class="bio-expand-btn" style="display:none">Edit</button></label>
-              <p id="bio-preview" class="bio-preview" style="display:none" onclick="document.getElementById('bio-group').classList.remove('bio-collapsed-group')"></p>
+            <div class="form-group">
+              <label for="bio">Bio</label>
               <textarea id="bio" class="form-control" rows="4" placeholder="Tell customers about your experience, what brands you know, and what makes you reliable..."></textarea>
             </div>
           </div>
@@ -337,6 +345,33 @@
 <script>
   let skills = [];
   let photoBase64 = null;
+
+  function collapseProfSection() {
+    var rate   = document.getElementById('hourly-rate').value;
+    var bioVal = document.getElementById('bio').value.trim();
+    // Rate
+    var rateEl = document.getElementById('prof-summary-rate');
+    rateEl.textContent = rate ? '$' + rate + '/hr' : '';
+    // Skills
+    var skillsEl = document.getElementById('prof-summary-skills');
+    skillsEl.innerHTML = skills.map(function(s) {
+      return '<span style="display:inline-flex;align-items:center;background:rgba(0,191,255,0.1);color:var(--pro-teal);border:1px solid rgba(0,191,255,0.18);padding:0.15rem 0.55rem;border-radius:999px;font-size:0.76rem;font-weight:500">' + s + '</span>';
+    }).join('');
+    // Bio
+    var bioEl = document.getElementById('prof-summary-bio');
+    bioEl.textContent = bioVal ? (bioVal.length > 120 ? bioVal.slice(0,120) + '…' : bioVal) : '';
+    // Toggle
+    document.getElementById('prof-summary').style.display = '';
+    document.getElementById('prof-fields').style.display = 'none';
+    document.getElementById('prof-edit-btn').style.display = '';
+  }
+
+  function expandProfSection() {
+    document.getElementById('prof-summary').style.display = 'none';
+    document.getElementById('prof-fields').style.display = '';
+    document.getElementById('prof-edit-btn').style.display = 'none';
+    document.getElementById('hourly-rate').focus();
+  }
 
   function renderSkills() {
     const wrap  = document.getElementById('skills-wrap');
@@ -673,17 +708,7 @@
           throw new Error('Profile could not be saved. You may need to sign out and back in.');
         }
         photoBase64 = null;
-        // Collapse bio after save if it has content
-        var bioVal = document.getElementById('bio').value.trim();
-        var bioPreviewEl = document.getElementById('bio-preview');
-        var bioExpandBtn = document.getElementById('bio-expand-btn');
-        var bioTextarea = document.getElementById('bio');
-        if (bioVal && bioPreviewEl) {
-          bioPreviewEl.textContent = bioVal.slice(0, 150) + (bioVal.length > 150 ? '…' : '');
-          bioPreviewEl.style.display = 'block';
-          bioTextarea.style.display = 'none';
-          if (bioExpandBtn) { bioExpandBtn.style.display = 'inline'; bioExpandBtn.onclick = function() { bioTextarea.style.display = ''; bioPreviewEl.style.display = 'none'; bioExpandBtn.style.display = 'none'; bioTextarea.focus(); }; }
-        }
+        collapseProfSection();
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
