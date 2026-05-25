@@ -71,8 +71,12 @@
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
   </button>
 </header>
+<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:56px;z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
 <div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
-  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted);margin-bottom:0.75rem">Notifications</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
+    <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
   <div style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">No new notifications</div>
 </div>
 
@@ -174,11 +178,13 @@
 
     var rows = list.slice().reverse().map(function(b) {
       var isPaid = b.payout_status === 'paid';
+      var isZero = !b.assembler_due;
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
           '<div class="earn-tx-name">' + esc(b.service || 'Service') + '</div>' +
           '<div class="earn-tx-date">' + fmtDate(b.completed_at) + '</div>' +
+          (isZero && !isPaid ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Payout amount pending — will be confirmed by our team.</div>' : '') +
         '</div>' +
         '<div class="earn-tx-right">' +
           '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(b.assembler_due) + '</div>' +
@@ -189,11 +195,17 @@
 
     var feePct = list.length && list[0].platform_fee_pct ? list[0].platform_fee_pct : 25;
     var gross = list.reduce(function(s,b){ return s + (b.amount_charged || b.total_price || 0); }, 0);
+    var memberNote = feePct >= 25
+      ? '<div style="font-size:0.7rem;color:#d97706;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:0.5rem 0.75rem;margin-top:0.5rem;line-height:1.5">'
+        + '&#128073; Members pay only 18% — <a href="/assembler/profile#membership" style="color:#d97706;font-weight:600">join the member plan</a> to keep more of every job.'
+        + '</div>'
+      : '';
     var summary = '<div class="earn-summary-box">' +
       '<div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--pro-muted);margin-bottom:0.5rem">Summary</div>' +
       '<div class="earn-summary-row"><span>Gross billed to customers</span><span>' + fmt(gross) + '</span></div>' +
       '<div class="earn-summary-row"><span>Platform fees (' + feePct + '%)</span><span style="color:#dc2626">−' + fmt(totalFees) + '</span></div>' +
       '<div class="earn-summary-row total"><span>Your earnings</span><span style="color:#059669">' + fmt(totalEarned) + '</span></div>' +
+      memberNote +
       '</div>';
 
     el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>' + summary;
@@ -211,11 +223,14 @@
 
     // Notification bell
     var _notifPanel = document.getElementById('notif-panel');
+    var _notifBackdrop = document.getElementById('notif-backdrop');
+    function showNotif(){_notifPanel.style.display='block';if(_notifBackdrop)_notifBackdrop.style.display='block';}
+    function hideNotif(){_notifPanel.style.display='none';if(_notifBackdrop)_notifBackdrop.style.display='none';}
     document.getElementById('eh-bell-btn').addEventListener('click', function(e) {
       e.stopPropagation();
-      _notifPanel.style.display = _notifPanel.style.display === 'none' ? 'block' : 'none';
+      _notifPanel.style.display === 'none' ? showNotif() : hideNotif();
     });
-    document.addEventListener('click', function() { if (_notifPanel) _notifPanel.style.display = 'none'; });
+    document.addEventListener('click', function() { if (_notifPanel && _notifPanel.style.display !== 'none') hideNotif(); });
 
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();

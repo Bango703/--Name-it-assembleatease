@@ -129,8 +129,12 @@
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
   </button>
 </header>
+<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:56px;z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
 <div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
-  <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted);margin-bottom:0.75rem">Notifications</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
+    <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
   <div id="notif-list" style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">No new notifications</div>
 </div>
 
@@ -171,21 +175,28 @@
         Mark Job as Complete
       </button>
     </div>
-    <div style="border-top:1px solid var(--pro-border);margin:1rem 0 1rem"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-      <div>
-        <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
-        <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
+    <!-- Payout info section (shown for completed jobs) -->
+    <div id="payout-info-section" style="display:none;background:rgba(5,150,105,0.07);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:0.75rem 1rem;margin-top:0.5rem;margin-bottom:1rem">
+      <div style="font-size:0.8rem;font-weight:700;color:#065f46;margin-bottom:0.25rem">Your Payout</div>
+      <div id="payout-info-amount" style="font-size:1.1rem;font-weight:700;color:#059669"></div>
+      <div id="payout-info-note" style="font-size:0.72rem;color:#047857;margin-top:0.2rem;line-height:1.5"></div>
+    </div>
+    <details style="margin-top:0.5rem">
+      <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;border-top:1px solid var(--pro-border);padding-top:1rem;margin-bottom:0.75rem;-webkit-tap-highlight-color:transparent">
+        <div>
+          <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
+          <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </summary>
+      <div class="msg-thread" id="asgn-msg-thread"></div>
+      <div class="msg-input-row">
+        <textarea id="asgn-msg-input" rows="2" placeholder="Message support…"></textarea>
+        <button class="btn btn-teal" id="asgn-msg-send" style="min-width:60px;border-radius:10px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </div>
-    <div class="msg-thread" id="asgn-msg-thread"></div>
-    <div class="msg-input-row">
-      <textarea id="asgn-msg-input" rows="2" placeholder="Message support…"></textarea>
-      <button class="btn btn-teal" id="asgn-msg-send" style="min-width:60px;border-radius:10px">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
+    </details>
   </div>
 </div>
 
@@ -312,7 +323,7 @@
         '<div class="e-job-card-top">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
-            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerFirst) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + esc(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
+            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerFirst) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
           '</div>' +
           (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
           (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
@@ -442,12 +453,15 @@
 
     // Notification bell toggle
     var notifPanel = document.getElementById('notif-panel');
+    var notifBackdrop = document.getElementById('notif-backdrop');
+    function showNotif(){notifPanel.style.display='block';if(notifBackdrop)notifBackdrop.style.display='block';}
+    function hideNotif(){notifPanel.style.display='none';if(notifBackdrop)notifBackdrop.style.display='none';}
     document.getElementById('eh-bell-btn').addEventListener('click', function(e) {
       e.stopPropagation();
-      notifPanel.style.display = notifPanel.style.display === 'none' ? 'block' : 'none';
+      notifPanel.style.display === 'none' ? showNotif() : hideNotif();
     });
     document.addEventListener('click', function() {
-      if (notifPanel) notifPanel.style.display = 'none';
+      if (notifPanel && notifPanel.style.display !== 'none') hideNotif();
     });
 
     document.getElementById('filter-tabs').addEventListener('click', function(e) {
@@ -670,7 +684,7 @@
 
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
-        b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + esc(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
+        b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
         b.address ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
         accepted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(b.customer_phone) + '</a></div>' : '',
         b.details ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + esc(b.details) + '</span></div>' : '',
@@ -716,6 +730,19 @@
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && b.assembler_accepted_at;
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
+
+    // Payout summary for completed jobs
+    var payoutSection = document.getElementById('payout-info-section');
+    if (b.status === 'completed') {
+      payoutSection.style.display = 'block';
+      var dueCents = b.assembler_due || 0;
+      document.getElementById('payout-info-amount').textContent = dueCents > 0 ? '$' + (dueCents / 100).toFixed(2) : '$0.00';
+      document.getElementById('payout-info-note').textContent = dueCents > 0
+        ? 'Payout will be transferred within 2–3 business days.'
+        : 'Payout amount pending — will be processed manually by our coordinator.';
+    } else {
+      payoutSection.style.display = 'none';
+    }
 
     // Pipeline status buttons — shown after acceptance
     const existingPipeline = document.getElementById('pipeline-btns');

@@ -77,6 +77,7 @@ export default async function handler(req, res) {
     .from('reviews')
     .insert({
       booking_id:    booking.id,
+      assembler_id:  booking.assembler_id,
       customer_name: booking.customer_name,
       service:       booking.service,
       rating:        parseInt(rating, 10),
