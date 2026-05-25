@@ -579,7 +579,7 @@
     var firstName=profile.full_name?profile.full_name.split(' ')[0]:'there';
     var hour=new Date().getHours();
     var greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
-    document.getElementById('eh-greeting-name').textContent='Hi, '+firstName+'!';
+    document.getElementById('eh-greeting-name').textContent=greet+', '+firstName+'!';
 
     // Stats strip
     var statsStrip=document.getElementById('eh-stats-strip');
@@ -654,7 +654,7 @@
     document.getElementById('sidebar-logout').addEventListener('click',async function(e){
       e.preventDefault();
       await supabaseClient.auth.signOut();
-      window.location.href='../';
+      window.location.href='/auth/login.html';
     });
 
     // Status banners
@@ -691,7 +691,7 @@
       document.getElementById('profile-banner-title').textContent='Phone number required to receive jobs';
       document.getElementById('profile-banner-sub').textContent='Easers without a phone number cannot be dispatched.';
       document.getElementById('profile-banner-cta').textContent='Add Phone';
-    } else if(!profile.hourly_rate||!profile.city||!profile.bio){
+    } else if(!profile.hourly_rate||!profile.city){
       document.getElementById('profile-banner').classList.remove('hidden');
     }
 
