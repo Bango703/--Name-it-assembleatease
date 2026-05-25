@@ -182,22 +182,24 @@
       <div id="payout-info-amount" style="font-size:1.1rem;font-weight:700;color:#059669"></div>
       <div id="payout-info-note" style="font-size:0.72rem;color:#047857;margin-top:0.2rem;line-height:1.5"></div>
     </div>
-    <details style="margin-top:0.5rem">
-      <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;border-top:1px solid var(--pro-border);padding-top:1rem;margin-bottom:0.75rem;-webkit-tap-highlight-color:transparent">
-        <div>
+    <div style="margin-top:0.5rem;border-top:1px solid var(--pro-border)">
+      <button type="button" id="support-toggle" onclick="(function(){var b=document.getElementById('support-body');var c=document.getElementById('support-chevron');var open=b.style.display!=='none';b.style.display=open?'none':'block';c.style.transform=open?'rotate(0deg)':'rotate(180deg)';})()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
+        <div style="text-align:left">
           <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
           <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </summary>
-      <div class="msg-thread" id="asgn-msg-thread"></div>
-      <div class="msg-input-row">
-        <textarea id="asgn-msg-input" rows="2" placeholder="Message support…"></textarea>
-        <button class="btn btn-teal" id="asgn-msg-send" style="min-width:60px;border-radius:10px">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
+        <svg id="support-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2" style="flex-shrink:0;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="support-body" style="display:none">
+        <div class="msg-thread" id="asgn-msg-thread"></div>
+        <div class="msg-input-row">
+          <textarea id="asgn-msg-input" rows="2" placeholder="Message support…"></textarea>
+          <button class="btn btn-teal" id="asgn-msg-send" style="min-width:60px;border-radius:10px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
       </div>
-    </details>
+    </div>
   </div>
 </div>
 
@@ -866,6 +868,11 @@
     }
 
     document.getElementById('asgn-modal').classList.add('open');
+    // Reset support collapsible state on each modal open
+    var _sb = document.getElementById('support-body');
+    var _sc = document.getElementById('support-chevron');
+    if (_sb) _sb.style.display = 'none';
+    if (_sc) _sc.style.transform = 'rotate(0deg)';
     // Load messages from Supabase
     supabaseClient.from('messages').select('*').eq('booking_id', bookingId).order('created_at',{ascending:true})
       .then(function(r){

@@ -63,6 +63,7 @@
     body.theme-pro textarea.form-control { resize:vertical; min-height:100px; line-height:1.55; display:block; }
     body.theme-pro .form-row { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
     @media (max-width:400px) { body.theme-pro .form-row { grid-template-columns:1fr; } }
+    @media (max-width:360px) { .location-grid { grid-template-columns:1fr 1fr !important; } .location-grid .form-group:first-child { grid-column:1/-1; } }
     body.theme-pro .field-error { font-size:0.72rem; color:#dc2626; margin-top:4px; display:none; }
     body.theme-pro .field-error.visible { display:block; }
     body.theme-pro .btn {
@@ -199,7 +200,7 @@
                 <input type="tel" id="phone" class="form-control" placeholder="e.g. (512) 555-0123" />
                 <span class="field-error" id="phone-error"></span>
               </div>
-              <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:0.75rem">
+              <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:0.75rem" class="location-grid">
                 <div class="form-group">
                   <label for="city">City</label>
                   <input type="text" id="city" class="form-control" placeholder="Austin" />
@@ -298,8 +299,8 @@
             <li>Priority over non-members of the same tier</li>
             <li>Cancel anytime — no long-term commitment</li>
           </ul>
-          <button id="membership-subscribe-btn" class="btn btn-teal" style="width:100%;font-size:0.9rem;padding:0.75rem">Become a Member</button>
-          <p id="membership-price-note" style="text-align:center;font-size:0.75rem;color:var(--pro-muted);margin-top:0.5rem">Monthly subscription via Stripe — secure checkout</p>
+          <button id="membership-subscribe-btn" class="btn btn-teal" style="width:100%;font-size:0.9rem;padding:0.75rem">Become a Member — $29/mo</button>
+          <p id="membership-price-note" style="text-align:center;font-size:0.75rem;color:var(--pro-muted);margin-top:0.5rem">Monthly · Cancel anytime · Secure checkout via Stripe</p>
         </div>
       </div>
 

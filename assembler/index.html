@@ -503,7 +503,7 @@
           +'<button class="eh-offer-accept" id="accept-btn-'+b.id+'" onclick="acceptOffer(\''+b.id+'\',\''+esc(b.dispatch_token||'')+'\')">'
             +'Accept'
           +'</button>'
-          +'<button class="eh-offer-decline" onclick="window.location.href=\'/assembler/my-assignments\'">'
+          +'<button class="eh-offer-decline" id="decline-btn-'+b.id+'" onclick="declineOffer(\''+b.id+'\',\''+esc(b.dispatch_token||'')+'\')">'
             +'Decline'
           +'</button>'
         +'</div>'
@@ -542,6 +542,29 @@
       }
       window.location.reload();
     } catch{if(btn){btn.disabled=false;btn.textContent='Accept';}}
+  }
+
+  async function declineOffer(bookingId, token) {
+    var btn=document.getElementById('decline-btn-'+bookingId);
+    if(btn){btn.disabled=true;btn.textContent='Declining…';}
+    try {
+      var r=await fetch('/api/booking/decline-dispatch',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
+        body:JSON.stringify({bookingId,token,reason:'unavailable'}),
+      });
+      var d=await r.json();
+      if(!r.ok||d.error){
+        if(btn){btn.disabled=false;btn.textContent='Decline';}
+        return;
+      }
+      // Remove this offer card from the DOM instead of full reload
+      var card=btn.closest('.eh-offer-card');
+      if(card) card.remove();
+      // If no more offers, hide the section
+      var remaining=document.querySelectorAll('.eh-offer-card');
+      if(!remaining.length) document.getElementById('offers-section').style.display='none';
+    } catch{if(btn){btn.disabled=false;btn.textContent='Decline';}}
   }
 
   document.addEventListener('DOMContentLoaded', async function(){
@@ -597,9 +620,14 @@
     window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
     window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show');});
 
-    // Reconnect: refresh home on app wake (same pattern as Jobs page)
+    // Reconnect: refresh home on app wake — only if hidden for > 60s to avoid unnecessary reloads
+    var _hiddenAt = null;
     document.addEventListener('visibilitychange',function(){
-      if(document.visibilityState==='visible') window.location.reload();
+      if(document.visibilityState==='hidden'){
+        _hiddenAt = Date.now();
+      } else if(document.visibilityState==='visible' && _hiddenAt && (Date.now()-_hiddenAt) > 60000){
+        window.location.reload();
+      }
     });
 
     // Complete job sheet handlers
