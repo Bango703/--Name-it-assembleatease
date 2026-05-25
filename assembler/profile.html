@@ -27,9 +27,9 @@
       margin: 0 auto;
       box-sizing: border-box;
     }
-    body.theme-pro .form-section { background: var(--pro-surface); border: 1px solid var(--pro-border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
-    body.theme-pro .form-section-title { font-size: 0.78rem; font-weight: 700; color: var(--pro-muted); margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--pro-border); text-transform: uppercase; letter-spacing: 0.07em; }
-    body.theme-pro .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    body.theme-pro .form-section { background: var(--pro-surface); border: 1px solid var(--pro-border); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 0.75rem; }
+    body.theme-pro .form-section-title { font-size: 0.75rem; font-weight: 700; color: var(--pro-muted); margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--pro-border); text-transform: uppercase; letter-spacing: 0.07em; }
+    body.theme-pro .form-fields { display: flex; flex-direction: column; gap: 0.85rem; }
     body.theme-pro .info-row { display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid var(--pro-border); }
     body.theme-pro .info-row:last-child { border-bottom:none; }
     body.theme-pro .info-label { font-size:0.85rem; color:var(--pro-muted); }
@@ -85,6 +85,14 @@
     body.theme-pro .alert-error   { background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.2); color:#b91c1c; }
     body.theme-pro .alert-success { background:rgba(5,150,105,0.09); border:1px solid rgba(5,150,105,0.2); color:#065f46; }
     body.theme-pro .alert-info    { background:var(--pro-teal-dim); border:1px solid rgba(0,151,167,0.2); color:var(--pro-teal); }
+    /* Locked readonly fields */
+    body.theme-pro .form-control[readonly] { background:var(--pro-elevated); color:var(--pro-muted); cursor:default; border-color:var(--pro-border); }
+    body.theme-pro .locked-note { font-size:0.7rem; color:var(--pro-muted); margin-top:3px; line-height:1.4; }
+    /* Bio collapsed state */
+    body.theme-pro .bio-collapsed { display:none; }
+    body.theme-pro .bio-preview { font-size:0.875rem; color:var(--pro-soft); line-height:1.6; cursor:pointer; padding:0.5rem 0; }
+    body.theme-pro .bio-preview:hover { color:var(--pro-text); }
+    body.theme-pro .bio-expand-btn { font-size:0.75rem; color:var(--pro-teal); background:none; border:none; cursor:pointer; padding:0; margin-top:4px; }
 
     /* Completion */
     body.theme-pro .completion-wrap { margin-bottom:1.5rem; }
@@ -220,8 +228,8 @@
           <div class="form-fields">
             <div class="form-group">
               <label for="hourly-rate">Hourly rate ($)</label>
-              <input type="number" id="hourly-rate" class="form-control" placeholder="e.g. 45" min="1" max="500" step="1" style="max-width:200px" />
-              <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:3px">This is your hourly rate shown to the platform owner when assigning jobs.</p>
+              <input type="number" id="hourly-rate" class="form-control" placeholder="e.g. 65" min="65" max="500" step="1" style="max-width:200px" />
+              <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:3px">Minimum $65/hr — the lowest a customer can book. Shown to the owner when assigning jobs.</p>
               <span class="field-error" id="hourly-rate-error"></span>
             </div>
             <div class="form-group">
@@ -231,9 +239,10 @@
               </div>
               <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:4px">e.g. IKEA assembly, TV mounting, Gym equipment — press Enter after each</p>
             </div>
-            <div class="form-group">
-              <label for="bio">Bio</label>
-              <textarea id="bio" class="form-control" rows="5" placeholder="Tell customers about your experience, how long you've been assembling, what brands you're familiar with, and what makes you reliable..."></textarea>
+            <div class="form-group" id="bio-group">
+              <label for="bio">Bio <button type="button" id="bio-expand-btn" class="bio-expand-btn" style="display:none">Edit</button></label>
+              <p id="bio-preview" class="bio-preview" style="display:none" onclick="document.getElementById('bio-group').classList.remove('bio-collapsed-group')"></p>
+              <textarea id="bio" class="form-control" rows="4" placeholder="Tell customers about your experience, what brands you know, and what makes you reliable..."></textarea>
             </div>
           </div>
         </div>
@@ -301,18 +310,15 @@
         <div id="my-reviews-list" style="font-size:0.875rem;color:var(--pro-muted)">Loading reviews...</div>
       </div>
 
-      <!-- Payout settings -->
+      <!-- Payout settings (summary only — full history on Earnings page) -->
       <div class="form-section">
-        <div class="form-section-title">Payout settings</div>
-        <div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;font-size:0.875rem;color:var(--pro-soft);line-height:1.65">
-          <p style="margin:0 0 0.75rem;font-weight:600;color:var(--pro-text)">How payouts work</p>
-          <p style="margin:0 0 0.5rem">After you mark a job complete, your earnings are calculated automatically. Our team reviews and processes your payout within <strong>3–5 business days</strong>.</p>
-          <p style="margin:0;color:var(--pro-muted);font-size:0.8rem">Questions about a payout? Email us at <a href="mailto:hello@assembleatease.com" style="color:var(--pro-teal)">hello@assembleatease.com</a></p>
+        <div class="form-section-title">Earnings</div>
+        <div class="info-row"><span class="info-label">Total earned</span><span class="info-value" id="total-earned">$0</span></div>
+        <div class="info-row"><span class="info-label">Pending payout</span><span class="info-value" id="pending-payout">$0</span></div>
+        <div style="margin-top:0.9rem">
+          <a href="/assembler/payouts" class="btn btn-outline btn-sm" style="font-size:0.78rem">View Earnings &amp; Payout History →</a>
         </div>
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--pro-border)">
-          <div class="info-row"><span class="info-label">Total earned</span><span class="info-value" id="total-earned">$0</span></div>
-          <div class="info-row"><span class="info-label">Pending payout</span><span class="info-value" id="pending-payout">$0</span></div>
-        </div>
+        <p style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.75rem;line-height:1.5">Payouts processed within 3–5 business days after job completion. Questions? <a href="mailto:hello@assembleatease.com" style="color:var(--pro-teal)">Email us</a>.</p>
       </div>
 
       <!-- Sign out -->
@@ -405,29 +411,34 @@
     input.addEventListener('blur', () => { if (input.value.trim()) { addSkill(input.value); input.value = ''; } });
     wrap.addEventListener('click', () => input.focus());
 
-    // Photo preview
+    // Photo preview — use FileReader (data: URL) so it passes the CSP img-src policy.
+    // blob: URLs are blocked by the site's Content-Security-Policy.
     document.getElementById('photo-input').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) { document.getElementById('photo-status').textContent = 'File too large (max 5MB)'; return; }
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 800;
-        let w = img.naturalWidth, h = img.naturalHeight;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
-        document.getElementById('photo-preview').innerHTML = `<img src="${photoBase64}" alt="Preview" />`;
-        document.getElementById('photo-status').textContent = file.name;
-        updateCompletion();
-        URL.revokeObjectURL(img.src);
+      document.getElementById('photo-status').textContent = 'Processing…';
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 800;
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if (w > MAX || h > MAX) {
+            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+            else { w = Math.round(w * MAX / h); h = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+          document.getElementById('photo-preview').innerHTML = `<img src="${photoBase64}" alt="Preview" />`;
+          document.getElementById('photo-status').textContent = file.name;
+          updateCompletion();
+        };
+        img.src = ev.target.result; // data: URL — CSP-safe
       };
-      img.src = URL.createObjectURL(file);
+      reader.readAsDataURL(file);
     });
   });
 
@@ -464,6 +475,27 @@
     document.getElementById('hourly-rate').value = profile.hourly_rate || '';
     document.getElementById('bio').value         = profile.bio         || '';
     document.getElementById('email-display').textContent  = user.email;
+
+    // Lock name and location for verified users — cannot be changed after approval
+    if (profile.identity_verified) {
+      var lockFields = ['full-name', 'city', 'state', 'zip'];
+      lockFields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.readOnly = true;
+      });
+      var nameGroup = document.getElementById('full-name').closest('.form-group');
+      if (nameGroup) {
+        var n = document.createElement('p'); n.className = 'locked-note';
+        n.innerHTML = '&#128274; Locked after verification. Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a> to update your legal name.';
+        nameGroup.appendChild(n);
+      }
+      var zipGroup = document.getElementById('zip').closest('.form-group');
+      if (zipGroup) {
+        var z = document.createElement('p'); z.className = 'locked-note';
+        z.innerHTML = '&#128274; Service area locked. Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a> to change your area.';
+        zipGroup.appendChild(z);
+      }
+    }
 
     // Populate identity card
     var idCard = document.getElementById('profile-id-card');
@@ -550,38 +582,48 @@
               'Renews ' + new Date(mData.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
           }
           document.getElementById('membership-portal-btn').addEventListener('click', async function() {
-            this.disabled = true; this.textContent = 'Opening…';
-            const { data: { session: ps } } = await supabaseClient.auth.getSession();
-            var r = await fetch('/api/assembler/membership', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ps?.access_token || mToken) },
-              body: JSON.stringify({ action: 'portal' }),
-            });
-            var d = await r.json();
-            if (d.url) window.location.href = d.url;
-            else { this.disabled = false; this.textContent = 'Manage Billing'; }
+            var btn = this;
+            btn.disabled = true; btn.textContent = 'Opening…';
+            try {
+              const { data: { session: ps } } = await supabaseClient.auth.getSession();
+              var r = await fetch('/api/assembler/membership', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ps?.access_token || mToken) },
+                body: JSON.stringify({ action: 'portal' }),
+              });
+              var d = await r.json();
+              if (d.url) window.location.href = d.url;
+              else { btn.disabled = false; btn.textContent = 'Manage Billing'; }
+            } catch(err) {
+              btn.disabled = false; btn.textContent = 'Manage Billing';
+            }
           });
         } else {
           document.getElementById('membership-active').style.display = 'none';
           document.getElementById('membership-inactive').style.display = '';
           document.getElementById('membership-subscribe-btn').addEventListener('click', async function() {
-            this.disabled = true; this.textContent = 'Loading…';
-            const { data: { session: ss } } = await supabaseClient.auth.getSession();
-            var r = await fetch('/api/assembler/membership', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ss?.access_token || mToken) },
-              body: JSON.stringify({ action: 'subscribe' }),
-            });
-            var d = await r.json();
-            if (d.url) {
-              window.location.href = d.url;
-            } else {
-              // Membership not yet configured — replace CTA with inline notice
-              document.getElementById('membership-inactive').innerHTML =
-                '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
-                + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
-                + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is not yet active on this account. Check back soon or contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a>.</p>'
-                + '</div>';
+            var btn = this;
+            btn.disabled = true; btn.textContent = 'Loading…';
+            try {
+              const { data: { session: ss } } = await supabaseClient.auth.getSession();
+              var r = await fetch('/api/assembler/membership', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ss?.access_token || mToken) },
+                body: JSON.stringify({ action: 'subscribe' }),
+              });
+              var d = await r.json();
+              if (d.url) {
+                window.location.href = d.url;
+              } else {
+                document.getElementById('membership-inactive').innerHTML =
+                  '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
+                  + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Coming Soon</p>'
+                  + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Priority membership is launching soon. Contact <a href="mailto:service@assembleatease.com" style="color:#0097a7">support</a> to be notified.</p>'
+                  + '</div>';
+              }
+            } catch(err) {
+              btn.disabled = false; btn.textContent = 'Become a Member';
+              APP.showAlert('page-alert', 'Could not connect to membership service. Please try again.', 'error');
             }
           });
         }
@@ -611,27 +653,32 @@
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       APP.hideAlert('page-alert');
-      const fullName   = document.getElementById('full-name').value.trim();
+      const fullNameEl = document.getElementById('full-name');
+      const fullName   = fullNameEl.value.trim();
       const phone      = document.getElementById('phone').value.trim();
       const hourlyRate = parseFloat(document.getElementById('hourly-rate').value);
       let hasError = false;
-      if (!fullName) { APP.fieldError('full-name', 'Full name is required.'); hasError = true; }
+      if (!fullNameEl.readOnly && !fullName) { APP.fieldError('full-name', 'Full name is required.'); hasError = true; }
       if (phone && !/^\+?[\d\s\-(). ]{7,}$/.test(phone)) { APP.fieldError('phone', 'Enter a valid phone number.'); hasError = true; }
-      if (document.getElementById('hourly-rate').value && (isNaN(hourlyRate)||hourlyRate<=0)) { APP.fieldError('hourly-rate','Enter a valid hourly rate.'); hasError = true; }
+      if (document.getElementById('hourly-rate').value && (isNaN(hourlyRate)||hourlyRate<65)) { APP.fieldError('hourly-rate','Minimum rate is $65/hr.'); hasError = true; }
       if (hasError) return;
 
       APP.setLoading('save-btn', true, 'Saving...');
       try {
+        const cityEl = document.getElementById('city');
         const updates = {
-          full_name:   fullName,
-          phone:       phone || null,
-          city:        document.getElementById('city').value.trim() || null,
-          state:       document.getElementById('state').value.trim() || null,
-          zip:         document.getElementById('zip').value.trim() || null,
-          hourly_rate: hourlyRate || null,
-          skills:      skills.length ? skills : null,
-          bio:         document.getElementById('bio').value.trim() || null,
+          phone: phone || null,
+          hourly_rate: (!isNaN(hourlyRate) && hourlyRate >= 65) ? hourlyRate : null,
+          skills: skills.length ? skills : null,
+          bio:    document.getElementById('bio').value.trim() || null,
         };
+        // Only update locked fields if they are not readonly (non-verified users)
+        if (!fullNameEl.readOnly) updates.full_name = fullName;
+        if (!cityEl.readOnly) {
+          updates.city  = cityEl.value.trim() || null;
+          updates.state = document.getElementById('state').value.trim() || null;
+          updates.zip   = document.getElementById('zip').value.trim() || null;
+        }
         if (photoBase64) updates.profile_photo = photoBase64;
 
         const { data: savedData, error } = await API.updateProfile(user.id, updates);
@@ -640,11 +687,21 @@
           throw error;
         }
         if (!savedData) {
-          // 0 rows written — most likely RLS blocked the update
           console.error('[profile] updateProfile returned no data — possible RLS policy missing or row not found');
           throw new Error('Profile could not be saved. You may need to sign out and back in.');
         }
-        photoBase64 = null; // clear staging variable after confirmed save
+        photoBase64 = null;
+        // Collapse bio after save if it has content
+        var bioVal = document.getElementById('bio').value.trim();
+        var bioPreviewEl = document.getElementById('bio-preview');
+        var bioExpandBtn = document.getElementById('bio-expand-btn');
+        var bioTextarea = document.getElementById('bio');
+        if (bioVal && bioPreviewEl) {
+          bioPreviewEl.textContent = bioVal.slice(0, 150) + (bioVal.length > 150 ? '…' : '');
+          bioPreviewEl.style.display = 'block';
+          bioTextarea.style.display = 'none';
+          if (bioExpandBtn) { bioExpandBtn.style.display = 'inline'; bioExpandBtn.onclick = function() { bioTextarea.style.display = ''; bioPreviewEl.style.display = 'none'; bioExpandBtn.style.display = 'none'; bioTextarea.focus(); }; }
+        }
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
