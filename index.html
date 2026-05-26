@@ -60,7 +60,7 @@
 .hv2-tr-item{display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;font-weight:500;color:rgba(255,255,255,0.65)}
 .hv2-tr-icon{flex-shrink:0;color:#4dd0e1}
 .hv2-right{overflow:hidden;background:#001f2b;position:relative;z-index:1;transform-style:preserve-3d;transition:transform 0.65s cubic-bezier(0.23,1,0.32,1);will-change:transform}
-.hv2-right img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;opacity:0.9;transform:scale(1.04);transition:transform 0.65s cubic-bezier(0.23,1,0.32,1)}
+.hv2-right img{width:100%;height:100%;aspect-ratio:1536/1024;object-fit:cover;object-position:center top;display:block;opacity:0.9;transform:scale(1.04);transition:transform 0.65s cubic-bezier(0.23,1,0.32,1)}
 .hv2-right::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#0099CC,#00BFFF);transform-origin:left;animation:hv2Reveal 0.85s 0.15s cubic-bezier(0.77,0,0.18,1) both;z-index:3;pointer-events:none}
 @keyframes hv2Reveal{0%{transform:scaleX(1) translateX(0)}50%{transform:scaleX(1) translateX(0)}100%{transform:scaleX(0) translateX(0);transform-origin:right}}
 .hv2-chip{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5);border-radius:999px;padding:0.45rem 1rem;font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:var(--ink);box-shadow:0 8px 32px rgba(0,0,0,0.18);opacity:0;animation:chipIn 0.5s forwards}
@@ -477,7 +477,7 @@ section#service-area{display:none}
     </div>
   </div>
   <div class="hv2-right" id="hv2Right">
-    <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase pro mounting a TV in Austin TX"/>
+     <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase pro mounting a TV in Austin TX" width="1536" height="1024" fetchpriority="high"/>
     <div class="hv2-chip hv2-chip--1">
       <span class="hv2-chip-dot" style="background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.25)"></span>
       Same-day available
