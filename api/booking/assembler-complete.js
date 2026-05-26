@@ -5,6 +5,7 @@ import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -39,10 +40,10 @@ export default async function handler(req, res) {
   if (booking.assembler_id !== user.id) {
     return res.status(403).json({ error: 'You are not assigned to this booking' });
   }
-  if (booking.status === 'completed') {
+  if (booking.status === BOOKING_STATUS.COMPLETED) {
     return res.status(400).json({ error: 'Booking is already marked complete' });
   }
-  if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) {
+  if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Job must be active to mark complete' });
   }
   if (!booking.assembler_accepted_at && !booking.assigned_at) {
@@ -83,13 +84,13 @@ export default async function handler(req, res) {
   // Tiered fee: members pay 18%, non-members pay 25%
   const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
   const isMember = easerProf?.has_membership === true;
-  const PLATFORM_FEE_PCT = isMember ? 18 : 25;
+  const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
   const platformFee = Math.round(finalAmount * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmount - platformFee;
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
   const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
-    status: 'completed',
+    status: BOOKING_STATUS.COMPLETED,
     completed_at: new Date().toISOString(),
     assembler_accepted_at: booking.assembler_accepted_at || new Date().toISOString(),
     payment_status: 'captured',
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
     completed_by: 'assembler',
   })
   .eq('id', booking.id)
-  .neq('status', 'completed')
+  .neq('status', BOOKING_STATUS.COMPLETED)
   .neq('payment_status', 'captured')
   .select('id');
 
@@ -217,5 +218,5 @@ export default async function handler(req, res) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot error:', e));
   }
 
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'completed' } });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED } });
 }

@@ -4,6 +4,7 @@ import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_e
 import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status === 'completed') {
+  if (booking.status === BOOKING_STATUS.COMPLETED) {
     return res.status(400).json({ error: 'Booking already completed. Payment already captured.' });
   }
   if (booking.payment_status === 'captured') {
@@ -28,8 +29,7 @@ export default async function handler(req, res) {
   }
   // Allow completion from any active pipeline state — Easer may have progressed through
   // en_route → arrived → in_progress before the owner marks it done.
-  const COMPLETABLE = ['confirmed', 'en_route', 'arrived', 'in_progress'];
-  if (!COMPLETABLE.includes(booking.status)) {
+  if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Only active bookings can be completed. Current status: ' + booking.status });
   }
 
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
     const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
     isMember = asmProf?.has_membership === true;
   }
-  const PLATFORM_FEE_PCT = isMember ? 18 : 25;
+  const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
   const platformFee = Math.round(finalAmountCharged * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmountCharged - platformFee;
 
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   const { error: updateErr, data: updatedRows } = await sb
     .from('bookings')
     .update({
-      status: 'completed',
+      status: BOOKING_STATUS.COMPLETED,
       completed_at: new Date().toISOString(),
       payment_status: 'captured',
       payment_captured_at: new Date().toISOString(),
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
       assembler_due: assemblerDue,
     })
     .eq('id', booking.id)
-    .neq('status', 'completed')
+    .neq('status', BOOKING_STATUS.COMPLETED)
     .neq('payment_status', 'captured')
     .select('id');
 

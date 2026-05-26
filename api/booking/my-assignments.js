@@ -1,5 +1,11 @@
 import { getSupabase } from '../_supabase.js';
 import { createClient } from '@supabase/supabase-js';
+import {
+  BOOKING_STATUS,
+  DISPATCH_OFFER_STATUS,
+  ACTIVE_BOOKING_STATUSES,
+  VISIBLE_ASSIGNMENT_STATUSES,
+} from '../_source-of-truth.js';
 
 /**
  * GET /api/booking/my-assignments
@@ -21,8 +27,8 @@ export default async function handler(req, res) {
   const sb = getSupabase();
 
   const statusFilter = req.query?.status || null;
-  const ACTIVE_STATUSES  = ['confirmed', 'en_route', 'arrived', 'in_progress'];
-  const VISIBLE_STATUSES = [...ACTIVE_STATUSES, 'completed'];
+  const ACTIVE_STATUSES  = ACTIVE_BOOKING_STATUSES;
+  const VISIBLE_STATUSES = VISIBLE_ASSIGNMENT_STATUSES;
 
   // Membership status from profile
   const { data: easerProfile } = await sb
@@ -62,7 +68,7 @@ export default async function handler(req, res) {
     .from('dispatch_offers')
     .select('booking_id, expires_at, token, dispatch_score')
     .eq('easer_id', user.id)
-    .eq('offer_status', 'sent')
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
     .gt('expires_at', new Date().toISOString());
 
   const assignedIds = new Set((assignedBookings || []).map(b => b.id));
@@ -76,7 +82,7 @@ export default async function handler(req, res) {
       .from('bookings')
       .select('id, ref, service, customer_name, date, time, address, details, status, total_price')
       .in('id', unacceptedOfferBookingIds)
-      .eq('status', 'confirmed')
+      .eq('status', BOOKING_STATUS.CONFIRMED)
       .is('assembler_id', null);
     offerBookings = ob || [];
   }

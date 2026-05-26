@@ -2,11 +2,17 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import {
+  BOOKING_STATUS,
+  EASER_STAGE,
+  ACTIVE_BOOKING_STATUSES,
+  TERMINAL_BOOKING_STATUSES,
+} from '../_source-of-truth.js';
 
 const STAGES = {
-  en_route:    { status: 'en_route',    field: 'en_route_at',    label: 'On the way' },
-  arrived:     { status: 'arrived',     field: 'checked_in_at',  label: 'Arrived' },
-  in_progress: { status: 'in_progress', field: 'job_started_at', label: 'Job started' },
+  [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
+  [EASER_STAGE.ARRIVED]:     { status: BOOKING_STATUS.ARRIVED,     field: 'checked_in_at',  label: 'Arrived' },
+  [EASER_STAGE.IN_PROGRESS]: { status: BOOKING_STATUS.IN_PROGRESS, field: 'job_started_at', label: 'Job started' },
 };
 
 export default async function handler(req, res) {
@@ -30,10 +36,10 @@ export default async function handler(req, res) {
   if (booking.assembler_id !== user.id) return res.status(403).json({ error: 'Not your booking' });
 
   // Hard-block terminal states — completed/cancelled bookings must never be updated
-  if (['completed', 'cancelled', 'declined', 'refunded'].includes(booking.status)) {
+  if (TERMINAL_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: `Cannot update a ${booking.status} booking` });
   }
-  if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) {
+  if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Booking is not in an updatable state' });
   }
 
