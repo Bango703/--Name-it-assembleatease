@@ -508,23 +508,23 @@
             <div class="tile-name">Junk Removal</div>
             <div class="tile-from">From $75 · 1–2 hrs</div>
           </div>
-          <div class="service-tile" data-service="Fitness Equipment" data-price="99" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Fitness Equipment" data-price="129" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
             <div class="tile-name">Fitness Equipment</div>
-            <div class="tile-from">From $99 · 1–3 hrs</div>
+            <div class="tile-from">From $129 · 1–3 hrs</div>
           </div>
-          <div class="service-tile" data-service="Outdoor &amp; Playsets" data-price="0" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Outdoor &amp; Playsets" data-price="149" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22v-7h6v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="tile-name">Outdoor &amp; Playsets</div>
-            <div class="tile-from">Custom quote</div>
+            <div class="tile-from">From $149 · 2–4 hrs</div>
           </div>
-          <div class="service-tile" data-service="Office Assembly" data-price="75" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Office Assembly" data-price="95" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
             <div class="tile-name">Office Assembly</div>
-            <div class="tile-from">From $75 · 1–3 hrs</div>
+            <div class="tile-from">From $95 · 1–3 hrs</div>
           </div>
           <div class="service-tile" data-service="Moving Help" data-price="0" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
@@ -1118,6 +1118,77 @@ var SUBCATS = {
       { name: 'Device migration (old to new system)', price: 35, addon: true }
     ]}
   ],
+  'Outdoor & Playsets': [
+    { group: 'Playsets & Backyard Structures', items: [
+      { name: 'Swing set / backyard playset assembly', price: 249, popular: true },
+      { name: 'Trampoline assembly', price: 165 },
+      { name: 'Pergola / gazebo kit assembly', price: 275, priceMax: 375 },
+      { name: 'Storage shed (small kit)', price: 249, priceMax: 349 },
+      { name: 'Monkey bars / climbing frame', price: 225 },
+      { name: 'Sandbox / outdoor playhouse', price: 145 }
+    ]},
+    { group: 'Sports & Recreation', items: [
+      { name: 'Basketball hoop assembly', price: 179 },
+      { name: 'Outdoor swing / glider set', price: 145 },
+      { name: 'Patio swing / hanging chair', price: 125 },
+      { name: 'Portable pickleball / sports net setup', price: 95 }
+    ]},
+    { group: 'Add-ons', items: [
+      { name: 'Anchoring / leveling / safety hardware', price: 45, addon: true },
+      { name: 'Disassembly before move or pickup', price: 95, addon: true },
+      { name: 'Same-day / rush outdoor assembly', price: 65, addon: true },
+      { name: 'Heavy-duty material haul-away', price: 75, addon: true }
+    ]}
+  ],
+  'Office Assembly': [
+    { group: 'Desks & Workstations', items: [
+      { name: 'Desk (simple flat-pack)', price: 95 },
+      { name: 'Desk (L-shape / executive)', price: 145, popular: true },
+      { name: 'Standing desk (electric)', price: 155 },
+      { name: 'Cubicle workstation / multi-desk setup', price: 275, priceMax: 395 }
+    ]},
+    { group: 'Seating & Storage', items: [
+      { name: 'Office chair (standard)', price: 65 },
+      { name: 'Office chair (ergonomic / heavy-duty)', price: 85 },
+      { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 85 },
+      { name: 'Bookcase / shelving unit (6+ shelves)', price: 105 },
+      { name: 'File cabinet (2–4 drawer)', price: 75 },
+      { name: 'Credenza / sideboard', price: 125 }
+    ]},
+    { group: 'Conference & Specialty', items: [
+      { name: 'Conference table', price: 175, priceMax: 225 },
+      { name: 'Reception desk / front counter', price: 275, priceMax: 425 },
+      { name: 'Wall-mounted storage / overhead cabinet', price: 95 },
+      { name: 'Office partition / divider install', price: 145 }
+    ]},
+    { group: 'Add-ons', items: [
+      { name: 'Cable management / cord routing', price: 25, addon: true },
+      { name: 'Wall anchoring / anti-tip hardware', price: 35, addon: true },
+      { name: 'Rush / same-day office assembly', price: 55, addon: true },
+      { name: 'Furniture disposal / haul-away', price: 45, addon: true }
+    ]}
+  ],
+  'Fitness Equipment': [
+    { group: 'Cardio Equipment', items: [
+      { name: 'Treadmill assembly', price: 149, popular: true },
+      { name: 'Exercise bike / Peloton-style bike', price: 139 },
+      { name: 'Elliptical machine', price: 159 },
+      { name: 'Rowing machine', price: 149 }
+    ]},
+    { group: 'Strength Equipment', items: [
+      { name: 'Weight bench', price: 95 },
+      { name: 'Power rack / squat rack', price: 179 },
+      { name: 'Dumbbell / weight set assembly', price: 115 },
+      { name: 'Home gym / cable machine', price: 249, priceMax: 349 },
+      { name: 'Multi-station gym', price: 0, customQuote: true }
+    ]},
+    { group: 'Add-ons', items: [
+      { name: 'Disassembly before move or storage', price: 49, addon: true },
+      { name: 'Floor leveling / placement support', price: 35, addon: true },
+      { name: 'Safety anchoring / wall securing', price: 45, addon: true },
+      { name: 'Same-day / rush fitness assembly', price: 65, addon: true }
+    ]}
+  ],
   'Junk Removal': [
     { group: 'Single Items', items: [
       { name: 'Small item (chair, lamp, boxes)', price: 75 },
@@ -1264,6 +1335,9 @@ var SVC_ICONS = {
   'TV Mounting': '\uD83D\uDCFA',
   'Home Repairs': '\uD83D\uDD27',
   'Smart Home': '\uD83C\uDFE0',
+  'Outdoor & Playsets': '\u26F0\uFE0F',
+  'Office Assembly': '\uD83D\uDCBB',
+  'Fitness Equipment': '\uD83C\uDFCB\uFE0F',
   'Junk Removal': '\uD83D\uDDD1\uFE0F',
   'Other': '\uD83D\uDCAC'
 };
