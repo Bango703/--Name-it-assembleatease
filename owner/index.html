@@ -908,6 +908,8 @@ function intelQuick(msg) {
     </select>
     <label class="modal-label">Address</label>
     <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
+    <label class="modal-label">Price / Quote Amount ($) — enter to update</label>
+    <input type="number" class="modal-input" id="eb-amount" placeholder="e.g. 149.00" min="0" step="0.01"/>
     <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
       <input type="checkbox" id="eb-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
       Notify customer of changes by email
@@ -916,6 +918,32 @@ function intelQuick(msg) {
     <div class="modal-actions" style="margin-top:1.25rem">
       <button class="btn" id="eb-cancel">Cancel</button>
       <button class="btn btn-teal" id="eb-save">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Set Quote Modal ─── -->
+<div class="modal-overlay" id="quote-modal">
+  <div class="modal" style="max-width:400px">
+    <h3>Set &amp; Send Quote</h3>
+    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Enter a price for this custom quote request. The customer will be emailed their quote and the booking will be confirmed.</p>
+    <input type="hidden" id="qm-id"/>
+    <label class="modal-label">Quote Amount ($) *</label>
+    <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01"/>
+    <label class="modal-label">Note to customer (optional)</label>
+    <textarea class="modal-input" id="qm-note" placeholder="Any details about the quoted price..." style="min-height:60px"></textarea>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-bottom:0.5rem;cursor:pointer">
+      <input type="checkbox" id="qm-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
+      Email quote to customer
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer">
+      <input type="checkbox" id="qm-confirm" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
+      Confirm booking at this price
+    </label>
+    <div id="qm-error" style="font-size:0.82rem;color:var(--red);margin-top:0.75rem;display:none"></div>
+    <div class="modal-actions" style="margin-top:1.25rem">
+      <button class="btn" id="qm-cancel">Cancel</button>
+      <button class="btn btn-teal" id="qm-submit">Send Quote</button>
     </div>
   </div>
 </div>
@@ -1763,6 +1791,74 @@ function intelQuick(msg) {
     finally { btn.disabled = false; btn.textContent = 'Save Note'; }
   };
 
+  // ─── Quote modal ───
+  window.openQuoteModal = function(bookingId) {
+    document.getElementById('qm-id').value = bookingId;
+    document.getElementById('qm-amount').value = '';
+    document.getElementById('qm-note').value = '';
+    document.getElementById('qm-notify').checked = true;
+    document.getElementById('qm-confirm').checked = true;
+    document.getElementById('qm-error').style.display = 'none';
+    document.getElementById('quote-modal').classList.add('open');
+    setTimeout(function(){ document.getElementById('qm-amount').focus(); }, 50);
+  };
+
+  document.getElementById('qm-cancel').addEventListener('click', function() {
+    document.getElementById('quote-modal').classList.remove('open');
+  });
+  document.getElementById('quote-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
+  document.getElementById('qm-submit').addEventListener('click', async function() {
+    var btn = this;
+    var id     = document.getElementById('qm-id').value;
+    var amount = parseFloat(document.getElementById('qm-amount').value);
+    var note   = document.getElementById('qm-note').value.trim();
+    var notify = document.getElementById('qm-notify').checked;
+    var doConfirm = document.getElementById('qm-confirm').checked;
+    var errEl  = document.getElementById('qm-error');
+
+    if (!amount || amount <= 0) {
+      errEl.textContent = 'Please enter a valid quote amount.';
+      errEl.style.display = '';
+      return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Sending…';
+    errEl.style.display = 'none';
+    try {
+      // Update price + notify customer
+      var payload = {
+        bookingId: id,
+        totalPrice: Math.round(amount * 100),
+        notifyCustomer: notify,
+        quoteNote: note || null,
+      };
+      var r = await fetch('/api/owner/edit-booking', { method:'POST', headers:headers(), body:JSON.stringify(payload) });
+      var d = await r.json();
+      if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
+
+      // Optionally confirm immediately
+      if (doConfirm) {
+        var cr = await fetch('/api/booking/confirm', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: id }) });
+        var cd = await cr.json();
+        if (cd.error && cd.error !== 'Booking is not pending') {
+          toast('Price set but confirm failed: ' + cd.error, 'error');
+        } else {
+          toast('Quote sent & booking confirmed at $' + amount.toFixed(2) + ' ✓', 'success');
+        }
+      } else {
+        toast('Quote set' + (notify ? ' — customer notified' : '') + ' ✓', 'success');
+      }
+
+      document.getElementById('quote-modal').classList.remove('open');
+      await loadBookings();
+      if (selectedId) selectBooking(selectedId);
+    } catch { errEl.textContent = 'Failed to send quote. Try again.'; errEl.style.display = ''; }
+    finally { btn.disabled = false; btn.textContent = 'Send Quote'; }
+  });
+
   function field(label, value) {
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
   }
@@ -1770,6 +1866,10 @@ function intelQuick(msg) {
   function renderActions(b) {
     var btns = [];
     if (b.status === 'pending') {
+      // Custom quote requests (total_price=0) need price before confirming
+      if (!b.total_price || b.total_price === 0) {
+        btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">Set &amp; Send Quote</button>');
+      }
       btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">Confirm</button>');
       btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
       btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
@@ -1832,6 +1932,7 @@ function intelQuick(msg) {
       document.getElementById('eb-time').value = bEdit.time || '';
       document.getElementById('eb-service').value = bEdit.service || '';
       document.getElementById('eb-address').value = bEdit.address || '';
+      document.getElementById('eb-amount').value = '';
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
     } else if (action === 'review-request') {
@@ -3358,9 +3459,10 @@ function intelQuick(msg) {
     var time    = document.getElementById('eb-time').value;
     var service = document.getElementById('eb-service').value;
     var address = document.getElementById('eb-address').value.trim();
+    var amtRaw  = document.getElementById('eb-amount').value.trim();
     var notify  = document.getElementById('eb-notify').checked;
     var errEl   = document.getElementById('eb-error');
-    if (!date && !time && !service && !address) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
+    if (!date && !time && !service && !address && !amtRaw) { errEl.textContent='Nothing changed.'; errEl.style.display=''; return; }
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
       var payload = { bookingId: id, notifyCustomer: notify };
@@ -3368,6 +3470,10 @@ function intelQuick(msg) {
       if (time)    payload.time    = time;
       if (service) payload.service = service;
       if (address) payload.address = address;
+      if (amtRaw) {
+        var amtVal = parseFloat(amtRaw);
+        if (!isNaN(amtVal) && amtVal >= 0) payload.totalPrice = Math.round(amtVal * 100);
+      }
       var r = await fetch('/api/owner/edit-booking', { method:'POST', headers:headers(), body:JSON.stringify(payload) });
       var d = await r.json();
       if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
