@@ -109,6 +109,16 @@
     .tile-icon svg { width: 22px; height: 22px; fill: var(--teal); }
     .tile-name { font-size: 0.8rem; font-weight: 500; color: var(--ink); }
     .tile-from { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .subcat-intro {
+      margin: 0.5rem 0 0.75rem;
+      padding: 0.8rem 1rem;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-md);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
 
     /* ── Sub-category panel ── */
     .subcats-wrap { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
@@ -530,6 +540,7 @@
           </div>
         </div>
         <div class="tile-feedback" id="tile-feedback">&#10003;&ensp;Great choice. Now pick what you need below &darr;</div>
+        <div class="subcat-intro" id="subcat-intro">Tap a service above to load its sub-categories here.</div>
 
         <!-- Sub-category panels injected here -->
         <div class="subcats-wrap" id="subcats-wrap"></div>
@@ -1287,7 +1298,13 @@ function itemRowHtml(svc, item) {
 
 function renderSubcats() {
   var wrap = document.getElementById('subcats-wrap');
+  var intro = document.getElementById('subcat-intro');
   wrap.innerHTML = '';
+  if (intro) intro.style.display = BOOK.selectedServices.length ? 'none' : 'block';
+  if (BOOK.selectedServices.length === 0) {
+    wrap.innerHTML = '<div class="subcat-panel"><div class="subcat-body" style="padding:1rem 1rem 1.1rem"><div class="subcat-header-title" style="margin-bottom:0.35rem">Choose a service</div><div style="font-size:0.85rem;line-height:1.6;color:var(--muted)">Sub-categories appear here after you tap one of the service tiles above.</div></div></div>';
+    return;
+  }
   BOOK.selectedServices.forEach(function(svc) {
     var groups = SUBCATS[svc];
     if (!groups) return;
