@@ -254,12 +254,22 @@
     });
 
     try {
-      const token = await getToken();
+      let token = await getToken();
       if (!token) { window.location.href = '/auth/login.html'; return; }
-      const resp = await fetch('/api/booking/my-assignments', {
+      let resp = await fetch('/api/booking/my-assignments', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
-      if (resp.status === 401) { window.location.href = '/auth/login.html'; return; }
+      // On 401: force-refresh once and retry before redirecting
+      if (resp.status === 401) {
+        try {
+          const { data: rd } = await supabaseClient.auth.refreshSession();
+          if (rd?.session?.access_token) {
+            token = rd.session.access_token;
+            resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + token } });
+          }
+        } catch {}
+        if (resp.status === 401) { window.location.href = '/auth/login.html'; return; }
+      }
       if (!resp.ok) throw new Error('Failed to load');
       const data = await resp.json();
       allCompleted = (data.bookings || []).filter(function(b){ return b.status === 'completed'; });
