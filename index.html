@@ -39,6 +39,7 @@
 .nav-book-cta{display:inline-flex;align-items:center;gap:6px;background:var(--cyan);color:#fff;padding:0.55rem 1.35rem;border-radius:6px;font-size:0.875rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
 .nav-book-cta:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35);transform:translateY(-1px)}
 .nav-book-cta:active{background:var(--cyan-dark);transform:none;box-shadow:none}
+.nav-logo-sub{white-space:nowrap}
 @media(min-width:1024px){
   .nav-inner{position:relative}
   .nav-links{position:absolute;left:50%;transform:translateX(-50%);gap:2.25rem}
@@ -163,9 +164,13 @@ section#service-area{display:none}
 
 /* Heading */
 .m-hero{padding:28px 1.25rem 18px}
-.m-hero-title{font-family:var(--font-display);font-size:clamp(2.1rem,9vw,2.7rem);color:var(--ink);line-height:1.06;font-weight:400;margin-bottom:10px}
+.m-hero-title{font-family:var(--font-display);font-size:clamp(1.95rem,8.8vw,2.45rem);color:var(--ink);line-height:1.08;font-weight:400;max-width:12ch;letter-spacing:-0.01em;margin-bottom:12px}
 .m-hero-sub{font-size:0.84rem;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
 .m-hero-sub svg{width:14px;height:14px;stroke:var(--cyan-dark);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.m-hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.m-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
+.m-badge svg{width:12px;height:12px;fill:none;stroke:#00BFFF;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.m-service-hint{font-size:0.9rem;color:#556071;margin:0 0 4px;letter-spacing:0.01em}
 
 /* Service list */
 .svc-list{padding:0 1.25rem 0.5rem}
@@ -195,8 +200,13 @@ section#service-area{display:none}
 .svc-item-name-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap}
 .svc-item-name{font-size:0.95rem;font-weight:700;color:var(--ink)}
 .svc-chip{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:2px 7px;border-radius:999px;white-space:nowrap;background:rgba(0,191,255,0.1);color:var(--cyan-dark)}
+.svc-item-desc{font-size:0.84rem;color:#5a6678;margin-top:2px;line-height:1.4}
 .svc-price-badge{display:inline-flex;align-items:center;font-size:0.8rem;font-weight:700;color:var(--cyan-dark);background:rgba(0,191,255,0.07);padding:2px 10px;border-radius:999px}
 .svc-item-chevron{width:18px;height:18px;flex-shrink:0;stroke:#d1d5db;fill:none}
+.svc-other{padding:0 1.25rem 1rem}
+.svc-other-title{font-size:0.73rem;text-transform:uppercase;letter-spacing:0.13em;font-weight:700;color:var(--muted);margin-bottom:9px}
+.svc-other-list{display:flex;flex-wrap:wrap;gap:8px}
+.svc-other-pill{display:inline-flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:8px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none}
 
 /* ─────────────────────────────────────────────────────
    MOBILE/TABLET TRUST STRIP (<1024px only)
@@ -318,6 +328,8 @@ section#service-area{display:none}
 @media(max-width:768px){
   /* Nav */
   .nav-inner{padding:0 1rem}
+  .nav-logo-text{font-size:1.08rem}
+  .nav-logo-sub{font-size:0.52rem;letter-spacing:0.09em}
   .nav-auth-link{display:none}
   .nav-book-cta{display:none!important}
   /* Trust strip */
@@ -344,11 +356,21 @@ section#service-area{display:none}
 
 @media(max-width:480px){
   .m-hero{padding:20px 1rem 10px}
+  .m-hero-title{font-size:clamp(1.8rem,10.2vw,2.25rem);line-height:1.1;margin-bottom:11px}
+  .m-service-hint{font-size:0.82rem}
   .svc-list{padding:0 1rem 0.25rem}
+  .svc-other{padding:0 1rem 1rem}
   .svc-item-thumb{width:52px;height:52px}
-  .svc-item-name{font-size:0.9rem}
+  .svc-item-name{font-size:1.02rem}
+  .svc-item-desc{font-size:0.84rem}
+  .svc-other-title{font-size:0.7rem;letter-spacing:0.11em}
   .trust-sep{display:none}
   .how-steps{gap:7px}
+}
+
+@media(max-width:390px){
+  .nav-logo-sub{display:none}
+  .nav-logo-text{font-size:1.02rem}
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -504,13 +526,13 @@ section#service-area{display:none}
 
   <!-- Heading — AssembleAtEase voice -->
   <div class="m-hero">
-    <h1 class="m-hero-title">Assembly &amp; mounting help,<br>booked in minutes.</h1>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 18px">
-      <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Vetted Easers</div>
-      <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Pay after service</div>
-      <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Same-day available</div>
+    <h1 class="m-hero-title">Assembly &amp; mounting help, booked in minutes.</h1>
+    <div class="m-hero-badges">
+      <div class="m-badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Vetted Easers</div>
+      <div class="m-badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pay after service</div>
+      <div class="m-badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Same-day available</div>
     </div>
-    <p style="font-size:0.82rem;color:var(--muted);margin:0 0 4px">Pick a service below to get started &darr;</p>
+    <p class="m-service-hint">Choose a service to get started.</p>
   </div>
 
   <!-- Service list -->
@@ -525,7 +547,7 @@ section#service-area{display:none}
           <span class="svc-item-name">Furniture Assembly</span>
           <span class="svc-chip">Most booked</span>
         </div>
-        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">IKEA, Wayfair, Amazon &amp; more</div>
+        <div class="svc-item-desc">IKEA, Wayfair, Amazon &amp; more</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -539,7 +561,7 @@ section#service-area{display:none}
           <span class="svc-item-name">TV Mounting</span>
           <span class="svc-chip">Same-day</span>
         </div>
-        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Any wall type, wire management incl.</div>
+        <div class="svc-item-desc">Any wall type, wire management incl.</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -553,7 +575,7 @@ section#service-area{display:none}
           <span class="svc-item-name">Smart Home Setup</span>
           <span class="svc-chip">Popular</span>
         </div>
-        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Cameras, lights, hubs &amp; more</div>
+        <div class="svc-item-desc">Cameras, lights, hubs &amp; more</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -561,17 +583,18 @@ section#service-area{display:none}
   </div>
 
   <!-- Other services (compact) -->
-  <div style="padding:0 1.25rem 1rem">
-    <p style="font-size:0.67rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;color:var(--muted);margin-bottom:8px">Also available</p>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      <a href="/book?service=Home+Repairs" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Home Repairs</a>
-      <a href="/book?service=Junk+Removal" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Junk Removal</a>
-      <a href="/book?service=Moving+Help" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>Moving Help</a>
-      <a href="/book?service=Fitness+Equipment" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg>Fitness Equipment</a>
-      <a href="/book?service=Outdoor+%26+Playsets" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg>Outdoor &amp; Playsets</a>
-      <a href="/book?service=Office+Assembly" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>Office Assembly</a>
-      <a href="/book?service=Other" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Something Else</a>
+  <div class="svc-other">
+    <p class="svc-other-title">Also available</p>
+    <div class="svc-other-list">
+      <a href="/book?service=Home+Repairs" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Home Repairs</a>
+      <a href="/book?service=Junk+Removal" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Junk Removal</a>
+      <a href="/book?service=Moving+Help" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>Moving Help</a>
+      <a href="/book?service=Fitness+Equipment" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg>Fitness Equipment</a>
+      <a href="/book?service=Outdoor+%26+Playsets" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg>Outdoor &amp; Playsets</a>
+      <a href="/book?service=Office+Assembly" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>Office Assembly</a>
+      <a href="/book?service=Other" class="svc-other-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Something Else</a>
     </div>
+  </div>
 </section>
 
 <!-- MOBILE/TABLET TRUST STRIP (hidden ≥1024px) -->
