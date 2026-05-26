@@ -293,9 +293,16 @@ section#service-area{display:none}
 .hv2-right img{animation:kenBurns 12s ease-in-out infinite alternate}
 
 /* ─────────────────────────────────────────────────────
-   MOBILE BOOK BAR
+   MOBILE BOOK BAR / BOTTOM NAV
 ───────────────────────────────────────────────────── */
 .nav-book-pill,.footer-back-top,#m-book-bar{display:none}
+#m-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #e5e7eb;z-index:290;padding-bottom:env(safe-area-inset-bottom,0px)}
+#m-bottom-nav .m-bnav-inner{display:grid;grid-template-columns:repeat(5,1fr);height:56px}
+#m-bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:0.6rem;font-weight:600;color:#6b7280;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:color 0.15s}
+#m-bottom-nav a svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#m-bottom-nav a.active,#m-bottom-nav a:active{color:#00BFFF}
+#m-bottom-nav a.m-bnav-book{background:#00BFFF;color:#fff;border-radius:14px;padding:6px 14px;margin:6px auto;height:44px;width:52px}
+#m-bottom-nav a.m-bnav-book:active{background:#0099CC}
 
 /* ─────────────────────────────────────────────────────
    RESPONSIVE — tablet
@@ -326,10 +333,9 @@ section#service-area{display:none}
   .faq-q{padding:0.8rem 1rem;min-height:52px}
   .form-control{font-size:16px}
   /* Mobile sticky book bar */
-  #m-book-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:60px;padding:0 1.5rem;padding-bottom:env(safe-area-inset-bottom,0px);z-index:290;background:var(--cyan);align-items:center;justify-content:center}
-  #m-book-bar.hide{display:none!important}
-  #m-book-bar a{color:#fff;font-weight:700;font-size:1rem;text-decoration:none;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
-  .footer{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+  #m-bottom-nav{display:block !important}
+  .m-large-project{display:block !important}
+  .footer{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px) + 10px)}
 }
 
 @media(max-width:480px){
@@ -494,11 +500,13 @@ section#service-area{display:none}
 
   <!-- Heading — AssembleAtEase voice -->
   <div class="m-hero">
-    <h1 class="m-hero-title">What needs<br>doing?</h1>
-    <p class="m-hero-sub">
-      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Pay nothing until the job is done
-    </p>
+    <h1 class="m-hero-title">Assembly &amp; mounting help,<br>booked in minutes.</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px">
+      <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Vetted Easers</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Pay after service</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--muted);background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:4px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Live tracking</div>
+    </div>
+    <a href="/book" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#00BFFF;color:#fff;padding:0.85rem 1.5rem;border-radius:8px;font-size:1rem;font-weight:700;text-decoration:none;margin-bottom:4px">Book Now &rarr;</a>
   </div>
 
   <!-- Service list -->
@@ -513,7 +521,7 @@ section#service-area{display:none}
           <span class="svc-item-name">Furniture Assembly</span>
           <span class="svc-chip">Most booked</span>
         </div>
-        
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">IKEA, Wayfair, Amazon &amp; more</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -527,18 +535,40 @@ section#service-area{display:none}
           <span class="svc-item-name">TV Mounting</span>
           <span class="svc-chip">Same-day</span>
         </div>
-        
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Any wall type, wire management incl.</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
-    <a href="/book?service=Home+Repairs" class="svc-item">
-      <div class="svc-item-thumb svc-t-repairs">
-        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    <a href="/book?service=Fitness+Equipment" class="svc-item">
+      <div class="svc-item-thumb" style="background:rgba(16,185,129,0.1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg>
       </div>
       <div class="svc-item-body">
-        <div class="svc-item-name">Home Repairs</div>
-        
+        <div class="svc-item-name">Fitness Equipment</div>
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Treadmills, cages, bikes &amp; more</div>
+      </div>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </a>
+
+    <a href="/book?service=Outdoor+%26+Playsets" class="svc-item">
+      <div class="svc-item-thumb" style="background:rgba(245,158,11,0.1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg>
+      </div>
+      <div class="svc-item-body">
+        <div class="svc-item-name">Outdoor &amp; Playsets</div>
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Swing sets, sheds, patio furniture</div>
+      </div>
+      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </a>
+
+    <a href="/book?service=Office+Assembly" class="svc-item">
+      <div class="svc-item-thumb" style="background:rgba(99,102,241,0.1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M9 8h6"/><path d="M9 12h4"/></svg>
+      </div>
+      <div class="svc-item-body">
+        <div class="svc-item-name">Office Assembly</div>
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Desks, chairs, shelving systems</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -549,33 +579,21 @@ section#service-area{display:none}
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name">Smart Home Setup</div>
-        
+        <div style="font-size:0.76rem;color:var(--muted);margin-top:2px">Cameras, lights, hubs &amp; more</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
-    <a href="/book?service=Junk+Removal" class="svc-item">
-      <div class="svc-item-thumb svc-t-junk">
-        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-      </div>
-      <div class="svc-item-body">
-        <div class="svc-item-name">Junk Removal</div>
-        
-      </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-    </a>
+  </div>
 
-    <a href="/book?service=Moving+Help" class="svc-item">
-      <div class="svc-item-thumb svc-t-moving">
-        <svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
-      </div>
-      <div class="svc-item-body">
-        <div class="svc-item-name">Moving Help</div>
-        
-      </div>
-      <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-    </a>
-
+  <!-- Additional services (compact) -->
+  <div style="padding:0 1.25rem 1rem">
+    <p style="font-size:0.67rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;color:var(--muted);margin-bottom:8px">Also available</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <a href="/book?service=Home+Repairs" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Home Repairs</a>
+      <a href="/book?service=Junk+Removal" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Junk Removal</a>
+      <a href="/book?service=Moving+Help" style="display:flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:7px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>Moving Help</a>
+    </div>
   </div>
 </section>
 
@@ -606,6 +624,21 @@ section#service-area{display:none}
     </div>
   </div>
 </section>
+
+<!-- MOBILE: Large project / custom quote (hidden ≥1024px) -->
+<div class="m-large-project" style="margin:0;padding:1.25rem;background:linear-gradient(135deg,#001f2b,#003345);display:none">
+  <div style="display:flex;align-items:flex-start;gap:14px">
+    <div style="width:44px;height:44px;flex-shrink:0;background:rgba(0,191,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:4px">Large Project?</div>
+      <p style="font-size:0.95rem;font-weight:700;color:#fff;margin:0 0 6px;line-height:1.3">Whole-room or whole-home jobs</p>
+      <p style="font-size:0.8rem;color:rgba(255,255,255,0.65);margin:0 0 12px;line-height:1.6">Multiple rooms, commercial spaces, or multi-day assembly projects. Send us the details and we'll quote you same-day.</p>
+      <a href="/book?service=Custom+Quote" style="display:inline-flex;align-items:center;gap:6px;background:#00BFFF;color:#fff;padding:0.7rem 1.25rem;border-radius:6px;font-size:0.875rem;font-weight:700;text-decoration:none">Get a Free Quote &rarr;</a>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════
      DESKTOP: SERVICES HEADER (shown ≥1024px)
@@ -802,6 +835,32 @@ section#service-area{display:none}
   </div>
 </section>
 
+<!-- BECOME AN EASER — split CTA (all viewports) -->
+<section style="background:#001f2b;padding:4rem 1.5rem">
+  <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:2.5rem;align-items:center">
+    <div>
+      <div style="display:inline-block;background:rgba(0,191,255,0.12);border:1px solid rgba(0,191,255,0.25);border-radius:999px;padding:0.3rem 1rem;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#4dd0e1;margin-bottom:1.1rem">Earn with AssembleAtEase</div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:clamp(1.9rem,4vw,2.75rem);color:#fff;line-height:1.1;margin-bottom:1rem">Earn money doing what you&rsquo;re good at.</h2>
+      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.75;margin-bottom:1.75rem;max-width:480px">Join our network of skilled Easers in Austin. Set your own schedule, pick your jobs, and get paid after every completed service — no upfront costs.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem 1.5rem;margin-bottom:2rem">
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Flexible schedule</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Fast, reliable payouts</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Jobs sent directly to you</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>No hidden fees to start</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center">
+        <a href="/assembler/apply" style="display:inline-flex;align-items:center;gap:8px;background:#00BFFF;color:#001f2b;padding:0.9rem 2rem;border-radius:6px;font-size:0.95rem;font-weight:700;text-decoration:none;transition:all 0.18s">Apply to Become an Easer &rarr;</a>
+        <a href="/assembler/apply" style="font-size:0.875rem;color:rgba(255,255,255,0.55);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.25);padding-bottom:1px">Learn more</a>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+@media(min-width:768px){
+  #easer-split{grid-template-columns:1fr 1fr !important}
+}
+</style>
+
 <!-- DESKTOP: CTA (shown ≥1024px) -->
 <section class="cta-section">
   <div style="max-width:640px;margin:0 auto">
@@ -864,7 +923,30 @@ section#service-area{display:none}
   </div>
 </footer>
 
-<div id="m-book-bar"><a href="/book">Book Now &rarr;</a></div>
+<div id="m-bottom-nav">
+  <div class="m-bnav-inner">
+    <a href="/" class="active">
+      <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </a>
+    <a href="/#services">
+      <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      Services
+    </a>
+    <a href="/book" class="m-bnav-book">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Book
+    </a>
+    <a href="/track">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Track
+    </a>
+    <a href="/contact">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Contact
+    </a>
+  </div>
+</div>
 
 <div class="cart-bar" id="cart-bar">
   <span class="cart-count" id="cart-count">0</span>
