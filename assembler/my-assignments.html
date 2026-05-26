@@ -688,7 +688,7 @@
     const b = allAssignments.find(x => x.id === bookingId);
     if (!b) return;
     selectedBookingId = bookingId;
-    const accepted = !!b.assembler_accepted_at;
+    const accepted = !!(b.assembler_accepted_at || b.assigned_at);
     const isPendingOffer = b._is_pending_offer;
     const isCompleted = b.status === 'completed';
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
@@ -753,7 +753,7 @@
     completeBtn.disabled = false;
     completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
-    const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && b.assembler_accepted_at;
+    const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && (b.assembler_accepted_at || b.assigned_at);
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
 
     // Payout summary for completed jobs

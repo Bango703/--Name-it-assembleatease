@@ -42,6 +42,8 @@ export default async function handler(req, res) {
 
   // Primary update: status + pipeline_stage + timestamp field
   const update = { status, pipeline_stage: stage, [field]: now };
+  // Backfill acceptance timestamp for legacy/manual assignments that skipped accept-dispatch.
+  if (!booking.assembler_accepted_at) update.assembler_accepted_at = now;
   const { error: updateErr } = await sb.from('bookings').update(update).eq('id', bookingId);
   if (updateErr) {
     // Fallback: pipeline_stage column may not exist — preserve the timestamp field

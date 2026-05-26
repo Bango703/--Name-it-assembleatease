@@ -45,8 +45,8 @@ export default async function handler(req, res) {
   if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) {
     return res.status(400).json({ error: 'Job must be active to mark complete' });
   }
-  if (!booking.assembler_accepted_at) {
-    return res.status(400).json({ error: 'You must accept the assignment before marking it complete' });
+  if (!booking.assembler_accepted_at && !booking.assigned_at) {
+    return res.status(400).json({ error: 'You must be assigned to this booking before marking it complete' });
   }
 
   // ── Stripe: capture payment ──────────────────────────────────────────────
@@ -91,6 +91,7 @@ export default async function handler(req, res) {
   const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
     status: 'completed',
     completed_at: new Date().toISOString(),
+    assembler_accepted_at: booking.assembler_accepted_at || new Date().toISOString(),
     payment_status: 'captured',
     payment_captured_at: new Date().toISOString(),
     amount_charged: finalAmount,
