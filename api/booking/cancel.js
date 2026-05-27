@@ -3,6 +3,8 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -19,9 +21,8 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status === 'completed' || booking.status === 'cancelled') {
-    return res.status(400).json({ error: 'Cannot cancel a ' + booking.status + ' booking' });
-  }
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
+  if (transitionErr) return res.status(400).json({ error: transitionErr });
 
   // ── Determine if within 24hr cancellation window ─────────────────────────
   const waiveFee = req.body.waiveFee === true;
@@ -92,13 +93,13 @@ export default async function handler(req, res) {
   // Try full update first; fall back to just status if optional columns don't exist yet
   let updateErr;
   ({ error: updateErr } = await sb.from('bookings')
-    .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: reason || null, cancellation_fee: feeCaptured || null })
+    .update({ status: BOOKING_STATUS.CANCELLED, cancelled_at: new Date().toISOString(), cancel_reason: reason || null, cancellation_fee: feeCaptured || null })
     .eq('id', booking.id));
 
   if (updateErr) {
     console.warn('Cancel full update failed, trying status-only:', updateErr.message);
     ({ error: updateErr } = await sb.from('bookings')
-      .update({ status: 'cancelled' })
+      .update({ status: BOOKING_STATUS.CANCELLED })
       .eq('id', booking.id));
   }
 
@@ -109,9 +110,9 @@ export default async function handler(req, res) {
 
   // Cancel all open dispatch offers so Easers cannot accept a cancelled booking
   sb.from('dispatch_offers')
-    .update({ offer_status: 'cancelled' })
+    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
     .eq('booking_id', booking.id)
-    .eq('offer_status', 'sent')
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
     .then(({ error: doErr }) => {
       if (doErr) console.error('dispatch_offers cancel cleanup error:', doErr.message);
     });
@@ -170,5 +171,5 @@ export default async function handler(req, res) {
 
   logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount } });
 
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'cancelled' }, refundAmount, feeCaptured, withinCancellationWindow });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CANCELLED }, refundAmount, feeCaptured, withinCancellationWindow });
 }

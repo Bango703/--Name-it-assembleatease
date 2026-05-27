@@ -6,6 +6,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -45,6 +46,10 @@ export default async function handler(req, res) {
   }
   if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Job must be active to mark complete' });
+  }
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.COMPLETED);
+  if (transitionErr) {
+    return res.status(400).json({ error: transitionErr });
   }
   if (!booking.assembler_accepted_at && !booking.assigned_at) {
     return res.status(400).json({ error: 'You must be assigned to this booking before marking it complete' });
