@@ -23,6 +23,11 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+report.json
+*.report.html
+*.report.json
+www.assembleatease.com_*.report.html
+www.assembleatease.com_*.report.json
 
 # Sensitive files
 config.local.js
