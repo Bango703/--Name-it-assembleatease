@@ -2,6 +2,8 @@
 import { rateLimit } from '../_ratelimit.js';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc as escEmail } from '../_email.js';
+import { logActivity } from './_activity.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -218,11 +220,12 @@ export default async function handler(req, res) {
     let bookingId = null;
     try {
       const sb = getSupabase();
+      const bookingStatus = isManual ? BOOKING_STATUS.CONFIRMED : BOOKING_STATUS.PENDING;
       const { data: booking, error: sbErr } = await sb
         .from('bookings')
         .insert({
           ref,
-          status: isManual ? 'confirmed' : 'pending',
+          status: bookingStatus,
           ...(isManual ? { confirmed_at: new Date().toISOString(), confirmed_by: 'owner' } : {}),
           customer_name: name,
           customer_email: email,
@@ -237,7 +240,27 @@ export default async function handler(req, res) {
         .select('id')
         .single();
       if (sbErr) console.error('Supabase booking insert error:', sbErr);
-      else bookingId = booking.id;
+      else {
+        bookingId = booking.id;
+        logActivity(sb, {
+          bookingId,
+          eventType: 'booking_created',
+          actorType: isManual ? 'owner' : 'customer',
+          actorName: isManual ? 'Owner' : name,
+          description: isManual
+            ? `Booking created manually by owner (${ref})`
+            : `Booking created by customer (${ref})`,
+          metadata: {
+            ref,
+            source: source || 'web',
+            isManual,
+            isQuote,
+            status: bookingStatus,
+            totalCents: totalCents || 0,
+            service,
+          },
+        });
+      }
     } catch (sbEx) {
       console.error('Supabase booking error:', sbEx);
     }
