@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import { writeFinancialAudit } from '../_financial-audit.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
@@ -56,36 +57,87 @@ export default async function handler(req, res) {
         // Card was never authorized — no Stripe action needed
       } else if (booking.payment_status === 'captured') {
         // Payment already captured (job was marked complete then cancelled) — issue full refund
+        const idempotencyKey = `owner-cancel-refund-${booking.id}`;
         const refund = await stripe.refunds.create({
           payment_intent: booking.stripe_payment_intent_id,
           metadata: { bookingRef: booking.ref, reason: 'owner_cancelled_post_capture' },
-        });
+        }, { idempotencyKey });
         refundAmount = refund.amount;
+        await writeFinancialAudit(sb, {
+          eventType: 'refund_attempt',
+          eventSource: 'booking_cancel_owner',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          refundId: refund.id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'owner_cancelled_post_capture', refundAmount },
+        });
       } else if (booking.payment_status === 'authorized') {
         if (!waiveFee && withinCancellationWindow && (booking.total_price || 0) > 0) {
           // Within 24hr window — capture 50% as cancellation fee
           const feeCents = Math.round((booking.total_price || 0) * 0.5);
+          const idempotencyKey = `owner-cancel-fee-${booking.id}-${feeCents}`;
           await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, {
             amount_to_capture: feeCents,
-          });
+          }, { idempotencyKey });
           feeCaptured = feeCents;
+          await writeFinancialAudit(sb, {
+            eventType: 'capture_attempt',
+            eventSource: 'booking_cancel_owner',
+            bookingId: booking.id,
+            paymentIntentId: booking.stripe_payment_intent_id,
+            idempotencyKey,
+            status: 'processed',
+            metadata: { reason: 'owner_cancel_fee', feeCaptured },
+          });
         } else {
           // Outside window or fee waived — release hold entirely
+          const idempotencyKey = `owner-cancel-release-${booking.id}`;
           await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+          await writeFinancialAudit(sb, {
+            eventType: 'capture_release',
+            eventSource: 'booking_cancel_owner',
+            bookingId: booking.id,
+            paymentIntentId: booking.stripe_payment_intent_id,
+            idempotencyKey,
+            status: 'processed',
+            metadata: { reason: 'owner_cancel_release' },
+          });
         }
       } else if (booking.payment_status === 'deposit_paid') {
         // Deposit already captured — refund it
         const depositIntentId = booking.stripe_deposit_intent_id || booking.stripe_payment_intent_id;
         if (depositIntentId) {
+          const idempotencyKey = `owner-cancel-deposit-refund-${booking.id}`;
           const refund = await stripe.refunds.create({
             payment_intent: depositIntentId,
             metadata: { bookingRef: booking.ref, reason: 'owner_cancelled' },
-          });
+          }, { idempotencyKey });
           refundAmount = refund.amount;
+          await writeFinancialAudit(sb, {
+            eventType: 'refund_attempt',
+            eventSource: 'booking_cancel_owner',
+            bookingId: booking.id,
+            paymentIntentId: depositIntentId,
+            refundId: refund.id,
+            idempotencyKey,
+            status: 'processed',
+            metadata: { reason: 'owner_cancelled', refundAmount },
+          });
         }
       }
     } catch (stripeErr) {
       console.error('Stripe cancel/refund error:', stripeErr);
+      await writeFinancialAudit(sb, {
+        eventType: 'booking_cancel_financial',
+        eventSource: 'booking_cancel_owner',
+        bookingId: booking.id,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        status: 'failed',
+        metadata: { reason: reason || null, paymentStatus: booking.payment_status },
+        error: stripeErr?.message || 'Owner cancellation Stripe mutation failed',
+      });
       // Log but do not block cancellation — owner can handle payment manually
     }
   }
