@@ -2,13 +2,13 @@ import Anthropic from '@anthropic-ai/sdk';
 import { verifyOwner } from '../_email.js';
 import { getSupabase } from '../_supabase.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
+import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return res.status(500).json({ error: 'AI not configured' });
 
   const sb = getSupabase();
   const now = new Date();
@@ -42,15 +42,25 @@ export default async function handler(req, res) {
   // Completed jobs with no review request sent
   const needsReview = completed.filter(b => !b.review_requested_at && b.customer_email);
 
-  // Revenue metrics — use amount_charged (actual captured), fall back to total_price
-  const gross = completed.reduce((s, b) => s + (Number(b.amount_charged || b.total_price) || 0), 0);
+  // Finance metrics — use the same ledger-first model as /api/owner/revenue.
+  let financeRows = [];
+  let financeRecon = null;
+  try {
+    const finance = await loadLedgerFirstFinanceRows(sb);
+    financeRows = finance.rows || [];
+    financeRecon = finance.reconciliation || null;
+  } catch (financeErr) {
+    console.error('Monitor finance ledger-first load error:', financeErr);
+  }
+
+  const financeTotals = summarizeFinanceRows(financeRows);
+  const gross = financeTotals.totalCharged;
+  const pendingPayouts = financeTotals.pendingPayouts;
+  const netRevenue = financeTotals.totalPlatformRevenue;
   const stripeFees = completed.reduce((s, b) => {
     const c = Number(b.amount_charged || b.total_price) || 0;
     return s + (c > 0 ? Math.round(c * 0.029) + 30 : 0);
   }, 0);
-  const netRevenue = gross - stripeFees;
-  const pendingPayouts = completed.filter(b => b.assembler_due && b.payout_status !== 'paid')
-    .reduce((s, b) => s + (Number(b.assembler_due) || 0), 0);
 
   // Booking velocity — last 7 days vs prev 7 days
   const d7  = new Date(now - 7  * 86400000).toISOString();
@@ -98,6 +108,9 @@ export default async function handler(req, res) {
       netRevenueDollars: (netRevenue / 100).toFixed(2),
       avgJobValueDollars: completed.length ? ((gross / completed.length) / 100).toFixed(2) : 0,
       completionRate: bookings.length ? Math.round(completed.length / bookings.length * 100) + '%' : '0%',
+      financeSource: 'ledger_first',
+      legacyRows: financeRecon?.legacyRows ?? null,
+      reconciliationMismatches: financeRecon?.mismatchedCount ?? null,
     },
     growth: {
       bookingsLast7Days: last7,
@@ -128,7 +141,7 @@ export default async function handler(req, res) {
   }
 
   // ── Ask Claude Haiku to synthesize ──────────────────────────────
-  const client = new Anthropic({ apiKey: key });
+  const client = key ? new Anthropic({ apiKey: key }) : null;
 
   const { message } = req.body;
   const isChat = !!message;
@@ -166,15 +179,38 @@ Give me:
 
 Use the actual numbers from the data. Be direct.`;
 
-  const aiMsg = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 600,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMsg }],
-  });
+  let aiReply = '';
+  if (client) {
+    try {
+      const aiMsg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMsg }],
+      });
+      aiReply = aiMsg.content[0]?.text?.trim() || '';
+    } catch (aiErr) {
+      console.error('Owner monitor AI synthesis error:', aiErr);
+    }
+  }
+
+  if (!aiReply) {
+    aiReply = [
+      'URGENT:',
+      `1. Stale pending bookings: ${platformData.alerts.stalePendingCount}`,
+      `2. Missed jobs: ${platformData.alerts.missedJobsCount}`,
+      '',
+      'REVENUE:',
+      `1. Gross: $${platformData.financials.grossRevenueDollars}`,
+      `2. Net: $${platformData.financials.netRevenueDollars}`,
+      '',
+      'ACTION:',
+      '1. Review pending payouts and stale pending jobs in owner dashboard.',
+    ].join('\n');
+  }
 
   return res.status(200).json({
-    reply: aiMsg.content[0]?.text?.trim(),
+    reply: aiReply,
     data: platformData,
   });
 }
