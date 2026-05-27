@@ -74,6 +74,11 @@ export default async function handler(req, res) {
         subject: `Reminder: Your appointment is tomorrow — ${booking.ref}`,
         html,
         replyTo: 'service@assembleatease.com',
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'reminder',
+          recipientType: 'customer',
+        },
       });
 
       // Mark reminder sent
@@ -128,6 +133,10 @@ export default async function handler(req, res) {
     <p style="margin:16px 0 0;font-size:13px;color:#71717a">Log in to the <a href="https://www.assembleatease.com/owner" style="color:#00BFFF">owner dashboard</a> to take action.</p>
   </td></tr></table>
 </div></body></html>`,
+        meta: {
+          notificationType: 'cron_alert',
+          recipientType: 'owner',
+        },
       });
     } catch (e) { console.error('Auth expiry warning email error:', e); }
   }

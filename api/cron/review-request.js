@@ -63,6 +63,11 @@ export default async function handler(req, res) {
         subject: 'How was your experience? Leave a review!',
         html,
         replyTo: ownerEmail(),
+        meta: {
+          bookingId: b.id,
+          notificationType: 'review_request',
+          recipientType: 'customer',
+        },
       });
 
       // Mark as sent

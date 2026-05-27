@@ -3,9 +3,118 @@ import { getSupabase } from './_supabase.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
+const DEDUPE_WINDOWS_MIN = {
+  critical: 2,
+  standard: 30,
+  bulk: 24 * 60,
+};
+const BULK_DAILY_CAP = 2;
+
+const CRITICAL_NOTIFICATION_TYPES = new Set([
+  'booking_confirmed',
+  'assignment_confirmation',
+  'job_accepted',
+  'completion',
+  'payment_receipt',
+  'cancellation',
+  'refund',
+  'payment_failed',
+  'capture_failed',
+  'dispatch_offer',
+]);
+
+const BULK_NOTIFICATION_TYPES = new Set([
+  'review_request',
+  'reminder',
+  'daily_summary',
+  'weekly_summary',
+  'cron_alert',
+]);
 
 export function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function inferNotificationType(subject, explicitType) {
+  if (explicitType) return String(explicitType).toLowerCase();
+  const s = String(subject || '').toLowerCase();
+  if (s.includes('daily summary')) return 'daily_summary';
+  if (s.includes('weekly summary')) return 'weekly_summary';
+  if (s.includes('review')) return 'review_request';
+  if (s.includes('reminder')) return 'reminder';
+  if (s.includes('new job assignment')) return 'assignment_confirmation';
+  if (s.includes('new job available')) return 'dispatch_offer';
+  if (s.includes('job accepted') || s.includes('easer is confirmed')) return 'job_accepted';
+  if (s.includes('booking confirmed')) return 'booking_confirmed';
+  if (s.includes('booking cancelled') || s.includes('customer cancelled')) return 'cancellation';
+  if (s.includes('refund')) return 'refund';
+  if (s.includes('payment failed')) return 'payment_failed';
+  if (s.includes('payment receipt') || s.includes('job complete')) return 'payment_receipt';
+  if (s.includes('action required') || s.includes('urgent')) return 'cron_alert';
+  return 'transactional';
+}
+
+function inferPriority(notificationType) {
+  if (CRITICAL_NOTIFICATION_TYPES.has(notificationType)) return 'critical';
+  if (BULK_NOTIFICATION_TYPES.has(notificationType)) return 'bulk';
+  return 'standard';
+}
+
+function normalizeEmail(addr) {
+  return String(addr || '').trim().toLowerCase();
+}
+
+async function insertNotificationLog(sb, payload) {
+  try {
+    await sb.from('notification_log').insert(payload);
+  } catch (_) {
+    // Never fail caller because notification logging failed.
+  }
+}
+
+async function getSuppressionReason(sb, { recipientEmail, subject, notificationType, priority, meta }) {
+  if (meta?.disableDedupe) return null;
+
+  const dedupeWindowMin = Number.isFinite(Number(meta?.dedupeWindowMin))
+    ? Number(meta.dedupeWindowMin)
+    : DEDUPE_WINDOWS_MIN[priority];
+  const dedupeSince = new Date(Date.now() - dedupeWindowMin * 60000).toISOString();
+
+  const { data: recent } = await sb
+    .from('notification_log')
+    .select('id')
+    .eq('channel', 'email')
+    .eq('recipient_email', recipientEmail)
+    .eq('notification_type', notificationType)
+    .eq('subject', subject)
+    .in('status', ['sent', 'suppressed'])
+    .gte('sent_at', dedupeSince)
+    .limit(1);
+
+  if (recent?.length) {
+    return `duplicate_within_${dedupeWindowMin}m`;
+  }
+
+  if (priority === 'bulk' && !meta?.disableDailyCap) {
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const dayCap = Number.isFinite(Number(meta?.dailyCap)) ? Number(meta.dailyCap) : BULK_DAILY_CAP;
+
+    const { count } = await sb
+      .from('notification_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('channel', 'email')
+      .eq('recipient_email', recipientEmail)
+      .eq('notification_type', notificationType)
+      .eq('status', 'sent')
+      .gte('sent_at', dayStart.toISOString());
+
+    if ((count || 0) >= dayCap) {
+      return `daily_cap_reached_${dayCap}`;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -22,6 +131,38 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   if (!KEY) throw new Error('Missing RESEND_API_KEY');
 
   const recipient = Array.isArray(to) ? to[0] : to;
+  const recipientEmail = normalizeEmail(recipient);
+  const notificationType = inferNotificationType(subject, meta.notificationType);
+  const priority = meta.priority || inferPriority(notificationType);
+  const recipientType = meta.recipientType || null;
+
+  if (!recipientEmail) return { ok: false, error: 'Missing recipient email' };
+
+  const sb = getSupabase();
+  const suppressionReason = await getSuppressionReason(sb, {
+    recipientEmail,
+    subject,
+    notificationType,
+    priority,
+    meta,
+  });
+
+  if (suppressionReason) {
+    await insertNotificationLog(sb, {
+      channel: 'email',
+      booking_id: meta.bookingId || null,
+      notification_type: notificationType,
+      recipient_type: recipientType,
+      recipient_email: recipientEmail,
+      recipient_user_id: meta.recipientUserId || null,
+      subject,
+      status: 'suppressed',
+      provider_id: null,
+      error_text: suppressionReason,
+    });
+    return { ok: true, suppressed: true, reason: suppressionReason };
+  }
+
   const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
   if (replyTo) body.reply_to = replyTo;
 
@@ -50,24 +191,21 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   }
 
   // Non-blocking log — never let logging failure break the caller
-  try {
-    const sb = getSupabase();
-    await sb.from('notification_log').insert({
-      channel:           'email',
-      booking_id:        meta.bookingId        || null,
-      notification_type: meta.notificationType || 'transactional',
-      recipient_type:    meta.recipientType    || null,
-      recipient_email:   recipient,
-      recipient_user_id: meta.recipientUserId  || null,
-      subject,
-      status,
-      provider_id:  providerId,
-      error_text:   errorText,
-    });
-  } catch (_) { /* non-fatal */ }
+  await insertNotificationLog(sb, {
+    channel: 'email',
+    booking_id: meta.bookingId || null,
+    notification_type: notificationType,
+    recipient_type: recipientType,
+    recipient_email: recipientEmail,
+    recipient_user_id: meta.recipientUserId || null,
+    subject,
+    status,
+    provider_id: providerId,
+    error_text: errorText,
+  });
 
   if (status === 'failed') return { ok: false, error: errorText };
-  return { ok: true, providerId };
+  return { ok: true, providerId, notificationType, priority };
 }
 
 export function ownerEmail() {
