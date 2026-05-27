@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
 
 /**
  * GET /api/booking/customer-bookings
@@ -69,9 +70,9 @@ export default async function handler(req, res) {
   // Compute stats
   const stats = {
     total: bookings.length,
-    pending: bookings.filter(b => b.status === 'pending').length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    completed: bookings.filter(b => b.status === 'completed').length,
+    pending: bookings.filter(b => b.status === BOOKING_STATUS.PENDING).length,
+    confirmed: bookings.filter(b => b.status === BOOKING_STATUS.CONFIRMED).length,
+    completed: bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length,
   };
 
   return res.status(200).json({ bookings: enriched, stats });

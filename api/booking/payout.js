@@ -1,6 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'completed') {
+  if (booking.status !== BOOKING_STATUS.COMPLETED) {
     return res.status(400).json({ error: 'Only completed bookings can be paid out. Current status: ' + booking.status });
   }
   if (!booking.assembler_id) {
