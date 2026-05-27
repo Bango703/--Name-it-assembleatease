@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { dispatchBooking } from './_dispatch-internal.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 /**
  * POST /api/booking/dispatch
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
     .single();
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'confirmed') {
+  if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return res.status(400).json({ error: `Only confirmed bookings can be dispatched (current: ${booking.status})` });
   }
   if (booking.assembler_id) {
@@ -39,16 +40,21 @@ export default async function handler(req, res) {
   // If force=true, temporarily clear pause/manual flags before dispatching
   if (force) {
     await sb.from('bookings')
-      .update({ dispatch_paused: false, needs_manual_dispatch: false })
+      .update({
+        dispatch_paused: false,
+        needs_manual_dispatch: false,
+        dispatch_status: null,
+        dispatch_attempt: 0,
+      })
       .eq('id', bookingId);
   }
 
   // Cancel any stale open offers so the engine can send a fresh batch
   if (force) {
     await sb.from('dispatch_offers')
-      .update({ offer_status: 'cancelled' })
+      .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
       .eq('booking_id', bookingId)
-      .eq('offer_status', 'sent');
+      .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
   }
 
   // Delegate to the shared engine

@@ -4,6 +4,7 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -40,15 +41,16 @@ export default async function handler(req, res) {
     .from('dispatch_offers')
     .select('*')
     .eq('token', token)
+    .eq('booking_id', bookingId)
     .eq('easer_id', assemblerId)
-    .eq('offer_status', 'sent')
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
     .maybeSingle();
 
   if (offer) {
     // Verify offer not expired
     if (new Date(offer.expires_at) < new Date()) {
       await sb.from('dispatch_offers')
-        .update({ offer_status: 'expired', timed_out_at: now })
+        .update({ offer_status: DISPATCH_OFFER_STATUS.EXPIRED, timed_out_at: now })
         .eq('id', offer.id);
       return res.status(410).json({ error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' });
     }
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
     // Verify booking still exists and is available
     const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
-    if (booking.status !== 'confirmed') return res.status(400).json({ error: 'This booking is no longer available' });
+    if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
     if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
 
     // Get Easer profile
@@ -86,14 +88,14 @@ export default async function handler(req, res) {
 
     // Mark this offer accepted
     await sb.from('dispatch_offers')
-      .update({ offer_status: 'accepted', accepted_at: now })
+      .update({ offer_status: DISPATCH_OFFER_STATUS.ACCEPTED, accepted_at: now })
       .eq('id', offer.id);
 
     // Supersede all other open offers for this booking
     await sb.from('dispatch_offers')
-      .update({ offer_status: 'superseded' })
+      .update({ offer_status: DISPATCH_OFFER_STATUS.SUPERSEDED })
       .eq('booking_id', bookingId)
-      .eq('offer_status', 'sent')
+      .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
       .neq('id', offer.id);
 
     // Update Easer's last_assigned_at for fairness scoring
@@ -123,7 +125,7 @@ export default async function handler(req, res) {
     .from('bookings').select('*').eq('id', bookingId).single();
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'confirmed') return res.status(400).json({ error: 'This booking is no longer available' });
+  if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
 
   const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
   const isAssignment = booking.assignment_token && booking.assignment_token === token

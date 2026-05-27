@@ -2,6 +2,8 @@
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { logActivity } from './_activity.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -28,7 +30,7 @@ export default async function handler(req, res) {
     .single();
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'confirmed') return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
+  if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
   if (booking.assembler_id && !reassign) return res.status(400).json({ error: 'Booking already assigned. Pass reassign:true to override.' });
 
   // Verify assembler exists and is eligible
@@ -52,9 +54,9 @@ export default async function handler(req, res) {
 
   // Cancel any open dispatch offers so Easers don't get a stale offer email
   await sb.from('dispatch_offers')
-    .update({ offer_status: 'cancelled' })
+    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
     .eq('booking_id', bookingId)
-    .eq('offer_status', 'sent');
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
 
   // Generate secure assignment token
   const token = crypto.randomUUID();
@@ -135,6 +137,24 @@ export default async function handler(req, res) {
     jobId: booking.id,
     urgent: true,
   }).catch(e => console.error('Push notification error:', e));
+
+  const didReassign = Boolean(reassign && prevEaserId && prevEaserId !== assemblerId);
+  logActivity(sb, {
+    bookingId: booking.id,
+    eventType: didReassign ? 'reassigned' : 'assigned',
+    actorType: 'owner',
+    actorName: 'Owner',
+    description: didReassign
+      ? `Booking reassigned from ${booking.assembler_name || 'previous Easer'} to ${assembler.full_name}`
+      : `Booking assigned to ${assembler.full_name}`,
+    metadata: {
+      newAssemblerId: assembler.id,
+      newAssemblerName: assembler.full_name,
+      previousAssemblerId: prevEaserId || null,
+      previousAssemblerName: booking.assembler_name || null,
+      tier: assembler.tier,
+    },
+  });
 
   return res.status(200).json({ ok: true, assignedTo: assembler.full_name });
 }
