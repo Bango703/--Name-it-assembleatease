@@ -1,14 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Book a Service — AssembleAtEase Austin</title>
+  <title>Book a Service � AssembleAtEase Austin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Book professional furniture assembly, TV mounting, home repairs, and more in Austin, TX. No account needed — pay only after the job is done." />
+  <meta name="description" content="Book professional furniture assembly, TV mounting, home repairs, and more in Austin, TX. No account needed � pay only after the job is done." />
   <link rel="stylesheet" href="/assets/css/style.css" />
   <script src="https://js.stripe.com/v3/" crossorigin="anonymous"></script>
   <style>
-    /* ── Page layout ── */
+    /* -- Page layout -- */
     .book-page { min-height: 100vh; background: var(--off-white); }
     .book-nav {
       position: sticky; top: 0; z-index: 100;
@@ -34,7 +34,7 @@
     }
     .book-trust-line span { display: flex; align-items: center; gap: 4px; }
 
-    /* ── Progress bar ── */
+    /* -- Progress bar -- */
     .book-progress { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 2rem; }
     .book-progress-inner {
       max-width: 960px; margin: 0 auto;
@@ -61,7 +61,7 @@
     .progress-line { flex: 0 0 2rem; height: 2px; background: var(--border); border-radius: 2px; }
     .progress-line.done { background: var(--teal); }
 
-    /* ── Main content ── */
+    /* -- Main content -- */
     .book-main {
       max-width: 1060px; margin: 0 auto;
       display: grid; grid-template-columns: 1fr 320px;
@@ -73,13 +73,13 @@
       .book-sidebar { order: -1; }
     }
 
-    /* ── Step cards ── */
+    /* -- Step cards -- */
     .step-panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; }
     .step-panel.hidden { display: none; }
     .step-heading { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); margin-bottom: 0.35rem; }
     .step-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.55; }
 
-    /* ── Service tiles (multi-select) ── */
+    /* -- Service tiles (multi-select) -- */
     .service-tiles {
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem; margin-bottom: 1.5rem;
@@ -120,7 +120,7 @@
       line-height: 1.5;
     }
 
-    /* ── Sub-category panel ── */
+    /* -- Sub-category panel -- */
     .subcats-wrap { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
     .subcat-panel {
       border: 1.5px solid var(--teal); border-radius: var(--radius-lg);
@@ -190,7 +190,7 @@
     .qty-btn:hover { background: var(--teal-light); border-color: var(--teal); color: var(--teal); }
     .qty-val { font-size: 0.82rem; font-weight: 600; color: var(--ink); min-width: 16px; text-align: center; }
 
-    /* ── Guest/Account step ── */
+    /* -- Guest/Account step -- */
     .account-options { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
     @media (max-width: 480px) { .account-options { grid-template-columns: 1fr; } }
     .account-option {
@@ -205,7 +205,7 @@
     .account-option-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
     .account-link { font-size: 0.82rem; color: var(--teal); text-align: center; display: block; margin-top: 0.75rem; }
 
-    /* ── Form fields ── */
+    /* -- Form fields -- */
     .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
     .form-group { display: flex; flex-direction: column; }
     .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -230,12 +230,12 @@
     .field-error { font-size: 0.75rem; color: var(--red); margin-top: 4px; display: none; }
     .field-error.show { display: block; }
 
-    /* ── Urgency hint ── */
+    /* -- Urgency hint -- */
     .urgency-hint{display:flex;align-items:center;gap:0.6rem;background:#f0fdf4;border:1px solid rgba(22,163,74,0.25);border-radius:var(--radius-md);padding:0.65rem 1rem;margin-bottom:1.25rem;font-size:0.82rem;color:#15803d;line-height:1.4}
     .urgency-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;animation:pulse-dot 2s infinite}
     .urgency-slot{display:inline-flex;align-items:center;gap:0.4rem;background:rgba(22,163,74,0.1);border-radius:999px;padding:0.15rem 0.55rem;font-weight:700;font-size:0.78rem;color:#15803d;white-space:nowrap}
     .urgency-scarcity{color:#dc2626;font-weight:600;font-size:0.78rem}
-    /* ── Date/time picker ── */
+    /* -- Date/time picker -- */
     .dt-section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); margin-bottom: 0.75rem; }
     .dt-cal { border: 1.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; }
     .dt-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--off-white); border-bottom: 1px solid var(--border); }
@@ -258,7 +258,7 @@
     .dt-horizon-note { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
     .dt-horizon-note a { color: var(--teal); }
 
-    /* ── Stripe ── */
+    /* -- Stripe -- */
     #stripe-card-wrap { border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 0.85rem 1rem; background: var(--white); transition: border-color var(--transition); }
     #stripe-card-wrap.focused { border-color: var(--teal); }
     #stripe-card-wrap.invalid { border-color: var(--red); }
@@ -272,13 +272,13 @@
     .almost-done-banner { background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%); border: 1px solid rgba(34,197,94,0.35); border-radius: var(--radius-md); padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; color: #166534; text-align: center; margin-bottom: 1.25rem; }
     .confidence-strip { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
     .confidence-strip span { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: #166534; font-weight: 500; }
-    .confidence-strip span::before { content: '✔'; font-size: 0.75rem; }
+    .confidence-strip span::before { content: '?'; font-size: 0.75rem; }
     .svc-area-ok { display: none; font-size: 0.8rem; font-weight: 600; color: #166534; margin-top: 0.3rem; }
     @media(min-width: 640px) {
       .confidence-strip { flex-direction: row; justify-content: center; gap: 1.5rem; }
     }
 
-    /* ── Action buttons ── */
+    /* -- Action buttons -- */
     .step-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
     .btn-next { flex: 1; padding: 0.9rem 1.5rem; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-md); font-family: var(--font-body); font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: background var(--transition); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-next:hover:not(:disabled) { background: var(--teal-dark); }
@@ -288,7 +288,7 @@
     .step-err { font-size: 0.875rem; color: var(--red); background: var(--red-light); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem; display: none; }
     .step-err.show { display: block; }
 
-    /* ── Sidebar ── */
+    /* -- Sidebar -- */
     .book-sidebar > * { margin-bottom: 1rem; }
     .sidebar-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; }
     .sidebar-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.85rem; }
@@ -302,7 +302,7 @@
     .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
     .sidebar-empty { font-size: 0.875rem; color: var(--muted); padding: 0.5rem 0; }
 
-    /* ── Quick-pick chips ── */
+    /* -- Quick-pick chips -- */
     .qp-wrap { margin-bottom: 0.85rem; }
     .qp-heading { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--teal); margin-bottom: 0.5rem; }
     .qp-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.5rem; }
@@ -322,7 +322,7 @@
     .qp-full-list { display: none; }
     .qp-full-list.open { display: block; }
 
-    /* ── Summary step ── */
+    /* -- Summary step -- */
     .summary-rows { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.5rem; }
     .summary-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--off-white); }
     .summary-row-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
@@ -335,7 +335,7 @@
     .s5-time-btn:hover { border-color: var(--teal); }
     .s5-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); font-weight: 600; }
 
-    /* ── Confirmation ── */
+    /* -- Confirmation -- */
     .confirm-wrap { text-align: center; padding: 2rem 1rem; }
     .confirm-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--green-light); border: 3px solid var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 2rem; }
     .confirm-title { font-family: var(--font-display); font-size: 1.9rem; color: var(--ink); margin-bottom: 0.5rem; }
@@ -356,7 +356,7 @@
       .book-trust-line { display: none; }
     }
 
-    /* ── Mobile app-like ≤ 768px ── */
+    /* -- Mobile app-like = 768px -- */
     @media (max-width: 768px) {
       /* Full-screen step panels, edge-to-edge */
       .book-main { padding: 0; gap: 0; }
@@ -385,7 +385,7 @@
       .btn-next { font-size: 1rem; padding: 0.9rem; }
       .btn-back-link { font-size: 0.85rem; }
 
-      /* Progress bar: compact — show step X of 5 */
+      /* Progress bar: compact � show step X of 5 */
       .book-progress-inner { padding: 0.5rem 1rem; flex-wrap: wrap; gap: 0.35rem; }
       .progress-step { flex: none; gap: 6px; }
       .progress-step:not(.active):not(.done) .progress-label { display: none; }
@@ -395,7 +395,7 @@
       .progress-line { display: none; }
       .progress-label { display: block; font-size: 0.85rem; }
 
-      /* Calendar days 40×40 */
+      /* Calendar days 40�40 */
       .dt-day { min-width: 40px; min-height: 40px; font-size: 0.9rem; }
       .dt-cal-grid { padding: 0.5rem; }
 
@@ -472,59 +472,59 @@
   <div class="book-main">
     <div class="book-form-col">
 
-      <!-- ══ STEP 1 — Services + sub-categories ══ -->
+      <!-- -- STEP 1 � Services + sub-categories -- -->
       <div class="step-panel" id="step-1">
         <div class="step-heading">What do you need help with?</div>
-        <p class="step-sub">Select one or more services — then pick exactly what you need from each. We'll handle everything in one visit.</p>
+        <p class="step-sub">Select one or more services � then pick exactly what you need from each. We'll handle everything in one visit.</p>
 
         <div class="service-tiles" id="service-tiles">
           <div class="service-tile" data-service="Furniture Assembly" data-price="69" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
             <div class="tile-name">Furniture Assembly</div>
-            <div class="tile-from">From $69 · 1–3 hrs</div>
+            <div class="tile-from">From $69 � 1�3 hrs</div>
           </div>
           <div class="service-tile" data-service="TV Mounting" data-price="69" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
             <div class="tile-name">TV &amp; Mounting</div>
-            <div class="tile-from">From $69 · ~1 hr</div>
+            <div class="tile-from">From $69 � ~1 hr</div>
           </div>
           <div class="service-tile" data-service="Home Repairs" data-price="75" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg></div>
             <div class="tile-name">Home Repairs</div>
-            <div class="tile-from">From $75 · 1–2 hrs</div>
+            <div class="tile-from">From $75 � 1�2 hrs</div>
           </div>
           <div class="service-tile" data-service="Smart Home" data-price="69" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
             <div class="tile-name">Smart Home</div>
-            <div class="tile-from">From $69 · ~1 hr</div>
+            <div class="tile-from">From $69 � ~1 hr</div>
           </div>
           <div class="service-tile" data-service="Junk Removal" data-price="75" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>
             <div class="tile-name">Junk Removal</div>
-            <div class="tile-from">From $75 · 1–2 hrs</div>
+            <div class="tile-from">From $75 � 1�2 hrs</div>
           </div>
           <div class="service-tile" data-service="Fitness Equipment" data-price="129" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
             <div class="tile-name">Fitness Equipment</div>
-            <div class="tile-from">From $129 · 1–3 hrs</div>
+            <div class="tile-from">From $129 � 1�3 hrs</div>
           </div>
           <div class="service-tile" data-service="Outdoor &amp; Playsets" data-price="149" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22v-7h6v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="tile-name">Outdoor &amp; Playsets</div>
-            <div class="tile-from">From $149 · 2–4 hrs</div>
+            <div class="tile-from">From $149 � 2�4 hrs</div>
           </div>
           <div class="service-tile" data-service="Office Assembly" data-price="95" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
             <div class="tile-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
             <div class="tile-name">Office Assembly</div>
-            <div class="tile-from">From $95 · 1–3 hrs</div>
+            <div class="tile-from">From $95 � 1�3 hrs</div>
           </div>
           <div class="service-tile" data-service="Moving Help" data-price="0" onclick="tileClick(this)">
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
@@ -549,7 +549,7 @@
           <div class="form-group">
             <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
             <textarea class="form-textarea" id="s1-details" rows="2"
-              placeholder="Any extra details — brand, model, floor, access info..."></textarea>
+              placeholder="Any extra details � brand, model, floor, access info..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> This is a large or complex job &mdash; I'd prefer a custom quote</label>
@@ -562,10 +562,10 @@
         </div>
       </div>
 
-      <!-- ══ STEP 2 — removed (auto guest mode) ══ -->
+      <!-- -- STEP 2 � removed (auto guest mode) -- -->
       <div class="step-panel hidden" id="step-2" style="display:none!important">
         <div class="step-heading">How do you want to continue?</div>
-        <p class="step-sub">Create a free account to track your bookings, or continue as a guest — either way takes less than 2 minutes.</p>
+        <p class="step-sub">Create a free account to track your bookings, or continue as a guest � either way takes less than 2 minutes.</p>
 
         <div class="account-options">
           <div class="account-option" id="opt-guest" onclick="selectAccountMode('guest')">
@@ -591,7 +591,7 @@
         </div>
       </div>
 
-      <!-- ══ STEP 3 — Date, time, address ══ -->
+      <!-- -- STEP 3 � Date, time, address -- -->
       <div class="step-panel hidden" id="step-3">
         <div class="step-heading">When &amp; where?</div>
         <p class="step-sub">Pick a date and time, then enter your service address.</p>
@@ -660,7 +660,7 @@
         </div>
       </div>
 
-      <!-- ══ STEP 4 — Contact info ══ -->
+      <!-- -- STEP 4 � Contact info -- -->
       <div class="step-panel hidden" id="step-4">
         <div class="step-heading">Your contact info</div>
         <p class="step-sub">We'll send confirmation details to your email. No account required.</p>
@@ -702,7 +702,7 @@
         </div>
       </div>
 
-      <!-- ══ STEP 5 — Payment / Quote ══ -->
+      <!-- -- STEP 5 � Payment / Quote -- -->
       <div class="step-panel hidden" id="step-5">
         <div class="almost-done-banner" id="s5-banner">You&rsquo;re almost done &mdash; just 1 step left</div>
         <div class="step-heading" id="s5-heading">Secure your booking</div>
@@ -768,15 +768,15 @@
             <div style="display:flex;flex-direction:column;gap:0.85rem">
               <div style="display:flex;align-items:flex-start;gap:0.75rem">
                 <div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
-                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Within 1 hour</strong> — we confirm your appointment and match you with a verified Easer.</div>
+                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Within 1 hour</strong> � we confirm your appointment and match you with a verified Easer.</div>
               </div>
               <div style="display:flex;align-items:flex-start;gap:0.75rem">
                 <div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
-                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Day before</strong> — your Easer sends a reminder with their name and estimated arrival time.</div>
+                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Day before</strong> � your Easer sends a reminder with their name and estimated arrival time.</div>
               </div>
               <div style="display:flex;align-items:flex-start;gap:0.75rem">
                 <div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
-                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">After the job</strong> — the Easer marks it complete when the work is done. Only then is your card charged.</div>
+                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">After the job</strong> � the Easer marks it complete when the work is done. Only then is your card charged.</div>
               </div>
             </div>
           </div>
@@ -795,7 +795,7 @@
 
     </div><!-- /form-col -->
 
-    <!-- ── SIDEBAR ── -->
+    <!-- -- SIDEBAR -- -->
     <aside class="book-sidebar">
       <div class="sidebar-card" id="order-summary-card">
         <div class="sidebar-title">Your booking</div>
@@ -840,410 +840,19 @@
 </footer>
 
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
+<script src="/assets/js/booking-source-of-truth.js"></script>
 <script>
-// ── Urgency hint: derive from actual slot availability ───────────────────────
-(function(){
-  var el=document.getElementById('urgency-next');
-  var sc=document.getElementById('urgency-scarce');
-  if(!el)return;
-  // Same slot definitions and disable logic as the calendar picker
-  var ALL_SLOTS=[
-    {label:'7:00 AM \u2013 9:00 AM',  startH:7},
-    {label:'9:00 AM \u2013 11:00 AM', startH:9},
-    {label:'11:00 AM \u2013 1:00 PM', startH:11},
-    {label:'1:00 PM \u2013 3:00 PM',  startH:13},
-    {label:'3:00 PM \u2013 5:00 PM',  startH:15},
-    {label:'5:00 PM \u2013 7:00 PM',  startH:17}
-  ];
-  var nowHour=new Date().getHours()+1; // require 1hr notice (matches renderTimes)
-  var available=ALL_SLOTS.filter(function(s){return s.startH>nowHour;});
-  if(available.length>0){
-    el.textContent='Today \u2014 '+available[0].label;
-    sc.textContent='Only '+available.length+' slot'+(available.length===1?'':'s')+' left today';
-  } else {
-    // No more slots today — show tomorrow's first slot (7 AM, all slots available)
-    var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var tom=new Date(); tom.setDate(tom.getDate()+1);
-    var isWeekend=tom.getDay()===0||tom.getDay()===6;
-    el.textContent=days[tom.getDay()]+' \u2014 '+ALL_SLOTS[0].label;
-    sc.textContent=isWeekend?'Weekend slots available':'First slot tomorrow';
-  }
-})();
-</script>
-<script>
-// ════════════════════════════════════════════════════════════════════════════
-// SUB-CATEGORY DATA
-// ════════════════════════════════════════════════════════════════════════════
-var SUBCATS = {
-  'Furniture Assembly': [
-    { group: 'Seating & Sofas', items: [
-      { name: 'Accent chair / armchair', price: 69 },
-      { name: 'Sofa (2\u20133 seat, standard)', price: 89 },
-      { name: 'Sectional sofa (L-shape)', price: 125, priceMax: 155, popular: true },
-      { name: 'Sectional sofa (U-shape / oversized)', price: 179 },
-      { name: 'Sleeper sofa / sofa bed', price: 109 },
-      { name: 'Ottoman (storage)', price: 55 },
-      { name: 'Bench (entryway or bedroom)', price: 55 }
-    ]},
-    { group: 'Bedroom', items: [
-      { name: 'Bed frame \u2014 twin / full', price: 85 },
-      { name: 'Bed frame \u2014 queen', price: 95, popular: true },
-      { name: 'Bed frame \u2014 king / cal king', price: 109 },
-      { name: 'Bed frame with storage drawers', price: 125 },
-      { name: 'Platform bed with upholstered headboard', price: 135 },
-      { name: 'Bunk bed / loft bed', price: 149 },
-      { name: 'Trundle bed', price: 109 },
-      { name: 'Crib / toddler bed', price: 85 },
-      { name: 'Nightstand (single)', price: 55 },
-      { name: 'Dresser (up to 6 drawers)', price: 85 },
-      { name: 'Dresser (7+ drawers / double)', price: 109 },
-      { name: 'Wardrobe / armoire (freestanding)', price: 109, priceMax: 135 },
-      { name: 'IKEA PAX wardrobe (single unit)', price: 139, popular: true },
-      { name: 'IKEA PAX wardrobe (per additional unit)', price: 79, addon: true },
-      { name: 'Vanity with mirror', price: 95 }
-    ]},
-    { group: 'Home Office & Study', items: [
-      { name: 'Desk (simple, flat-pack)', price: 69 },
-      { name: 'Desk (L-shape / corner)', price: 109 },
-      { name: 'Standing desk (electric)', price: 109 },
-      { name: 'Office chair (standard)', price: 55 },
-      { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 69 },
-      { name: 'Bookcase / shelving unit (6+ shelves)', price: 89 },
-      { name: 'File cabinet (2\u20134 drawer)', price: 55 }
-    ]},
-    { group: 'Dining & Kitchen', items: [
-      { name: 'Dining table (standard)', price: 79 },
-      { name: 'Dining table (extendable / large)', price: 109 },
-      { name: 'Dining chairs (per 2 chairs)', price: 39 },
-      { name: 'Dining chairs (set of 4\u20136)', price: 75, priceMax: 95 },
-      { name: 'Bar stool (per 2 stools)', price: 39 },
-      { name: 'Kitchen island (freestanding)', price: 95 },
-      { name: 'China cabinet / hutch', price: 109 },
-      { name: 'Buffet / sideboard', price: 85 }
-    ]},
-    { group: 'Living Room', items: [
-      { name: 'Coffee table (simple)', price: 55 },
-      { name: 'Coffee table (lift-top / storage)', price: 69 },
-      { name: 'Side / end table', price: 49 },
-      { name: 'TV stand / media console', price: 75 },
-      { name: 'Entertainment center (large)', price: 125 },
-      { name: 'Console table', price: 59 }
-    ]},
-    { group: 'Outdoor & Patio', items: [
-      { name: 'Outdoor dining set (table + 4 chairs)', price: 109 },
-      { name: 'Outdoor dining set (table + 6+ chairs)', price: 139 },
-      { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 125 },
-      { name: 'Adirondack / Adirondack set (per 2)', price: 59 },
-      { name: 'Patio umbrella + base', price: 59 },
-      { name: 'Pergola / gazebo (kit assembly)', price: 225, priceMax: 325 },
-      { name: 'Fire pit (assembly only)', price: 75 },
-      { name: 'Grill (gas / charcoal assembly)', price: 85 },
-      { name: 'Storage shed (small kit)', price: 225, priceMax: 325 }
-    ]},
-    { group: 'Add-ons', items: [
-      { name: 'Furniture disposal (per piece)', price: 45, addon: true },
-      { name: 'Move to another room (per piece)', price: 29, addon: true },
-      { name: 'Broken hardware repair / replacement', price: 29, addon: true },
-      { name: 'Rush / same-day assembly', price: 39, addon: true }
-    ]}
-  ],
-  'TV Mounting': [
-    { group: 'TV Mounting by Size', items: [
-      { name: 'TV up to 40\u201d (standard wall)', price: 69 },
-      { name: 'TV 41\u201d\u201355\u201d (standard wall)', price: 79, popular: true },
-      { name: 'TV 56\u201d\u201365\u201d (standard wall)', price: 89 },
-      { name: 'TV 66\u201d\u201375\u201d (standard wall)', price: 99 },
-      { name: 'TV 76\u201d\u201385\u201d (standard wall)', price: 115 },
-      { name: 'TV 86\u201d+ / commercial display', price: 135, priceMax: 175 },
-      { name: 'Second TV (same visit)', price: 25, addon: true }
-    ]},
-    { group: 'Wall Type Upgrades', items: [
-      { name: 'Brick or concrete wall', price: 45, addon: true },
-      { name: 'Tile wall', price: 45, addon: true },
-      { name: 'Steel stud / metal framing', price: 35, addon: true },
-      { name: 'Above fireplace mount', price: 55, addon: true }
-    ]},
-    { group: 'Cable & Cord Management', items: [
-      { name: 'Surface cord cover (raceway, up to 6 ft)', price: 55 },
-      { name: 'In-wall cord concealment', price: 99, popular: true },
-      { name: 'In-wall cord concealment (brick / concrete)', price: 115 },
-      { name: 'Cable management box / hub install', price: 45 }
-    ]},
-    { group: 'Shelves & Wall Items', items: [
-      { name: 'Floating shelf \u2014 single (up to 36\u201d)', price: 55 },
-      { name: 'Floating shelf \u2014 single (37\u201d\u201360\u201d)', price: 69 },
-      { name: 'Floating shelves \u2014 set of 3', price: 115 },
-      { name: 'Floating shelves \u2014 set of 5+', price: 155 },
-      { name: 'Heavy-duty shelf (sawtooth / bracket, per shelf)', price: 65 },
-      { name: 'Gallery wall \u2014 up to 5 pieces', price: 75 },
-      { name: 'Gallery wall \u2014 6\u201310 pieces', price: 105, popular: true },
-      { name: 'Gallery wall \u2014 11\u201320 pieces', price: 155 },
-      { name: 'Single framed picture / mirror (up to 30 lbs)', price: 45 },
-      { name: 'Heavy mirror / artwork (30\u201380 lbs)', price: 65 },
-      { name: 'Full-length mirror (floor lean / anchor)', price: 45 }
-    ]},
-    { group: 'Window Treatments', items: [
-      { name: 'Curtain rod \u2014 1 window', price: 55 },
-      { name: 'Curtain rod \u2014 2 windows', price: 85, popular: true },
-      { name: 'Curtain rod \u2014 3 windows', price: 110 },
-      { name: 'Curtain rod \u2014 4 windows', price: 135 },
-      { name: 'Curtain rod \u2014 5+ windows (per additional)', price: 25, addon: true },
-      { name: 'Double curtain rod (per window)', price: 15, addon: true },
-      { name: 'Blind install \u2014 1 window', price: 45 },
-      { name: 'Blind install \u2014 per additional window', price: 25, addon: true },
-      { name: 'Cellular shade / roller shade install (per window)', price: 45 },
-      { name: 'Motorized blind / shade install (per window)', price: 65 }
-    ]},
-    { group: 'Mounting Add-ons', items: [
-      { name: 'TV mount hardware (if not provided)', price: 25, addon: true },
-      { name: 'HDMI / cable routing to components', price: 25, addon: true },
-      { name: 'Soundbar mount (below/above TV)', price: 35, addon: true },
-      { name: 'Patch drywall after unmount (small)', price: 45, addon: true }
-    ]}
-  ],
-  'Home Repairs': [
-    { group: 'Drywall & Walls', items: [
-      { name: 'Drywall patch \u2014 nail / screw holes (up to 10)', price: 65 },
-      { name: 'Drywall patch \u2014 small hole (up to 4\u201d)', price: 75 },
-      { name: 'Drywall patch \u2014 medium hole (4\u201d\u20138\u201d)', price: 95 },
-      { name: 'Drywall patch \u2014 large hole (8\u201d\u201312\u201d)', price: 125 },
-      { name: 'Drywall patch \u2014 textured finish (per patch)', price: 25, addon: true },
-      { name: 'Drywall patch \u2014 multiple (3+ same visit)', price: 145, priceMax: 195 },
-      { name: 'Caulking \u2014 tub / shower / window (per run)', price: 65 },
-      { name: 'Grout repair (per 2 sq ft)', price: 75 }
-    ]},
-    { group: 'Doors & Locks', items: [
-      { name: 'Door hinge tighten / realign', price: 65 },
-      { name: 'Door hinge replacement (per hinge)', price: 55 },
-      { name: 'Door handle / knob replacement', price: 65 },
-      { name: 'Deadbolt install / replace', price: 75 },
-      { name: 'Door lock rekey (per lock)', price: 55 },
-      { name: 'Door stopper install', price: 35 },
-      { name: 'Door sweep / weatherstripping replace', price: 65 },
-      { name: 'Sliding door track repair / adjust', price: 75 },
-      { name: 'Screen door repair / re-screen', price: 75 },
-      { name: 'Peephole install', price: 45 }
-    ]},
-    { group: 'Cabinet & Hardware', items: [
-      { name: 'Cabinet door rehang / realign (per door)', price: 45 },
-      { name: 'Cabinet hinge replacement (per hinge)', price: 35 },
-      { name: 'Cabinet hardware install \u2014 up to 10 knobs/pulls', price: 65 },
-      { name: 'Cabinet hardware install \u2014 11\u201320 knobs/pulls', price: 95 },
-      { name: 'Cabinet hardware install \u2014 full kitchen (20+)', price: 125 },
-      { name: 'Drawer slide replacement (per pair)', price: 55 },
-      { name: 'Soft-close hinge install (per door)', price: 25 }
-    ]},
-    { group: 'Plumbing (labor only, parts not included)', items: [
-      { name: 'Faucet replacement \u2014 bathroom', price: 85 },
-      { name: 'Faucet replacement \u2014 kitchen', price: 95 },
-      { name: 'Showerhead replacement', price: 65 },
-      { name: 'Toilet seat replacement', price: 55 },
-      { name: 'Toilet running / flapper repair', price: 65 },
-      { name: 'Under-sink supply line replacement', price: 65 },
-      { name: 'P-trap / drain repair (per drain)', price: 75 }
-    ]},
-    { group: 'Lighting & Electrical (no panel work)', items: [
-      { name: 'Light fixture swap (1\u20131 replacement)', price: 75 },
-      { name: 'Ceiling fan install (existing wiring)', price: 95 },
-      { name: 'Ceiling fan install (no existing wiring)', price: 0, customQuote: true },
-      { name: 'Dimmer switch install (per switch)', price: 55 },
-      { name: 'GFCI outlet replacement (per outlet)', price: 55 },
-      { name: 'Outdoor light fixture replace', price: 75 },
-      { name: 'Under-cabinet light install (per run)', price: 75 }
-    ]},
-    { group: 'Safety & Misc', items: [
-      { name: 'Smoke / CO detector install (per unit)', price: 45 },
-      { name: 'Smoke / CO detector install (4-pack)', price: 125 },
-      { name: 'Baby / child proofing (full room)', price: 75 },
-      { name: 'Furniture wall anchor (tip-over, per piece)', price: 35 },
-      { name: 'Furniture wall anchor (4-piece set)', price: 95 },
-      { name: 'Gutter cleaning \u2014 per 20 linear ft', price: 85 },
-      { name: 'Gutter cleaning \u2014 full home (up to 80 ft)', price: 175, priceMax: 225 },
-      { name: 'Towel bar / toilet paper holder install', price: 45 },
-      { name: 'Grab bar install (ADA / accessibility)', price: 75 }
-    ]},
-    { group: 'Add-ons', items: [
-      { name: 'Parts / materials sourcing fee', price: 15, addon: true },
-      { name: 'Photo documentation of work', price: 0, addon: true },
-      { name: 'Rush / same-day repair', price: 35, addon: true }
-    ]}
-  ],
-  'Smart Home': [
-    { group: 'Climate Control', items: [
-      { name: 'Smart thermostat \u2014 Nest, Ecobee, Honeywell', price: 79, popular: true },
-      { name: 'Smart thermostat (no C-wire, adapter needed)', price: 99 },
-      { name: 'Smart vent install (per vent)', price: 45 },
-      { name: 'Smart AC controller (window / mini-split)', price: 55 },
-      { name: 'Whole-home thermostat multi-zone (per zone)', price: 75 }
-    ]},
-    { group: 'Security & Access', items: [
-      { name: 'Smart doorbell \u2014 Ring, Nest, Eufy', price: 85, popular: true },
-      { name: 'Smart doorbell (hardwired replacement)', price: 95 },
-      { name: 'Smart lock \u2014 deadbolt replacement', price: 95 },
-      { name: 'Smart lock \u2014 lever handle', price: 95 },
-      { name: 'Smart lock + deadbolt combo', price: 135 },
-      { name: 'Smart garage door opener / controller', price: 75 },
-      { name: 'Keypad entry install (outdoor)', price: 75 }
-    ]},
-    { group: 'Cameras', items: [
-      { name: 'Indoor security camera (plug-in)', price: 55 },
-      { name: 'Indoor camera (mount + cable manage)', price: 79 },
-      { name: 'Outdoor camera \u2014 eave / soffit mount', price: 95 },
-      { name: 'Outdoor camera \u2014 brick / concrete', price: 95 },
-      { name: 'Camera system \u2014 2 cameras', price: 135 },
-      { name: 'Camera system \u2014 4 cameras', price: 225, popular: true },
-      { name: 'Camera system \u2014 6+ cameras', price: 295, priceMax: 375 },
-      { name: 'NVR / DVR setup + camera config', price: 95 }
-    ]},
-    { group: 'Lighting', items: [
-      { name: 'Smart bulb install + app setup (per room, up to 4 bulbs)', price: 45 },
-      { name: 'Smart switch install (per switch)', price: 55 },
-      { name: 'Smart dimmer install (per switch)', price: 60 },
-      { name: 'Smart plug install + setup (per 2 plugs)', price: 35 },
-      { name: 'LED strip lighting \u2014 per 10 ft run', price: 55 },
-      { name: 'Outdoor smart lighting (per fixture)', price: 65 }
-    ]},
-    { group: 'Network & Hubs', items: [
-      { name: 'Wi-Fi router setup + optimization', price: 65 },
-      { name: 'Wi-Fi extender / mesh node install (per node)', price: 55 },
-      { name: 'Mesh network (3-node setup, full home)', price: 125 },
-      { name: 'Smart home hub setup (Alexa, Google, Apple)', price: 75 },
-      { name: 'Smart home hub + device automation setup', price: 115 },
-      { name: 'TV streaming device setup (Apple TV, Roku, Fire)', price: 45 }
-    ]},
-    { group: 'Add-ons', items: [
-      { name: 'App setup + walkthrough (per platform)', price: 25, addon: true },
-      { name: 'Voice assistant integration (Alexa / Google)', price: 25, addon: true },
-      { name: 'Automation / routine programming (per device)', price: 15, addon: true },
-      { name: 'Device migration (old to new system)', price: 35, addon: true }
-    ]}
-  ],
-  'Outdoor & Playsets': [
-    { group: 'Playsets & Backyard Structures', items: [
-      { name: 'Swing set / backyard playset assembly', price: 249, popular: true },
-      { name: 'Trampoline assembly', price: 165 },
-      { name: 'Pergola / gazebo kit assembly', price: 275, priceMax: 375 },
-      { name: 'Storage shed (small kit)', price: 249, priceMax: 349 },
-      { name: 'Monkey bars / climbing frame', price: 225 },
-      { name: 'Sandbox / outdoor playhouse', price: 145 }
-    ]},
-    { group: 'Sports & Recreation', items: [
-      { name: 'Basketball hoop assembly', price: 179 },
-      { name: 'Outdoor swing / glider set', price: 145 },
-      { name: 'Patio swing / hanging chair', price: 125 },
-      { name: 'Portable pickleball / sports net setup', price: 95 }
-    ]},
-    { group: 'Add-ons', items: [
-      { name: 'Anchoring / leveling / safety hardware', price: 45, addon: true },
-      { name: 'Disassembly before move or pickup', price: 95, addon: true },
-      { name: 'Same-day / rush outdoor assembly', price: 65, addon: true },
-      { name: 'Heavy-duty material haul-away', price: 75, addon: true }
-    ]}
-  ],
-  'Office Assembly': [
-    { group: 'Desks & Workstations', items: [
-      { name: 'Desk (simple flat-pack)', price: 95 },
-      { name: 'Desk (L-shape / executive)', price: 145, popular: true },
-      { name: 'Standing desk (electric)', price: 155 },
-      { name: 'Cubicle workstation / multi-desk setup', price: 275, priceMax: 395 }
-    ]},
-    { group: 'Seating & Storage', items: [
-      { name: 'Office chair (standard)', price: 65 },
-      { name: 'Office chair (ergonomic / heavy-duty)', price: 85 },
-      { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 85 },
-      { name: 'Bookcase / shelving unit (6+ shelves)', price: 105 },
-      { name: 'File cabinet (2–4 drawer)', price: 75 },
-      { name: 'Credenza / sideboard', price: 125 }
-    ]},
-    { group: 'Conference & Specialty', items: [
-      { name: 'Conference table', price: 175, priceMax: 225 },
-      { name: 'Reception desk / front counter', price: 275, priceMax: 425 },
-      { name: 'Wall-mounted storage / overhead cabinet', price: 95 },
-      { name: 'Office partition / divider install', price: 145 }
-    ]},
-    { group: 'Add-ons', items: [
-      { name: 'Cable management / cord routing', price: 25, addon: true },
-      { name: 'Wall anchoring / anti-tip hardware', price: 35, addon: true },
-      { name: 'Rush / same-day office assembly', price: 55, addon: true },
-      { name: 'Furniture disposal / haul-away', price: 45, addon: true }
-    ]}
-  ],
-  'Fitness Equipment': [
-    { group: 'Cardio Equipment', items: [
-      { name: 'Treadmill assembly', price: 149, popular: true },
-      { name: 'Exercise bike / Peloton-style bike', price: 139 },
-      { name: 'Elliptical machine', price: 159 },
-      { name: 'Rowing machine', price: 149 }
-    ]},
-    { group: 'Strength Equipment', items: [
-      { name: 'Weight bench', price: 95 },
-      { name: 'Power rack / squat rack', price: 179 },
-      { name: 'Dumbbell / weight set assembly', price: 115 },
-      { name: 'Home gym / cable machine', price: 249, priceMax: 349 },
-      { name: 'Multi-station gym', price: 0, customQuote: true }
-    ]},
-    { group: 'Add-ons', items: [
-      { name: 'Disassembly before move or storage', price: 49, addon: true },
-      { name: 'Floor leveling / placement support', price: 35, addon: true },
-      { name: 'Safety anchoring / wall securing', price: 45, addon: true },
-      { name: 'Same-day / rush fitness assembly', price: 65, addon: true }
-    ]}
-  ],
-  'Junk Removal': [
-    { group: 'Single Items', items: [
-      { name: 'Small item (chair, lamp, boxes)', price: 75 },
-      { name: 'Medium furniture (dresser, desk, bookcase)', price: 95 },
-      { name: 'Sofa / loveseat', price: 115 },
-      { name: 'Sectional sofa', price: 155 },
-      { name: 'Mattress \u2014 twin / full', price: 95 },
-      { name: 'Mattress \u2014 queen', price: 109 },
-      { name: 'Mattress \u2014 king', price: 129 },
-      { name: 'Mattress + box spring set', price: 155, priceMax: 185 },
-      { name: 'Bed frame (disassemble + remove)', price: 109 }
-    ]},
-    { group: 'Appliances', items: [
-      { name: 'Small appliance (microwave, toaster oven)', price: 65 },
-      { name: 'Washer or dryer (single unit)', price: 125 },
-      { name: 'Washer + dryer set', price: 199 },
-      { name: 'Refrigerator (standard)', price: 139 },
-      { name: 'Refrigerator (side-by-side / French door)', price: 165 },
-      { name: 'Dishwasher', price: 109 },
-      { name: 'Stove / range / oven', price: 125 },
-      { name: 'Air conditioner (window unit)', price: 85 }
-    ]},
-    { group: 'Truck Loads (mixed / large volumes)', items: [
-      { name: '1/4 truck load', price: 225 },
-      { name: '1/2 truck load', price: 375 },
-      { name: 'Full truck load', price: 575 }
-    ]},
-    { group: 'Cleanouts', items: [
-      { name: 'Single room cleanout (small)', price: 275, priceMax: 375 },
-      { name: 'Single room cleanout (large)', price: 375, priceMax: 495 },
-      { name: 'Garage cleanout (standard)', price: 425, priceMax: 595 },
-      { name: 'Garage cleanout (large / heavily loaded)', price: 0, customQuote: true },
-      { name: 'Attic / crawl space cleanout', price: 0, customQuote: true },
-      { name: 'Office / commercial move-out', price: 0, customQuote: true },
-      { name: 'Estate cleanout', price: 0, customQuote: true }
-    ]},
-    { group: 'Specialty & Add-ons', items: [
-      { name: 'E-waste disposal (computers, TVs, monitors)', price: 25, addon: true },
-      { name: 'Paint / hazmat disposal', price: 35, addon: true },
-      { name: 'Disassembly before removal (per piece)', price: 25, addon: true },
-      { name: 'Same-day / rush removal', price: 59, addon: true },
-      { name: 'Stair carry (per flight, per large item)', price: 25, addon: true },
-      { name: 'Donation drop-off (Goodwill / ARC)', price: 25, addon: true }
-    ]}
-  ],
-  'Other': [
-    { group: 'Custom Project', items: [
-      { name: 'Describe your project in the notes below (custom quote)', price: 0, customQuote: true }
-    ]}
-  ]
-};
+// ----------------------------------------------------------------------------
+// SOURCE OF TRUTH (catalog + service area)
+// ----------------------------------------------------------------------------
+var AAE_BOOKING_SOURCE = window.AAE_BOOKING_SOURCE || {};
+var SUBCATS = AAE_BOOKING_SOURCE.subcategories || {};
+var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city: 'Austin', state: 'TX', zipPrefixMin: 786, zipPrefixMax: 788 };
+var SERVICE_AREA_LABEL = SERVICE_AREA.city + ' ' + SERVICE_AREA.state + ' (' + SERVICE_AREA.zipPrefixMin + 'xx-' + SERVICE_AREA.zipPrefixMax + 'xx)';
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // STATE
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 var BOOK = {
   selectedServices: [],
   selectedItems: {},   // { ServiceName: [{name, price, priceMax, addon, customQuote, qty}] }
@@ -1264,9 +873,9 @@ var BOOK = {
 var TIME_SLOTS = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM','5:00 PM \u2013 7:00 PM'];
 var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // HELPERS
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 function esc(s) { var d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
 function showErr(id, msg) { var el = document.getElementById(id); if (!el) return; if (msg) el.textContent = msg; el.classList.add('show'); }
 function hideErr(id) { var el = document.getElementById(id); if (el) el.classList.remove('show'); }
@@ -1281,11 +890,11 @@ function checkServiceZip(val) {
   var inEl  = document.getElementById('s3-zip');
   var isValid = val && val.length === 5 && /^\d{5}$/.test(val);
   var prefix  = isValid ? parseInt(val.slice(0, 3), 10) : 0;
-  var inArea  = isValid && prefix >= 786 && prefix <= 788;
+  var inArea  = isValid && prefix >= SERVICE_AREA.zipPrefixMin && prefix <= SERVICE_AREA.zipPrefixMax;
   if (okEl) okEl.style.display = inArea ? 'block' : 'none';
   if (!errEl) return;
   if (isValid && !inArea) {
-    errEl.textContent = 'Sorry, we don\'t service this ZIP yet. We cover Austin TX (786xx–788xx).';
+    errEl.textContent = 'Sorry, we don\'t service this ZIP yet. We cover ' + SERVICE_AREA_LABEL + '.';
     errEl.style.display = 'block';
     if (inEl) inEl.style.borderColor = '#ef4444';
   } else if (inArea) {
@@ -1305,9 +914,9 @@ function fmtPrice(item) {
   return s;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// SERVICE TILE TOGGLE (multi-select) — called via onclick attribute
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
+// SERVICE TILE TOGGLE (multi-select) � called via onclick attribute
+// ----------------------------------------------------------------------------
 function tileClick(el) {
   var svc = el.dataset.service;
   var idx = BOOK.selectedServices.indexOf(svc);
@@ -1327,9 +936,9 @@ function tileClick(el) {
   updateOrderSummary();
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // RENDER SUB-CATEGORY PANELS
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 var SVC_ICONS = {
   'Furniture Assembly': '\uD83E\uDE91',
   'TV Mounting': '\uD83D\uDCFA',
@@ -1514,9 +1123,9 @@ function changeQty(svc, name, delta) {
   if (found) { found.qty = Math.max(1, found.qty + delta); renderSubcats(); updateOrderSummary(); }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // ORDER SUMMARY
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 function updateOrderSummary() {
   var linesEl   = document.getElementById('order-lines');
   var totalEl   = document.getElementById('order-total');
@@ -1568,11 +1177,11 @@ function updateOrderSummary() {
   noteEl.style.display = 'block';
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // BUNDLE DISCOUNT
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 function getBundleDiscount() {
-  // Requires 2+ different services — picking multiple items within one service doesn't qualify
+  // Requires 2+ different services � picking multiple items within one service doesn't qualify
   var servicesWithItems = BOOK.selectedServices.filter(function(svc) {
     return (BOOK.selectedItems[svc] || []).some(function(i) { return !i.customQuote; });
   });
@@ -1588,9 +1197,9 @@ function getBundleDiscount() {
   return { pct: 0, count: count };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// STEP 2 — ACCOUNT MODE
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
+// STEP 2 � ACCOUNT MODE
+// ----------------------------------------------------------------------------
 function selectAccountMode(mode) {
   BOOK.accountMode = mode;
   document.getElementById('opt-guest').classList.toggle('selected', mode === 'guest');
@@ -1599,9 +1208,9 @@ function selectAccountMode(mode) {
   hideErr('s2-err');
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // PROGRESS & NAV
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 var TOTAL_STEPS = 5;
 var DISPLAY_STEPS = 4;
 // Internal step -> display step (step 2 removed from UI)
@@ -1652,14 +1261,14 @@ function goToStep2Account() {
   hideErr('s1-err');
   BOOK.details = document.getElementById('s1-details').value.trim();
   BOOK.wantsQuote = document.getElementById('s1-quote').checked;
-  BOOK.accountMode = 'guest'; // auto guest — no friction step
+  BOOK.accountMode = 'guest'; // auto guest � no friction step
   goToStep(3);
   // Hesitation trigger: if user pauses without picking a time, nudge urgency bar
   if (window._hesitationTimer) clearTimeout(window._hesitationTimer);
   window._hesitationTimer = setTimeout(function() {
     if (!BOOK.time) {
       var sc = document.getElementById('urgency-scarce');
-      if (sc && !sc.textContent) sc.textContent = '· Slots filling up fast';
+      if (sc && !sc.textContent) sc.textContent = '� Slots filling up fast';
     }
   }, 7000);
 }
@@ -1688,9 +1297,9 @@ function goToStep4Contact() {
     ok = false;
   } else {
     var zipPrefix = parseInt(zip.slice(0, 3), 10);
-    var zipInArea = zip.length === 5 && /^\d{5}$/.test(zip) && zipPrefix >= 786 && zipPrefix <= 788;
+    var zipInArea = zip.length === 5 && /^\d{5}$/.test(zip) && zipPrefix >= SERVICE_AREA.zipPrefixMin && zipPrefix <= SERVICE_AREA.zipPrefixMax;
     if (!zipInArea) {
-      zipErr.textContent = 'Sorry, we don\'t service this ZIP. We cover Austin TX (786xx–788xx).';
+      zipErr.textContent = 'Sorry, we don\'t service this ZIP. We cover ' + SERVICE_AREA_LABEL + '.';
       zipErr.style.display = 'block';
       if (zipEl) zipEl.style.borderColor = '#ef4444';
       ok = false;
@@ -1744,14 +1353,14 @@ async function goToStep5Payment() {
   var TIME_SLOTS = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM'];
 
   document.getElementById('booking-summary').innerHTML =
-    // Services row — go back to step 1
+    // Services row � go back to step 1
     '<div class="summary-row"><span class="summary-row-icon">' + SVGSVC + '</span>'
       + '<div style="flex:1"><div class="summary-row-label">Services'
       + '<button class="summary-row-edit" onclick="goToStep(1)">Edit</button></div>'
       + '<div class="summary-row-value">' + esc(svcSummary) + '</div>'
       + '</div></div>' +
 
-    // Date & time row — inline pickers
+    // Date & time row � inline pickers
     editRow('dt', SVGCAL, 'Date &amp; time',
       summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time,
       '<input type="date" class="summary-addr-input" id="s5-dt-date" value="' + escAttr(BOOK.date) + '" min="' + escAttr(new Date(Date.now()+86400000).toISOString().slice(0,10)) + '" />'
@@ -1761,14 +1370,14 @@ async function goToStep5Payment() {
       + '<button onclick="saveDtEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
     ) +
 
-    // Address row — inline text input
+    // Address row � inline text input
     editRow('addr', SVGPIN, 'Address',
       esc(BOOK.address),
       '<input type="text" class="summary-addr-input" id="s5-addr-input" value="' + escAttr(BOOK.address) + '" />'
       + '<button onclick="saveAddrEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
     ) +
 
-    // Contact row — inline fields
+    // Contact row � inline fields
     editRow('contact', SVGUSER, 'Contact',
       esc(first + ' ' + last) + ' &nbsp;&middot;&nbsp; ' + esc(email) + ' &nbsp;&middot;&nbsp; ' + esc(BOOK.phone),
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem">'
@@ -1782,7 +1391,7 @@ async function goToStep5Payment() {
 
   // Calculate and display order total with tax
   (function() {
-    var TX_TAX_RATE = 0.0825; // 8.25% — Texas 6.25% + Austin 2%
+    var TX_TAX_RATE = 0.0825; // 8.25% � Texas 6.25% + Austin 2%
     var hasCustom = false, subtotal = 0;
     var lineHtml = '';
     BOOK.selectedServices.forEach(function(svc) {
@@ -1840,7 +1449,7 @@ async function goToStep5Payment() {
   BOOK._isQuoteFlow = isQuoteFlow;
 
   if (isQuoteFlow) {
-    document.getElementById('s5-banner').textContent = 'Almost done — one last step';
+    document.getElementById('s5-banner').textContent = 'Almost done � one last step';
     document.getElementById('s5-heading').textContent = 'Submit your quote request';
     document.getElementById('s5-sub').innerHTML = 'No payment needed. We\'ll review your project and send you a <strong>custom quote in as little as 1 hour</strong>.';
     document.getElementById('s5-payment-section').style.display = 'none';
@@ -1920,10 +1529,10 @@ function saveContactEdit() {
   toggleS5Edit('contact');
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // PRE-SELECT FROM URL PARAM
-// ════════════════════════════════════════════════════════════════════════════
-// ── ADDRESS AUTOCOMPLETE (Nominatim) ─────────────────────────────────────────
+// ----------------------------------------------------------------------------
+// -- ADDRESS AUTOCOMPLETE (Nominatim) -----------------------------------------
 (function initAddressAutocomplete() {
   var input = document.getElementById('s3-street');
   var dropdown = document.getElementById('s3-addr-dropdown');
@@ -1964,7 +1573,7 @@ function saveContactEdit() {
   input.addEventListener('blur', function() { setTimeout(function(){ dropdown.style.display='none'; }, 200); });
 })();
 
-// ── PHONE AUTO-FORMAT + WRAPPER FOCUS STATE ───────────────────────────────────
+// -- PHONE AUTO-FORMAT + WRAPPER FOCUS STATE -----------------------------------
 (function initPhoneFormat() {
   var ph = document.getElementById('s4-phone');
   var wrap = document.getElementById('s4-phone-wrap');
@@ -1996,9 +1605,9 @@ function saveContactEdit() {
   });
 })();
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // DATE/TIME PICKER
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 (function initCal() {
   var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
@@ -2077,9 +1686,9 @@ function saveContactEdit() {
   renderCal(); renderTimes();
 })();
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // STRIPE
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 async function initStripe() {
   if (BOOK._stripe && BOOK._cardEl) return;
   try {
@@ -2109,9 +1718,9 @@ async function initStripe() {
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 // SUBMIT
-// ════════════════════════════════════════════════════════════════════════════
+// ----------------------------------------------------------------------------
 async function submitBooking() {
   var submitBtn = document.getElementById('s5-submit');
   var backBtn   = document.getElementById('s5-back');
@@ -2206,13 +1815,13 @@ function showConfirmation(ref, isQuote) {
 
   // Services summary
   var svcEl = document.getElementById('confirm-services');
-  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' · ') || 'Your services';
+  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' � ') || 'Your services';
 
   // Date & time
   var dtEl = document.getElementById('confirm-datetime');
   if (dtEl && BOOK.date) {
     var dateStr = new Date(BOOK.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-    dtEl.textContent = '📅 ' + dateStr + (BOOK.time ? '  ·  ' + BOOK.time : '');
+    dtEl.textContent = '?? ' + dateStr + (BOOK.time ? '  �  ' + BOOK.time : '');
   }
 
   // Address
@@ -2235,7 +1844,7 @@ function showConfirmation(ref, isQuote) {
       var s = dt + 'T' + String(hr).padStart(2,'0') + '0000';
       var e = dt + 'T' + String(hr+2).padStart(2,'0') + '0000';
       calEl.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
-        + '&text=' + encodeURIComponent('AssembleAtEase — ' + BOOK.selectedServices.join(', '))
+        + '&text=' + encodeURIComponent('AssembleAtEase � ' + BOOK.selectedServices.join(', '))
         + '&dates=' + s + '/' + e
         + '&details=' + encodeURIComponent('Booking ref: ' + (ref||'') + '\nAssembleAtEase Austin TX\n(737) 290-6129')
         + '&location=' + encodeURIComponent(BOOK.address||'Austin, TX');
