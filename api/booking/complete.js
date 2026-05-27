@@ -5,6 +5,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -31,6 +32,10 @@ export default async function handler(req, res) {
   // en_route → arrived → in_progress before the owner marks it done.
   if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Only active bookings can be completed. Current status: ' + booking.status });
+  }
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.COMPLETED);
+  if (transitionErr) {
+    return res.status(400).json({ error: transitionErr });
   }
 
   // ── Stripe: capture payment (or charge balance for deposit jobs) ──
@@ -209,5 +214,5 @@ export default async function handler(req, res) {
   }
 
   logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((amountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged, platformFee, assemblerDue } });
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'completed' } });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED } });
 }
