@@ -33,24 +33,38 @@ export default async function handler(req, res) {
     if (!await rateLimit(ip, 'default')) return res.status(429).json({ error: 'Too many requests.' });
   } catch (_) {}
 
-  const { ref, email, rating, body } = req.body;
+  const payload = (req.body && typeof req.body === 'object') ? req.body : {};
+  const { ref, email, rating, body } = payload;
+  const normalizedRef = String(ref || '').toUpperCase().trim();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const parsedRating = parseInt(rating, 10);
   if (!ref || !email || !rating || !body) {
     return res.status(400).json({ error: 'Missing required fields: ref, email, rating, body' });
   }
-  if (rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1–5' });
-  if (body.trim().length < 10) return res.status(400).json({ error: 'Please write at least a sentence' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail)) {
+    return res.status(400).json({ error: 'Please provide a valid email address.' });
+  }
+  if (normalizedRef.length < 6) {
+    return res.status(400).json({ error: 'Booking reference is invalid.' });
+  }
+  if (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+    return res.status(400).json({ error: 'Rating must be 1-5' });
+  }
+  if (typeof body !== 'string' || body.trim().length < 10) {
+    return res.status(400).json({ error: 'Please write at least a sentence' });
+  }
 
   // Verify booking exists, is completed, and email matches
   const { data: booking, error: bErr } = await sb
     .from('bookings')
     .select('id, ref, customer_name, service, status, customer_email, assembler_id, assembler_name')
-    .eq('ref', ref.toUpperCase().trim())
+    .eq('ref', normalizedRef)
     .single();
 
   if (bErr || !booking) {
     return res.status(404).json({ error: 'Booking not found. Check your reference number.' });
   }
-  if (!booking.customer_email || booking.customer_email.toLowerCase() !== email.toLowerCase()) {
+  if (!booking.customer_email || booking.customer_email.toLowerCase() !== normalizedEmail) {
     return res.status(403).json({ error: 'Email does not match this booking.' });
   }
   if (booking.status !== 'completed') {
@@ -72,20 +86,22 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'A review has already been submitted for this booking.' });
   }
 
-  // Insert review — plain insert without select/single to avoid read-back conflicts
-  const { error: insErr } = await sb
-    .from('reviews')
-    .insert({
-      booking_id:    booking.id,
-      assembler_id:  booking.assembler_id,
-      customer_name: booking.customer_name,
-      service:       booking.service,
-      rating:        parseInt(rating, 10),
-      body:          body.trim(),
-      approved:      true,
-    });
+  // Insert review with transient retry and deterministic duplicate handling.
+  // Do not write assembler_id here: some environments may not have that column.
+  const reviewRow = {
+    booking_id: booking.id,
+    customer_name: booking.customer_name,
+    service: booking.service,
+    rating: parsedRating,
+    body: body.trim(),
+    approved: true,
+  };
+  const { error: insErr } = await insertReviewWithRetry(sb, reviewRow, 2);
 
   if (insErr) {
+    if (insErr.code === '23505') {
+      return res.status(409).json({ error: 'A review has already been submitted for this booking.' });
+    }
     console.error('Review insert error:', insErr.code, insErr.message);
     return res.status(500).json({ error: 'Failed to save review. Please try again.' });
   }
@@ -96,8 +112,8 @@ export default async function handler(req, res) {
     eventType:   'review_submitted',
     actorType:   'customer',
     actorName:   booking.customer_name,
-    description: `Customer left a ${rating}-star review`,
-    metadata:    { rating: parseInt(rating, 10) },
+    description: `Customer left a ${parsedRating}-star review`,
+    metadata:    { rating: parsedRating },
   });
 
   // Recalculate Easer's average rating from all their approved reviews
@@ -108,6 +124,23 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).json({ success: true });
+}
+
+function isTransientInsertError(error) {
+  const transientCodes = new Set(['40001', '40P01', '57P01', '57014']);
+  return transientCodes.has(error?.code);
+}
+
+async function insertReviewWithRetry(sb, reviewRow, maxAttempts = 2) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { error } = await sb.from('reviews').insert(reviewRow);
+    if (!error) return { error: null };
+    lastError = error;
+    if (!isTransientInsertError(error) || attempt === maxAttempts) break;
+    await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+  }
+  return { error: lastError };
 }
 
 /**
