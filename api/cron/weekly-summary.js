@@ -81,6 +81,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Weekly Revenue Summary — ${weekLabel}`,
       html,
+      meta: { notificationType: 'weekly_summary', recipientType: 'owner' },
     });
 
     return res.status(200).json({ sent: true, week: weekLabel });

@@ -117,6 +117,7 @@ export default async function handler(req, res) {
     subject: `Booking Confirmed — ${ref}`,
     html: customerHtml,
     replyTo: TO,
+    meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
   });
 
   if (!result.ok) {
@@ -172,6 +173,7 @@ export default async function handler(req, res) {
     subject: `New Booking (Card Authorized) — ${ref} — ${service}`,
     html: ownerHtml,
     replyTo: email,
+    meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'owner' },
   });
 
   const sb2 = getSupabase();
