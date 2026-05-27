@@ -1,6 +1,8 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from '../booking/_activity.js';
+import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -40,6 +42,16 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
+  const claim = await claimStripeWebhookEvent(sb, event);
+  if (claim.duplicate) {
+    return res.status(200).json({ received: true, duplicate: true });
+  }
+
+  let webhookOutcome = 'processed';
+  let webhookError = null;
+  let webhookBookingId = null;
+  let webhookPaymentIntentId = null;
+  let webhookMetadata = { eventType: event.type };
 
   try {
     switch (event.type) {
@@ -133,35 +145,97 @@ export default async function handler(req, res) {
 
         const { bookingId, isDeposit, depositAmountCents } = pi.metadata;
         if (!bookingId) break;
+        webhookBookingId = bookingId;
+        webhookPaymentIntentId = pi.id;
+
+        const { data: existing } = await sb.from('bookings')
+          .select('id, ref, payment_status, status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit')
+          .eq('id', bookingId)
+          .maybeSingle();
+
+        if (!existing) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
+          break;
+        }
+
+        if (['captured', 'refunded', 'deposit_paid'].includes(existing.payment_status)) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'stale-authorize-event', bookingId, currentPaymentStatus: existing.payment_status };
+          break;
+        }
 
         const paymentMethodId = pi.payment_method;
         const needsDeposit = isDeposit === 'true' && parseInt(depositAmountCents || '0') > 0;
 
-        // Update booking: authorized
-        await sb.from('bookings').update({
+        // Update booking: authorized only from pre-capture states.
+        const { error: authErr } = await sb.from('bookings').update({
           payment_status: 'authorized',
           payment_authorized_at: new Date().toISOString(),
           stripe_payment_method_id: paymentMethodId,
-        }).eq('id', bookingId);
+        }).eq('id', bookingId).neq('payment_status', 'captured').neq('payment_status', 'refunded').neq('payment_status', 'deposit_paid');
+
+        if (authErr) {
+          webhookOutcome = 'failed';
+          webhookError = authErr.message || 'Failed to sync authorized status';
+          break;
+        }
 
         // If deposit job: capture 25% immediately — remaining hold released, card saved for balance later
         if (needsDeposit) {
           const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY);
           const depositCents = parseInt(depositAmountCents);
+          const idempotencyKey = `webhook-deposit-${bookingId}`;
           try {
-            await stripe2.paymentIntents.capture(pi.id, { amount_to_capture: depositCents });
+            await writeFinancialAudit(sb, {
+              eventType: 'capture_attempt',
+              eventSource: 'stripe_webhook',
+              stripeEventId: event.id,
+              bookingId,
+              paymentIntentId: pi.id,
+              idempotencyKey,
+              status: 'processing',
+              eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
+              metadata: { reason: 'deposit_capture', amountToCapture: depositCents },
+            });
+
+            await stripe2.paymentIntents.capture(pi.id, { amount_to_capture: depositCents }, { idempotencyKey });
             await sb.from('bookings').update({
               payment_status: 'deposit_paid',
-            }).eq('id', bookingId);
+            }).eq('id', bookingId).neq('payment_status', 'captured').neq('payment_status', 'refunded');
+
+            await writeFinancialAudit(sb, {
+              eventType: 'capture_attempt',
+              eventSource: 'stripe_webhook',
+              stripeEventId: event.id,
+              bookingId,
+              paymentIntentId: pi.id,
+              idempotencyKey,
+              status: 'processed',
+              eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
+              metadata: { reason: 'deposit_capture', amountToCapture: depositCents },
+            });
           } catch (capErr) {
             console.error('Deposit capture error:', capErr);
+            webhookOutcome = 'failed';
+            webhookError = capErr?.message || 'Deposit capture failed';
+            await writeFinancialAudit(sb, {
+              eventType: 'capture_attempt',
+              eventSource: 'stripe_webhook',
+              stripeEventId: event.id,
+              bookingId,
+              paymentIntentId: pi.id,
+              idempotencyKey,
+              status: 'failed',
+              eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
+              metadata: { reason: 'deposit_capture', amountToCapture: depositCents },
+              error: capErr?.message || 'Deposit capture failed',
+            });
           }
         }
 
         // Send customer confirmation email
-        const { data: bk } = await sb.from('bookings')
-          .select('customer_name, customer_email, ref, service, address, date, time, total_price, deposit_amount, is_deposit')
-          .eq('id', bookingId).maybeSingle();
+        const bk = existing;
 
         if (bk) {
           const totalDisplay = bk.total_price ? `$${(bk.total_price/100).toFixed(2)}` : 'TBD';
@@ -186,16 +260,43 @@ export default async function handler(req, res) {
 
         const { bookingId } = pi.metadata;
         if (!bookingId) break;
+        webhookBookingId = bookingId;
+        webhookPaymentIntentId = pi.id;
+
+        const { data: current } = await sb.from('bookings')
+          .select('id, payment_status, amount_charged, customer_name, customer_email, ref, service, date')
+          .eq('id', bookingId)
+          .maybeSingle();
+
+        if (!current) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
+          break;
+        }
+
+        if (current.payment_status === 'refunded') {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'stale-captured-after-refund', bookingId };
+          break;
+        }
 
         await sb.from('bookings').update({
           payment_status: 'captured',
           amount_charged: pi.amount_received,
-        }).eq('id', bookingId);
+          payment_captured_at: new Date().toISOString(),
+        }).eq('id', bookingId).neq('payment_status', 'refunded');
+
+        logActivity(sb, {
+          bookingId,
+          eventType: 'captured',
+          actorType: 'system',
+          actorName: 'stripe_webhook',
+          description: `Stripe webhook captured payment: $${((pi.amount_received || 0) / 100).toFixed(2)}`,
+          metadata: { stripeEventId: event.id, paymentIntentId: pi.id, amountCharged: pi.amount_received || 0 },
+        });
 
         // Fetch booking for receipt emails
-        const { data: capturedBk } = await sb.from('bookings')
-          .select('customer_name, customer_email, ref, service, date')
-          .eq('id', bookingId).maybeSingle();
+        const capturedBk = current;
 
         const capturedAmount = pi.amount_received ? `$${(pi.amount_received / 100).toFixed(2)}` : null;
 
@@ -227,6 +328,7 @@ export default async function handler(req, res) {
       // ── Payment: failed ──
       case 'payment_intent.payment_failed': {
         const pi = event.data.object;
+        webhookPaymentIntentId = pi.id;
 
         // Assembler application fee failure
         if (pi.metadata?.type === 'assembler_application_fee') {
@@ -252,12 +354,42 @@ export default async function handler(req, res) {
         if (pi.metadata?.type === 'customer_booking') {
           const { bookingId } = pi.metadata;
           if (!bookingId) break;
+          webhookBookingId = bookingId;
+
+          const { data: currentBooking } = await sb.from('bookings')
+            .select('id, payment_status, status, customer_name, customer_email, ref, service')
+            .eq('id', bookingId)
+            .maybeSingle();
+
+          if (!currentBooking) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
+            break;
+          }
+
+          if (['captured', 'deposit_paid', 'refunded'].includes(currentBooking.payment_status)) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = {
+              ...webhookMetadata,
+              reason: 'stale-payment-failed',
+              bookingId,
+              currentPaymentStatus: currentBooking.payment_status,
+            };
+            break;
+          }
 
           await sb.from('bookings').update({ payment_status: 'failed' }).eq('id', bookingId);
 
-          const { data: bk } = await sb.from('bookings')
-            .select('customer_name, customer_email, ref, service')
-            .eq('id', bookingId).maybeSingle();
+          logActivity(sb, {
+            bookingId,
+            eventType: 'payment_failed',
+            actorType: 'system',
+            actorName: 'stripe_webhook',
+            description: `Stripe reported payment failure: ${pi.last_payment_error?.message || 'Card authorization failed'}`,
+            metadata: { stripeEventId: event.id, paymentIntentId: pi.id },
+          });
+
+          const bk = currentBooking;
 
           const reason = pi.last_payment_error?.message || 'Card could not be authorized.';
 
@@ -284,6 +416,72 @@ export default async function handler(req, res) {
             });
           } catch (e) { console.error('Owner payment fail email error:', e); }
         }
+        break;
+      }
+
+      // ── Refund sync: keep booking truth aligned to Stripe refund truth ──
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
+        if (!paymentIntentId) break;
+
+        webhookPaymentIntentId = paymentIntentId;
+
+        const { data: booking } = await sb.from('bookings')
+          .select('id, ref, payment_status')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle();
+
+        if (!booking) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found-for-refund', paymentIntentId };
+          break;
+        }
+
+        webhookBookingId = booking.id;
+
+        let { error: refundSyncErr } = await sb.from('bookings').update({
+          payment_status: 'refunded',
+          refund_amount: charge.amount_refunded || 0,
+          refunded_at: new Date().toISOString(),
+        }).eq('id', booking.id).neq('payment_status', 'refunded');
+
+        if (refundSyncErr) {
+          // Some environments may not have refund columns yet. Preserve core truth by
+          // falling back to payment_status-only sync instead of dropping the webhook update.
+          const fallback = await sb.from('bookings').update({
+            payment_status: 'refunded',
+          }).eq('id', booking.id).neq('payment_status', 'refunded');
+          refundSyncErr = fallback.error || null;
+        }
+
+        if (refundSyncErr) {
+          webhookOutcome = 'failed';
+          webhookError = refundSyncErr.message || 'Refund sync failed';
+          webhookMetadata = { ...webhookMetadata, reason: 'refund-sync-update-failed', paymentIntentId };
+          break;
+        }
+
+        logActivity(sb, {
+          bookingId: booking.id,
+          eventType: 'refunded',
+          actorType: 'system',
+          actorName: 'stripe_webhook',
+          description: `Stripe webhook refund sync: $${((charge.amount_refunded || 0) / 100).toFixed(2)}`,
+          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: charge.amount_refunded || 0 },
+        });
+
+        await writeFinancialAudit(sb, {
+          eventType: 'refund_sync',
+          eventSource: 'stripe_webhook',
+          stripeEventId: event.id,
+          bookingId: booking.id,
+          paymentIntentId,
+          status: 'processed',
+          eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
+          metadata: { amountRefunded: charge.amount_refunded || 0, chargeId: charge.id || null },
+        });
+
         break;
       }
 
@@ -404,9 +602,26 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('Stripe webhook handler error:', err);
+    webhookOutcome = 'failed';
+    webhookError = err?.message || 'Unhandled webhook handler error';
     // Still return 200 to prevent Stripe retries for logic errors
+    await finalizeStripeWebhookEvent(sb, event.id, {
+      bookingId: webhookBookingId,
+      paymentIntentId: webhookPaymentIntentId,
+      status: webhookOutcome,
+      metadata: webhookMetadata,
+      error: webhookError,
+    });
     return res.status(200).json({ received: true, warning: 'Handler error logged' });
   }
+
+  await finalizeStripeWebhookEvent(sb, event.id, {
+    bookingId: webhookBookingId,
+    paymentIntentId: webhookPaymentIntentId,
+    status: webhookOutcome,
+    metadata: webhookMetadata,
+    error: webhookError,
+  });
 
   return res.status(200).json({ received: true });
 }

@@ -2,6 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import { writeFinancialAudit } from '../_financial-audit.js';
 
 /**
  * POST /api/booking/refund
@@ -39,28 +40,86 @@ export default async function handler(req, res) {
   }
 
   let stripeRefund;
+  const idempotencyKey = `booking-refund-${booking.id}-${refundAmountCents}`;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    await writeFinancialAudit(sb, {
+      eventType: 'refund_attempt',
+      eventSource: 'booking_refund_owner',
+      bookingId: booking.id,
+      paymentIntentId: booking.stripe_payment_intent_id,
+      idempotencyKey,
+      status: 'processing',
+      metadata: { ref: booking.ref, amount: refundAmountCents },
+    });
+
     stripeRefund = await stripe.refunds.create({
       payment_intent: booking.stripe_payment_intent_id,
       amount: refundAmountCents,
       reason: 'requested_by_customer',
+      metadata: { bookingRef: booking.ref || '', bookingId: booking.id || '', ownerReason: reason?.trim() || '' },
+    }, { idempotencyKey });
+
+    await writeFinancialAudit(sb, {
+      eventType: 'refund_attempt',
+      eventSource: 'booking_refund_owner',
+      bookingId: booking.id,
+      paymentIntentId: booking.stripe_payment_intent_id,
+      refundId: stripeRefund.id,
+      idempotencyKey,
+      status: 'processed',
+      metadata: { ref: booking.ref, amount: stripeRefund.amount, stripeStatus: stripeRefund.status },
     });
   } catch (stripeErr) {
     console.error('Stripe refund error:', stripeErr);
+    await writeFinancialAudit(sb, {
+      eventType: 'refund_attempt',
+      eventSource: 'booking_refund_owner',
+      bookingId: booking.id,
+      paymentIntentId: booking.stripe_payment_intent_id,
+      idempotencyKey,
+      status: 'failed',
+      metadata: { ref: booking.ref, amount: refundAmountCents },
+      error: stripeErr?.raw?.message || stripeErr.message || 'Refund failed',
+    });
     return res.status(500).json({ error: stripeErr?.raw?.message || stripeErr.message || 'Refund failed' });
   }
 
   // Update booking record
-  const { error: updateErr } = await sb.from('bookings').update({
+  const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
     payment_status: 'refunded',
     refund_id: stripeRefund.id,
     refund_amount: stripeRefund.amount,
     refunded_at: new Date().toISOString(),
     refund_reason: reason?.trim() || null,
-  }).eq('id', booking.id);
+  }).eq('id', booking.id).neq('payment_status', 'refunded').select('id');
 
-  if (updateErr) console.error('Refund DB update error:', updateErr);
+  if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
+    await writeFinancialAudit(sb, {
+      eventType: 'refund_sync',
+      eventSource: 'booking_refund_owner',
+      bookingId: booking.id,
+      paymentIntentId: booking.stripe_payment_intent_id,
+      refundId: stripeRefund.id,
+      status: 'duplicate',
+      metadata: { ref: booking.ref, amount: stripeRefund.amount },
+    });
+    return res.status(409).json({ error: 'Booking has already been refunded' });
+  }
+
+  if (updateErr) {
+    console.error('Refund DB update error:', updateErr);
+    await writeFinancialAudit(sb, {
+      eventType: 'refund_sync',
+      eventSource: 'booking_refund_owner',
+      bookingId: booking.id,
+      paymentIntentId: booking.stripe_payment_intent_id,
+      refundId: stripeRefund.id,
+      status: 'failed',
+      metadata: { ref: booking.ref, amount: stripeRefund.amount },
+      error: updateErr.message || 'Failed to persist refund state to booking',
+    });
+  }
   if (!updateErr) {
     logActivity(sb, {
       bookingId: booking.id,

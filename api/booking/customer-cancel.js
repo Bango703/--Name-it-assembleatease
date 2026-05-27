@@ -4,6 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
+import { writeFinancialAudit } from '../_financial-audit.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 
@@ -67,12 +68,43 @@ export default async function handler(req, res) {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       if (withinWindow && (booking.total_price || 0) > 0) {
         const feeCents = Math.round((booking.total_price || 0) * 0.5);
-        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents });
+        const idempotencyKey = `customer-cancel-fee-${booking.id}-${feeCents}`;
+        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
         feeCaptured = feeCents;
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_cancel_customer',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'customer_cancel_fee', feeCaptured },
+        });
       } else {
+        const idempotencyKey = `customer-cancel-release-${booking.id}`;
         await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_release',
+          eventSource: 'booking_cancel_customer',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'customer_cancel_release' },
+        });
       }
-    } catch (e) { console.error('Stripe cancel error:', e); }
+    } catch (e) {
+      console.error('Stripe cancel error:', e);
+      await writeFinancialAudit(sb, {
+        eventType: 'booking_cancel_financial',
+        eventSource: 'booking_cancel_customer',
+        bookingId: booking.id,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        status: 'failed',
+        metadata: { paymentStatus: booking.payment_status, withinWindow },
+        error: e?.message || 'Customer cancellation Stripe mutation failed',
+      });
+    }
   }
 
   const { error: updateErr } = await sb.from('bookings').update({
