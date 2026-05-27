@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
 
 /**
  * POST /api/booking/refund
@@ -60,6 +61,21 @@ export default async function handler(req, res) {
   }).eq('id', booking.id);
 
   if (updateErr) console.error('Refund DB update error:', updateErr);
+  if (!updateErr) {
+    logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'refunded',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: `Refund processed: $${(stripeRefund.amount / 100).toFixed(2)}${reason ? ` — ${reason}` : ''}`,
+      metadata: {
+        refundId: stripeRefund.id,
+        refundAmount: stripeRefund.amount,
+        refundStatus: stripeRefund.status,
+        reason: reason?.trim() || null,
+      },
+    });
+  }
 
   // #7 — Send customer refund email
   try {
