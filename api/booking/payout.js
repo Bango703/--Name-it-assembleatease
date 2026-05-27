@@ -15,12 +15,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { bookingId, ref, amount, notes } = req.body;
+  const payload = (req.body && typeof req.body === 'object') ? req.body : {};
+  const { bookingId, ref, amount, notes } = payload;
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
 
   const sb = getSupabase();
 
-  let query = sb.from('bookings').select('*, profiles!bookings_assembler_id_fkey(id, full_name, email)');
+  let query = sb.from('bookings').select('*');
   if (bookingId) query = query.eq('id', bookingId);
   else query = query.eq('ref', ref);
   const { data: booking, error: fetchErr } = await query.single();
@@ -48,25 +49,38 @@ export default async function handler(req, res) {
   const payoutDisplay = `$${(payoutCents / 100).toFixed(2)}`;
   const platformRevenue = (booking.amount_charged || 0) - payoutCents;
 
-  // Record payout — atomic guard: only if not already paid (prevents double-payment)
-  const { error: updateErr, count } = await sb.from('bookings').update({
-    payout_amount: payoutCents,
-    paid_out_at: new Date().toISOString(),
-    payout_notes: notes?.trim() || null,
-    payout_status: 'paid',
-    platform_revenue: platformRevenue,
-  }).eq('id', booking.id).neq('payout_status', 'paid').select('id', { count: 'exact', head: true });
+  const { data: payoutRows, error: payoutErr } = await sb.rpc('record_booking_payout', {
+    p_booking_id: booking.id,
+    p_payout_amount_cents: payoutCents,
+    p_notes: notes?.trim() || null,
+    p_recorded_by: 'owner',
+  });
 
-  if (updateErr) {
-    console.error('Payout DB update error:', updateErr);
+  if (payoutErr) {
+    if (payoutErr.code === '23505' || /already recorded/i.test(payoutErr.message || '')) {
+      return res.status(409).json({ error: 'Payout already recorded for this booking.' });
+    }
+    console.error('Payout RPC error:', payoutErr);
     return res.status(500).json({ error: 'Failed to record payout' });
   }
-  if (count === 0) {
+
+  const payoutRecord = Array.isArray(payoutRows) ? payoutRows[0] : payoutRows;
+  if (!payoutRecord) {
     return res.status(409).json({ error: 'Payout already recorded for this booking.' });
   }
 
+  // Load assembler profile separately to avoid relational join drift.
+  let assembler = null;
+  if (booking.assembler_id) {
+    const { data: assemblerProfile } = await sb
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('id', booking.assembler_id)
+      .maybeSingle();
+    assembler = assemblerProfile || null;
+  }
+
   // #17 — Send assembler payout notification email
-  const assembler = booking.profiles;
   if (assembler?.email) {
     try {
       await sendEmail({
@@ -99,11 +113,11 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     success: true,
-    bookingRef: booking.ref,
-    assemblerId: booking.assembler_id,
-    payoutAmount: payoutCents,
-    platformRevenue,
-    amountCharged: booking.amount_charged || 0,
+    bookingRef: payoutRecord.booking_ref || booking.ref,
+    assemblerId: payoutRecord.assembler_id || booking.assembler_id,
+    payoutAmount: payoutRecord.payout_amount || payoutCents,
+    platformRevenue: payoutRecord.platform_revenue ?? platformRevenue,
+    amountCharged: payoutRecord.amount_charged || booking.amount_charged || 0,
   });
 }
 
