@@ -121,8 +121,8 @@
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
   </button>
 </header>
-<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:56px;z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
-<div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
+<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:calc(var(--e-header-h) + var(--e-safe-top));z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
+<div id="notif-panel" style="display:none;position:fixed;top:calc(var(--e-header-h) + var(--e-safe-top));right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem calc(1rem + var(--e-safe-bottom));max-height:calc(100dvh - (var(--e-header-h) + var(--e-safe-top)) - var(--e-safe-bottom));overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
     <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>

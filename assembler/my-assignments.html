@@ -67,7 +67,7 @@
       transform: translateY(100%); transition: transform 0.25s ease;
     }
     body.theme-pro .modal-overlay.open .modal-box { transform: translateY(0); }
-    body:has(.modal-overlay.open) { overflow: hidden; }
+    body.modal-open { overflow: hidden; }
     body.theme-pro .modal-close {
       position: absolute; top: 1rem; right: 1rem; background: none; border: none;
       font-size: 1.3rem; color: var(--pro-muted); cursor: pointer; line-height: 1;
@@ -130,8 +130,8 @@
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
   </button>
 </header>
-<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:56px;z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
-<div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
+<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:calc(var(--e-header-h) + var(--e-safe-top));z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
+<div id="notif-panel" style="display:none;position:fixed;top:calc(var(--e-header-h) + var(--e-safe-top));right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem calc(1rem + var(--e-safe-bottom));max-height:calc(100dvh - (var(--e-header-h) + var(--e-safe-top)) - var(--e-safe-bottom));overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
     <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -208,6 +208,16 @@
   let currentFilter = 'all';
   let sessionToken = null;
   let selectedBookingId = null;
+
+  function openAssignmentsModal() {
+    document.getElementById('asgn-modal').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeAssignmentsModal() {
+    document.getElementById('asgn-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
 
   // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
   // sessionToken is set to the initial session access_token once auth completes.
@@ -396,7 +406,7 @@
     document.addEventListener('visibilitychange', async function() {
       if (document.visibilityState !== 'visible') return;
       // Close any open modal to prevent stale data being visible after app wake
-      document.getElementById('asgn-modal').classList.remove('open');
+      closeAssignmentsModal();
       try {
         const tok = await getToken();
         const r = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + tok } });
@@ -605,10 +615,10 @@
 
     // Modal close
     document.getElementById('asgn-modal-close').addEventListener('click', function() {
-      document.getElementById('asgn-modal').classList.remove('open');
+      closeAssignmentsModal();
     });
     document.getElementById('asgn-modal').addEventListener('click', function(e) {
-      if (e.target === this) this.classList.remove('open');
+      if (e.target === this) closeAssignmentsModal();
     });
 
     // Mark Complete — opens bottom sheet instead of window.confirm()
@@ -798,7 +808,7 @@
             // Refresh assignments
             const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
             if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
-            document.getElementById('asgn-modal').classList.remove('open');
+            closeAssignmentsModal();
           } catch { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); btn2.disabled = false; btn2.textContent = s.label; }
         });
         pipeline.appendChild(btn2);
@@ -828,7 +838,7 @@
             APP.showAlert('page-alert', msg, 'error');
             acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job'; return;
           }
-          document.getElementById('asgn-modal').classList.remove('open');
+          closeAssignmentsModal();
           APP.showAlert('page-alert', 'Job accepted! Check Active tab for details.', 'success');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
@@ -870,7 +880,7 @@
             declineBtn.disabled = false; declineBtn.textContent = 'Decline'; return;
           }
           // Close modal, refresh list
-          document.getElementById('asgn-modal').classList.remove('open');
+          closeAssignmentsModal();
           APP.showAlert('page-alert', 'Offer declined.', 'info');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
@@ -882,7 +892,7 @@
       });
     }
 
-    document.getElementById('asgn-modal').classList.add('open');
+    openAssignmentsModal();
     // Reset support collapsible state on each modal open
     var _sb = document.getElementById('support-body');
     var _sc = document.getElementById('support-chevron');

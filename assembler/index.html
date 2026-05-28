@@ -150,8 +150,8 @@
     <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
   </button>
 </header>
-<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:56px;z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
-<div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
+<div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:calc(var(--e-header-h) + var(--e-safe-top));z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
+<div id="notif-panel" style="display:none;position:fixed;top:calc(var(--e-header-h) + var(--e-safe-top));right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem calc(1rem + var(--e-safe-bottom));max-height:calc(100dvh - (var(--e-header-h) + var(--e-safe-top)) - var(--e-safe-bottom));overflow:auto;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
     <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -820,7 +820,7 @@
 <script>
 (function(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
-  var _swReg=null, _userId=null, _swToken=null;
+  var _swReg=null, _userId=null, _swToken=null, _subscribing=false;
 
   navigator.serviceWorker.register('/sw.js',{scope:'/assembler/'}).then(function(reg){
     _swReg=reg;
@@ -833,11 +833,40 @@
       var session=result.data&&result.data.session;
       if(!session) return;
       _userId=session.user.id;
-      _swToken=session.access_token;
+      _swToken=await getFreshSwToken();
+      if(!_swToken) return;
       var permission=Notification.permission;
       if(permission==='granted') subscribePush();
       else if(permission==='default') showPushBanner();
     }catch(e){}
+  }
+
+  async function getFreshSwToken(forceRefresh){
+    try{
+      if(forceRefresh){
+        var refreshedForced=await window.supabaseClient.auth.refreshSession();
+        var forcedSession=refreshedForced&&refreshedForced.data&&refreshedForced.data.session;
+        if(forcedSession&&forcedSession.access_token){
+          _swToken=forcedSession.access_token;
+          return _swToken;
+        }
+      }
+      var sessResult=await window.supabaseClient.auth.getSession();
+      var sess=sessResult&&sessResult.data&&sessResult.data.session;
+      if(!sess) return null;
+      var now=Math.floor(Date.now()/1000);
+      if(sess.expires_at && sess.expires_at <= now + 60){
+        var refreshed=await window.supabaseClient.auth.refreshSession();
+        var refreshedSession=refreshed&&refreshed.data&&refreshed.data.session;
+        if(!refreshedSession||!refreshedSession.access_token) return null;
+        _swToken=refreshedSession.access_token;
+        return _swToken;
+      }
+      _swToken=sess.access_token;
+      return _swToken;
+    }catch(e){
+      return _swToken||null;
+    }
   }
 
   function showPushBanner(){
@@ -860,15 +889,39 @@
   }
 
   async function subscribePush(){
-    if(!_swReg||!_swToken) return;
+    if(_subscribing||!_swReg) return;
+    _subscribing=true;
     try{
+      var token=await getFreshSwToken();
+      if(!token) return;
       var r=await fetch('/api/assembler/push-subscribe');
       if(!r.ok) return;
       var d=await r.json();
       if(!d.publicKey) return;
-      var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(d.publicKey)});
-      await fetch('/api/assembler/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_swToken},body:JSON.stringify({subscription:sub.toJSON()})});
+      var sub=await _swReg.pushManager.getSubscription();
+      if(!sub){
+        sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(d.publicKey)});
+      }
+
+      async function sendSubscription(authToken){
+        return fetch('/api/assembler/push-subscribe',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
+          body:JSON.stringify({subscription:sub.toJSON()})
+        });
+      }
+
+      var saveResp=await sendSubscription(token);
+      if(saveResp.status===401){
+        var retryToken=await getFreshSwToken(true);
+        if(!retryToken) return;
+        saveResp=await sendSubscription(retryToken);
+      }
+      if(!saveResp.ok){
+        console.warn('Push subscribe save failed:', saveResp.status);
+      }
     }catch(e){console.warn('Push:',e);}
+    finally{_subscribing=false;}
   }
 
   function urlBase64ToUint8Array(b64){
