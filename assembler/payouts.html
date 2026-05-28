@@ -156,10 +156,9 @@
   }
 
   function renderEarnings(list) {
-    var totalEarned  = list.reduce(function(s, b){ return s + (b.assembler_due || 0); }, 0);
-    var totalFees    = list.reduce(function(s, b){ return s + (b.platform_fee || 0); }, 0);
-    var totalPaid    = list.filter(function(b){ return b.payout_status === 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
-    var totalPending = list.filter(function(b){ return b.payout_status !== 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
+    var totalEarned  = list.reduce(function(s, b){ return s + (b.payout_amount || 0); }, 0);
+    var totalPaid    = list.filter(function(b){ return b.payout_status === 'paid'; }).reduce(function(s,b){ return s + (b.payout_amount || 0); }, 0);
+    var totalPending = list.filter(function(b){ return b.payout_status !== 'paid'; }).reduce(function(s,b){ return s + (b.payout_amount || 0); }, 0);
 
     document.getElementById('earn-total-val').textContent = fmt(totalEarned);
     document.getElementById('earn-split').innerHTML =
@@ -178,16 +177,17 @@
 
     var rows = list.slice().reverse().map(function(b) {
       var isPaid = b.payout_status === 'paid';
-      var isZero = !b.assembler_due;
+      var isZero = !b.payout_amount;
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
           '<div class="earn-tx-name">' + esc(b.service || 'Service') + '</div>' +
           '<div class="earn-tx-date">' + fmtDate(b.completed_at) + '</div>' +
+          (b.source === 'ledger' ? '<div style="font-size:0.68rem;color:#64748b;margin-top:2px;line-height:1.4">Recorded in payout ledger</div>' : '') +
           (isZero && !isPaid ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Payout amount pending — will be confirmed by our team.</div>' : '') +
         '</div>' +
         '<div class="earn-tx-right">' +
-          '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(b.assembler_due) + '</div>' +
+          '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(b.payout_amount) + '</div>' +
           '<div class="earn-tx-status ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? 'Paid' : 'Pending') + '</div>' +
         '</div>' +
       '</div>';
@@ -256,7 +256,7 @@
     try {
       let token = await getToken();
       if (!token) { window.location.href = '/auth/login.html'; return; }
-      let resp = await fetch('/api/booking/my-assignments', {
+      let resp = await fetch('/api/assembler/payout-history', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       // On 401: force-refresh once and retry before redirecting
@@ -265,14 +265,14 @@
           const { data: rd } = await supabaseClient.auth.refreshSession();
           if (rd?.session?.access_token) {
             token = rd.session.access_token;
-            resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + token } });
+            resp = await fetch('/api/assembler/payout-history', { headers: { 'Authorization': 'Bearer ' + token } });
           }
         } catch {}
         if (resp.status === 401) { window.location.href = '/auth/login.html'; return; }
       }
       if (!resp.ok) throw new Error('Failed to load');
       const data = await resp.json();
-      allCompleted = (data.bookings || []).filter(function(b){ return b.status === 'completed'; });
+      allCompleted = data.entries || [];
       renderEarnings(allCompleted);
     } catch (err) {
       document.getElementById('payouts-list').innerHTML =
