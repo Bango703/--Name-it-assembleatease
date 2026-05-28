@@ -61,9 +61,15 @@ export default async function handler(req, res) {
     if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
     if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
 
-    // Get Easer profile
-    const { data: easer } = await sb.from('profiles').select('full_name, email, tier, has_membership').eq('id', assemblerId).single();
+    // Get Easer profile and enforce operational eligibility at accept time
+    const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
     if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
+    {
+      const eligibility = getEaserEligibility(easer);
+      if (!eligibility.ok) {
+        return res.status(403).json({ error: eligibility.error });
+      }
+    }
 
     // ── Atomic CAS: assign only if assembler_id is still null ───────────────
     // .select('id') returns the updated row(s). If 0 rows returned, the guard
@@ -143,8 +149,14 @@ export default async function handler(req, res) {
     }
   }
 
-  const { data: easer } = await sb.from('profiles').select('full_name, email, tier, has_membership').eq('id', assemblerId).single();
+  const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
   if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
+  {
+    const eligibility = getEaserEligibility(easer);
+    if (!eligibility.ok) {
+      return res.status(403).json({ error: eligibility.error });
+    }
+  }
 
   const updateData = {
     assembler_accepted_at: now,
@@ -220,4 +232,36 @@ function sendNotifications(sb, booking, easer, assemblerId) {
     </div>`,
     meta: { bookingId, notificationType: 'job_accepted', recipientType: 'owner' },
   }).catch(() => {});
+}
+
+function getEaserEligibility(profile) {
+  if (!profile) {
+    return { ok: false, error: 'Easer profile not found' };
+  }
+
+  const tier = String(profile.tier || '').toLowerCase();
+  const applicationStatus = String(profile.application_status || '').toLowerCase();
+  let status = String(profile.status || '').toLowerCase();
+
+  // Backwards-compatible status derivation in case status is unset on legacy rows.
+  if (!status) {
+    if (applicationStatus === 'rejected' || tier === 'rejected') status = 'rejected';
+    else if (tier === 'suspended') status = 'suspended';
+    else if (tier === 'pending' || !tier) status = 'pending';
+    else status = 'active';
+  }
+
+  if (status !== 'active') {
+    return { ok: false, error: 'Your Easer account is not eligible to accept jobs right now.' };
+  }
+
+  if (profile.identity_verified !== true) {
+    return { ok: false, error: 'Identity verification is required before accepting jobs.' };
+  }
+
+  if (!['starter', 'professional', 'elite'].includes(tier)) {
+    return { ok: false, error: 'Your Easer tier is not eligible for job acceptance.' };
+  }
+
+  return { ok: true };
 }
