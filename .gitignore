@@ -23,6 +23,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+.tmp_*.json
 report.json
 *.report.html
 *.report.json
