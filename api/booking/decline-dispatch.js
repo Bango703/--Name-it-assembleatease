@@ -4,6 +4,7 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
 import { DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { enforceEaserOperationalEligibility } from '../_easer-eligibility.js';
 
 /**
  * POST /api/booking/decline-dispatch
@@ -27,6 +28,11 @@ export default async function handler(req, res) {
   if (!bookingId || !token) return res.status(400).json({ error: 'bookingId and token are required' });
 
   const sb = getSupabase();
+  const eligibility = await enforceEaserOperationalEligibility(sb, user.id);
+  if (!eligibility.ok) {
+    return res.status(403).json({ error: eligibility.error, code: eligibility.code, status: eligibility.status || null });
+  }
+
   const now = new Date().toISOString();
 
   // ── Find open offer ────────────────────────────────────────────────────────

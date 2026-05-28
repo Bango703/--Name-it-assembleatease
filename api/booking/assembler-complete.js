@@ -8,6 +8,7 @@ import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { enforceEaserOperationalEligibility } from '../_easer-eligibility.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -32,6 +33,11 @@ export default async function handler(req, res) {
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
 
   const sb = getSupabase();
+
+  const eligibility = await enforceEaserOperationalEligibility(sb, user.id);
+  if (!eligibility.ok) {
+    return res.status(403).json({ error: eligibility.error, code: eligibility.code, status: eligibility.status || null });
+  }
 
   // Fetch booking
   const { data: booking, error: fetchErr } = await sb

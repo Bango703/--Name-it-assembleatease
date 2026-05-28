@@ -58,12 +58,16 @@ const APP = {
     return auth;
   },
 
-  // Require auth + verified assembler (tier != pending AND identity_verified).
-  // Unverified assemblers are redirected to the dashboard which shows status banners.
+  // Require auth + operationally eligible assembler.
+  // Ineligible assemblers are redirected to dashboard status banners.
   async requireVerifiedAssembler() {
     const auth = await this.requireAuth(['assembler']);
     if (!auth) return null;
-    if (auth.profile.tier === 'pending' || auth.profile.identity_verified !== true) {
+    const status = String(auth.profile.status || '').toLowerCase();
+    const tier = String(auth.profile.tier || '').toLowerCase();
+    const activeStatus = status ? status === 'active' : (tier !== 'pending' && tier !== 'suspended' && tier !== 'rejected');
+    const eligibleTier = ['starter', 'professional', 'elite'].includes(tier);
+    if (!activeStatus || auth.profile.identity_verified !== true || !eligibleTier) {
       window.location.href = '/assembler/';
       return null;
     }

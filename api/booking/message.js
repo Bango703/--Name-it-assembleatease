@@ -1,6 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { createClient } from '@supabase/supabase-js';
+import { enforceEaserOperationalEligibility } from '../_easer-eligibility.js';
 
 export default async function handler(req, res) {
   // GET — list messages for a booking (owner only)
@@ -56,6 +57,10 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     if (sender === 'assembler') {
+      const eligibility = await enforceEaserOperationalEligibility(sb, user.id);
+      if (!eligibility.ok) {
+        return res.status(403).json({ error: eligibility.error, code: eligibility.code, status: eligibility.status || null });
+      }
       // Verify user is the assigned assembler on this booking
       if (!booking.assembler_id || booking.assembler_id !== user.id) {
         return res.status(403).json({ error: 'You are not assigned to this booking' });

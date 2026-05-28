@@ -6,6 +6,7 @@ import {
   ACTIVE_BOOKING_STATUSES,
   VISIBLE_ASSIGNMENT_STATUSES,
 } from '../_source-of-truth.js';
+import { enforceEaserOperationalEligibility } from '../_easer-eligibility.js';
 
 /**
  * GET /api/booking/my-assignments
@@ -25,6 +26,11 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const sb = getSupabase();
+
+  const eligibility = await enforceEaserOperationalEligibility(sb, user.id);
+  if (!eligibility.ok) {
+    return res.status(403).json({ error: eligibility.error, code: eligibility.code, status: eligibility.status || null });
+  }
 
   const statusFilter = req.query?.status || null;
   const ACTIVE_STATUSES  = ACTIVE_BOOKING_STATUSES;

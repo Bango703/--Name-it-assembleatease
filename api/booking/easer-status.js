@@ -9,6 +9,7 @@ import {
   TERMINAL_BOOKING_STATUSES,
 } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { enforceEaserOperationalEligibility } from '../_easer-eligibility.js';
 
 const STAGES = {
   [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
@@ -31,6 +32,11 @@ export default async function handler(req, res) {
   if (!STAGES[stage]) return res.status(400).json({ error: 'Invalid stage. Use: en_route, arrived, in_progress' });
 
   const sb = getSupabase();
+  const eligibility = await enforceEaserOperationalEligibility(sb, user.id);
+  if (!eligibility.ok) {
+    return res.status(403).json({ error: eligibility.error, code: eligibility.code, status: eligibility.status || null });
+  }
+
   const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
 
   if (!booking) return res.status(404).json({ error: 'Booking not found' });

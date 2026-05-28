@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { enforceEaserOperationalEligibility } from '../_easer-eligibility.js';
 
 export default async function handler(req, res) {
   try {
@@ -19,9 +20,10 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await sb.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
 
-  // Verify Easer role
-  const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle();
-  if (!profile || profile.role !== 'assembler') return res.status(403).json({ error: 'Forbidden' });
+  const eligibility = await enforceEaserOperationalEligibility(sb, user.id);
+  if (!eligibility.ok) {
+    return res.status(403).json({ error: eligibility.error, code: eligibility.code, status: eligibility.status || null });
+  }
 
   const userId = user.id;
   const { subscription, action } = req.body;
