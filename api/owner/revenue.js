@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
 
 /**
  * GET /api/owner/revenue
@@ -25,68 +26,31 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { from, to } = req.query;
 
-  let query = sb
-    .from('bookings')
-    .select('amount_charged, payout_amount, platform_fee, assembler_due, platform_revenue, completed_at, payout_status, status')
-    .eq('status', 'completed');
-
-  if (from) query = query.gte('completed_at', from);
-  if (to) query = query.lte('completed_at', to + 'T23:59:59Z');
-
-  const { data, error } = await query;
-  if (error) {
-    console.error('Revenue query error:', error);
+  let finance;
+  try {
+    finance = await loadLedgerFirstFinanceRows(sb, { from, to });
+  } catch (error) {
+    console.error('Revenue ledger-first load error:', error);
     return res.status(500).json({ error: 'Failed to fetch revenue data' });
   }
 
-  const rows = data || [];
-  let totalCharged = 0;
-  let totalPaidOut = 0;
-  let totalPlatformRevenue = 0;
-  let pendingPayouts = 0;
-  let paidOutJobs = 0;
-  let pendingJobs = 0;
-
-  for (const b of rows) {
-    const charged = b.amount_charged || 0;
-    const paid = b.payout_amount || 0;
-    totalCharged += charged;
-    totalPaidOut += paid;
-
-    const isPaidOut = b.payout_status === 'paid' || paid > 0;
-    if (isPaidOut) {
-      paidOutJobs++;
-      // Use stored platform_revenue; otherwise derive from charged - paid
-      totalPlatformRevenue += b.platform_revenue != null ? b.platform_revenue : (charged - paid);
-    } else {
-      pendingJobs++;
-      // Use stored platform_fee; otherwise derive from stored platform_fee_pct or env default
-      if (b.platform_fee != null) {
-        totalPlatformRevenue += b.platform_fee;
-        pendingPayouts += b.assembler_due != null ? b.assembler_due : (charged - b.platform_fee);
-      } else {
-        const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
-        const fee = Math.round(charged * PLATFORM_FEE_PCT / 100);
-        totalPlatformRevenue += fee;
-        pendingPayouts += charged - fee;
-      }
-    }
-  }
+  const totals = summarizeFinanceRows(finance.rows || []);
 
   return res.status(200).json({
-    completedJobs: rows.length,
-    paidOutJobs,
-    pendingJobs,
-    totalCharged,
-    totalPaidOut,
-    totalPlatformRevenue,
-    pendingPayouts,
+    completedJobs: totals.completedJobs,
+    paidOutJobs: totals.paidOutJobs,
+    pendingJobs: totals.pendingJobs,
+    totalCharged: totals.totalCharged,
+    totalPaidOut: totals.totalPaidOut,
+    totalPlatformRevenue: totals.totalPlatformRevenue,
+    pendingPayouts: totals.pendingPayouts,
+    reconciliation: finance.reconciliation,
     // Human-readable display values
     display: {
-      totalCharged: `$${(totalCharged / 100).toFixed(2)}`,
-      totalPaidOut: `$${(totalPaidOut / 100).toFixed(2)}`,
-      totalPlatformRevenue: `$${(totalPlatformRevenue / 100).toFixed(2)}`,
-      pendingPayouts: `$${(pendingPayouts / 100).toFixed(2)}`,
+      totalCharged: `$${(totals.totalCharged / 100).toFixed(2)}`,
+      totalPaidOut: `$${(totals.totalPaidOut / 100).toFixed(2)}`,
+      totalPlatformRevenue: `$${(totals.totalPlatformRevenue / 100).toFixed(2)}`,
+      pendingPayouts: `$${(totals.pendingPayouts / 100).toFixed(2)}`,
     },
   });
 }

@@ -2,6 +2,9 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 /**
  * POST /api/booking/guest-cancel
@@ -38,12 +41,8 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Booking not found. Check your reference and email.' });
   }
 
-  if (booking.status === 'completed') {
-    return res.status(400).json({ error: 'Completed bookings cannot be cancelled.' });
-  }
-  if (booking.status === 'cancelled') {
-    return res.status(400).json({ error: 'This booking is already cancelled.' });
-  }
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
+  if (transitionErr) return res.status(400).json({ error: transitionErr + '.' });
 
   // Determine if within 24hr cancellation window
   let withinWindow = false;
@@ -79,7 +78,7 @@ export default async function handler(req, res) {
   }
 
   const { error: updateErr } = await sb.from('bookings').update({
-    status: 'cancelled',
+    status: BOOKING_STATUS.CANCELLED,
     cancelled_at: new Date().toISOString(),
     cancel_reason: 'Cancelled by customer (guest)',
     cancellation_fee: feeCaptured || null,
@@ -89,6 +88,19 @@ export default async function handler(req, res) {
     console.error('Guest cancel update failed:', updateErr);
     return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
   }
+
+  logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'cancelled',
+    actorType: 'guest',
+    actorName: booking.customer_name || 'Guest customer',
+    description: 'Booking cancelled by guest via email+reference verification',
+    metadata: {
+      feeCaptured,
+      withinWindow,
+      reason: 'Cancelled by customer (guest)',
+    },
+  });
 
   // Email customer
   try {

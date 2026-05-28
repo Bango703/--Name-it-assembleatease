@@ -2,6 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -24,7 +25,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   const { data: booking, error: bErr } = await sb
     .from('bookings').select('*').eq('id', bookingId).single();
   if (bErr || !booking) return { dispatched: 0, message: 'Booking not found' };
-  if (booking.status !== 'confirmed') return { dispatched: 0, message: `Booking not confirmed (status: ${booking.status})` };
+  if (booking.status !== BOOKING_STATUS.CONFIRMED) return { dispatched: 0, message: `Booking not confirmed (status: ${booking.status})` };
   if (booking.assembler_id) return { dispatched: 0, message: 'Already assigned' };
   if (booking.dispatch_paused) return { dispatched: 0, message: 'Dispatch paused by owner' };
   if (booking.needs_manual_dispatch) return { dispatched: 0, message: 'Flagged for manual dispatch' };
@@ -38,7 +39,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
       .from('dispatch_offers')
       .select('id, expires_at')
       .eq('booking_id', bookingId)
-      .eq('offer_status', 'sent');
+      .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
 
     const stillOpen = (openOffers || []).filter(o => new Date(o.expires_at) > new Date());
     if (stillOpen.length > 0) {
@@ -87,7 +88,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
       .select('assembler_id')
       .in('assembler_id', eligible.map(e => e.id))
       .eq('date', booking.date)
-      .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
+      .in('status', ACTIVE_BOOKING_STATUSES);
 
     const sameDayMap = {};
     (sameDayJobs || []).forEach(b => {
@@ -111,7 +112,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
       .from('dispatch_offers')
       .select('easer_id')
       .eq('booking_id', bookingId)
-      .in('offer_status', ['sent', 'accepted', 'superseded']);
+      .in('offer_status', [DISPATCH_OFFER_STATUS.SENT, DISPATCH_OFFER_STATUS.ACCEPTED, DISPATCH_OFFER_STATUS.SUPERSEDED]);
     (existingOffers || []).forEach(o => easerIdsWithOpenOffers.add(o.easer_id));
   }
 
@@ -223,7 +224,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   if (bookingUpdateErr) {
     // Booking was just assigned — cancel the offers we just created
     await sb.from('dispatch_offers')
-      .update({ offer_status: 'cancelled' })
+      .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
       .eq('booking_id', bookingId)
       .in('id', (insertedOffers || []).map(o => o.id));
     return { dispatched: 0, message: 'Booking assigned while dispatching — offers cancelled' };

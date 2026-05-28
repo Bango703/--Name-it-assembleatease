@@ -4,7 +4,9 @@ import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_e
 import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { writeFinancialAudit } from '../_financial-audit.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -32,26 +34,70 @@ export default async function handler(req, res) {
   if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Only active bookings can be completed. Current status: ' + booking.status });
   }
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.COMPLETED);
+  if (transitionErr) {
+    return res.status(400).json({ error: transitionErr });
+  }
 
   // ── Stripe: capture payment (or charge balance for deposit jobs) ──
   let amountCharged = 0;
+  const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
+  if (captureRequired && !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({
+      error: 'Payment capture configuration is unavailable. Booking was not completed.',
+      code: 'CAPTURE_CONFIGURATION_UNAVAILABLE',
+    });
+  }
+
   if (process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
       if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
         // Capture the full held amount — idempotency key prevents double-capture on retry/double-click
+        const idempotencyKey = `complete-owner-${booking.id}`;
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_complete_owner',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processing',
+          metadata: { ref: booking.ref },
+        });
+
         const captured = await stripe.paymentIntents.capture(
           booking.stripe_payment_intent_id,
           {},
-          { idempotencyKey: `complete-owner-${booking.id}` },
+          { idempotencyKey },
         );
         amountCharged = captured.amount_received;
+
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_complete_owner',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { ref: booking.ref, amountCharged: amountCharged || 0 },
+        });
 
       } else if (booking.payment_status === 'deposit_paid' && booking.stripe_customer_id && booking.stripe_payment_method_id) {
         // Deposit already taken — charge the remaining 75% off-session
         const balanceCents = (booking.total_price || 0) - (booking.deposit_amount || 0);
         if (balanceCents > 0) {
+          const idempotencyKey = `complete-owner-balance-${booking.id}`;
+          await writeFinancialAudit(sb, {
+            eventType: 'capture_recovery_attempt',
+            eventSource: 'booking_complete_owner',
+            bookingId: booking.id,
+            paymentIntentId: booking.stripe_payment_intent_id,
+            idempotencyKey,
+            status: 'processing',
+            metadata: { ref: booking.ref, balanceCents },
+          });
+
           const balancePI = await stripe.paymentIntents.create({
             amount: balanceCents,
             currency: 'usd',
@@ -61,14 +107,43 @@ export default async function handler(req, res) {
             off_session: true,
             metadata: { bookingRef: booking.ref, bookingId: booking.id, type: 'customer_booking_balance' },
             description: `Balance — ${booking.service} — ${booking.customer_name}`,
-          });
+          }, { idempotencyKey });
           amountCharged = (booking.deposit_amount || 0) + (balancePI.amount_received || balanceCents);
+
+          await writeFinancialAudit(sb, {
+            eventType: 'capture_recovery_attempt',
+            eventSource: 'booking_complete_owner',
+            bookingId: booking.id,
+            paymentIntentId: balancePI.id,
+            idempotencyKey,
+            status: 'processed',
+            metadata: { ref: booking.ref, amountCharged: amountCharged || 0 },
+          });
         } else {
           amountCharged = booking.deposit_amount || 0;
         }
       }
     } catch (stripeErr) {
       console.error('Stripe capture error:', stripeErr);
+      await writeFinancialAudit(sb, {
+        eventType: 'capture_attempt',
+        eventSource: 'booking_complete_owner',
+        bookingId: booking.id,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        status: 'failed',
+        metadata: { ref: booking.ref, paymentStatus: booking.payment_status },
+        error: stripeErr?.message || 'Unknown Stripe capture error',
+      });
+
+      logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'capture_failed',
+        actorType: 'owner',
+        actorName: 'Owner',
+        description: `Payment capture failed during completion: ${stripeErr?.message || 'Unknown Stripe error'}`,
+        metadata: { paymentStatus: booking.payment_status, paymentIntentId: booking.stripe_payment_intent_id || null },
+      });
+
       // Notify owner of capture failure so they can resolve manually
       try {
         await sendEmail({
@@ -94,10 +169,22 @@ export default async function handler(req, res) {
 </div></body></html>`,
         });
       } catch (alertErr) { console.error('Capture failure alert error:', alertErr); }
+
+      return res.status(502).json({
+        error: 'Payment capture failed. Booking was not completed. Please resolve payment and retry.',
+        code: 'CAPTURE_FAILED',
+      });
     }
   }
 
-  const finalAmountCharged = amountCharged || booking.total_price || 0;
+  if (captureRequired && amountCharged <= 0) {
+    return res.status(502).json({
+      error: 'Payment capture did not produce a charge. Booking was not completed.',
+      code: 'CAPTURE_INCOMPLETE',
+    });
+  }
+
+  const finalAmountCharged = captureRequired ? amountCharged : (amountCharged || booking.total_price || 0);
 
   // Tiered fee: members pay 18%, non-members pay 25%
   let isMember = false;
@@ -208,6 +295,6 @@ export default async function handler(req, res) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot complete stage error:', e));
   }
 
-  logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((amountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged, platformFee, assemblerDue } });
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'completed' } });
+  logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((finalAmountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged: finalAmountCharged, platformFee, assemblerDue } });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED } });
 }

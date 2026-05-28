@@ -77,6 +77,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Daily Summary — ${yesterdayLabel}`,
       html,
+      meta: { notificationType: 'daily_summary', recipientType: 'owner' },
     });
 
     return res.status(200).json({ sent: true, date: yesterdayLabel });

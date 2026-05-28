@@ -8,6 +8,7 @@ import {
   ACTIVE_BOOKING_STATUSES,
   TERMINAL_BOOKING_STATUSES,
 } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 const STAGES = {
   [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
@@ -44,6 +45,8 @@ export default async function handler(req, res) {
   }
 
   const { status, field, label } = STAGES[stage];
+  const transitionErr = getTransitionError(booking.status, status, { allowNoop: true });
+  if (transitionErr) return res.status(400).json({ error: transitionErr });
   const now = new Date().toISOString();
 
   // Primary update: status + pipeline_stage + timestamp field

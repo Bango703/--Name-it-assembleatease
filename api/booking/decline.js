@@ -2,6 +2,8 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -18,11 +20,12 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'pending') return res.status(400).json({ error: 'Booking is not pending. Current status: ' + booking.status });
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.DECLINED);
+  if (transitionErr) return res.status(400).json({ error: transitionErr });
 
   const { error: updateErr } = await sb
     .from('bookings')
-    .update({ status: 'declined', declined_at: new Date().toISOString(), decline_reason: reason || null })
+    .update({ status: BOOKING_STATUS.DECLINED, declined_at: new Date().toISOString(), decline_reason: reason || null })
     .eq('id', booking.id);
 
   if (updateErr) {
@@ -70,5 +73,5 @@ export default async function handler(req, res) {
   }
 
   logActivity(sb, { bookingId: booking.id, eventType: 'declined', actorType: 'owner', actorName: 'Owner', description: `Booking declined${reason ? ': ' + reason : ''}` });
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'declined' } });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.DECLINED } });
 }

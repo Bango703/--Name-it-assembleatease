@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
 
 /**
  * GET /api/owner/payouts
@@ -21,47 +22,57 @@ export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const sb = getSupabase();
+  let finance;
+  try {
+    finance = await loadLedgerFirstFinanceRows(sb);
+  } catch (error) {
+    console.error('Payouts ledger-first load error:', error);
+    return res.status(500).json({ error: 'Failed to load payout data' });
+  }
 
-  const { data: completed, error } = await sb
-    .from('bookings')
-    .select('id, ref, service, date, completed_at, assembler_id, assembler_name, assembler_tier, amount_charged, assembler_due, payout_status, total_price')
-    .eq('status', 'completed')
-    .not('assembler_id', 'is', null)
-    .order('completed_at', { ascending: false });
-
-  if (error) return res.status(500).json({ error: 'Failed to load payout data' });
+  const completed = (finance.rows || []).filter(r => r.assemblerId);
 
   // Aggregate per Easer
   const byEaser = {};
   for (const b of completed || []) {
-    const id = b.assembler_id;
+    const id = b.assemblerId;
     if (!byEaser[id]) {
       byEaser[id] = {
         assembler_id:   id,
-        assembler_name: b.assembler_name || 'Unknown',
-        assembler_tier: b.assembler_tier || null,
+        assembler_name: b.assemblerName || 'Unknown',
+        assembler_tier: b.assemblerTier || null,
         jobs:           0,
         total_charged:  0,
         total_owed:     0,
         total_paid:     0,
         unpaid_jobs:    [],
         last_job_date:  null,
+        legacy_rows:    0,
       };
     }
     const e = byEaser[id];
-    const charged = Number(b.amount_charged || b.total_price) || 0;
-    const owed    = Number(b.assembler_due) || 0;
-    const paid    = b.payout_status === 'paid' ? owed : 0;
+    const charged = Number(b.netCharged || 0);
+    const owed    = Number(b.owed || 0);
+    const paid    = b.paidOut ? Number(b.payoutAmount || 0) : 0;
 
     e.jobs++;
     e.total_charged += charged;
     e.total_owed    += owed;
     e.total_paid    += paid;
-    if (b.payout_status !== 'paid' && owed > 0) {
-      e.unpaid_jobs.push({ id: b.id, ref: b.ref, service: b.service, date: b.date, owed });
+    if (b.legacyDerived) e.legacy_rows++;
+
+    if (!b.paidOut && !b.isRefunded && owed > 0) {
+      e.unpaid_jobs.push({
+        id: b.bookingId,
+        ref: b.ref,
+        service: b.service,
+        date: b.date,
+        owed,
+        source: b.legacyDerived ? 'legacy' : 'ledger',
+      });
     }
-    if (!e.last_job_date || (b.completed_at && b.completed_at > e.last_job_date)) {
-      e.last_job_date = b.completed_at || b.date;
+    if (!e.last_job_date || (b.completedAt && b.completedAt > e.last_job_date)) {
+      e.last_job_date = b.completedAt || b.date;
     }
   }
 
@@ -77,5 +88,12 @@ export default async function handler(req, res) {
     total_pending: acc.total_pending + e.total_pending,
   }), { jobs:0, total_charged:0, total_owed:0, total_paid:0, total_pending:0 });
 
-  return res.status(200).json({ easers, totals });
+  const financeTotals = summarizeFinanceRows(finance.rows || []);
+
+  return res.status(200).json({
+    easers,
+    totals,
+    finance_totals: financeTotals,
+    reconciliation: finance.reconciliation,
+  });
 }

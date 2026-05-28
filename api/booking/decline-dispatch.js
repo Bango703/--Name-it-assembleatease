@@ -2,6 +2,8 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { dispatchBooking } from './_dispatch-internal.js';
+import { logActivity } from './_activity.js';
+import { DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 
 /**
  * POST /api/booking/decline-dispatch
@@ -34,7 +36,7 @@ export default async function handler(req, res) {
     .eq('token', token)
     .eq('easer_id', user.id)
     .eq('booking_id', bookingId)
-    .eq('offer_status', 'sent')
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
     .maybeSingle();
 
   if (!offer) {
@@ -45,10 +47,10 @@ export default async function handler(req, res) {
       .eq('token', token)
       .maybeSingle();
 
-    if (anyOffer?.offer_status === 'expired') {
+    if (anyOffer?.offer_status === DISPATCH_OFFER_STATUS.EXPIRED) {
       return res.status(410).json({ error: 'Offer already expired' });
     }
-    if (anyOffer?.offer_status === 'accepted' || anyOffer?.offer_status === 'superseded') {
+    if (anyOffer?.offer_status === DISPATCH_OFFER_STATUS.ACCEPTED || anyOffer?.offer_status === DISPATCH_OFFER_STATUS.SUPERSEDED) {
       return res.status(409).json({ error: 'Job was already accepted' });
     }
     return res.status(404).json({ error: 'Offer not found or already resolved' });
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
 
   // Mark offer declined
   await sb.from('dispatch_offers').update({
-    offer_status: 'declined',
+    offer_status: DISPATCH_OFFER_STATUS.DECLINED,
     declined_at: now,
     decline_reason: reason || 'no_reason',
   }).eq('id', offer.id);
@@ -103,7 +105,21 @@ export default async function handler(req, res) {
     .from('dispatch_offers')
     .select('id')
     .eq('booking_id', bookingId)
-    .eq('offer_status', 'sent');
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
+
+  logActivity(sb, {
+    bookingId,
+    eventType: 'dispatch_offer_declined',
+    actorType: 'easer',
+    actorId: user.id,
+    actorName: easerName,
+    description: `${easerName} declined dispatch offer${booking?.ref ? ` for ${booking.ref}` : ''}`,
+    metadata: {
+      reason: reason || 'no_reason',
+      remainingOpen: (remainingOpen || []).length,
+      attempt: booking?.dispatch_attempt || null,
+    },
+  });
 
   if ((remainingOpen || []).length === 0 && booking && !booking.assembler_id) {
     // All offers declined — the expire-offers cron will handle retry logic,

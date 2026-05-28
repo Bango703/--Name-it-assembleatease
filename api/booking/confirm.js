@@ -3,6 +3,8 @@ import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_e
 import { updateDealStage } from '../_hubspot.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -20,12 +22,13 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'pending') return res.status(400).json({ error: 'Booking is not pending. Current status: ' + booking.status });
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CONFIRMED);
+  if (transitionErr) return res.status(400).json({ error: transitionErr });
 
   // Update status
   const { error: updateErr } = await sb
     .from('bookings')
-    .update({ status: 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: 'owner' })
+    .update({ status: BOOKING_STATUS.CONFIRMED, confirmed_at: new Date().toISOString(), confirmed_by: 'owner' })
     .eq('id', booking.id);
 
   if (updateErr) {
@@ -74,5 +77,5 @@ export default async function handler(req, res) {
   logActivity(sb, { bookingId: booking.id, eventType: 'confirmed', actorType: 'owner', actorName: 'Owner', description: 'Booking confirmed by owner' });
   dispatchBooking(booking.id).catch(e => console.error('Auto-dispatch error:', e.message));
 
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: 'confirmed' } });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CONFIRMED } });
 }

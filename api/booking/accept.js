@@ -1,5 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
+import { BOOKING_STATUS } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -33,7 +35,7 @@ export default async function handler(req, res) {
     return sendHtml(res, 'Already Responded', 'You have already responded to this assignment.', false);
   }
 
-  if (booking.status !== 'confirmed') {
+  if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return sendHtml(res, 'Booking Unavailable', 'This booking is no longer available for assignment.', false);
   }
 
@@ -108,6 +110,16 @@ export default async function handler(req, res) {
       } catch (e) { console.error('Customer notify error:', e); }
     }
 
+    logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'easer_accepted',
+      actorType: 'easer',
+      actorId: assembler?.id || booking.assembler_id || null,
+      actorName: assemblerName,
+      description: `${assemblerName} accepted assignment via email link`,
+      metadata: { source: 'assignment_token' },
+    });
+
     return sendHtml(res, 'Job Accepted!',
       `Thanks, ${esc(assemblerFirstName)}! You've accepted the assignment for <strong>${esc(booking.service)}</strong> on ${esc(booking.date || 'TBD')}. Check your Easer dashboard for details.`,
       true);
@@ -163,6 +175,16 @@ export default async function handler(req, res) {
         });
       } catch (e) { console.error('Assembler decline email error:', e); }
     }
+
+    logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'easer_declined',
+      actorType: 'easer',
+      actorId: assembler?.id || booking.assembler_id || null,
+      actorName: assemblerName,
+      description: `${assemblerName} declined assignment via email link`,
+      metadata: { source: 'assignment_token' },
+    });
 
     return sendHtml(res, 'Job Declined',
       `You've declined this assignment. No worries — other jobs will come your way.`,

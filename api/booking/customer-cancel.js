@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { adjustActiveJobs } from './_active-jobs.js';
+import { logActivity } from './_activity.js';
+import { writeFinancialAudit } from '../_financial-audit.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { getTransitionError } from './_workflow-engine.js';
 
 /**
  * POST /api/booking/customer-cancel
@@ -36,12 +40,8 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'This booking does not belong to your account' });
   }
 
-  if (booking.status === 'completed') {
-    return res.status(400).json({ error: 'Completed bookings cannot be cancelled' });
-  }
-  if (booking.status === 'cancelled') {
-    return res.status(400).json({ error: 'Booking is already cancelled' });
-  }
+  const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
+  if (transitionErr) return res.status(400).json({ error: transitionErr });
 
   // Determine if within 24hr cancellation window of appointment
   let withinWindow = false;
@@ -68,16 +68,47 @@ export default async function handler(req, res) {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       if (withinWindow && (booking.total_price || 0) > 0) {
         const feeCents = Math.round((booking.total_price || 0) * 0.5);
-        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents });
+        const idempotencyKey = `customer-cancel-fee-${booking.id}-${feeCents}`;
+        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
         feeCaptured = feeCents;
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_cancel_customer',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'customer_cancel_fee', feeCaptured },
+        });
       } else {
+        const idempotencyKey = `customer-cancel-release-${booking.id}`;
         await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_release',
+          eventSource: 'booking_cancel_customer',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'customer_cancel_release' },
+        });
       }
-    } catch (e) { console.error('Stripe cancel error:', e); }
+    } catch (e) {
+      console.error('Stripe cancel error:', e);
+      await writeFinancialAudit(sb, {
+        eventType: 'booking_cancel_financial',
+        eventSource: 'booking_cancel_customer',
+        bookingId: booking.id,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        status: 'failed',
+        metadata: { paymentStatus: booking.payment_status, withinWindow },
+        error: e?.message || 'Customer cancellation Stripe mutation failed',
+      });
+    }
   }
 
   const { error: updateErr } = await sb.from('bookings').update({
-    status: 'cancelled',
+    status: BOOKING_STATUS.CANCELLED,
     cancelled_at: new Date().toISOString(),
     cancel_reason: 'Cancelled by customer',
     cancellation_fee: feeCaptured || null,
@@ -90,9 +121,9 @@ export default async function handler(req, res) {
 
   // Cancel all open dispatch offers so Easers cannot accept a cancelled booking
   sb.from('dispatch_offers')
-    .update({ offer_status: 'cancelled' })
+    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
     .eq('booking_id', booking.id)
-    .eq('offer_status', 'sent')
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
     .then(({ error: doErr }) => {
       if (doErr) console.error('dispatch_offers customer-cancel cleanup error:', doErr.message);
     });
@@ -101,6 +132,20 @@ export default async function handler(req, res) {
   if (booking.assembler_id) {
     adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
   }
+
+  logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'cancelled',
+    actorType: 'customer',
+    actorId: user.id,
+    actorName: booking.customer_name || 'Customer',
+    description: 'Booking cancelled by authenticated customer',
+    metadata: {
+      feeCaptured,
+      withinWindow,
+      reason: 'Cancelled by customer',
+    },
+  });
 
   // Email customer
   try {
