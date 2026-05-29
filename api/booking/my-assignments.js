@@ -25,17 +25,30 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const sb = getSupabase();
+  const warnings = [];
+
+  function pushWarning(code, message) {
+    warnings.push({ code, message });
+  }
 
   const statusFilter = req.query?.status || null;
   const ACTIVE_STATUSES  = ACTIVE_BOOKING_STATUSES;
   const VISIBLE_STATUSES = VISIBLE_ASSIGNMENT_STATUSES;
 
   // Membership status from profile
-  const { data: easerProfile } = await sb
-    .from('profiles')
-    .select('has_membership')
-    .eq('id', user.id)
-    .single();
+  let easerProfile = null;
+  try {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('has_membership')
+      .eq('id', user.id)
+      .single();
+    if (error) throw error;
+    easerProfile = data;
+  } catch (profileError) {
+    console.error('My assignments profile warning:', profileError);
+    pushWarning('profile_lookup_partial_failure', 'Membership status could not be verified for this refresh.');
+  }
   const easerIsMember = easerProfile?.has_membership === true;
   const feePct = easerIsMember ? 18 : 25;
 
@@ -64,12 +77,20 @@ export default async function handler(req, res) {
   // These are jobs dispatched to this Easer but assembler_id is still null
   // (or set to someone else). Without this, Easer can't see the job unless
   // they still have the email open.
-  const { data: openOffers } = await sb
-    .from('dispatch_offers')
-    .select('booking_id, expires_at, token, dispatch_score')
-    .eq('easer_id', user.id)
-    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
-    .gt('expires_at', new Date().toISOString());
+  let openOffers = [];
+  try {
+    const { data, error } = await sb
+      .from('dispatch_offers')
+      .select('booking_id, expires_at, token, dispatch_score')
+      .eq('easer_id', user.id)
+      .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
+      .gt('expires_at', new Date().toISOString());
+    if (error) throw error;
+    openOffers = data || [];
+  } catch (offerError) {
+    console.error('My assignments open-offers warning:', offerError);
+    pushWarning('open_offers_partial_failure', 'Some dispatch offers could not be loaded right now.');
+  }
 
   const assignedIds = new Set((assignedBookings || []).map(b => b.id));
   const unacceptedOfferBookingIds = (openOffers || [])
@@ -78,13 +99,19 @@ export default async function handler(req, res) {
 
   let offerBookings = [];
   if (unacceptedOfferBookingIds.length > 0) {
-    const { data: ob } = await sb
-      .from('bookings')
-      .select('id, ref, service, customer_name, date, time, address, details, status, total_price')
-      .in('id', unacceptedOfferBookingIds)
-      .eq('status', BOOKING_STATUS.CONFIRMED)
-      .is('assembler_id', null);
-    offerBookings = ob || [];
+    try {
+      const { data, error } = await sb
+        .from('bookings')
+        .select('id, ref, service, customer_name, date, time, address, details, status, total_price')
+        .in('id', unacceptedOfferBookingIds)
+        .eq('status', BOOKING_STATUS.CONFIRMED)
+        .is('assembler_id', null);
+      if (error) throw error;
+      offerBookings = data || [];
+    } catch (bookingError) {
+      console.error('My assignments offer-booking warning:', bookingError);
+      pushWarning('offer_bookings_partial_failure', 'Some pending offers could not be expanded into bookings.');
+    }
   }
 
   // Build offer map for enrichment
@@ -128,5 +155,13 @@ export default async function handler(req, res) {
     }
   });
 
-  return res.status(200).json({ bookings: allBookings });
+  const response = { bookings: allBookings };
+  if (warnings.length > 0) {
+    response.meta = {
+      partial: true,
+      warnings,
+    };
+  }
+
+  return res.status(200).json(response);
 }
