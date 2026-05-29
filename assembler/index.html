@@ -583,7 +583,7 @@
         dashboardLoadState.staleSnapshot = cache;
         dashboardLoadState.mode = 'stale_data';
         renderDashboardPayload(bookings, { warnings: (cache.meta && cache.meta.warnings) ? cache.meta.warnings : [] });
-        setDashboardStatus('stale_data', { extra: 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
+        setDashboardStatus('stale_data', { extra: dashboardLoadState.retryCount >= 3 ? 'Auto-retry exhausted — tap Retry to try again.' : 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
         if (dashboardLoadState.retryCount < 3) {
           var retryDelays = [2000, 5000, 15000];
           clearDashboardRetryTimer();
@@ -603,7 +603,7 @@
         return;
       }
 
-      setDashboardStatus(dashboardLoadState.mode, { message: dashboardLoadState.lastError });
+      setDashboardStatus(dashboardLoadState.mode, { message: dashboardLoadState.lastError, extra: dashboardLoadState.retryCount >= 3 ? 'Auto-retry exhausted — tap Retry to try again.' : null });
 
       if (dashboardLoadState.retryCount < 3 && dashboardLoadState.mode !== 'auth_error') {
         var retryDelays2 = [2000, 5000, 15000];
