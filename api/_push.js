@@ -70,9 +70,11 @@ export async function sendPushToUser(userId, payload, meta = {}) {
     });
   }));
 
-  // Non-blocking: log all push attempts and clean up dead subscriptions
+  // Await the log insert before returning — Vercel terminates execution after
+  // response flush, so non-awaited inserts are abandoned and never reach the DB.
+  // try/catch preserves fail-open: a log failure must not affect push delivery.
   if (logRows.length) {
-    sb.from('notification_log').insert(logRows).then(() => {}).catch(() => {});
+    try { await sb.from('notification_log').insert(logRows); } catch { /* non-fatal */ }
   }
   if (dead.length) {
     await sb.from('push_subscriptions').delete().in('endpoint', dead);
