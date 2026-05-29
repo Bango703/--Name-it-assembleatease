@@ -229,6 +229,8 @@
     </div>
   </div>
 
+  <div id="dashboard-status" style="display:none;margin:0 0 1rem;padding:0.875rem 1rem;border:1px solid rgba(0,191,255,0.15);border-radius:12px;background:rgba(0,191,255,0.06);color:var(--e-text)"></div>
+
   <!-- ── ACTIVE JOB ─────────────────────────────────────────────────── -->
   <div id="active-section" style="display:none">
     <div class="eh-section-label">Active Job</div>
@@ -297,12 +299,328 @@
   function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(d);var now=new Date();var diff=Math.round((dt-new Date(now.toDateString()))/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
   function fmtPay(cents){if(!cents)return'$0';return'$'+(cents/100).toFixed(0);}
 
+  var DASHBOARD_CACHE_KEY = 'easer_dashboard_cache_v1';
+  var DASHBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
+  var DASHBOARD_CACHE_STALE_MS = 60 * 60 * 1000;
+
   var available = false;
   var currentUserId = null;
   var freshTok = null;
   var tosInterval = null;
   var offerTimerInterval = null;
   var _pendingCompleteBookingId = null;
+  var dashboardLoadState = {
+    mode: 'loading',
+    lastSuccessAt: null,
+    lastError: null,
+    lastHttpStatus: null,
+    retryCount: 0,
+    inFlight: false,
+    requestSeq: 0,
+    staleSnapshot: null,
+    authRefreshAttempted: false,
+  };
+  var dashboardRetryTimer = null;
+  var dashboardPendingPromise = null;
+
+  function clearDashboardRetryTimer() {
+    if (dashboardRetryTimer) clearTimeout(dashboardRetryTimer);
+    dashboardRetryTimer = null;
+  }
+
+  function readDashboardCache() {
+    try {
+      var raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.bookings) || !parsed.savedAt) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeDashboardCache(bookings, meta) {
+    try {
+      sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+        savedAt: new Date().toISOString(),
+        bookings: bookings || [],
+        meta: meta || null,
+      }));
+    } catch {}
+  }
+
+  function clearDashboardCache() {
+    try { sessionStorage.removeItem(DASHBOARD_CACHE_KEY); } catch {}
+  }
+
+  function getDashboardCachedAgeMs(cache) {
+    if (!cache || !cache.savedAt) return Infinity;
+    var ts = new Date(cache.savedAt).getTime();
+    if (isNaN(ts)) return Infinity;
+    return Date.now() - ts;
+  }
+
+  function classifyDashboardError(status) {
+    if (status === 401 || status === 403) return 'auth_error';
+    if (status >= 500) return 'server_error';
+    if (status > 0) return 'server_error';
+    return 'network_error';
+  }
+
+  function setDashboardStatus(mode, payload) {
+    var el = document.getElementById('dashboard-status');
+    if (!el) return;
+
+    if (mode === 'success' || mode === 'empty') {
+      el.style.display = 'none';
+      el.innerHTML = '';
+      return;
+    }
+
+    var title = '';
+    var body = '';
+    var actionHtml = '';
+    var tone = 'rgba(0,191,255,0.15)';
+    var bg = 'rgba(0,191,255,0.06)';
+
+    if (mode === 'loading') {
+      title = 'Syncing your jobs…';
+      body = 'Checking for active work, offers, and upcoming assignments.';
+    } else if (mode === 'stale_data') {
+      title = 'Showing last synced jobs';
+      body = 'Live data is temporarily unavailable. You are seeing the most recent successful dashboard snapshot.';
+      actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
+      tone = 'rgba(245,158,11,0.18)';
+      bg = 'rgba(245,158,11,0.07)';
+    } else if (mode === 'auth_error') {
+      title = 'Session expired';
+      body = 'Please sign in again to continue loading your dashboard.';
+      actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Sign in again</button>';
+      tone = 'rgba(239,68,68,0.18)';
+      bg = 'rgba(239,68,68,0.07)';
+    } else if (mode === 'network_error') {
+      title = 'Can\'t reach the server';
+      body = 'Your connection or the platform is temporarily unavailable. Retry will run automatically.';
+      actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
+      tone = 'rgba(239,68,68,0.18)';
+      bg = 'rgba(239,68,68,0.07)';
+    } else if (mode === 'server_error') {
+      title = 'Temporary dashboard issue';
+      body = 'The dashboard could not load right now. Please retry in a moment.';
+      actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
+      tone = 'rgba(239,68,68,0.18)';
+      bg = 'rgba(239,68,68,0.07)';
+    } else {
+      title = 'Dashboard issue';
+      body = payload && payload.message ? payload.message : 'Please retry.';
+      actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
+      tone = 'rgba(239,68,68,0.18)';
+      bg = 'rgba(239,68,68,0.07)';
+    }
+
+    el.style.display = '';
+    el.style.borderColor = tone;
+    el.style.background = bg;
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:0.2rem">'
+      + '<div style="font-size:0.9rem;font-weight:700">' + esc(title) + '</div>'
+      + '<div style="font-size:0.8rem;color:var(--e-muted);line-height:1.5">' + esc(body) + '</div>'
+      + (payload && payload.extra ? '<div style="font-size:0.75rem;color:var(--e-muted);margin-top:0.15rem">' + esc(payload.extra) + '</div>' : '')
+      + actionHtml
+      + '</div>';
+
+    var retryBtn = document.getElementById('dashboard-retry-btn');
+    if (retryBtn) {
+      retryBtn.onclick = function() {
+        if (mode === 'auth_error') {
+          window.location.href = '/auth/login?return=' + encodeURIComponent('/assembler/');
+          return;
+        }
+        loadDashboardData('manual_retry');
+      };
+    }
+  }
+
+  function renderDashboardPayload(bookings, options) {
+    var list = Array.isArray(bookings) ? bookings.slice() : [];
+    var liveStatuses=['en_route','arrived','in_progress'];
+    var liveJobs     =list.filter(function(b){return liveStatuses.includes(b.status);});
+    var pendingOffers=list.filter(function(b){return b._is_pending_offer;});
+    var upcomingJobs =list.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
+
+    document.getElementById('active-section').style.display = liveJobs.length > 0 ? '' : 'none';
+    document.getElementById('offers-section').style.display = pendingOffers.length > 0 ? '' : 'none';
+    document.getElementById('upcoming-section').style.display = upcomingJobs.length > 0 ? '' : 'none';
+    document.getElementById('waiting-state').style.display = 'none';
+
+    if (liveJobs.length>0) renderActiveJob(liveJobs[0]);
+    if (pendingOffers.length>0) renderOffers(pendingOffers);
+
+    if (upcomingJobs.length>0){
+      document.getElementById('upcoming-list').innerHTML=upcomingJobs.slice(0,3).map(function(b){
+        var dateStr=fmtDate(b.date);
+        var when=dateStr+(b.time?' · '+b.time:'');
+        return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
+          +'<div style="flex:1;min-width:0">'
+            +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
+            +'<div class="eh-upcoming-service">'+esc(b.service||'Service')+'</div>'
+            +'<div class="eh-upcoming-addr">'+esc(b.address||'Address TBD')+'</div>'
+          +'</div>'
+          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
+        +'</div>';
+      }).join('');
+    } else if(liveJobs.length===0&&pendingOffers.length===0){
+      var ws=document.getElementById('waiting-state');
+      ws.style.display='';
+      document.getElementById('avail-card-title').textContent=available?"You're Online":"You're Offline";
+      document.getElementById('avail-card-sub').textContent=available?"You'll receive job offers when they're available":"Toggle Online to start receiving job offers";
+    }
+
+    if (options && options.warnings && options.warnings.length) {
+      dashboardLoadState.mode = 'stale_data';
+      setDashboardStatus('stale_data', { extra: 'Some offer data may be delayed. Retry to refresh.' });
+      return;
+    }
+
+    dashboardLoadState.mode = list.length > 0 ? 'success' : 'empty';
+    setDashboardStatus(list.length > 0 ? 'success' : 'empty');
+  }
+
+  async function loadDashboardData(reason) {
+    if (dashboardLoadState.inFlight && dashboardPendingPromise) return dashboardPendingPromise;
+
+    dashboardLoadState.inFlight = true;
+    dashboardLoadState.requestSeq += 1;
+    var requestSeq = dashboardLoadState.requestSeq;
+    dashboardLoadState.lastError = null;
+    dashboardLoadState.lastHttpStatus = null;
+    clearDashboardRetryTimer();
+    setDashboardStatus('loading');
+
+    dashboardPendingPromise = (async function() {
+      var session = null;
+      try {
+        var fs=await supabaseClient.auth.getSession();
+        if(fs.data&&fs.data.session){
+          session = fs.data.session;
+          var _now=Math.floor(Date.now()/1000);
+          if(session.expires_at&&session.expires_at<=_now+60){
+            var _r=await supabaseClient.auth.refreshSession();
+            if(_r.data&&_r.data.session) session=_r.data.session;
+          }
+        }
+      } catch(e) {}
+
+      freshTok = session && session.access_token ? session.access_token : freshTok;
+      if(!freshTok) throw { kind:'auth_error', status:401, message:'Session missing' };
+
+      var attemptTokenRefresh = false;
+      var lastResponse = null;
+
+      for (var attempt = 0; attempt < 2; attempt++) {
+        try {
+          lastResponse = await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok}});
+        } catch (err) {
+          throw { kind: 'network_error', status: 0, message: err && err.message ? err.message : 'Network error' };
+        }
+
+        if (lastResponse.status === 401 && !attemptTokenRefresh) {
+          attemptTokenRefresh = true;
+          try {
+            var refreshResult = await supabaseClient.auth.refreshSession();
+            if (refreshResult.data && refreshResult.data.session && refreshResult.data.session.access_token) {
+              freshTok = refreshResult.data.session.access_token;
+              continue;
+            }
+          } catch (refreshErr) {}
+        }
+
+        break;
+      }
+
+      if (!lastResponse) throw { kind: 'network_error', status: 0, message: 'No response' };
+
+      var responseBody = null;
+      try { responseBody = await lastResponse.json(); } catch (parseErr) { responseBody = null; }
+
+      if (requestSeq !== dashboardLoadState.requestSeq) return;
+
+      if (!lastResponse.ok) {
+        var errorKind = classifyDashboardError(lastResponse.status);
+        throw {
+          kind: errorKind,
+          status: lastResponse.status,
+          message: responseBody && responseBody.error ? responseBody.error : 'Dashboard load failed',
+        };
+      }
+
+      var bookings = responseBody && Array.isArray(responseBody.bookings) ? responseBody.bookings : [];
+      var meta = responseBody && responseBody.meta ? responseBody.meta : null;
+
+      if (requestSeq !== dashboardLoadState.requestSeq) return;
+
+      dashboardLoadState.lastSuccessAt = new Date().toISOString();
+      dashboardLoadState.lastError = null;
+      dashboardLoadState.lastHttpStatus = 200;
+      dashboardLoadState.retryCount = 0;
+      dashboardLoadState.mode = 'success';
+
+      writeDashboardCache(bookings, meta);
+      renderDashboardPayload(bookings, { warnings: meta && Array.isArray(meta.warnings) ? meta.warnings : [] });
+      return;
+    })().catch(function(error) {
+      if (requestSeq !== dashboardLoadState.requestSeq) return;
+
+      var cache = readDashboardCache();
+      var cacheAgeMs = getDashboardCachedAgeMs(cache);
+      var canUseStale = cache && cacheAgeMs <= DASHBOARD_CACHE_STALE_MS;
+      var bookings = canUseStale ? cache.bookings : [];
+
+      dashboardLoadState.lastError = error && error.message ? error.message : 'Dashboard load failed';
+      dashboardLoadState.lastHttpStatus = error && error.status ? error.status : null;
+
+      if (canUseStale) {
+        dashboardLoadState.staleSnapshot = cache;
+        dashboardLoadState.mode = 'stale_data';
+        renderDashboardPayload(bookings, { warnings: (cache.meta && cache.meta.warnings) ? cache.meta.warnings : [] });
+        setDashboardStatus('stale_data', { extra: 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
+        if (dashboardLoadState.retryCount < 3) {
+          var retryDelays = [2000, 5000, 15000];
+          clearDashboardRetryTimer();
+          dashboardRetryTimer = setTimeout(function() {
+            if (document.visibilityState === 'visible') loadDashboardData('auto_retry');
+          }, retryDelays[dashboardLoadState.retryCount] || 15000);
+          dashboardLoadState.retryCount += 1;
+        }
+        return;
+      }
+
+      dashboardLoadState.staleSnapshot = null;
+      dashboardLoadState.mode = error && error.kind ? error.kind : 'server_error';
+      if (dashboardLoadState.mode === 'auth_error') {
+        setDashboardStatus('auth_error');
+        window.location.href = '/auth/login?return=' + encodeURIComponent('/assembler/');
+        return;
+      }
+
+      setDashboardStatus(dashboardLoadState.mode, { message: dashboardLoadState.lastError });
+
+      if (dashboardLoadState.retryCount < 3 && dashboardLoadState.mode !== 'auth_error') {
+        var retryDelays2 = [2000, 5000, 15000];
+        clearDashboardRetryTimer();
+        dashboardRetryTimer = setTimeout(function() {
+          if (document.visibilityState === 'visible') loadDashboardData('auto_retry');
+        }, retryDelays2[dashboardLoadState.retryCount] || 15000);
+        dashboardLoadState.retryCount += 1;
+      }
+    }).finally(function() {
+      if (requestSeq === dashboardLoadState.requestSeq) {
+        dashboardLoadState.inFlight = false;
+      }
+    });
+
+    return dashboardPendingPromise;
+  }
 
   // Availability toggle — immediate when going online, confirmation sheet when going offline
   document.getElementById('avail-toggle').addEventListener('click', async function(){
@@ -618,7 +936,11 @@
     // Offline banner
     var offlineBanner=document.getElementById('e-offline');
     window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
-    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show');});
+    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show'); loadDashboardData('reconnect');});
+
+    window.addEventListener('beforeunload',function(){
+      clearDashboardRetryTimer();
+    });
 
     // Reconnect: refresh home on app wake — only if hidden for > 60s to avoid unnecessary reloads
     var _hiddenAt = null;
@@ -681,6 +1003,8 @@
     // Logout
     document.getElementById('sidebar-logout').addEventListener('click',async function(e){
       e.preventDefault();
+      clearDashboardRetryTimer();
+      clearDashboardCache();
       await supabaseClient.auth.signOut();
       window.location.href='/auth/login.html';
     });
@@ -748,44 +1072,16 @@
     }catch(e){}
 
     // Load assignments
-    var allBookings=[];
-    try{
-      var bResp=await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok}});
-      if(bResp.ok){var bData=await bResp.json();allBookings=bData.bookings||[];}
-    }catch(e){console.error('Load error:',e);}
-
-    var liveStatuses=['en_route','arrived','in_progress'];
-    var liveJobs     =allBookings.filter(function(b){return liveStatuses.includes(b.status);});
-    var pendingOffers=allBookings.filter(function(b){return b._is_pending_offer;});
-    var upcomingJobs =allBookings.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
-
-    // Active job
-    if(liveJobs.length>0) renderActiveJob(liveJobs[0]);
-
-    // Job offers
-    if(pendingOffers.length>0) renderOffers(pendingOffers);
-
-    // Upcoming
-    if(upcomingJobs.length>0){
-      document.getElementById('upcoming-section').style.display='';
-      document.getElementById('upcoming-list').innerHTML=upcomingJobs.slice(0,3).map(function(b){
-        var dateStr=fmtDate(b.date);
-        var when=dateStr+(b.time?' · '+b.time:'');
-        return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
-          +'<div style="flex:1;min-width:0">'
-            +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
-            +'<div class="eh-upcoming-service">'+esc(b.service||'Service')+'</div>'
-            +'<div class="eh-upcoming-addr">'+esc(b.address||'Address TBD')+'</div>'
-          +'</div>'
-          +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
-        +'</div>';
-      }).join('');
-    } else if(liveJobs.length===0&&pendingOffers.length===0){
-      var ws=document.getElementById('waiting-state');
-      ws.style.display='';
-      document.getElementById('avail-card-title').textContent=available?"You're Online":"You're Offline";
-      document.getElementById('avail-card-sub').textContent=available?"You'll receive job offers when they're available":"Toggle Online to start receiving job offers";
+    var cache = readDashboardCache();
+    if (cache && getDashboardCachedAgeMs(cache) <= DASHBOARD_CACHE_TTL_MS) {
+      dashboardLoadState.staleSnapshot = cache;
+      renderDashboardPayload(cache.bookings || [], { warnings: cache.meta && Array.isArray(cache.meta.warnings) ? cache.meta.warnings : [] });
+      setDashboardStatus('stale_data', { extra: 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
+    } else {
+      setDashboardStatus('loading');
     }
+
+    await loadDashboardData('initial_load');
   });
 </script>
 
