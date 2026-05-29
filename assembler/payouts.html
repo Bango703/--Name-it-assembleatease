@@ -179,16 +179,19 @@
     var rows = list.slice().reverse().map(function(b) {
       var isPaid = b.payout_status === 'paid';
       var isZero = !b.assembler_due;
+      var dateLabel = isPaid && b.paid_out_at
+        ? 'Paid ' + fmtDate(b.paid_out_at)
+        : 'Completed ' + fmtDate(b.completed_at) + ' · Awaiting payout';
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
           '<div class="earn-tx-name">' + esc(b.service || 'Service') + '</div>' +
-          '<div class="earn-tx-date">' + fmtDate(b.completed_at) + '</div>' +
-          (isZero && !isPaid ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Payout amount pending — will be confirmed by our team.</div>' : '') +
+          '<div class="earn-tx-date">' + dateLabel + '</div>' +
+          (isZero && !isPaid ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Amount pending confirmation — our team will update this shortly.</div>' : '') +
         '</div>' +
         '<div class="earn-tx-right">' +
           '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(b.assembler_due) + '</div>' +
-          '<div class="earn-tx-status ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? 'Paid' : 'Pending') + '</div>' +
+          '<div class="earn-tx-status ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? 'Paid' : 'Awaiting Payout') + '</div>' +
         '</div>' +
       '</div>';
     }).join('');

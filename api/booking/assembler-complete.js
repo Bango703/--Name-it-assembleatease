@@ -206,6 +206,7 @@ export default async function handler(req, res) {
     platform_fee: platformFee,
     assembler_due: assemblerDue,
     completed_by: 'assembler',
+    payout_status: 'pending',
   })
   .eq('id', booking.id)
   .neq('status', BOOKING_STATUS.COMPLETED)
@@ -220,14 +221,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Booking already completed — payment has already been captured.' });
   }
 
-  // ── Increment assembler completed_jobs (atomic via raw SQL to prevent lost updates) ──
+  // ── Increment completed_jobs + total_earned atomically ──────────────────────
   try {
-    const { error: rpcErr } = await sb.rpc('increment_completed_jobs', { user_id: user.id });
+    const { error: rpcErr } = await sb.rpc('increment_profile_counters', { user_id: user.id, earned_cents: assemblerDue });
     if (rpcErr) {
-      const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', user.id).single();
-      await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', user.id);
+      const { data: prof } = await sb.from('profiles').select('completed_jobs, total_earned').eq('id', user.id).single();
+      await sb.from('profiles').update({
+        completed_jobs: (prof?.completed_jobs || 0) + 1,
+        total_earned:   (prof?.total_earned   || 0) + assemblerDue,
+      }).eq('id', user.id);
     }
-  } catch (e) { console.error('completed_jobs increment error:', e); }
+  } catch (e) { console.error('profile counters increment error:', e); }
 
   // Job is done — release the Easer's daily slot
   adjustActiveJobs(sb, user.id, -1).catch(() => {});
