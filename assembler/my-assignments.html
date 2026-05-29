@@ -647,10 +647,18 @@
           banner.className = 'checkin-banner';
           banner.innerHTML = '&#10003; Job marked complete. Payment captured and customer notified.';
           document.getElementById('asgn-modal-body').appendChild(banner);
-          const b = allAssignments.find(x => x.id === bookingIdToComplete);
-          if (b) b.status = 'completed';
+          // Fresh fetch — replaces stale local mutation so assembler_due, payout_status,
+          // and completed_at render correctly without waiting for the realtime event.
+          try {
+            const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            if (freshResp.ok) {
+              const fd = await freshResp.json();
+              allAssignments = fd.bookings || [];
+            }
+          } catch {}
           const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
-          renderAssignments(cf === 'all' ? allAssignments : allAssignments.filter(a => a.status === cf));
+          renderAssignments(filterList(allAssignments, cf));
+          updateFilterCounts(allAssignments);
         } else {
           if (completeBtn) { completeBtn.disabled = false; completeBtn.innerHTML = '&#10003; Mark Job as Complete'; }
           APP.showAlert('page-alert', d.error || 'Failed to mark complete. Please try again.', 'error');
@@ -762,9 +770,15 @@
       payoutSection.style.display = 'block';
       var dueCents = b.assembler_due || 0;
       document.getElementById('payout-info-amount').textContent = dueCents > 0 ? '$' + (dueCents / 100).toFixed(2) : '$0.00';
-      document.getElementById('payout-info-note').textContent = dueCents > 0
-        ? 'Payout will be transferred within 2–3 business days.'
-        : 'Payout amount pending — will be processed manually by our coordinator.';
+      var payoutNote;
+      if (b.payout_status === 'paid') {
+        payoutNote = b.paid_out_at ? 'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
+      } else if (dueCents > 0) {
+        payoutNote = 'Payout pending — typically 2–3 business days.';
+      } else {
+        payoutNote = 'Payout amount pending — will be confirmed shortly.';
+      }
+      document.getElementById('payout-info-note').textContent = payoutNote;
     } else {
       payoutSection.style.display = 'none';
     }
