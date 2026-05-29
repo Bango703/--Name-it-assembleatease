@@ -5,6 +5,7 @@ import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -16,6 +17,168 @@ const SITE = 'https://www.assembleatease.com';
  * Body: { bookingId, token }
  */
 export default async function handler(req, res) {
+  let requestId = 'obs_fallback';
+  try {
+    requestId = buildRequestId(req.headers || {});
+  } catch (_) {}
+
+  const requestStartedAt = Date.now();
+  let deployment = {
+    deployment_id: null,
+    commit_sha: null,
+    environment: null,
+    app_version: null,
+  };
+  try {
+    deployment = { ...deployment, ...(getDeploymentMetadata() || {}) };
+  } catch (_) {}
+
+  let actorIdHash = null;
+  let bookingHash = null;
+  let offerHash = null;
+  let attemptEventEmitted = false;
+  let terminalEventEmitted = false;
+  const responseObservation = {
+    category: null,
+    errorHint: null,
+  };
+
+  const scheduleTelemetry = (row) => {
+    if (!row) return;
+    try {
+      void Promise.resolve()
+        .then(() => {
+          try {
+            const sbObs = getSupabase();
+            return sbObs.from('operational_events').insert(row);
+          } catch (_) {
+            return null;
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
+  };
+
+  const emitAttemptEvent = () => {
+    if (attemptEventEmitted) return;
+    attemptEventEmitted = true;
+    scheduleTelemetry({
+      event_type: 'accept_dispatch_attempt',
+      request_id: requestId,
+      route: '/api/booking/accept-dispatch',
+      method: req.method,
+      deployment_id: deployment.deployment_id,
+      commit_sha: deployment.commit_sha,
+      environment: deployment.environment,
+      app_version: deployment.app_version,
+      actor_role: 'easer',
+      actor_id_hash: actorIdHash,
+      booking_hash: bookingHash,
+      offer_hash: offerHash,
+      stage: 'request_validated',
+      status_code: null,
+      reason_code: null,
+      reason_detail: null,
+      mutation_result: null,
+      latency_ms: Date.now() - requestStartedAt,
+      payload: null,
+    });
+  };
+
+  const deriveReasonCode = (statusCode, errorHint) => {
+    const hint = String(errorHint || '').toLowerCase();
+    if (statusCode === 401) {
+      return hint === 'unauthorized' ? 'unauthorized_missing_bearer' : 'unauthorized_invalid_token';
+    }
+    if (statusCode === 400) {
+      return hint.includes('required') ? 'invalid_input' : 'booking_not_confirmed';
+    }
+    if (statusCode === 404) {
+      return hint.includes('profile') ? 'profile_not_found' : 'booking_not_found';
+    }
+    if (statusCode === 409) {
+      return hint.includes('first') ? 'race_lost' : 'booking_already_assigned';
+    }
+    if (statusCode === 410) {
+      return 'offer_expired';
+    }
+    if (statusCode === 403) {
+      if (hint.includes('identity')) return 'ineligible_identity';
+      if (hint.includes('not eligible') || hint.includes('tier')) return 'ineligible_status';
+      return 'legacy_token_invalid';
+    }
+    return null;
+  };
+
+  const emitTerminalEvent = (terminalSource) => {
+    if (terminalEventEmitted) return;
+    terminalEventEmitted = true;
+
+    const statusCode = Number.isInteger(res.statusCode) ? res.statusCode : 500;
+    const isSuccess = statusCode >= 200 && statusCode < 300;
+    const explicitReason = deriveReasonCode(statusCode, responseObservation.errorHint);
+
+    scheduleTelemetry({
+      event_type: isSuccess ? 'accept_dispatch_success' : 'accept_dispatch_reject',
+      request_id: requestId,
+      route: '/api/booking/accept-dispatch',
+      method: req.method,
+      deployment_id: deployment.deployment_id,
+      commit_sha: deployment.commit_sha,
+      environment: deployment.environment,
+      app_version: deployment.app_version,
+      actor_role: 'easer',
+      actor_id_hash: actorIdHash,
+      booking_hash: bookingHash,
+      offer_hash: offerHash,
+      stage: terminalSource,
+      status_code: statusCode,
+      reason_code: normalizeReasonCode({ reasonCode: explicitReason, statusCode }),
+      reason_detail: redactString(responseObservation.errorHint) || null,
+      mutation_result: isSuccess ? 'accepted' : 'rejected',
+      latency_ms: Date.now() - requestStartedAt,
+      payload: {
+        response_category: responseObservation.category || null,
+      },
+    });
+  };
+
+  const originalJson = res.json.bind(res);
+  const originalSend = res.send.bind(res);
+
+  res.json = function observedJson(body) {
+    try {
+      if (body && typeof body === 'object') {
+        if (body.ok === true) responseObservation.category = 'ok';
+        else if (typeof body.error === 'string') {
+          responseObservation.category = 'error';
+          responseObservation.errorHint = redactString(body.error) || null;
+        } else responseObservation.category = 'object';
+      } else if (typeof body === 'string') {
+        responseObservation.category = 'text';
+      }
+    } catch (_) {}
+    return originalJson(body);
+  };
+
+  res.send = function observedSend(body) {
+    try {
+      if (!responseObservation.category) {
+        if (typeof body === 'string') responseObservation.category = 'text';
+        else if (body && typeof body === 'object') responseObservation.category = 'object';
+      }
+    } catch (_) {}
+    return originalSend(body);
+  };
+
+  res.once('finish', () => {
+    emitTerminalEvent('response_finish');
+  });
+
+  res.once('close', () => {
+    emitTerminalEvent('response_close');
+  });
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // Verify JWT — assemblerId MUST come from the token, not the request body
@@ -32,6 +195,10 @@ export default async function handler(req, res) {
 
   // Identity is the JWT user — never trust body-supplied assemblerId
   const assemblerId = user.id;
+  actorIdHash = hashIdentifier(assemblerId, { prefix: 'ea' });
+  bookingHash = hashIdentifier(bookingId, { prefix: 'bk' });
+  offerHash = hashIdentifier(token, { prefix: 'of' });
+  emitAttemptEvent();
 
   const sb = getSupabase();
   const now = new Date().toISOString();
