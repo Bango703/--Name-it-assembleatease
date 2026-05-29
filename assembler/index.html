@@ -1071,6 +1071,16 @@
       }
     }catch(e){}
 
+    // Keep freshTok current whenever Supabase silently refreshes the JWT in the
+    // background. Without this, mutations fired after ~60min (easer-status,
+    // assembler-complete, accept-dispatch, decline-dispatch) use a stale token
+    // and receive 401 even though the Supabase client has a valid session.
+    supabaseClient.auth.onAuthStateChange(function(event, session) {
+      if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session && session.access_token) {
+        freshTok = session.access_token;
+      }
+    });
+
     // Load assignments
     var cache = readDashboardCache();
     if (cache && getDashboardCachedAgeMs(cache) <= DASHBOARD_CACHE_TTL_MS) {
