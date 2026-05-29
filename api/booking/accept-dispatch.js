@@ -5,7 +5,7 @@ import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
-import { buildRequestId, hashIdentifier, getDeploymentMetadata, insertOperationalEventFailOpen } from '../_observability.js';
+import { buildRequestId, hashIdentifier, getDeploymentMetadata, redactString } from '../_observability.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -19,17 +19,45 @@ const SITE = 'https://www.assembleatease.com';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const requestId = buildRequestId(req.headers || {});
+  let requestId = 'obs_fallback';
+  try {
+    requestId = buildRequestId(req.headers || {});
+  } catch (_) {}
   const requestStartedAt = Date.now();
-  const deployment = getDeploymentMetadata();
+
+  let deployment = {
+    deployment_id: null,
+    commit_sha: null,
+    environment: null,
+    app_version: null,
+  };
+  try {
+    deployment = { ...deployment, ...(getDeploymentMetadata() || {}) };
+  } catch (_) {}
+
   let attemptEventEmitted = false;
   let terminalEventEmitted = false;
 
-  const emitAttemptEvent = async ({ actorIdHash = null, bookingHash = null, offerHash = null } = {}) => {
+  const scheduleTelemetry = (event) => {
+    if (!event) return;
+    try {
+      void Promise.resolve()
+        .then(() => {
+          try {
+            const sbObs = getSupabase();
+            return sbObs.from('operational_events').insert(event);
+          } catch (_) {
+            return null;
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
+  };
+
+  const emitAttemptEvent = ({ actorIdHash, bookingHash, offerHash }) => {
     if (attemptEventEmitted) return;
     attemptEventEmitted = true;
-
-    await insertOperationalEventFailOpen(getSupabase(), {
+    scheduleTelemetry({
       event_type: 'accept_dispatch_attempt',
       request_id: requestId,
       route: '/api/booking/accept-dispatch',
@@ -39,34 +67,23 @@ export default async function handler(req, res) {
       environment: deployment.environment,
       app_version: deployment.app_version,
       actor_role: 'easer',
-      actor_id_hash: actorIdHash,
-      booking_hash: bookingHash,
-      offer_hash: offerHash,
+      actor_id_hash: actorIdHash || null,
+      booking_hash: bookingHash || null,
+      offer_hash: offerHash || null,
       stage: 'request_validated',
       status_code: null,
       reason_code: null,
       reason_detail: null,
       mutation_result: null,
       latency_ms: Date.now() - requestStartedAt,
-      payload: { has_auth_header: !!auth },
+      payload: null,
     });
   };
 
-  const emitTerminalEvent = async (eventType, {
-    statusCode,
-    reasonCode,
-    reasonDetail,
-    stage,
-    mutationResult,
-    actorIdHash = null,
-    bookingHash = null,
-    offerHash = null,
-    payload = null,
-  } = {}) => {
+  const emitTerminalEvent = ({ eventType, statusCode, reasonCode, reasonDetail, stage, mutationResult, actorIdHash, bookingHash, offerHash, payload }) => {
     if (terminalEventEmitted) return;
     terminalEventEmitted = true;
-
-    await insertOperationalEventFailOpen(getSupabase(), {
+    scheduleTelemetry({
       event_type: eventType,
       request_id: requestId,
       route: '/api/booking/accept-dispatch',
@@ -76,68 +93,67 @@ export default async function handler(req, res) {
       environment: deployment.environment,
       app_version: deployment.app_version,
       actor_role: 'easer',
-      actor_id_hash: actorIdHash,
-      booking_hash: bookingHash,
-      offer_hash: offerHash,
-      stage,
-      status_code: statusCode,
-      reason_code: reasonCode,
-      reason_detail: reasonDetail,
-      mutation_result: mutationResult,
+      actor_id_hash: actorIdHash || null,
+      booking_hash: bookingHash || null,
+      offer_hash: offerHash || null,
+      stage: stage || null,
+      status_code: statusCode ?? null,
+      reason_code: reasonCode || null,
+      reason_detail: reasonDetail ? redactString(reasonDetail) : null,
+      mutation_result: mutationResult || null,
       latency_ms: Date.now() - requestStartedAt,
-      payload,
+      payload: payload || null,
     });
-  };
-
-  const rejectWithTelemetry = async (statusCode, body, telemetry = {}) => {
-    await emitTerminalEvent('accept_dispatch_reject', {
-      statusCode,
-      reasonCode: telemetry.reasonCode,
-      reasonDetail: body?.error,
-      stage: telemetry.stage,
-      mutationResult: 'rejected',
-      actorIdHash: telemetry.actorIdHash,
-      bookingHash: telemetry.bookingHash,
-      offerHash: telemetry.offerHash,
-      payload: telemetry.payload || null,
-    });
-    return res.status(statusCode).json(body);
   };
 
   // Verify JWT — assemblerId MUST come from the token, not the request body
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) {
-    return rejectWithTelemetry(401, { error: 'Unauthorized' }, {
+    emitTerminalEvent({
+      eventType: 'accept_dispatch_reject',
+      statusCode: 401,
       reasonCode: 'unauthorized_missing_bearer',
+      reasonDetail: 'Unauthorized',
       stage: 'auth_header',
+      mutationResult: 'rejected',
     });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-
   try {
     const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
     const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
     if (authErr || !user) {
-      return rejectWithTelemetry(401, { error: 'Invalid or expired token' }, {
+      emitTerminalEvent({
+        eventType: 'accept_dispatch_reject',
+        statusCode: 401,
         reasonCode: 'unauthorized_invalid_token',
+        reasonDetail: 'Invalid or expired token',
         stage: 'auth_user',
+        mutationResult: 'rejected',
       });
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
     const { bookingId, token } = req.body;
     if (!bookingId || !token) {
-      return rejectWithTelemetry(400, { error: 'bookingId and token are required' }, {
+      emitTerminalEvent({
+        eventType: 'accept_dispatch_reject',
+        statusCode: 400,
         reasonCode: 'invalid_input',
+        reasonDetail: 'bookingId and token are required',
         stage: 'request_body',
+        mutationResult: 'rejected',
       });
+      return res.status(400).json({ error: 'bookingId and token are required' });
     }
 
     // Identity is the JWT user — never trust body-supplied assemblerId
     const assemblerId = user.id;
+
     const actorIdHash = hashIdentifier(assemblerId, { prefix: 'ea' });
     const bookingHash = hashIdentifier(bookingId, { prefix: 'bk' });
     const offerHash = hashIdentifier(token, { prefix: 'of' });
-
-    await emitAttemptEvent({ actorIdHash, bookingHash, offerHash });
+    emitAttemptEvent({ actorIdHash, bookingHash, offerHash });
 
     const sb = getSupabase();
     const now = new Date().toISOString();
@@ -158,66 +174,56 @@ export default async function handler(req, res) {
         await sb.from('dispatch_offers')
           .update({ offer_status: DISPATCH_OFFER_STATUS.EXPIRED, timed_out_at: now })
           .eq('id', offer.id);
-        return rejectWithTelemetry(410, { error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' }, {
+        emitTerminalEvent({
+          eventType: 'accept_dispatch_reject',
+          statusCode: 410,
           reasonCode: 'offer_expired',
+          reasonDetail: 'offer expired',
           stage: 'dispatch_offer_expired',
+          mutationResult: 'rejected',
           actorIdHash,
           bookingHash,
           offerHash,
         });
+        return res.status(410).json({ error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' });
       }
 
       // Verify booking still exists and is available
       const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
       if (!booking) {
-        return rejectWithTelemetry(404, { error: 'Booking not found' }, {
-          reasonCode: 'booking_not_found',
-          stage: 'dispatch_offer_booking_lookup',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'booking_not_found', reasonDetail: 'booking not found', stage: 'dispatch_offer_booking_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(404).json({ error: 'Booking not found' });
       }
       if (booking.status !== BOOKING_STATUS.CONFIRMED) {
-        return rejectWithTelemetry(400, { error: 'This booking is no longer available' }, {
-          reasonCode: 'booking_not_confirmed',
-          stage: 'dispatch_offer_booking_status',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 400, reasonCode: 'booking_not_confirmed', reasonDetail: 'booking not confirmed', stage: 'dispatch_offer_booking_status', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(400).json({ error: 'This booking is no longer available' });
       }
       if (booking.assembler_id) {
-        return rejectWithTelemetry(409, { error: 'Sorry — another Easer just accepted this job.' }, {
-          reasonCode: 'booking_already_assigned',
-          stage: 'dispatch_offer_booking_assigned',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'booking_already_assigned', reasonDetail: 'booking already assigned', stage: 'dispatch_offer_booking_assigned', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
       }
 
       // Get Easer profile and enforce operational eligibility at accept time
       const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
       if (!easer) {
-        return rejectWithTelemetry(404, { error: 'Easer profile not found' }, {
-          reasonCode: 'profile_not_found',
-          stage: 'dispatch_offer_profile_lookup',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'profile_not_found', reasonDetail: 'profile not found', stage: 'dispatch_offer_profile_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(404).json({ error: 'Easer profile not found' });
       }
       {
         const eligibility = getEaserEligibility(easer);
         if (!eligibility.ok) {
-          return rejectWithTelemetry(403, { error: eligibility.error }, {
+          emitTerminalEvent({
+            eventType: 'accept_dispatch_reject',
+            statusCode: 403,
             reasonCode: eligibility.error.includes('Identity verification') ? 'ineligible_identity' : 'ineligible_status',
+            reasonDetail: eligibility.error,
             stage: 'dispatch_offer_eligibility',
+            mutationResult: 'rejected',
             actorIdHash,
             bookingHash,
             offerHash,
           });
+          return res.status(403).json({ error: eligibility.error });
         }
       }
 
@@ -239,13 +245,8 @@ export default async function handler(req, res) {
       .select('id');
 
       if (assignErr || !assignedRows || assignedRows.length === 0) {
-        return rejectWithTelemetry(409, { error: 'Sorry — another Easer accepted this job first.' }, {
-          reasonCode: 'race_lost',
-          stage: 'dispatch_offer_assign_cas',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'race_lost', reasonDetail: 'race lost', stage: 'dispatch_offer_assign_cas', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(409).json({ error: 'Sorry — another Easer accepted this job first.' });
       }
 
       // Mark this offer accepted
@@ -279,17 +280,7 @@ export default async function handler(req, res) {
       });
 
       sendNotifications(sb, booking, easer, assemblerId);
-      await emitTerminalEvent('accept_dispatch_success', {
-        statusCode: 200,
-        reasonCode: null,
-        reasonDetail: null,
-        stage: 'dispatch_offer_success',
-        mutationResult: 'accepted',
-        actorIdHash,
-        bookingHash,
-        offerHash,
-        payload: { path: 'dispatch_offers' },
-      });
+      emitTerminalEvent({ eventType: 'accept_dispatch_success', statusCode: 200, reasonCode: null, reasonDetail: null, stage: 'dispatch_offer_success', mutationResult: 'accepted', actorIdHash, bookingHash, offerHash });
       return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
     }
 
@@ -298,22 +289,12 @@ export default async function handler(req, res) {
       .from('bookings').select('*').eq('id', bookingId).single();
 
     if (bErr || !booking) {
-      return rejectWithTelemetry(404, { error: 'Booking not found' }, {
-        reasonCode: 'booking_not_found',
-        stage: 'legacy_booking_lookup',
-        actorIdHash,
-        bookingHash,
-        offerHash,
-      });
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'booking_not_found', reasonDetail: 'booking not found', stage: 'legacy_booking_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(404).json({ error: 'Booking not found' });
     }
     if (booking.status !== BOOKING_STATUS.CONFIRMED) {
-      return rejectWithTelemetry(400, { error: 'This booking is no longer available' }, {
-        reasonCode: 'booking_not_confirmed',
-        stage: 'legacy_booking_status',
-        actorIdHash,
-        bookingHash,
-        offerHash,
-      });
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 400, reasonCode: 'booking_not_confirmed', reasonDetail: 'booking not confirmed', stage: 'legacy_booking_status', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(400).json({ error: 'This booking is no longer available' });
     }
 
     const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
@@ -321,57 +302,42 @@ export default async function handler(req, res) {
                       && booking.assembler_id === assemblerId;
 
     if (!isDispatch && !isAssignment) {
-      return rejectWithTelemetry(403, { error: 'Invalid or expired offer token' }, {
-        reasonCode: 'legacy_token_invalid',
-        stage: 'legacy_token_validation',
-        actorIdHash,
-        bookingHash,
-        offerHash,
-      });
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 403, reasonCode: 'legacy_token_invalid', reasonDetail: 'invalid or expired offer token', stage: 'legacy_token_validation', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(403).json({ error: 'Invalid or expired offer token' });
     }
 
     if (isDispatch) {
       if (booking.assembler_id) {
-        return rejectWithTelemetry(409, { error: 'Sorry — another Easer just accepted this job.' }, {
-          reasonCode: 'booking_already_assigned',
-          stage: 'legacy_dispatch_already_assigned',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'booking_already_assigned', reasonDetail: 'booking already assigned', stage: 'legacy_dispatch_assigned', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
       }
       const offeredTo = booking.dispatch_offered_to || [];
       if (!offeredTo.includes(assemblerId)) {
-        return rejectWithTelemetry(403, { error: 'This job offer was not sent to your account' }, {
-          reasonCode: 'legacy_token_invalid',
-          stage: 'legacy_dispatch_not_offered',
-          actorIdHash,
-          bookingHash,
-          offerHash,
-        });
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 403, reasonCode: 'legacy_token_invalid', reasonDetail: 'offer not sent to account', stage: 'legacy_dispatch_offered_to', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(403).json({ error: 'This job offer was not sent to your account' });
       }
     }
 
     const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
     if (!easer) {
-      return rejectWithTelemetry(404, { error: 'Easer profile not found' }, {
-        reasonCode: 'profile_not_found',
-        stage: 'legacy_profile_lookup',
-        actorIdHash,
-        bookingHash,
-        offerHash,
-      });
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'profile_not_found', reasonDetail: 'profile not found', stage: 'legacy_profile_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(404).json({ error: 'Easer profile not found' });
     }
     {
       const eligibility = getEaserEligibility(easer);
       if (!eligibility.ok) {
-        return rejectWithTelemetry(403, { error: eligibility.error }, {
+        emitTerminalEvent({
+          eventType: 'accept_dispatch_reject',
+          statusCode: 403,
           reasonCode: eligibility.error.includes('Identity verification') ? 'ineligible_identity' : 'ineligible_status',
+          reasonDetail: eligibility.error,
           stage: 'legacy_eligibility',
+          mutationResult: 'rejected',
           actorIdHash,
           bookingHash,
           offerHash,
         });
+        return res.status(403).json({ error: eligibility.error });
       }
     }
 
@@ -396,13 +362,8 @@ export default async function handler(req, res) {
       : await updateQuery;
 
     if (assignErr) {
-      return rejectWithTelemetry(409, { error: 'Sorry — another Easer accepted this job first' }, {
-        reasonCode: 'race_lost',
-        stage: 'legacy_assign_cas',
-        actorIdHash,
-        bookingHash,
-        offerHash,
-      });
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'race_lost', reasonDetail: 'race lost', stage: 'legacy_assign_cas', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(409).json({ error: 'Sorry — another Easer accepted this job first' });
     }
 
     await sb.from('profiles').update({ last_assigned_at: now }).eq('id', assemblerId);
@@ -418,26 +379,19 @@ export default async function handler(req, res) {
     });
 
     sendNotifications(sb, booking, easer, assemblerId);
-    await emitTerminalEvent('accept_dispatch_success', {
-      statusCode: 200,
-      reasonCode: null,
-      reasonDetail: null,
-      stage: 'legacy_success',
-      mutationResult: 'accepted',
-      actorIdHash,
-      bookingHash,
-      offerHash,
-      payload: { path: isDispatch ? 'legacy_dispatch' : 'legacy_assignment' },
-    });
+    emitTerminalEvent({ eventType: 'accept_dispatch_success', statusCode: 200, reasonCode: null, reasonDetail: null, stage: 'legacy_success', mutationResult: 'accepted', actorIdHash, bookingHash, offerHash });
     return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
   } catch (error) {
-    await emitTerminalEvent('accept_dispatch_runtime_error', {
+    emitTerminalEvent({
+      eventType: 'accept_dispatch_runtime_error',
       statusCode: 500,
       reasonCode: 'runtime_exception',
-      reasonDetail: error?.message || 'Unexpected accept-dispatch exception',
+      reasonDetail: redactString(error?.message || 'runtime exception') || 'runtime exception',
       stage: 'runtime_exception',
       mutationResult: 'exception',
-      payload: { name: error?.name || 'Error' },
+      payload: {
+        error_name: redactString(error?.name || 'Error') || 'Error',
+      },
     });
     throw error;
   }
