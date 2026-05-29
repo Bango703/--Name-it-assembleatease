@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const payload = (req.body && typeof req.body === 'object') ? req.body : {};
-  const { bookingId, ref, amount, notes } = payload;
+  const { bookingId, ref, amount, notes, method } = payload;
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
 
   const sb = getSupabase();
@@ -54,6 +54,7 @@ export default async function handler(req, res) {
     p_payout_amount_cents: payoutCents,
     p_notes: notes?.trim() || null,
     p_recorded_by: 'owner',
+    p_payout_method: method?.trim() || 'manual',
   });
 
   if (payoutErr) {
