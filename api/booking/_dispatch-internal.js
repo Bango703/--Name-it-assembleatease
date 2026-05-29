@@ -243,7 +243,9 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
       url:   acceptUrl,
       jobId: bookingId,
       urgent: true,
-    }, { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer' }).catch(() => {});
+    }, { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer' }).catch(function(err) {
+      console.error('[dispatch] Push failed for easer', easer.id, err && (err.message || String(err)));
+    });
 
     try {
       await sendEmail({

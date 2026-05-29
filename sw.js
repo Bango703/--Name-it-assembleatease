@@ -1,5 +1,5 @@
 // AssembleAtEase Easer Service Worker
-const CACHE = 'aae-easer-v4';
+const CACHE = 'aae-easer-v5';
 const OFFLINE_URL = '/assembler/';
 
 // ── Install: cache the core Easer shell ──────────────────────────────
@@ -99,17 +99,15 @@ self.addEventListener('notificationclick', function(e) {
 
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
-      // If app is already open, focus it and navigate
+      // client.navigate() is not supported on iOS — use openWindow for all platforms.
+      // openWindow focuses an existing in-scope window when available, otherwise opens new.
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      // Fallback for environments where openWindow is unavailable
       for (var i = 0; i < list.length; i++) {
-        var c = list[i];
-        if (c.url.includes('/assembler') && 'focus' in c) {
-          c.focus();
-          c.navigate(targetUrl);
-          return;
+        if (list[i].url.includes('/assembler') && 'focus' in list[i]) {
+          return list[i].focus();
         }
       }
-      // Otherwise open a new window
-      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });
