@@ -479,6 +479,13 @@
     if (options && options.warnings && options.warnings.length) {
       dashboardLoadState.mode = 'stale_data';
       setDashboardStatus('stale_data', { extra: 'Some offer data may be delayed. Retry to refresh.' });
+      if (dashboardLoadState.retryCount < 3 && !dashboardRetryTimer) {
+        dashboardRetryTimer = setTimeout(function() {
+          dashboardRetryTimer = null;
+          if (document.visibilityState === 'visible') loadDashboardData('partial_retry');
+        }, 10000);
+        dashboardLoadState.retryCount += 1;
+      }
       return;
     }
 
@@ -936,7 +943,7 @@
     // Offline banner
     var offlineBanner=document.getElementById('e-offline');
     window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
-    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show'); loadDashboardData('reconnect');});
+    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show'); dashboardLoadState.retryCount = 0; loadDashboardData('reconnect');});
 
     window.addEventListener('beforeunload',function(){
       clearDashboardRetryTimer();
@@ -950,6 +957,18 @@
       } else if(document.visibilityState==='visible' && _hiddenAt && (Date.now()-_hiddenAt) > 60000){
         window.location.reload();
       }
+    });
+
+    // bfcache restoration — browser may restore page from memory on back-nav without
+    // firing DOMContentLoaded or visibilitychange. Trigger a soft refetch if the last
+    // successful load was more than 60s ago so Easers don't see stale job state.
+    window.addEventListener('pageshow', function(event) {
+      if (!event.persisted) return; // normal load — already handled by DOMContentLoaded
+      if (dashboardLoadState.inFlight) return; // fetch already in progress
+      var lastSuccess = dashboardLoadState.lastSuccessAt ? new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
+      if (Date.now() - lastSuccess < 60000) return; // fresh enough — skip
+      dashboardLoadState.retryCount = 0;
+      loadDashboardData('bfcache_restore');
     });
 
     // Complete job sheet handlers
