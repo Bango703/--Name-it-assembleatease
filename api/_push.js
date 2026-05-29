@@ -72,9 +72,11 @@ export async function sendPushToUser(userId, payload, meta = {}) {
 
   // Await the log insert before returning — Vercel terminates execution after
   // response flush, so non-awaited inserts are abandoned and never reach the DB.
-  // try/catch preserves fail-open: a log failure must not affect push delivery.
+  // Supabase v2 returns { error } instead of throwing — check explicitly to surface failures.
   if (logRows.length) {
-    try { await sb.from('notification_log').insert(logRows); } catch { /* non-fatal */ }
+    const { error: logErr } = await sb.from('notification_log').insert(logRows)
+      .catch(err => ({ error: err }));
+    if (logErr) console.error('[push] notification_log insert failed:', logErr.message || logErr, logErr.code || '');
   }
   if (dead.length) {
     await sb.from('push_subscriptions').delete().in('endpoint', dead);
