@@ -5,6 +5,7 @@ import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { buildRequestId, hashIdentifier, getDeploymentMetadata, redactString } from '../_observability.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -18,93 +19,354 @@ const SITE = 'https://www.assembleatease.com';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  let requestId = 'obs_fallback';
+  try {
+    requestId = buildRequestId(req.headers || {});
+  } catch (_) {}
+  const requestStartedAt = Date.now();
+
+  let deployment = {
+    deployment_id: null,
+    commit_sha: null,
+    environment: null,
+    app_version: null,
+  };
+  try {
+    deployment = { ...deployment, ...(getDeploymentMetadata() || {}) };
+  } catch (_) {}
+
+  let attemptEventEmitted = false;
+  let terminalEventEmitted = false;
+
+  const scheduleTelemetry = (event) => {
+    if (!event) return;
+    try {
+      void Promise.resolve()
+        .then(() => {
+          try {
+            const sbObs = getSupabase();
+            return sbObs.from('operational_events').insert(event);
+          } catch (_) {
+            return null;
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
+  };
+
+  const emitAttemptEvent = ({ actorIdHash, bookingHash, offerHash }) => {
+    if (attemptEventEmitted) return;
+    attemptEventEmitted = true;
+    scheduleTelemetry({
+      event_type: 'accept_dispatch_attempt',
+      request_id: requestId,
+      route: '/api/booking/accept-dispatch',
+      method: req.method,
+      deployment_id: deployment.deployment_id,
+      commit_sha: deployment.commit_sha,
+      environment: deployment.environment,
+      app_version: deployment.app_version,
+      actor_role: 'easer',
+      actor_id_hash: actorIdHash || null,
+      booking_hash: bookingHash || null,
+      offer_hash: offerHash || null,
+      stage: 'request_validated',
+      status_code: null,
+      reason_code: null,
+      reason_detail: null,
+      mutation_result: null,
+      latency_ms: Date.now() - requestStartedAt,
+      payload: null,
+    });
+  };
+
+  const emitTerminalEvent = ({ eventType, statusCode, reasonCode, reasonDetail, stage, mutationResult, actorIdHash, bookingHash, offerHash, payload }) => {
+    if (terminalEventEmitted) return;
+    terminalEventEmitted = true;
+    scheduleTelemetry({
+      event_type: eventType,
+      request_id: requestId,
+      route: '/api/booking/accept-dispatch',
+      method: req.method,
+      deployment_id: deployment.deployment_id,
+      commit_sha: deployment.commit_sha,
+      environment: deployment.environment,
+      app_version: deployment.app_version,
+      actor_role: 'easer',
+      actor_id_hash: actorIdHash || null,
+      booking_hash: bookingHash || null,
+      offer_hash: offerHash || null,
+      stage: stage || null,
+      status_code: statusCode ?? null,
+      reason_code: reasonCode || null,
+      reason_detail: reasonDetail ? redactString(reasonDetail) : null,
+      mutation_result: mutationResult || null,
+      latency_ms: Date.now() - requestStartedAt,
+      payload: payload || null,
+    });
+  };
+
   // Verify JWT — assemblerId MUST come from the token, not the request body
   const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
-  const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
-
-  const { bookingId, token } = req.body;
-  if (!bookingId || !token) {
-    return res.status(400).json({ error: 'bookingId and token are required' });
+  if (!auth || !auth.startsWith('Bearer ')) {
+    emitTerminalEvent({
+      eventType: 'accept_dispatch_reject',
+      statusCode: 401,
+      reasonCode: 'unauthorized_missing_bearer',
+      reasonDetail: 'Unauthorized',
+      stage: 'auth_header',
+      mutationResult: 'rejected',
+    });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-
-  // Identity is the JWT user — never trust body-supplied assemblerId
-  const assemblerId = user.id;
-
-  const sb = getSupabase();
-  const now = new Date().toISOString();
-
-  // ── Path 1: dispatch_offers table (new) ───────────────────────────────────
-  const { data: offer } = await sb
-    .from('dispatch_offers')
-    .select('*')
-    .eq('token', token)
-    .eq('booking_id', bookingId)
-    .eq('easer_id', assemblerId)
-    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
-    .maybeSingle();
-
-  if (offer) {
-    // Verify offer not expired
-    if (new Date(offer.expires_at) < new Date()) {
-      await sb.from('dispatch_offers')
-        .update({ offer_status: DISPATCH_OFFER_STATUS.EXPIRED, timed_out_at: now })
-        .eq('id', offer.id);
-      return res.status(410).json({ error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' });
+  try {
+    const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
+    if (authErr || !user) {
+      emitTerminalEvent({
+        eventType: 'accept_dispatch_reject',
+        statusCode: 401,
+        reasonCode: 'unauthorized_invalid_token',
+        reasonDetail: 'Invalid or expired token',
+        stage: 'auth_user',
+        mutationResult: 'rejected',
+      });
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    // Verify booking still exists and is available
-    const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
-    if (!booking) return res.status(404).json({ error: 'Booking not found' });
-    if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
-    if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
-
-    // Get Easer profile
-    const { data: easer } = await sb.from('profiles').select('full_name, email, tier, has_membership').eq('id', assemblerId).single();
-    if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
-
-    // ── Atomic CAS: assign only if assembler_id is still null ───────────────
-    // .select('id') returns the updated row(s). If 0 rows returned, the guard
-    // condition failed — another Easer won the race. No separate read needed.
-    const { data: assignedRows, error: assignErr } = await sb.from('bookings').update({
-      assembler_id:          assemblerId,
-      assembler_name:        easer.full_name,
-      assembler_tier:        easer.tier,
-      assigned_at:           now,
-      assembler_accepted_at: now,
-      dispatch_status:       'accepted',
-      dispatch_token:        null,
-      assignment_token:      null,
-    })
-    .eq('id', bookingId)
-    .is('assembler_id', null)
-    .select('id');
-
-    if (assignErr || !assignedRows || assignedRows.length === 0) {
-      return res.status(409).json({ error: 'Sorry — another Easer accepted this job first.' });
+    const { bookingId, token } = req.body;
+    if (!bookingId || !token) {
+      emitTerminalEvent({
+        eventType: 'accept_dispatch_reject',
+        statusCode: 400,
+        reasonCode: 'invalid_input',
+        reasonDetail: 'bookingId and token are required',
+        stage: 'request_body',
+        mutationResult: 'rejected',
+      });
+      return res.status(400).json({ error: 'bookingId and token are required' });
     }
 
-    // Mark this offer accepted
-    await sb.from('dispatch_offers')
-      .update({ offer_status: DISPATCH_OFFER_STATUS.ACCEPTED, accepted_at: now })
-      .eq('id', offer.id);
+    // Identity is the JWT user — never trust body-supplied assemblerId
+    const assemblerId = user.id;
 
-    // Supersede all other open offers for this booking
-    await sb.from('dispatch_offers')
-      .update({ offer_status: DISPATCH_OFFER_STATUS.SUPERSEDED })
+    const actorIdHash = hashIdentifier(assemblerId, { prefix: 'ea' });
+    const bookingHash = hashIdentifier(bookingId, { prefix: 'bk' });
+    const offerHash = hashIdentifier(token, { prefix: 'of' });
+    emitAttemptEvent({ actorIdHash, bookingHash, offerHash });
+
+    const sb = getSupabase();
+    const now = new Date().toISOString();
+
+    // ── Path 1: dispatch_offers table (new) ─────────────────────────────────
+    const { data: offer } = await sb
+      .from('dispatch_offers')
+      .select('*')
+      .eq('token', token)
       .eq('booking_id', bookingId)
+      .eq('easer_id', assemblerId)
       .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
-      .neq('id', offer.id);
+      .maybeSingle();
 
-    // Update Easer's last_assigned_at for fairness scoring
-    await sb.from('profiles')
-      .update({ last_assigned_at: now })
-      .eq('id', assemblerId);
+    if (offer) {
+      // Verify offer not expired
+      if (new Date(offer.expires_at) < new Date()) {
+        await sb.from('dispatch_offers')
+          .update({ offer_status: DISPATCH_OFFER_STATUS.EXPIRED, timed_out_at: now })
+          .eq('id', offer.id);
+        emitTerminalEvent({
+          eventType: 'accept_dispatch_reject',
+          statusCode: 410,
+          reasonCode: 'offer_expired',
+          reasonDetail: 'offer expired',
+          stage: 'dispatch_offer_expired',
+          mutationResult: 'rejected',
+          actorIdHash,
+          bookingHash,
+          offerHash,
+        });
+        return res.status(410).json({ error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' });
+      }
 
-    // Increment active_jobs_today — the CAS guard ensures this runs exactly once
-    adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
+      // Verify booking still exists and is available
+      const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
+      if (!booking) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'booking_not_found', reasonDetail: 'booking not found', stage: 'dispatch_offer_booking_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      if (booking.status !== BOOKING_STATUS.CONFIRMED) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 400, reasonCode: 'booking_not_confirmed', reasonDetail: 'booking not confirmed', stage: 'dispatch_offer_booking_status', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(400).json({ error: 'This booking is no longer available' });
+      }
+      if (booking.assembler_id) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'booking_already_assigned', reasonDetail: 'booking already assigned', stage: 'dispatch_offer_booking_assigned', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
+      }
+
+      // Get Easer profile and enforce operational eligibility at accept time
+      const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
+      if (!easer) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'profile_not_found', reasonDetail: 'profile not found', stage: 'dispatch_offer_profile_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(404).json({ error: 'Easer profile not found' });
+      }
+      {
+        const eligibility = getEaserEligibility(easer);
+        if (!eligibility.ok) {
+          emitTerminalEvent({
+            eventType: 'accept_dispatch_reject',
+            statusCode: 403,
+            reasonCode: eligibility.error.includes('Identity verification') ? 'ineligible_identity' : 'ineligible_status',
+            reasonDetail: eligibility.error,
+            stage: 'dispatch_offer_eligibility',
+            mutationResult: 'rejected',
+            actorIdHash,
+            bookingHash,
+            offerHash,
+          });
+          return res.status(403).json({ error: eligibility.error });
+        }
+      }
+
+      // ── Atomic CAS: assign only if assembler_id is still null ─────────────
+      // .select('id') returns the updated row(s). If 0 rows returned, the guard
+      // condition failed — another Easer won the race. No separate read needed.
+      const { data: assignedRows, error: assignErr } = await sb.from('bookings').update({
+        assembler_id:          assemblerId,
+        assembler_name:        easer.full_name,
+        assembler_tier:        easer.tier,
+        assigned_at:           now,
+        assembler_accepted_at: now,
+        dispatch_status:       'accepted',
+        dispatch_token:        null,
+        assignment_token:      null,
+      })
+      .eq('id', bookingId)
+      .is('assembler_id', null)
+      .select('id');
+
+      if (assignErr || !assignedRows || assignedRows.length === 0) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'race_lost', reasonDetail: 'race lost', stage: 'dispatch_offer_assign_cas', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(409).json({ error: 'Sorry — another Easer accepted this job first.' });
+      }
+
+      // Mark this offer accepted
+      await sb.from('dispatch_offers')
+        .update({ offer_status: DISPATCH_OFFER_STATUS.ACCEPTED, accepted_at: now })
+        .eq('id', offer.id);
+
+      // Supersede all other open offers for this booking
+      await sb.from('dispatch_offers')
+        .update({ offer_status: DISPATCH_OFFER_STATUS.SUPERSEDED })
+        .eq('booking_id', bookingId)
+        .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
+        .neq('id', offer.id);
+
+      // Update Easer's last_assigned_at for fairness scoring
+      await sb.from('profiles')
+        .update({ last_assigned_at: now })
+        .eq('id', assemblerId);
+
+      // Increment active_jobs_today — the CAS guard ensures this runs exactly once
+      adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
+
+      logActivity(sb, {
+        bookingId,
+        eventType: 'easer_accepted',
+        actorType: 'easer',
+        actorId: assemblerId,
+        actorName: easer.full_name,
+        description: `${easer.full_name} accepted the job via dispatch offer`,
+        metadata: { tier: easer.tier, score: offer.dispatch_score, attempt: offer.attempt_number },
+      });
+
+      sendNotifications(sb, booking, easer, assemblerId);
+      emitTerminalEvent({ eventType: 'accept_dispatch_success', statusCode: 200, reasonCode: null, reasonDetail: null, stage: 'dispatch_offer_success', mutationResult: 'accepted', actorIdHash, bookingHash, offerHash });
+      return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
+    }
+
+    // ── Path 2: Legacy inline tokens (assignment_token or dispatch_token) ───
+    const { data: booking, error: bErr } = await sb
+      .from('bookings').select('*').eq('id', bookingId).single();
+
+    if (bErr || !booking) {
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'booking_not_found', reasonDetail: 'booking not found', stage: 'legacy_booking_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    if (booking.status !== BOOKING_STATUS.CONFIRMED) {
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 400, reasonCode: 'booking_not_confirmed', reasonDetail: 'booking not confirmed', stage: 'legacy_booking_status', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(400).json({ error: 'This booking is no longer available' });
+    }
+
+    const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
+    const isAssignment = booking.assignment_token && booking.assignment_token === token
+                      && booking.assembler_id === assemblerId;
+
+    if (!isDispatch && !isAssignment) {
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 403, reasonCode: 'legacy_token_invalid', reasonDetail: 'invalid or expired offer token', stage: 'legacy_token_validation', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(403).json({ error: 'Invalid or expired offer token' });
+    }
+
+    if (isDispatch) {
+      if (booking.assembler_id) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'booking_already_assigned', reasonDetail: 'booking already assigned', stage: 'legacy_dispatch_assigned', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
+      }
+      const offeredTo = booking.dispatch_offered_to || [];
+      if (!offeredTo.includes(assemblerId)) {
+        emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 403, reasonCode: 'legacy_token_invalid', reasonDetail: 'offer not sent to account', stage: 'legacy_dispatch_offered_to', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+        return res.status(403).json({ error: 'This job offer was not sent to your account' });
+      }
+    }
+
+    const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
+    if (!easer) {
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 404, reasonCode: 'profile_not_found', reasonDetail: 'profile not found', stage: 'legacy_profile_lookup', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(404).json({ error: 'Easer profile not found' });
+    }
+    {
+      const eligibility = getEaserEligibility(easer);
+      if (!eligibility.ok) {
+        emitTerminalEvent({
+          eventType: 'accept_dispatch_reject',
+          statusCode: 403,
+          reasonCode: eligibility.error.includes('Identity verification') ? 'ineligible_identity' : 'ineligible_status',
+          reasonDetail: eligibility.error,
+          stage: 'legacy_eligibility',
+          mutationResult: 'rejected',
+          actorIdHash,
+          bookingHash,
+          offerHash,
+        });
+        return res.status(403).json({ error: eligibility.error });
+      }
+    }
+
+    const updateData = {
+      assembler_accepted_at: now,
+      dispatch_status: 'accepted',
+      dispatch_token: null,
+      assignment_token: null,
+    };
+    if (isDispatch) {
+      Object.assign(updateData, {
+        assembler_id: assemblerId,
+        assembler_name: easer.full_name,
+        assembler_tier: easer.tier,
+        assigned_at: now,
+      });
+    }
+
+    const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId);
+    const { error: assignErr } = isDispatch
+      ? await updateQuery.is('assembler_id', null)
+      : await updateQuery;
+
+    if (assignErr) {
+      emitTerminalEvent({ eventType: 'accept_dispatch_reject', statusCode: 409, reasonCode: 'race_lost', reasonDetail: 'race lost', stage: 'legacy_assign_cas', mutationResult: 'rejected', actorIdHash, bookingHash, offerHash });
+      return res.status(409).json({ error: 'Sorry — another Easer accepted this job first' });
+    }
+
+    await sb.from('profiles').update({ last_assigned_at: now }).eq('id', assemblerId);
 
     logActivity(sb, {
       bookingId,
@@ -112,76 +374,27 @@ export default async function handler(req, res) {
       actorType: 'easer',
       actorId: assemblerId,
       actorName: easer.full_name,
-      description: `${easer.full_name} accepted the job via dispatch offer`,
-      metadata: { tier: easer.tier, score: offer.dispatch_score, attempt: offer.attempt_number },
+      description: `${easer.full_name} accepted the job (legacy token)`,
+      metadata: { tier: easer.tier },
     });
 
     sendNotifications(sb, booking, easer, assemblerId);
+    emitTerminalEvent({ eventType: 'accept_dispatch_success', statusCode: 200, reasonCode: null, reasonDetail: null, stage: 'legacy_success', mutationResult: 'accepted', actorIdHash, bookingHash, offerHash });
     return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
-  }
-
-  // ── Path 2: Legacy inline tokens (assignment_token or dispatch_token) ─────
-  const { data: booking, error: bErr } = await sb
-    .from('bookings').select('*').eq('id', bookingId).single();
-
-  if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
-
-  const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
-  const isAssignment = booking.assignment_token && booking.assignment_token === token
-                    && booking.assembler_id === assemblerId;
-
-  if (!isDispatch && !isAssignment) {
-    return res.status(403).json({ error: 'Invalid or expired offer token' });
-  }
-
-  if (isDispatch) {
-    if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
-    const offeredTo = booking.dispatch_offered_to || [];
-    if (!offeredTo.includes(assemblerId)) {
-      return res.status(403).json({ error: 'This job offer was not sent to your account' });
-    }
-  }
-
-  const { data: easer } = await sb.from('profiles').select('full_name, email, tier, has_membership').eq('id', assemblerId).single();
-  if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
-
-  const updateData = {
-    assembler_accepted_at: now,
-    dispatch_status: 'accepted',
-    dispatch_token: null,
-    assignment_token: null,
-  };
-  if (isDispatch) {
-    Object.assign(updateData, {
-      assembler_id: assemblerId,
-      assembler_name: easer.full_name,
-      assembler_tier: easer.tier,
-      assigned_at: now,
+  } catch (error) {
+    emitTerminalEvent({
+      eventType: 'accept_dispatch_runtime_error',
+      statusCode: 500,
+      reasonCode: 'runtime_exception',
+      reasonDetail: redactString(error?.message || 'runtime exception') || 'runtime exception',
+      stage: 'runtime_exception',
+      mutationResult: 'exception',
+      payload: {
+        error_name: redactString(error?.name || 'Error') || 'Error',
+      },
     });
+    throw error;
   }
-
-  const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId);
-  const { error: assignErr } = isDispatch
-    ? await updateQuery.is('assembler_id', null)
-    : await updateQuery;
-
-  if (assignErr) return res.status(409).json({ error: 'Sorry — another Easer accepted this job first' });
-
-  await sb.from('profiles').update({ last_assigned_at: now }).eq('id', assemblerId);
-
-  logActivity(sb, {
-    bookingId,
-    eventType: 'easer_accepted',
-    actorType: 'easer',
-    actorId: assemblerId,
-    actorName: easer.full_name,
-    description: `${easer.full_name} accepted the job (legacy token)`,
-    metadata: { tier: easer.tier },
-  });
-
-  sendNotifications(sb, booking, easer, assemblerId);
-  return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
 }
 
 function sendNotifications(sb, booking, easer, assemblerId) {
@@ -220,4 +433,36 @@ function sendNotifications(sb, booking, easer, assemblerId) {
     </div>`,
     meta: { bookingId, notificationType: 'job_accepted', recipientType: 'owner' },
   }).catch(() => {});
+}
+
+function getEaserEligibility(profile) {
+  if (!profile) {
+    return { ok: false, error: 'Easer profile not found' };
+  }
+
+  const tier = String(profile.tier || '').toLowerCase();
+  const applicationStatus = String(profile.application_status || '').toLowerCase();
+  let status = String(profile.status || '').toLowerCase();
+
+  // Backwards-compatible status derivation in case status is unset on legacy rows.
+  if (!status) {
+    if (applicationStatus === 'rejected' || tier === 'rejected') status = 'rejected';
+    else if (tier === 'suspended') status = 'suspended';
+    else if (tier === 'pending' || !tier) status = 'pending';
+    else status = 'active';
+  }
+
+  if (status !== 'active') {
+    return { ok: false, error: 'Your Easer account is not eligible to accept jobs right now.' };
+  }
+
+  if (profile.identity_verified !== true) {
+    return { ok: false, error: 'Identity verification is required before accepting jobs.' };
+  }
+
+  if (!['starter', 'professional', 'elite'].includes(tier)) {
+    return { ok: false, error: 'Your Easer tier is not eligible for job acceptance.' };
+  }
+
+  return { ok: true };
 }
