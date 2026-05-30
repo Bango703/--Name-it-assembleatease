@@ -186,6 +186,13 @@ export default async function handler(req, res) {
 
   const finalAmountCharged = captureRequired ? amountCharged : (amountCharged || booking.total_price || 0);
 
+  if (!captureRequired && finalAmountCharged <= 0) {
+    return res.status(400).json({
+      error: 'Cannot complete this booking — the total price is $0 or not set. Update the booking price using the Edit button, then try again.',
+      code: 'PRICE_NOT_SET',
+    });
+  }
+
   // Tiered fee: members pay 18%, non-members pay 25%
   let isMember = false;
   if (booking.assembler_id) {
