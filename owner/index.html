@@ -1153,6 +1153,8 @@ function intelQuick(msg) {
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
     loadBookings();
+    if (_bookingsTimer) clearInterval(_bookingsTimer);
+    _bookingsTimer = setInterval(loadBookings, 60000);
     loadAssemblers();
     // Nav badge: pending Easer applications
     fetch('/api/assembler/list?tier=pending', { headers: headers() })
@@ -1230,6 +1232,7 @@ function intelQuick(msg) {
   function logout(expired) {
     password = '';
     sessionStorage.removeItem('owner_pw');
+    if (_bookingsTimer) { clearInterval(_bookingsTimer); _bookingsTimer = null; }
     if (expired) toast('Session expired — please log in again', 'error');
     setTimeout(function() {
       $layout.classList.add('hidden');
@@ -1280,6 +1283,8 @@ function intelQuick(msg) {
 
   // ─── Load bookings ───
   async function loadBookings() {
+    if (_bookingsLoading) return;
+    _bookingsLoading = true;
     $list.innerHTML = '<div class="loading-text">Loading bookings...</div>';
     try {
       const data = await apiGet('/list');
@@ -1288,6 +1293,8 @@ function intelQuick(msg) {
       renderList();
     } catch (e) {
       $list.innerHTML = '<div class="empty">Failed to load bookings</div>';
+    } finally {
+      _bookingsLoading = false;
     }
   }
 
@@ -2467,7 +2474,9 @@ function intelQuick(msg) {
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
   var allViews = [$bookingsView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView,$liveopsView];
-  var _liveOpsTimer = null;
+  var _liveOpsTimer  = null;
+  var _bookingsTimer = null;
+  var _bookingsLoading = false;
 
   // Expose headers globally so scripts outside IIFE can use it
   window._ownerHeaders = function() { return headers(); };
@@ -2515,6 +2524,7 @@ function intelQuick(msg) {
       if (!r.ok) return;
       var d = await r.json();
       renderLiveOps(d);
+      loadBookings();
     } catch(e) { console.error('Live ops error:', e); }
   }
 
