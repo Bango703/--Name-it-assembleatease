@@ -465,6 +465,11 @@
               <!-- Messages tab -->
               <div id="tab-messages">
                 <div class="msg-thread" id="msg-thread"></div>
+                <div id="msg-target-row" style="display:none;margin-bottom:0.4rem;font-size:0.78rem;color:var(--muted)">
+                  Send to:
+                  <button id="msg-target-customer" onclick="setMsgTarget('customer')" style="margin-left:6px;padding:2px 10px;border-radius:99px;border:1px solid var(--teal);background:var(--teal);color:#fff;font-size:0.75rem;cursor:pointer">Customer</button>
+                  <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="margin-left:4px;padding:2px 10px;border-radius:99px;border:1px solid var(--teal);background:none;color:var(--teal);font-size:0.75rem;cursor:pointer">Easer</button>
+                </div>
                 <div class="msg-compose">
                   <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="1"></textarea>
                   <button class="btn btn-teal" id="msg-send">Send</button>
@@ -1112,6 +1117,7 @@ function intelQuick(msg) {
   if (_ownerSession && _ownerSession.expires <= Date.now()) sessionStorage.removeItem('owner_pw');
   let allBookings = [];
   let selectedId = null;
+  let _msgTarget = 'customer';
   let currentStatus = 'all';
   let searchQuery = '';
 
@@ -1564,12 +1570,17 @@ function intelQuick(msg) {
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
       field('Address', b.address || '—'),
       field('Details', b.details || '—'),
-      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') : '<span style="color:var(--muted)">Unassigned</span>'),
+      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (b.assembler_phone ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(b.assembler_phone) + '</a>' : '') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', b.source === 'manual' ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
     renderActions(b);
     renderAssignSection(b);
+    // Show/hide Easer target toggle — only when an Easer is assigned
+    var $targetRow = document.getElementById('msg-target-row');
+    if ($targetRow) $targetRow.style.display = b.assembler_id ? '' : 'none';
+    _msgTarget = 'customer';
+    setMsgTarget('customer');
     // Notes handled by Notes tab (api/booking/notes.js)
     loadMessages(b.id);
     // Reset to messages tab on new booking select
@@ -2245,12 +2256,21 @@ function intelQuick(msg) {
   document.getElementById('msg-send').addEventListener('click', sendMessage);
   $msgInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
+  function setMsgTarget(t) {
+    _msgTarget = t;
+    document.getElementById('msg-target-customer').style.background = t === 'customer' ? 'var(--teal)' : 'none';
+    document.getElementById('msg-target-customer').style.color = t === 'customer' ? '#fff' : 'var(--teal)';
+    document.getElementById('msg-target-assembler').style.background = t === 'assembler' ? 'var(--teal)' : 'none';
+    document.getElementById('msg-target-assembler').style.color = t === 'assembler' ? '#fff' : 'var(--teal)';
+    document.getElementById('msg-input').placeholder = t === 'assembler' ? 'Message Easer...' : 'Message customer...';
+  }
+
   async function sendMessage() {
     var body = $msgInput.value.trim();
     if (!body || !selectedId) return;
     $msgInput.value = '';
     try {
-      var data = await apiPost('/message', { bookingId: selectedId, body: body, sender: 'owner' });
+      var data = await apiPost('/message', { bookingId: selectedId, body: body, sender: 'owner', target: _msgTarget });
       if (data.error) { toast(data.error, 'error'); return; }
       loadMessages(selectedId);
     } catch { toast('Failed to send message', 'error'); }
