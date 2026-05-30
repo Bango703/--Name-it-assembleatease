@@ -622,6 +622,7 @@
 
     // Mark Complete — opens bottom sheet instead of window.confirm()
     var _pendingCompleteBookingId = null;
+    var _completionInFlight = false;
 
     document.getElementById('complete-btn').addEventListener('click', function() {
       if (!selectedBookingId) return;
@@ -635,10 +636,12 @@
     });
 
     document.getElementById('complete-sheet-yes').addEventListener('click', async function() {
+      if (_completionInFlight) return;
       document.getElementById('complete-sheet').classList.remove('open');
       var bookingIdToComplete = _pendingCompleteBookingId;
       _pendingCompleteBookingId = null;
       if (!bookingIdToComplete) return;
+      _completionInFlight = true;
 
       var completeBtn = document.getElementById('complete-btn');
       if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Processing…'; }
@@ -668,11 +671,14 @@
           const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
           renderAssignments(filterList(allAssignments, cf));
           updateFilterCounts(allAssignments);
+          _completionInFlight = false;
         } else {
+          _completionInFlight = false;
           if (completeBtn) { completeBtn.disabled = false; completeBtn.innerHTML = '&#10003; Mark Job as Complete'; }
           APP.showAlert('page-alert', d.error || 'Failed to mark complete. Please try again.', 'error');
         }
       } catch {
+        _completionInFlight = false;
         if (completeBtn) { completeBtn.disabled = false; completeBtn.innerHTML = '&#10003; Mark Job as Complete'; }
         APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
       }
@@ -790,8 +796,13 @@
     }
 
     const completeBtn = document.getElementById('complete-btn');
-    completeBtn.disabled = false;
-    completeBtn.innerHTML = '&#10003; Mark Job as Complete';
+    if (_completionInFlight) {
+      completeBtn.disabled = true;
+      completeBtn.textContent = 'Processing…';
+    } else {
+      completeBtn.disabled = false;
+      completeBtn.innerHTML = '&#10003; Mark Job as Complete';
+    }
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && (b.assembler_accepted_at || b.assigned_at);
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
