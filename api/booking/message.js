@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { bookingId, ref, body: msgBody, sender } = req.body;
+  const { bookingId, ref, body: msgBody, sender, target } = req.body;
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
   if (!msgBody || !msgBody.trim()) return res.status(400).json({ error: 'Message body is required' });
   if (msgBody.trim().length > 2000) return res.status(400).json({ error: 'Message must be 2000 characters or fewer' });
@@ -91,7 +91,42 @@ export default async function handler(req, res) {
     const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
     const sBody = esc(msgBody.trim());
 
-    if (resolvedSender === 'owner') {
+    if (resolvedSender === 'owner' && target === 'assembler') {
+      // Notify assigned Easer
+      if (!booking.assembler_id) {
+        return res.status(400).json({ error: 'No Easer is assigned to this booking' });
+      }
+      const { data: { user: easerUser }, error: easerErr } = await sb.auth.admin.getUserById(booking.assembler_id);
+      if (easerErr || !easerUser?.email) {
+        return res.status(500).json({ error: 'Could not look up Easer email' });
+      }
+      const easerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
+    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#1a1a1a">Job update from dispatcher</p>
+    <p style="margin:0 0 20px;font-size:13px;color:#71717a">Ref: ${esc(booking.ref)} &bull; ${esc(booking.service)}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:16px 18px">
+      <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
+    </td></tr></table>
+    <p style="margin:20px 0 0;font-size:13px;color:#52525b">Reply to this email if you have questions.</p>
+  </td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
+    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
+  </td></tr></table>
+</div></body></html>`;
+      await sendEmail({
+        to: easerUser.email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: 'Job update from dispatcher — ' + booking.ref,
+        html: easerHtml,
+        replyTo: ownerEmail(),
+        meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: booking.assembler_id },
+      });
+    } else if (resolvedSender === 'owner') {
       // Notify customer
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">

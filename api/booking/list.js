@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     if (aIds.length) {
       const { data: profiles } = await sb
         .from('profiles')
-        .select('id, full_name, tier, rating, completed_jobs')
+        .select('id, full_name, tier, rating, completed_jobs, phone')
         .in('id', aIds);
       if (profiles) {
         const pm = {};
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
             b.assembler_tier  = pm[b.assembler_id].tier;
             b.assembler_rating= pm[b.assembler_id].rating;
             b.assembler_jobs  = pm[b.assembler_id].completed_jobs;
+            b.assembler_phone = pm[b.assembler_id].phone || null;
           }
         });
       }
