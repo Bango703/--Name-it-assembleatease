@@ -697,9 +697,30 @@
         });
         const d = await r.json();
         if (!d.success) { alert(d.error || 'Failed to send message'); input.value = body; }
+        else { refreshThread(selectedBookingId); }
       } catch { alert('Failed to send message'); input.value = body; }
     }
   });
+
+  function refreshThread(bId) {
+    supabaseClient.from('messages').select('*').eq('booking_id', bId).order('created_at', { ascending: true })
+      .then(function(r) {
+        var msgs = (r.error ? [] : r.data) || [];
+        var thread = document.getElementById('asgn-msg-thread');
+        if (!msgs.length) {
+          thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
+        } else {
+          thread.innerHTML = msgs.map(function(m) {
+            var isMe = m.sender === 'assembler';
+            return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
+              + '<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
+              + (isMe ? 'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
+          }).join('');
+          thread.scrollTop = thread.scrollHeight;
+        }
+      })
+      .catch(function() { document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>'; });
+  }
 
   window.openDetail = function(bookingId) {
     const b = allAssignments.find(x => x.id === bookingId);
@@ -915,23 +936,7 @@
     if (_sb) _sb.style.display = isLiveJob ? '' : 'none';
     if (_sc) _sc.style.transform = isLiveJob ? 'rotate(180deg)' : 'rotate(0deg)';
     // Load messages from Supabase
-    supabaseClient.from('messages').select('*').eq('booking_id', bookingId).order('created_at',{ascending:true})
-      .then(function(r){
-        var msgs=(r.error ? [] : r.data)||[];
-        var thread=document.getElementById('asgn-msg-thread');
-        if(!msgs.length){
-          thread.innerHTML='<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
-        } else {
-          thread.innerHTML=msgs.map(function(m){
-            var isMe=m.sender==='assembler';
-            return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-bottom:0.6rem">'
-              +'<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
-              +(isMe?'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px':'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px')+'">'+esc(m.body)+'</div></div>';
-          }).join('');
-          thread.scrollTop=thread.scrollHeight;
-        }
-      })
-      .catch(function(){ document.getElementById('asgn-msg-thread').innerHTML='<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>'; });
+    refreshThread(bookingId);
   };
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
