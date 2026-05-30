@@ -560,14 +560,14 @@
     document.getElementById('rating-display').textContent = profile.rating
       ? Number(profile.rating).toFixed(1) + ' \u2605' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
       : 'New';
-    document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = '$' + (profile.total_earned || 0));
+    document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = '$' + ((profile.total_earned || 0) / 100).toFixed(2));
     // Hero card stats
     var statJobs = document.getElementById('prof-stat-jobs');
     if (statJobs) statJobs.textContent = profile.completed_jobs || 0;
     var statRating = document.getElementById('prof-stat-rating');
     if (statRating) statRating.textContent = profile.rating ? Number(profile.rating).toFixed(1) : '\u2014';
     var statEarned = document.getElementById('prof-stat-earned');
-    if (statEarned) statEarned.textContent = profile.total_earned ? '$' + Number(profile.total_earned).toFixed(0) : '$0';
+    if (statEarned) statEarned.textContent = profile.total_earned ? '$' + (Number(profile.total_earned) / 100).toFixed(2) : '$0.00';
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
