@@ -345,6 +345,7 @@
         (b.address && !isCompleted ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
         (isPendingOffer && b._offer_expires_at ? '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
         (isLive ? renderPipeline5(b) : '') +
+        (isLive ? '<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="card-help-btn" data-bid="' + b.id + '" style="font-size:0.75rem;color:var(--pro-teal);background:none;border:1px solid rgba(0,191,255,0.35);border-radius:6px;padding:3px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent">Help</button></div>' : '') +
         (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned $' + (b.assembler_due/100).toFixed(2) : '') + '</div>' : '') +
         (isPendingOffer ?
           '<div class="e-job-card-actions">' +
@@ -593,6 +594,14 @@
         e.stopPropagation();
         openDetail(declineBtn.dataset.bid);
         document.getElementById('decline-sheet').classList.add('open');
+        return;
+      }
+
+      // Help button on active job cards → open modal directly
+      const helpBtn = e.target.closest('.card-help-btn');
+      if (helpBtn && helpBtn.dataset.bid) {
+        e.stopPropagation();
+        openDetail(helpBtn.dataset.bid);
         return;
       }
 
@@ -899,11 +908,12 @@
     }
 
     document.getElementById('asgn-modal').classList.add('open');
-    // Reset support collapsible state on each modal open
+    // Support section: auto-expand for active/live jobs, collapsed otherwise
     var _sb = document.getElementById('support-body');
     var _sc = document.getElementById('support-chevron');
-    if (_sb) _sb.style.display = 'none';
-    if (_sc) _sc.style.transform = 'rotate(0deg)';
+    const isLiveJob = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
+    if (_sb) _sb.style.display = isLiveJob ? '' : 'none';
+    if (_sc) _sc.style.transform = isLiveJob ? 'rotate(180deg)' : 'rotate(0deg)';
     // Load messages from Supabase
     supabaseClient.from('messages').select('*').eq('booking_id', bookingId).order('created_at',{ascending:true})
       .then(function(r){

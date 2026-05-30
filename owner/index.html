@@ -2229,9 +2229,11 @@ function intelQuick(msg) {
       var msgs = data.messages || [];
       if (!msgs.length) { $msgThread.innerHTML = '<div class="msg-empty">No messages yet</div>'; return; }
       $msgThread.innerHTML = msgs.map(function(m) {
-        return '<div class="msg ' + (m.sender === 'owner' ? 'owner' : 'customer') + '">'
+        var senderClass = m.sender === 'owner' ? 'owner' : 'customer';
+        var senderLabel = m.sender === 'owner' ? 'You' : m.sender === 'assembler' ? 'Easer' : 'Customer';
+        return '<div class="msg ' + senderClass + '">'
           + '<div>' + esc(m.body) + '</div>'
-          + '<div class="msg-time">' + (m.sender === 'owner' ? 'You' : 'Customer') + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
+          + '<div class="msg-time">' + senderLabel + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
           + '</div>';
       }).join('');
       $msgThread.scrollTop = $msgThread.scrollHeight;
