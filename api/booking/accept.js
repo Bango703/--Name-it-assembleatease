@@ -2,6 +2,7 @@
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { dispatchBooking } from './_dispatch-internal.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -157,7 +158,7 @@ export default async function handler(req, res) {
             { label: 'Date', value: (booking.date || 'TBD') + (booking.time ? ' at ' + booking.time : '') },
             { label: 'Declined by', value: assemblerName },
           ],
-          note: `<strong>${esc(assemblerName)}</strong> declined this assignment. The booking is now unassigned — please assign another assembler as soon as possible.`,
+          note: `<strong>${esc(assemblerName)}</strong> declined this assignment. Automatic re-dispatch has been triggered — check the dashboard for the result.`,
           noteColor: '#92400e', noteBg: '#fffbeb', noteBorder: '#fcd34d',
         }),
       });
@@ -185,6 +186,10 @@ export default async function handler(req, res) {
       description: `${assemblerName} declined assignment via email link`,
       metadata: { source: 'assignment_token' },
     });
+
+    // Fire-and-forget: attempt re-dispatch immediately so the booking doesn't wait
+    // for the 30-min cron. Non-blocking — response returns before dispatch completes.
+    dispatchBooking(booking.id).catch(e => console.error('Re-dispatch error (email-link decline):', e.message));
 
     return sendHtml(res, 'Job Declined',
       `You've declined this assignment. No worries — other jobs will come your way.`,
