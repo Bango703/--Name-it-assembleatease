@@ -47,6 +47,19 @@ export default async function handler(req, res) {
         });
       }
     }
+
+    // Flag bookings with unread Easer support messages so the owner card can show a red dot
+    const bIds = data.map(b => b.id);
+    const { data: unreadMsgs } = await sb
+      .from('messages')
+      .select('booking_id')
+      .in('booking_id', bIds)
+      .eq('sender', 'assembler')
+      .is('read_at', null);
+    if (unreadMsgs && unreadMsgs.length) {
+      const unreadSet = new Set(unreadMsgs.map(m => m.booking_id));
+      data.forEach(b => { if (unreadSet.has(b.id)) b.has_unread_easer_msg = true; });
+    }
   }
 
   return res.status(200).json({ bookings: data || [], count });
