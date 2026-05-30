@@ -144,6 +144,7 @@ export default async function handler(req, res) {
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
 
   allBookings.forEach(b => {
+    if (b.status === 'completed') return;
     const price = Number(b.amount_charged || b.total_price) || 0;
     if (price > 0) {
       const payout       = Math.round(price * (1 - feePct / 100));
