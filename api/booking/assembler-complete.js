@@ -187,6 +187,13 @@ export default async function handler(req, res) {
 
   const finalAmount = captureRequired ? amountCharged : (amountCharged || booking.total_price || 0);
 
+  if (!captureRequired && finalAmount <= 0) {
+    return res.status(400).json({
+      error: 'This job can\'t be marked complete yet — the final price hasn\'t been confirmed. Contact your dispatcher.',
+      code: 'PRICE_NOT_SET',
+    });
+  }
+
   // Tiered fee: members pay 18%, non-members pay 25%
   const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
   const isMember = easerProf?.has_membership === true;
