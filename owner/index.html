@@ -2264,6 +2264,7 @@ function intelQuick(msg) {
     document.getElementById('msg-target-assembler').style.color = t === 'assembler' ? '#fff' : 'var(--teal)';
     document.getElementById('msg-input').placeholder = t === 'assembler' ? 'Message Easer...' : 'Message customer...';
   }
+  window.setMsgTarget = setMsgTarget;
 
   async function sendMessage() {
     var body = $msgInput.value.trim();
