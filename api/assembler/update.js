@@ -145,6 +145,7 @@ export default async function handler(req, res) {
     await sb.from('profiles').update({
       status: 'suspended',
       previous_tier: profile.tier,
+      is_available: false,   // force offline — suspended Easers must not appear available
     }).eq('id', assemblerId);
 
     return res.status(200).json({ ok: true, action: 'suspended', previous_tier: profile.tier });
