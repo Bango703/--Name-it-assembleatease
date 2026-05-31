@@ -3360,6 +3360,7 @@ function intelQuick(msg) {
 
     // TIER ACTIONS (active status)
     if (a.status === 'active') {
+      if (!['starter','professional','elite'].includes(a.tier)) actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'starter\')">Assign Starter Tier</button> ';
       if (a.tier === 'starter') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'professional\')">Promote to Professional</button> ';
       if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';
       if (a.tier === 'elite') actionBtns += '<button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'professional\')">Demote to Professional</button> ';
