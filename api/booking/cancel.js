@@ -6,6 +6,7 @@ import { writeFinancialAudit } from '../_financial-audit.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { appointmentTimestampMs } from './_appt-date.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -29,18 +30,8 @@ export default async function handler(req, res) {
   const waiveFee = req.body.waiveFee === true;
   let withinCancellationWindow = false;
   try {
-    const appointmentDate = new Date(booking.date);
-    const slotStart = (booking.time || '').split('-')[0].trim();
-    const timeMatch = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if (timeMatch) {
-      let h = parseInt(timeMatch[1], 10);
-      const m = parseInt(timeMatch[2], 10);
-      const meridiem = timeMatch[3].toUpperCase();
-      if (meridiem === 'PM' && h !== 12) h += 12;
-      if (meridiem === 'AM' && h === 12) h = 0;
-      appointmentDate.setHours(h, m, 0, 0);
-    }
-    const hoursAway = (appointmentDate.getTime() - Date.now()) / (1000 * 60 * 60);
+    const apptMs = appointmentTimestampMs(booking.date, booking.time);
+    const hoursAway = apptMs != null ? (apptMs - Date.now()) / 3600000 : -1;
     withinCancellationWindow = hoursAway >= 0 && hoursAway < 24;
   } catch (dateErr) {
     console.error('Cancellation window date parse error:', dateErr);

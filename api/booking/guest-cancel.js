@@ -5,6 +5,7 @@ import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { appointmentTimestampMs } from './_appt-date.js';
 
 /**
  * POST /api/booking/guest-cancel
@@ -47,18 +48,8 @@ export default async function handler(req, res) {
   // Determine if within 24hr cancellation window
   let withinWindow = false;
   try {
-    const apptDate = new Date(booking.date);
-    const slotStart = (booking.time || '').split('-')[0].trim();
-    const match = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if (match) {
-      let h = parseInt(match[1], 10);
-      const m = parseInt(match[2], 10);
-      const mer = match[3].toUpperCase();
-      if (mer === 'PM' && h !== 12) h += 12;
-      if (mer === 'AM' && h === 12) h = 0;
-      apptDate.setHours(h, m, 0, 0);
-    }
-    const hoursAway = (apptDate.getTime() - Date.now()) / 3600000;
+    const apptMs = appointmentTimestampMs(booking.date, booking.time);
+    const hoursAway = apptMs != null ? (apptMs - Date.now()) / 3600000 : -1;
     withinWindow = hoursAway >= 0 && hoursAway < 24;
   } catch (e) { console.error('Date parse error:', e); }
 
