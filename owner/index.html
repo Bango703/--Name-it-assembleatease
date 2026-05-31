@@ -1383,7 +1383,7 @@ function intelQuick(msg) {
   document.getElementById('export-csv-btn').addEventListener('click', function() {
     function fmtDate(d) {
       if (!d) return '—';
-      try { return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+      try { return new Date(String(d).includes('T') ? d : d + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
       catch(e) { return d; }
     }
     function dollars(cents) { return '$' + (cents/100).toFixed(2); }
@@ -2016,7 +2016,7 @@ function intelQuick(msg) {
       var withinWindow = false;
       if (bObj && bObj.date) {
         try {
-          var apptDate = new Date(bObj.date);
+          var apptDate = new Date(bObj.date + 'T12:00:00');
           var slotStart = (bObj.time || '').split('-')[0].trim();
           var tm = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
           if (tm) {
@@ -2395,7 +2395,7 @@ function intelQuick(msg) {
   function formatDate(d) {
     if (!d) return '—';
     try {
-      var dt = new Date(d);
+      var dt = new Date(String(d).includes('T') ? d : d + 'T12:00:00');
       if (isNaN(dt)) return esc(d);
       return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     } catch { return esc(d); }
@@ -2730,7 +2730,8 @@ function intelQuick(msg) {
 
   // ─── TODAY VIEW ───
   function renderTodayView() {
-    var today = new Date().toISOString().slice(0,10);
+    var _now = new Date();
+    var today = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
     // Show the date so the owner knows exactly what date is being shown
     var dateDisplay = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
     var dd = document.getElementById('today-date-display');
