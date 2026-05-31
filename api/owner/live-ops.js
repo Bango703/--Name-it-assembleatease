@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     sb.from('profiles')
       .select('id, full_name, tier, rating, completed_jobs, is_available, has_membership, city, phone')
       .eq('role', 'assembler')
+      .eq('status', 'active')
       .eq('identity_verified', true)
       .in('tier', ['starter', 'professional', 'elite']),
     sb.from('dispatch_offers')
