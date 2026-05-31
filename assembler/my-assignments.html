@@ -254,16 +254,16 @@
 
   function filterList(list, filter) {
     if (filter === 'offers')   return list.filter(function(b){ return b._is_pending_offer; });
-    if (filter === 'active')   return list.filter(function(b){ return LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at; });
-    if (filter === 'upcoming') return list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
+    if (filter === 'active')   return list.filter(function(b){ return b.assembler_accepted_at && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed'); });
+    if (filter === 'upcoming') return list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; });
     if (filter === 'completed') return list.filter(function(b){ return b.status === 'completed'; });
     return list; // 'all'
   }
 
   function updateFilterCounts(list) {
     var offers    = list.filter(function(b){ return b._is_pending_offer; }).length;
-    var active    = list.filter(function(b){ return LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at; }).length;
-    var upcoming  = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; }).length;
+    var active    = list.filter(function(b){ return b.assembler_accepted_at && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed'); }).length;
+    var upcoming  = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; }).length;
     var completed = list.filter(function(b){ return b.status === 'completed'; }).length;
     var el;
     el = document.getElementById('fc-offers');    if (el) el.textContent = offers    ? '(' + offers    + ')' : '';
@@ -315,8 +315,8 @@
     // When showing 'all', group by section
     const isAll = currentFilter === 'all';
     const offers   = list.filter(function(b){ return b._is_pending_offer; });
-    const active   = list.filter(function(b){ return LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at; });
-    const upcoming = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer; });
+    const active   = list.filter(function(b){ return b.assembler_accepted_at && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed'); });
+    const upcoming = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; });
     const completed = list.filter(function(b){ return b.status === 'completed'; });
 
   function maskName(n) {
@@ -448,6 +448,10 @@
           banner.style.background = '#059669';
           banner.textContent = '✓ Job accepted! Ref: ' + (d.ref||'') + ' — loading your assignments…';
           setTimeout(function(){ banner.remove(); }, 4000);
+          try {
+            var rf = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            if (rf.ok) { var rd = await rf.json(); allAssignments = rd.bookings || []; var cfLink = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cfLink)); updateFilterCounts(allAssignments); }
+          } catch {}
         } else {
           banner.style.background = '#ef4444';
           banner.textContent = d.error || 'Could not accept job — it may already be taken.';
@@ -583,7 +587,7 @@
           }
           APP.showAlert('page-alert', '&#10003; Job accepted! Open the job card to see details.', 'success');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(allAssignments); }
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cf)); updateFilterCounts(allAssignments); }
         } catch {
           APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
           acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
