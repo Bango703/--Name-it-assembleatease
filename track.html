@@ -547,7 +547,7 @@ function capitalize(str) {
 
 function isWithin24hrs(dateStr, timeStr) {
   try {
-    const apptDate = new Date(dateStr);
+    const apptDate = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
     const slotStart = (timeStr || '').split('-')[0].trim();
     const match = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
     if (match) {
