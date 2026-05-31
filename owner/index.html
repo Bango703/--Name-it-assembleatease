@@ -2579,7 +2579,8 @@ function intelQuick(msg) {
     var chips = [
       { label: 'Active Jobs', val: s.totalActive, color: '#00BFFF' },
       { label: 'Pending', val: s.pendingPayment || 0, color: s.pendingPayment > 0 ? '#d97706' : '#6b7280' },
-      { label: 'Needs Easer', val: s.unassigned + s.awaitingDispatch, color: s.unassigned > 0 ? '#dc2626' : '#6b7280' },
+      { label: 'Needs Easer', val: s.unassigned + (s.offersExpired||0) + (s.needsManual||0), color: (s.unassigned + (s.offersExpired||0) + (s.needsManual||0)) > 0 ? '#dc2626' : '#6b7280' },
+      { label: 'Offers Sent', val: s.awaitingDispatch, color: s.awaitingDispatch > 0 ? '#8b5cf6' : '#6b7280' },
       { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: s.awaitingAcceptance > 0 ? '#ea580c' : '#6b7280' },
       { label: 'En Route', val: s.enRoute, color: '#00BFFF' },
       { label: 'In Progress', val: s.inProgress, color: '#059669' },
@@ -2595,7 +2596,7 @@ function intelQuick(msg) {
     // Unassigned / needs Easer — also shows pending-payment bookings at top
     var unassignedEl = document.getElementById('ops-unassigned');
     var pending = d.pendingConfirm || [];
-    var needs = (d.unassigned || []).concat(d.awaitingDispatch || []);
+    var needs = (d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
     if (!pending.length && !needs.length) {
       unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">All active bookings are assigned</div>';
     } else {
@@ -2615,8 +2616,10 @@ function intelQuick(msg) {
       }
       if (needs.length) {
         html += needs.map(function(b) {
-          var label = b.dispatch_offered_at ? 'Offer sent — no response' : 'No Easer yet';
-          var badgeColor = b.dispatch_offered_at ? '#ea580c' : '#dc2626';
+          var _stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual' };
+          var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626' };
+          var label = _stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
+          var badgeColor = _stateColors[b._dispatchState] || (b.dispatch_offered_at ? '#ea580c' : '#dc2626');
           return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
             + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'

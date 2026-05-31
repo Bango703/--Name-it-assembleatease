@@ -14,9 +14,9 @@ export default async function handler(req, res) {
   const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
 
-  const [bookingsRes, easersRes] = await Promise.all([
+  const [bookingsRes, easersRes, activeOffersRes] = await Promise.all([
     sb.from('bookings')
-      .select('id, ref, service, status, pipeline_stage, customer_name, customer_phone, date, time, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, total_price')
+      .select('id, ref, service, status, pipeline_stage, customer_name, customer_phone, date, time, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, needs_manual_dispatch, total_price')
       .not('status', 'in', '("cancelled","declined","completed")')
       .order('date', { ascending: true }),
     sb.from('profiles')
@@ -24,20 +24,46 @@ export default async function handler(req, res) {
       .eq('role', 'assembler')
       .eq('identity_verified', true)
       .in('tier', ['starter', 'professional', 'elite']),
+    sb.from('dispatch_offers')
+      .select('booking_id')
+      .eq('offer_status', 'sent')
+      .gt('expires_at', now.toISOString()),
   ]);
 
   const bookings = bookingsRes.data || [];
   const easers = easersRes.data || [];
   const now_ts = now.getTime();
+  const activeOfferBookingIds = new Set((activeOffersRes.data || []).map(o => o.booking_id));
 
   // ── Categorize bookings ─────────────────────────────────────────
+  // unassigned: never dispatched, no active offers, not flagged manual
   const unassigned = bookings.filter(b =>
-    b.status === 'confirmed' && !b.assembler_id && !b.dispatch_offered_at
+    b.status === 'confirmed' && !b.assembler_id &&
+    !activeOfferBookingIds.has(b.id) && !b.dispatch_offered_at && !b.needs_manual_dispatch
   );
 
-  const awaitingDispatch = bookings.filter(b =>
-    b.status === 'confirmed' && !b.assembler_id && b.dispatch_offered_at
-  );
+  // awaitingDispatch: has live unexpired offers outstanding right now
+  const awaitingDispatch = bookings
+    .filter(b =>
+      b.status === 'confirmed' && !b.assembler_id &&
+      activeOfferBookingIds.has(b.id) && !b.needs_manual_dispatch
+    )
+    .map(b => ({ ...b, _dispatchState: 'active_offers' }));
+
+  // offersExpired: was dispatched but all offers expired/declined, not yet flagged manual
+  const offersExpired = bookings
+    .filter(b =>
+      b.status === 'confirmed' && !b.assembler_id &&
+      !activeOfferBookingIds.has(b.id) && b.dispatch_offered_at && !b.needs_manual_dispatch
+    )
+    .map(b => ({ ...b, _dispatchState: 'offers_expired' }));
+
+  // needsManual: max attempts reached or explicitly flagged for manual assignment
+  const needsManual = bookings
+    .filter(b =>
+      b.status === 'confirmed' && !b.assembler_id && b.needs_manual_dispatch
+    )
+    .map(b => ({ ...b, _dispatchState: 'needs_manual' }));
 
   const awaitingAcceptance = bookings.filter(b =>
     b.assembler_id && !b.assembler_accepted_at && b.status === 'confirmed'
@@ -76,16 +102,28 @@ export default async function handler(req, res) {
     });
   });
 
-  // Dispatch offer ignored >1hr
-  awaitingDispatch.forEach(b => {
+  // All offers expired without acceptance — needs re-dispatch
+  offersExpired.forEach(b => {
     const age = (now_ts - new Date(b.dispatch_offered_at).getTime()) / 3600000;
-    if (age > 1) alerts.push({
+    alerts.push({
       type: 'dispatch_no_response',
       severity: 'medium',
       ref: b.ref,
       bookingId: b.id,
-      message: `${b.service} — offer sent ${Math.round(age)}h ago, no acceptance`,
+      message: `${b.service} — all offers expired ${Math.round(age)}h ago, no acceptance`,
       action: 'redispatch',
+    });
+  });
+
+  // Needs manual dispatch — max attempts reached or explicitly flagged
+  needsManual.forEach(b => {
+    alerts.push({
+      type: 'needs_manual_dispatch',
+      severity: 'high',
+      ref: b.ref,
+      bookingId: b.id,
+      message: `${b.service} — max attempts reached, manual assignment needed`,
+      action: 'dispatch',
     });
   });
 
@@ -148,6 +186,8 @@ export default async function handler(req, res) {
       pendingPayment: pendingConfirm.length,
       unassigned: unassigned.length,
       awaitingDispatch: awaitingDispatch.length,
+      offersExpired: offersExpired.length,
+      needsManual: needsManual.length,
       awaitingAcceptance: awaitingAcceptance.length,
       enRoute: enRoute.length,
       arrived: arrived.length,
@@ -164,6 +204,8 @@ export default async function handler(req, res) {
     }),
     unassigned,
     awaitingDispatch,
+    offersExpired,
+    needsManual,
     awaitingAcceptance,
     enRoute,
     arrived,
