@@ -142,6 +142,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'File content does not match declared MIME type' });
   }
 
+  // ── 5-file limit ─────────────────────────────────────────────────────────
+  const { count: evidenceCount } = await sb
+    .from('booking_evidence')
+    .select('id', { count: 'exact', head: true })
+    .eq('booking_id', bookingId);
+  if (evidenceCount >= 5)
+    return res.status(409).json({ error: 'Maximum 5 evidence files per booking.' });
+
   // ── Generate storage path ─────────────────────────────────────────────────
   // Format: evidence/{bookingId}/{YYYY-MM}/{uuid}.{ext}
   const month       = new Date().toISOString().slice(0, 7);
