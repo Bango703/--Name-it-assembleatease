@@ -627,27 +627,144 @@
     // Mark Complete — opens bottom sheet instead of window.confirm()
     var _pendingCompleteBookingId = null;
     var _completionInFlight = false;
+    var _photoFile = null;
+    var _photoDataUrl = null;
+    var _photoUploaded = false;
+
+    function _resetPhotoState() {
+      _photoFile = null;
+      _photoDataUrl = null;
+      _photoUploaded = false;
+      var previewArea = document.getElementById('photo-preview-area');
+      var pickBtn = document.getElementById('photo-pick-btn');
+      var statusEl = document.getElementById('photo-upload-status');
+      var photoInput = document.getElementById('photo-input');
+      if (previewArea) previewArea.style.display = 'none';
+      if (pickBtn) { pickBtn.style.display = 'flex'; pickBtn.disabled = false; }
+      if (statusEl) { statusEl.style.display = 'none'; statusEl.textContent = ''; }
+      if (photoInput) photoInput.value = '';
+      var section = document.getElementById('photo-prompt-section');
+      if (section) section.style.display = '';
+    }
 
     document.getElementById('complete-btn').addEventListener('click', function() {
       if (!selectedBookingId) return;
       _pendingCompleteBookingId = selectedBookingId;
+      _resetPhotoState();
       document.getElementById('complete-sheet').classList.add('open');
     });
 
     document.getElementById('complete-sheet-cancel').addEventListener('click', function() {
       document.getElementById('complete-sheet').classList.remove('open');
       _pendingCompleteBookingId = null;
+      _resetPhotoState();
+    });
+
+    // Photo pick button → trigger hidden file input
+    document.getElementById('photo-pick-btn').addEventListener('click', function() {
+      document.getElementById('photo-input').click();
+    });
+
+    // File selected → validate client-side, show preview
+    document.getElementById('photo-input').addEventListener('change', function() {
+      var file = this.files && this.files[0];
+      if (!file) return;
+      var statusEl = document.getElementById('photo-upload-status');
+      if (file.size > 5 * 1024 * 1024) {
+        statusEl.textContent = 'Photo must be under 5 MB. Please choose a smaller image.';
+        statusEl.style.color = '#dc2626';
+        statusEl.style.display = 'block';
+        this.value = '';
+        return;
+      }
+      statusEl.style.display = 'none';
+      _photoFile = file;
+      _photoUploaded = false;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        _photoDataUrl = ev.target.result;
+        var img = document.getElementById('photo-preview-img');
+        var previewArea = document.getElementById('photo-preview-area');
+        var pickBtn = document.getElementById('photo-pick-btn');
+        if (img) img.src = _photoDataUrl;
+        if (previewArea) previewArea.style.display = 'block';
+        if (pickBtn) pickBtn.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Remove photo
+    document.getElementById('photo-remove-btn').addEventListener('click', function() {
+      _resetPhotoState();
     });
 
     document.getElementById('complete-sheet-yes').addEventListener('click', async function() {
       if (_completionInFlight) return;
-      document.getElementById('complete-sheet').classList.remove('open');
       var bookingIdToComplete = _pendingCompleteBookingId;
-      _pendingCompleteBookingId = null;
       if (!bookingIdToComplete) return;
       _completionInFlight = true;
 
+      var sheetYesBtn = document.getElementById('complete-sheet-yes');
+      var sheetCancelBtn = document.getElementById('complete-sheet-cancel');
+      var statusEl = document.getElementById('photo-upload-status');
       var completeBtn = document.getElementById('complete-btn');
+      if (sheetYesBtn) { sheetYesBtn.disabled = true; sheetYesBtn.textContent = 'Processing…'; }
+      if (sheetCancelBtn) sheetCancelBtn.disabled = true;
+
+      // ── Upload photo if selected ──────────────────────────────────────────
+      if (_photoFile && _photoDataUrl && !_photoUploaded) {
+        if (statusEl) { statusEl.textContent = 'Uploading photo…'; statusEl.style.color = '#374151'; statusEl.style.display = 'block'; }
+        try {
+          const raw = _photoDataUrl.includes(',') ? _photoDataUrl.split(',')[1] : _photoDataUrl;
+          const uploadResp = await fetch('/api/booking/upload-evidence', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId: bookingIdToComplete,
+              fileBase64: raw,
+              mimeType: _photoFile.type,
+              evidenceType: 'completion_photo',
+            }),
+          });
+          if (uploadResp.ok) {
+            _photoUploaded = true;
+            if (statusEl) { statusEl.textContent = 'Photo uploaded.'; statusEl.style.color = '#16a34a'; }
+          } else if (uploadResp.status === 409) {
+            // 5-file limit hit — collapse photo section and proceed without it
+            _photoFile = null; _photoDataUrl = null;
+            var section = document.getElementById('photo-prompt-section');
+            if (section) section.style.display = 'none';
+            if (statusEl) { statusEl.style.display = 'none'; }
+          } else {
+            // Upload failed — keep sheet open so Easer can retry or skip
+            const errData = await uploadResp.json().catch(function(){ return {}; });
+            if (statusEl) {
+              statusEl.textContent = (errData.error || 'Photo upload failed.') + ' Remove the photo to skip, or try again.';
+              statusEl.style.color = '#dc2626';
+              statusEl.style.display = 'block';
+            }
+            if (sheetYesBtn) { sheetYesBtn.disabled = false; sheetYesBtn.textContent = 'Retry & Complete'; }
+            if (sheetCancelBtn) sheetCancelBtn.disabled = false;
+            _completionInFlight = false;
+            return;
+          }
+        } catch {
+          if (statusEl) {
+            statusEl.textContent = 'Photo upload failed (connection error). Remove the photo to skip, or try again.';
+            statusEl.style.color = '#dc2626';
+            statusEl.style.display = 'block';
+          }
+          if (sheetYesBtn) { sheetYesBtn.disabled = false; sheetYesBtn.textContent = 'Retry & Complete'; }
+          if (sheetCancelBtn) sheetCancelBtn.disabled = false;
+          _completionInFlight = false;
+          return;
+        }
+      }
+
+      // ── Close sheet and call assembler-complete ───────────────────────────
+      document.getElementById('complete-sheet').classList.remove('open');
+      _pendingCompleteBookingId = null;
+      _resetPhotoState();
       if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Processing…'; }
 
       try {
@@ -980,6 +1097,19 @@
   <div class="sheet-box">
     <div class="sheet-title">Mark job as complete?</div>
     <div class="sheet-body">Only mark complete when the work is fully finished and the customer is satisfied. <strong>This will charge the customer's card.</strong></div>
+    <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
+      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Add a completion photo <span style="font-weight:400;color:#64748b">(optional)</span></div>
+      <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
+      <div id="photo-preview-area" style="display:none;margin-bottom:0.5rem">
+        <img id="photo-preview-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px" alt="preview"/>
+        <button id="photo-remove-btn" style="font-size:0.72rem;color:#64748b;background:none;border:none;cursor:pointer;margin-top:4px;padding:0;-webkit-tap-highlight-color:transparent">Remove photo</button>
+      </div>
+      <button id="photo-pick-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:0.6rem 0.875rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:0.875rem;color:#374151;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Take or choose a photo
+      </button>
+      <div id="photo-upload-status" style="display:none;font-size:0.78rem;margin-top:0.5rem"></div>
+    </div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="complete-sheet-yes">Yes, job is complete</button>
       <button class="sheet-btn-cancel" id="complete-sheet-cancel">Cancel</button>
