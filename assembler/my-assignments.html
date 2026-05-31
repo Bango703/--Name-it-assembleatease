@@ -208,6 +208,11 @@
   let currentFilter = 'all';
   let sessionToken = null;
   let selectedBookingId = null;
+  var _pendingCompleteBookingId = null;
+  var _completionInFlight = false;
+  var _photoFile = null;
+  var _photoDataUrl = null;
+  var _photoUploaded = false;
 
   // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
   // sessionToken is set to the initial session access_token once auth completes.
@@ -625,12 +630,7 @@
     });
 
     // Mark Complete — opens bottom sheet instead of window.confirm()
-    var _pendingCompleteBookingId = null;
-    var _completionInFlight = false;
-    var _photoFile = null;
-    var _photoDataUrl = null;
-    var _photoUploaded = false;
-
+    // (_completionInFlight and photo state vars are declared at module scope above — openDetail needs them)
     function _resetPhotoState() {
       _photoFile = null;
       _photoDataUrl = null;
@@ -763,6 +763,8 @@
 
       // ── Close sheet and call assembler-complete ───────────────────────────
       document.getElementById('complete-sheet').classList.remove('open');
+      if (sheetYesBtn) { sheetYesBtn.disabled = false; sheetYesBtn.textContent = 'Yes, job is complete'; }
+      if (sheetCancelBtn) sheetCancelBtn.disabled = false;
       _pendingCompleteBookingId = null;
       _resetPhotoState();
       if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Processing…'; }
