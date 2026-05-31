@@ -3384,34 +3384,78 @@ function intelQuick(msg) {
       actionBtns += ' <button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">Remove Easer</button>';
     }
 
-    // Dispatch eligibility indicator
-    var canDispatch = a.status === 'active' && a.identity_verified && a.phone && ['starter','professional','elite'].includes(a.tier);
-    var dispatchStatus = canDispatch
-      ? '<span style="color:#10b981;font-weight:500">Eligible</span>'
-      : '<span style="color:var(--red)">' + (a.status !== 'active' ? 'Not active' : !a.identity_verified ? 'ID not verified' : !a.phone ? 'No phone number' : 'No valid tier') + '</span>';
+    // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
+    var dispatchEligible = a.status === 'active' && a.identity_verified && !!a.phone && ['starter','professional','elite'].includes(a.tier) && a.is_available;
+    var dispatchChip;
+    if (a.status !== 'active') {
+      dispatchChip = '<span style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">N/A</span>';
+    } else if (dispatchEligible) {
+      dispatchChip = '<span style="background:#d1fae5;color:#065f46;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Eligible</span>';
+    } else {
+      dispatchChip = '<span style="background:#fee2e2;color:#991b1b;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Ineligible</span>';
+    }
+
+    // Dispatch readiness checklist (only for active Easers)
+    var dispatchChecklist = '';
+    if (a.status === 'active') {
+      var chk = function(ok, label) { return '<div style="font-size:0.8rem;margin:1px 0"><span style="font-weight:700;color:' + (ok ? '#10b981' : 'var(--red)') + '">' + (ok ? '✓' : '✗') + '</span> <span style="color:var(--muted)">' + label + '</span></div>'; };
+      var recentDecline = a.last_dispatch_declined_at && (Date.now() - new Date(a.last_dispatch_declined_at).getTime()) < 7200000;
+      var availColor = a.is_available ? '#10b981' : '#71717a';
+      dispatchChecklist = '<div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:0.5rem">'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Dispatch Readiness</div>'
+        + chk(a.status === 'active', 'Active account')
+        + chk(!!a.identity_verified, 'ID verified')
+        + chk(!!a.phone, 'Phone on file')
+        + chk(['starter','professional','elite'].includes(a.tier), 'Valid tier')
+        + chk(!!a.is_available, 'Available right now')
+        + '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:0.78rem;display:grid;grid-template-columns:1fr 1fr;gap:2px 1rem">'
+        + '<div><strong>Online:</strong> <span style="color:' + availColor + ';font-weight:600">' + (a.is_available ? 'Online' : 'Offline') + '</span></div>'
+        + '<div><strong>Active Jobs Today:</strong> ' + (a.active_jobs_today || 0) + '</div>'
+        + '<div><strong>Last Assigned:</strong> ' + (a.last_assigned_at ? formatDate(a.last_assigned_at) : 'Never') + '</div>'
+        + '<div><strong>Acceptance Rate:</strong> ' + (a.acceptance_rate != null ? Number(a.acceptance_rate).toFixed(0) + '%' : '—') + '</div>'
+        + '</div>'
+        + (recentDecline ? '<div style="margin-top:6px;padding:4px 8px;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;color:#92400e;font-size:0.75rem;font-weight:600">⚠ Declined an offer within the last 2 hours</div>' : '')
+        + '</div>';
+    }
 
     document.getElementById('asm-detail-body').innerHTML = [
-      // Status row
+      // Status chips row
       '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Account Status</div>' + statusBadge(a.status) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
         + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#00BFFF;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
-        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchStatus + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchChip + '</div>'
         + '</div>',
-      '<strong>Email:</strong> ' + esc(a.email),
-      '<strong>Phone:</strong> ' + (a.phone ? esc(a.phone) : '<span style="color:var(--red)">Missing — cannot be dispatched</span>'),
-      '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : ''),
-      '<strong>Services:</strong> ' + esc((a.services_offered||[]).join(', ')||'—'),
-      '<strong>Experience:</strong> ' + (a.years_experience||0) + ' yr(s) &nbsp;&bull;&nbsp; <strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No'),
-      '<strong>Jobs Completed:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' (' + (a.review_count||0) + ' reviews)' : 'No reviews'),
-      '<strong>Application Fee:</strong> ' + (a.fee_waived_by_owner ? '<span style="color:#00BFFF">Waived by owner</span>' : (a.application_fee_paid ? '<span style="color:#1d9e75">Paid</span>' : '<span style="color:var(--muted)">Not confirmed</span>')),
-      '<strong>Applied:</strong> ' + formatDate(a.created_at),
-      a.approved_at ? '<strong>Approved:</strong> ' + formatDate(a.approved_at) : '',
-      a.rejected_at ? '<strong>Rejected:</strong> ' + formatDate(a.rejected_at) + (a.rejection_reason ? ' — ' + esc(a.rejection_reason) : '') : '',
-      a.previous_tier ? '<strong>Previous tier (before suspension):</strong> ' + tierBadge(a.previous_tier) : '',
-      '<div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + actionBtns + '</div>',
-    ].filter(Boolean).join('<br>');
+      // Contact section
+      '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Contact</div>'
+        + '<strong>Email:</strong> <a href="mailto:' + esc(a.email) + '" style="color:var(--accent)">' + esc(a.email) + '</a><br>'
+        + '<strong>Phone:</strong> ' + (a.phone ? '<a href="tel:' + esc(a.phone) + '" style="color:var(--accent)">' + esc(a.phone) + '</a>' : '<span style="color:var(--red)">Missing — cannot be dispatched</span>') + '<br>'
+        + '<strong>Location:</strong> ' + esc(a.city||'—') + (a.zip ? ', ' + esc(a.zip) : '')
+        + '</div>',
+      // Dispatch readiness checklist
+      dispatchChecklist,
+      // Performance section
+      '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Performance</div>'
+        + '<strong>Jobs Completed:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' (' + (a.review_count||0) + ' reviews)' : 'No reviews') + '<br>'
+        + '<strong>Total Earned:</strong> ' + (a.total_earned != null ? '$' + (a.total_earned / 100).toFixed(2) : '—')
+        + '</div>',
+      // Skills & equipment section
+      '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Skills & Equipment</div>'
+        + '<strong>Services:</strong> ' + esc((a.services_offered||[]).join(', ')||'—') + '<br>'
+        + '<strong>Experience:</strong> ' + (a.years_experience||0) + ' yr(s) &nbsp;&bull;&nbsp; <strong>Tools:</strong> ' + (a.has_tools ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Transport:</strong> ' + (a.has_transport ? 'Yes' : 'No')
+        + '</div>',
+      // Application section
+      '<div style="margin-bottom:0.5rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Application</div>'
+        + '<strong>Fee:</strong> ' + (a.fee_waived_by_owner ? '<span style="color:#00BFFF">Waived by owner</span>' : (a.application_fee_paid ? '<span style="color:#1d9e75">Paid</span>' : '<span style="color:var(--muted)">Not confirmed</span>')) + '<br>'
+        + '<strong>Applied:</strong> ' + formatDate(a.created_at)
+        + (a.approved_at ? '<br><strong>Approved:</strong> ' + formatDate(a.approved_at) : '')
+        + (a.rejected_at ? '<br><strong>Rejected:</strong> ' + formatDate(a.rejected_at) + (a.rejection_reason ? ' — ' + esc(a.rejection_reason) : '') : '')
+        + (a.previous_tier ? '<br><strong>Previous tier:</strong> ' + tierBadge(a.previous_tier) : '')
+        + '</div>',
+      // Actions
+      '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + actionBtns + '</div>',
+    ].filter(Boolean).join('');
     document.getElementById('asm-detail-modal').classList.add('open');
   }
 
