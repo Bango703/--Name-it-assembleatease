@@ -140,6 +140,9 @@ export default async function handler(req, res) {
       });
     }
 
+    const { suspensionNotes } = req.body;
+    if (suspensionNotes?.trim()) console.log(`[suspend] ${profile.full_name} (${assemblerId}): ${suspensionNotes.trim()}`);
+
     // tier column definitely exists — use it as fallback suspended marker
     await sb.from('profiles').update({ tier: 'suspended' }).eq('id', assemblerId);
     await sb.from('profiles').update({
