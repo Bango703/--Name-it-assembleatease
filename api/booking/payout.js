@@ -37,6 +37,17 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'Payout already recorded for this booking.' });
   }
 
+  // Evidence presence check — warning only, never blocks payout
+  const { data: evidenceRows } = await sb
+    .from('booking_evidence')
+    .select('id')
+    .eq('booking_id', booking.id)
+    .limit(1);
+  const hasEvidence = !!(evidenceRows?.length);
+  if (!hasEvidence) {
+    console.warn(`[payout-no-evidence] ${booking.ref} — proceeding with no completion evidence on file`);
+  }
+
   // Auto-derive payout from assembler_due (recorded at job completion), or fall back to 80% of amount_charged
   const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
   const derivedDue = booking.assembler_due != null
@@ -119,6 +130,7 @@ export default async function handler(req, res) {
     payoutAmount: payoutRecord.payout_amount || payoutCents,
     platformRevenue: payoutRecord.platform_revenue ?? platformRevenue,
     amountCharged: payoutRecord.amount_charged || booking.amount_charged || 0,
+    hasEvidence,
   });
 }
 
