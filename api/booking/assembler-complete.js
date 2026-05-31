@@ -231,13 +231,7 @@ export default async function handler(req, res) {
   // ── Increment completed_jobs + total_earned atomically ──────────────────────
   try {
     const { error: rpcErr } = await sb.rpc('increment_profile_counters', { user_id: user.id, earned_cents: assemblerDue });
-    if (rpcErr) {
-      const { data: prof } = await sb.from('profiles').select('completed_jobs, total_earned').eq('id', user.id).single();
-      await sb.from('profiles').update({
-        completed_jobs: (prof?.completed_jobs || 0) + 1,
-        total_earned:   (prof?.total_earned   || 0) + assemblerDue,
-      }).eq('id', user.id);
-    }
+    if (rpcErr) console.error('profile counters RPC failed — counter may need reconciliation:', rpcErr.message);
   } catch (e) { console.error('profile counters increment error:', e); }
 
   // Job is done — release the Easer's daily slot
