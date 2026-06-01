@@ -861,7 +861,7 @@
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
     const payEst = (b.status === 'completed')
       ? (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null)
-      : (b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100) : (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null));
+      : (b._pay_estimate_lo ? (b._pay_estimate_lo === b._pay_estimate_hi ? '$' + Math.round(b._pay_estimate_lo/100) : '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100)) : (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null));
 
     document.getElementById('asgn-modal-body').innerHTML = [
       // Header row: service title + status badge
@@ -873,7 +873,7 @@
       // Pay estimate pill (for offers / accepted)
       payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
         + '<strong style="color:var(--pro-teal)">' + payEst + '</strong>'
-        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (b.status === 'completed' ? 'Payout' : 'Est. payout') + ((b._fee_pct || b.platform_fee_pct) ? ' · ' + (b._fee_pct || b.platform_fee_pct) + '% fee' : '') + '</span>'
+        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (b.status === 'completed' ? 'Your payout' : 'Est. take-home') + '</span>'
         + '</div><br>' : '',
 
       // Detail rows
