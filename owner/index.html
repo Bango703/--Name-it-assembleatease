@@ -135,6 +135,15 @@
     .msg-input{flex:1;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:none;min-height:40px;max-height:100px}
     .msg-input:focus{border-color:var(--teal)}
 
+    /* ── Evidence grid ── */
+    .evidence-grid{display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem}
+    .evidence-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;flex:0 0 140px;background:var(--elevated);transition:border-color 0.15s}
+    .evidence-card:hover{border-color:var(--teal)}
+    .evidence-card img{width:100%;height:100px;object-fit:cover;display:block}
+    .evidence-card-meta{padding:0.45rem 0.6rem;font-size:0.72rem;color:var(--muted);line-height:1.6}
+    .evidence-card-type{font-weight:600;color:var(--text);font-size:0.75rem}
+    @media(max-width:600px){.evidence-card{flex:0 0 calc(50% - 0.375rem)}}
+
     /* ── Modals ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;padding:1rem}
     .modal-overlay.open{display:flex}
@@ -444,6 +453,7 @@
               </div>
               <div class="detail-grid" id="detail-grid"></div>
               <div class="detail-actions" id="detail-actions"></div>
+              <div id="evidence-warning-bar" style="display:none;margin-bottom:1rem;padding:0.65rem 0.875rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:0.8rem;color:#92400e"></div>
               <div id="assign-section" style="display:none;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
                 <div class="detail-section-title">Easer Assignment</div>
                 <div id="assign-status" style="font-size:0.85rem;color:var(--soft);margin-bottom:0.75rem"></div>
@@ -460,6 +470,7 @@
                 <button class="detail-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
                 <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
                 <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
+                <button class="detail-tab" data-tab="evidence" onclick="switchDetailTab('evidence',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Evidence<span id="evidence-tab-count" style="margin-left:3px;font-size:0.72rem;opacity:0.9"></span></button>
               </div>
 
               <!-- Messages tab -->
@@ -494,6 +505,15 @@
                 <div id="notes-content" style="margin-bottom:0.75rem;font-size:0.85rem">Loading…</div>
                 <textarea id="new-note-input" placeholder="Add internal note (only visible to you)..." style="width:100%;min-height:60px;padding:0.6rem 0.75rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;resize:vertical;outline:none;box-sizing:border-box"></textarea>
                 <button id="save-note-btn" class="btn btn-teal" style="margin-top:0.5rem;width:100%" onclick="saveNote()">Save Note</button>
+              </div>
+
+              <!-- Evidence tab -->
+              <div id="tab-evidence" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+                  <div class="detail-section-title" style="margin:0">Completion Evidence</div>
+                  <button id="evidence-refresh-btn" onclick="loadEvidence(selectedId, true)" style="font-size:0.75rem;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit">Refresh</button>
+                </div>
+                <div id="evidence-content" style="font-size:0.85rem;color:var(--muted)">Loading…</div>
               </div>
             </div>
             <div class="empty-state" id="detail-placeholder" style="margin-top:0">
@@ -1120,6 +1140,7 @@ function intelQuick(msg) {
   let _msgTarget = 'customer';
   let currentStatus = 'all';
   let searchQuery = '';
+  var _evidenceCache = {}; // { [bookingId]: { evidence, total, loading, error } }
 
   const $gate      = document.getElementById('login-gate');
   const $layout    = document.getElementById('layout');
@@ -1589,6 +1610,12 @@ function intelQuick(msg) {
     // Pre-load timeline and notes in background
     loadTimeline(b.id);
     loadNotes(b.id);
+    // Reset evidence warning bar and badge; pre-load for completed bookings
+    var _ewBar = document.getElementById('evidence-warning-bar');
+    var _ewBadge = document.getElementById('evidence-tab-count');
+    if (_ewBar) _ewBar.style.display = 'none';
+    if (_ewBadge) _ewBadge.textContent = '';
+    if (b.status === 'completed') loadEvidence(b.id);
   }
 
   function switchDetailTab(tab, el) {
@@ -1601,9 +1628,11 @@ function intelQuick(msg) {
     document.getElementById('tab-dispatch').style.display = tab === 'dispatch' ? '' : 'none';
     document.getElementById('tab-timeline').style.display = tab === 'timeline' ? '' : 'none';
     document.getElementById('tab-notes').style.display = tab === 'notes' ? '' : 'none';
+    document.getElementById('tab-evidence').style.display = tab === 'evidence' ? '' : 'none';
     if (tab === 'timeline' && selectedId) loadTimeline(selectedId);
     if (tab === 'notes' && selectedId) loadNotes(selectedId);
     if (tab === 'dispatch' && selectedId) loadDispatchLog(selectedId);
+    if (tab === 'evidence' && selectedId) loadEvidence(selectedId);
   }
   window.switchDetailTab = switchDetailTab;
 
@@ -1791,6 +1820,134 @@ function intelQuick(msg) {
           + '</div>';
       }).join('');
     } catch(e) { el.innerHTML = ''; }
+  }
+
+  // ── Evidence ─────────────────────────────────────────────────────────────────
+  var _EVIDENCE_TYPE_LABELS = {
+    completion_photo: 'Completion Photo',
+    before_photo: 'Before Photo',
+    damage_claim: 'Damage Claim',
+    customer_confirmation: 'Customer Confirmation',
+  };
+
+  window.loadEvidence = async function loadEvidence(bookingId, forceRefresh) {
+    if (!bookingId) return;
+    var contentEl   = document.getElementById('evidence-content');
+    var warningEl   = document.getElementById('evidence-warning-bar');
+    var badgeEl     = document.getElementById('evidence-tab-count');
+    var isActiveTab = document.getElementById('tab-evidence').style.display !== 'none';
+
+    // Use cache unless forceRefresh or not yet fetched
+    var cached = _evidenceCache[bookingId];
+    if (cached && !cached.loading && !forceRefresh) {
+      _renderEvidence(bookingId, cached, contentEl, warningEl, badgeEl, isActiveTab);
+      return;
+    }
+
+    if (isActiveTab && contentEl) {
+      contentEl.innerHTML = '<div style="color:var(--muted)">Loading evidence…</div>';
+    }
+    _evidenceCache[bookingId] = { loading: true, evidence: [], total: 0, error: null };
+
+    try {
+      var r = await fetch('/api/booking/evidence?bookingId=' + encodeURIComponent(bookingId),
+                          { headers: headers() });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to fetch evidence');
+      _evidenceCache[bookingId] = { loading: false, evidence: d.evidence || [], total: d.total || 0, error: null };
+    } catch (err) {
+      _evidenceCache[bookingId] = { loading: false, evidence: [], total: 0, error: err.message };
+    }
+
+    // Only update DOM if this booking is still selected (no stale render)
+    if (selectedId !== bookingId) return;
+    isActiveTab = document.getElementById('tab-evidence').style.display !== 'none';
+    _renderEvidence(bookingId, _evidenceCache[bookingId], contentEl, warningEl, badgeEl, isActiveTab);
+  };
+
+  function _renderEvidence(bookingId, cache, contentEl, warningEl, badgeEl, isActiveTab) {
+    var booking = allBookings.find(function(b) { return b.id === bookingId; });
+
+    // Update tab badge
+    if (badgeEl) {
+      if (cache.error) {
+        badgeEl.textContent = '';
+        badgeEl.style.color = '';
+      } else if (cache.total > 0) {
+        badgeEl.textContent = '(' + cache.total + ')';
+        badgeEl.style.color = '';
+      } else if (booking && booking.status === 'completed') {
+        badgeEl.textContent = ' ⚠';  // ⚠
+        badgeEl.style.color = '#d97706';
+      } else {
+        badgeEl.textContent = '';
+        badgeEl.style.color = '';
+      }
+    }
+
+    // Update warning bar (amber strip above actions — completed + zero evidence only)
+    if (warningEl) {
+      if (!cache.error && cache.total === 0 && booking && booking.status === 'completed') {
+        warningEl.textContent = 'No completion evidence on file — review before recording payout or issuing refund.';
+        warningEl.style.display = '';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    }
+
+    // Only update tab content when Evidence tab is open
+    if (!isActiveTab || !contentEl) return;
+
+    if (cache.error) {
+      contentEl.innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load evidence: ' + esc(cache.error) + '</div>';
+      return;
+    }
+
+    if (cache.total === 0) {
+      contentEl.innerHTML = booking && booking.status === 'completed'
+        ? '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:0.875rem;color:#92400e;font-size:0.85rem">'
+          + 'No completion evidence uploaded for this booking.<br>'
+          + '<span style="font-size:0.78rem;color:#b45309">Easers can upload photos before marking a job complete.</span></div>'
+        : '<div style="color:var(--muted)">No evidence uploaded yet.</div>';
+      return;
+    }
+
+    function fmtBytes(n) {
+      if (!n) return '—';
+      return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+    }
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+      });
+    }
+
+    var cards = cache.evidence.map(function(ev) {
+      var label  = _EVIDENCE_TYPE_LABELS[ev.evidence_type] || ev.evidence_type;
+      var thumb  = ev.signed_url
+        ? '<img src="' + ev.signed_url + '" alt="' + esc(label) + '" loading="lazy"/>'
+        : '<div style="width:100%;height:100px;background:var(--elevated);display:flex;align-items:center;'
+          + 'justify-content:center;color:var(--muted);font-size:0.72rem">No preview</div>';
+      var expiry = ev.signed_url_expires_at
+        ? '<div style="font-size:0.68rem;margin-top:2px">URL expires ' + fmtDate(ev.signed_url_expires_at) + '</div>'
+        : '';
+      var onClick = ev.signed_url
+        ? 'onclick="window.open(\'' + ev.signed_url.replace(/'/g, "\\'") + '\',\'_blank\')" tabindex="0"'
+        : '';
+      return '<div class="evidence-card" ' + onClick + '>'
+        + thumb
+        + '<div class="evidence-card-meta">'
+        + '<div class="evidence-card-type">' + esc(label) + '</div>'
+        + '<div>' + esc(ev.uploaded_by_name || 'Unknown') + '</div>'
+        + '<div>' + fmtDate(ev.created_at) + '</div>'
+        + '<div>' + fmtBytes(ev.file_size_bytes) + '</div>'
+        + (ev.notes ? '<div style="margin-top:2px;font-style:italic">' + esc(ev.notes) + '</div>' : '')
+        + expiry
+        + '</div></div>';
+    }).join('');
+
+    contentEl.innerHTML = '<div class="evidence-grid">' + cards + '</div>';
   }
 
   window.saveNote = async function() {
