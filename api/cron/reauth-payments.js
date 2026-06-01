@@ -1,6 +1,6 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, esc } from '../_email.js';
+import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -123,7 +123,22 @@ export default async function handler(req, res) {
       } catch (piErr) {
         // Card declined, 3DS required, or other Stripe error — leave old PI untouched
         console.error(`reauth-payments: new PI creation failed for ${booking.ref}:`, piErr.message);
-        errors.push({ ref: booking.ref, reason: piErr.code || 'pi_create_failed' });
+        const failReason = piErr.code || 'pi_create_failed';
+        errors.push({ ref: booking.ref, reason: failReason });
+        // Alert owner when 3DS is required — auth will expire without manual intervention
+        if (piErr.code === 'authentication_required') {
+          try {
+            await sendEmail({
+              to: ownerEmail(),
+              from: 'AssembleAtEase <booking@assembleatease.com>',
+              subject: `ACTION REQUIRED: Card re-auth failed for ${booking.ref} — 3DS required`,
+              html: `<p>The payment re-authorization for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.customer_name)}, ${esc(booking.service)}, ${esc(booking.date)}) failed because the card requires 3D Secure authentication.</p><p>The original authorization will expire within 2 days. Please contact the customer to update their payment method before the appointment.</p><p>Customer email: <a href="mailto:${esc(booking.customer_email)}">${esc(booking.customer_email)}</a></p>`,
+              replyTo: 'service@assembleatease.com',
+            });
+          } catch (alertErr) {
+            console.error(`reauth-payments: owner alert email failed for ${booking.ref}:`, alertErr.message);
+          }
+        }
         continue;
       }
 
