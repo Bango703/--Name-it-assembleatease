@@ -75,28 +75,6 @@ const TOPIC_POOL = [
   'cord concealment service austin tx',
   'tv mounting and cable management austin',
 
-  // ── JUNK REMOVAL ─────────────────────────────────────────────────
-  'junk removal cost austin tx',
-  'furniture removal service austin texas',
-  'same day junk removal austin',
-  'estate cleanout service austin tx',
-  'appliance removal austin texas',
-  'mattress disposal austin tx',
-  'hot tub removal austin texas',
-  'garage cleanout service austin tx',
-  'attic cleanout austin texas',
-  'moving junk removal austin tx',
-  'old furniture pickup austin',
-  'e-waste disposal austin texas',
-  'shed demolition and removal austin',
-  'construction debris removal austin tx',
-  'hoarder cleanout service austin texas',
-  'storage unit cleanout austin tx',
-  'rental property cleanout austin',
-  'yard waste removal austin texas',
-  'office furniture removal austin tx',
-  'how much does junk removal cost in austin',
-
   // ── SMART HOME ────────────────────────────────────────────────────
   'smart doorbell installation austin',
   'nest thermostat installation austin tx',
@@ -118,52 +96,6 @@ const TOPIC_POOL = [
   'security camera system installation austin tx',
   'doorbell camera installation cost austin',
   'smart home device setup and configuration austin',
-
-  // ── HOME REPAIRS / HANDYMAN ────────────────────────────────────────
-  'ceiling fan installation cost austin tx',
-  'how much does it cost to hire a handyman in austin',
-  'same day handyman service austin texas',
-  'moving into new home setup checklist austin',
-  'handyman services cedar park tx',
-  'handyman services round rock texas',
-  'handyman services pflugerville tx',
-  'handyman services kyle texas',
-  'handyman services buda tx',
-  'handyman services leander texas',
-  'handyman services georgetown tx',
-  'best handyman in south austin',
-  'best handyman in north austin',
-  'handyman services lakeway texas',
-  'picture hanging service austin tx',
-  'mirror installation service austin',
-  'curtain rod installation austin tx',
-  'blind and shade installation austin',
-  'drywall repair austin texas',
-  'door repair and installation austin tx',
-  'light fixture installation austin tx',
-  'outlet and switch replacement austin',
-  'faucet replacement austin texas',
-  'bathroom fixture installation austin tx',
-  'weatherstripping installation austin',
-  'door lock installation austin tx',
-  'home maintenance checklist austin texas',
-  'spring home maintenance tips austin',
-  'fall home maintenance checklist austin tx',
-  'new homeowner checklist austin texas',
-  'apartment move in setup austin tx',
-  'how to baby proof your home austin',
-  'ADA accessibility modifications austin tx',
-  'home office conversion austin texas',
-  'garage organization service austin tx',
-  'pantry organization installation austin',
-  'closet organizer installation austin tx',
-  'murphy bed with desk installation austin',
-  'pergola assembly austin texas',
-  'swing set assembly austin tx',
-  'trampoline assembly austin texas',
-  'basketball hoop installation austin tx',
-  'outdoor playset assembly austin',
-  'hammock installation and hanging austin tx',
 ];
 
 export default async function handler(req, res) {
@@ -321,9 +253,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
       // Derive tag from topic keywords
       const tLower = topic.toLowerCase();
       const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV Mounting'
-        : tLower.includes('junk') || tLower.includes('removal') || tLower.includes('cleanout') ? 'Junk Removal'
         : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart Home'
-        : tLower.includes('repair') || tLower.includes('handyman') || tLower.includes('fix') || tLower.includes('install') ? 'Home Repairs'
         : 'Furniture';
 
       const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -497,9 +427,7 @@ ${body}
       <ul class="footer-links">
         <li><a href="/furniture">Furniture Assembly</a></li>
         <li><a href="/mounting">TV &amp; Mounting</a></li>
-        <li><a href="/repairs">Home Repairs</a></li>
         <li><a href="/smarthome">Smart Home</a></li>
-        <li><a href="/junk">Junk Removal</a></li>
       </ul>
     </div>
     <div>

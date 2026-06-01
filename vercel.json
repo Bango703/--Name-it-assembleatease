@@ -1,7 +1,10 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [],
+  "redirects": [
+    { "source": "/repairs", "destination": "/", "permanent": true },
+    { "source": "/junk",    "destination": "/", "permanent": true }
+  ],
   "crons": [
     {
       "path": "/api/cron/expire-offers",

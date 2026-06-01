@@ -11,8 +11,6 @@ const VALID_SERVICES = [
   'Furniture Assembly',
   'TV & Display Mounting',
   'Smart Home Installation',
-  'Home Repairs',
-  'Junk Removal',
 ];
 
 export default async function handler(req, res) {

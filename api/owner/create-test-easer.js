@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
   // Extended fields — non-fatal if columns missing
   await sb.from('profiles').update({
-    services_offered: ['Furniture Assembly', 'TV & Display Mounting', 'Home Repairs'],
+    services_offered: ['Furniture Assembly', 'TV & Display Mounting'],
     has_tools: true, has_transport: true,
     years_experience: 3,
     bio: 'Test account for platform testing.',

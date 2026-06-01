@@ -135,73 +135,6 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Patch drywall after unmount (small)', price: 45, addon: true }
       ]}
     ],
-    'Home Repairs': [
-      { group: 'Drywall & Walls', items: [
-        { name: 'Drywall patch — nail / screw holes (up to 10)', price: 65 },
-        { name: 'Drywall patch — small hole (up to 4”)', price: 75 },
-        { name: 'Drywall patch — medium hole (4”–8”)', price: 95 },
-        { name: 'Drywall patch — large hole (8”–12”)', price: 125 },
-        { name: 'Drywall patch — textured finish (per patch)', price: 25, addon: true },
-        { name: 'Drywall patch — multiple (3+ same visit)', price: 145, priceMax: 195 },
-        { name: 'Caulking — tub / shower / window (per run)', price: 65 },
-        { name: 'Grout repair (per 2 sq ft)', price: 75 }
-      ]},
-      { group: 'Doors & Locks', items: [
-        { name: 'Door hinge tighten / realign', price: 65 },
-        { name: 'Door hinge replacement (per hinge)', price: 55 },
-        { name: 'Door handle / knob replacement', price: 65 },
-        { name: 'Deadbolt install / replace', price: 75 },
-        { name: 'Door lock rekey (per lock)', price: 55 },
-        { name: 'Door stopper install', price: 35 },
-        { name: 'Door sweep / weatherstripping replace', price: 65 },
-        { name: 'Sliding door track repair / adjust', price: 75 },
-        { name: 'Screen door repair / re-screen', price: 75 },
-        { name: 'Peephole install', price: 45 }
-      ]},
-      { group: 'Cabinet & Hardware', items: [
-        { name: 'Cabinet door rehang / realign (per door)', price: 45 },
-        { name: 'Cabinet hinge replacement (per hinge)', price: 35 },
-        { name: 'Cabinet hardware install — up to 10 knobs/pulls', price: 65 },
-        { name: 'Cabinet hardware install — 11–20 knobs/pulls', price: 95 },
-        { name: 'Cabinet hardware install — full kitchen (20+)', price: 125 },
-        { name: 'Drawer slide replacement (per pair)', price: 55 },
-        { name: 'Soft-close hinge install (per door)', price: 25 }
-      ]},
-      { group: 'Plumbing (labor only, parts not included)', items: [
-        { name: 'Faucet replacement — bathroom', price: 85 },
-        { name: 'Faucet replacement — kitchen', price: 95 },
-        { name: 'Showerhead replacement', price: 65 },
-        { name: 'Toilet seat replacement', price: 55 },
-        { name: 'Toilet running / flapper repair', price: 65 },
-        { name: 'Under-sink supply line replacement', price: 65 },
-        { name: 'P-trap / drain repair (per drain)', price: 75 }
-      ]},
-      { group: 'Lighting & Electrical (no panel work)', items: [
-        { name: 'Light fixture swap (1–1 replacement)', price: 75 },
-        { name: 'Ceiling fan install (existing wiring)', price: 95 },
-        { name: 'Ceiling fan install (no existing wiring)', price: 0, customQuote: true },
-        { name: 'Dimmer switch install (per switch)', price: 55 },
-        { name: 'GFCI outlet replacement (per outlet)', price: 55 },
-        { name: 'Outdoor light fixture replace', price: 75 },
-        { name: 'Under-cabinet light install (per run)', price: 75 }
-      ]},
-      { group: 'Safety & Misc', items: [
-        { name: 'Smoke / CO detector install (per unit)', price: 45 },
-        { name: 'Smoke / CO detector install (4-pack)', price: 125 },
-        { name: 'Baby / child proofing (full room)', price: 75 },
-        { name: 'Furniture wall anchor (tip-over, per piece)', price: 35 },
-        { name: 'Furniture wall anchor (4-piece set)', price: 95 },
-        { name: 'Gutter cleaning — per 20 linear ft', price: 85 },
-        { name: 'Gutter cleaning — full home (up to 80 ft)', price: 175, priceMax: 225 },
-        { name: 'Towel bar / toilet paper holder install', price: 45 },
-        { name: 'Grab bar install (ADA / accessibility)', price: 75 }
-      ]},
-      { group: 'Add-ons', items: [
-        { name: 'Parts / materials sourcing fee', price: 15, addon: true },
-        { name: 'Photo documentation of work', price: 0, addon: true },
-        { name: 'Rush / same-day repair', price: 35, addon: true }
-      ]}
-    ],
     'Smart Home': [
       { group: 'Climate Control', items: [
         { name: 'Smart thermostat — Nest, Ecobee, Honeywell', price: 79, popular: true },
@@ -321,51 +254,6 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Floor leveling / placement support', price: 35, addon: true },
         { name: 'Safety anchoring / wall securing', price: 45, addon: true },
         { name: 'Same-day / rush fitness assembly', price: 65, addon: true }
-      ]}
-    ],
-    'Junk Removal': [
-      { group: 'Single Items', items: [
-        { name: 'Small item (chair, lamp, boxes)', price: 75 },
-        { name: 'Medium furniture (dresser, desk, bookcase)', price: 95 },
-        { name: 'Sofa / loveseat', price: 115 },
-        { name: 'Sectional sofa', price: 155 },
-        { name: 'Mattress — twin / full', price: 95 },
-        { name: 'Mattress — queen', price: 109 },
-        { name: 'Mattress — king', price: 129 },
-        { name: 'Mattress + box spring set', price: 155, priceMax: 185 },
-        { name: 'Bed frame (disassemble + remove)', price: 109 }
-      ]},
-      { group: 'Appliances', items: [
-        { name: 'Small appliance (microwave, toaster oven)', price: 65 },
-        { name: 'Washer or dryer (single unit)', price: 125 },
-        { name: 'Washer + dryer set', price: 199 },
-        { name: 'Refrigerator (standard)', price: 139 },
-        { name: 'Refrigerator (side-by-side / French door)', price: 165 },
-        { name: 'Dishwasher', price: 109 },
-        { name: 'Stove / range / oven', price: 125 },
-        { name: 'Air conditioner (window unit)', price: 85 }
-      ]},
-      { group: 'Truck Loads (mixed / large volumes)', items: [
-        { name: '1/4 truck load', price: 225 },
-        { name: '1/2 truck load', price: 375 },
-        { name: 'Full truck load', price: 575 }
-      ]},
-      { group: 'Cleanouts', items: [
-        { name: 'Single room cleanout (small)', price: 275, priceMax: 375 },
-        { name: 'Single room cleanout (large)', price: 375, priceMax: 495 },
-        { name: 'Garage cleanout (standard)', price: 425, priceMax: 595 },
-        { name: 'Garage cleanout (large / heavily loaded)', price: 0, customQuote: true },
-        { name: 'Attic / crawl space cleanout', price: 0, customQuote: true },
-        { name: 'Office / commercial move-out', price: 0, customQuote: true },
-        { name: 'Estate cleanout', price: 0, customQuote: true }
-      ]},
-      { group: 'Specialty & Add-ons', items: [
-        { name: 'E-waste disposal (computers, TVs, monitors)', price: 25, addon: true },
-        { name: 'Paint / hazmat disposal', price: 35, addon: true },
-        { name: 'Disassembly before removal (per piece)', price: 25, addon: true },
-        { name: 'Same-day / rush removal', price: 59, addon: true },
-        { name: 'Stair carry (per flight, per large item)', price: 25, addon: true },
-        { name: 'Donation drop-off (Goodwill / ARC)', price: 25, addon: true }
       ]}
     ],
     'Other': [
