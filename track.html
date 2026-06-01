@@ -419,8 +419,9 @@ function renderBooking(b) {
     cancelBtn.style.display = 'none';
     feeWarn.style.display   = 'none';
     if (ACTIVE_PIPELINE.includes(b.status)) {
-      // Show a note that cancellation is not possible while job is active
-      cancelBtn.insertAdjacentHTML('afterend', '<p style="font-size:0.82rem;color:var(--muted);text-align:center;margin-top:0">To change or cancel while a service pro is en route, please <a href="/contact" style="color:var(--cyan-dark);font-weight:600">contact us directly</a>.</p>');
+      if (!document.getElementById('cancel-active-note')) {
+        cancelBtn.insertAdjacentHTML('afterend', '<p id="cancel-active-note" style="font-size:0.82rem;color:var(--muted);text-align:center;margin-top:0">To change or cancel while a service pro is en route, please <a href="/contact" style="color:var(--cyan-dark);font-weight:600">contact us directly</a>.</p>');
+      }
     }
   } else {
     cancelBtn.style.display = '';
@@ -559,15 +560,14 @@ function isWithin24hrs(dateStr, timeStr) {
   } catch { return false; }
 }
 
-// Pre-fill and auto-submit from URL params: /track?ref=AAE-XXX&email=you@example.com
+// Pre-fill from URL params: /track?ref=AAE-XXX
+// Email is intentionally not read from URL to avoid PII exposure in server logs and browser history.
 (function() {
   const params = new URLSearchParams(window.location.search);
-  const ref   = params.get('ref');
-  const email = params.get('email');
-  if (ref)   document.getElementById('t-ref').value   = ref.toUpperCase();
-  if (email) document.getElementById('t-email').value = email;
-  if (ref && email) {
-    // Auto-submit once DOM is ready
+  const ref = params.get('ref');
+  if (ref) {
+    document.getElementById('t-ref').value = ref.toUpperCase();
+    // Auto-submit on ref alone — user still confirms their email manually
     setTimeout(function() {
       document.getElementById('trackForm').dispatchEvent(new Event('submit', { cancelable: true }));
     }, 300);
