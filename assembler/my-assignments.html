@@ -169,7 +169,7 @@
     <div id="asgn-modal-body"></div>
     <div id="complete-section" style="display:none">
       <div style="background:#fffbeb;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem 1rem;font-size:0.8rem;color:#92400e;margin-bottom:0.875rem;line-height:1.55">
-        Only mark complete when the work is fully finished to the customer's satisfaction.
+        Only mark complete after <strong>all work is done</strong> — not when you've arrived or started. Completion triggers payment processing and customer notification.
       </div>
       <button class="btn btn-teal" id="complete-btn" style="width:100%;margin-bottom:1rem;background:#059669;border-color:#059669;border-radius:12px;min-height:48px;font-size:0.95rem">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -763,7 +763,7 @@
 
       // ── Close sheet and call assembler-complete ───────────────────────────
       document.getElementById('complete-sheet').classList.remove('open');
-      if (sheetYesBtn) { sheetYesBtn.disabled = false; sheetYesBtn.textContent = 'Yes, job is complete'; }
+      if (sheetYesBtn) { sheetYesBtn.disabled = false; sheetYesBtn.textContent = 'Yes, all work is done'; }
       if (sheetCancelBtn) sheetCancelBtn.disabled = false;
       _pendingCompleteBookingId = null;
       _resetPhotoState();
@@ -1097,8 +1097,14 @@
 <!-- Complete job confirmation sheet -->
 <div class="sheet-overlay" id="complete-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Mark job as complete?</div>
-    <div class="sheet-body">Only mark complete when the work is fully finished and the customer is satisfied. <strong>This will charge the customer's card.</strong></div>
+    <div class="sheet-title">Is all work finished?</div>
+    <div class="sheet-body">Only mark complete after <strong>all requested work is done</strong> — not when you've arrived or started. This charges the customer's card and sends a completion notice.</div>
+    <ul style="margin:0.625rem 0 0.75rem;padding-left:1.2rem;font-size:0.82rem;color:#374151;line-height:1.85">
+      <li>All requested work is fully finished</li>
+      <li>Customer has reviewed the work (if on-site)</li>
+      <li>Tools and materials are cleaned up</li>
+      <li>Completion photo added below (recommended)</li>
+    </ul>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
       <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Add a completion photo <span style="font-weight:400;color:#64748b">(optional)</span></div>
       <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
@@ -1113,7 +1119,7 @@
       <div id="photo-upload-status" style="display:none;font-size:0.78rem;margin-top:0.5rem"></div>
     </div>
     <div class="sheet-actions">
-      <button class="sheet-btn-primary" id="complete-sheet-yes">Yes, job is complete</button>
+      <button class="sheet-btn-primary" id="complete-sheet-yes">Yes, all work is done</button>
       <button class="sheet-btn-cancel" id="complete-sheet-cancel">Cancel</button>
     </div>
   </div>
