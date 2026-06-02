@@ -1,0 +1,11 @@
+/* Desktop-only overrides — loaded via <link media="(min-width:900px)">
+   NOTHING in this file affects mobile. Edit freely without breaking mobile. */
+
+/* ── NAV ── */
+.nav-links{display:flex}
+.nav-hamburger{display:none}
+.nav-auth-link{display:block}
+.nav-earn-btn{display:inline-flex;align-items:center}
+
+/* ── FOOTER ── */
+.footer-inner{grid-template-columns:2fr 1fr 1fr;gap:3rem}

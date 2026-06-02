@@ -5,9 +5,9 @@
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <title>AssembleAtEase &mdash; Professional Furniture Assembly &amp; TV Mounting Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="Professional furniture assembly, TV mounting, and smart home setup in Austin TX. Book online in minutes. Card held at booking — only charged after the job is done."/>
+<meta name="description" content="Professional furniture assembly, TV mounting, and smart home setup in Austin TX. Book online in minutes. Card authorized at booking — only charged after the job is done."/>
 <link rel="canonical" href="https://www.assembleatease.com/"/>
-<link rel="stylesheet" href="/assets/css/marketing.css"/>
+<link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="AssembleAtEase &mdash; Professional Furniture Assembly &amp; TV Mounting Austin TX"/>
@@ -40,11 +40,11 @@
 .nav-book-cta:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35);transform:translateY(-1px)}
 .nav-book-cta:active{background:var(--cyan-dark);transform:none;box-shadow:none}
 .nav-logo-sub{white-space:nowrap}
-@media(min-width:1024px){
-  .nav-inner{position:relative}
-  .nav-links{position:absolute;left:50%;transform:translateX(-50%);gap:2.25rem}
-}
-
+.nav-mobile{gap:0;padding:1.25rem 1.25rem 1.35rem}
+.nav-mobile a{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 0.25rem;border-bottom:1px solid var(--border);color:var(--ink);font-size:1rem;font-weight:500}
+.nav-mobile a svg{stroke:var(--cyan)}
+.nav-mobile a[style*="color:#00BFFF"]{color:var(--cyan)!important}
+.nav-mobile .btn{margin-top:16px;justify-content:center;min-height:38px;border-radius:999px;background:var(--cyan);color:#001f2b;font-weight:600;border-bottom:none;box-shadow:none}
 /* ─────────────────────────────────────────────────────
    DESKTOP HERO V2 (≥1024px only)
 ───────────────────────────────────────────────────── */
@@ -60,9 +60,9 @@
 .hv2-trust-row{display:flex;gap:1.75rem;flex-wrap:wrap}
 .hv2-tr-item{display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;font-weight:500;color:rgba(255,255,255,0.65)}
 .hv2-tr-icon{flex-shrink:0;color:#4dd0e1}
-.hv2-right{overflow:hidden;background:#001f2b;position:relative;z-index:1;transform-style:preserve-3d;transition:transform 0.65s cubic-bezier(0.23,1,0.32,1);will-change:transform}
-.hv2-right img{width:100%;height:100%;aspect-ratio:1536/1024;object-fit:cover;object-position:center top;display:block;opacity:0.9;transform:scale(1.04);transition:transform 0.65s cubic-bezier(0.23,1,0.32,1)}
-.hv2-right::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#0099CC,#00BFFF);transform-origin:left;animation:hv2Reveal 0.85s 0.15s cubic-bezier(0.77,0,0.18,1) both;z-index:3;pointer-events:none}
+.hv2-right{overflow:hidden;background:#001f2b url('/images/hero-pro-optimized.jpg') center center/cover no-repeat;position:relative;z-index:1;width:100%;height:100%;min-width:0;transform-style:preserve-3d;transition:transform 0.65s cubic-bezier(0.23,1,0.32,1);will-change:transform}
+.hv2-right img{position:absolute;inset:0;width:100%;height:100%;min-width:100%;min-height:100%;object-fit:cover;object-position:center center;display:block;opacity:0.9;transform:scale(1.04);transition:transform 0.65s cubic-bezier(0.23,1,0.32,1)}
+.hv2-right::after{display:none}
 @keyframes hv2Reveal{0%{transform:scaleX(1) translateX(0)}50%{transform:scaleX(1) translateX(0)}100%{transform:scaleX(0) translateX(0);transform-origin:right}}
 .hv2-chip{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5);border-radius:999px;padding:0.45rem 1rem;font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:var(--ink);box-shadow:0 8px 32px rgba(0,0,0,0.18);opacity:0;animation:chipIn 0.5s forwards}
 .hv2-chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -88,18 +88,43 @@
 .qbb-or::before,.qbb-or::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.2)}
 
 /* ─────────────────────────────────────────────────────
-   DESKTOP 5-COL SERVICE GRID (≥1024px only)
+   DESKTOP SERVICE GRID (≥1024px only)
 ───────────────────────────────────────────────────── */
-.svc5-section{display:none;background:#f8f9fa;padding:1.75rem 2rem 3.5rem}
-.svc5-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1.25rem;max-width:1100px;margin:0 auto}
-.svc5-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem 1.25rem;text-align:center;text-decoration:none;display:block;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:0 2px 8px rgba(0,0,0,0.05)}
-.svc5-card:hover{box-shadow:0 16px 40px rgba(0,191,255,0.14),0 4px 12px rgba(0,0,0,0.07);border-color:var(--cyan);transform:translateY(-3px)}
-.svc5-icon{width:64px;height:64px;border-radius:50%;border:2px solid var(--cyan-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem}
+.svc5-section{display:none;background:#f8f9fa;padding:1.25rem 2rem 4.75rem}
+.svc5-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.35rem;max-width:1120px;margin:0 auto}
+.svc5-card{position:relative;background:#fff;border:1.5px solid #dde8ec;border-radius:18px;padding:1rem 1rem 1.35rem;text-align:left;text-decoration:none;display:flex;flex-direction:column;min-height:365px;overflow:hidden;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:0 8px 26px rgba(2,32,43,0.055)}
+.svc5-card::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--cyan);opacity:0;transition:opacity 0.18s}
+.svc5-card:hover{box-shadow:0 18px 44px rgba(0,191,255,0.14),0 8px 18px rgba(2,32,43,0.08);border-color:var(--cyan-mid);transform:translateY(-4px)}
+.svc5-card:hover::before{opacity:1}
+.svc5-photo{height:145px;border-radius:14px;overflow:hidden;background:#dfe8ec;margin-bottom:1rem}
+.svc5-photo img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.03) contrast(1.02);transition:transform 0.55s cubic-bezier(0.23,1,0.32,1)}
+.svc5-card:hover .svc5-photo img{transform:scale(1.045)}
+.svc5-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
+.svc5-icon{width:54px;height:54px;border-radius:14px;background:rgba(0,191,255,0.08);border:1.5px solid rgba(0,191,255,0.22);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .svc5-icon svg{width:30px;height:30px;stroke:var(--cyan-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.svc5-name{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem}
-.svc5-desc{font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:0.5rem}
-.svc5-price{font-size:0.9rem;font-weight:700;color:var(--cyan-dark);margin-bottom:0.85rem}
-.svc5-link{font-size:0.82rem;font-weight:600;color:var(--cyan-dark);display:inline-flex;align-items:center;gap:4px}
+.svc5-tag{display:inline-flex;align-items:center;border-radius:999px;background:#e6f7fb;color:var(--cyan-dark);padding:0.25rem 0.6rem;font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
+.svc5-name{font-size:1.08rem;font-weight:800;color:var(--ink);margin-bottom:0.55rem}
+.svc5-desc{font-size:0.9rem;color:#5f6b7a;line-height:1.62;margin-bottom:1rem}
+.svc5-price{font-size:0.92rem;font-weight:800;color:var(--cyan-dark);margin-top:auto;margin-bottom:0.85rem}
+.svc5-link{font-size:0.82rem;font-weight:800;color:var(--cyan-dark);display:inline-flex;align-items:center;gap:4px}
+.svc5-foot{max-width:1120px;margin:1.35rem auto 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;background:#fff;border:1px solid #dde8ec;border-radius:14px;box-shadow:0 8px 24px rgba(2,32,43,0.04)}
+.svc5-foot-text{font-size:0.9rem;color:#4b5563}
+.svc5-foot-text strong{color:var(--ink)}
+.svc5-foot-actions{display:flex;gap:0.65rem;flex-wrap:wrap;justify-content:flex-end}
+.svc5-foot-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;border-radius:999px;padding:0.65rem 1rem;font-size:0.82rem;font-weight:800;text-decoration:none}
+.svc5-foot-primary{background:var(--cyan);color:#001f2b}
+.svc5-foot-secondary{background:#fff;color:var(--cyan-dark);border:1.5px solid var(--cyan-mid)}
+
+.people-band{background:#f7fbfc;padding:4rem 2rem}
+.people-band-inner{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:0.95fr 1.05fr;gap:2rem;align-items:center}
+.people-photo{position:relative;overflow:hidden;border-radius:18px;min-height:360px;background:#dfe8ec;box-shadow:0 16px 38px rgba(2,32,43,0.12)}
+.people-photo img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;display:block}
+.people-copy{max-width:520px}
+.people-title{font-family:var(--font-display);font-size:clamp(2rem,3vw,2.65rem);line-height:1.08;color:var(--ink);margin:0.45rem 0 1rem}
+.people-desc{font-size:0.98rem;line-height:1.75;color:#5f6b7a;margin:0 0 1.35rem}
+.people-points{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem}
+.people-point{display:flex;align-items:center;gap:0.55rem;font-size:0.86rem;font-weight:700;color:var(--ink-soft)}
+.people-point::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px rgba(0,191,255,0.11);flex-shrink:0}
 
 /* ─────────────────────────────────────────────────────
    DESKTOP TRUST BAR (≥1024px only)
@@ -152,7 +177,7 @@ section#service-area{display:none}
 /* ─────────────────────────────────────────────────────
    CTA SECTION
 ───────────────────────────────────────────────────── */
-.cta-section{background:linear-gradient(140deg,#00BFFF,#006070);padding:5rem 2rem;text-align:center}
+.cta-section{background:linear-gradient(140deg,#00BFFF,#0099CC);padding:5rem 2rem;text-align:center}
 .cta-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
 .cta-desc{font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2.5rem;line-height:1.7}
 .cta-section .btn-white,.cta-section .btn-ghost-white{padding:1rem 2.75rem;font-size:1rem;min-height:52px}
@@ -164,7 +189,7 @@ section#service-area{display:none}
 
 /* Heading */
 .m-hero{padding:18px 1rem 12px}
-.m-hero-title{font-family:var(--font-display);font-size:clamp(1.65rem,7.6vw,2.05rem);color:var(--ink);line-height:1.12;font-weight:400;max-width:13ch;letter-spacing:-0.01em;margin-bottom:10px}
+.m-hero-title{font-family:var(--font-display);font-size:clamp(1.65rem,7.6vw,2.05rem);color:var(--ink);line-height:1.12;font-weight:400;max-width:13ch;letter-spacing:0;margin-bottom:10px}
 .m-hero-sub{font-size:0.84rem;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
 .m-hero-sub svg{width:14px;height:14px;stroke:var(--cyan-dark);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .m-hero-badges{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
@@ -176,8 +201,39 @@ section#service-area{display:none}
 .m-hero-btn-primary{background:var(--cyan);color:#fff;border:1px solid var(--cyan)}
 .m-hero-btn-secondary{background:#fff;color:var(--cyan-dark);border:1.5px solid var(--cyan-mid)}
 
+/* Mobile homepage refresh */
+.m-hero-refresh{padding:14px 1rem 16px;background:linear-gradient(180deg,#ffffff 0%,#f7fbfc 100%);overflow:hidden}
+.m-hero-kicker{display:inline-flex;align-items:center;gap:7px;background:#e6f7fb;color:var(--cyan-dark);border:1px solid #b8e8f1;border-radius:999px;padding:6px 10px;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
+.m-hero-kicker::before{content:'';width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,0.16);animation:mLivePulse 2.4s ease-in-out infinite}
+.m-hero-refresh .m-hero-title{font-size:clamp(2rem,10.5vw,2.75rem);line-height:0.98;max-width:9.5ch;margin-bottom:12px}
+.m-hero-copy{font-size:0.95rem;color:#4b5563;line-height:1.55;max-width:32ch;margin:0 0 14px}
+.m-hero-actions{display:grid;grid-template-columns:1fr auto;gap:9px;margin:0 0 14px}
+.m-primary-cta,.m-call-cta{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:800;border-radius:999px;min-height:48px}
+.m-primary-cta{background:var(--cyan);color:#001f2b;padding:0 1rem;box-shadow:0 10px 24px rgba(0,191,255,0.28)}
+.m-call-cta{width:48px;background:#fff;color:var(--cyan);border:1.5px solid var(--cyan-mid)}
+.m-call-cta svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.m-proof-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.m-proof{background:#fff;border:1px solid #e1edf1;border-radius:8px;padding:9px 7px;box-shadow:0 5px 16px rgba(2,32,43,0.05)}
+.m-proof strong{display:block;color:#0d1117;font-size:0.8rem;line-height:1.1}
+.m-proof span{display:block;color:#667085;font-size:0.66rem;margin-top:3px}
+.m-hero-photo{position:relative;min-height:222px;border-radius:18px;overflow:hidden;background:#dfe8ec;box-shadow:0 18px 42px rgba(1,30,42,0.16)}
+.m-hero-photo img{width:100%;height:100%;min-height:222px;object-fit:cover;object-position:center 28%;display:block;filter:saturate(1.04) contrast(1.02);animation:mPhotoDrift 14s ease-in-out infinite alternate}
+.m-hero-photo::after{content:'';position:absolute;inset:52% 0 0;background:linear-gradient(180deg,rgba(0,31,43,0) 0%,rgba(0,31,43,0.54) 100%);pointer-events:none}
+.m-float-card{position:absolute;z-index:2;left:12px;right:12px;bottom:12px;background:rgba(255,255,255,0.96);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.85);border-radius:12px;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 8px 22px rgba(0,0,0,0.13);animation:mFloatCard 5.5s ease-in-out infinite}
+.m-float-card strong{font-size:0.9rem;color:#0d1117}
+.m-float-card span{display:block;font-size:0.72rem;color:#5f6b7a;margin-top:2px}
+.m-float-price{background:#e6f7fb;color:var(--cyan-dark);border-radius:999px;padding:6px 10px;font-size:0.78rem;font-weight:800;white-space:nowrap}
+.m-live-strip{display:flex;align-items:center;gap:9px;margin:12px 0 0;padding:10px 12px;background:#001f2b;color:#dff8ff;border-radius:12px;font-size:0.8rem;line-height:1.35}
+.m-live-strip svg{width:16px;height:16px;stroke:var(--cyan);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+@keyframes mPhotoDrift{from{transform:scale(1.02)}to{transform:scale(1.08)}}
+@keyframes mFloatCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes mLivePulse{0%,100%{box-shadow:0 0 0 4px rgba(34,197,94,0.16);transform:scale(1)}50%{box-shadow:0 0 0 7px rgba(34,197,94,0.08);transform:scale(0.92)}}
+
 /* Service list */
 .svc-list{padding:0 1.25rem 0.5rem}
+.svc-list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;padding:6px 0 10px}
+.svc-list-heading h2{font-family:var(--font-display);font-size:1.45rem;font-weight:400;color:var(--ink);line-height:1.05}
+.svc-list-heading a{font-size:0.8rem;font-weight:800;color:var(--cyan);text-decoration:none;white-space:nowrap}
 .svc-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .svc-item:last-child{border-bottom:none}
 .svc-item:active{opacity:0.7}
@@ -186,14 +242,17 @@ section#service-area{display:none}
 /* Thumbnails — unique color per service */
 .svc-item-thumb{width:54px;height:54px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .svc-item-thumb svg{width:25px;height:25px;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.svc-item-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 .svc-t-assembly{background:rgba(0,191,255,0.1)}
 .svc-t-assembly svg{stroke:#00BFFF}
-.svc-t-mounting{background:rgba(0,96,112,0.12)}
-.svc-t-mounting svg{stroke:#006070}
+.svc-t-mounting{background:rgba(0,191,255,0.1)}
+.svc-t-mounting svg{stroke:var(--cyan)}
 .svc-t-smarthome{background:rgba(59,130,246,0.1)}
 .svc-t-smarthome svg{stroke:#3b82f6}
 .svc-t-moving{background:rgba(16,185,129,0.1)}
 .svc-t-moving svg{stroke:#059669}
+.svc-t-repairs{background:rgba(245,158,11,0.12)}
+.svc-t-repairs svg{stroke:#b45309}
 
 /* Body */
 .svc-item-body{flex:1;min-width:0}
@@ -208,31 +267,81 @@ section#service-area{display:none}
 .svc-other-list{display:flex;flex-wrap:wrap;gap:8px}
 .svc-other-pill{display:inline-flex;align-items:center;gap:6px;background:var(--off-white);border:1px solid var(--border);border-radius:999px;padding:8px 13px;font-size:0.82rem;font-weight:600;color:var(--ink);text-decoration:none}
 
+@media(max-width:1023px){
+  .people-band{padding:2rem 1rem}
+  .people-band-inner{display:block}
+  .people-photo{min-height:260px;margin-bottom:1.25rem;border-radius:16px}
+  .people-title{font-size:1.8rem}
+  .people-desc{font-size:0.92rem}
+  .people-points{grid-template-columns:1fr;gap:0.65rem}
+  .svc-section{background:#f7fbfc}
+  .svc-list{padding:4px 1rem 0.75rem;display:grid;gap:10px}
+  .svc-item{position:relative;background:#fff;border:1px solid #e2edf1;border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(2,32,43,0.055);overflow:hidden;animation:mCardIn 0.5s ease both}
+  .svc-item:nth-of-type(2){animation-delay:0.04s}
+  .svc-item:nth-of-type(3){animation-delay:0.08s}
+  .svc-item:nth-of-type(4){animation-delay:0.12s}
+  .svc-item:nth-of-type(5){animation-delay:0.16s}
+  .svc-item:nth-of-type(6){animation-delay:0.2s}
+  .svc-item:nth-of-type(7){animation-delay:0.24s}
+  .svc-item:last-child{border-bottom:1px solid #e2edf1}
+  .svc-item::after{content:'';position:absolute;inset:auto 0 0 0;height:3px;background:var(--cyan);opacity:0;transition:opacity 0.18s}
+  .svc-item:active{opacity:1;transform:scale(0.985)}
+  .svc-item:active::after{opacity:1}
+  .svc-item-thumb{width:58px;height:58px;border-radius:12px}
+  .svc-item-name-row{margin-bottom:4px}
+  .svc-item-desc{font-size:0.82rem}
+  .svc-price-badge{margin-top:7px}
+  .svc-chip{background:#e6f7fb;color:var(--cyan-dark)}
+  .svc-other{background:#f7fbfc;padding:0 1rem 1rem}
+  .svc-other-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .svc-other-pill{justify-content:center;background:#fff;border-color:#e2edf1;border-radius:10px;min-height:42px}
+  .svc-other > p:last-child{font-size:0.76rem!important;line-height:1.45;max-width:340px;margin:0.75rem auto 0!important}
+  .trust-strip{display:none}
+}
+@keyframes mCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
 /* ─────────────────────────────────────────────────────
    MOBILE/TABLET TRUST STRIP (<1024px only)
 ───────────────────────────────────────────────────── */
-.trust-strip{background:var(--ink);padding:10px 1.5rem}
-.trust-strip-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:center;flex-wrap:wrap}
-.trust-item{display:flex;align-items:center;gap:5px;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.82);padding:4px 10px;white-space:nowrap}
+.trust-strip{background:#001f2b;padding:12px 1rem}
+.trust-strip-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.trust-item{display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.9);padding:6px 8px;white-space:nowrap;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:999px}
 .trust-item svg{width:13px;height:13px;stroke:var(--cyan);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-.trust-sep{color:rgba(255,255,255,0.25);font-size:0.75rem;padding:0 2px}
+.trust-sep{display:none}
 
 /* ─────────────────────────────────────────────────────
    MOBILE/TABLET HOW IT WORKS (<1024px only)
 ───────────────────────────────────────────────────── */
-.how-section{background:var(--off-white);padding:20px 1.5rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.how-section{background:#fff;padding:20px 1rem 22px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .how-inner{max-width:1100px;margin:0 auto}
-.how-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);font-weight:700;text-align:center;margin-bottom:12px}
+.how-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.14em;color:#667085;font-weight:800;text-align:center;margin-bottom:12px}
 .how-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.how-step{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
-.how-num{width:26px;height:26px;border-radius:50%;background:var(--cyan);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.how-step{background:#fff;border:1px solid #dfe8ec;border-radius:10px;padding:11px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 5px 14px rgba(2,32,43,0.04)}
+.how-num{width:26px;height:26px;border-radius:50%;background:var(--cyan);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 0 0 rgba(0,191,255,0.22);animation:mStepPulse 5.5s ease-in-out infinite}
+.how-step:nth-child(2) .how-num{animation-delay:0.4s}
+.how-step:nth-child(3) .how-num{animation-delay:0.8s}
+.how-step:nth-child(4) .how-num{animation-delay:1.2s}
 .how-text{font-size:0.8rem;font-weight:600;color:var(--ink);line-height:1.3}
+
+.m-large-project-card{margin:0;padding:1.25rem;background:linear-gradient(135deg,#001f2b,#003345);display:none}
+.m-large-project-inner{display:flex;align-items:flex-start;gap:14px;max-width:520px;margin:0 auto}
+.m-large-project-icon{width:44px;height:44px;flex-shrink:0;background:rgba(0,191,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.m-large-project-icon svg{width:22px;height:22px;fill:none;stroke:var(--cyan);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.m-large-project-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:800;color:rgba(255,255,255,0.55);margin-bottom:4px}
+.m-large-project-title{font-size:1rem;font-weight:800;color:#fff;margin:0 0 6px;line-height:1.25}
+.m-large-project-copy{font-size:0.82rem;color:rgba(255,255,255,0.72);margin:0 0 12px;line-height:1.55}
+.m-large-project-btn{display:inline-flex;align-items:center;justify-content:center;background:var(--cyan);color:#001f2b;padding:0.76rem 1.2rem;border-radius:7px;font-size:0.88rem;font-weight:800;text-decoration:none;box-shadow:0 10px 24px rgba(0,191,255,0.2);transition:transform 0.18s,box-shadow 0.18s}
+.m-large-project-btn:active{transform:scale(0.98);box-shadow:0 6px 16px rgba(0,191,255,0.16)}
+@keyframes mStepPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,191,255,0.18)}45%{box-shadow:0 0 0 0 rgba(0,191,255,0.18)}55%{box-shadow:0 0 0 6px rgba(0,191,255,0)}}
 
 /* ─────────────────────────────────────────────────────
    BENEFITS MARQUEE (all sizes)
 ───────────────────────────────────────────────────── */
 @keyframes reviews-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .benefits-section{border-top:1px solid var(--border);overflow:hidden}
+.benefits-header{text-align:center;margin:0 auto 1.5rem;max-width:620px;padding:0 1rem}
+.benefits-header .section-label{margin-bottom:0.55rem}
+.benefits-title{font-family:var(--font-display);font-size:clamp(1.6rem,2.4vw,2.15rem);line-height:1.1;color:var(--ink);margin:0}
 .reviews-marquee-wrap{overflow:hidden;width:100%;-webkit-mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);padding:18px 0}
 .reviews-marquee-track{display:flex;gap:1rem;width:max-content;animation:reviews-scroll 42s linear infinite}
 .reviews-marquee-wrap:hover .reviews-marquee-track{animation-play-state:paused}
@@ -240,21 +349,26 @@ section#service-area{display:none}
 
 /* Mobile: JS-driven scroll (auto-scroll + touch override) */
 @media(max-width:1023px){
-  .benefits-section{overflow:visible}
-  .reviews-marquee-wrap{overflow:visible;-webkit-mask:none;mask:none;padding:16px 0}
-  .reviews-marquee-track{animation:none;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;padding:4px 1rem 12px;gap:10px}
+  .benefits-section{overflow:hidden;background:#fff;padding:12px 0 20px}
+  .reviews-marquee-wrap{overflow-x:auto;overflow-y:hidden;-webkit-mask:none;mask:none;padding:8px 0 0;max-width:100vw}
+  .reviews-marquee-track{animation:none;width:max-content;overflow:visible;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;padding:4px 1rem 12px;gap:10px}
+  .reviews-marquee-wrap{scrollbar-width:none;-ms-overflow-style:none}
+  .reviews-marquee-wrap::-webkit-scrollbar{display:none}
   .reviews-marquee-track::-webkit-scrollbar{display:none}
-  .review-card{width:240px;flex-shrink:0}
+  .review-card{width:min(270px,76vw);flex-shrink:0}
 }
 .benefit-icon{width:30px;height:30px;border-radius:7px;background:rgba(0,191,255,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem}
 .benefit-icon svg{width:15px;height:15px;stroke:var(--cyan-dark);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .benefit-label{font-size:0.72rem;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.35rem}
 .review-card p{font-size:0.8rem;color:var(--muted);line-height:1.65}
+@media(max-width:1023px){.benefits-section .review-card:nth-child(n+7){display:none}}
 
 /* ─────────────────────────────────────────────────────
    FAQ (all sizes)
 ───────────────────────────────────────────────────── */
 .faq-list{max-width:720px;margin:0 auto}
+.reviews-empty{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:1.35rem 1.5rem;text-align:center;color:var(--muted);font-size:0.9rem;line-height:1.65;box-shadow:0 8px 24px rgba(2,32,43,0.04)}
+.reviews-empty strong{display:block;color:var(--ink);font-size:1rem;margin-bottom:0.25rem}
 .faq-item{border:1.5px solid var(--border);border-radius:10px;margin-bottom:0.6rem;overflow:hidden;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
 .faq-item:hover{border-color:var(--cyan);box-shadow:0 4px 12px rgba(0,0,0,0.05)}
 .faq-item.open{border-color:var(--cyan);box-shadow:0 4px 16px rgba(0,191,255,0.1)}
@@ -272,23 +386,6 @@ section#service-area{display:none}
 .footer-contact a{display:flex;align-items:center;gap:6px}
 .footer-contact a svg{stroke:rgba(255,255,255,0.5);flex-shrink:0;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 
-/* ─────────────────────────────────────────────────────
-   DESKTOP SHOW/HIDE (≥1024px)
-───────────────────────────────────────────────────── */
-@media(min-width:1024px){
-  /* show desktop sections */
-  .hero-v2{display:grid!important;grid-template-columns:44% 56%;min-height:400px}
-  .svc5-section{display:block}
-  .trust-bar{display:block}
-  section#services-hdr{display:block;padding:1.25rem 2rem 0}
-  section#how-it-works{display:block}
-  section#service-area{display:block}
-  .cta-section{display:block}
-  /* hide mobile sections */
-  .svc-section{display:none!important}
-  .trust-strip{display:none!important}
-  .how-section{display:none!important}
-}
 
 /* ─────────────────────────────────────────────────────
    DESKTOP ANIMATIONS
@@ -346,21 +443,29 @@ section#service-area{display:none}
   .section-header{margin-bottom:2rem}
   .faq-q{padding:0.8rem 1rem;min-height:52px}
   .form-control{font-size:16px}
-  .benefits-section{overflow-x:hidden}
-  .reviews-marquee-wrap{max-width:100vw;overflow-x:hidden}
-  .reviews-marquee-track{max-width:100%;width:100%}
-  /* Mobile sticky book bar */
-  #m-book-bar{display:block !important}
+  .benefits-section{overflow:hidden}
+  .reviews-marquee-wrap{max-width:100vw;overflow-x:auto}
+  .reviews-marquee-track{width:max-content;max-width:none}
+  /* Homepage mobile already has a primary CTA in the hero */
+  #m-book-bar{display:none !important}
   .m-large-project{display:block !important}
   .footer{padding-bottom:2rem}
 }
 
 @media(max-width:480px){
+  .nav-inner{padding:0 0.8rem}
+  .nav-logo{gap:7px}
   .m-hero{padding:14px 1rem 8px}
+  .m-hero-refresh{padding:14px 1rem 16px}
   .m-hero-title{font-size:clamp(1.5rem,8.6vw,1.9rem);line-height:1.14;margin-bottom:9px}
+  .m-hero-refresh .m-hero-title{font-size:clamp(2rem,11vw,2.55rem);line-height:0.98;margin-bottom:12px}
+  .m-hero-copy{font-size:0.91rem}
+  .m-hero-photo,.m-hero-photo img{min-height:205px}
+  .m-proof-row{gap:6px}
+  .m-proof{padding:7px 6px}
   .m-service-hint{font-size:0.8rem}
   .m-hero-btn{min-height:40px;font-size:0.78rem}
-  .svc-list{padding:0 1rem 0.25rem}
+  .svc-list{padding:4px 1rem 0.75rem}
   .svc-other{padding:0 1rem 1rem}
   .svc-item-thumb{width:50px;height:50px}
   .svc-item-name{font-size:0.95rem}
@@ -376,10 +481,42 @@ section#service-area{display:none}
 }
 
 @media(prefers-reduced-motion:reduce){
-  .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,.hv2-right img,.hv2-chip,.hv2-right::after{animation:none!important}
+  .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,.hv2-right img,.hv2-chip,.hv2-right::after,.m-hero-kicker::before,.m-hero-photo img,.m-float-card,.svc-item,.how-num{animation:none!important}
   .reviews-marquee-track{animation:none}
-  .svc-card,.faq-item{transition:none}
+  .svc-card,.svc-item,.faq-item,.m-large-project-btn{transition:none}
 }
+</style>
+<!-- DESKTOP-ONLY styles — cannot affect mobile (loaded via media attribute) -->
+<style media="(min-width:1024px)">
+/* ── NAV (homepage centered layout) ── */
+.nav-inner{position:relative}
+.nav-links{position:absolute;left:50%;transform:translateX(-50%);gap:2.25rem}
+/* ── SHOW desktop sections ── */
+.hero-v2{display:grid!important;grid-template-columns:minmax(420px,43%) minmax(0,57%);min-height:clamp(500px,56vw,620px)}
+.hv2-left{padding:4rem clamp(2.5rem,5vw,5.5rem)}
+.hv2-desc{max-width:500px}
+.hv2-right img{object-position:center center}
+.hv2-chip--1{top:22%;right:2rem}
+.hv2-chip--2{bottom:28%;left:2rem}
+.hv2-chip--3{bottom:17%;right:2.25rem}
+.svc5-section{display:block}
+.trust-bar{display:block}
+section#services-hdr{display:block;padding:3rem 2rem 0}
+section#services-hdr .section-header{margin-bottom:1.75rem}
+section#how-it-works{display:block}
+section#service-area{display:block}
+.cta-section{display:block}
+.benefits-section{background:#fff;padding:2.25rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.reviews-marquee-wrap{padding:0 2rem;overflow:visible;-webkit-mask:none;mask:none}
+.reviews-marquee-track{animation:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;max-width:1120px;width:auto;margin:0 auto}
+.review-card{width:auto;min-height:170px;padding:1.4rem}
+.benefits-section .review-card:nth-child(n+7){display:none}
+.benefit-label{font-size:0.82rem}
+.review-card p{font-size:0.86rem;line-height:1.65}
+/* ── HIDE mobile sections ── */
+.svc-section{display:none!important}
+.trust-strip{display:none!important}
+.how-section{display:none!important}
 </style>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"LocalBusiness","name":"AssembleAtEase","description":"Professional furniture assembly and handyman services in Austin, Texas.","url":"https://www.assembleatease.com","email":"service@assembleatease.com","telephone":"+1-737-290-6129","address":{"@type":"PostalAddress","addressLocality":"Austin","addressRegion":"TX","addressCountry":"US"},"geo":{"@type":"GeoCoordinates","latitude":"30.2672","longitude":"-97.7431"},"areaServed":{"@type":"City","name":"Austin","addressRegion":"TX"},"priceRange":"$$","openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"07:00","closes":"17:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"07:00","closes":"13:00"}],"serviceType":["Furniture Assembly","TV Mounting","Smart Home Installation"]}
@@ -426,7 +563,6 @@ section#service-area{display:none}
   <a href="/pricing">Pricing</a>
   <a href="/about">About Us</a>
   <a href="/track" style="color:#00BFFF">Track My Booking</a>
-  <a href="/book" class="btn btn-cyan btn-full" style="text-align:center;margin-top:0.25rem">Book Now &rarr;</a>
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
@@ -445,6 +581,9 @@ section#service-area{display:none}
         <option value="">What do you need? &#9660;</option>
         <option value="Furniture+Assembly">Furniture Assembly &mdash; from $69</option>
         <option value="TV+Mounting">TV Mounting &mdash; from $69</option>
+        <option value="Fitness+Equipment">Fitness Equipment &mdash; from $129</option>
+        <option value="Outdoor+%26+Playsets">Outdoor / Playsets &mdash; from $149</option>
+        <option value="Office+Assembly">Office Assembly &mdash; from $95</option>
         <option value="Smart+Home">Smart Home Setup &mdash; from $69</option>
       </select>
       <input class="qbb-zip" id="qbb-zip" type="text" inputmode="numeric" placeholder="ZIP" maxlength="5" aria-label="Your ZIP code">
@@ -495,7 +634,7 @@ section#service-area{display:none}
     </div>
   </div>
   <div class="hv2-right" id="hv2Right">
-     <img src="/images/hero-pro.jpg.png" alt="AssembleAtEase pro mounting a TV in Austin TX" width="1536" height="1024" fetchpriority="high"/>
+     <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high"/>
     <div class="hv2-chip hv2-chip--1">
       <span class="hv2-chip-dot" style="background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.25)"></span>
       Same-day available
@@ -516,27 +655,45 @@ section#service-area{display:none}
 ═══════════════════════════════════════════════ -->
 <section class="svc-section" id="services">
 
-  <!-- Heading — AssembleAtEase voice -->
-  <div class="m-hero">
-    <h1 class="m-hero-title">Assembly &amp; mounting help, booked in minutes.</h1>
-    <div class="m-hero-badges">
-      <div class="m-badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Vetted Easers</div>
-      <div class="m-badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pay after service</div>
-      <div class="m-badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Same-day available</div>
+  <!-- Heading - mobile app-style hero -->
+  <div class="m-hero m-hero-refresh">
+    <div class="m-hero-kicker">Austin same-day slots</div>
+    <h1 class="m-hero-title">Home projects, handled.</h1>
+    <p class="m-hero-copy">Book furniture assembly, TV mounting, and smart home setup in minutes. Your card is authorized at booking and charged only after the job is done.</p>
+    <div class="m-hero-actions">
+      <a href="/book" class="m-primary-cta">Book a Service &rarr;</a>
+      <a href="tel:+17372906129" class="m-call-cta" aria-label="Call AssembleAtEase">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.89a16 16 0 0 0 6 6l.61-.61a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </a>
     </div>
-    <div class="m-hero-ctas">
-      <a href="/book?service=Furniture+Assembly" class="m-hero-btn m-hero-btn-primary">Book Assembly</a>
-      <a href="/book?service=TV+Mounting" class="m-hero-btn m-hero-btn-secondary">Book TV Mounting</a>
+    <div class="m-proof-row" aria-label="AssembleAtEase service promises">
+      <div class="m-proof"><strong>1 hour</strong><span>confirmation</span></div>
+      <div class="m-proof"><strong>$69+</strong><span>flat rates</span></div>
+      <div class="m-proof"><strong>Pay after</strong><span>card authorized</span></div>
     </div>
-    <p class="m-service-hint">Choose a service to get started.</p>
+    <div class="m-hero-photo">
+      <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high">
+      <div class="m-float-card">
+        <div><strong>Furniture assembled carefully</strong><span>Careful setup, cleanup, and placement</span></div>
+        <div class="m-float-price">From $69</div>
+      </div>
+    </div>
+    <div class="m-live-strip">
+      <svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+      Same-day and next-day openings across Austin, Round Rock, Cedar Park, and nearby areas.
+    </div>
   </div>
 
   <!-- Service list -->
   <div class="svc-list">
+    <div class="svc-list-heading">
+      <h2>Pick what you need</h2>
+      <a href="/pricing">See pricing</a>
+    </div>
 
     <a href="/book?service=Furniture+Assembly" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-assembly">
-        <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <img src="/images/hero-pro-optimized.jpg" alt="" loading="lazy">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -544,13 +701,14 @@ section#service-area{display:none}
           <span class="svc-chip">Most booked</span>
         </div>
         <div class="svc-item-desc">IKEA, Wayfair, Amazon &amp; more</div>
+        <div class="svc-price-badge">From $69</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=TV+Mounting" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-mounting">
-        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        <img src="/images/work-tv-mounting.jpg" alt="" loading="lazy">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -558,52 +716,56 @@ section#service-area{display:none}
           <span class="svc-chip">Same-day</span>
         </div>
         <div class="svc-item-desc">Any wall type, wire management incl.</div>
+        <div class="svc-price-badge">From $69</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Fitness+Equipment" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-moving">
-        <svg viewBox="0 0 24 24"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg>
+        <img src="/images/work-fitness-equipment.jpg" alt="" loading="lazy">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
           <span class="svc-item-name">Fitness Equipment</span>
         </div>
         <div class="svc-item-desc">Treadmills, bikes, racks, benches &amp; more</div>
+        <div class="svc-price-badge">From $129</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Outdoor+%26+Playsets" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-repairs">
-        <svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg>
+        <img src="/images/work-outdoor-playset.jpg" alt="" loading="lazy">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
           <span class="svc-item-name">Outdoor / Playsets</span>
         </div>
         <div class="svc-item-desc">Playsets, patio builds, and outdoor installs</div>
+        <div class="svc-price-badge">From $149</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Office+Assembly" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-smarthome">
-        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        <img src="/images/work-office-assembly.jpg" alt="" loading="lazy">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
           <span class="svc-item-name">Office Assembly</span>
         </div>
         <div class="svc-item-desc">Desks, chairs, cubicles, and office setups</div>
+        <div class="svc-price-badge">From $95</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
 
     <a href="/book?service=Smart+Home" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-smarthome">
-        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <img src="/images/work-smart-home.jpg" alt="" loading="lazy">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -611,6 +773,7 @@ section#service-area{display:none}
           <span class="svc-chip">Popular</span>
         </div>
         <div class="svc-item-desc">Cameras, lights, hubs &amp; more</div>
+        <div class="svc-price-badge">From $69</div>
       </div>
       <svg class="svc-item-chevron" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </a>
@@ -621,23 +784,19 @@ section#service-area{display:none}
   <div class="svc-other">
     <p class="svc-other-title">Also available</p>
     <div class="svc-other-list">
-      </div>
-      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secure checkout &bull; Card authorized at booking &bull; Charged only after job is done</p>
+      <a href="/book?service=Custom+Quote" class="svc-other-pill">Custom quote</a>
+      <a href="/track" class="svc-other-pill">Track booking</a>
     </div>
+    <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secure checkout &bull; Card authorized at booking &bull; Charged only after job is done</p>
   </div>
 </section>
 
 <!-- MOBILE/TABLET TRUST STRIP (hidden ≥1024px) -->
 <div class="trust-strip">
   <div class="trust-strip-inner">
-    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Same-Day Available</div>
-    <span class="trust-sep">&bull;</span>
-    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pay After Service</div>
-    <span class="trust-sep">&bull;</span>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Same-Day</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pay After</div>
     <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Vetted Pros</div>
-    <span class="trust-sep">&bull;</span>
-    <div class="trust-item"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Flat-Rate Pricing</div>
-    <span class="trust-sep">&bull;</span>
     <div class="trust-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Confirmed in 1 hr</div>
   </div>
 </div>
@@ -647,25 +806,25 @@ section#service-area{display:none}
   <div class="how-inner">
     <p class="how-label">How It Works</p>
     <div class="how-steps">
-      <div class="how-step"><div class="how-num">1</div><div class="how-text">Pick a service</div></div>
-      <div class="how-step"><div class="how-num">2</div><div class="how-text">Submit booking</div></div>
+      <div class="how-step"><div class="how-num">1</div><div class="how-text">Choose service</div></div>
+      <div class="how-step"><div class="how-num">2</div><div class="how-text">Choose time</div></div>
       <div class="how-step"><div class="how-num">3</div><div class="how-text">Confirmed in 1 hr</div></div>
-      <div class="how-step"><div class="how-num">4</div><div class="how-text">Pay after the job</div></div>
+      <div class="how-step"><div class="how-num">4</div><div class="how-text">Pay when done</div></div>
     </div>
   </div>
 </section>
 
 <!-- MOBILE: Large project / custom quote (hidden ≥1024px) -->
-<div class="m-large-project" style="margin:0;padding:1.25rem;background:linear-gradient(135deg,#001f2b,#003345);display:none">
-  <div style="display:flex;align-items:flex-start;gap:14px">
-    <div style="width:44px;height:44px;flex-shrink:0;background:rgba(0,191,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+<div class="m-large-project m-large-project-card">
+  <div class="m-large-project-inner">
+    <div class="m-large-project-icon">
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
     </div>
     <div style="flex:1">
-      <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:4px">Large Project?</div>
-      <p style="font-size:0.95rem;font-weight:700;color:#fff;margin:0 0 6px;line-height:1.3">Whole-room or whole-home jobs</p>
-      <p style="font-size:0.8rem;color:rgba(255,255,255,0.65);margin:0 0 12px;line-height:1.6">Multiple rooms, commercial spaces, or multi-day assembly projects. Send us the details and we'll quote you same-day.</p>
-      <a href="/book?service=Custom+Quote" style="display:inline-flex;align-items:center;gap:6px;background:#00BFFF;color:#fff;padding:0.7rem 1.25rem;border-radius:6px;font-size:0.875rem;font-weight:700;text-decoration:none">Get a Free Quote &rarr;</a>
+      <div class="m-large-project-label">Large Project?</div>
+      <p class="m-large-project-title">Whole-room or whole-home jobs</p>
+      <p class="m-large-project-copy">Multiple rooms, commercial spaces, or multi-day assembly projects. Send the details and we will follow up with a custom quote.</p>
+      <a href="/book?service=Custom+Quote" class="m-large-project-btn">Get a Free Quote &rarr;</a>
     </div>
   </div>
 </div>
@@ -683,30 +842,84 @@ section#service-area{display:none}
   </div>
 </section>
 
-<!-- DESKTOP: 5-COL SERVICE GRID (shown ≥1024px) -->
+<!-- DESKTOP: SERVICE GRID (shown ≥1024px) -->
 <section class="svc5-section">
   <div class="svc5-grid">
     <a class="svc5-card" href="/book?service=Furniture+Assembly">
-      <div class="svc5-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
+      <div class="svc5-photo"><img src="/images/hero-pro-optimized.jpg" alt="Professional assembling furniture in a living room" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><span class="svc5-tag">Most booked</span></div>
       <div class="svc5-name">Furniture Assembly</div>
       <div class="svc5-desc">IKEA, Wayfair, Amazon &amp; more. Any brand, any piece.</div>
       <div class="svc5-price">From $69</div>
       <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=TV+Mounting">
-      <div class="svc5-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div>
+      <div class="svc5-photo"><img src="/images/work-tv-mounting.jpg" alt="Professional measuring a TV wall bracket in a living room" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div><span class="svc5-tag">Same-day</span></div>
       <div class="svc5-name">TV Mounting</div>
       <div class="svc5-desc">Any TV, any wall. Cord concealment included.</div>
       <div class="svc5-price">From $69</div>
       <span class="svc5-link">Book now &rarr;</span>
     </a>
+    <a class="svc5-card" href="/book?service=Fitness+Equipment">
+      <div class="svc5-photo"><img src="/images/work-fitness-equipment.jpg" alt="Professional assembling fitness equipment in a home garage" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg></div></div>
+      <div class="svc5-name">Fitness Equipment</div>
+      <div class="svc5-desc">Treadmills, bikes, racks, benches, and home gym builds.</div>
+      <div class="svc5-price">From $129</div>
+      <span class="svc5-link">Book now &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Outdoor+%26+Playsets">
+      <div class="svc5-photo"><img src="/images/work-outdoor-playset.jpg" alt="Professional assembling an outdoor playset in a backyard" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div></div>
+      <div class="svc5-name">Outdoor / Playsets</div>
+      <div class="svc5-desc">Playsets, patio builds, outdoor furniture, and installs.</div>
+      <div class="svc5-price">From $149</div>
+      <span class="svc5-link">Book now &rarr;</span>
+    </a>
+    <a class="svc5-card" href="/book?service=Office+Assembly">
+      <div class="svc5-photo"><img src="/images/work-office-assembly.jpg" alt="Professional assembling office furniture in a home office" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/><path d="M7 8h10"/></svg></div></div>
+      <div class="svc5-name">Office Assembly</div>
+      <div class="svc5-desc">Desks, chairs, cubicles, shelving, and workspace setup.</div>
+      <div class="svc5-price">From $95</div>
+      <span class="svc5-link">Book now &rarr;</span>
+    </a>
     <a class="svc5-card" href="/book?service=Smart+Home">
-      <div class="svc5-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="svc5-photo"><img src="/images/work-smart-home.jpg" alt="Professional installing a smart home device near an entryway" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="svc5-tag">Popular</span></div>
       <div class="svc5-name">Smart Home Setup</div>
       <div class="svc5-desc">Nest, Ring, Ecobee, smart locks &amp; cameras.</div>
       <div class="svc5-price">From $69</div>
       <span class="svc5-link">Book now &rarr;</span>
     </a>
+  </div>
+  <div class="svc5-foot">
+    <div class="svc5-foot-text"><strong>Large or unusual project?</strong> Whole-room, whole-home, and multi-day jobs can be quoted same-day.</div>
+    <div class="svc5-foot-actions">
+      <a href="/book?service=Custom+Quote" class="svc5-foot-primary">Get custom quote &rarr;</a>
+      <a href="/pricing" class="svc5-foot-secondary">See pricing</a>
+    </div>
+  </div>
+</section>
+
+<!-- PEOPLE / CULTURE PHOTO -->
+<section class="people-band" aria-labelledby="people-band-title">
+  <div class="people-band-inner">
+    <div class="people-photo">
+      <img src="/images/people-service-calm.jpg" alt="Friendly service professional speaking with homeowners after a completed home project" loading="lazy" width="1400" height="933">
+    </div>
+    <div class="people-copy">
+      <div class="section-label">Calm, respectful service</div>
+      <h2 class="people-title" id="people-band-title">A home service visit should feel easy</h2>
+      <p class="people-desc">The platform is built around clear communication, respectful pros, and a steady booking flow so customers and service providers both know what to expect.</p>
+      <div class="people-points">
+        <div class="people-point">Friendly communication</div>
+        <div class="people-point">Respectful in-home work</div>
+        <div class="people-point">Clear expectations</div>
+        <div class="people-point">Professional follow-through</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -738,15 +951,19 @@ section#service-area{display:none}
     <div class="section-header"><div class="section-label">Simple process</div><h2 class="section-title">How It Works</h2></div>
     <div class="steps-grid">
       <div class="step-card"><div class="step-num">1</div><div class="step-title">Choose a service</div><p class="step-desc">Browse our services, see upfront pricing, and add the items you need.</p></div>
-      <div class="step-card"><div class="step-num">2</div><div class="step-title">Submit your booking</div><p class="step-desc">Fill out one quick form with your address, date, and job details.</p></div>
+      <div class="step-card"><div class="step-num">2</div><div class="step-title">Pick your time</div><p class="step-desc">Choose your date, add your address, and tell us what needs to be done.</p></div>
       <div class="step-card"><div class="step-num">3</div><div class="step-title">We confirm fast</div><p class="step-desc">We respond within 1 hour to confirm your appointment.</p></div>
-      <div class="step-card"><div class="step-num">4</div><div class="step-title">Pay after the job</div><p class="step-desc">We show up, get it done right, and your card is charged only after the job is complete.</p></div>
+      <div class="step-card"><div class="step-num">4</div><div class="step-title">Pay when it is done</div><p class="step-desc">Your card is authorized at booking and charged only after the job is complete.</p></div>
     </div>
   </div>
 </section>
 
 <!-- BENEFITS MARQUEE (all sizes) -->
 <section class="benefits-section" id="why-us">
+  <div class="benefits-header">
+    <div class="section-label">Why book with us</div>
+    <h2 class="benefits-title">Clear pricing, careful work, fast confirmation</h2>
+  </div>
   <div class="reviews-marquee-wrap">
     <div class="reviews-marquee-track">
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div class="benefit-label">Pay After Service</div><p>Your card is authorized at booking but only charged after the work is complete and you&rsquo;re satisfied.</p></div>
@@ -775,7 +992,7 @@ section#service-area{display:none}
       <p class="section-desc">From Austin homeowners who booked with us.</p>
     </div>
     <div id="reviews-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem">
-      <div style="text-align:center;color:var(--muted);font-size:0.9rem;grid-column:1/-1;padding:2rem 0">Loading reviews…</div>
+      <div class="reviews-empty" style="grid-column:1/-1"><strong>Reviews are being prepared.</strong>Customer feedback will appear here after approved reviews are published.</div>
     </div>
   </div>
 </section>
@@ -785,7 +1002,7 @@ section#service-area{display:none}
   fetch('/api/review').then(function(r){return r.json();}).then(function(d){
     var grid = document.getElementById('reviews-grid');
     if(!d.reviews||!d.reviews.length){
-      grid.innerHTML='<p style="text-align:center;color:var(--muted);font-size:0.9rem;grid-column:1/-1;padding:2rem 0">Be the first to leave a review!</p>';
+      grid.innerHTML='<div class="reviews-empty" style="grid-column:1/-1"><strong>Approved reviews will appear here soon.</strong>We publish customer feedback after completed jobs are reviewed and approved.</div>';
       return;
     }
     grid.innerHTML = d.reviews.map(function(r){
@@ -803,7 +1020,8 @@ section#service-area{display:none}
         +'</div></div>';
     }).join('');
   }).catch(function(){
-    document.getElementById('reviews-grid').innerHTML='';
+    var grid = document.getElementById('reviews-grid');
+    if(grid) grid.innerHTML='<div class="reviews-empty" style="grid-column:1/-1"><strong>Reviews are being prepared.</strong>Customer feedback will appear here after approved reviews are published.</div>';
   });
 })();
 </script>
@@ -830,12 +1048,12 @@ section#service-area{display:none}
     </div>
     <div class="faq-list">
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>How much does it cost?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">All prices are flat-rate &mdash; no hourly billing, no surprises. Furniture assembly starts at $69, TV mounting from $69, and smart home installs from $69. See our full <a href="/pricing" style="color:var(--cyan-dark);font-weight:600">pricing page</a> for a complete breakdown.</div></div>
-      <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>When do I pay?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Your card is held at booking but <strong>only charged after the job is complete</strong>. We accept all major credit and debit cards through our secure Stripe-powered platform. We do not accept cash, Zelle, or Venmo.</div></div>
+      <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>When do I pay?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Your card is authorized at booking but <strong>only charged after the job is complete</strong>. We accept all major credit and debit cards through our secure Stripe-powered platform. We do not accept cash, Zelle, or Venmo.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>How quickly can you come?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We offer same-day and next-day availability for most services. Once you submit a booking we confirm your appointment within 1 hour.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What&rsquo;s your cancellation policy?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Cancel at least 24 hours before your appointment at no charge. Cancellations within 24 hours are subject to a 50% cancellation fee. No-shows are charged in full.</div></div>
     </div>
     <div id="faq-more" style="display:none">
-      <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What areas do you serve?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We serve the greater metro area We serve Austin, TX and surrounding areas &mdash; Round Rockmdash; Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, Bee Cave, Manor, Leander, and Hutto. Not sure? Just <a href="/contact" style="color:var(--cyan-dark)">ask us</a>.</div></div>
+      <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What areas do you serve?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We serve Austin, TX and nearby areas including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, Bee Cave, Manor, Leander, and Hutto. Not sure? Just <a href="/contact" style="color:var(--cyan-dark)">ask us</a>.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What if something gets damaged?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We treat your home and belongings with care. In the unlikely event of damage, we are fully insured and will make it right.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>Can you assemble any brand?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Yes &mdash; IKEA, Wayfair, Amazon, Ashley, Target, Costco, Walmart and more. If it came in a box, we can build it.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>Are your Easers background checked?</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Yes &mdash; every pro is vetted before their first job. We only work with people we&rsquo;d trust in our own home. And you don&rsquo;t pay until you say the job is done.</div></div>
@@ -850,12 +1068,12 @@ section#service-area{display:none}
     <div>
       <div style="display:inline-block;background:rgba(0,191,255,0.12);border:1px solid rgba(0,191,255,0.25);border-radius:999px;padding:0.3rem 1rem;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#4dd0e1;margin-bottom:1.1rem">Earn with AssembleAtEase</div>
       <h2 style="font-family:'DM Serif Display',serif;font-size:clamp(1.9rem,4vw,2.75rem);color:#fff;line-height:1.1;margin-bottom:1rem">Earn money doing what you&rsquo;re good at.</h2>
-      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.75;margin-bottom:1.75rem;max-width:480px">Join our network of skilled Easers in Austin. Set your own schedule, pick your jobs, and get paid after every completed service — no upfront costs.</p>
+      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.75;margin-bottom:1.75rem;max-width:480px">Join our network of skilled Easers in Austin. Set your schedule, accept jobs that fit, and get paid after completed service.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem 1.5rem;margin-bottom:2rem">
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Flexible schedule</div>
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Fast, reliable payouts</div>
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Jobs sent directly to you</div>
-        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>No hidden fees to start</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Local Austin jobs</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center">
         <a href="/assembler/apply" style="display:inline-flex;align-items:center;gap:8px;background:#00BFFF;color:#001f2b;padding:0.9rem 2rem;border-radius:6px;font-size:0.95rem;font-weight:700;text-decoration:none;transition:all 0.18s">Apply to Become an Easer &rarr;</a>
@@ -885,7 +1103,7 @@ section#service-area{display:none}
   <div class="footer-inner">
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" loading="lazy" width="38" height="38" style="border-radius:50%;object-fit:cover"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Skilled assembly, mounting Professional furniture assembly and handyman services in Austin, Texas. Quality work, done right.amp; home services. Book in minutes. Pay only after the job is done.</p>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, and home services in Austin, Texas. Quality work, done right. Book in minutes and pay only after the job is done.</p>
       <div class="footer-contact">
         <a href="tel:+17372906129"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.89a16 16 0 0 0 6 6l.61-.61a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>(737) 290-6129</a>
         <a href="mailto:service@assembleatease.com"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>service@assembleatease.com</a>
@@ -990,21 +1208,30 @@ document.addEventListener('DOMContentLoaded', function() {
   if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) AAE.closeBooking(); });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
   (function(){ var cb = document.getElementById('cart-bar'), mb = document.getElementById('m-book-bar'); if (!cb||!mb) return; new MutationObserver(function(){ mb.classList.toggle('hide', cb.classList.contains('show')); }).observe(cb, {attributes:true, attributeFilter:['class']}); })();
-  // Benefits marquee: auto-scroll + touch pause/resume on mobile
+  // Benefits cards: slow mobile auto-scroll + touch pause/resume
   (function(){
     if(window.innerWidth >= 1024) return;
-    var track = document.querySelector('.reviews-marquee-track');
-    if(!track) return;
-    var paused = false, resumeTimer, speed = 0.45;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var wrap = document.querySelector('.reviews-marquee-wrap');
+    if(!wrap) return;
+    var paused = false, resumeTimer, speed = 0.32, dir = 1, edgePause = 0;
     function tick(){
-      if(!paused){
-        track.scrollLeft += speed;
-        if(track.scrollLeft >= track.scrollWidth / 2) track.scrollLeft -= track.scrollWidth / 2;
+      if(!paused && edgePause <= 0){
+        var max = wrap.scrollWidth - wrap.clientWidth;
+        if(max > 0){
+          wrap.scrollLeft += speed * dir;
+          if(wrap.scrollLeft >= max - 1){ dir = -1; edgePause = 70; }
+          if(wrap.scrollLeft <= 1){ dir = 1; edgePause = 50; }
+        }
+      } else if(edgePause > 0) {
+        edgePause--;
       }
       requestAnimationFrame(tick);
     }
-    track.addEventListener('touchstart', function(){ paused = true; clearTimeout(resumeTimer); }, {passive:true});
-    track.addEventListener('touchend',   function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 2000); }, {passive:true});
+    wrap.addEventListener('touchstart', function(){ paused = true; clearTimeout(resumeTimer); }, {passive:true});
+    wrap.addEventListener('touchend', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 2200); }, {passive:true});
+    wrap.addEventListener('pointerenter', function(){ paused = true; clearTimeout(resumeTimer); });
+    wrap.addEventListener('pointerleave', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 900); });
     requestAnimationFrame(tick);
   })();
 

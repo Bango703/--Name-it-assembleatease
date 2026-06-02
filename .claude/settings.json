@@ -53,7 +53,12 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\tgbiz\\\\Handyman-marketplace\" -Recurse -Directory -ErrorAction SilentlyContinue)",
       "Bash(git rm *)",
       "Bash(vercel --version)",
-      "Bash(npx vercel *)"
+      "Bash(npx vercel *)",
+      "Bash(gh pr create --title 'PR-S1: Keep Easer Auth Token Fresh During Long Active Sessions' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(find api/booking -name \"my-assignments*\")",
+      "Bash(dir api\\\\booking /b)",
+      "Bash(git checkout *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",
