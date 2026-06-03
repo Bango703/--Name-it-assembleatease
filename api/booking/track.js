@@ -44,9 +44,9 @@ export default async function handler(req, res) {
     if (b.status === BOOKING_STATUS.CANCELLED) return { label: 'Booking cancelled', detail: null };
     if (b.status === BOOKING_STATUS.DECLINED)  return { label: 'Booking could not be confirmed', detail: 'Please contact us to reschedule.' };
     if (b.status === BOOKING_STATUS.COMPLETED) return { label: 'Job complete — thank you!', detail: 'Payment has been processed.' };
-    if (b.status === BOOKING_STATUS.IN_PROGRESS || b.job_started_at) return { label: 'Work is underway', detail: null };
-    if (b.status === BOOKING_STATUS.ARRIVED || b.checked_in_at)      return { label: 'Your service pro has arrived', detail: null };
-    if (b.status === BOOKING_STATUS.EN_ROUTE  || b.en_route_at)      return { label: 'Your service pro is on the way', detail: null };
+    if (b.status === BOOKING_STATUS.IN_PROGRESS) return { label: 'Work is underway', detail: null };
+    if (b.status === BOOKING_STATUS.ARRIVED)     return { label: 'Your service pro has arrived', detail: null };
+    if (b.status === BOOKING_STATUS.EN_ROUTE)    return { label: 'Your service pro is on the way', detail: null };
     if (b.assembler_accepted_at && b.assembler_name) {
       const first = (b.assembler_name || '').split(' ')[0];
       return { label: `${first} is confirmed for your job`, detail: `Arriving ${b.date}${b.time ? ' at ' + b.time.split('-')[0].trim() : ''}.` };
