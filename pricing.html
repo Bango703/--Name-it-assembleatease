@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/>
 <title>Service Pricing &mdash; AssembleAtEase Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="Transparent, upfront pricing for furniture assembly, TV mounting, and smart home installation in Austin TX. No hidden fees."/>
+<meta name="description" content="Transparent, upfront pricing for furniture assembly, TV mounting, smart home, fitness equipment, playsets, and office assembly in Austin TX. No hidden fees."/>
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <link rel="canonical" href="https://www.assembleatease.com/pricing"/>
 <meta property="og:type" content="website"/>
@@ -14,13 +14,13 @@
 <meta property="og:url" content="https://www.assembleatease.com/pricing"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
 <meta property="og:locale" content="en_US"/>
-<meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>
-<meta property="og:image:width" content="512"/>
-<meta property="og:image:height" content="512"/>
+<meta property="og:image" content="https://www.assembleatease.com/images/pricing-estimate-review.jpg"/>
+<meta property="og:image:width" content="1727"/>
+<meta property="og:image:height" content="911"/>
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Service Pricing &mdash; AssembleAtEase Austin TX"/>
-<meta name="twitter:description" content="Transparent, upfront pricing for furniture assembly, TV mounting, and smart home installation in Austin TX."/>
-<meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
+<meta name="twitter:description" content="Transparent, upfront pricing for furniture assembly, TV mounting, smart home, fitness equipment, playsets, and office assembly in Austin TX."/>
+<meta name="twitter:image" content="https://www.assembleatease.com/images/pricing-estimate-review.jpg"/>
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="apple-touch-icon" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -118,24 +118,112 @@
   .trust-prices{gap:1rem}
   .footer-inner{grid-template-columns:1fr;gap:2rem}
 }
+
+/* ===== PRICING REFRESH ===== */
+body.pricing-page{background:#f6fbfd}
+.pricing-page .nav{position:relative}
+.pricing-page .page-hero{position:relative;min-height:540px;padding:0 2rem;text-align:left;display:grid;align-items:end;overflow:hidden;background:#002d38}
+.pricing-page .page-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,45,56,0.98) 0%,rgba(0,60,74,0.9) 36%,rgba(0,45,56,0.34) 68%,rgba(0,45,56,0.08) 100%),url('/images/pricing-estimate-review.jpg?v=pricing-photo-1') center/cover no-repeat;transform:scale(1.01)}
+.pricing-page .page-hero-inner{position:relative;z-index:1;width:min(1120px,100%);max-width:1120px;margin:0 auto;padding:5.25rem 0 4.25rem}
+.pricing-eyebrow{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.16em;color:var(--cyan);margin-bottom:0.8rem}
+.pricing-page .page-hero h1{font-family:var(--font-display);font-size:clamp(2.6rem,5vw,5rem);line-height:0.95;max-width:660px;color:#fff;margin-bottom:1rem;letter-spacing:0}
+.pricing-page .page-hero p{font-size:clamp(1rem,1.3vw,1.14rem);max-width:620px;color:rgba(255,255,255,0.84);line-height:1.7;margin-bottom:0}
+.pricing-hero-actions{display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1.8rem}
+.pricing-hero-actions .btn-white{color:#002d38}
+.pricing-proof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem;max-width:760px;margin-top:2rem}
+.pricing-proof span{display:flex;align-items:center;gap:0.55rem;min-height:42px;padding:0.72rem 0.9rem;border:1px solid rgba(255,255,255,0.18);border-radius:12px;background:rgba(255,255,255,0.1);backdrop-filter:blur(12px);font-size:0.8rem;font-weight:800;color:#fff}
+.pricing-proof svg{width:17px;height:17px;fill:var(--cyan);flex-shrink:0}
+.pricing-shell{max-width:1120px;margin:0 auto;padding:4rem 2rem 5rem}
+.pricing-intro-grid{display:grid;grid-template-columns:1.15fr 0.85fr;gap:1rem;margin-bottom:2rem}
+.pricing-rule-card,.pricing-package-card{background:#fff;border:1px solid rgba(13,17,23,0.08);border-radius:18px;padding:1.35rem 1.45rem;box-shadow:0 14px 36px rgba(10,22,40,0.05)}
+.pricing-rule-card h2,.pricing-package-card h2{font-family:var(--font-display);font-size:1.45rem;line-height:1.1;color:var(--ink);margin-bottom:0.55rem;letter-spacing:0}
+.pricing-rule-card p,.pricing-package-card p{font-size:0.88rem;color:var(--muted);line-height:1.7}
+.pricing-mini-list{display:grid;gap:0.5rem;margin-top:1rem}
+.pricing-mini-list div{display:flex;align-items:flex-start;gap:0.55rem;font-size:0.84rem;font-weight:800;color:var(--ink-soft)}
+.pricing-mini-list svg{width:17px;height:17px;fill:var(--cyan-dark);flex-shrink:0;margin-top:1px}
+.pricing-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1.5rem;margin:3rem 0 1.2rem}
+.pricing-section-head h2{font-family:var(--font-display);font-size:clamp(2rem,3vw,3rem);line-height:1;color:var(--ink);letter-spacing:0}
+.pricing-section-head p{max-width:450px;color:var(--muted);font-size:0.92rem;line-height:1.7}
+.price-menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.price-card{background:#fff;border:1px solid rgba(13,17,23,0.08);border-radius:18px;box-shadow:0 12px 34px rgba(10,22,40,0.05);overflow:hidden;display:flex;flex-direction:column;min-height:100%;transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease}
+.price-card:hover{transform:translateY(-3px);box-shadow:0 18px 46px rgba(10,22,40,0.09);border-color:rgba(0,191,255,0.28)}
+.price-card-head{padding:1.35rem 1.35rem 1rem;border-bottom:1px solid #edf2f5}
+.price-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.price-icon{width:44px;height:44px;border-radius:12px;background:#e0f7fa;color:var(--cyan-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.price-icon svg{width:23px;height:23px;fill:currentColor}
+.price-from{text-align:right}
+.price-from span{display:block;font-size:0.68rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+.price-from strong{font-family:var(--font-display);font-size:1.7rem;color:var(--cyan-dark);line-height:1}
+.price-title{font-family:var(--font-display);font-size:1.3rem;color:var(--ink);line-height:1.1;letter-spacing:0}
+.price-note{font-size:0.8rem;color:var(--muted);line-height:1.5;margin-top:0.35rem}
+.price-list{list-style:none;padding:0.25rem 0 0;flex:1}
+.price-list li{display:flex;align-items:flex-start;justify-content:space-between;gap:0.85rem;padding:0.66rem 1.35rem;border-bottom:1px solid #f1f5f7;font-size:0.84rem;color:var(--ink-soft);line-height:1.35}
+.price-list li:last-child{border-bottom:none}
+.price-list strong{white-space:nowrap;color:var(--ink);font-weight:900}
+.price-list strong.range{color:var(--cyan-dark)}
+.price-card-cta{padding:1.1rem 1.35rem 1.25rem;border-top:1px solid #edf2f5;margin-top:auto}
+.bundle-panel{margin-top:1.2rem;background:linear-gradient(135deg,#002d38 0%,#00566a 70%,#00BFFF 180%);color:#fff;border-radius:20px;padding:1.5rem;display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:center;box-shadow:0 20px 50px rgba(0,45,56,0.16)}
+.bundle-panel h3{font-family:var(--font-display);font-size:1.8rem;line-height:1.05;margin-bottom:0.45rem;letter-spacing:0;color:#fff}
+.bundle-panel p{font-size:0.9rem;color:rgba(255,255,255,0.78);line-height:1.65;max-width:700px}
+.bundle-pills{display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.85rem}
+.bundle-pills span{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:0.42rem 0.7rem;background:rgba(255,255,255,0.1);font-size:0.76rem;font-weight:800}
+.pricing-page .faq-section{max-width:780px}
+.pricing-faq-head{text-align:center;margin:4rem 0 2rem}
+.pricing-faq-head .section-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan-dark);font-weight:800;margin-bottom:0.75rem}
+.pricing-faq-head h2{font-family:var(--font-display);font-size:clamp(1.9rem,3vw,2.7rem);line-height:1;color:var(--ink);letter-spacing:0}
+.pricing-page .cta-section{background:linear-gradient(135deg,#002d38 0%,#00566a 62%,#00BFFF 160%);padding:4.5rem 2rem}
+.pricing-page #cookie-banner>span{min-width:0}
+@media(max-width:980px){
+  .pricing-intro-grid,.price-menu-grid{grid-template-columns:1fr 1fr}
+  .pricing-proof{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .pricing-page *{min-width:0}
+  .pricing-page .nav-inner{padding:0 0.75rem}
+  .pricing-page .nav-inner>.btn-cyan{display:none}
+  .pricing-page .page-hero{min-height:620px;padding:0 1rem}
+  .pricing-page .page-hero::before{background:linear-gradient(180deg,rgba(0,45,56,0.98) 0%,rgba(0,60,74,0.88) 52%,rgba(0,45,56,0.7) 100%),url('/images/pricing-estimate-review.jpg?v=pricing-photo-1') center/cover no-repeat}
+  .pricing-page .page-hero-inner{padding:4rem 0 3rem}
+  .pricing-page .page-hero h1{font-size:2.25rem;max-width:340px}
+  .pricing-page .page-hero p{font-size:0.95rem;max-width:340px}
+  .pricing-proof{max-width:300px}
+  .pricing-shell{width:100%;max-width:100vw;overflow:hidden;padding:3rem 14px 4rem}
+  .pricing-intro-grid,.price-menu-grid{display:flex;flex-direction:column;width:100%;max-width:100%;gap:1rem}
+  .bundle-panel{grid-template-columns:1fr;width:100%;max-width:100%}
+  .pricing-rule-card,.pricing-package-card,.price-card{width:100%;max-width:100%;box-sizing:border-box}
+  .pricing-rule-card h2,.pricing-package-card h2{font-size:1.35rem;max-width:100%;overflow-wrap:break-word}
+  .pricing-rule-card p,.pricing-package-card p,.pricing-section-head p,.bundle-panel p,.price-note{max-width:100%;overflow-wrap:break-word}
+  .pricing-section-head{display:block;margin-top:2.5rem}
+  .pricing-section-head h2{font-size:2rem;max-width:100%;overflow-wrap:break-word}
+  .pricing-section-head p{margin-top:0.75rem}
+  .price-card-head,.price-list li,.price-card-cta{padding-left:1rem;padding-right:1rem}
+  .price-list li{display:grid;grid-template-columns:minmax(0,1fr) max-content;font-size:0.82rem}
+  .price-list li span{min-width:0;overflow-wrap:break-word}
+  .price-list strong{font-size:0.8rem}
+  .price-from strong{font-size:1.45rem}
+  .bundle-panel h3{font-size:1.55rem}
+}
 </style>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebPage",
   "name": "Service Pricing &mdash; AssembleAtEase Austin TX",
-  "description": "Transparent, upfront pricing for furniture assembly, TV mounting, and smart home installation in Austin TX.",
+  "description": "Transparent, upfront pricing for furniture assembly, TV mounting, smart home installation, fitness equipment, playsets, and office assembly in Austin TX.",
   "url": "https://www.assembleatease.com/pricing",
   "isPartOf": {"@type": "WebSite", "name": "AssembleAtEase", "url": "https://www.assembleatease.com"},
   "mainEntity": [
     {"@type": "Service", "name": "Furniture Assembly", "description": "Professional furniture assembly for IKEA, Wayfair, Amazon and more.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69", "priceSpecification": {"@type": "UnitPriceSpecification", "price": "69", "priceCurrency": "USD", "name": "Starting price"}}},
     {"@type": "Service", "name": "TV Mounting", "description": "TV wall mounting for any size TV and any wall type.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69"}},
-    {"@type": "Service", "name": "Smart Home Installation", "description": "Installation of smart thermostats, doorbells, locks, cameras and more.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69"}}
+    {"@type": "Service", "name": "Smart Home Installation", "description": "Installation of smart thermostats, doorbells, locks, cameras and more.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "45"}},
+    {"@type": "Service", "name": "Fitness Equipment Assembly", "description": "Treadmill, bike, rack, bench, and home gym assembly.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "95"}},
+    {"@type": "Service", "name": "Outdoor and Playset Assembly", "description": "Playset, trampoline, basketball hoop, shed, gazebo, and outdoor structure assembly.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "95"}},
+    {"@type": "Service", "name": "Office Assembly", "description": "Office chair, desk, shelving, file cabinet, workstation, and conference table assembly.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "65"}}
   ]
 }
 </script>
 </head>
-<body>
+<body class="pricing-page">
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
 
 <!-- NAV -->
@@ -168,131 +256,193 @@
 
 <!-- HERO -->
 <main id="main-content">
-<section class="page-hero">
+<section class="page-hero" aria-label="AssembleAtEase pricing">
   <div class="page-hero-inner">
     <a href="/" class="page-back">&larr; Back to Home</a>
-    <h1>Simple, Upfront Pricing</h1>
-    <p>No surprises, no hidden fees. See exactly what every service costs before you book. All pricing is per item/job &mdash; mix and match in one booking.</p>
-    <div class="trust-prices">
-      <span class="tp-item"><span class="tp-icon">&#10003;</span> Pay after job done &mdash; card authorized now, charged only when the pro marks it complete</span>
-      <span class="tp-item"><span class="tp-icon">&#10003;</span> No callout fee &mdash; if we don't complete it, you don't pay</span>
-      <span class="tp-item"><span class="tp-icon">&#10003;</span> Bundle 3+ items and save 10&ndash;15% automatically</span>
+    <div class="pricing-eyebrow">Austin flat-rate menu</div>
+    <h1>Know the price before you book.</h1>
+    <p>Clear starting prices for assembly, mounting, smart home setup, fitness equipment, playsets, and office furniture. Your card is authorized at booking and charged only after the job is done.</p>
+    <div class="pricing-hero-actions">
+      <a href="/book" class="btn btn-white btn-lg">Book Now &rarr;</a>
+      <a href="/contact" class="btn btn-ghost-white btn-lg">Custom Quote</a>
+    </div>
+    <div class="pricing-proof" aria-label="Pricing promises">
+      <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Flat-rate starting prices</span>
+      <span><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Z"/></svg>No charge until done</span>
+      <span><svg viewBox="0 0 24 24"><path d="M12 8c-1.66 0-3 .9-3 2s1.34 2 3 2 3 .9 3 2-1.34 2-3 2m0-10v2m0 8v2M5 12a7 7 0 1 0 14 0 7 7 0 0 0-14 0Z"/></svg>Bundle savings applied</span>
     </div>
   </div>
 </section>
 
 <!-- MAIN CONTENT -->
-<div style="max-width:1100px;margin:0 auto;padding:4rem 2rem">
+<div class="pricing-shell">
 
-  <!-- HOW PRICING WORKS -->
-  <div class="pricing-note">
-    <div>
-      <div class="pricing-note-title">How our pricing works</div>
-      <p class="pricing-note-desc">All prices are flat-rate per item or service. For large packages, combo discounts may apply. We never charge a callout fee &mdash; if we don&rsquo;t complete the job, you don&rsquo;t pay. Payment is authorized at booking and only captured when the pro marks the job complete.</p>
+  <section class="pricing-intro-grid" aria-label="How pricing works">
+    <div class="pricing-rule-card">
+      <h2>Simple enough to compare. Flexible enough for real homes.</h2>
+      <p>Most jobs use flat-rate starting prices. If your project has unusual materials, heavy lifting, damaged hardware, or multi-room scope, we confirm the quote before work starts.</p>
+      <div class="pricing-mini-list">
+        <div><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Labor is included in the listed price.</div>
+        <div><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Parts, mounts, and hardware are separate unless listed.</div>
+        <div><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>No completed job means no charge.</div>
+      </div>
     </div>
+    <div class="pricing-package-card">
+      <h2>Bundling saves time and money.</h2>
+      <p>Mix furniture, mounting, smart home, office, outdoor, and fitness items into one booking. Larger same-visit projects qualify for automatic savings after review.</p>
+      <div class="pricing-mini-list">
+        <div><svg viewBox="0 0 24 24"><path d="M12 8c-1.66 0-3 .9-3 2s1.34 2 3 2 3 .9 3 2-1.34 2-3 2m0-10v2m0 8v2M5 12a7 7 0 1 0 14 0 7 7 0 0 0-14 0Z"/></svg>3+ qualifying items can reduce the visit total.</div>
+        <div><svg viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5Z"/></svg>Your card is held, not charged today.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pricing-section-head">
+    <div>
+      <div class="pricing-eyebrow">Service menu</div>
+      <h2>Pick the work. See the range.</h2>
+    </div>
+    <p>These are common starting prices from the live booking catalog. Final totals update as you select exact items during booking.</p>
   </div>
 
-  <!-- PRICING GRID -->
-  <div class="pricing-grid">
-
-    <!-- Furniture Assembly -->
-    <div class="pricing-card">
-      <div class="pricing-card-header">
-        <div class="pricing-card-icon" style="background:#00BFFF">
-          <svg viewBox="0 0 24 24"><path d="M7 13c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v1H7v-1zm-2 2h14v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1zm1-6V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4H6zm2-3v2h8V8H8zM5 19h1v2H5v-2zm13 0h1v2h-1v-2z"/></svg>
+  <section class="price-menu-grid" aria-label="Service pricing menu">
+    <article class="price-card">
+      <div class="price-card-head">
+        <div class="price-card-top">
+          <div class="price-icon"><svg viewBox="0 0 24 24"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2Zm-8 0H5V7h8v2Zm6 0h-4V7h4v2Z"/></svg></div>
+          <div class="price-from"><span>From</span><strong>$69</strong></div>
         </div>
-        <div class="pricing-card-title">Furniture Assembly</div>
-        <div class="pricing-card-from">Starts at <strong>$69</strong> &bull; IKEA, Wayfair, Amazon &amp; more</div>
+        <div class="price-title">Furniture Assembly</div>
+        <div class="price-note">Flat-pack furniture, bedrooms, living rooms, dining, patio, and storage.</div>
       </div>
-      <ul class="pricing-items">
-        <li class="pricing-item"><span class="pricing-item-name">Small item (nightstand, shelf, stool)</span><span class="pricing-item-price">From $69</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Bed frame (twin&ndash;king)</span><span class="pricing-item-price range">$85&ndash;$109</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Dresser / chest of drawers</span><span class="pricing-item-price">From $85</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Desk / workstation</span><span class="pricing-item-price">From $69</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Sofa / sectional</span><span class="pricing-item-price">From $89</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Wardrobe / armoire (incl. IKEA PAX)</span><span class="pricing-item-price range">$109&ndash;$139</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Outdoor / patio set</span><span class="pricing-item-price">From $109</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Full room setup</span><span class="pricing-item-price range">Custom quote</span></li>
+      <ul class="price-list">
+        <li><span>Desk, bookcase, simple shelf</span><strong>$69+</strong></li>
+        <li><span>Bed frame</span><strong>$85&ndash;$109</strong></li>
+        <li><span>Sectional sofa</span><strong class="range">$125&ndash;$155</strong></li>
+        <li><span>Dresser up to 6 drawers</span><strong>$85</strong></li>
+        <li><span>IKEA PAX wardrobe, single unit</span><strong>$139</strong></li>
+        <li><span>Full room setup</span><strong class="range">Quote</strong></li>
       </ul>
-      <div class="pricing-card-cta"><a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full">Book Now &rarr;</a></div>
-    </div>
+      <div class="price-card-cta"><a href="/book?service=Furniture+Assembly" class="btn btn-cyan btn-full">Book Furniture &rarr;</a></div>
+    </article>
 
-    <!-- TV Mounting -->
-    <div class="pricing-card">
-      <div class="pricing-card-header">
-        <div class="pricing-card-icon" style="background:#1a1a2e">
-          <svg viewBox="0 0 24 24"><path d="M20 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h6v2H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM4 15V5h16v10H4z"/></svg>
+    <article class="price-card">
+      <div class="price-card-head">
+        <div class="price-card-top">
+          <div class="price-icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2Zm0 14H3V5h18v12Z"/></svg></div>
+          <div class="price-from"><span>From</span><strong>$69</strong></div>
         </div>
-        <div class="pricing-card-title">TV &amp; Mounting</div>
-        <div class="pricing-card-from">Starts at <strong>$69</strong> &bull; Any size, any wall type</div>
+        <div class="price-title">TV &amp; Mounting</div>
+        <div class="price-note">TVs, shelves, mirrors, gallery walls, curtain rods, and cord management.</div>
       </div>
-      <ul class="pricing-items">
-        <li class="pricing-item"><span class="pricing-item-name">TV mount up to 40&rdquo;</span><span class="pricing-item-price">$69</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">TV mount 41&rdquo;&ndash;55&rdquo;</span><span class="pricing-item-price">$89</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">TV mount 56&rdquo;&ndash;65&rdquo;</span><span class="pricing-item-price">$109</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">TV mount 66&rdquo;&ndash;75&rdquo;</span><span class="pricing-item-price">$129</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">TV mount 76&rdquo;&ndash;85&rdquo;</span><span class="pricing-item-price">$155</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">TV mount 86&rdquo;+ / commercial</span><span class="pricing-item-price range">$185&ndash;$235</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Cord concealment (in-wall)</span><span class="pricing-item-price">$99</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Floating shelf (single)</span><span class="pricing-item-price">From $55</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Gallery wall (6&ndash;10 pieces)</span><span class="pricing-item-price">$105</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Curtain rod install (per window)</span><span class="pricing-item-price">From $55</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Brick / concrete wall mount</span><span class="pricing-item-price">+$45</span></li>
+      <ul class="price-list">
+        <li><span>TV up to 40&quot;</span><strong>$69</strong></li>
+        <li><span>TV 41&quot;&ndash;55&quot;</span><strong>$79</strong></li>
+        <li><span>TV 56&quot;&ndash;65&quot;</span><strong>$89</strong></li>
+        <li><span>TV 66&quot;&ndash;75&quot;</span><strong>$99</strong></li>
+        <li><span>In-wall cord concealment</span><strong>$99</strong></li>
+        <li><span>Gallery wall, 6&ndash;10 pieces</span><strong>$105</strong></li>
       </ul>
-      <div class="pricing-card-cta"><a href="/book?service=TV+Mounting" class="btn btn-cyan btn-full">Book Now &rarr;</a></div>
-    </div>
+      <div class="price-card-cta"><a href="/book?service=TV+Mounting" class="btn btn-cyan btn-full">Book Mounting &rarr;</a></div>
+    </article>
 
-
-    <!-- Smart Home -->
-    <div class="pricing-card">
-      <div class="pricing-card-header">
-        <div class="pricing-card-icon" style="background:#1565c0">
-          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+    <article class="price-card">
+      <div class="price-card-head">
+        <div class="price-card-top">
+          <div class="price-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5Z"/></svg></div>
+          <div class="price-from"><span>From</span><strong>$45</strong></div>
         </div>
-        <div class="pricing-card-title">Smart Home Install</div>
-        <div class="pricing-card-from">Starts at <strong>$69</strong> &bull; Any device, any platform</div>
+        <div class="price-title">Smart Home</div>
+        <div class="price-note">Thermostats, doorbells, cameras, lighting, locks, routers, hubs, and automations.</div>
       </div>
-      <ul class="pricing-items">
-        <li class="pricing-item"><span class="pricing-item-name">Smart thermostat (Nest, Ecobee)</span><span class="pricing-item-price">$79</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Smart doorbell (Ring, Nest)</span><span class="pricing-item-price">$85</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Smart lock install</span><span class="pricing-item-price">$95</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Indoor security camera</span><span class="pricing-item-price">$79</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Outdoor security camera</span><span class="pricing-item-price">$95</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Smart lighting (per room)</span><span class="pricing-item-price">$45</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Smart home hub setup</span><span class="pricing-item-price">$79</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Wi-Fi extender / mesh node</span><span class="pricing-item-price">$55</span></li>
+      <ul class="price-list">
+        <li><span>Smart lighting per room</span><strong>$45</strong></li>
+        <li><span>Wi-Fi extender / mesh node</span><strong>$55</strong></li>
+        <li><span>Smart thermostat</span><strong>$79</strong></li>
+        <li><span>Smart doorbell</span><strong>$85</strong></li>
+        <li><span>Smart lock</span><strong>$95</strong></li>
+        <li><span>3-node mesh network</span><strong>$125</strong></li>
       </ul>
-      <div class="pricing-card-cta"><a href="/book?service=Smart+Home" class="btn btn-cyan btn-full">Book Now &rarr;</a></div>
-    </div>
+      <div class="price-card-cta"><a href="/book?service=Smart+Home" class="btn btn-cyan btn-full">Book Smart Home &rarr;</a></div>
+    </article>
 
-
-    <!-- Bundle & Save -->
-    <div class="pricing-card" style="border-color:var(--cyan);background:linear-gradient(135deg,#e0f7fa,#ffffff)">
-      <div class="pricing-card-header" style="background:transparent">
-        <div class="pricing-card-icon" style="background:var(--cyan)">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    <article class="price-card">
+      <div class="price-card-head">
+        <div class="price-card-top">
+          <div class="price-icon"><svg viewBox="0 0 24 24"><path d="M6 4h2v16H6V4Zm16 5h-3V7h-2v6h2v-2h3V9ZM2 9h3V7h2v6H5v-2H2V9Zm14 7h6v2h-6v-2Zm-14 0h6v2H2v-2Z"/></svg></div>
+          <div class="price-from"><span>From</span><strong>$95</strong></div>
         </div>
-        <div class="pricing-card-title">Bundle &amp; Save</div>
-        <div class="pricing-card-from">Book 3+ items &bull; <strong>10% off</strong></div>
+        <div class="price-title">Fitness Equipment</div>
+        <div class="price-note">Cardio machines, benches, racks, home gyms, safety anchoring, and placement.</div>
       </div>
-      <ul class="pricing-items">
-        <li class="pricing-item"><span class="pricing-item-name">3&ndash;5 items in one booking</span><span class="pricing-item-price range">&minus;10%</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">6+ items in one booking</span><span class="pricing-item-price range">&minus;15%</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">New home setup (furniture + TV + smart home)</span><span class="pricing-item-price range">&minus;15%</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Move-in special (any 5 services)</span><span class="pricing-item-price range">&minus;20%</span></li>
-        <li class="pricing-item"><span class="pricing-item-name">Repeat customer discount</span><span class="pricing-item-price range">5% off</span></li>
+      <ul class="price-list">
+        <li><span>Weight bench</span><strong>$95</strong></li>
+        <li><span>Exercise bike</span><strong>$139</strong></li>
+        <li><span>Treadmill assembly</span><strong>$149</strong></li>
+        <li><span>Elliptical machine</span><strong>$159</strong></li>
+        <li><span>Power rack / squat rack</span><strong>$179</strong></li>
+        <li><span>Home gym / cable machine</span><strong class="range">$249&ndash;$349</strong></li>
       </ul>
-      <div class="pricing-card-cta">
-        <a href="/book" class="btn btn-cyan btn-full">Build Your Package &rarr;</a>
+      <div class="price-card-cta"><a href="/book?service=Fitness+Equipment" class="btn btn-cyan btn-full">Book Fitness &rarr;</a></div>
+    </article>
+
+    <article class="price-card">
+      <div class="price-card-head">
+        <div class="price-card-top">
+          <div class="price-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22h-2V13.3l-7-8.2-7 8.2V22H3Zm6 0v-7h6v7H9Z"/></svg></div>
+          <div class="price-from"><span>From</span><strong>$95</strong></div>
+        </div>
+        <div class="price-title">Outdoor &amp; Playsets</div>
+        <div class="price-note">Backyard playsets, trampolines, hoops, pergolas, sheds, and outdoor structures.</div>
+      </div>
+      <ul class="price-list">
+        <li><span>Sports net setup</span><strong>$95</strong></li>
+        <li><span>Sandbox / outdoor playhouse</span><strong>$145</strong></li>
+        <li><span>Trampoline assembly</span><strong>$165</strong></li>
+        <li><span>Basketball hoop assembly</span><strong>$179</strong></li>
+        <li><span>Swing set / playset</span><strong>$249</strong></li>
+        <li><span>Pergola / gazebo kit</span><strong class="range">$275&ndash;$375</strong></li>
+      </ul>
+      <div class="price-card-cta"><a href="/book?service=Outdoor+%26+Playsets" class="btn btn-cyan btn-full">Book Outdoor &rarr;</a></div>
+    </article>
+
+    <article class="price-card">
+      <div class="price-card-head">
+        <div class="price-card-top">
+          <div class="price-icon"><svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h6v2H7v2h10v-2h-3v-2h6c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2Zm0 13H4V5h16v11Z"/></svg></div>
+          <div class="price-from"><span>From</span><strong>$65</strong></div>
+        </div>
+        <div class="price-title">Office Assembly</div>
+        <div class="price-note">Desks, chairs, shelving, file cabinets, conference tables, and workstations.</div>
+      </div>
+      <ul class="price-list">
+        <li><span>Office chair</span><strong>$65</strong></li>
+        <li><span>File cabinet</span><strong>$75</strong></li>
+        <li><span>Simple flat-pack desk</span><strong>$95</strong></li>
+        <li><span>L-shape / executive desk</span><strong>$145</strong></li>
+        <li><span>Standing desk</span><strong>$155</strong></li>
+        <li><span>Conference table</span><strong class="range">$175&ndash;$225</strong></li>
+      </ul>
+      <div class="price-card-cta"><a href="/book?service=Office+Assembly" class="btn btn-cyan btn-full">Book Office &rarr;</a></div>
+    </article>
+  </section>
+
+  <section class="bundle-panel" aria-label="Bundle savings">
+    <div>
+      <h3>One visit. Multiple services. Cleaner total.</h3>
+      <p>Bundle pricing works best for move-ins, new rooms, office refreshes, or any visit with several qualifying items. We review the scope and apply savings before confirming the final total.</p>
+      <div class="bundle-pills">
+        <span>3+ qualifying items</span>
+        <span>Multi-service visits</span>
+        <span>Quote before complex work</span>
       </div>
     </div>
+    <a href="/book" class="btn btn-white btn-lg">Build Package &rarr;</a>
+  </section>
 
-  </div><!-- /pricing-grid -->
-
-  <!-- FAQ -->
-  <div style="text-align:center;margin-bottom:2.5rem">
-    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan);font-weight:700;margin-bottom:0.75rem">Pricing FAQ</div>
-    <div style="font-family:'DM Serif Display',serif;font-size:clamp(1.8rem,3vw,2.3rem);color:var(--ink);margin-bottom:2rem">Common questions about pricing</div>
+  <div class="pricing-faq-head">
+    <div class="section-label">Pricing FAQ</div>
+    <h2>Common questions about pricing</h2>
   </div>
 
   <div class="faq-section">
