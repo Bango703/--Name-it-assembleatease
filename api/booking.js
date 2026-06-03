@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
-  const { services, items, service: serviceLegacy, name, phone, email, address, date, time, details, totalCents } = req.body;
+  const { services, items, service: serviceLegacy, name, phone, email, address, date, time, details, totalCents, isQuoteRequest, paymentMethodId, stripeCustomerId } = req.body;
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
@@ -61,6 +61,15 @@ export default async function handler(req, res) {
   }
 
   const bookingId = savedBooking.id;
+
+  // Quote booking with saved card: store the customer + payment method from SetupIntent
+  if (isQuoteRequest && paymentMethodId && stripeCustomerId) {
+    await sb.from('bookings').update({
+      stripe_customer_id: stripeCustomerId,
+      stripe_payment_method_id: paymentMethodId,
+      payment_status: 'card_saved',
+    }).eq('id', bookingId);
+  }
 
   // ── Stripe: create customer + PaymentIntent (skip if no price) ──
   let clientSecret = null;

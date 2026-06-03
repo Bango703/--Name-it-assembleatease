@@ -1964,13 +1964,32 @@ function intelQuick(msg) {
   };
 
   // ─── Quote modal ───
-  window.openQuoteModal = function(bookingId) {
+  var _qmMode = 'set';
+  window.openQuoteModal = function(bookingId, mode) {
+    _qmMode = mode || 'set';
     document.getElementById('qm-id').value = bookingId;
     document.getElementById('qm-amount').value = '';
     document.getElementById('qm-note').value = '';
     document.getElementById('qm-notify').checked = true;
     document.getElementById('qm-confirm').checked = true;
     document.getElementById('qm-error').style.display = 'none';
+    if (_qmMode === 'approve') {
+      document.querySelector('#quote-modal h3').textContent = 'Finalize Quote & Authorize Card';
+      document.querySelector('#quote-modal p').textContent = 'Enter the final price. The card on file will be authorized immediately — no charge until the Easer marks the job complete.';
+      document.getElementById('qm-submit').textContent = 'Authorize Card & Confirm';
+      document.getElementById('qm-submit').style.background = '#059669';
+      document.getElementById('qm-submit').style.borderColor = '#059669';
+      document.getElementById('qm-notify').closest('label').style.display = 'none';
+      document.getElementById('qm-confirm').closest('label').style.display = 'none';
+    } else {
+      document.querySelector('#quote-modal h3').textContent = 'Set & Send Quote';
+      document.querySelector('#quote-modal p').textContent = 'Enter a price for this custom quote request. The customer will be emailed a formal quote.';
+      document.getElementById('qm-submit').textContent = 'Send Quote';
+      document.getElementById('qm-submit').style.background = '';
+      document.getElementById('qm-submit').style.borderColor = '';
+      document.getElementById('qm-notify').closest('label').style.display = '';
+      document.getElementById('qm-confirm').closest('label').style.display = '';
+    }
     document.getElementById('quote-modal').classList.add('open');
     setTimeout(function(){ document.getElementById('qm-amount').focus(); }, 50);
   };
@@ -2000,6 +2019,16 @@ function intelQuick(msg) {
     btn.disabled = true; btn.textContent = 'Sending…';
     errEl.style.display = 'none';
     try {
+      if (_qmMode === 'approve') {
+        var ar = await fetch('/api/owner/quote-approve', { method:'POST', headers:headers(), body:JSON.stringify({ bookingId: id, finalPriceCents: Math.round(amount * 100) }) });
+        var ad = await ar.json();
+        if (ad.error) { errEl.textContent = ad.error; errEl.style.display = ''; return; }
+        toast('Card authorized & booking confirmed at $' + amount.toFixed(2) + ' ✓', 'success');
+        document.getElementById('quote-modal').classList.remove('open');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+        return;
+      }
       // Update price + notify customer
       var payload = {
         bookingId: id,
@@ -2040,7 +2069,11 @@ function intelQuick(msg) {
     if (b.status === 'pending') {
       // Custom quote requests (total_price=0) need price before confirming
       if (!b.total_price || b.total_price === 0) {
-        btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">Set &amp; Send Quote</button>');
+        if (b.payment_status === 'card_saved') {
+          btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\', \'approve\')" style="background:#059669;border-color:#059669">Finalize Quote &amp; Authorize Card</button>');
+        } else {
+          btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">Set &amp; Send Quote</button>');
+        }
       }
       btns.push('<button class="btn btn-teal" data-action="confirm" data-id="' + b.id + '">Confirm</button>');
       btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
@@ -2576,6 +2609,7 @@ function intelQuick(msg) {
     var map = {
       pending:      ['py-pending',      'Pending'],
       not_required: ['py-not-required', 'Not Required'],
+      card_saved:   ['py-authorized',   'Card on File'],
       authorized:   ['py-authorized',   'Authorized'],
       deposit_paid: ['py-deposit-paid', 'Deposit Paid'],
       captured:     ['py-captured',     'Paid'],

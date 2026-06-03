@@ -56,6 +56,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'You must be assigned to this booking before marking it complete' });
   }
 
+  // Block completion if no payment is authorized — applies to quote bookings
+  // where the owner has not yet called /api/owner/quote-approve.
+  if (!booking.stripe_payment_intent_id) {
+    if (!booking.stripe_payment_method_id) {
+      return res.status(400).json({
+        error: 'No payment method on file. Contact AssembleAtEase to resolve before completing.',
+        code: 'PAYMENT_NOT_AUTHORIZED',
+      });
+    }
+    return res.status(400).json({
+      error: 'This is a custom quote job. The owner must finalize the quote price before you can mark it complete.',
+      code: 'QUOTE_PENDING_APPROVAL',
+    });
+  }
+
   // ── Stripe: capture payment ──────────────────────────────────────────────
   let amountCharged = 0;
   const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
