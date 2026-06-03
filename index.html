@@ -363,6 +363,13 @@ section#service-area{display:none}
 .review-card p{font-size:0.8rem;color:var(--muted);line-height:1.65}
 @media(max-width:1023px){.benefits-section .review-card:nth-child(n+7){display:none}}
 
+/* Customer Reviews — horizontal swipe carousel on mobile (no more vertical stack) */
+@media(max-width:899px){
+  #reviews-grid{display:flex!important;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;gap:0.75rem;padding:0 1.25rem 0.75rem;margin-left:-1.25rem;margin-right:-1.25rem;width:calc(100% + 2.5rem)}
+  #reviews-grid::-webkit-scrollbar{display:none}
+  #reviews-grid>*{min-width:min(280px,78vw);max-width:min(280px,78vw);scroll-snap-align:start;flex-shrink:0}
+}
+
 /* -----------------------------------------------------
    FAQ (all sizes)
 ----------------------------------------------------- */
