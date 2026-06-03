@@ -11,6 +11,9 @@ const VALID_SERVICES = [
   'Furniture Assembly',
   'TV & Display Mounting',
   'Smart Home Installation',
+  'Fitness Equipment',
+  'Outdoor & Playsets',
+  'Office Assembly',
 ];
 
 export default async function handler(req, res) {
@@ -20,7 +23,7 @@ export default async function handler(req, res) {
   if (!await rateLimit(ip, 'apply')) return res.status(429).json({ error: 'Too many requests. Please try again later.' });
 
   const {
-    fullName, email, city, zip,
+    fullName, email, phone, city, zip,
     servicesOffered, hasTools, hasTransport,
     yearsExperience, bio, codeOfConduct, inviteToken,
     paymentMethodId,
@@ -29,6 +32,7 @@ export default async function handler(req, res) {
   // ---- Validation ----
   if (!fullName?.trim()) return res.status(400).json({ error: 'Full name is required' });
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
+  if (!phone?.trim() || !/^\+?[\d\s().-]{7,}$/.test(phone.trim())) return res.status(400).json({ error: 'Valid phone number is required' });
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
   if (!zip?.trim()) return res.status(400).json({ error: 'Zip code is required' });
   if (!Array.isArray(servicesOffered) || !servicesOffered.length) return res.status(400).json({ error: 'Select at least one service' });
@@ -43,6 +47,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const cleanName = fullName.trim();
   const cleanEmail = email.trim().toLowerCase();
+  const cleanPhone = phone.trim();
 
   // Generate a random temporary password — assembler sets their real password via the approval email link
   const tempPassword = randomUUID() + randomUUID();
@@ -70,6 +75,7 @@ export default async function handler(req, res) {
     id: userId,
     full_name: cleanName,
     email: cleanEmail,
+    phone: cleanPhone,
     role: 'assembler',
     city: city.trim(),
     zip: zip.trim(),
@@ -201,7 +207,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: cleanEmail,
       subject: 'New Assembler Application - ' + cleanName,
-      html: buildOwnerEmail({ cleanName, cleanEmail, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }),
+      html: buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }),
     });
   } catch (e) { console.error('Owner email error:', e); }
 
@@ -219,7 +225,7 @@ export default async function handler(req, res) {
   return res.status(200).json({ success: true, verificationUrl });
 }
 
-function buildOwnerEmail({ cleanName, cleanEmail, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }) {
+function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px">
@@ -234,6 +240,7 @@ function buildOwnerEmail({ cleanName, cleanEmail, city, zip, yearsExperience, ha
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Name</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(cleanName)}</td></tr>
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Email</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${esc(cleanEmail)}</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Phone</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${esc(cleanPhone)}</td></tr>
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Location</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${esc(city.trim())}, ${esc(zip.trim())}</td></tr>
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Experience</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${parseInt(yearsExperience,10)} year(s)</td></tr>
       <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Own tools</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0">${hasTools ? 'Yes' : 'No'}</td></tr>

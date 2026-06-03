@@ -1,229 +1,1059 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Join as an Easer — AssembleAtEase</title>
+  <title>Apply to Become an Easer | AssembleAtEase</title>
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Join the AssembleAtEase team as an Easer. Apply to become a professional in Austin, TX." />
+  <meta name="description" content="Apply to join AssembleAtEase as an Easer in Austin, TX. Approved Easers can receive local furniture assembly, mounting, smart home, fitness, outdoor, and office assembly jobs." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/css/style.css" />
   <script src="https://js.stripe.com/v3/"></script>
   <style>
-    body { background: #ffffff; }
-    .apply-wrap { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
-    .apply-logo { text-align: center; margin-bottom: 2rem; }
-    .apply-logo a { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #0d1117; text-decoration: none; }
-    .apply-logo span { color: #00BFFF; }
-    .apply-heading { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: #0d1117; text-align: center; margin-bottom: 0.4rem; }
-    .apply-sub { text-align: center; font-size: 0.95rem; color: #4a5568; margin-bottom: 2rem; }
-    .section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.75rem; margin-bottom: 1.25rem; }
-    .section-title { font-size: 0.95rem; font-weight: 600; color: #0d1117; margin-bottom: 1.25rem; padding-bottom: 0.6rem; border-bottom: 1px solid #e2e8f0; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-size: 0.82rem; font-weight: 500; color: #0d1117; margin-bottom: 4px; }
-    .form-control { width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.9rem; color: #0d1117; background: #ffffff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
-    .form-control:focus { border-color: #00BFFF; }
-    .form-control.error { border-color: #ef4444; }
-    .field-error { font-size: 0.78rem; color: #ef4444; margin-top: 3px; display: block; }
-    .field-hint { font-size: 0.72rem; color: #4a5568; margin-top: 3px; }
-    textarea.form-control { resize: vertical; min-height: 80px; }
+    :root {
+      --apply-cyan: #00BFFF;
+      --apply-cyan-dark: #0099CC;
+      --apply-ink: #07121f;
+      --apply-navy: #001f2b;
+      --apply-teal: #003746;
+      --apply-muted: #64748b;
+      --apply-border: #dce8ee;
+      --apply-soft: #f5f9fb;
+      --apply-white: #ffffff;
+      --apply-shadow: 0 18px 50px rgba(7, 18, 31, 0.1);
+    }
 
-    /* Checkboxes */
-    .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .check-item { display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-    .check-item:hover { border-color: #00BFFF; background: rgba(0,191,255,0.04); }
-    .check-item.checked { border-color: #00BFFF; background: rgba(0,191,255,0.08); }
-    .check-item input { width: 16px; height: 16px; accent-color: #00BFFF; margin: 0; flex-shrink: 0; }
-    .check-item span { font-size: 0.85rem; color: #0d1117; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: #f6fafc;
+      color: var(--apply-ink);
+      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-    /* Radio group */
-    .radio-row { display: flex; gap: 1rem; }
-    .radio-option { flex: 1; display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: border-color 0.15s; }
-    .radio-option:hover { border-color: #00BFFF; }
-    .radio-option.selected { border-color: #00BFFF; background: rgba(0,191,255,0.08); }
-    .radio-option input { width: 16px; height: 16px; accent-color: #00BFFF; margin: 0; }
-    .radio-option span { font-size: 0.85rem; color: #0d1117; }
+    .apply-hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(0, 191, 255, 0.18), transparent 28%),
+        linear-gradient(135deg, #001f2b 0%, #004657 58%, #007da0 100%);
+      color: #fff;
+      padding: 1.25rem 1.5rem 4rem;
+    }
+    .apply-nav {
+      width: min(1180px, 100%);
+      margin: 0 auto 2.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .apply-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: #fff;
+      text-decoration: none;
+      font-family: "DM Serif Display", serif;
+      font-size: 1.45rem;
+      line-height: 1;
+    }
+    .apply-logo-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid rgba(255,255,255,0.75);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .apply-logo-mark img { width: 100%; height: 100%; object-fit: cover; }
+    .apply-logo span { color: var(--apply-cyan); }
+    .nav-link {
+      color: rgba(255,255,255,0.82);
+      text-decoration: none;
+      font-size: 0.86rem;
+      font-weight: 700;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+    }
 
-    /* Conduct checkbox */
-    .conduct-check { display: flex; align-items: flex-start; gap: 10px; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
-    .conduct-check input { margin-top: 2px; width: 18px; height: 18px; accent-color: #00BFFF; flex-shrink: 0; }
-    .conduct-check-text { font-size: 0.85rem; color: #4a5568; line-height: 1.55; }
-    .conduct-check-text a { color: #00BFFF; text-decoration: none; }
+    .hero-grid {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
+      gap: 3rem;
+      align-items: end;
+    }
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #bfefff;
+      margin-bottom: 1rem;
+    }
+    .hero-kicker::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--apply-cyan);
+      box-shadow: 0 0 0 5px rgba(0,191,255,0.15);
+    }
+    .hero-title {
+      max-width: 620px;
+      margin: 0 0 1rem;
+      font-family: "DM Serif Display", serif;
+      font-size: clamp(3rem, 6vw, 5.6rem);
+      line-height: 0.92;
+      letter-spacing: 0;
+      color: #fff;
+    }
+    .hero-copy {
+      max-width: 560px;
+      margin: 0 0 1.7rem;
+      color: rgba(255,255,255,0.82);
+      font-size: clamp(1rem, 1.5vw, 1.14rem);
+      line-height: 1.75;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0.78rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    .hero-btn-primary {
+      background: var(--apply-cyan);
+      color: #001f2b;
+      box-shadow: 0 14px 32px rgba(0,191,255,0.22);
+    }
+    .hero-btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .hero-proof {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .hero-proof span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.9);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .hero-photo {
+      position: relative;
+      min-height: 460px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #dce8ee;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.28);
+      isolation: isolate;
+    }
+    .hero-photo img {
+      width: 100%;
+      height: 100%;
+      min-height: 460px;
+      display: block;
+      object-fit: cover;
+      object-position: center;
+      filter: saturate(1.02) contrast(1.02);
+    }
+    .photo-note {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.8rem;
+      align-items: center;
+      padding: 0.9rem 1rem;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.94);
+      color: var(--apply-ink);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.14);
+    }
+    .photo-note-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: #e6f8fd;
+      color: var(--apply-cyan-dark);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+    .photo-note strong { display: block; font-size: 0.92rem; }
+    .photo-note span { display: block; font-size: 0.78rem; color: var(--apply-muted); margin-top: 2px; }
 
-    .btn-apply { width: 100%; padding: 0.85rem; background: #00BFFF; border: none; border-radius: 999px; color: #fff; font-family: inherit; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-    .btn-apply:hover { background: #0099CC; }
-    .btn-apply:disabled { opacity: 0.5; cursor: not-allowed; }
+    .apply-main {
+      width: min(1180px, calc(100% - 2rem));
+      margin: -2.35rem auto 0;
+      position: relative;
+      z-index: 2;
+      padding-bottom: 5rem;
+    }
+    .apply-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    .form-panel,
+    .aside-card,
+    .success-box {
+      background: var(--apply-white);
+      border: 1px solid var(--apply-border);
+      border-radius: 14px;
+      box-shadow: var(--apply-shadow);
+    }
+    .form-panel { padding: 1.15rem; }
+    .form-intro {
+      padding: 1.1rem 1.1rem 0.35rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .form-intro h2 {
+      margin: 0 0 0.35rem;
+      font-family: "DM Serif Display", serif;
+      font-size: 2rem;
+      line-height: 1;
+      color: var(--apply-ink);
+    }
+    .form-intro p {
+      margin: 0;
+      color: var(--apply-muted);
+      line-height: 1.6;
+      font-size: 0.92rem;
+    }
+    .form-pill {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0.45rem 0.7rem;
+      background: #e8f8fc;
+      color: var(--apply-cyan-dark);
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
 
-    .alert { padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.875rem; margin-bottom: 1rem; }
+    .section {
+      background: #fff;
+      border: 1px solid var(--apply-border);
+      border-radius: 12px;
+      padding: 1.35rem;
+      margin: 1rem 0 0;
+    }
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #e8eef2;
+      margin-bottom: 1rem;
+    }
+    .section-kicker {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 900;
+      color: var(--apply-cyan-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.25rem;
+    }
+    .section-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--apply-ink);
+    }
+    .section-status {
+      flex-shrink: 0;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.95rem; }
+    .form-group { margin-bottom: 0.95rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #132033;
+      margin-bottom: 0.38rem;
+    }
+    .form-control {
+      width: 100%;
+      min-height: 46px;
+      padding: 0.7rem 0.85rem;
+      border: 1.5px solid var(--apply-border);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      color: var(--apply-ink);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .form-control:focus {
+      border-color: var(--apply-cyan);
+      box-shadow: 0 0 0 4px rgba(0,191,255,0.1);
+    }
+    .form-control.error { border-color: #ef4444; background: #fffafa; }
+    textarea.form-control { resize: vertical; min-height: 112px; line-height: 1.6; }
+    .field-error {
+      min-height: 1rem;
+      display: block;
+      margin-top: 0.3rem;
+      font-size: 0.75rem;
+      color: #dc2626;
+    }
+    .field-hint {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--apply-muted);
+      line-height: 1.55;
+      margin-top: 0.35rem;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+    .check-item,
+    .radio-option {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      min-height: 70px;
+      padding: 0.85rem;
+      border: 1.5px solid var(--apply-border);
+      border-radius: 11px;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .check-item:hover,
+    .radio-option:hover {
+      border-color: #a9ddeb;
+      box-shadow: 0 8px 22px rgba(0, 58, 76, 0.06);
+      transform: translateY(-1px);
+    }
+    .check-item.checked,
+    .radio-option.selected {
+      border-color: var(--apply-cyan);
+      background: #effbff;
+      box-shadow: 0 10px 24px rgba(0,191,255,0.08);
+    }
+    .check-item input,
+    .radio-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .choice-mark {
+      width: 21px;
+      height: 21px;
+      border: 1.5px solid #aebdcc;
+      border-radius: 7px;
+      margin-top: 0.1rem;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 900;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .radio-option .choice-mark { border-radius: 50%; }
+    .check-item.checked .choice-mark,
+    .radio-option.selected .choice-mark {
+      background: var(--apply-cyan);
+      border-color: var(--apply-cyan);
+    }
+    .check-item.checked .choice-mark::after,
+    .radio-option.selected .choice-mark::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+    .choice-text strong {
+      display: block;
+      color: var(--apply-ink);
+      font-size: 0.88rem;
+      line-height: 1.25;
+    }
+    .choice-text small {
+      display: block;
+      margin-top: 0.25rem;
+      color: var(--apply-muted);
+      font-size: 0.74rem;
+      line-height: 1.45;
+    }
+    .radio-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .radio-option { min-height: 58px; align-items: center; }
+
+    .conduct-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 1rem;
+      background: #f8fbfd;
+      border: 1px solid var(--apply-border);
+      border-radius: 11px;
+    }
+    .conduct-check input {
+      width: 19px;
+      height: 19px;
+      accent-color: var(--apply-cyan);
+      margin-top: 0.2rem;
+      flex-shrink: 0;
+    }
+    .conduct-check-text {
+      font-size: 0.86rem;
+      color: #42526a;
+      line-height: 1.65;
+    }
+    .conduct-check-text a {
+      color: var(--apply-cyan-dark);
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .fee-callout {
+      display: grid;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+    .fee-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.85rem 0.95rem;
+      border-radius: 10px;
+      background: #f8fbfd;
+      border: 1px solid var(--apply-border);
+      color: #475569;
+      line-height: 1.55;
+      font-size: 0.84rem;
+    }
+    .fee-row.warning {
+      background: #fff7f7;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    .fee-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #dff7ff;
+      color: var(--apply-cyan-dark);
+      font-weight: 900;
+      flex-shrink: 0;
+      font-size: 0.72rem;
+    }
+    .fee-row.warning .fee-dot {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .card-element-wrap {
+      min-height: 46px;
+      padding: 0.82rem 0.85rem;
+      border: 1.5px solid var(--apply-border);
+      border-radius: 10px;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .card-element-wrap.StripeElement--focus {
+      border-color: var(--apply-cyan);
+      box-shadow: 0 0 0 4px rgba(0,191,255,0.1);
+    }
+    .card-element-wrap.StripeElement--invalid { border-color: #ef4444; }
+    .card-error {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 0.76rem;
+      color: #dc2626;
+    }
+    .fee-note {
+      display: block;
+      margin-top: 0.45rem;
+      font-size: 0.76rem;
+      color: var(--apply-muted);
+    }
+
+    .btn-apply {
+      width: 100%;
+      min-height: 54px;
+      border: none;
+      border-radius: 10px;
+      background: var(--apply-cyan);
+      color: #001f2b;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(0,191,255,0.22);
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-apply:hover {
+      background: #22c8ff;
+      transform: translateY(-1px);
+      box-shadow: 0 18px 36px rgba(0,191,255,0.26);
+    }
+    .btn-apply:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .submit-pad { padding: 1rem 0 0.1rem; }
+
+    .alert {
+      padding: 0.9rem 1rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      margin: 1rem 1.1rem 0;
+    }
     .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-    .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+    .alert-success { background: #ecfdf5; border: 1px solid #bbf7d0; color: #166534; }
     .alert.hidden { display: none; }
 
-    /* Success state */
-    .success-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 2.5rem; text-align: center; }
-    .success-box h2 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: #0d1117; margin-bottom: 0.5rem; }
-    .success-box p { font-size: 0.95rem; color: #4a5568; line-height: 1.6; margin-bottom: 1rem; }
-    .success-box .icon { font-size: 3rem; margin-bottom: 1rem; color: #00BFFF; }
+    .apply-aside {
+      position: sticky;
+      top: 1rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .aside-card { padding: 1.2rem; }
+    .aside-card.dark {
+      background: linear-gradient(150deg, #001f2b, #003746);
+      border-color: #003746;
+      color: #fff;
+    }
+    .aside-eyebrow {
+      margin-bottom: 0.55rem;
+      color: var(--apply-cyan);
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+    .aside-card h3 {
+      margin: 0 0 0.55rem;
+      font-size: 1.08rem;
+      line-height: 1.25;
+      color: inherit;
+    }
+    .aside-card p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.86rem;
+      line-height: 1.65;
+    }
+    .aside-card.dark p { color: rgba(255,255,255,0.72); }
+    .step-list {
+      display: grid;
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+    .mini-step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.7rem;
+      align-items: start;
+    }
+    .mini-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e8f8fc;
+      color: var(--apply-cyan-dark);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 0.78rem;
+    }
+    .mini-step strong {
+      display: block;
+      font-size: 0.86rem;
+      color: var(--apply-ink);
+      margin-bottom: 0.12rem;
+    }
+    .mini-step span {
+      display: block;
+      color: var(--apply-muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+    .aside-card.dark .mini-num { background: rgba(0,191,255,0.16); color: #9bebff; }
+    .aside-card.dark .mini-step strong { color: #fff; }
+    .aside-card.dark .mini-step span { color: rgba(255,255,255,0.7); }
+    .aside-link {
+      display: inline-flex;
+      margin-top: 1rem;
+      color: var(--apply-cyan);
+      font-weight: 900;
+      font-size: 0.84rem;
+      text-decoration: none;
+    }
 
-    .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: #4a5568; }
-    .login-link a { color: #00BFFF; text-decoration: none; font-weight: 500; }
+    .success-wrap {
+      width: min(720px, calc(100% - 2rem));
+      margin: -2rem auto 5rem;
+      position: relative;
+      z-index: 3;
+      display: none;
+    }
+    .success-box {
+      padding: 2.1rem;
+      text-align: center;
+    }
+    .success-icon {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 1rem;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e8f8fc;
+      color: var(--apply-cyan-dark);
+      font-size: 1.6rem;
+      font-weight: 900;
+    }
+    .success-box h2 {
+      margin: 0 0 0.55rem;
+      font-family: "DM Serif Display", serif;
+      font-size: 2.1rem;
+      color: var(--apply-ink);
+    }
+    .success-box p {
+      max-width: 520px;
+      margin: 0 auto 1rem;
+      color: var(--apply-muted);
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+    .verify-card {
+      display: none;
+      margin: 1.25rem auto 0;
+      max-width: 430px;
+      padding: 1rem;
+      border-radius: 12px;
+      background: #f8fbfd;
+      border: 1px solid var(--apply-border);
+    }
+    .verify-card .btn-apply {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      margin-top: 0.6rem;
+    }
+    .verification-complete {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.9rem;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
 
-    /* Stripe card element */
-    .card-element-wrap { padding: 0.65rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; transition: border-color 0.15s; }
-    .card-element-wrap.StripeElement--focus { border-color: #00BFFF; }
-    .card-element-wrap.StripeElement--invalid { border-color: #ef4444; }
-    .card-error { font-size: 0.78rem; color: #ef4444; margin-top: 5px; display: block; }
-    .fee-note { font-size: 0.78rem; color: #4a5568; margin-top: 5px; }
-    @media (max-width: 600px) { .form-row, .check-grid { grid-template-columns: 1fr; } .radio-row { flex-direction: column; } }
+    .apply-footer {
+      padding: 2rem 1rem;
+      border-top: 1px solid var(--apply-border);
+      background: #fff;
+      color: var(--apply-muted);
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .apply-footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .apply-footer a {
+      color: inherit;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (max-width: 980px) {
+      .apply-hero { padding: 1rem 1rem 3rem; }
+      .apply-nav { margin-bottom: 1.8rem; }
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 1.8rem;
+      }
+      .hero-title { max-width: 520px; }
+      .hero-photo { min-height: 360px; }
+      .hero-photo img { min-height: 360px; }
+      .apply-layout { grid-template-columns: 1fr; }
+      .apply-aside { position: static; }
+    }
+
+    @media (max-width: 640px) {
+      .apply-logo { font-size: 1.25rem; }
+      .nav-link { display: none; }
+      .hero-title { font-size: clamp(2.45rem, 13vw, 3.35rem); }
+      .hero-copy { font-size: 0.95rem; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; }
+      .hero-btn { width: 100%; }
+      .hero-photo { min-height: 285px; border-radius: 14px; }
+      .hero-photo img { min-height: 285px; object-position: center; }
+      .photo-note {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        padding: 0.75rem;
+      }
+      .photo-note span { display: none; }
+      .apply-main { width: min(100% - 1rem, 1180px); }
+      .form-panel { padding: 0.75rem; border-radius: 12px; }
+      .form-intro { display: block; padding: 0.9rem 0.9rem 0.15rem; }
+      .form-pill { margin-top: 0.85rem; }
+      .section { padding: 1rem; }
+      .section-head { display: block; }
+      .section-status { display: inline-flex; margin-top: 0.65rem; }
+      .form-row,
+      .check-grid,
+      .radio-row { grid-template-columns: 1fr; }
+      .check-item,
+      .radio-option { min-height: 64px; }
+      .success-wrap { width: min(100% - 1rem, 720px); }
+      .success-box { padding: 1.4rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
+      }
+    }
   </style>
 </head>
 <body>
-<div class="apply-wrap">
-  <div class="apply-logo"><a href="../">Assemble<span>AtEase</span></a></div>
-  <h1 class="apply-heading">Join Our Team</h1>
-  <p class="apply-sub">Join the AssembleAtEase team as an Easer and start taking jobs in Austin, TX.</p>
+<header class="apply-hero">
+  <nav class="apply-nav" aria-label="Application navigation">
+    <a href="../" class="apply-logo">
+      <span class="apply-logo-mark"><img src="../images/logo.jpg" alt="" /></span>
+      Assemble<span>AtEase</span>
+    </a>
+    <a href="../assembler/earn" class="nav-link">Easer details</a>
+  </nav>
 
-  <div id="alert" class="alert hidden"></div>
-  <div id="invite-banner" class="alert alert-success hidden" style="display:none">
-    You have been invited to join AssembleAtEase. Complete your application below.
+  <div class="hero-grid">
+    <div>
+      <div class="hero-kicker">Austin Easer network</div>
+      <h1 class="hero-title">Earn with home projects done right.</h1>
+      <p class="hero-copy">Apply to receive local assembly, mounting, smart home, fitness, outdoor, and office jobs after approval. We review every application before dispatching work.</p>
+      <div class="hero-actions">
+        <a class="hero-btn hero-btn-primary" href="#apply-form">Start application &rarr;</a>
+        <a class="hero-btn hero-btn-secondary" href="../assembler/earn">How Easer work works</a>
+      </div>
+      <div class="hero-proof" aria-label="Program details">
+        <span>Local Austin jobs</span>
+        <span>Identity verification required</span>
+        <span>Tools and transport reviewed</span>
+      </div>
+    </div>
+
+    <figure class="hero-photo" aria-label="Two home-service professionals preparing for local jobs">
+      <img src="../images/easer-apply-crew.jpg" alt="Two home service professionals preparing tools beside a service vehicle before local appointments" width="1536" height="768" fetchpriority="high" />
+      <figcaption class="photo-note">
+        <div class="photo-note-icon">AE</div>
+        <div>
+          <strong>Built for careful pros</strong>
+          <span>Approved Easers get job details, customer info, and dispatch updates in the app.</span>
+        </div>
+      </figcaption>
+    </figure>
   </div>
-  <div id="invite-error" class="alert alert-error hidden" style="display:none"></div>
+</header>
 
-  <form id="apply-form">
-    <!-- Personal Info -->
-    <div class="section">
-      <div class="section-title">Personal Information</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="full-name">Full name *</label>
-          <input type="text" id="full-name" class="form-control" placeholder="Jane Smith" autocomplete="name" required />
-          <span class="field-error" id="full-name-error"></span>
+<main class="apply-main">
+  <div class="apply-layout">
+    <section class="form-panel" id="application-panel" aria-label="Easer application form">
+      <div class="form-intro">
+        <div>
+          <h2>Apply to join</h2>
+          <p>This takes a few minutes. Use accurate contact info because your phone number is required for dispatch after approval.</p>
         </div>
-        <div class="form-group">
-          <label for="email">Email address *</label>
-          <input type="email" id="email" class="form-control" placeholder="you@example.com" autocomplete="email" required />
-          <span class="field-error" id="email-error"></span>
-        </div>
+        <div class="form-pill">$30 application fee</div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="phone">Phone number *</label>
-          <input type="tel" id="phone" class="form-control" placeholder="512-555-0100" autocomplete="tel" required />
-          <span class="field-error" id="phone-error"></span>
-        </div>
-        <div class="form-group">
-          <label for="years">Years of experience *</label>
-          <input type="number" id="years" class="form-control" placeholder="e.g. 3" min="0" max="50" required />
-          <span class="field-error" id="years-error"></span>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="city">City *</label>
-          <input type="text" id="city" class="form-control" placeholder="Austin" autocomplete="address-level2" required />
-          <span class="field-error" id="city-error"></span>
-        </div>
-        <div class="form-group">
-          <label for="zip">Zip code *</label>
-          <input type="text" id="zip" class="form-control" placeholder="78701" autocomplete="postal-code" maxlength="10" required />
-          <span class="field-error" id="zip-error"></span>
-        </div>
-      </div>
-    </div>
 
-    <!-- Services -->
-    <div class="section">
-      <div class="section-title">Services You Offer *</div>
-      <p class="field-hint" style="margin:-0.75rem 0 0.75rem">Select all that apply</p>
-      <div class="check-grid" id="services-grid">
-        <label class="check-item"><input type="checkbox" value="Furniture Assembly" /><span>Furniture Assembly</span></label>
-        <label class="check-item"><input type="checkbox" value="TV & Display Mounting" /><span>TV &amp; Display Mounting</span></label>
-        <label class="check-item"><input type="checkbox" value="Smart Home Installation" /><span>Smart Home Installation</span></label>
-      </div>
-      <span class="field-error" id="services-error"></span>
-    </div>
+      <div id="alert" class="alert hidden"></div>
+      <div id="invite-banner" class="alert alert-success hidden" style="display:none">You have been invited to join AssembleAtEase. Complete your application below.</div>
+      <div id="invite-error" class="alert alert-error hidden" style="display:none"></div>
 
-    <!-- Qualifications -->
-    <div class="section">
-      <div class="section-title">Qualifications</div>
-      <div class="form-group">
-        <label>Do you have your own tools? *</label>
-        <div class="radio-row">
-          <label class="radio-option"><input type="radio" name="tools" value="yes" /><span>Yes</span></label>
-          <label class="radio-option"><input type="radio" name="tools" value="no" /><span>No</span></label>
+      <form id="apply-form">
+        <div class="section">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Step 1</span>
+              <h3 class="section-title">Profile and contact</h3>
+            </div>
+            <span class="section-status">Required</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="full-name">Full name *</label>
+              <input type="text" id="full-name" class="form-control" placeholder="Jane Smith" autocomplete="name" required />
+              <span class="field-error" id="full-name-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="email">Email address *</label>
+              <input type="email" id="email" class="form-control" placeholder="you@example.com" autocomplete="email" required />
+              <span class="field-error" id="email-error"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone">Phone number *</label>
+              <input type="tel" id="phone" class="form-control" placeholder="737-290-6129" autocomplete="tel" required />
+              <span class="field-hint">Required for dispatch, job updates, and urgent coordination.</span>
+              <span class="field-error" id="phone-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="years">Years of experience *</label>
+              <input type="number" id="years" class="form-control" placeholder="3" min="0" max="50" required />
+              <span class="field-error" id="years-error"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city">City *</label>
+              <input type="text" id="city" class="form-control" placeholder="Austin" autocomplete="address-level2" required />
+              <span class="field-error" id="city-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="zip">ZIP code *</label>
+              <input type="text" id="zip" class="form-control" placeholder="78701" autocomplete="postal-code" maxlength="10" required />
+              <span class="field-error" id="zip-error"></span>
+            </div>
+          </div>
         </div>
-        <span class="field-error" id="tools-error"></span>
-      </div>
-      <div class="form-group">
-        <label>Do you have reliable transportation? *</label>
-        <div class="radio-row">
-          <label class="radio-option"><input type="radio" name="transport" value="yes" /><span>Yes</span></label>
-          <label class="radio-option"><input type="radio" name="transport" value="no" /><span>No</span></label>
+
+        <div class="section">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Step 2</span>
+              <h3 class="section-title">Services you can handle</h3>
+            </div>
+            <span class="section-status">Select one or more</span>
+          </div>
+          <div class="check-grid" id="services-grid">
+            <label class="check-item">
+              <input type="checkbox" value="Furniture Assembly" />
+              <span class="choice-mark"></span>
+              <span class="choice-text"><strong>Furniture Assembly</strong><small>Flat-pack, bedrooms, living rooms, storage</small></span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="TV & Display Mounting" />
+              <span class="choice-mark"></span>
+              <span class="choice-text"><strong>TV &amp; Display Mounting</strong><small>Wall mounts, cable cleanup, displays</small></span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="Smart Home Installation" />
+              <span class="choice-mark"></span>
+              <span class="choice-text"><strong>Smart Home Installation</strong><small>Locks, thermostats, doorbells, cameras</small></span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="Fitness Equipment" />
+              <span class="choice-mark"></span>
+              <span class="choice-text"><strong>Fitness Equipment</strong><small>Treadmills, bikes, racks, benches</small></span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="Outdoor & Playsets" />
+              <span class="choice-mark"></span>
+              <span class="choice-text"><strong>Outdoor &amp; Playsets</strong><small>Playsets, patio sets, hoops, sheds</small></span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" value="Office Assembly" />
+              <span class="choice-mark"></span>
+              <span class="choice-text"><strong>Office Assembly</strong><small>Desks, chairs, shelves, workstations</small></span>
+            </label>
+          </div>
+          <span class="field-error" id="services-error"></span>
         </div>
-        <span class="field-error" id="transport-error"></span>
-      </div>
-      <div class="form-group">
-        <label for="bio">Tell us about yourself</label>
-        <textarea id="bio" class="form-control" rows="4" placeholder="Briefly describe your experience, skills, and why you'd be a great fit..."></textarea>
-        <span class="field-hint">Optional but helps your application stand out.</span>
-      </div>
-    </div>
 
-    <!-- Code of Conduct -->
-    <div class="section">
-      <div class="conduct-check">
-        <input type="checkbox" id="conduct" />
-        <div class="conduct-check-text">
-          I agree to the AssembleAtEase <a href="../terms" target="_blank">Code of Conduct</a> and
-          <a href="../terms" target="_blank">Terms of Service</a>. I understand that a background check
-          may be required as part of the application process, and that I must maintain professional
-          standards while representing AssembleAtEase.
+        <div class="section">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Step 3</span>
+              <h3 class="section-title">Readiness</h3>
+            </div>
+            <span class="section-status">Reviewed</span>
+          </div>
+          <div class="form-group">
+            <label>Do you have your own tools? *</label>
+            <div class="radio-row">
+              <label class="radio-option">
+                <input type="radio" name="tools" value="yes" />
+                <span class="choice-mark"></span>
+                <span class="choice-text"><strong>Yes</strong><small>I can bring tools to jobs.</small></span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="tools" value="no" />
+                <span class="choice-mark"></span>
+                <span class="choice-text"><strong>No</strong><small>I may need follow-up review.</small></span>
+              </label>
+            </div>
+            <span class="field-error" id="tools-error"></span>
+          </div>
+          <div class="form-group">
+            <label>Do you have reliable transportation? *</label>
+            <div class="radio-row">
+              <label class="radio-option">
+                <input type="radio" name="transport" value="yes" />
+                <span class="choice-mark"></span>
+                <span class="choice-text"><strong>Yes</strong><small>I can travel to local appointments.</small></span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="transport" value="no" />
+                <span class="choice-mark"></span>
+                <span class="choice-text"><strong>No</strong><small>I may need follow-up review.</small></span>
+              </label>
+            </div>
+            <span class="field-error" id="transport-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="bio">Tell us about your work</label>
+            <textarea id="bio" class="form-control" rows="4" placeholder="Share the types of jobs you have handled, tools you use, and what makes your work careful."></textarea>
+            <span class="field-hint">Optional, but strong details help us review your application faster.</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Step 4</span>
+              <h3 class="section-title">Agreement and verification fee</h3>
+            </div>
+            <span class="section-status">Payment required</span>
+          </div>
+          <div class="conduct-check">
+            <input type="checkbox" id="conduct" />
+            <div class="conduct-check-text">
+              I agree to the AssembleAtEase <a href="../terms" target="_blank">Code of Conduct</a> and
+              <a href="../terms" target="_blank">Terms of Service</a>. I understand that identity verification and application review are required before I can receive jobs.
+            </div>
+          </div>
+          <span class="field-error" id="conduct-error"></span>
+
+          <div class="fee-callout" style="margin-top:1rem">
+            <div class="fee-row">
+              <span class="fee-dot">$</span>
+              <div><strong>Application fee: $30.</strong> Charged when you submit. This helps cover identity verification and application processing.</div>
+            </div>
+            <div class="fee-row warning">
+              <span class="fee-dot">!</span>
+              <div><strong>Non-refundable.</strong> The application fee is not refunded if your application is declined or withdrawn.</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Card details *</label>
+            <div id="card-element" class="card-element-wrap"></div>
+            <span class="card-error" id="card-error"></span>
+            <span class="fee-note">Payments are processed securely by Stripe. AssembleAtEase does not store card details.</span>
+          </div>
+        </div>
+
+        <input type="hidden" id="invite-token" value="" />
+        <div class="submit-pad">
+          <button type="submit" class="btn-apply" id="submit-btn">Pay $30 &amp; Submit Application</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="apply-aside" aria-label="Application details">
+      <div class="aside-card dark">
+        <div class="aside-eyebrow">What happens next</div>
+        <h3>Approval first. Jobs after.</h3>
+        <p>Submitting this application does not guarantee work. Approved Easers are matched to jobs based on service skills, availability, and operational fit.</p>
+        <div class="step-list">
+          <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service skills, and fee confirmation.</span></div></div>
+          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the Stripe Identity link after payment.</span></div></div>
+          <div class="mini-step"><div class="mini-num">3</div><div><strong>Owner review</strong><span>We review your tools, transport, service fit, and professionalism.</span></div></div>
         </div>
       </div>
-      <span class="field-error" id="conduct-error"></span>
-    </div>
 
-    <!-- Payment -->
-    <div class="section">
-      <div class="section-title">Application Fee — $30</div>
-      <p style="font-size:0.875rem;color:#4a5568;margin:0 0 0.75rem;line-height:1.55">A one-time $30 application fee is required to cover the cost of identity verification. Your card will be charged when you submit.</p>
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#991b1b;margin-bottom:1rem;line-height:1.5">
-        <strong>Non-Refundable:</strong> The $30 application fee is non-refundable regardless of the outcome of your application, including if your application is declined or you withdraw it.
+      <div class="aside-card">
+        <div class="aside-eyebrow">Good fit</div>
+        <h3>Careful work beats rushed work.</h3>
+        <p>We are looking for people who show up prepared, protect the customer's home, communicate clearly, and finish clean.</p>
+        <a href="../assembler/earn" class="aside-link">Read Easer details &rarr;</a>
       </div>
-      <div class="form-group">
-        <label>Card details *</label>
-        <div id="card-element" class="card-element-wrap"></div>
-        <span class="card-error" id="card-error"></span>
-        <span class="fee-note">Payments processed securely by Stripe. We do not store your card details.</span>
+
+      <div class="aside-card">
+        <div class="aside-eyebrow">Questions</div>
+        <h3>Need help applying?</h3>
+        <p>Email <a href="mailto:service@assembleatease.com" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">(737) 290-6129</a>.</p>
       </div>
-    </div>
+    </aside>
+  </div>
+</main>
 
-    <input type="hidden" id="invite-token" value="" />
-    <button type="submit" class="btn-apply" id="submit-btn">Pay $30 &amp; Submit Application</button>
-  </form>
-</div>
-
-<!-- Success state (hidden by default) -->
-<div class="apply-wrap" id="success-state" style="display:none">
-  <div class="apply-logo"><a href="../">Assemble<span>AtEase</span></a></div>
+<div class="success-wrap" id="success-state">
   <div class="success-box">
-    <div class="icon">&#10003;</div>
-    <h2 id="success-heading">Application Submitted!</h2>
+    <div class="success-icon">&#10003;</div>
+    <h2 id="success-heading">Application submitted</h2>
     <p id="success-msg">Thank you for applying. Your $30 fee has been received and a confirmation has been sent to your email.</p>
-    <!-- Identity verification CTA (shown when verificationUrl returned) -->
-    <div id="identity-section" style="display:none;margin-top:1.25rem">
-      <p style="font-size:0.9rem;color:#374151;margin-bottom:0.75rem">Complete your identity verification to finalize your application:</p>
-      <a id="verify-btn" href="#" class="btn-apply" style="display:inline-block;text-decoration:none;max-width:320px">
-        Verify Identity &rarr;
-      </a>
-      <p style="margin-top:0.75rem;font-size:0.8rem;color:#71717a">You will be redirected to Stripe's secure verification page.</p>
+    <div id="identity-section" class="verify-card">
+      <p>Complete identity verification to finish your application review.</p>
+      <a id="verify-btn" href="#" class="btn-apply">Verify Identity &rarr;</a>
+      <p style="font-size:0.8rem;margin-top:0.75rem">You will be redirected to Stripe's secure verification page.</p>
     </div>
-    <!-- Verification complete message -->
-    <div id="verification-complete-section" style="display:none;margin-top:1.25rem">
-      <p style="font-size:0.9rem;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.85rem">&#127881; Verification submitted! Our team will review your application shortly. You will receive an email when approved.</p>
-    </div>
+    <div id="verification-complete-section" class="verification-complete">Verification submitted. Our team will review your application and email you when a decision is made.</div>
   </div>
 </div>
 
@@ -263,12 +1093,13 @@
   // -- Handle ?verification=complete return from Stripe Identity --
   var params = new URLSearchParams(window.location.search);
   if (params.get('verification') === 'complete') {
-    document.querySelector('.apply-wrap').style.display = 'none';
+    var panel = document.getElementById('application-panel');
+    if (panel) panel.style.display = 'none';
     var successEl = document.getElementById('success-state');
-    successEl.style.display = '';
-    document.getElementById('success-heading').textContent = 'Verification Submitted!';
+    successEl.style.display = 'block';
+    document.getElementById('success-heading').textContent = 'Verification submitted';
     document.getElementById('success-msg').textContent = 'Your identity verification has been submitted. Our team will review your application shortly.';
-    document.getElementById('verification-complete-section').style.display = '';
+    document.getElementById('verification-complete-section').style.display = 'block';
   }
 
   // -- Invite token detection and pre-fill --
@@ -282,6 +1113,7 @@
           var d = res.data;
           if (d.name) document.getElementById('full-name').value = d.name;
           if (d.email) document.getElementById('email').value = d.email;
+          if (d.phone) document.getElementById('phone').value = d.phone;
           if (d.city) document.getElementById('city').value = d.city;
           var banner = document.getElementById('invite-banner');
           banner.style.display = '';
@@ -361,11 +1193,11 @@
     var hasErr = false;
     if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
-    if (!phone) { fieldError('phone', 'Required'); hasErr = true; }
+    if (!phone || !/^\+?[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
     if (!city) { fieldError('city', 'Required'); hasErr = true; }
     if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
     if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
-    if (!services.length) { fieldError('services', 'Select at least one'); hasErr = true; }
+    if (!services.length) { fieldError('services', 'Select at least one service'); hasErr = true; }
     if (!toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
     if (!transportVal) { fieldError('transport', 'Required'); hasErr = true; }
     if (!conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
@@ -424,13 +1256,14 @@
       }
 
       // Show success state
-      document.getElementById('apply-form').closest('.apply-wrap').style.display = 'none';
+      document.getElementById('application-panel').style.display = 'none';
       var successEl = document.getElementById('success-state');
-      successEl.style.display = '';
+      successEl.style.display = 'block';
+      successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       // Show identity verification button if URL was returned
       if (data.verificationUrl) {
-        document.getElementById('identity-section').style.display = '';
+        document.getElementById('identity-section').style.display = 'block';
         document.getElementById('verify-btn').href = data.verificationUrl;
       }
 
@@ -442,12 +1275,13 @@
   });
 })();
 </script>
-<footer style="border-top:1px solid #e2e8f0;padding:1.5rem;text-align:center;font-size:0.8rem;color:#718096;margin-top:2rem">
-  <div style="margin-bottom:0.5rem">
-    <a href="tel:+15125550100" style="color:inherit;text-decoration:none;margin-right:1.25rem">(512) 555-0100</a>
-    <a href="mailto:hello@assembleatease.com" style="color:inherit;text-decoration:none;margin-right:1.25rem">hello@assembleatease.com</a>
-    <a href="../privacy" style="color:inherit;text-decoration:none;margin-right:1.25rem">Privacy Policy</a>
-    <a href="../terms" style="color:inherit;text-decoration:none">Terms of Service</a>
+
+<footer class="apply-footer">
+  <div class="apply-footer-links">
+    <a href="tel:+17372906129">(737) 290-6129</a>
+    <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
+    <a href="../privacy">Privacy Policy</a>
+    <a href="../terms">Terms of Service</a>
   </div>
   <div>&copy; 2026 AssembleAtEase &mdash; Austin, TX</div>
 </footer>
