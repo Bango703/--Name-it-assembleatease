@@ -196,12 +196,7 @@
       '</div>';
     }).join('');
 
-    var feePct = list.length && list[0].platform_fee_pct ? list[0].platform_fee_pct : 25;
-    var memberNote = feePct >= 25
-      ? '<div style="text-align:center;margin-top:1rem;font-size:0.72rem;color:var(--pro-muted)">'
-        + 'Earn more with <a href="/assembler/profile#membership-section" style="color:var(--pro-teal);font-weight:600">Priority Membership</a>'
-        + '</div>'
-      : '';
+    var memberNote = '';
 
     el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>' + memberNote;
   }
