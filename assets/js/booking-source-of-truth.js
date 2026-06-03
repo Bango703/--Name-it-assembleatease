@@ -11,13 +11,13 @@ window.AAE_BOOKING_SOURCE = {
   subcategories: {
     'Furniture Assembly': [
       { group: 'Seating & Sofas', items: [
-        { name: 'Accent chair / armchair', price: 69 },
+        { name: 'Accent chair / armchair', price: 75 },
         { name: 'Sofa (2–3 seat, standard)', price: 89 },
         { name: 'Sectional sofa (L-shape)', price: 125, priceMax: 155, popular: true },
         { name: 'Sectional sofa (U-shape / oversized)', price: 179 },
         { name: 'Sleeper sofa / sofa bed', price: 109 },
-        { name: 'Ottoman (storage)', price: 55 },
-        { name: 'Bench (entryway or bedroom)', price: 55 }
+        { name: 'Ottoman (storage)', price: 75 },
+        { name: 'Bench (entryway or bedroom)', price: 75 }
       ]},
       { group: 'Bedroom', items: [
         { name: 'Bed frame — twin / full', price: 85 },
@@ -28,7 +28,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Bunk bed / loft bed', price: 149 },
         { name: 'Trundle bed', price: 109 },
         { name: 'Crib / toddler bed', price: 85 },
-        { name: 'Nightstand (single)', price: 55 },
+        { name: 'Nightstand (single)', price: 75 },
         { name: 'Dresser (up to 6 drawers)', price: 85 },
         { name: 'Dresser (7+ drawers / double)', price: 109 },
         { name: 'Wardrobe / armoire (freestanding)', price: 109, priceMax: 135 },
@@ -37,38 +37,38 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Vanity with mirror', price: 95 }
       ]},
       { group: 'Home Office & Study', items: [
-        { name: 'Desk (simple, flat-pack)', price: 69 },
+        { name: 'Desk (simple, flat-pack)', price: 75 },
         { name: 'Desk (L-shape / corner)', price: 109 },
         { name: 'Standing desk (electric)', price: 109 },
-        { name: 'Office chair (standard)', price: 55 },
-        { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 69 },
+        { name: 'Office chair (standard)', price: 75 },
+        { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 75 },
         { name: 'Bookcase / shelving unit (6+ shelves)', price: 89 },
-        { name: 'File cabinet (2–4 drawer)', price: 55 }
+        { name: 'File cabinet (2–4 drawer)', price: 75 }
       ]},
       { group: 'Dining & Kitchen', items: [
         { name: 'Dining table (standard)', price: 79 },
         { name: 'Dining table (extendable / large)', price: 109 },
-        { name: 'Dining chairs (per 2 chairs)', price: 39 },
+        { name: 'Dining chairs (per 2 chairs)', price: 75 },
         { name: 'Dining chairs (set of 4–6)', price: 75, priceMax: 95 },
-        { name: 'Bar stool (per 2 stools)', price: 39 },
+        { name: 'Bar stool (per 2 stools)', price: 75 },
         { name: 'Kitchen island (freestanding)', price: 95 },
         { name: 'China cabinet / hutch', price: 109 },
         { name: 'Buffet / sideboard', price: 85 }
       ]},
       { group: 'Living Room', items: [
-        { name: 'Coffee table (simple)', price: 55 },
-        { name: 'Coffee table (lift-top / storage)', price: 69 },
-        { name: 'Side / end table', price: 49 },
+        { name: 'Coffee table (simple)', price: 75 },
+        { name: 'Coffee table (lift-top / storage)', price: 79 },
+        { name: 'Side / end table', price: 75 },
         { name: 'TV stand / media console', price: 75 },
         { name: 'Entertainment center (large)', price: 125 },
-        { name: 'Console table', price: 59 }
+        { name: 'Console table', price: 75 }
       ]},
       { group: 'Outdoor & Patio', items: [
         { name: 'Outdoor dining set (table + 4 chairs)', price: 109 },
         { name: 'Outdoor dining set (table + 6+ chairs)', price: 139 },
         { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 125 },
-        { name: 'Adirondack / Adirondack set (per 2)', price: 59 },
-        { name: 'Patio umbrella + base', price: 59 },
+        { name: 'Adirondack / Adirondack set (per 2)', price: 75 },
+        { name: 'Patio umbrella + base', price: 75 },
         { name: 'Pergola / gazebo (kit assembly)', price: 225, priceMax: 325 },
         { name: 'Fire pit (assembly only)', price: 75 },
         { name: 'Grill (gas / charcoal assembly)', price: 85 },
@@ -83,7 +83,7 @@ window.AAE_BOOKING_SOURCE = {
     ],
     'TV Mounting': [
       { group: 'TV Mounting by Size', items: [
-        { name: 'TV up to 40” (standard wall)', price: 69 },
+        { name: 'TV up to 40” (standard wall)', price: 75 },
         { name: 'TV 41”–55” (standard wall)', price: 79, popular: true },
         { name: 'TV 56”–65” (standard wall)', price: 89 },
         { name: 'TV 66”–75” (standard wall)', price: 99 },
@@ -98,35 +98,35 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Above fireplace mount', price: 55, addon: true }
       ]},
       { group: 'Cable & Cord Management', items: [
-        { name: 'Surface cord cover (raceway, up to 6 ft)', price: 55 },
+        { name: 'Surface cord cover (raceway, up to 6 ft)', price: 75 },
         { name: 'In-wall cord concealment', price: 99, popular: true },
         { name: 'In-wall cord concealment (brick / concrete)', price: 115 },
-        { name: 'Cable management box / hub install', price: 45 }
+        { name: 'Cable management box / hub install', price: 75 }
       ]},
       { group: 'Shelves & Wall Items', items: [
-        { name: 'Floating shelf — single (up to 36”)', price: 55 },
-        { name: 'Floating shelf — single (37”–60”)', price: 69 },
+        { name: 'Floating shelf — single (up to 36”)', price: 75 },
+        { name: 'Floating shelf — single (37”–60”)', price: 79 },
         { name: 'Floating shelves — set of 3', price: 115 },
         { name: 'Floating shelves — set of 5+', price: 155 },
-        { name: 'Heavy-duty shelf (sawtooth / bracket, per shelf)', price: 65 },
+        { name: 'Heavy-duty shelf (sawtooth / bracket, per shelf)', price: 75 },
         { name: 'Gallery wall — up to 5 pieces', price: 75 },
         { name: 'Gallery wall — 6–10 pieces', price: 105, popular: true },
         { name: 'Gallery wall — 11–20 pieces', price: 155 },
-        { name: 'Single framed picture / mirror (up to 30 lbs)', price: 45 },
-        { name: 'Heavy mirror / artwork (30–80 lbs)', price: 65 },
-        { name: 'Full-length mirror (floor lean / anchor)', price: 45 }
+        { name: 'Single framed picture / mirror (up to 30 lbs)', price: 75 },
+        { name: 'Heavy mirror / artwork (30–80 lbs)', price: 75 },
+        { name: 'Full-length mirror (floor lean / anchor)', price: 75 }
       ]},
       { group: 'Window Treatments', items: [
-        { name: 'Curtain rod — 1 window', price: 55 },
+        { name: 'Curtain rod — 1 window', price: 75 },
         { name: 'Curtain rod — 2 windows', price: 85, popular: true },
         { name: 'Curtain rod — 3 windows', price: 110 },
         { name: 'Curtain rod — 4 windows', price: 135 },
         { name: 'Curtain rod — 5+ windows (per additional)', price: 25, addon: true },
         { name: 'Double curtain rod (per window)', price: 15, addon: true },
-        { name: 'Blind install — 1 window', price: 45 },
+        { name: 'Blind install — 1 window', price: 75 },
         { name: 'Blind install — per additional window', price: 25, addon: true },
-        { name: 'Cellular shade / roller shade install (per window)', price: 45 },
-        { name: 'Motorized blind / shade install (per window)', price: 65 }
+        { name: 'Cellular shade / roller shade install (per window)', price: 75 },
+        { name: 'Motorized blind / shade install (per window)', price: 79 }
       ]},
       { group: 'Mounting Add-ons', items: [
         { name: 'TV mount hardware (if not provided)', price: 25, addon: true },
@@ -139,8 +139,8 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Climate Control', items: [
         { name: 'Smart thermostat — Nest, Ecobee, Honeywell', price: 79, popular: true },
         { name: 'Smart thermostat (no C-wire, adapter needed)', price: 99 },
-        { name: 'Smart vent install (per vent)', price: 45 },
-        { name: 'Smart AC controller (window / mini-split)', price: 55 },
+        { name: 'Smart vent install (per vent)', price: 75 },
+        { name: 'Smart AC controller (window / mini-split)', price: 75 },
         { name: 'Whole-home thermostat multi-zone (per zone)', price: 75 }
       ]},
       { group: 'Security & Access', items: [
@@ -153,7 +153,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Keypad entry install (outdoor)', price: 75 }
       ]},
       { group: 'Cameras', items: [
-        { name: 'Indoor security camera (plug-in)', price: 55 },
+        { name: 'Indoor security camera (plug-in)', price: 75 },
         { name: 'Indoor camera (mount + cable manage)', price: 79 },
         { name: 'Outdoor camera — eave / soffit mount', price: 95 },
         { name: 'Outdoor camera — brick / concrete', price: 95 },
@@ -163,20 +163,20 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'NVR / DVR setup + camera config', price: 95 }
       ]},
       { group: 'Lighting', items: [
-        { name: 'Smart bulb install + app setup (per room, up to 4 bulbs)', price: 45 },
-        { name: 'Smart switch install (per switch)', price: 55 },
-        { name: 'Smart dimmer install (per switch)', price: 60 },
-        { name: 'Smart plug install + setup (per 2 plugs)', price: 35 },
-        { name: 'LED strip lighting — per 10 ft run', price: 55 },
-        { name: 'Outdoor smart lighting (per fixture)', price: 65 }
+        { name: 'Smart bulb install + app setup (per room, up to 4 bulbs)', price: 75 },
+        { name: 'Smart switch install (per switch)', price: 75 },
+        { name: 'Smart dimmer install (per switch)', price: 79 },
+        { name: 'Smart plug install + setup (per 2 plugs)', price: 75 },
+        { name: 'LED strip lighting — per 10 ft run', price: 75 },
+        { name: 'Outdoor smart lighting (per fixture)', price: 79 }
       ]},
       { group: 'Network & Hubs', items: [
-        { name: 'Wi-Fi router setup + optimization', price: 65 },
-        { name: 'Wi-Fi extender / mesh node install (per node)', price: 55 },
+        { name: 'Wi-Fi router setup + optimization', price: 75 },
+        { name: 'Wi-Fi extender / mesh node install (per node)', price: 75 },
         { name: 'Mesh network (3-node setup, full home)', price: 125 },
         { name: 'Smart home hub setup (Alexa, Google, Apple)', price: 75 },
         { name: 'Smart home hub + device automation setup', price: 115 },
-        { name: 'TV streaming device setup (Apple TV, Roku, Fire)', price: 45 }
+        { name: 'TV streaming device setup (Apple TV, Roku, Fire)', price: 75 }
       ]},
       { group: 'Add-ons', items: [
         { name: 'App setup + walkthrough (per platform)', price: 25, addon: true },
@@ -215,7 +215,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Cubicle workstation / multi-desk setup', price: 275, priceMax: 395 }
       ]},
       { group: 'Seating & Storage', items: [
-        { name: 'Office chair (standard)', price: 65 },
+        { name: 'Office chair (standard)', price: 75 },
         { name: 'Office chair (ergonomic / heavy-duty)', price: 85 },
         { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 85 },
         { name: 'Bookcase / shelving unit (6+ shelves)', price: 105 },

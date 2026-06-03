@@ -53,8 +53,8 @@ export const EASER_STAGE_TO_STATUS = Object.freeze({
 });
 
 export const MEMBERSHIP_PLATFORM_FEE_PCT = Object.freeze({
-  MEMBER: 18,
-  NON_MEMBER: 25,
+  MEMBER: 25,
+  NON_MEMBER: 35,
 });
 
 export function getPlatformFeePct(isMember) {
