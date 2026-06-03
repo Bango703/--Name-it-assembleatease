@@ -1,0 +1,5 @@
+2026/06/02-22:06:28.500 dc8c Creating DB C:\Users\tgbiz\Handyman-marketplace\_local_artifacts\edge-cdp-mobile-profile\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/06/02-22:06:28.558 dc8c Reusing MANIFEST C:\Users\tgbiz\Handyman-marketplace\_local_artifacts\edge-cdp-mobile-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/06/02-22:06:29.179 1036c Level-0 table #5: started
+2026/06/02-22:06:29.186 1036c Level-0 table #5: 682668 bytes OK
+2026/06/02-22:06:29.191 1036c Delete type=0 #3
