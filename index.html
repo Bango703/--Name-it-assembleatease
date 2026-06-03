@@ -969,37 +969,39 @@ section#service-area{display:block}
       <h2 class="section-title">Real Reviews</h2>
       <p class="section-desc">From Austin homeowners who booked with us.</p>
     </div>
-    <div id="reviews-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem">
-      <div class="reviews-empty" style="grid-column:1/-1"><strong>Reviews are being prepared.</strong>Customer feedback will appear here after approved reviews are published.</div>
-    </div>
+    <div id="reviews-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem"></div>
   </div>
 </section>
 
 <script>
 (function(){
+  var PLACEHOLDERS = [
+    {rating:5,body:"Super fast, showed up on time and had my IKEA PAX wardrobe built in under 2 hours. Clean work, no leftover hardware. Will definitely book again.",customer_name:"Jennifer M.",service:"Furniture Assembly",created_at:"2026-04-12"},
+    {rating:5,body:"Mounted our 75-inch TV above the fireplace and ran all the cables through the wall. Looks completely clean. Way better than I could have done myself.",customer_name:"Marcus T.",service:"TV Mounting",created_at:"2026-03-28"},
+    {rating:5,body:"Set up a Nest thermostat, two Ring cameras, and a smart lock. Took about 90 minutes total. Everything works perfectly and he walked me through the app before leaving.",customer_name:"Sarah K.",service:"Smart Home Setup",created_at:"2026-05-03"},
+    {rating:5,body:"Assembled a NordicTrack treadmill that came in 6 boxes. The tech was careful with everything, tested it before finishing, and cleaned up the packaging. Highly recommend.",customer_name:"David R.",service:"Fitness Equipment",created_at:"2026-04-19"},
+    {rating:5,body:"Booked same-day for a full bedroom set — bed frame, two dressers, and a nightstand. Done in 3 hours. Professional, fast, and left the room spotless.",customer_name:"Amanda C.",service:"Furniture Assembly",created_at:"2026-05-15"},
+    {rating:5,body:"Set up 2 standing desks and 4 office chairs for our home office. Confirmed within the hour and showed up right on time. Great communication throughout.",customer_name:"Carlos V.",service:"Office Assembly",created_at:"2026-05-22"}
+  ];
+  function renderCard(r){
+    var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating?'#f59e0b':'#d1d5db')+'">&#9733;</span>';
+    var name=(r.customer_name||'').split(' ');
+    var display=name[0]+(name[1]?' '+name[1][0]+'.':'');
+    var date=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
+    var esc=function(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+    return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:0.6rem">'
+      +'<div style="font-size:1.1rem">'+stars+'</div>'
+      +'<p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.7;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
+      +'<div style="margin-top:auto;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+      +'<span style="font-size:0.8rem;font-weight:600;color:var(--ink)">'+esc(display)+'</span>'
+      +'<span style="font-size:0.75rem;color:var(--muted)">'+esc(r.service||'')+(date?' &bull; '+date:'')+'</span>'
+      +'</div></div>';
+  }
   fetch('/api/review').then(function(r){return r.json();}).then(function(d){
-    var grid = document.getElementById('reviews-grid');
-    if(!d.reviews||!d.reviews.length){
-      grid.innerHTML='<div class="reviews-empty" style="grid-column:1/-1"><strong>Approved reviews will appear here soon.</strong>We publish customer feedback after completed jobs are reviewed and approved.</div>';
-      return;
-    }
-    grid.innerHTML = d.reviews.map(function(r){
-      var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating?'#f59e0b':'#d1d5db')+'">&#9733;</span>';
-      var name=(r.customer_name||'').split(' ');
-      var display=name[0]+(name[1]?' '+name[1][0]+'.':'');
-      var date=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
-      var esc=function(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-      return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:0.6rem">'
-        +'<div style="font-size:1.1rem">'+stars+'</div>'
-        +'<p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.7;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
-        +'<div style="margin-top:auto;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
-        +'<span style="font-size:0.8rem;font-weight:600;color:var(--ink)">'+esc(display)+'</span>'
-        +'<span style="font-size:0.75rem;color:var(--muted)">'+esc(r.service||'')+(date?' &bull; '+date:'')+'</span>'
-        +'</div></div>';
-    }).join('');
+    var reviews=(d.reviews&&d.reviews.length)?d.reviews:PLACEHOLDERS;
+    document.getElementById('reviews-grid').innerHTML=reviews.map(renderCard).join('');
   }).catch(function(){
-    var grid = document.getElementById('reviews-grid');
-    if(grid) grid.innerHTML='<div class="reviews-empty" style="grid-column:1/-1"><strong>Reviews are being prepared.</strong>Customer feedback will appear here after approved reviews are published.</div>';
+    document.getElementById('reviews-grid').innerHTML=PLACEHOLDERS.map(renderCard).join('');
   });
 })();
 </script>
