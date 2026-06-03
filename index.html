@@ -1022,7 +1022,7 @@ section#service-area{display:block}
       +'</div></div>';
   }
   fetch('/api/review').then(function(r){return r.json();}).then(function(d){
-    var reviews=(d.reviews&&d.reviews.length)?d.reviews:PLACEHOLDERS;
+    var reviews=(d.reviews&&d.reviews.length>=3)?d.reviews:PLACEHOLDERS;
     document.getElementById('reviews-grid').innerHTML=reviews.map(renderCard).join('');
   }).catch(function(){
     document.getElementById('reviews-grid').innerHTML=PLACEHOLDERS.map(renderCard).join('');
