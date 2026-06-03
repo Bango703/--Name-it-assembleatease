@@ -24,6 +24,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Local dev artifacts (browser profiles, screenshots)
+_local_artifacts/
+
 # Sensitive files
 config.local.js
 secrets.js
