@@ -2,8 +2,9 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/repairs", "destination": "/", "permanent": true },
-    { "source": "/junk",    "destination": "/", "permanent": true }
+    { "source": "/repairs",        "destination": "/",                  "permanent": true },
+    { "source": "/junk",           "destination": "/",                  "permanent": true },
+    { "source": "/assembler/earn", "destination": "/assembler/apply",   "permanent": true }
   ],
   "crons": [
     {
