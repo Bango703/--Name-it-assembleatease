@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
@@ -29,27 +29,76 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <style>
-.page-hero{background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#0099CC 100%);padding:4rem 2rem;text-align:center}
-.page-hero-inner{max-width:700px;margin:0 auto}
-.page-back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.75);text-decoration:none;font-size:0.82rem;font-weight:500;margin-bottom:1.25rem;transition:color 0.15s}
+body.about-page .nav{position:relative}
+.page-hero{position:relative;min-height:520px;padding:0 2rem;display:grid;align-items:end;overflow:hidden;background:#002d38}
+.page-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,45,56,0.97) 0%,rgba(0,75,92,0.88) 38%,rgba(0,45,56,0.3) 68%,rgba(0,45,56,0.08) 100%),url('/images/about-hero-local-service.jpg?v=about-photos-1') center/cover no-repeat;transform:scale(1.01)}
+.page-hero-inner{position:relative;z-index:1;width:min(1120px,100%);margin:0 auto;padding:5.5rem 0 4.25rem;color:#fff}
+.page-back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.8);text-decoration:none;font-size:0.82rem;font-weight:700;margin-bottom:1.25rem;transition:color 0.15s}
 .page-back:hover{color:#fff}
-.page-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);color:#fff;margin-bottom:0.75rem}
-.page-desc{font-size:1rem;color:rgba(255,255,255,0.82);line-height:1.75}
-.about-section{padding:5rem 2rem}
-.about-inner{max-width:900px;margin:0 auto}
-.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;margin-bottom:4rem}
-.about-text h2{font-family:var(--font-display);font-size:1.8rem;color:var(--ink);margin-bottom:1rem}
-.about-text p{font-size:0.95rem;color:var(--muted);line-height:1.85;margin-bottom:1rem}
-.about-visual{background:var(--cyan-light);border-radius:var(--radius-xl);padding:2.5rem;text-align:center}
-.about-stat-big{font-family:var(--font-display);font-size:3rem;color:var(--cyan-dark);line-height:1}
-.about-stat-label{font-size:0.85rem;color:var(--muted);margin-top:0.3rem}
-.values-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem}
-.value-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem}
-.value-icon{width:44px;height:44px;background:var(--cyan-light);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
-.value-icon svg{width:22px;height:22px;fill:var(--cyan-dark)}
-.value-title{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.4rem}
-.value-desc{font-size:0.82rem;color:var(--muted);line-height:1.65}
-@media(max-width:900px){.about-grid{grid-template-columns:1fr;gap:2rem}.values-grid{grid-template-columns:1fr}}
+.page-eyebrow{font-size:0.72rem;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:0.85rem}
+.page-title{font-family:var(--font-display);font-size:clamp(2.5rem,5.2vw,5.5rem);line-height:0.93;color:#fff;max-width:620px;margin-bottom:1.15rem;letter-spacing:0}
+.page-desc{font-size:clamp(1rem,1.4vw,1.18rem);color:rgba(255,255,255,0.86);line-height:1.75;max-width:610px}
+.hero-proof{display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:2rem}
+.hero-proof span{display:inline-flex;align-items:center;gap:0.45rem;min-height:36px;padding:0.55rem 0.85rem;border:1px solid rgba(255,255,255,0.2);border-radius:999px;background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);font-size:0.82rem;font-weight:800;color:#fff}
+.hero-proof svg{width:16px;height:16px;stroke:var(--cyan);stroke-width:2.2;fill:none}
+.about-section{padding:5.5rem 2rem;background:linear-gradient(180deg,#fff 0%,#f6fbfd 100%)}
+.about-inner{max-width:1120px;margin:0 auto}
+.about-grid{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(360px,0.97fr);gap:4.5rem;align-items:center;margin-bottom:5rem}
+.about-text h2,.section-title{font-family:var(--font-display);font-size:clamp(2rem,3vw,3rem);line-height:1.02;color:var(--ink);letter-spacing:0}
+.about-text h2{margin-bottom:1.2rem}
+.about-lede{font-size:1.08rem;color:var(--ink-soft);line-height:1.75;margin-bottom:1rem}
+.about-text p{font-size:0.96rem;color:var(--muted);line-height:1.85;margin-bottom:1rem}
+.about-checks{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:1.4rem}
+.about-check{display:flex;align-items:flex-start;gap:0.55rem;font-size:0.86rem;font-weight:800;color:var(--ink-soft)}
+.about-check svg{width:18px;height:18px;stroke:var(--cyan-dark);stroke-width:2.4;fill:none;flex-shrink:0;margin-top:1px}
+.about-visual{position:relative;min-height:420px;border-radius:var(--radius-xl);overflow:hidden;box-shadow:0 24px 70px rgba(0,45,56,0.18);background:#d9edf2}
+.about-visual img{width:100%;height:100%;min-height:420px;object-fit:cover;display:block}
+.about-stat-panel{position:absolute;left:1rem;right:1rem;bottom:1rem;display:grid;grid-template-columns:repeat(4,1fr);gap:0.55rem;padding:0.75rem;border-radius:18px;background:rgba(255,255,255,0.92);backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(0,0,0,0.16)}
+.about-stat{padding:0.75rem 0.45rem;text-align:center;border-radius:14px;background:#fff;border:1px solid rgba(0,191,255,0.14)}
+.about-stat-big{font-family:var(--font-display);font-size:clamp(1.35rem,2.5vw,2.15rem);color:var(--cyan-dark);line-height:0.98}
+.about-stat-label{font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-top:0.35rem}
+.section-header{max-width:650px;margin-bottom:1.8rem}
+.section-label{font-size:0.72rem;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--cyan-dark);margin-bottom:0.5rem}
+.section-sub{font-size:0.98rem;color:var(--muted);line-height:1.75;margin-top:0.7rem}
+.values-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1.8rem}
+.value-card{position:relative;background:var(--white);border:1px solid rgba(13,17,23,0.08);border-radius:18px;padding:1.55rem;box-shadow:0 12px 34px rgba(10,22,40,0.05);transition:transform 0.18s ease,box-shadow 0.18s ease,border-color 0.18s ease}
+.value-card:hover{transform:translateY(-3px);box-shadow:0 18px 45px rgba(10,22,40,0.09);border-color:rgba(0,191,255,0.28)}
+.value-icon{width:42px;height:42px;background:var(--cyan-light);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
+.value-icon svg{width:21px;height:21px;fill:var(--cyan-dark)}
+.value-title{font-size:0.96rem;font-weight:800;color:var(--ink);margin-bottom:0.45rem}
+.value-desc{font-size:0.84rem;color:var(--muted);line-height:1.65}
+.about-cta{position:relative;overflow:hidden;margin-top:4rem;border-radius:24px;padding:2.5rem;background:linear-gradient(135deg,#002d38 0%,#00566a 62%,#00BFFF 160%);color:#fff;display:grid;grid-template-columns:1.25fr auto;gap:2rem;align-items:center;box-shadow:0 24px 70px rgba(0,45,56,0.18)}
+.about-cta::after{content:"";position:absolute;right:-130px;top:-150px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,0.12)}
+.about-cta h3{position:relative;font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.6rem);line-height:1.02;margin-bottom:0.65rem;color:#fff}
+.about-cta p{position:relative;font-size:0.98rem;color:rgba(255,255,255,0.78);line-height:1.7;max-width:650px}
+.about-cta-actions{position:relative;display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end}
+.about-cta .btn-white{color:#002d38}
+@media(max-width:900px){
+  body.about-page .nav{position:sticky}
+  .page-hero-inner,.about-inner,.about-text,.section-header{width:100%;max-width:100%;min-width:0}
+  .page-hero{min-height:560px;padding:0 1rem}
+  .page-hero::before{background:linear-gradient(180deg,rgba(0,45,56,0.96) 0%,rgba(0,60,74,0.78) 48%,rgba(0,45,56,0.82) 100%),url('/images/about-hero-local-service.jpg?v=about-photos-1') center/cover no-repeat}
+  .page-hero-inner{padding:4.25rem 0 3rem}
+  .page-title{font-size:2rem;line-height:1;max-width:330px;text-wrap:balance;overflow-wrap:normal}
+  .page-desc{font-size:0.95rem;max-width:330px;overflow-wrap:break-word}
+  .hero-proof{display:grid;grid-template-columns:1fr;gap:0.5rem;max-width:260px}
+  .hero-proof span{width:100%;justify-content:center;font-size:0.76rem}
+  .about-section{width:100%;max-width:100%;overflow:hidden;padding:3.25rem 1rem}
+  .about-inner{margin:0}
+  .about-grid{grid-template-columns:1fr;gap:2rem;margin-bottom:3.5rem}
+  .about-text,.section-header,.about-visual,.about-cta,.values-grid{width:calc(100vw - 48px);max-width:342px;margin-left:0;margin-right:0}
+  .about-text p,.section-sub,.value-desc{overflow-wrap:break-word}
+  .about-checks{grid-template-columns:1fr}
+  .about-visual,.about-visual img{min-height:360px;min-width:0}
+  .about-stat-panel{grid-template-columns:1fr 1fr}
+  .about-stat-panel{left:0.75rem;right:0.75rem;bottom:0.75rem;padding:0.55rem;gap:0.45rem;border-radius:16px}
+  .about-stat{padding:0.65rem 0.25rem}
+  .about-stat-big{font-size:1.45rem}
+  .about-stat-label{font-size:0.56rem;letter-spacing:0.05em}
+  .values-grid{grid-template-columns:1fr}
+  .about-cta{grid-template-columns:1fr;padding:2rem}
+  .about-cta-actions{justify-content:flex-start}
+}
 </style>
 <script type="application/ld+json">
 {
@@ -87,10 +136,9 @@
   }
 }
 </script>
-<style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#00BFFF;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#00BFFF;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
-<style>#stripe-card-element{border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;background:var(--white);transition:border-color 0.15s}.StripeElement--focus{border-color:var(--cyan) !important}.StripeElement--invalid{border-color:#ef4444 !important}#card-errors{color:#ef4444;font-size:0.82rem;margin-top:0.5rem;min-height:1.2em}</style>
+<style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#00BFFF;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#00BFFF;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}@media(max-width:600px){#cookie-banner{padding:0.9rem 1rem;align-items:flex-start}#cookie-banner>span{display:block;flex:1 1 100%;min-width:0;max-width:100%;line-height:1.4;overflow-wrap:anywhere}.cookie-btns{width:100%;justify-content:center}}</style>
 </head>
-<body>
+<body class="about-page">
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
 <nav class="nav">
   <div class="nav-inner">
@@ -121,34 +169,49 @@
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 <main id="main-content">
-<section class="page-hero">
+<section class="page-hero" aria-label="About AssembleAtEase">
   <div class="page-hero-inner">
     <a href="/" class="page-back">&larr; Back to Home</a>
-    <h1 class="page-title">About AssembleAtEase</h1>
-    <p class="page-desc">Austin-based. Founded by Travis Gibson. Built on doing good work and treating people right.</p>
+    <div class="page-eyebrow">Austin home services</div>
+    <h1 class="page-title">Built for homes that need things done right.</h1>
+    <p class="page-desc">AssembleAtEase is a local Austin service for furniture assembly, mounting, and home setup. We keep the process calm: clear pricing, careful pros, and payment only after the work is complete.</p>
+    <div class="hero-proof" aria-label="Company proof points">
+      <span><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Pay after service</span>
+      <span><svg viewBox="0 0 24 24"><path d="M12 21s7-4 7-10V5l-7-3-7 3v6c0 6 7 10 7 10Z"/></svg>Vetted pros</span>
+      <span><svg viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>Confirmed in 1 hr</span>
+    </div>
   </div>
 </section>
 <section class="about-section">
   <div class="about-inner">
     <div class="about-grid">
       <div class="about-text">
-        <h2>We started because assembly should be easy</h2>
-        <p>AssembleAtEase was founded right here in Austin, Texas, out of a simple frustration &mdash; putting together furniture and hanging things on walls takes way more time and effort than it should, especially when you're moving, furnishing a new home, or just trying to get your life in order.</p>
-        <p>We built this service so Austin homeowners, renters, and business owners can skip the frustration and get it done right the first time. Whether it's a single IKEA bookshelf or a full home office setup, we show up on time, do the job properly, and leave your space clean.</p>
-        <p>Every technician is background-checked, experienced, and treats your home like their own. We're licensed and insured, and we only charge after the job is complete.</p>
+        <div class="section-label">Why we started</div>
+        <h2>Assembly should feel easy, not like another chore.</h2>
+        <p class="about-lede">AssembleAtEase was founded right here in Austin by Travis Gibson after seeing how much time people lose to moving, mounting, assembling, and setting up a home.</p>
+        <p>We built the service for homeowners, renters, and business owners who want the job handled cleanly the first time. Whether it is a single IKEA bookshelf, a mounted TV, a home office, or a whole-room setup, we show up prepared and leave the space ready to use.</p>
+        <p>Every technician is background-checked, experienced, and expected to treat your home with care. No surprise fee games. No rushed work. No charge until the job is complete.</p>
+        <div class="about-checks" aria-label="What customers can expect">
+          <div class="about-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Clean work and careful cleanup</div>
+          <div class="about-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Flat-rate starting prices</div>
+          <div class="about-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Austin same-day availability</div>
+          <div class="about-check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Card held, charged after completion</div>
+        </div>
       </div>
       <div class="about-visual">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
-          <div><div class="about-stat-big">Austin</div><div class="about-stat-label">Based locally</div></div>
-          <div><div class="about-stat-big">5&#9733;</div><div class="about-stat-label">Our standard</div></div>
-          <div><div class="about-stat-big">Same-day</div><div class="about-stat-label">Availability</div></div>
-          <div><div class="about-stat-big">&lt;1hr</div><div class="about-stat-label">Response time</div></div>
+        <img src="/images/about-story-customer-review.jpg?v=about-photos-1" alt="An AssembleAtEase pro reviewing completed work with Austin customers after a home service visit" loading="eager" />
+        <div class="about-stat-panel" aria-label="AssembleAtEase service standards">
+          <div class="about-stat"><div class="about-stat-big">Austin</div><div class="about-stat-label">Locally based</div></div>
+          <div class="about-stat"><div class="about-stat-big">5&#9733;</div><div class="about-stat-label">Service standard</div></div>
+          <div class="about-stat"><div class="about-stat-big">Same-day</div><div class="about-stat-label">Availability</div></div>
+          <div class="about-stat"><div class="about-stat-big">&lt;1hr</div><div class="about-stat-label">Confirmation</div></div>
         </div>
       </div>
     </div>
-    <div class="section-header" style="margin-bottom:1.5rem">
+    <div class="section-header">
       <div class="section-label">What we stand for</div>
-      <h2 class="section-title">Our Values</h2>
+      <h2 class="section-title">The small things are the standard.</h2>
+      <p class="section-sub">A home service business earns trust in the details: how clearly we price, how carefully we work, and how easy we make the visit feel.</p>
     </div>
     <div class="values-grid">
       <div class="value-card">
@@ -182,10 +245,15 @@
         <p class="value-desc">Every pro is vetted before their first job. We only work with people we&rsquo;d trust in our own home.</p>
       </div>
     </div>
-    <div style="background:var(--cyan-light);border-radius:var(--radius-xl);padding:2.5rem;text-align:center;margin-top:3rem;border:1px solid var(--cyan-mid)">
-      <h3 style="font-family:var(--font-display);font-size:1.4rem;color:var(--ink);margin-bottom:0.75rem">Ready to work with us?</h3>
-      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.5rem">Browse our services, add what you need, and we'll be in touch within 1 hour.</p>
-      <a href="/#services" class="btn btn-cyan btn-lg">See Our Services &rarr;</a>
+    <div class="about-cta">
+      <div>
+        <h3>Ready to get your home project handled?</h3>
+        <p>Pick a service, choose what you need, and book in minutes. We confirm quickly and only charge after the work is done.</p>
+      </div>
+      <div class="about-cta-actions">
+        <a href="/book" class="btn btn-white btn-lg">Book Now &rarr;</a>
+        <a href="/#services" class="btn btn-ghost-white btn-lg">Browse Services</a>
+      </div>
     </div>
   </div>
 </section>
@@ -247,464 +315,8 @@
   </div>
 </footer>
 
-<!-- Cart Bar -->
-<div class="cart-bar" id="cart-bar">
-  <span class="cart-count" id="cart-count">0</span>
-  <div><span class="cart-bar-text">Services selected</span><div class="cart-bar-services" id="cart-bar-services"></div></div>
-  <button class="btn btn-cyan" onclick="window.location.href='/book'">Book Now &rarr;</button>
-</div>
-
-<div class="modal-overlay" id="booking-modal">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
-    <div id="form-state">
-      <div class="modal-header">
-        <div><div class="modal-title" id="booking-modal-title">Complete Your Booking</div><div class="modal-sub">Fill out your details once for all selected services.</div></div>
-        <button class="modal-close" aria-label="Close booking form" onclick="AAE.closeBooking()">&times;</button>
-      </div>
-      <div class="cart-summary">
-        <div class="cart-summary-title">Your Selected Services</div>
-        <div id="modal-cart-items"></div>
-        <div class="cart-estimate" id="cart-estimate"></div>
-      </div>
-      <p style="font-size:0.875rem;color:var(--muted);line-height:1.65;margin:1.25rem 0">Continue to our quick booking form to pick your date, enter your details, and secure your appointment.</p>
-      <a href="/book" class="btn btn-cyan btn-full btn-lg">Continue to Booking &rarr;</a>
-      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secure checkout &bull; Card authorized at booking &bull; Charged only after job is done</p>
-    </div>
-  </div>
-</div>
-
-<script>// Shared cart &mdash; all pages
-window.AAE = window.AAE || {};
-AAE.cart = JSON.parse(sessionStorage.getItem('aae_cart') || '[]');
-
-AAE.saveCart = function() {
-  sessionStorage.setItem('aae_cart', JSON.stringify(AAE.cart));
-};
-
-AAE.hasItem = function(name) {
-  return AAE.cart.some(function(i) { return i.name === name; });
-};
-
-AAE.addItem = function(name, price) {
-  if (!AAE.hasItem(name)) {
-    AAE.cart.push({ name: name, price: price });
-    AAE.saveCart();
-    AAE.updateCartBar();
-  }
-};
-
-AAE.removeItem = function(name) {
-  AAE.cart = AAE.cart.filter(function(i) { return i.name !== name; });
-  AAE.saveCart();
-  AAE.updateCartBar();
-  AAE.updateModalCart();
-  document.querySelectorAll('[data-item-name="'+name+'"]').forEach(function(btn) {
-    btn.textContent = '+ Add to booking';
-    btn.style.background = '';
-    btn.style.color = '';
-    var card = btn.closest('.item-card');
-    if (card) card.classList.remove('selected');
-  });
-};
-
-AAE.removeByIndex = function(idx) {
-  if (AAE.cart[idx]) AAE.removeItem(AAE.cart[idx].name);
-};
-
-AAE.toggleItem = function(name, price, btn) {
-  if (AAE.hasItem(name)) {
-    AAE.removeItem(name);
-    if (btn) {
-      btn.textContent = '+ Add to booking';
-      btn.style.background = '';
-      btn.style.color = '';
-      var card = btn.closest('.item-card, .service-card');
-      if (card) card.classList.remove('selected', 'in-cart');
-    }
-  } else {
-    AAE.addItem(name, price);
-    if (btn) {
-      btn.textContent = '\u2713 Added \u2014 click to remove';
-      btn.style.background = 'var(--cyan)';
-      btn.style.color = '#fff';
-      var card2 = btn.closest('.item-card, .service-card');
-      if (card2) card2.classList.add('selected', 'in-cart');
-    }
-  }
-};
-
-AAE.clearCart = function() {
-  AAE.cart = [];
-  AAE.saveCart();
-  AAE.updateCartBar();
-};
-
-AAE.quickBook = function(name, price) {
-  if (!AAE.hasItem(name)) AAE.addItem(name, price);
-  AAE.openBooking();
-};
-
-AAE.getTotal = function() {
-  return AAE.cart.reduce(function(sum, i) {
-    var p = parseFloat(String(i.price).replace(/[^0-9.]/g,''));
-    return sum + (isNaN(p) ? 0 : p);
-  }, 0);
-};
-
-AAE.updateCartBar = function() {
-  var bar = document.getElementById('cart-bar');
-  var countEl = document.getElementById('cart-count');
-  var servicesEl = document.getElementById('cart-bar-services');
-  if (!bar) return;
-  if (AAE.cart.length > 0) {
-    bar.classList.add('show');
-    if (countEl) countEl.textContent = AAE.cart.length;
-    if (servicesEl) {
-      servicesEl.innerHTML = AAE.cart.map(function(i, idx) {
-        var n = (i.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return '<span class="cart-bar-item">' + n + '<button class="cart-bar-remove" onclick="AAE.removeByIndex(' + idx + ')" aria-label="Remove">&times;</button></span>';
-      }).join('');
-    }
-  } else {
-    bar.classList.remove('show');
-  }
-};
-
-AAE.updateModalCart = function() {
-  var container = document.getElementById('modal-cart-items');
-  var totalEl = document.getElementById('modal-cart-total');
-  var estimateEl = document.getElementById('cart-estimate');
-  if (!container) return;
-  if (AAE.cart.length === 0) {
-    container.innerHTML = '<div style="font-size:0.85rem;color:var(--cyan-dark)">No services selected yet. Describe what you need in the details field below.</div>';
-    if (totalEl) totalEl.innerHTML = '';
-    if (estimateEl) estimateEl.style.display = 'none';
-    return;
-  }
-  container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
-  }).join('');
-  if (totalEl) totalEl.innerHTML = '';
-  var total = AAE.getTotal();
-  if (estimateEl) {
-    if (total > 0) {
-      estimateEl.style.display = 'flex';
-      estimateEl.innerHTML = '<span class="cart-estimate-label">Estimated from</span><span class="cart-estimate-value">$'+total.toFixed(0)+'</span>';
-    } else {
-      estimateEl.style.display = 'flex';
-      estimateEl.innerHTML = '<span style="font-size:0.82rem;color:var(--muted)">Final price confirmed after assessment</span>';
-    }
-  }
-};
-
-AAE.openBooking = function() {
-  AAE.updateModalCart();
-  document.getElementById('form-state').style.display = 'block';
-  document.getElementById('card-step').style.display = 'none';
-  document.getElementById('success-state').classList.remove('show');
-  document.getElementById('booking-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-};
-
-AAE.closeBooking = function() {
-  document.getElementById('booking-modal').classList.remove('open');
-  document.body.style.overflow = '';
-  document.getElementById('card-step').style.display = 'none';
-  document.getElementById('form-state').style.display = 'block';
-  if (AAE._cardElement) { try { AAE._cardElement.destroy(); } catch(e){} AAE._cardElement = null; }
-};
-
-AAE.formatPhone = function(e) {
-  var input = e.target;
-  var pos = input.selectionStart;
-  var oldLen = input.value.length;
-  var digits = input.value.replace(/\D/g, '').substring(0, 10);
-  if (digits.length > 6) input.value = digits.substring(0,3) + '-' + digits.substring(3,6) + '-' + digits.substring(6);
-  else if (digits.length > 3) input.value = digits.substring(0,3) + '-' + digits.substring(3);
-  else input.value = digits;
-  var newLen = input.value.length;
-  input.setSelectionRange(pos + (newLen - oldLen), pos + (newLen - oldLen));
-};
-
-AAE.initAddressAutocomplete = function() {
-  var input = document.getElementById('f-address');
-  if (!input) return;
-  var wrap = input.parentNode;
-  if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
-  var dropdown = document.createElement('div');
-  dropdown.style.cssText = 'display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid #e5e7eb;border-radius:0 0 12px 12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto';
-  wrap.appendChild(dropdown);
-  var debounce;
-  input.addEventListener('input', function() {
-    clearTimeout(debounce);
-    var q = input.value.trim();
-    if (q.length < 4) { dropdown.style.display = 'none'; return; }
-    debounce = setTimeout(function() {
-      fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&addressdetails=1&limit=5&q=' + encodeURIComponent(q))
-        .then(function(r) { return r.json(); })
-        .then(function(results) {
-          if (!results.length) { dropdown.style.display = 'none'; return; }
-          dropdown.innerHTML = results.map(function(r) {
-            var addr = r.display_name.replace(/, United States$/, '');
-            return '<div style="padding:0.65rem 1rem;cursor:pointer;font-size:0.85rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s" onmouseenter="this.style.background=\'#e0f7fa\'" onmouseleave="this.style.background=\'#fff\'">' + addr + '</div>';
-          }).join('');
-          dropdown.querySelectorAll('div').forEach(function(opt) {
-            opt.addEventListener('mousedown', function(ev) { ev.preventDefault(); input.value = opt.textContent; dropdown.style.display = 'none'; });
-          });
-          dropdown.style.display = 'block';
-        }).catch(function() { dropdown.style.display = 'none'; });
-    }, 350);
-  });
-  input.addEventListener('blur', function() { setTimeout(function(){ dropdown.style.display = 'none'; }, 200); });
-};
-
-AAE.submitBooking = async function() {
-  var name    = document.getElementById('f-name').value.trim();
-  var phone   = document.getElementById('f-phone').value.trim();
-  var email   = document.getElementById('f-email').value.trim();
-  var address = document.getElementById('f-address').value.trim();
-  var date    = document.getElementById('f-date').value;
-  var time    = document.getElementById('f-time').value;
-  var details = document.getElementById('f-details').value.trim();
-  var customQuote = document.getElementById('f-custom-quote') && document.getElementById('f-custom-quote').checked;
-  var services = AAE.cart.length > 0 ? AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
-  if (customQuote) services = '[CUSTOM QUOTE REQUESTED] ' + services;
-  var errEl = document.getElementById('form-err');
-  errEl.style.display = 'none';
-
-  if (!name)   { errEl.textContent='Please enter your name.';errEl.style.display='block';return; }
-  if (!phone)  { errEl.textContent='Please enter your phone number.';errEl.style.display='block';return; }
-  if (!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { errEl.textContent='Please enter a valid email.';errEl.style.display='block';return; }
-  if (!address){ errEl.textContent='Please enter your service address.';errEl.style.display='block';return; }
-  if (!date)   { errEl.textContent='Please select a date.';errEl.style.display='block';return; }
-  if (!time)   { errEl.textContent='Please select a time.';errEl.style.display='block';return; }
-  if (!details){ errEl.textContent='Please describe what needs to be done.';errEl.style.display='block';return; }
-
-  var btn = document.getElementById('submit-btn');
-  btn.disabled = true; btn.textContent = 'Sending...';
-
-  var totalCents = Math.round(AAE.getTotal() * 100);
-  var _bookingName = name, _bookingEmail = email;
-  var data;
-  try {
-    var resp = await fetch('/api/booking', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({service:services,name:name,phone:phone,email:email,address:address,date:date,time:time,details:details,totalCents:totalCents})
-    });
-    data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'Server error');
-  } catch(e) {
-    errEl.textContent = e.message || 'Something went wrong. Please try again or email us at service@assembleatease.com.';
-    errEl.style.display='block';
-    btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
-    return;
-  }
-
-  AAE.clearCart();
-  btn.disabled = false; btn.textContent = 'Send Booking Request \u2192';
-
-  if (data.clientSecret) {
-    AAE._pendingData = { ref: data.ref, bookingId: data.bookingId, services: services, address: address, date: date, time: time, isDeposit: data.isDeposit, depositAmountCents: data.depositAmountCents, totalCents: totalCents, bookingName: _bookingName, bookingEmail: _bookingEmail };
-    document.getElementById('form-state').style.display = 'none';
-    await AAE.showCardStep(data.clientSecret);
-  } else {
-    AAE.showSuccess(data.ref, services, address, date, time);
-  }
-};
-
-// -- Stripe card collection --------------------------------------------------
-AAE._stripe = null;
-AAE._cardElement = null;
-AAE._pendingData = null;
-AAE._clientSecret = null;
-
-AAE._initStripe = async function() {
-  if (AAE._stripe) return AAE._stripe;
-  try {
-    if (typeof Stripe === 'undefined') throw new Error('Stripe.js not loaded');
-    var r = await fetch('/api/config/public-key');
-    var d = await r.json();
-    if (!d.publishableKey) throw new Error('No publishable key');
-    AAE._stripe = Stripe(d.publishableKey);
-    return AAE._stripe;
-  } catch(e) { console.error('Stripe init error:', e); return null; }
-};
-
-AAE.showCardStep = async function(clientSecret) {
-  AAE._clientSecret = clientSecret;
-  var d = AAE._pendingData;
-  var amtDollars = (d.totalCents / 100).toFixed(2);
-  var summaryHtml;
-  if (d.isDeposit && d.depositAmountCents) {
-    var depDollars = (d.depositAmountCents / 100).toFixed(2);
-    var balDollars = ((d.totalCents - d.depositAmountCents) / 100).toFixed(2);
-    summaryHtml = '<strong>25% deposit held now:</strong> $' + depDollars + '<br><span style="font-size:0.8rem;color:var(--muted)">Remaining balance ($' + balDollars + ') charged after job is done</span>';
-  } else {
-    summaryHtml = '<strong>Authorization hold:</strong> $' + amtDollars + ' &mdash; held on your card, only charged after the job is complete';
-  }
-  document.getElementById('card-step-summary').innerHTML = summaryHtml;
-  document.getElementById('card-step').style.display = 'block';
-
-  var stripe = await AAE._initStripe();
-  if (!stripe) {
-    document.getElementById('card-step').style.display = 'none';
-    AAE.showSuccess(d.ref, d.services, d.address, d.date, d.time);
-    return;
-  }
-  if (AAE._cardElement) { try { AAE._cardElement.destroy(); } catch(e){} AAE._cardElement = null; }
-  var elements = stripe.elements();
-  AAE._cardElement = elements.create('card', {
-    style: {
-      base: { fontSize: '16px', color: '#0d1117', fontFamily: '"DM Sans", sans-serif', '::placeholder': { color: '#9ca3af' } },
-      invalid: { color: '#ef4444' }
-    },
-    hidePostalCode: false
-  });
-  AAE._cardElement.mount('#stripe-card-element');
-  AAE._cardElement.on('change', function(evt) {
-    var errEl = document.getElementById('card-errors');
-    if (evt.error) { errEl.textContent = evt.error.message; errEl.style.display = 'block'; }
-    else { errEl.style.display = 'none'; errEl.textContent = ''; }
-  });
-};
-
-AAE.confirmCard = async function() {
-  var btn = document.getElementById('card-submit-btn');
-  var errEl = document.getElementById('card-errors');
-  errEl.style.display = 'none'; errEl.textContent = '';
-  btn.disabled = true; btn.textContent = 'Authorizing\u2026';
-
-  var stripe = await AAE._initStripe();
-  if (!stripe || !AAE._cardElement || !AAE._clientSecret) {
-    errEl.textContent = 'Payment setup error. Please refresh and try again.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.innerHTML = 'Authorize Card \u2192';
-    return;
-  }
-
-  var d = AAE._pendingData;
-  var result = await stripe.confirmCardPayment(AAE._clientSecret, {
-    payment_method: {
-      card: AAE._cardElement,
-      billing_details: { name: d.bookingName, email: d.bookingEmail }
-    }
-  });
-
-  if (result.error) {
-    errEl.textContent = result.error.message;
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.innerHTML = 'Authorize Card \u2192';
-    return;
-  }
-
-  // Payment authorized &mdash; now send customer confirmation email
-  try {
-    await fetch('/api/booking-confirmed', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId: d.bookingId })
-    });
-  } catch(e) { console.error('booking-confirmed error:', e); }
-
-  document.getElementById('card-step').style.display = 'none';
-  AAE.showSuccess(d.ref, d.services, d.address, d.date, d.time);
-};
-
-AAE.backToForm = function() {
-  document.getElementById('card-step').style.display = 'none';
-  document.getElementById('form-state').style.display = 'block';
-};
-
-AAE.showSuccess = function(ref, services, address, date, time) {
-  var desc = 'We received your booking' + (ref ? ' (' + ref + ')' : '') + ' for: ' + services + '. We will contact you within 1 hour to confirm your appointment at ' + address + ' on ' + date + ' at ' + time + '.';
-  document.getElementById('success-desc').textContent = desc;
-  document.getElementById('form-state').style.display = 'none';
-  document.getElementById('card-step').style.display = 'none';
-  document.getElementById('success-state').classList.add('show');
-};
-
-document.addEventListener('keydown', function(e) {
-    document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added \u2014 click to remove';
-      btn.style.background = 'var(--cyan)';
-      btn.style.color = '#fff';
-      var card = btn.closest('.item-card, .service-card');
-      if (card) card.classList.add('selected', 'in-cart');
-    });
-  });
-  (function initDateTimePicker(){
-    var grid=document.getElementById('dt-cal-grid'),titleEl=document.getElementById('dt-cal-title'),prevBtn=document.getElementById('dt-prev'),nextBtn=document.getElementById('dt-next'),timesEl=document.getElementById('dt-times'),selEl=document.getElementById('dt-selected');
-    if(!grid)return;
-    var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    var monthsShort=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
-    var slots=['8:00 AM - 10:00 AM','10:00 AM - 12:00 PM','12:00 PM - 2:00 PM','2:00 PM - 4:00 PM','4:00 PM - 6:00 PM','Flexible'];
-    var today=new Date();today.setHours(0,0,0,0);
-    var maxDate=new Date(today.getTime()+6*24*60*60*1000);
-    var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
-    function pad(n){return n<10?'0'+n:n;}
-    function render(){
-      titleEl.textContent=months[curMonth]+' '+curYear;
-      prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());
-      var nextMonthFirst=new Date(curYear,curMonth+1,1);
-      nextBtn.disabled=(nextMonthFirst>maxDate);
-      grid.innerHTML='';
-      dows.forEach(function(d){var el=document.createElement('div');el.className='dt-cal-dow';el.textContent=d;grid.appendChild(el);});
-      var first=new Date(curYear,curMonth,1),startDay=first.getDay(),daysInMonth=new Date(curYear,curMonth+1,0).getDate();
-      for(var e=0;e<startDay;e++){var emp=document.createElement('button');emp.type='button';emp.className='dt-cal-day empty';emp.disabled=true;emp.textContent='\u00A0';grid.appendChild(emp);}
-      for(var i=1;i<=daysInMonth;i++){
-        var btn=document.createElement('button');btn.type='button';btn.className='dt-cal-day';
-        var dd=new Date(curYear,curMonth,i);var iso=curYear+'-'+pad(curMonth+1)+'-'+pad(i);
-        btn.textContent=i;btn.setAttribute('data-date',iso);
-        if(dd<today||dd>maxDate){btn.disabled=true;}
-        else{
-          if(dd.getTime()===today.getTime())btn.classList.add('today');
-          if(iso===selectedDate)btn.classList.add('active');
-          btn.addEventListener('click',function(){var me=this;selectedDate=me.getAttribute('data-date');document.getElementById('f-date').value=selectedDate;document.getElementById('f-time').value='';grid.querySelectorAll('.dt-cal-day').forEach(function(b){b.classList.remove('active');});me.classList.add('active');timesEl.innerHTML='';timesEl.style.display='flex';selEl.textContent='';
-            slots.forEach(function(s){var tb=document.createElement('button');tb.type='button';tb.className='dt-time-btn';tb.textContent=s;tb.addEventListener('click',function(){timesEl.querySelectorAll('.dt-time-btn').forEach(function(b){b.classList.remove('active');});tb.classList.add('active');document.getElementById('f-time').value=s;var p=selectedDate.split('-');selEl.textContent='\u2714 '+monthsShort[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0]+' \u2022 '+s;});timesEl.appendChild(tb);});
-          });
-        }
-        grid.appendChild(btn);
-      }
-    }
-    prevBtn.addEventListener('click',function(){curMonth--;if(curMonth<0){curMonth=11;curYear--;}render();});
-    nextBtn.addEventListener('click',function(){curMonth++;if(curMonth>11){curMonth=0;curYear++;}render();});
-    render();
-  })();
-  var overlay = document.getElementById('booking-modal');
-  if (overlay) overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) AAE.closeBooking();
-  });
-  document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
-
-  window.handleWaitlist = function(e) {
-    e.preventDefault();
-    var f = e.target;
-    var name = f.querySelector('[name="name"]').value;
-    var email = f.querySelector('[name="email"]').value;
-    var phone = f.querySelector('[name="phone"]').value;
-    var city = f.querySelector('[name="city"]').value;
-    var state = f.querySelector('[name="state"]').value;
-    var btn = f.querySelector('button');
-    btn.disabled = true; btn.textContent = 'Joining...';
-    fetch('/api/waitlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name,email:email,phone:phone,city:city,state:state}) })
-      .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
-      .then(function(){
-        var inner = f.closest('.waitlist-inner');
-        inner.innerHTML = '<div class="waitlist-success"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><h3>You\u2019re on the list!</h3><p>We\u2019ve sent a confirmation to <strong>' + email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '</strong>. We\u2019ll reach out when spots open up in your area.</p></div>';
-      })
-      .catch(function(){
-        btn.disabled = false; btn.textContent = 'Join Waitlist';
-        alert('Something went wrong. Please try again.');
-      });
-    return false;
-  };
-
-  AAE.initAddressAutocomplete();
-  var phoneInput = document.getElementById('f-phone');
-  if (phoneInput) phoneInput.addEventListener('input', AAE.formatPhone);
-});
+<script>
+document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
 </script>
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 <div id="cookie-banner" class="hidden">
