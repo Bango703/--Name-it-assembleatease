@@ -170,6 +170,11 @@ export default async function handler(req, res) {
 
   // ── Easer availability ──────────────────────────────────────────
   const assignedIds = new Set(bookings.filter(b => b.assembler_id).map(b => b.assembler_id));
+  // Map assembler_id → their active booking's pipeline stage (en_route, arrived, in_progress, confirmed)
+  const assemblerStageMap = {};
+  bookings.filter(b => b.assembler_id).forEach(b => {
+    assemblerStageMap[b.assembler_id] = b.pipeline_stage || b.status;
+  });
   const onlineEasers = easers.filter(e => e.is_available);
   const offlineEasers = easers.filter(e => !e.is_available);
   const busyEasers = onlineEasers.filter(e => assignedIds.has(e.id));
@@ -216,6 +221,7 @@ export default async function handler(req, res) {
     onlineEasers: onlineEasers.map(e => ({
       ...e,
       status: assignedIds.has(e.id) ? 'working' : 'available',
+      booking_stage: assemblerStageMap[e.id] || null,
     })),
     offlineCount: offlineEasers.length,
   });

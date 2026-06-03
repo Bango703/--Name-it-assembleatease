@@ -2870,8 +2870,11 @@ function intelQuick(msg) {
       easersEl.innerHTML = easers.map(function(e) {
         var isWorking = e.status === 'working';
         var dotClass = isWorking ? 'dot dot-active' : 'dot dot-green';
-        var label = isWorking ? 'On Job' : 'Available';
-        var labelColor = isWorking ? '#f59e0b' : '#10b981';
+        var stageLabels = { en_route: 'En Route', arrived: 'Arrived', in_progress: 'In Progress', confirmed: 'Accepted' };
+        var stageColors = { en_route: '#3b82f6', arrived: '#00BFFF', in_progress: '#059669', confirmed: '#6d28d9' };
+        var stage = isWorking ? (e.booking_stage || 'working') : null;
+        var label = isWorking ? (stageLabels[stage] || 'On Job') : 'Available';
+        var labelColor = isWorking ? (stageColors[stage] || '#f59e0b') : '#10b981';
         return '<div style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
           + '<span class="' + dotClass + '"></span>'
           + '<span style="font-size:0.85rem;font-weight:500;color:var(--text);flex:1">' + esc(e.full_name) + '</span>'
