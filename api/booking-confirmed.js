@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, is_deposit, deposit_amount')
+    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price')
     .eq('id', bookingId)
     .single();
 
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   }
 
   const { ref, service, customer_name: name, customer_email: email, address, date, time, details,
-          total_price: amount, is_deposit: isDeposit, deposit_amount: depositAmountCents } = booking;
+          total_price: amount } = booking;
 
   const sName    = esc(name);
   const sService = esc(service);
@@ -61,9 +61,7 @@ export default async function handler(req, res) {
   const TO   = ownerEmail();
 
   const paymentLine = amount > 0
-    ? isDeposit && depositAmountCents
-      ? `Your card is securely held. A 25% deposit ($${(depositAmountCents / 100).toFixed(2)}) confirms your appointment. The remaining balance ($${((amount - depositAmountCents) / 100).toFixed(2)}) is charged only after the job is complete.`
-      : `Your card has been authorized for $${(amount / 100).toFixed(2)} and will only be charged once the job is complete and you confirm you're satisfied.`
+    ? `Your card has been authorized for $${(amount / 100).toFixed(2)} and will only be charged once the job is complete.`
     : `No upfront payment. You pay only when you're 100% satisfied with the work.`;
 
   const customerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
@@ -129,9 +127,7 @@ export default async function handler(req, res) {
   //    after the card has been successfully authorized. If auth fails, owner
   //    gets no email and the booking stays in Supabase as 'pending' for cleanup.
   const paymentStatus = amount > 0
-    ? (isDeposit && depositAmountCents
-        ? `CARD AUTHORIZED — 25% deposit $${(depositAmountCents / 100).toFixed(2)} captured at booking`
-        : `CARD AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`)
+    ? `CARD AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`
     : 'No payment required';
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">

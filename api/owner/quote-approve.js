@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { dispatchBooking } from '../booking/_dispatch-internal.js';
 
 /**
  * POST /api/owner/quote-approve
@@ -118,6 +119,8 @@ Final price: <strong>$${(priceCents/100).toFixed(2)}</strong><br>
 Card authorized. Booking status set to confirmed.</p>`,
       meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'owner' },
     }).catch(() => {});
+
+    dispatchBooking(bookingId).catch(e => console.error('quote-approve dispatch error:', e.message));
 
     return res.status(200).json({ ok: true, paymentIntentId: pi.id, amount: priceCents });
   } catch (err) {

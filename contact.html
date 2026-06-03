@@ -399,7 +399,8 @@ AAE.updateModalCart = function() {
     return;
   }
   container.innerHTML = AAE.cart.map(function(item, idx) {
-    return '<div class="cart-item-row"><span class="cart-item-name">'+item.name+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
+    var n = (item.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return '<div class="cart-item-row"><span class="cart-item-name">'+n+'</span><button class="cart-item-remove" aria-label="Remove item from cart" onclick="AAE.removeByIndex('+idx+')" title="Remove">&times;</button></div>';
   }).join('');
   if (totalEl) totalEl.innerHTML = '';
   var total = AAE.getTotal();
@@ -643,15 +644,6 @@ AAE.showSuccess = function(ref, services, address, date, time) {
   document.getElementById('success-state').classList.add('show');
 };
 
-document.addEventListener('keydown', function(e) {
-    document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) {
-      btn.textContent = '\u2713 Added &mdash; click to remove';
-      btn.style.background = 'var(--cyan)';
-      btn.style.color = '#fff';
-      var card = btn.closest('.item-card, .service-card');
-      if (card) card.classList.add('selected', 'in-cart');
-    });
-  });
   (function initDateTimePicker(){
     var grid=document.getElementById('dt-cal-grid'),titleEl=document.getElementById('dt-cal-title'),prevBtn=document.getElementById('dt-prev'),nextBtn=document.getElementById('dt-next'),timesEl=document.getElementById('dt-times'),selEl=document.getElementById('dt-selected');
     if(!grid)return;
