@@ -20,17 +20,23 @@
 
     /* -- Page layout -- */
 
-    .book-page { min-height: 100vh; background: var(--off-white); }
+    .book-page {
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, #f7fbfd 0%, #f4f8fb 38%, #f8fafc 100%);
+    }
 
     .book-nav {
 
-      position: sticky; top: 0; z-index: 100;
+      position: relative; z-index: 100;
 
-      background: var(--white); border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.96); border-bottom: 1px solid var(--border);
 
       padding: 0 2rem; height: 64px;
 
       display: flex; align-items: center; justify-content: space-between;
+
+      box-shadow: 0 1px 0 rgba(13,17,23,0.02);
 
     }
 
@@ -60,23 +66,28 @@
 
     .book-trust-line {
 
-      font-size: 0.78rem; color: var(--muted);
+      font-size: 0.78rem; color: var(--ink-soft);
 
       display: flex; align-items: center; gap: 1rem;
 
     }
 
-    .book-trust-line span { display: flex; align-items: center; gap: 4px; }
+    .book-trust-line span {
+      display: flex; align-items: center; gap: 4px;
+      padding: 0.35rem 0.65rem; border-radius: var(--radius-full);
+      background: #f2fbfe; border: 1px solid rgba(0,191,255,0.16);
+      white-space: nowrap;
+    }
 
 
 
     /* -- Progress bar -- */
 
-    .book-progress { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 2rem; }
+    .book-progress { background: rgba(255,255,255,0.88); border-bottom: 1px solid var(--border); padding: 0 2rem; }
 
     .book-progress-inner {
 
-      max-width: 960px; margin: 0 auto;
+      max-width: 1120px; margin: 0 auto;
 
       display: flex; align-items: center; gap: 0;
 
@@ -128,11 +139,11 @@
 
     .book-main {
 
-      max-width: 1060px; margin: 0 auto;
+      max-width: 1180px; margin: 0 auto;
 
-      display: grid; grid-template-columns: 1fr 320px;
+      display: grid; grid-template-columns: minmax(0, 1fr) 360px;
 
-      gap: 1.5rem; padding: 2rem 1.5rem;
+      gap: 1.75rem; padding: 2rem 1.5rem 3rem;
 
       align-items: start;
 
@@ -150,13 +161,38 @@
 
     /* -- Step cards -- */
 
-    .step-panel { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; }
+    .step-panel {
+      background: var(--white); border: 1px solid rgba(148,163,184,0.32);
+      border-radius: var(--radius-xl); padding: 2rem;
+      box-shadow: 0 18px 55px rgba(15,23,42,0.06);
+    }
 
     .step-panel.hidden { display: none; }
 
-    .step-heading { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); margin-bottom: 0.35rem; }
+    .step-kicker {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      color: var(--teal); font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.55rem;
+    }
 
-    .step-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.55; }
+    .step-heading { font-family: var(--font-display); font-size: clamp(1.75rem, 2.4vw, 2.2rem); color: var(--ink); margin-bottom: 0.4rem; line-height: 1.05; }
+
+    .step-sub { font-size: 0.94rem; color: var(--muted); margin-bottom: 1.55rem; line-height: 1.65; max-width: 640px; }
+
+    .step-assurance {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem; margin-bottom: 1.4rem;
+    }
+
+    .step-assurance span {
+      display: flex; align-items: center; gap: 0.45rem;
+      min-height: 38px; padding: 0.55rem 0.7rem;
+      border-radius: var(--radius-md); background: #f6fbfd;
+      border: 1px solid rgba(0,191,255,0.14);
+      color: var(--ink-soft); font-size: 0.78rem; font-weight: 600;
+    }
+
+    .step-assurance svg { width: 15px; height: 15px; fill: var(--teal); flex-shrink: 0; }
 
 
 
@@ -164,9 +200,9 @@
 
     .service-tiles {
 
-      display: grid; grid-template-columns: repeat(3, 1fr);
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
 
-      gap: 0.75rem; margin-bottom: 1.5rem;
+      gap: 0.9rem; margin-bottom: 1.4rem;
 
     }
 
@@ -174,63 +210,87 @@
 
     .service-tile {
 
-      border: 2px solid var(--border); border-radius: var(--radius-lg);
+      border: 1.5px solid rgba(148,163,184,0.34); border-radius: 16px;
 
-      padding: 1rem 0.85rem; text-align: center;
+      padding: 0; text-align: left; min-height: 202px;
 
       background: var(--white); cursor: pointer;
 
-      transition: border-color var(--transition), background var(--transition);
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition), transform var(--transition);
 
-      position: relative;
+      position: relative; overflow: hidden; box-shadow: 0 7px 22px rgba(15,23,42,0.045);
 
     }
 
-    .service-tile:hover { border-color: var(--teal); }
+    .service-tile:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 14px 32px rgba(0,191,255,0.12), 0 7px 20px rgba(15,23,42,0.06); }
 
-    .service-tile.selected { border-color: var(--teal); background: var(--teal-light); }
+    .service-tile.selected { border-color: var(--teal); background: #fff; box-shadow: 0 0 0 3px rgba(0,191,255,0.12), 0 18px 38px rgba(0,191,255,0.13); }
 
     .service-tile.selected .tile-check { display: flex; }
 
+    .service-tile.selected .tile-icon { background: var(--teal); color: #fff; }
+
+    .service-tile.selected .tile-icon svg { fill: currentColor; stroke: currentColor; }
+
+    .tile-photo { height: 86px; background: #e6f4f8; overflow: hidden; }
+
+    .tile-photo img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.03) contrast(1.02); transition: transform 0.55s cubic-bezier(0.23,1,0.32,1); }
+
+    .service-tile:hover .tile-photo img { transform: scale(1.045); }
+
+    .tile-body { padding: 0.9rem 1rem 1rem; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 0.75rem; align-items: center; }
+
     .tile-check {
 
-      display: none; position: absolute; top: 6px; right: 6px;
+      display: none; position: absolute; top: 8px; right: 8px;
 
-      width: 18px; height: 18px; background: var(--teal); border-radius: 50%;
+      width: 24px; height: 24px; background: var(--teal); border-radius: 50%;
 
       align-items: center; justify-content: center;
 
+      box-shadow: 0 6px 16px rgba(0,191,255,0.34); z-index: 2;
+
     }
 
-    .tile-check svg { width: 11px; height: 11px; fill: #fff; }
+    .tile-check svg { width: 13px; height: 13px; fill: #fff; }
 
     .tile-icon {
 
-      width: 44px; height: 44px; background: var(--teal-light);
+      width: 42px; height: 42px; background: #eefbff; color: var(--teal);
 
-      border-radius: 50%; display: flex; align-items: center;
+      border-radius: 13px; display: flex; align-items: center;
 
-      justify-content: center; margin: 0 auto 0.75rem;
+      justify-content: center; margin: 0; transition: background var(--transition), color var(--transition);
 
     }
 
-    .tile-icon svg { width: 22px; height: 22px; fill: var(--teal); }
+    .tile-icon svg { width: 21px; height: 21px; fill: currentColor; }
 
-    .tile-name { font-size: 0.8rem; font-weight: 500; color: var(--ink); }
+    .tile-name { font-size: 0.89rem; font-weight: 700; color: var(--ink); line-height: 1.25; }
 
-    .tile-from { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .tile-from { font-size: 0.76rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.3; }
+
+    .tile-name, .tile-from { overflow-wrap: anywhere; }
+
+    .custom-tile { min-height: 0; grid-column: span 3; display: flex; align-items: center; justify-content: space-between; padding: 1rem; }
+
+    .custom-tile .tile-photo { display: none; }
+
+    .custom-tile .tile-body { padding: 0; grid-template-columns: 42px minmax(0, 1fr); flex: 1; }
+
+    .custom-tile::after { content: 'Tell us what you need'; color: var(--teal); font-size: 0.78rem; font-weight: 700; }
 
     .subcat-intro {
 
-      margin: 0.5rem 0 0.75rem;
+      margin: 0.25rem 0 0.85rem;
 
-      padding: 0.8rem 1rem;
+      padding: 0.9rem 1rem;
 
-      border: 1px dashed var(--border);
+      border: 1px dashed rgba(0,191,255,0.38);
 
       border-radius: var(--radius-md);
 
-      background: #f8fafc;
+      background: #f6fcff;
 
       color: var(--muted);
 
@@ -248,9 +308,9 @@
 
     .subcat-panel {
 
-      border: 1.5px solid var(--teal); border-radius: var(--radius-lg);
+      border: 1.5px solid rgba(0,191,255,0.64); border-radius: var(--radius-lg);
 
-      overflow: hidden; background: var(--white);
+      overflow: hidden; background: var(--white); box-shadow: 0 12px 32px rgba(0,191,255,0.08);
 
     }
 
@@ -258,7 +318,7 @@
 
       display: flex; align-items: center; justify-content: space-between;
 
-      padding: 0.85rem 1rem; background: var(--teal-light);
+      padding: 0.9rem 1rem; background: #eefbff;
 
       border-bottom: 1px solid var(--border);
 
@@ -266,7 +326,7 @@
 
     .subcat-header-title {
 
-      font-weight: 700; font-size: 0.875rem; color: var(--teal);
+      font-weight: 800; font-size: 0.9rem; color: var(--teal);
 
       display: flex; align-items: center; gap: 0.5rem;
 
@@ -302,15 +362,15 @@
 
       display: flex; align-items: center; justify-content: space-between;
 
-      padding: 0.55rem 1rem; cursor: pointer; gap: 0.75rem;
+      padding: 0.68rem 0.75rem; cursor: pointer; gap: 0.75rem; border-radius: var(--radius-md);
 
       transition: background var(--transition);
 
     }
 
-    .subcat-item:hover { background: var(--off-white); }
+    .subcat-item:hover { background: #f6fbfd; }
 
-    .subcat-item.selected { background: #f0fdf4; }
+    .subcat-item.selected { background: #eefbff; }
 
     .subcat-item-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
 
@@ -452,7 +512,7 @@
 
     .form-input.error, .form-textarea.error, .form-select.error { border-color: var(--red); }
 
-    .form-textarea { resize: vertical; min-height: 90px; }
+    .form-textarea { resize: vertical; min-height: 104px; }
 
     .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 
@@ -562,9 +622,9 @@
 
     .step-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
 
-    .btn-next { flex: 1; padding: 0.9rem 1.5rem; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-md); font-family: var(--font-body); font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: background var(--transition); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-next { flex: 1; padding: 1rem 1.5rem; background: var(--teal); color: #fff; border: none; border-radius: 14px; font-family: var(--font-body); font-size: 0.98rem; font-weight: 800; cursor: pointer; transition: background var(--transition), transform var(--transition), box-shadow var(--transition); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 14px 28px rgba(0,191,255,0.22); }
 
-    .btn-next:hover:not(:disabled) { background: var(--teal-dark); }
+    .btn-next:hover:not(:disabled) { background: var(--teal-dark); transform: translateY(-1px); box-shadow: 0 18px 34px rgba(0,153,204,0.24); }
 
     .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -582,7 +642,9 @@
 
     .book-sidebar > * { margin-bottom: 1rem; }
 
-    .sidebar-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; }
+    .sidebar-card { background: var(--white); border: 1px solid rgba(148,163,184,0.32); border-radius: var(--radius-xl); padding: 1.35rem 1.45rem; box-shadow: 0 16px 40px rgba(15,23,42,0.055); }
+
+    #order-summary-card { border-color: rgba(0,191,255,0.26); }
 
     .sidebar-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.85rem; }
 
@@ -602,7 +664,46 @@
 
     .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
 
-    .sidebar-empty { font-size: 0.875rem; color: var(--muted); padding: 0.5rem 0; }
+    .sidebar-empty { font-size: 0.875rem; color: var(--muted); padding: 0.5rem 0; line-height: 1.55; }
+
+    .sidebar-highlight {
+      background: linear-gradient(180deg, #003140 0%, #062332 100%);
+      color: #fff; border: none; overflow: hidden;
+    }
+
+    .sidebar-highlight .sidebar-title { color: rgba(255,255,255,0.68); }
+
+    .sidebar-highlight p { color: rgba(255,255,255,0.82); }
+
+    .sidebar-stat {
+      display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0.8rem; align-items: center;
+      padding: 0.75rem; border-radius: 14px; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12); margin-top: 0.9rem;
+    }
+
+    .sidebar-stat strong { display: block; color: #fff; font-size: 0.88rem; line-height: 1.25; }
+
+    .sidebar-stat span { display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-top: 0.15rem; }
+
+    .sidebar-stat-icon {
+      width: 44px; height: 44px; border-radius: 14px; background: rgba(0,191,255,0.16);
+      color: var(--teal); display: flex; align-items: center; justify-content: center;
+    }
+
+    .sidebar-stat-icon svg { width: 21px; height: 21px; fill: currentColor; }
+
+    .next-list { display: grid; gap: 0.85rem; }
+
+    .next-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 0.75rem; align-items: start; }
+
+    .next-num {
+      width: 28px; height: 28px; border-radius: 50%; background: #eefbff; color: var(--teal);
+      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.78rem;
+    }
+
+    .next-item strong { display: block; font-size: 0.85rem; color: var(--ink); line-height: 1.25; margin-bottom: 0.12rem; }
+
+    .next-item span { display: block; font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
 
 
 
@@ -710,6 +811,8 @@
 
       .book-trust-line { display: none; }
 
+      .step-assurance { grid-template-columns: 1fr; }
+
     }
 
 
@@ -718,11 +821,13 @@
 
     @media (max-width: 768px) {
 
+      html, body, .book-page { width: 100%; max-width: 100%; overflow-x: hidden; }
+
       /* Full-screen step panels, edge-to-edge */
 
-      .book-main { padding: 0; gap: 0; }
+      .book-main { padding: 0; gap: 0; width: 100%; max-width: 100%; overflow-x: hidden; }
 
-      .book-form-col { width: 100%; }
+      .book-form-col { width: 100%; min-width: 0; }
 
       .book-sidebar { display: none; }
 
@@ -731,8 +836,11 @@
         border-radius: 0; border-left: none; border-right: none;
 
         border-top: none; padding: 1.25rem 1rem 100px;
+        width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden;
 
       }
+
+      .step-sub { overflow-wrap: anywhere; }
 
 
 
@@ -772,7 +880,7 @@
 
 
 
-      /* Progress bar: compact � show step X of 5 */
+      /* Progress bar: compact; show current step */
 
       .book-progress-inner { padding: 0.5rem 1rem; flex-wrap: wrap; gap: 0.35rem; }
 
@@ -792,7 +900,7 @@
 
 
 
-      /* Calendar days 40�40 */
+      /* Calendar days 40x40 */
 
       .dt-day { min-width: 40px; min-height: 40px; font-size: 0.9rem; }
 
@@ -810,7 +918,44 @@
 
       /* Service tiles 2-col */
 
-      .service-tiles { grid-template-columns: repeat(2, 1fr); }
+      .service-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; width: 100%; max-width: 100%; overflow: hidden; }
+
+      .service-tile { min-height: 176px; border-radius: 14px; min-width: 0; }
+
+      .tile-photo { height: 72px; }
+
+      .tile-body { padding: 0.75rem; grid-template-columns: 36px minmax(0, 1fr); gap: 0.6rem; min-width: 0; }
+
+      .tile-icon { width: 36px; height: 36px; border-radius: 11px; }
+
+      .tile-icon svg { width: 19px; height: 19px; }
+
+      .tile-name { font-size: 0.82rem; }
+
+      .tile-from { font-size: 0.68rem; }
+
+      .custom-tile { grid-column: span 2; min-height: 0; width: 100%; }
+
+      .custom-tile::after { display: none; }
+
+      @media (max-width: 520px) {
+        .service-tiles { display: flex; flex-direction: column; gap: 0.65rem; }
+        .service-tile {
+          min-height: 0;
+          display: grid;
+          grid-template-columns: 112px minmax(0, 1fr);
+          align-items: stretch;
+          width: 100%;
+          max-width: 100%;
+        }
+        .tile-photo { height: 100%; min-height: 104px; }
+        .tile-body { padding: 0.85rem; }
+        .custom-tile {
+          grid-column: span 1;
+          display: flex;
+          min-height: 86px;
+        }
+      }
 
 
 
@@ -940,19 +1085,27 @@
 
 
 
-  <div class="book-main">
+  <div class="book-main" id="main-content">
 
     <div class="book-form-col">
 
 
 
-      <!-- -- STEP 1 � Services + sub-categories -- -->
+      <!-- STEP 1: Services + sub-categories -->
 
       <div class="step-panel" id="step-1">
 
+        <div class="step-kicker">Austin booking</div>
+
         <div class="step-heading">What do you need help with?</div>
 
-        <p class="step-sub">Select one or more services � then pick exactly what you need from each. We'll handle everything in one visit.</p>
+        <p class="step-sub">Choose one or more services, then pick the exact items for each. We'll group everything into one clear visit with no charge until the job is done.</p>
+
+        <div class="step-assurance" aria-label="Booking promises">
+          <span><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-9.1 0V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9Z"/></svg> Secure checkout</span>
+          <span><svg viewBox="0 0 24 24"><path d="M12 8c-1.66 0-3 .9-3 2s1.34 2 3 2 3 .9 3 2-1.34 2-3 2m0-10v2m0 8v2M5 12a7 7 0 1 0 14 0 7 7 0 0 0-14 0Z"/></svg> Pay after service</span>
+          <span><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 11h5v-2h-4V6h-2v7Z"/></svg> Confirmed in 1 hr</span>
+        </div>
 
 
 
@@ -962,11 +1115,15 @@
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
+            <div class="tile-photo"><img src="/images/service-furniture-assembly.jpg?v=booking-photos-1" alt="" loading="eager" width="1536" height="1024"></div>
 
-            <div class="tile-name">Furniture Assembly</div>
-
-            <div class="tile-from">From $69 � 1�3 hrs</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
+              <div>
+                <div class="tile-name">Furniture Assembly</div>
+                <div class="tile-from">From $69 &bull; 1-3 hrs</div>
+              </div>
+            </div>
 
           </div>
 
@@ -974,11 +1131,15 @@
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
+            <div class="tile-photo"><img src="/images/service-tv-mounting.jpg?v=booking-photos-1" alt="" loading="eager" width="1536" height="1024"></div>
 
-            <div class="tile-name">TV &amp; Mounting</div>
-
-            <div class="tile-from">From $69 � ~1 hr</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
+              <div>
+                <div class="tile-name">TV Mounting</div>
+                <div class="tile-from">From $69 &bull; about 1 hr</div>
+              </div>
+            </div>
 
           </div>
 
@@ -986,11 +1147,15 @@
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
+            <div class="tile-photo"><img src="/images/service-smart-home.jpg?v=booking-photos-1" alt="" loading="eager" width="1536" height="1024"></div>
 
-            <div class="tile-name">Smart Home</div>
-
-            <div class="tile-from">From $69 � ~1 hr</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
+              <div>
+                <div class="tile-name">Smart Home</div>
+                <div class="tile-from">From $69 &bull; about 1 hr</div>
+              </div>
+            </div>
 
           </div>
 
@@ -998,11 +1163,15 @@
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="tile-photo"><img src="/images/service-fitness-equipment.jpg?v=booking-photos-1" alt="" loading="lazy" width="1536" height="1024"></div>
 
-            <div class="tile-name">Fitness Equipment</div>
-
-            <div class="tile-from">From $129 � 1�3 hrs</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div>
+                <div class="tile-name">Fitness Equipment</div>
+                <div class="tile-from">From $129 &bull; 1-3 hrs</div>
+              </div>
+            </div>
 
           </div>
 
@@ -1010,11 +1179,15 @@
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22v-7h6v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="tile-photo"><img src="/images/service-outdoor-playsets.jpg?v=booking-photos-1" alt="" loading="lazy" width="1536" height="1024"></div>
 
-            <div class="tile-name">Outdoor &amp; Playsets</div>
-
-            <div class="tile-from">From $149 � 2�4 hrs</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22v-7h6v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div>
+                <div class="tile-name">Outdoor &amp; Playsets</div>
+                <div class="tile-from">From $149 &bull; 2-4 hrs</div>
+              </div>
+            </div>
 
           </div>
 
@@ -1022,23 +1195,29 @@
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="tile-photo"><img src="/images/service-office-assembly.jpg?v=booking-photos-1" alt="" loading="lazy" width="1536" height="1024"></div>
 
-            <div class="tile-name">Office Assembly</div>
-
-            <div class="tile-from">From $95 � 1�3 hrs</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div>
+                <div class="tile-name">Office Assembly</div>
+                <div class="tile-from">From $95 &bull; 1-3 hrs</div>
+              </div>
+            </div>
 
           </div>
 
-          <div class="service-tile" data-service="Other" data-price="0" onclick="tileClick(this)">
+          <div class="service-tile custom-tile" data-service="Other" data-price="0" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
-            <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
-
-            <div class="tile-name">Other</div>
-
-            <div class="tile-from">Custom quote</div>
+            <div class="tile-body">
+              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
+              <div>
+                <div class="tile-name">Large or unusual project</div>
+                <div class="tile-from">Custom quote for multi-room or non-standard work</div>
+              </div>
+            </div>
 
           </div>
 
@@ -1046,7 +1225,7 @@
 
         <div class="tile-feedback" id="tile-feedback">&#10003;&ensp;Great choice. Now pick what you need below &darr;</div>
 
-        <div class="subcat-intro" id="subcat-intro">Tap a service above to load its sub-categories here.</div>
+        <div class="subcat-intro" id="subcat-intro">Pick a service card above. Item options and common add-ons will appear here.</div>
 
 
 
@@ -1064,7 +1243,7 @@
 
             <textarea class="form-textarea" id="s1-details" rows="2"
 
-              placeholder="Any extra details � brand, model, floor, access info..."></textarea>
+              placeholder="Any extra details: brand, model, floor, access info..."></textarea>
 
           </div>
 
@@ -1090,13 +1269,13 @@
 
 
 
-      <!-- -- STEP 2 � removed (auto guest mode) -- -->
+      <!-- STEP 2: removed (auto guest mode) -->
 
       <div class="step-panel hidden" id="step-2" style="display:none!important">
 
         <div class="step-heading">How do you want to continue?</div>
 
-        <p class="step-sub">Create a free account to track your bookings, or continue as a guest � either way takes less than 2 minutes.</p>
+        <p class="step-sub">Create a free account to track your bookings, or continue as a guest. Either way takes less than 2 minutes.</p>
 
 
 
@@ -1148,7 +1327,7 @@
 
 
 
-      <!-- -- STEP 3 � Date, time, address -- -->
+      <!-- STEP 3: Date, time, address -->
 
       <div class="step-panel hidden" id="step-3">
 
@@ -1286,7 +1465,7 @@
 
 
 
-      <!-- -- STEP 4 � Contact info -- -->
+      <!-- STEP 4: Contact info -->
 
       <div class="step-panel hidden" id="step-4">
 
@@ -1362,7 +1541,7 @@
 
           <button class="btn-back-link" onclick="goToStep(3)">&larr; Back</button>
 
-          <button class="btn-next" onclick="goToStep5Payment()">Continue to payment <span>&#8594;</span></button>
+          <button class="btn-next" id="s4-next-btn" onclick="goToStep5Payment()">Continue to payment <span>&#8594;</span></button>
 
         </div>
 
@@ -1370,7 +1549,7 @@
 
 
 
-      <!-- -- STEP 5 � Payment / Quote -- -->
+      <!-- STEP 5: Payment / Quote -->
 
       <div class="step-panel hidden" id="step-5">
 
@@ -1502,7 +1681,7 @@
 
                 <div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
 
-                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Within 1 hour</strong> � we confirm your appointment and match you with a verified Easer.</div>
+                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Within 1 hour</strong> - we confirm your appointment and match you with a verified Easer.</div>
 
               </div>
 
@@ -1510,7 +1689,7 @@
 
                 <div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
 
-                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Day before</strong> � your Easer sends a reminder with their name and estimated arrival time.</div>
+                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Day before</strong> - your Easer sends a reminder with their name and estimated arrival time.</div>
 
               </div>
 
@@ -1518,7 +1697,7 @@
 
                 <div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
 
-                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">After the job</strong> � the Easer marks it complete when the work is done. Only then is your card charged.</div>
+                <div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">After the job</strong> - the Easer marks it complete when the work is done. Only then is your card charged.</div>
 
               </div>
 
@@ -1586,13 +1765,16 @@
 
 
 
-      <div class="sidebar-card">
+      <div class="sidebar-card sidebar-highlight">
 
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--teal);margin-bottom:0.6rem">New Austin service</div>
+        <div class="sidebar-title">Austin same-day slots</div>
 
-        <p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.65;margin:0">Every job handled with care. Flat-rate pricing, no upfront charge, confirmed within 1 hour.</p>
+        <p style="font-size:0.95rem;line-height:1.6;margin:0">Choose the job, pick the details, and we confirm the appointment within 1 hour.</p>
 
-        <p style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem">Taking first bookings now &mdash; be one of our first customers.</p>
+        <div class="sidebar-stat">
+          <div class="sidebar-stat-icon"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 16H5V10h14v10Zm0-12H5V6h14v2Z"/></svg></div>
+          <div><strong>Same-day and next-day</strong><span>Openings across Austin and nearby areas.</span></div>
+        </div>
 
       </div>
 
@@ -1600,18 +1782,13 @@
 
       <div class="sidebar-card">
 
-        <div class="sidebar-title">Why AssembleAtEase</div>
+        <div class="sidebar-title">What happens next</div>
 
-        <div class="trust-items">
-
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></span><div><strong>Book in under 2 minutes</strong><br>Pick a service, choose a time, done.</div></div>
-
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></span><div><strong>No charge until job done</strong><br>Card authorized at booking &mdash; only captured after the Easer confirms the work is complete.</div></div>
-
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></span><div><strong>Locally owned &amp; operated</strong><br>New Austin service &mdash; building our reputation one job at a time.</div></div>
-
-          <div class="trust-item"><span class="trust-item-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></span><div><strong>Confirmed within 1 hour</strong><br>Same-day and next-day availability across Austin.</div></div>
-
+        <div class="next-list">
+          <div class="next-item"><div class="next-num">1</div><div><strong>Choose exact items</strong><span>Common services show quick prices so the estimate makes sense.</span></div></div>
+          <div class="next-item"><div class="next-num">2</div><div><strong>Pick your time</strong><span>Your card is authorized only to hold the appointment.</span></div></div>
+          <div class="next-item"><div class="next-num">3</div><div><strong>We confirm fast</strong><span>A real person reviews the job details and confirms within 1 hour.</span></div></div>
+          <div class="next-item"><div class="next-num">4</div><div><strong>Pay when done</strong><span>You are charged only after the work is complete.</span></div></div>
         </div>
 
       </div>
@@ -1796,7 +1973,7 @@ function fmtPrice(item) {
 
 // ----------------------------------------------------------------------------
 
-// SERVICE TILE TOGGLE (multi-select) � called via onclick attribute
+// SERVICE TILE TOGGLE (multi-select), called via onclick attribute
 
 // ----------------------------------------------------------------------------
 
@@ -2326,7 +2503,7 @@ function updateOrderSummary() {
 
 function getBundleDiscount() {
 
-  // Requires 2+ different services � picking multiple items within one service doesn't qualify
+  // Requires 2+ different services; picking multiple items within one service doesn't qualify
 
   var servicesWithItems = BOOK.selectedServices.filter(function(svc) {
 
@@ -2360,7 +2537,7 @@ function getBundleDiscount() {
 
 // ----------------------------------------------------------------------------
 
-// STEP 2 � ACCOUNT MODE
+// STEP 2: ACCOUNT MODE
 
 // ----------------------------------------------------------------------------
 
@@ -2486,7 +2663,7 @@ function goToStep2Account() {
 
   BOOK.wantsQuote = document.getElementById('s1-quote').checked;
 
-  BOOK.accountMode = 'guest'; // auto guest � no friction step
+  BOOK.accountMode = 'guest'; // auto guest, no friction step
 
   goToStep(3);
 
@@ -2500,7 +2677,7 @@ function goToStep2Account() {
 
       var sc = document.getElementById('urgency-scarce');
 
-      if (sc && !sc.textContent) sc.textContent = '� Slots filling up fast';
+      if (sc && !sc.textContent) sc.textContent = 'Slots filling up fast';
 
     }
 
@@ -2586,6 +2763,21 @@ function goToStep4Contact() {
 
   goToStep(4);
 
+  // Update step-4 CTA label so quote flow never says "Continue to payment"
+  var allCustom = Object.keys(BOOK.selectedItems).length > 0 &&
+    Object.keys(BOOK.selectedItems).every(function(svc) {
+      var items = BOOK.selectedItems[svc] || [];
+      return items.length > 0 && items.every(function(i) { return i.customQuote; });
+    });
+  var s4Btn = document.getElementById('s4-next-btn');
+  if (s4Btn) {
+    if (BOOK.wantsQuote || allCustom) {
+      s4Btn.innerHTML = 'Review quote request <span>&#8594;</span>';
+    } else {
+      s4Btn.innerHTML = 'Continue to payment <span>&#8594;</span>';
+    }
+  }
+
 }
 
 
@@ -2670,7 +2862,7 @@ async function goToStep5Payment() {
 
   document.getElementById('booking-summary').innerHTML =
 
-    // Services row � go back to step 1
+    // Services row: go back to step 1
 
     '<div class="summary-row"><span class="summary-row-icon">' + SVGSVC + '</span>'
 
@@ -2684,7 +2876,7 @@ async function goToStep5Payment() {
 
 
 
-    // Date & time row � inline pickers
+    // Date & time row: inline pickers
 
     editRow('dt', SVGCAL, 'Date &amp; time',
 
@@ -2704,7 +2896,7 @@ async function goToStep5Payment() {
 
 
 
-    // Address row � inline text input
+    // Address row: inline text input
 
     editRow('addr', SVGPIN, 'Address',
 
@@ -2718,7 +2910,7 @@ async function goToStep5Payment() {
 
 
 
-    // Contact row � inline fields
+    // Contact row: inline fields
 
     editRow('contact', SVGUSER, 'Contact',
 
@@ -2746,7 +2938,7 @@ async function goToStep5Payment() {
 
   (function() {
 
-    var TX_TAX_RATE = 0.0825; // 8.25% � Texas 6.25% + Austin 2%
+    var TX_TAX_RATE = 0.0825; // 8.25%, Texas 6.25% + Austin 2%
 
     var hasCustom = false, subtotal = 0;
 
@@ -2862,7 +3054,7 @@ async function goToStep5Payment() {
 
   if (isQuoteFlow) {
 
-    document.getElementById('s5-banner').textContent = 'Almost done � one last step';
+    document.getElementById('s5-banner').textContent = 'Almost done - one last step';
 
     document.getElementById('s5-heading').textContent = 'Submit your quote request';
 
@@ -2881,6 +3073,10 @@ async function goToStep5Payment() {
       '<span>No payment today</span><span>Quote in as little as 1 hour</span><span>You approve before anything is scheduled</span>';
 
     document.getElementById('s5-submit').innerHTML = 'Submit Quote Request <span>&#8594;</span>';
+
+    // Update progress bar so it doesn't say "Payment" for a quote flow
+    var prog4Label = document.querySelector('#prog-4 .progress-label');
+    if (prog4Label) prog4Label.textContent = 'Review';
 
   } else {
 
@@ -3594,7 +3790,7 @@ function showConfirmation(ref, isQuote) {
 
   var svcEl = document.getElementById('confirm-services');
 
-  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' � ') || 'Your services';
+  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' / ') || 'Your services';
 
 
 
@@ -3606,7 +3802,7 @@ function showConfirmation(ref, isQuote) {
 
     var dateStr = new Date(BOOK.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
-    dtEl.textContent = '?? ' + dateStr + (BOOK.time ? '  �  ' + BOOK.time : '');
+    dtEl.textContent = dateStr + (BOOK.time ? ' / ' + BOOK.time : '');
 
   }
 
@@ -3652,7 +3848,7 @@ function showConfirmation(ref, isQuote) {
 
       calEl.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
 
-        + '&text=' + encodeURIComponent('AssembleAtEase � ' + BOOK.selectedServices.join(', '))
+        + '&text=' + encodeURIComponent('AssembleAtEase - ' + BOOK.selectedServices.join(', '))
 
         + '&dates=' + s + '/' + e
 
