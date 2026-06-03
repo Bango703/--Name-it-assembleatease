@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Independent Contractor Agreement | AssembleAtEase</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: #f5f7f9;
+      color: #111827;
+      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    /* ── Nav ── */
+    .ica-nav {
+      background: #001f2b;
+      padding: 0.9rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .ica-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: #fff;
+      text-decoration: none;
+      font-family: "DM Serif Display", serif;
+      font-size: 1.25rem;
+    }
+    .ica-logo-mark {
+      width: 34px; height: 34px; border-radius: 50%;
+      overflow: hidden; background: #fff;
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .ica-logo-mark img { width: 100%; height: 100%; object-fit: cover; }
+    .ica-logo span { color: #00BFFF; }
+    .ica-nav-cta {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: #00BFFF; color: #001f2b;
+      font-size: 0.82rem; font-weight: 800;
+      padding: 0.5rem 1rem; border-radius: 999px;
+      text-decoration: none; white-space: nowrap;
+    }
+
+    /* ── Hero banner ── */
+    .ica-hero {
+      background: linear-gradient(135deg, #001f2b 0%, #003d57 60%, #005c80 100%);
+      color: #fff;
+      padding: 2.5rem 1.5rem 3rem;
+      text-align: center;
+    }
+    .ica-hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.14em; color: #7ee8ff;
+      background: rgba(0,191,255,0.12); border: 1px solid rgba(0,191,255,0.2);
+      border-radius: 999px; padding: 0.35rem 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .ica-hero h1 {
+      margin: 0 auto 0.75rem;
+      max-width: 680px;
+      font-family: "DM Serif Display", serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      color: #fff;
+    }
+    .ica-hero p {
+      margin: 0 auto;
+      max-width: 560px;
+      color: rgba(255,255,255,0.78);
+      font-size: 1rem;
+    }
+    .ica-meta-row {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 1rem; margin-top: 1.75rem;
+    }
+    .ica-meta-chip {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 999px;
+      padding: 0.38rem 0.85rem;
+      font-size: 0.78rem; color: rgba(255,255,255,0.88);
+    }
+
+    /* ── Main layout ── */
+    .ica-wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 5rem;
+    }
+
+    /* ── TOC ── */
+    .ica-toc {
+      background: #fff;
+      border: 1px solid #dce8ee;
+      border-radius: 14px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+    .ica-toc h2 {
+      margin: 0 0 1rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #00BFFF;
+    }
+    .ica-toc ol {
+      margin: 0; padding-left: 1.1rem;
+      column-count: 2; column-gap: 2rem;
+    }
+    .ica-toc li {
+      margin-bottom: 0.4rem;
+      font-size: 0.875rem;
+      color: #374151;
+    }
+    .ica-toc a { color: #0099cc; text-decoration: none; }
+    .ica-toc a:hover { text-decoration: underline; }
+    @media (max-width: 600px) {
+      .ica-toc ol { column-count: 1; }
+    }
+
+    /* ── Document sections ── */
+    .ica-doc {
+      background: #fff;
+      border: 1px solid #dce8ee;
+      border-radius: 14px;
+      padding: 2.5rem 2.25rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+    @media (max-width: 640px) {
+      .ica-doc { padding: 1.5rem 1.25rem; }
+    }
+
+    .ica-doc-header {
+      text-align: center;
+      padding-bottom: 2rem;
+      border-bottom: 2px solid #001f2b;
+      margin-bottom: 2.5rem;
+    }
+    .ica-doc-header .doc-title {
+      font-family: "DM Serif Display", serif;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      line-height: 1.15;
+      color: #001f2b;
+      margin: 0 0 0.5rem;
+    }
+    .ica-doc-header .doc-sub {
+      font-size: 0.92rem;
+      color: #64748b;
+      margin: 0;
+    }
+    .ica-doc-header .doc-brand {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fff;
+      background: #001f2b;
+      border-radius: 4px;
+      padding: 0.25rem 0.6rem;
+      letter-spacing: 0.04em;
+    }
+
+    .ica-section {
+      margin-bottom: 2.5rem;
+      scroll-margin-top: 80px;
+    }
+    .ica-section:last-of-type { margin-bottom: 0; }
+
+    .section-number {
+      display: inline-flex; align-items: center;
+      background: #001f2b; color: #fff;
+      font-size: 0.72rem; font-weight: 800;
+      padding: 0.22rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .ica-section h2 {
+      margin: 0 0 1rem;
+      font-family: "DM Serif Display", serif;
+      font-size: 1.35rem;
+      color: #001f2b;
+      line-height: 1.25;
+    }
+    .ica-section p {
+      margin: 0 0 0.85rem;
+      color: #374151;
+    }
+    .ica-section p:last-child { margin-bottom: 0; }
+
+    .ica-clause {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+    .clause-num {
+      flex-shrink: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #00BFFF;
+      min-width: 2.2rem;
+      padding-top: 0.1rem;
+    }
+    .clause-body { flex: 1; color: #374151; }
+
+    .sub-clause {
+      display: flex;
+      gap: 0.6rem;
+      margin: 0.5rem 0 0.5rem 1rem;
+    }
+    .sub-clause-letter {
+      flex-shrink: 0;
+      font-size: 0.82rem;
+      color: #64748b;
+      min-width: 1.5rem;
+    }
+    .sub-clause-body { flex: 1; color: #374151; }
+
+    .ica-section hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 1.5rem 0;
+    }
+
+    /* Highlight box */
+    .ica-highlight {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin: 1rem 0;
+    }
+    .ica-highlight.warning {
+      background: #fefce8;
+      border-color: #fde047;
+    }
+    .ica-highlight.important {
+      background: #fff7ed;
+      border-color: #fdba74;
+    }
+    .ica-highlight p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #1e3a4a;
+    }
+    .ica-highlight.warning p { color: #713f12; }
+    .ica-highlight.important p { color: #7c2d12; }
+
+    /* Fee table */
+    .fee-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    .fee-table th {
+      background: #001f2b;
+      color: #fff;
+      padding: 0.6rem 1rem;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .fee-table th:last-child { text-align: right; }
+    .fee-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      color: #374151;
+    }
+    .fee-table td:last-child { text-align: right; font-weight: 700; }
+    .fee-table tr:last-child td { border-bottom: none; }
+    .fee-table tr:nth-child(even) td { background: #f8fafc; }
+
+    /* Signature block */
+    .sig-block {
+      background: linear-gradient(135deg, #001f2b 0%, #003d57 100%);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-top: 2.5rem;
+      color: #fff;
+    }
+    .sig-block h2 {
+      font-family: "DM Serif Display", serif;
+      font-size: 1.4rem;
+      margin: 0 0 1rem;
+      color: #fff;
+    }
+    .sig-block p { margin: 0 0 0.75rem; color: rgba(255,255,255,0.82); font-size: 0.9rem; }
+    .sig-checklist { margin: 1rem 0 0; padding: 0; list-style: none; }
+    .sig-checklist li {
+      display: flex; gap: 0.7rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.9);
+    }
+    .sig-checklist li:last-child { border-bottom: none; }
+    .sig-check { color: #00BFFF; font-weight: 800; flex-shrink: 0; }
+
+    .sig-cta {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: #00BFFF; color: #001f2b;
+      font-weight: 800; font-size: 0.95rem;
+      padding: 0.875rem 1.75rem;
+      border-radius: 10px; text-decoration: none;
+      margin-top: 1.5rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sig-cta:hover { background: #0bbfff; }
+
+    /* Effective date banner */
+    .eff-date-bar {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 2rem;
+      font-size: 0.85rem;
+      color: #166534;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .eff-date-bar strong { font-weight: 700; }
+
+    /* Print notice */
+    .print-notice {
+      text-align: center;
+      margin: 2rem 0 1rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    @media print {
+      .ica-nav, .sig-cta { display: none !important; }
+      body { background: #fff; }
+      .ica-doc { box-shadow: none; border: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="ica-nav">
+  <a href="/assembler/apply" class="ica-logo">
+    <span class="ica-logo-mark"><img src="/images/logo.jpg" alt="AssembleAtEase" /></span>
+    AssembleAtEase
+  </a>
+  <a href="/assembler/apply" class="ica-nav-cta">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Application
+  </a>
+</nav>
+
+<!-- Hero -->
+<div class="ica-hero">
+  <div class="ica-hero-eyebrow">Legal Document</div>
+  <h1>Independent Contractor Agreement</h1>
+  <p>Read this agreement carefully before submitting your Easer application. By checking the agreement box, you are entering into a binding legal contract.</p>
+  <div class="ica-meta-row">
+    <span class="ica-meta-chip">Governed by Texas Law</span>
+    <span class="ica-meta-chip">Travis County Jurisdiction</span>
+    <span class="ica-meta-chip">E-Sign Act Compliant</span>
+    <span class="ica-meta-chip">Effective on Acceptance</span>
+  </div>
+</div>
+
+<!-- Main document -->
+<div class="ica-wrap">
+
+  <div class="eff-date-bar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>This Agreement is effective on the date of electronic acceptance via the AssembleAtEase application form. <strong>Please read the entire document before signing.</strong></span>
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="ica-toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#s1">Independent Contractor Relationship</a></li>
+      <li><a href="#s2">Services and Scope of Work</a></li>
+      <li><a href="#s3">Compensation and Platform Fees</a></li>
+      <li><a href="#s4">Taxes and Withholding</a></li>
+      <li><a href="#s5">Tools, Equipment, and Transportation</a></li>
+      <li><a href="#s6">Identity Verification and Background Requirements</a></li>
+      <li><a href="#s7">Standards of Professional Conduct</a></li>
+      <li><a href="#s8">Customer Data and Privacy</a></li>
+      <li><a href="#s9">Intellectual Property</a></li>
+      <li><a href="#s10">Insurance and Liability</a></li>
+      <li><a href="#s11">Non-Solicitation</a></li>
+      <li><a href="#s12">Term and Termination</a></li>
+      <li><a href="#s13">Disputes and Governing Law</a></li>
+      <li><a href="#s14">Miscellaneous Provisions</a></li>
+      <li><a href="#s15">Electronic Signature and Acceptance</a></li>
+    </ol>
+  </div>
+
+  <!-- Document Body -->
+  <div class="ica-doc">
+
+    <!-- Header -->
+    <div class="ica-doc-header">
+      <p class="doc-title">Independent Contractor Agreement</p>
+      <p class="doc-sub">Between AssembleAtEase and the Easer Applicant</p>
+      <span class="doc-brand">AssembleAtEase &bull; Austin, Texas</span>
+    </div>
+
+    <p style="color:#374151;margin:0 0 2rem"><strong>PARTIES.</strong> This Independent Contractor Agreement ("Agreement") is entered into as of the date of electronic acceptance, between <strong>AssembleAtEase</strong>, a Texas-based marketplace platform operating at assembleatease.com ("Company" or "Platform"), and the individual who applies to and registers as an "Easer" on the AssembleAtEase platform ("Contractor"). By electronically accepting this Agreement during the application process, the parties agree to be bound by the terms set forth herein.</p>
+
+    <!-- Section 1 -->
+    <div class="ica-section" id="s1">
+      <span class="section-number">Section 1</span>
+      <h2>Independent Contractor Relationship</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">1.1</span>
+        <span class="clause-body">The Contractor is an independent contractor and not an employee, partner, joint venturer, agent, or representative of the Company. Nothing in this Agreement shall be construed to create an employment relationship, partnership, joint venture, franchise, or agency relationship between the parties.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">1.2</span>
+        <span class="clause-body">The Contractor shall have full control over the manner and means of performing services, subject only to the result requirements specified by customers and the Platform's quality standards and Code of Conduct. The Contractor determines their own schedule, hours, and methods of work.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">1.3</span>
+        <span class="clause-body">The Company shall not have the right to direct the Contractor as to the specific hours of work, the order in which work shall be performed, or the precise means by which results are accomplished, beyond specifying the customer-required outcome and quality standards.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">1.4</span>
+        <span class="clause-body">The Contractor acknowledges and agrees that they are not entitled to any employee benefits from the Company, including but not limited to: health, dental, or vision insurance; retirement or 401(k) benefits; paid time off, vacation, or sick leave; disability insurance; workers' compensation as an employee; unemployment insurance; or any other employee benefit program.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">1.5</span>
+        <span class="clause-body">The Contractor may work for and provide services to other companies, platforms, or individuals simultaneously, provided such work does not directly conflict with the Contractor's obligations under this Agreement or violate any non-solicitation provisions herein.</span>
+      </div>
+
+      <div class="ica-highlight important">
+        <p><strong>Important Notice:</strong> You are applying as an independent contractor, not an employee. You are solely responsible for your own taxes, insurance, equipment, and compliance with all applicable laws. This is not an employment agreement.</p>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="ica-section" id="s2">
+      <span class="section-number">Section 2</span>
+      <h2>Services and Scope of Work</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">2.1</span>
+        <span class="clause-body"><strong>Service Categories.</strong> The Contractor agrees to provide the following types of services to customers of the AssembleAtEase platform as assigned, subject to the Contractor's acceptance of individual job offers:</span>
+      </div>
+
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">Furniture Assembly — flat-pack and ready-to-assemble furniture including IKEA, Wayfair, Amazon, and similar brands;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">TV and Display Mounting — wall mounting of televisions, monitors, and displays;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">Smart Home Installation — setup and installation of smart devices, hubs, cameras, and connected home equipment;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">Fitness Equipment Assembly — assembly of exercise machines, weight racks, and fitness equipment;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(e)</span><span class="sub-clause-body">Outdoor and Playset Assembly — assembly of outdoor furniture, playsets, trampolines, and related structures;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(f)</span><span class="sub-clause-body">Office Assembly — assembly of office furniture, shelving, and workspace equipment.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">2.2</span>
+        <span class="clause-body"><strong>Job Acceptance.</strong> The Contractor is not required to accept any particular job offer and retains the right to decline individual assignments. However, a sustained pattern of declining job offers will negatively affect the Contractor's dispatch priority score and tier status on the Platform, potentially resulting in fewer or no job opportunities.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">2.3</span>
+        <span class="clause-body"><strong>Completion Standard.</strong> Once the Contractor accepts a job offer, they agree to complete the assigned work in a professional, workmanlike manner consistent with industry standards and in accordance with the Platform's Code of Conduct and quality requirements. Accepted jobs shall not be abandoned without prior authorization from the Company.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">2.4</span>
+        <span class="clause-body"><strong>Service Area.</strong> All services are performed for customers located in the Austin, Texas metropolitan area, including ZIP codes 786xx through 788xx. The Company may expand or modify the service area at any time with notice to the Contractor.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">2.5</span>
+        <span class="clause-body"><strong>No Exclusivity.</strong> This Agreement does not grant the Contractor exclusive rights to any geographic area or service category. The Company may contract with multiple Easers for the same services in the same areas.</span>
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="ica-section" id="s3">
+      <span class="section-number">Section 3</span>
+      <h2>Compensation and Platform Fees</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.1</span>
+        <span class="clause-body"><strong>Job Compensation.</strong> The Contractor will be compensated based on the total gross job amount minus the applicable Platform Fee. The Contractor's net earnings for each job ("Contractor Earnings") equal: <em>Gross Job Amount &minus; Platform Fee</em>.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.2</span>
+        <span class="clause-body"><strong>Platform Fee Schedule.</strong> The Company deducts a platform fee from the gross job amount to cover marketplace operations, customer acquisition, payment processing, dispatch technology, insurance costs, and support infrastructure. The current fee schedule is as follows:</span>
+      </div>
+
+      <table class="fee-table">
+        <thead>
+          <tr>
+            <th>Contractor Status</th>
+            <th>Platform Fee</th>
+            <th style="text-align:right">Contractor Earns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Standard (No Membership)</td>
+            <td>35%</td>
+            <td>65% of gross job amount</td>
+          </tr>
+          <tr>
+            <td>Membership Contractor</td>
+            <td>25%</td>
+            <td>75% of gross job amount</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.3</span>
+        <span class="clause-body"><strong>Fee Changes.</strong> The Company reserves the right to modify the platform fee schedule with thirty (30) days' prior written notice to active Contractors. Continued acceptance of job offers after the effective date of any fee change constitutes acceptance of the revised fee schedule.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.4</span>
+        <span class="clause-body"><strong>Membership.</strong> Contractors may optionally purchase a platform membership to reduce their platform fee. Membership fees are non-refundable except as required by applicable law. Membership status may affect dispatch priority in addition to fee rates.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.5</span>
+        <span class="clause-body"><strong>Application Fee.</strong> The Contractor pays a one-time, non-refundable application fee of $30.00 at the time of application submission. This fee covers the cost of identity verification processing and application review. The application fee is not refunded if the application is declined, if the Contractor withdraws their application, or if this Agreement is terminated for any reason.</span>
+      </div>
+
+      <div class="ica-highlight warning">
+        <p><strong>Non-Refundable Application Fee:</strong> The $30 application fee is non-refundable under all circumstances. Submitting your application constitutes acceptance of this fee policy.</p>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.6</span>
+        <span class="clause-body"><strong>Payment Method.</strong> Payments to the Contractor are made manually by the Company through mutually agreed-upon methods, which may include bank transfer, check, Zelle, or other methods. The Company does not use automated payout rails or Stripe Connect. All Contractor payouts are recorded in the Platform's payout ledger and visible in the Easer dashboard.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.7</span>
+        <span class="clause-body"><strong>Payment Schedule.</strong> Payments are typically issued within seven (7) business days after job completion and customer payment capture. The Company will notify the Contractor of available payout amounts via the Easer dashboard and email. The Contractor is responsible for confirming that their payment information on file is accurate and up to date.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.8</span>
+        <span class="clause-body"><strong>Disputes About Compensation.</strong> The Contractor must raise any dispute about compensation in writing within thirty (30) days of the date the disputed payment was or was not made. Disputes not raised within this period are waived.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">3.9</span>
+        <span class="clause-body"><strong>No Guarantee of Work or Income.</strong> The Company makes no guarantee of any minimum number of jobs, hours, or earnings. The availability of work depends on customer demand, the Contractor's availability, performance metrics, geographic location, tier status, and other market factors beyond the Company's control. The Contractor understands that income from the Platform may be irregular and unpredictable.</span>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="ica-section" id="s4">
+      <span class="section-number">Section 4</span>
+      <h2>Taxes and Withholding</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">4.1</span>
+        <span class="clause-body"><strong>Contractor's Tax Responsibility.</strong> As an independent contractor, the Contractor is solely and exclusively responsible for all federal, state, and local income taxes, self-employment taxes (Social Security and Medicare), and any other taxes or assessments arising from compensation received under this Agreement.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">4.2</span>
+        <span class="clause-body"><strong>No Withholding.</strong> The Company will not withhold any income taxes, Social Security taxes, Medicare taxes, or other federal, state, or local taxes from compensation paid to the Contractor. The Contractor is responsible for making estimated quarterly tax payments to the Internal Revenue Service and the Texas Comptroller (if applicable) as required by law.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">4.3</span>
+        <span class="clause-body"><strong>Form 1099-NEC.</strong> The Company will issue the Contractor a Form 1099-NEC if total compensation paid during a calendar year equals or exceeds $600.00, as required by applicable federal law. The Contractor is responsible for reporting all income, including amounts below the $600 reporting threshold.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">4.4</span>
+        <span class="clause-body"><strong>Form W-9.</strong> The Contractor agrees to provide the Company with a completed and accurate IRS Form W-9 upon request and within ten (10) business days of such request. The Contractor agrees to promptly notify the Company of any change in their tax identification number, legal name, or business entity status.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">4.5</span>
+        <span class="clause-body"><strong>Indemnification for Tax Liability.</strong> The Contractor agrees to indemnify, defend, and hold harmless the Company from any liability, claims, assessments, penalties, fines, or interest arising from the Contractor's failure to pay any taxes owed on compensation received under this Agreement.</span>
+      </div>
+
+      <div class="ica-highlight">
+        <p><strong>Tax Notice:</strong> As a 1099 independent contractor, you should expect to owe self-employment tax of approximately 15.3% on your net earnings, plus applicable federal and state income taxes. We recommend consulting a tax professional to understand your estimated tax obligations.</p>
+      </div>
+    </div>
+
+    <!-- Section 5 -->
+    <div class="ica-section" id="s5">
+      <span class="section-number">Section 5</span>
+      <h2>Tools, Equipment, and Transportation</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">5.1</span>
+        <span class="clause-body">The Contractor is solely responsible for providing all tools, equipment, materials, and transportation necessary to perform the services described in this Agreement. The Company does not supply tools, vehicles, fuel, or any other operational resources.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">5.2</span>
+        <span class="clause-body">The Contractor represents and warrants that they possess, or will possess prior to performing any job, the tools, equipment, and reliable transportation necessary to perform the services they have indicated in their application profile.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">5.3</span>
+        <span class="clause-body">The Contractor is responsible for maintaining their tools and equipment in safe, functional, and good working condition. The Contractor shall replace or repair any tools or equipment that become unsafe, worn, defective, or otherwise unfit for professional use.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">5.4</span>
+        <span class="clause-body">All costs and expenses related to tools, equipment, transportation, fuel, parking, tolls, and supplies are the sole responsibility of the Contractor. The Company will not reimburse any such expenses unless expressly agreed upon in writing in advance.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">5.5</span>
+        <span class="clause-body">The Contractor shall not use subcontractors or helpers on any job without prior written consent from the Company. Only the approved Contractor may perform services under this Agreement.</span>
+      </div>
+    </div>
+
+    <!-- Section 6 -->
+    <div class="ica-section" id="s6">
+      <span class="section-number">Section 6</span>
+      <h2>Identity Verification and Background Requirements</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">6.1</span>
+        <span class="clause-body"><strong>Identity Verification Requirement.</strong> As a condition of activation and the right to receive job offers, the Contractor must complete identity verification through Stripe Identity, a third-party identity verification service operated by Stripe, Inc. The Contractor authorizes the collection, use, and processing of their government-issued identification documents and biometric data for the purpose of verifying their identity.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">6.2</span>
+        <span class="clause-body"><strong>Background Representations.</strong> The Contractor represents and warrants that, to the best of their knowledge:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">They have not been convicted of any felony offense within the past seven (7) years;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">They have not been convicted of any crime involving theft, fraud, dishonesty, violence, sexual misconduct, or harm to persons within the past seven (7) years;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">They are not currently subject to any criminal charges, indictment, or pending proceedings for any offense listed in (a) or (b) above;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">They are legally authorized to work in the United States and are at least eighteen (18) years of age.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">6.3</span>
+        <span class="clause-body"><strong>Ongoing Disclosure Obligation.</strong> The Contractor agrees to immediately notify the Company in writing if, during the term of this Agreement, they are arrested, charged with, or convicted of any criminal offense. Failure to make such disclosure within forty-eight (48) hours of the event constitutes a material breach of this Agreement and grounds for immediate termination.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">6.4</span>
+        <span class="clause-body"><strong>Right to Verify.</strong> The Company reserves the right to conduct background checks, criminal history searches, reference checks, or other verification procedures at any time during the term of this Agreement, at the Company's expense. The Contractor's consent to such checks is a condition of maintaining active status on the Platform.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">6.5</span>
+        <span class="clause-body"><strong>Misrepresentation.</strong> Any misrepresentation or omission in the Contractor's application or in any representation made under this Section constitutes a material breach of this Agreement and grounds for immediate termination without refund of any fees paid.</span>
+      </div>
+    </div>
+
+    <!-- Section 7 -->
+    <div class="ica-section" id="s7">
+      <span class="section-number">Section 7</span>
+      <h2>Standards of Professional Conduct</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">7.1</span>
+        <span class="clause-body"><strong>Professional Standards.</strong> The Contractor agrees at all times to maintain the highest standards of professionalism in all interactions with customers, the Company, and Company representatives. Without limiting the foregoing, the Contractor specifically agrees to:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">Arrive to all accepted jobs on time and notify the customer and the Company promptly via the Platform if a delay is unavoidable;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">Treat customers, their family members, their property, and their homes with respect, care, and courtesy at all times;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">Complete all accepted work to the specifications agreed upon with the customer and to professional quality standards;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">Maintain a clean and organized work area throughout the job and thoroughly clean up all debris, packaging, and materials upon completion;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(e)</span><span class="sub-clause-body">Not bring additional persons, subcontractors, or helpers to job sites without prior written approval from the Company;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(f)</span><span class="sub-clause-body">Not engage in harassing, discriminatory, threatening, or unprofessional conduct of any kind toward customers or Company personnel;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(g)</span><span class="sub-clause-body">Not consume alcohol, controlled substances, or any substance that impairs judgment or performance while on the way to or at any job site;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(h)</span><span class="sub-clause-body">Wear appropriate attire and maintain a professional appearance at all job sites;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(i)</span><span class="sub-clause-body">Carry and use appropriate tools in a safe manner and in accordance with manufacturer guidelines;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(j)</span><span class="sub-clause-body">Use the AssembleAtEase Platform application and communications system as the designated channel for all job-related communications;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(k)</span><span class="sub-clause-body">Not take or retain photographs of customers' homes, possessions, or family members without their express permission.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">7.2</span>
+        <span class="clause-body"><strong>Platform-Only Communication and Payments.</strong> The Contractor agrees that all communications with customers related to jobs booked through the Platform shall be conducted exclusively through the Platform's official messaging system. The Contractor shall not share personal email addresses, phone numbers, or social media accounts with customers for job-related purposes. The Contractor shall not solicit, accept, or request cash, Venmo, Zelle, or any other direct payment from customers for jobs booked through the Platform.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">7.3</span>
+        <span class="clause-body"><strong>Performance Metrics.</strong> The Contractor acknowledges that customers may submit ratings and written reviews following each job. The Company uses performance metrics including average customer rating, job completion rate, acceptance rate, and response time to determine the Contractor's tier classification and dispatch priority. Poor performance metrics may result in fewer job offers, tier demotion, suspension, or termination of this Agreement.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">7.4</span>
+        <span class="clause-body"><strong>Property Damage.</strong> The Contractor agrees to exercise reasonable professional care to avoid damage to customer property. The Contractor shall immediately report any property damage caused during a job to both the customer and the Company through the Platform. The Contractor shall cooperate fully with any Company investigation of property damage claims.</span>
+      </div>
+    </div>
+
+    <!-- Section 8 -->
+    <div class="ica-section" id="s8">
+      <span class="section-number">Section 8</span>
+      <h2>Customer Data and Privacy</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">8.1</span>
+        <span class="clause-body">The Contractor acknowledges that in the course of performing services through the Platform, they will have access to customer personal information including, without limitation, names, home addresses, phone numbers, email addresses, and information about customers' residences and possessions ("Customer Data").</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">8.2</span>
+        <span class="clause-body"><strong>Confidentiality Obligations.</strong> The Contractor agrees to treat all Customer Data as strictly confidential. The Contractor shall not:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">Use Customer Data for any purpose other than performing the assigned services;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">Disclose Customer Data to any third party for any reason;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">Retain Customer Data beyond what is necessary for the completion of the relevant job;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">Use Customer Data to contact customers outside the Platform for any commercial, personal, or other purpose;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(e)</span><span class="sub-clause-body">Use Customer Data to attempt to circumvent the Platform for direct business solicitation.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">8.3</span>
+        <span class="clause-body">The Contractor agrees to comply with all applicable privacy and data protection laws, including the Texas Data Privacy and Security Act, with respect to any Customer Data accessed during the performance of services. The Contractor shall promptly notify the Company if they become aware of any unauthorized access to, disclosure of, or loss of Customer Data.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">8.4</span>
+        <span class="clause-body">The Contractor's obligations regarding Customer Data shall survive the termination or expiration of this Agreement for a period of five (5) years.</span>
+      </div>
+    </div>
+
+    <!-- Section 9 -->
+    <div class="ica-section" id="s9">
+      <span class="section-number">Section 9</span>
+      <h2>Intellectual Property</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">9.1</span>
+        <span class="clause-body">All work product, deliverables, and physical results produced by the Contractor for customers in connection with services performed under this Agreement shall be the property of the respective customer upon completion and full payment.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">9.2</span>
+        <span class="clause-body">The Contractor grants the Company a non-exclusive, royalty-free, perpetual, worldwide license to use the Contractor's name, profile photo (if provided), ratings, reviews, and aggregated performance data generated through Platform activities for marketing, operational, and promotional purposes.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">9.3</span>
+        <span class="clause-body">The Contractor shall not use the AssembleAtEase name, logo, brand marks, trademarks, trade dress, or any other proprietary intellectual property of the Company for any purpose without prior written authorization from the Company, except to identify themselves as a Platform-approved Contractor to customers in the course of performing assigned services.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">9.4</span>
+        <span class="clause-body">All information, processes, systems, software, and technology provided by the Company in connection with the Platform are and shall remain the sole property of the Company. The Contractor acquires no ownership interest in any Company intellectual property through this Agreement.</span>
+      </div>
+    </div>
+
+    <!-- Section 10 -->
+    <div class="ica-section" id="s10">
+      <span class="section-number">Section 10</span>
+      <h2>Insurance and Liability</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">10.1</span>
+        <span class="clause-body"><strong>Contractor's Insurance Responsibility.</strong> The Contractor is strongly encouraged to obtain and maintain, at their own expense, adequate general liability insurance covering property damage and personal injury claims arising from or related to the performance of services. The Contractor acknowledges that the Company does not provide workers' compensation, general liability, professional liability, or any other insurance coverage for the Contractor or any work performed by the Contractor.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">10.2</span>
+        <span class="clause-body"><strong>Automobile Insurance.</strong> If the Contractor uses a motor vehicle in connection with performing services, the Contractor agrees to maintain valid automobile liability insurance meeting at least the minimum requirements of the State of Texas.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">10.3</span>
+        <span class="clause-body"><strong>Liability for Damage.</strong> The Contractor is personally responsible and financially liable for any damage to customer property caused by the Contractor's negligence, carelessness, willful misconduct, or failure to perform services in a workmanlike manner. The Contractor agrees to cooperate with the Company's investigation of all property damage claims and to respond to such claims within forty-eight (48) hours of notification.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">10.4</span>
+        <span class="clause-body"><strong>Limitation of Liability.</strong> To the maximum extent permitted by applicable law, the Company's total cumulative liability to the Contractor arising out of or related to this Agreement, regardless of the theory of liability, shall not exceed the total net compensation actually paid by the Company to the Contractor during the three (3) calendar months immediately preceding the event giving rise to the claim.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">10.5</span>
+        <span class="clause-body"><strong>Consequential Damages.</strong> Neither party shall be liable to the other for any indirect, incidental, special, consequential, exemplary, or punitive damages, including lost profits or loss of business opportunity, arising out of or related to this Agreement, even if such party has been advised of the possibility of such damages.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">10.6</span>
+        <span class="clause-body"><strong>Indemnification by Contractor.</strong> The Contractor agrees to indemnify, defend (at the Company's option), and hold harmless the Company, its owners, officers, directors, employees, agents, successors, and assigns from and against any and all claims, demands, lawsuits, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees and court costs) arising out of or resulting from:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">The Contractor's performance of or failure to perform services under this Agreement;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">Any breach of this Agreement, representation, or warranty by the Contractor;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">The Contractor's negligence, gross negligence, willful misconduct, or fraud;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">Any violation of applicable law, regulation, or third-party right by the Contractor;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(e)</span><span class="sub-clause-body">Any claim by a government authority regarding the Contractor's tax obligations or employment classification.</span></div>
+      </div>
+    </div>
+
+    <!-- Section 11 -->
+    <div class="ica-section" id="s11">
+      <span class="section-number">Section 11</span>
+      <h2>Non-Solicitation</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">11.1</span>
+        <span class="clause-body"><strong>Non-Solicitation of Customers.</strong> During the term of this Agreement and for a period of twelve (12) months following its termination or expiration for any reason, the Contractor agrees not to directly or indirectly solicit, accept, or perform assembly, mounting, smart home, fitness, outdoor, or office services for any customer that was first introduced to the Contractor through the Platform, other than through the Platform itself and subject to the Platform's fees.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">11.2</span>
+        <span class="clause-body"><strong>Non-Solicitation of Easers.</strong> During the term of this Agreement and for a period of twelve (12) months following its termination, the Contractor agrees not to solicit, recruit, or induce any other Platform Contractor to terminate their relationship with the Company or to perform services competing with the Company's business.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">11.3</span>
+        <span class="clause-body"><strong>Reasonable Limitation.</strong> This non-solicitation provision is expressly limited to customers introduced through the Platform and does not prohibit the Contractor from: (a) providing services to customers they independently knew and had a pre-existing business relationship with prior to joining the Platform; (b) advertising their services generally to the public through their own independent channels; or (c) accepting work from customers who independently contact the Contractor through channels entirely unrelated to the Platform after the applicable restriction period.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">11.4</span>
+        <span class="clause-body"><strong>Remedies.</strong> The Contractor acknowledges that a violation of this Section would cause the Company irreparable harm for which monetary damages would be an inadequate remedy, and the Company shall be entitled to seek injunctive relief, specific performance, and any other legal or equitable remedy available, in addition to any damages.</span>
+      </div>
+    </div>
+
+    <!-- Section 12 -->
+    <div class="ica-section" id="s12">
+      <span class="section-number">Section 12</span>
+      <h2>Term and Termination</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">12.1</span>
+        <span class="clause-body"><strong>Term.</strong> This Agreement is effective on the date of electronic acceptance and, unless sooner terminated in accordance with this Section, shall remain in effect continuously until terminated by either party.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">12.2</span>
+        <span class="clause-body"><strong>Termination by Contractor.</strong> The Contractor may terminate this Agreement at any time by providing seven (7) days' prior written notice to the Company at service@assembleatease.com. The Contractor must complete all accepted and in-progress jobs prior to the effective date of termination or arrange for their reassignment through the Company.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">12.3</span>
+        <span class="clause-body"><strong>Immediate Termination for Cause.</strong> The Company may terminate this Agreement immediately and without prior notice, effective upon the Company's delivery of written notice to the Contractor, for cause, including but not limited to any of the following events:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">Material violation of the Platform's Code of Conduct or quality standards;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">Material breach of any term of this Agreement;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">Fraud, dishonesty, misrepresentation, or intentional misconduct;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">Criminal arrest, charge, or conviction for any offense described in Section 6.2;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(e)</span><span class="sub-clause-body">Multiple credible customer complaints indicating a pattern of unprofessional, unsafe, or substandard conduct;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(f)</span><span class="sub-clause-body">Abandonment of accepted jobs without authorization on two or more occasions;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(g)</span><span class="sub-clause-body">Solicitation of customers or other Easers in violation of Section 11;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(h)</span><span class="sub-clause-body">Any other conduct that the Company reasonably determines poses a material risk to the safety of customers, the integrity of the Platform, or the Company's reputation.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">12.4</span>
+        <span class="clause-body"><strong>Termination Without Cause.</strong> The Company may also terminate this Agreement without cause upon fourteen (14) days' prior written notice to the Contractor. No additional compensation beyond earned amounts for completed jobs shall be owed upon termination without cause.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">12.5</span>
+        <span class="clause-body"><strong>Effect of Termination.</strong> Upon the effective date of termination: (a) the Contractor's access to the Platform will be deactivated; (b) the Company will pay all undisputed, earned compensation for fully completed jobs within fourteen (14) business days; (c) the Contractor's license to use the Company's intellectual property is immediately revoked; and (d) all provisions of this Agreement that by their nature should survive termination—including without limitation Sections 4 (Taxes), 8 (Privacy), 9 (IP), 10 (Liability), 11 (Non-Solicitation), 13 (Governing Law), and 14 (Miscellaneous)—shall survive and remain in full force and effect.</span>
+      </div>
+    </div>
+
+    <!-- Section 13 -->
+    <div class="ica-section" id="s13">
+      <span class="section-number">Section 13</span>
+      <h2>Disputes and Governing Law</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">13.1</span>
+        <span class="clause-body"><strong>Governing Law.</strong> This Agreement shall be governed by, construed, and enforced in accordance with the laws of the State of Texas, without regard to its conflict of law principles or rules. The United Nations Convention on Contracts for the International Sale of Goods does not apply to this Agreement.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">13.2</span>
+        <span class="clause-body"><strong>Exclusive Venue.</strong> Subject to the arbitration provision below, any legal action, proceeding, or claim arising out of or related to this Agreement that is not subject to arbitration shall be brought exclusively in the state or federal courts of competent jurisdiction located in Travis County, Texas. The parties irrevocably consent to the personal jurisdiction of such courts and waive any objection to venue in such courts, including any objection based on inconvenient forum.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">13.3</span>
+        <span class="clause-body"><strong>Mandatory Informal Resolution.</strong> Before initiating any formal dispute resolution proceeding, the party asserting a claim must first provide written notice to the other party describing the dispute in reasonable detail and the relief sought. The parties agree to negotiate in good faith for a period of thirty (30) days following receipt of such notice before either party may initiate arbitration or litigation.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">13.4</span>
+        <span class="clause-body"><strong>Binding Arbitration.</strong> Except for claims seeking injunctive or other equitable relief, any dispute, controversy, or claim arising out of or related to this Agreement, or the breach, termination, or validity thereof, that cannot be resolved informally pursuant to Section 13.3, shall be submitted to and resolved by binding arbitration. Such arbitration shall be conducted by a single arbitrator in Austin, Texas, in accordance with the Commercial Arbitration Rules of the American Arbitration Association in effect at the time the arbitration is initiated. The award rendered by the arbitrator shall be final, binding, and non-appealable, and judgment upon the award may be entered in any court of competent jurisdiction.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">13.5</span>
+        <span class="clause-body"><strong>Arbitration Costs.</strong> Each party shall bear its own costs and attorneys' fees in connection with arbitration, unless the arbitrator determines that a party's position was frivolous or in bad faith, in which case the arbitrator may award reasonable attorneys' fees and costs to the prevailing party.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">13.6</span>
+        <span class="clause-body"><strong>Class Action Waiver.</strong> The Contractor expressly waives any right to bring or participate in any class action lawsuit, class-wide arbitration, collective action, representative action, or multi-plaintiff proceeding against the Company. All claims must be brought on an individual basis only.</span>
+      </div>
+    </div>
+
+    <!-- Section 14 -->
+    <div class="ica-section" id="s14">
+      <span class="section-number">Section 14</span>
+      <h2>Miscellaneous Provisions</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.1</span>
+        <span class="clause-body"><strong>Entire Agreement.</strong> This Agreement, together with the AssembleAtEase Terms of Service and Code of Conduct as published on the Platform and incorporated herein by reference, constitutes the entire and exclusive agreement between the parties with respect to the subject matter hereof. This Agreement supersedes all prior negotiations, discussions, agreements, representations, understandings, and warranties, whether written or oral, between the parties relating to the subject matter hereof.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.2</span>
+        <span class="clause-body"><strong>Amendments.</strong> The Company may modify or update this Agreement upon thirty (30) days' prior written notice to active Contractors by email to the address on file. The Contractor's continued active use of the Platform, including acceptance of job offers, following the effective date of any modification constitutes acceptance of the modified Agreement. If the Contractor does not agree to any modification, the Contractor must cease using the Platform before the effective date and notify the Company in writing.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.3</span>
+        <span class="clause-body"><strong>Severability.</strong> If any provision, clause, or portion of this Agreement is found by a court or arbitrator of competent jurisdiction to be invalid, illegal, or unenforceable, such provision shall be limited or eliminated to the minimum extent necessary, and the remainder of this Agreement shall continue in full force and effect as if such invalid or unenforceable provision had not been included.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.4</span>
+        <span class="clause-body"><strong>No Waiver.</strong> No failure or delay by either party to exercise any right, power, or remedy under this Agreement shall operate as a waiver of that right, power, or remedy. No single or partial exercise of any right, power, or remedy shall preclude any other or further exercise of that or any other right, power, or remedy.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.5</span>
+        <span class="clause-body"><strong>Notices.</strong> All formal notices, demands, and communications required or permitted under this Agreement shall be in writing and delivered by email. Notices to the Company shall be sent to service@assembleatease.com, to the attention of AssembleAtEase Operations. Notices to the Contractor shall be sent to the primary email address on file in the Contractor's Platform profile. Notices are deemed received one (1) business day after the email is transmitted, provided no delivery failure is received by the sender.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.6</span>
+        <span class="clause-body"><strong>Assignment.</strong> The Contractor may not assign, transfer, delegate, or subcontract any of their rights, obligations, or duties under this Agreement without the prior written consent of the Company. The Company may freely assign this Agreement in connection with a merger, acquisition, reorganization, or sale of all or substantially all of its assets, without requiring the Contractor's consent.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.7</span>
+        <span class="clause-body"><strong>Force Majeure.</strong> Neither party shall be liable for any failure or delay in performance due directly or indirectly to causes beyond their reasonable control, including acts of God, natural disasters, pandemic, epidemic, acts of government, war, terrorism, civil unrest, or Internet or power infrastructure failures, provided the affected party notifies the other promptly and uses commercially reasonable efforts to resume performance as soon as practicable.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.8</span>
+        <span class="clause-body"><strong>Non-Disparagement.</strong> The Contractor agrees not to make any disparaging, negative, or harmful statements, whether written or oral, about the Company, its owners, employees, customers, platform, business practices, or services, including on social media, online review platforms, or to members of the media, during the term of this Agreement and for a period of two (2) years thereafter. Nothing in this provision prevents the Contractor from providing truthful statements in connection with a legal proceeding or as required by law.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.9</span>
+        <span class="clause-body"><strong>Headings.</strong> The section headings in this Agreement are for convenience of reference only and shall not affect the interpretation or construction of any provision hereof.</span>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">14.10</span>
+        <span class="clause-body"><strong>Counterparts.</strong> This Agreement may be executed in one or more counterparts, each of which shall be deemed an original and all of which together shall constitute one and the same instrument. Electronic or digital execution is equally valid and binding.</span>
+      </div>
+    </div>
+
+    <!-- Section 15 -->
+    <div class="ica-section" id="s15">
+      <span class="section-number">Section 15</span>
+      <h2>Electronic Signature and Acceptance</h2>
+
+      <div class="ica-clause">
+        <span class="clause-num">15.1</span>
+        <span class="clause-body"><strong>Electronic Signature Validity.</strong> The Contractor's act of checking the "I have read and agree to the Independent Contractor Agreement" box during the AssembleAtEase Easer application process, together with the timestamp and IP address recorded by the Platform's systems at the time of such acceptance, shall constitute a valid, binding, and enforceable electronic signature under:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">The Electronic Signatures in Global and National Commerce Act (E-SIGN Act), 15 U.S.C. § 7001 et seq.; and</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">The Texas Uniform Electronic Transactions Act (UETA), Tex. Bus. &amp; Com. Code §§ 322.001–322.021.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">15.2</span>
+        <span class="clause-body"><strong>Acknowledgment of Terms.</strong> By electronically accepting this Agreement, the Contractor represents, warrants, and confirms that:</span>
+      </div>
+      <div style="margin-left:2rem;margin-bottom:1rem">
+        <div class="sub-clause"><span class="sub-clause-letter">(a)</span><span class="sub-clause-body">They have read this entire Independent Contractor Agreement thoroughly and understand all of its terms and conditions;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(b)</span><span class="sub-clause-body">They agree to be legally bound by all terms and conditions set forth in this Agreement;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(c)</span><span class="sub-clause-body">They understand and acknowledge that this Agreement constitutes a binding legal contract between themselves and AssembleAtEase;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(d)</span><span class="sub-clause-body">They are at least eighteen (18) years of age and have the full legal capacity to enter into this Agreement;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(e)</span><span class="sub-clause-body">They are legally authorized to work in the United States;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(f)</span><span class="sub-clause-body">They understand they are entering into this relationship as an independent contractor, not as an employee of AssembleAtEase;</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(g)</span><span class="sub-clause-body">They had the opportunity to review this Agreement with an attorney of their choosing before accepting; and</span></div>
+        <div class="sub-clause"><span class="sub-clause-letter">(h)</span><span class="sub-clause-body">They have not been induced, pressured, or coerced into accepting this Agreement and do so freely and voluntarily.</span></div>
+      </div>
+
+      <div class="ica-clause">
+        <span class="clause-num">15.3</span>
+        <span class="clause-body"><strong>Record Retention.</strong> The Company will retain a record of the Contractor's electronic acceptance, including the date, time, and IP address of acceptance, for the duration of the Agreement and for a period of seven (7) years following termination. The Contractor may request a copy of their acceptance record by contacting service@assembleatease.com.</span>
+      </div>
+
+      <hr />
+
+      <p style="font-size:0.85rem;color:#64748b;line-height:1.7;margin:0"><em>If you have questions about this Agreement before signing, please contact us at <a href="mailto:service@assembleatease.com" style="color:#0099cc">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:#0099cc">(737) 290-6129</a>. We recommend consulting with a licensed Texas attorney if you have legal questions about your rights and obligations as an independent contractor.</em></p>
+    </div>
+
+    <!-- Signature Block -->
+    <div class="sig-block" id="accept">
+      <h2>Acknowledgment &amp; Electronic Signature</h2>
+      <p>To complete your application, you must accept this Agreement by checking the box below in the application form. By doing so, you confirm all of the following:</p>
+      <ul class="sig-checklist">
+        <li><span class="sig-check">&#10003;</span> I have read this entire Independent Contractor Agreement and understand its terms.</li>
+        <li><span class="sig-check">&#10003;</span> I agree to be legally bound by this Agreement as an independent contractor.</li>
+        <li><span class="sig-check">&#10003;</span> I am at least 18 years old and legally authorized to work in the United States.</li>
+        <li><span class="sig-check">&#10003;</span> I understand I am not an employee of AssembleAtEase and am not entitled to employee benefits.</li>
+        <li><span class="sig-check">&#10003;</span> I am solely responsible for my own taxes, insurance, tools, and transportation.</li>
+        <li><span class="sig-check">&#10003;</span> I accept the platform fee structure and payment terms described in Section 3.</li>
+        <li><span class="sig-check">&#10003;</span> I acknowledge the $30 application fee is non-refundable.</li>
+      </ul>
+      <a href="/assembler/apply#contractor-agreement" class="sig-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Return to Application &amp; Sign
+      </a>
+    </div>
+
+    <p class="print-notice">Last updated: June 2026. AssembleAtEase reserves the right to update this Agreement with 30 days' written notice. <a href="javascript:window.print()" style="color:#0099cc">Print this Agreement</a></p>
+
+  </div><!-- /ica-doc -->
+</div><!-- /ica-wrap -->
+
+</body>
+</html>

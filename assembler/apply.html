@@ -972,18 +972,44 @@
           </div>
         </div>
 
-        <div class="section">
+        <div class="section" id="contractor-agreement">
           <div class="section-head">
             <div>
               <span class="section-kicker">Step 4</span>
-              <h3 class="section-title">Agreement and verification fee</h3>
+              <h3 class="section-title">Contractor Agreement &amp; Verification Fee</h3>
             </div>
-            <span class="section-status">Payment required</span>
+            <span class="section-status">Signature required</span>
           </div>
-          <div class="conduct-check">
+
+          <!-- Contractor Agreement -->
+          <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:1rem 1.1rem;margin-bottom:1rem">
+            <div style="display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:0.75rem">
+              <div style="width:36px;height:36px;border-radius:8px;background:#00BFFF;display:grid;place-items:center;flex-shrink:0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#001f2b" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+              <div>
+                <div style="font-weight:800;font-size:0.9rem;color:#001f2b;margin-bottom:2px">1099 Independent Contractor Agreement</div>
+                <div style="font-size:0.8rem;color:#0369a1;line-height:1.55">A full contractor agreement governs your relationship with AssembleAtEase. You must read and sign this agreement before applying. This is a legally binding document.</div>
+              </div>
+            </div>
+            <a href="/assembler/contractor-agreement" target="_blank" style="display:inline-flex;align-items:center;gap:0.4rem;background:#fff;border:1.5px solid #0099cc;color:#0099cc;font-weight:800;font-size:0.82rem;padding:0.5rem 0.9rem;border-radius:8px;text-decoration:none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Read Full Contractor Agreement
+            </a>
+          </div>
+
+          <div class="conduct-check" style="margin-bottom:0.5rem">
+            <input type="checkbox" id="contractor-agree" />
+            <div class="conduct-check-text">
+              I have read the <a href="/assembler/contractor-agreement" target="_blank">Independent Contractor Agreement</a> in full and agree to be legally bound by its terms, including the independent contractor classification, platform fee structure, non-solicitation provisions, and all other terms. I confirm I am at least 18 years old and legally authorized to work in the United States.
+            </div>
+          </div>
+          <span class="field-error" id="contractor-error"></span>
+
+          <div class="conduct-check" style="margin-top:0.75rem">
             <input type="checkbox" id="conduct" />
             <div class="conduct-check-text">
-              I agree to the AssembleAtEase <a href="../terms" target="_blank">Code of Conduct</a> and
+              I also agree to the AssembleAtEase <a href="../terms" target="_blank">Code of Conduct</a> and
               <a href="../terms" target="_blank">Terms of Service</a>. I understand that identity verification and application review are required before I can receive jobs.
             </div>
           </div>
@@ -1179,6 +1205,7 @@
     var zip = document.getElementById('zip').value.trim();
     var years = document.getElementById('years').value;
     var bio = document.getElementById('bio').value.trim();
+    var contractorAgreed = document.getElementById('contractor-agree').checked;
     var conduct = document.getElementById('conduct').checked;
 
     var services = [];
@@ -1200,6 +1227,7 @@
     if (!services.length) { fieldError('services', 'Select at least one service'); hasErr = true; }
     if (!toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
     if (!transportVal) { fieldError('transport', 'Required'); hasErr = true; }
+    if (!contractorAgreed) { fieldError('contractor', 'You must read and sign the Contractor Agreement to continue'); hasErr = true; }
     if (!conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
     if (hasErr) return;
 
@@ -1241,6 +1269,7 @@
           yearsExperience: parseInt(years, 10),
           bio: bio || null,
           codeOfConduct: true,
+          contractorAgreementSigned: true,
           paymentMethodId: pmResult.paymentMethod.id,
           inviteToken: document.getElementById('invite-token').value || null,
         }),

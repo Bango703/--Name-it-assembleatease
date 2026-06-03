@@ -189,6 +189,15 @@
     </button>
   </div>
 
+  <!-- Onboarding checklist (shown until all steps complete) -->
+  <div id="onboarding-checklist" style="display:none;background:#fff;border:1.5px solid rgba(0,191,255,0.25);border-radius:14px;padding:1rem 1.25rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,191,255,0.08)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--e-teal)">Get Dispatch Ready</div>
+      <div id="onboarding-progress-text" style="font-size:0.72rem;color:var(--e-muted);font-weight:600"></div>
+    </div>
+    <div id="onboarding-steps" style="display:flex;flex-direction:column;gap:0.5rem"></div>
+  </div>
+
   <!-- Account status banners -->
   <div id="tier-status-banner" class="eh-banner hidden">
     <div>
@@ -1034,12 +1043,62 @@
       tsBanner.classList.remove('hidden');
       document.getElementById('tier-status-title').textContent='Your application is under review';
       document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
-    } else if(profile.status==='active'&&profile.tier==='starter'&&profile.completed_jobs===0){
-      tsBanner.classList.remove('hidden');
-      tsBanner.style.background='rgba(0,191,255,0.06)';
-      tsBanner.style.borderColor='rgba(0,191,255,0.15)';
-      document.getElementById('tier-status-title').textContent='Welcome — you are approved and ready for jobs.';
-      document.getElementById('tier-status-sub').textContent='Complete your profile so we can start assigning jobs.';
+    }
+
+    // Onboarding checklist — show for active Easers until all dispatch requirements are met
+    if(profile.status==='active'){
+      var onbSteps=[
+        {
+          key:'identity',
+          done: profile.identity_verified===true,
+          label:'Verify your identity',
+          desc: profile.identity_verified ? 'Identity verified.' : 'Required to receive job offers.',
+          action: !profile.identity_verified ? (profile.stripe_verification_id ? null : {href:'/assembler/apply',label:'Continue'}) : null,
+        },
+        {
+          key:'phone',
+          done: !!profile.phone,
+          label:'Add your phone number',
+          desc: profile.phone ? 'Phone number on file.' : 'Required for dispatch notifications.',
+          action: !profile.phone ? {href:'/assembler/profile',label:'Add Phone'} : null,
+        },
+        {
+          key:'online',
+          done: available,
+          label:'Go Online to receive jobs',
+          desc: available ? 'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
+          action: null,
+        },
+      ];
+      var doneCnt=onbSteps.filter(function(s){return s.done;}).length;
+      var allDone=doneCnt===onbSteps.length;
+      if(!allDone){
+        var listEl=document.getElementById('onboarding-steps');
+        var progEl=document.getElementById('onboarding-progress-text');
+        if(progEl) progEl.textContent=doneCnt+'/'+onbSteps.length+' complete';
+        if(listEl){
+          listEl.innerHTML=onbSteps.map(function(s){
+            var iconSvg=s.done
+              ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+              : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+            var actionHtml=s.action&&!s.done
+              ? '<a href="'+s.action.href+'" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">'+s.action.label+'</a>'
+              : '';
+            return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
+              +'<span style="flex-shrink:0">'+iconSvg+'</span>'
+              +'<div style="flex:1;min-width:0">'
+                +'<div style="font-size:0.82rem;font-weight:'+(s.done?'500':'600')+';color:'+(s.done?'var(--e-muted)':'var(--e-text)')+(s.done?';text-decoration:line-through':'')+' ">'+esc(s.label)+'</div>'
+                +'<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">'+esc(s.desc)+'</div>'
+              +'</div>'
+              +actionHtml
+              +'</div>';
+          }).join('');
+          // Remove border on last item
+          var lastItem=listEl.lastElementChild;
+          if(lastItem) lastItem.style.borderBottom='none';
+        }
+        document.getElementById('onboarding-checklist').style.display='';
+      }
     }
 
     if(!profile.identity_verified){

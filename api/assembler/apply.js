@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     servicesOffered, hasTools, hasTransport,
     yearsExperience, bio, codeOfConduct, inviteToken,
     paymentMethodId,
+    contractorAgreementSigned,
   } = req.body;
 
   // ---- Validation ----
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
   if (typeof hasTransport !== 'boolean') return res.status(400).json({ error: 'Transportation question is required' });
   if (!yearsExperience || yearsExperience < 0) return res.status(400).json({ error: 'Years of experience is required' });
   if (!codeOfConduct) return res.status(400).json({ error: 'You must agree to the code of conduct' });
+  if (!contractorAgreementSigned) return res.status(400).json({ error: 'You must read and sign the Independent Contractor Agreement' });
   if (!paymentMethodId) return res.status(400).json({ error: 'Payment is required to submit your application' });
 
   const sb = getSupabase();
@@ -99,6 +101,7 @@ export default async function handler(req, res) {
     identity_verified: false,
     application_status: 'applied',
     code_of_conduct_agreed_at: new Date().toISOString(),
+    contractor_agreement_signed_at: new Date().toISOString(),
   }).eq('id', userId);
   if (extError) console.warn('Assembler columns update skipped:', extError.message);
 

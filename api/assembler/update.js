@@ -1,4 +1,5 @@
-﻿import { getSupabase } from '../_supabase.js';
+﻿import Stripe from 'stripe';
+import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -67,6 +68,8 @@ export default async function handler(req, res) {
       application_status: 'approved',
       approved_at: new Date().toISOString(),
       welcome_email_sent: true,
+      is_available: false,
+      completed_jobs: 0,
     }).eq('id', assemblerId);
 
     sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
@@ -109,16 +112,34 @@ export default async function handler(req, res) {
 
     sb.from('assembler_waitlist').update({ status: 'rejected' }).eq('email', profile.email.toLowerCase()).then(() => {});
 
+    // Refund the $30 application fee if a Stripe payment intent is on record
+    let refundId = null;
+    if (profile.stripe_payment_intent_id) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const refund = await stripe.refunds.create({
+          payment_intent: profile.stripe_payment_intent_id,
+          reason: 'requested_by_customer',
+          metadata: { userId: assemblerId, reason: 'application_rejected' },
+        });
+        refundId = refund.id;
+        await sb.from('profiles').update({ application_fee_refunded: true, application_fee_refund_id: refundId }).eq('id', assemblerId);
+        console.log(`[reject] Refunded $30 for ${profile.email} — refund ${refundId}`);
+      } catch (refundErr) {
+        console.error(`[reject] Stripe refund failed for ${profile.email}:`, refundErr.message);
+      }
+    }
+
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
     sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase Application',
       replyTo: 'service@assembleatease.com',
-      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null),
+      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, !!refundId),
     }).catch(e => console.error('Rejection email error:', e));
 
-    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected' });
+    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId });
   }
 
   // ── SUSPEND ──────────────────────────────────────────────────────────────
@@ -262,7 +283,56 @@ export default async function handler(req, res) {
 }
 
 function buildApprovalEmail(firstName, email, resetUrl) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden"><div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:2rem;text-align:center"><img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/><h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1></div><div style="padding:2rem"><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Congratulations, ${esc(firstName)}!</p><p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official Starter Easer on AssembleAtEase.</p><p style="color:#52525b;margin:0 0 16px">Click the button below to set your password and access your dashboard:</p><div style="text-align:center;margin:1.5rem 0"><a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px"><p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p></div><p style="font-size:0.85rem;color:#71717a"><strong>Your login:</strong> ${esc(email)}</p></div></div></div></body></html>`;
+  const steps = [
+    { num: '1', title: 'Set your password', desc: 'Click the button below to create your password and log into your Easer dashboard.' },
+    { num: '2', title: 'Complete your profile', desc: 'Add your profile photo, bio, and confirm your service skills in the Profile section.' },
+    { num: '3', title: 'Go Online', desc: 'Tap the "Offline" pill on your dashboard home screen to switch to Online. You will not receive job offers while offline.' },
+    { num: '4', title: 'Wait for your first offer', desc: 'When a matching job is dispatched to you, you will receive a push notification and email with a 20-minute acceptance window.' },
+  ];
+  const stepsHtml = steps.map(s => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:32px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#00BFFF;color:#fff;font-size:0.75rem;font-weight:700">${s.num}</span>
+      </td>
+      <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:0.875rem;font-weight:700;color:#111;margin-bottom:2px">${s.title}</div>
+        <div style="font-size:0.82rem;color:#52525b;line-height:1.55">${s.desc}</div>
+      </td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:2rem;text-align:center">
+      <img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+      <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1>
+    </div>
+    <div style="padding:2rem">
+      <p style="font-size:1rem;font-weight:700;margin:0 0 8px">Congratulations, ${esc(firstName)}!</p>
+      <p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official <strong>Starter Easer</strong> on AssembleAtEase. Here is what to do next to start receiving jobs:</p>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:1.5rem">
+        ${stepsHtml}
+      </table>
+
+      <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 16px;margin-bottom:20px">
+        <p style="margin:0;font-size:0.82rem;color:#0c4a6e;font-weight:700">Important: You start Offline by default.</p>
+        <p style="margin:4px 0 0;font-size:0.82rem;color:#0369a1;line-height:1.5">You will not appear in dispatch and will not receive job offers until you manually switch to Online in your dashboard.</p>
+      </div>
+
+      <div style="text-align:center;margin:1.5rem 0">
+        <a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a>
+      </div>
+
+      <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px">
+        <p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p>
+      </div>
+
+      <p style="font-size:0.85rem;color:#71717a;margin:0"><strong>Your login:</strong> ${esc(email)}</p>
+      <p style="font-size:0.82rem;color:#71717a;margin:8px 0 0">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p>
+    </div>
+  </div>
+</div></body></html>`;
 }
 
 function buildPromotionEmail(firstName, tierLabel, tier) {
@@ -344,6 +414,9 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
 </body></html>`;
 }
 
-function buildRejectionEmail(firstName, reason) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p></div></div></body></html>`;
+function buildRejectionEmail(firstName, reason, refunded) {
+  const refundNote = refunded
+    ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#166534"><strong>Refund issued:</strong> Your $30 application fee has been refunded to your original payment method. Please allow 5–10 business days for it to appear.</p></div>`
+    : `<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#92400e">The $30 application fee is non-refundable per our application terms.</p></div>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}${refundNote}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p></div></div></body></html>`;
 }
