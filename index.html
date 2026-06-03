@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -30,9 +30,9 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    NAV
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .nav-logo-sub{font-size:0.58rem;font-family:var(--font-body);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--cyan-dark);line-height:1;margin-top:2px}
 .nav-auth-link{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
 .nav-auth-link:hover{color:var(--cyan-dark)}
@@ -45,9 +45,9 @@
 .nav-mobile a svg{stroke:var(--cyan)}
 .nav-mobile a[style*="color:#00BFFF"]{color:var(--cyan)!important}
 .nav-mobile .btn{margin-top:16px;justify-content:center;min-height:38px;border-radius:999px;background:var(--cyan);color:#001f2b;font-weight:600;border-bottom:none;box-shadow:none}
-/* ─────────────────────────────────────────────────────
-   DESKTOP HERO V2 (≥1024px only)
-───────────────────────────────────────────────────── */
+/* -----------------------------------------------------
+   DESKTOP HERO V2 (=1024px only)
+----------------------------------------------------- */
 .hero-v2{display:none;background:linear-gradient(160deg,#002d38 0%,#00566a 55%,#0099CC 100%);overflow:hidden;position:relative}
 .hero-v2::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%,rgba(0,188,212,0.1),transparent 65%);pointer-events:none}
 .hv2-left{display:flex;flex-direction:column;justify-content:center;padding:3.25rem 3rem 3.25rem 4rem;background:transparent;position:relative;z-index:1}
@@ -87,9 +87,9 @@
 .qbb-or{display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;font-size:0.82rem;color:rgba(255,255,255,0.5)}
 .qbb-or::before,.qbb-or::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.2)}
 
-/* ─────────────────────────────────────────────────────
-   DESKTOP SERVICE GRID (≥1024px only)
-───────────────────────────────────────────────────── */
+/* -----------------------------------------------------
+   DESKTOP SERVICE GRID (=1024px only)
+----------------------------------------------------- */
 .svc5-section{display:none;background:#f8f9fa;padding:1.25rem 2rem 4.75rem}
 .svc5-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.35rem;max-width:1120px;margin:0 auto}
 .svc5-card{position:relative;background:#fff;border:1.5px solid #dde8ec;border-radius:18px;padding:1rem 1rem 1.35rem;text-align:left;text-decoration:none;display:flex;flex-direction:column;min-height:365px;overflow:hidden;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:0 8px 26px rgba(2,32,43,0.055)}
@@ -126,9 +126,9 @@
 .people-point{display:flex;align-items:center;gap:0.55rem;font-size:0.86rem;font-weight:700;color:var(--ink-soft)}
 .people-point::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px rgba(0,191,255,0.11);flex-shrink:0}
 
-/* ─────────────────────────────────────────────────────
-   DESKTOP TRUST BAR (≥1024px only)
-───────────────────────────────────────────────────── */
+/* -----------------------------------------------------
+   DESKTOP TRUST BAR (=1024px only)
+----------------------------------------------------- */
 .trust-bar{display:none;background:var(--ink);padding:2.5rem 2rem}
 .trust-bar-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem}
 .trust-bar-item{display:flex;align-items:center;gap:1rem}
@@ -138,9 +138,9 @@
 .trust-bar-title{font-size:0.78rem;font-weight:700;color:#fff;letter-spacing:0.06em;text-transform:uppercase}
 .trust-bar-sub{font-size:0.68rem;color:rgba(255,255,255,0.5);margin-top:2px;text-transform:uppercase;letter-spacing:0.04em}
 
-/* ─────────────────────────────────────────────────────
-   DESKTOP HOW IT WORKS (≥1024px only)
-───────────────────────────────────────────────────── */
+/* -----------------------------------------------------
+   DESKTOP HOW IT WORKS (=1024px only)
+----------------------------------------------------- */
 .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;position:relative}
 .steps-grid::before{content:'';position:absolute;top:28px;left:12%;right:12%;height:2px;background:linear-gradient(90deg,var(--cyan-light),var(--cyan-mid),var(--cyan-light));z-index:0}
 .step-card{text-align:center;position:relative;z-index:1}
@@ -150,9 +150,9 @@
 .step-title{font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem}
 .step-desc{font-size:0.82rem;color:var(--muted);line-height:1.65}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    SECTION UTILITIES
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .section{padding:5rem 2rem}
 .section-alt{background:var(--off-white)}
 .section-inner{max-width:1100px;margin:0 auto}
@@ -167,24 +167,24 @@ section#how-it-works{display:none}
 section#service-area{display:none}
 .cta-section{display:none}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    SERVICE AREA PILLS
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .area-pills{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center}
 .area-pill{background:var(--white);border:1.5px solid var(--border);border-radius:999px;padding:0.4rem 1rem;font-size:0.82rem;font-weight:500;color:var(--ink-soft);transition:all 0.15s}
 .area-pill:hover{border-color:var(--cyan);color:var(--cyan-dark);background:var(--cyan-light)}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    CTA SECTION
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .cta-section{background:linear-gradient(140deg,#00BFFF,#0099CC);padding:5rem 2rem;text-align:center}
 .cta-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
 .cta-desc{font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2.5rem;line-height:1.7}
 .cta-section .btn-white,.cta-section .btn-ghost-white{padding:1rem 2.75rem;font-size:1rem;min-height:52px}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    MOBILE/TABLET SERVICE SECTION (<1024px only)
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .svc-section{background:#fff}
 
 /* Heading */
@@ -300,18 +300,18 @@ section#service-area{display:none}
 }
 @keyframes mCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    MOBILE/TABLET TRUST STRIP (<1024px only)
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .trust-strip{background:#001f2b;padding:12px 1rem}
 .trust-strip-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .trust-item{display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.9);padding:6px 8px;white-space:nowrap;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:999px}
 .trust-item svg{width:13px;height:13px;stroke:var(--cyan);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .trust-sep{display:none}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    MOBILE/TABLET HOW IT WORKS (<1024px only)
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .how-section{background:#fff;padding:20px 1rem 22px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .how-inner{max-width:1100px;margin:0 auto}
 .how-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.14em;color:#667085;font-weight:800;text-align:center;margin-bottom:12px}
@@ -334,9 +334,9 @@ section#service-area{display:none}
 .m-large-project-btn:active{transform:scale(0.98);box-shadow:0 6px 16px rgba(0,191,255,0.16)}
 @keyframes mStepPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,191,255,0.18)}45%{box-shadow:0 0 0 0 rgba(0,191,255,0.18)}55%{box-shadow:0 0 0 6px rgba(0,191,255,0)}}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    BENEFITS MARQUEE (all sizes)
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 @keyframes reviews-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .benefits-section{border-top:1px solid var(--border);overflow:hidden}
 .benefits-header{text-align:center;margin:0 auto 1.5rem;max-width:620px;padding:0 1rem}
@@ -363,9 +363,9 @@ section#service-area{display:none}
 .review-card p{font-size:0.8rem;color:var(--muted);line-height:1.65}
 @media(max-width:1023px){.benefits-section .review-card:nth-child(n+7){display:none}}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    FAQ (all sizes)
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .faq-list{max-width:720px;margin:0 auto}
 .reviews-empty{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:1.35rem 1.5rem;text-align:center;color:var(--muted);font-size:0.9rem;line-height:1.65;box-shadow:0 8px 24px rgba(2,32,43,0.04)}
 .reviews-empty strong{display:block;color:var(--ink);font-size:1rem;margin-bottom:0.25rem}
@@ -380,16 +380,16 @@ section#service-area{display:none}
 .faq-toggle-btn{display:block;margin:1rem auto 0;background:none;border:1.5px solid var(--border);border-radius:999px;padding:0.45rem 1.5rem;font-family:var(--font-body);font-size:0.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s}
 .faq-toggle-btn:hover{border-color:var(--cyan);color:var(--cyan-dark)}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    FOOTER TWEAKS
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .footer-contact a{display:flex;align-items:center;gap:6px}
 .footer-contact a svg{stroke:rgba(255,255,255,0.5);flex-shrink:0;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    DESKTOP ANIMATIONS
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 @keyframes fadeInUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 @keyframes kenBurns{0%{transform:scale(1.04)}100%{transform:scale(1.08)}}
 .hv2-eyebrow{animation:fadeInUp 0.5s 0.1s both}
@@ -399,25 +399,25 @@ section#service-area{display:none}
 .hv2-trust-row{animation:fadeInUp 0.5s 0.65s both}
 .hv2-right img{animation:kenBurns 12s ease-in-out infinite alternate}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    MOBILE BOOK BAR / BOTTOM NAV
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 .nav-book-pill,.footer-back-top,#m-book-bar{display:none}
 #m-book-bar{position:fixed;left:0;right:0;bottom:0;z-index:290;background:rgba(255,255,255,0.96);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
 #m-book-bar.hide{display:none!important}
 #m-book-bar .m-book-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;border-radius:999px;background:var(--cyan);color:#fff;font-size:0.9rem;font-weight:700;text-decoration:none}
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    RESPONSIVE — tablet
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 @media(max-width:900px){
   .steps-grid{grid-template-columns:repeat(2,1fr)}
   .steps-grid::before{display:none}
 }
 
-/* ─────────────────────────────────────────────────────
+/* -----------------------------------------------------
    RESPONSIVE — mobile
-───────────────────────────────────────────────────── */
+----------------------------------------------------- */
 @media(max-width:768px){
   /* Nav */
   body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px) + 8px)}
@@ -488,10 +488,10 @@ section#service-area{display:none}
 </style>
 <!-- DESKTOP-ONLY styles — cannot affect mobile (loaded via media attribute) -->
 <style media="(min-width:1024px)">
-/* ── NAV (homepage centered layout) ── */
+/* -- NAV (homepage centered layout) -- */
 .nav-inner{position:relative}
 .nav-links{position:absolute;left:50%;transform:translateX(-50%);gap:2.25rem}
-/* ── SHOW desktop sections ── */
+/* -- SHOW desktop sections -- */
 .hero-v2{display:grid!important;grid-template-columns:minmax(420px,43%) minmax(0,57%);min-height:clamp(500px,56vw,620px)}
 .hv2-left{padding:4rem clamp(2.5rem,5vw,5.5rem)}
 .hv2-desc{max-width:500px}
@@ -500,7 +500,6 @@ section#service-area{display:none}
 .hv2-chip--2{bottom:28%;left:2rem}
 .hv2-chip--3{bottom:17%;right:2.25rem}
 .svc5-section{display:block}
-.trust-bar{display:block}
 section#services-hdr{display:block;padding:3rem 2rem 0}
 section#services-hdr .section-header{margin-bottom:1.75rem}
 section#how-it-works{display:block}
@@ -513,7 +512,7 @@ section#service-area{display:block}
 .benefits-section .review-card:nth-child(n+7){display:none}
 .benefit-label{font-size:0.82rem}
 .review-card p{font-size:0.86rem;line-height:1.65}
-/* ── HIDE mobile sections ── */
+/* -- HIDE mobile sections -- */
 .svc-section{display:none!important}
 .trust-strip{display:none!important}
 .how-section{display:none!important}
@@ -568,9 +567,9 @@ section#service-area{display:block}
 
 <main id="main-content">
 
-<!-- ═══════════════════════════════════════════════
-     DESKTOP HERO V2 (shown ≥1024px via CSS)
-═══════════════════════════════════════════════ -->
+<!-- -----------------------------------------------
+     DESKTOP HERO V2 (shown =1024px via CSS)
+----------------------------------------------- -->
 <section class="hero-v2">
   <div class="hv2-left">
     <div class="hv2-eyebrow">Professional Home Services</div>
@@ -634,7 +633,7 @@ section#service-area{display:block}
     </div>
   </div>
   <div class="hv2-right" id="hv2Right">
-     <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high"/>
+     <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high" decoding="sync"/>
     <div class="hv2-chip hv2-chip--1">
       <span class="hv2-chip-dot" style="background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.25)"></span>
       Same-day available
@@ -650,9 +649,9 @@ section#service-area{display:block}
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════
-     MOBILE/TABLET (hidden ≥1024px)
-═══════════════════════════════════════════════ -->
+<!-- -----------------------------------------------
+     MOBILE/TABLET (hidden =1024px)
+----------------------------------------------- -->
 <section class="svc-section" id="services">
 
   <!-- Heading - mobile app-style hero -->
@@ -672,7 +671,7 @@ section#service-area{display:block}
       <div class="m-proof"><strong>Pay after</strong><span>card authorized</span></div>
     </div>
     <div class="m-hero-photo">
-      <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high">
+      <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high" decoding="sync">
       <div class="m-float-card">
         <div><strong>Furniture assembled carefully</strong><span>Careful setup, cleanup, and placement</span></div>
         <div class="m-float-price">From $69</div>
@@ -693,7 +692,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Furniture+Assembly" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-assembly">
-        <img src="/images/hero-pro-optimized.jpg" alt="" loading="lazy">
+        <img src="/images/hero-pro-optimized.jpg" alt="" loading="eager">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -708,7 +707,7 @@ section#service-area{display:block}
 
     <a href="/book?service=TV+Mounting" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-mounting">
-        <img src="/images/work-tv-mounting.jpg" alt="" loading="lazy">
+        <img src="/images/work-tv-mounting.jpg" alt="" loading="eager">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -723,7 +722,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Fitness+Equipment" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-moving">
-        <img src="/images/work-fitness-equipment.jpg" alt="" loading="lazy">
+        <img src="/images/work-fitness-equipment.jpg" alt="" loading="eager">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -737,7 +736,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Outdoor+%26+Playsets" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-repairs">
-        <img src="/images/work-outdoor-playset.jpg" alt="" loading="lazy">
+        <img src="/images/work-outdoor-playset.jpg" alt="" loading="eager">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -751,7 +750,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Office+Assembly" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-smarthome">
-        <img src="/images/work-office-assembly.jpg" alt="" loading="lazy">
+        <img src="/images/work-office-assembly.jpg" alt="" loading="eager">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -765,7 +764,7 @@ section#service-area{display:block}
 
     <a href="/book?service=Smart+Home" class="svc-item svc-item--featured">
       <div class="svc-item-thumb svc-t-smarthome">
-        <img src="/images/work-smart-home.jpg" alt="" loading="lazy">
+        <img src="/images/work-smart-home.jpg" alt="" loading="eager">
       </div>
       <div class="svc-item-body">
         <div class="svc-item-name-row">
@@ -791,7 +790,7 @@ section#service-area{display:block}
   </div>
 </section>
 
-<!-- MOBILE/TABLET TRUST STRIP (hidden ≥1024px) -->
+<!-- MOBILE/TABLET TRUST STRIP (hidden =1024px) -->
 <div class="trust-strip">
   <div class="trust-strip-inner">
     <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Same-Day</div>
@@ -801,7 +800,7 @@ section#service-area{display:block}
   </div>
 </div>
 
-<!-- MOBILE/TABLET HOW IT WORKS (hidden ≥1024px) -->
+<!-- MOBILE/TABLET HOW IT WORKS (hidden =1024px) -->
 <section class="how-section">
   <div class="how-inner">
     <p class="how-label">How It Works</p>
@@ -814,7 +813,7 @@ section#service-area{display:block}
   </div>
 </section>
 
-<!-- MOBILE: Large project / custom quote (hidden ≥1024px) -->
+<!-- MOBILE: Large project / custom quote (hidden =1024px) -->
 <div class="m-large-project m-large-project-card">
   <div class="m-large-project-inner">
     <div class="m-large-project-icon">
@@ -829,9 +828,9 @@ section#service-area{display:block}
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════
-     DESKTOP: SERVICES HEADER (shown ≥1024px)
-═══════════════════════════════════════════════ -->
+<!-- -----------------------------------------------
+     DESKTOP: SERVICES HEADER (shown =1024px)
+----------------------------------------------- -->
 <section class="section" id="services-hdr">
   <div class="section-inner">
     <div class="section-header">
@@ -842,11 +841,11 @@ section#service-area{display:block}
   </div>
 </section>
 
-<!-- DESKTOP: SERVICE GRID (shown ≥1024px) -->
+<!-- DESKTOP: SERVICE GRID (shown =1024px) -->
 <section class="svc5-section">
   <div class="svc5-grid">
     <a class="svc5-card" href="/book?service=Furniture+Assembly">
-      <div class="svc5-photo"><img src="/images/hero-pro-optimized.jpg" alt="Professional assembling furniture in a living room" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-photo"><img src="/images/hero-pro-optimized.jpg" alt="Professional assembling furniture in a living room" loading="eager" width="1400" height="933"></div>
       <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><span class="svc5-tag">Most booked</span></div>
       <div class="svc5-name">Furniture Assembly</div>
       <div class="svc5-desc">IKEA, Wayfair, Amazon &amp; more. Any brand, any piece.</div>
@@ -854,7 +853,7 @@ section#service-area{display:block}
       <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=TV+Mounting">
-      <div class="svc5-photo"><img src="/images/work-tv-mounting.jpg" alt="Professional measuring a TV wall bracket in a living room" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-photo"><img src="/images/work-tv-mounting.jpg" alt="Professional measuring a TV wall bracket in a living room" loading="eager" width="1400" height="933"></div>
       <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div><span class="svc5-tag">Same-day</span></div>
       <div class="svc5-name">TV Mounting</div>
       <div class="svc5-desc">Any TV, any wall. Cord concealment included.</div>
@@ -862,7 +861,7 @@ section#service-area{display:block}
       <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=Fitness+Equipment">
-      <div class="svc5-photo"><img src="/images/work-fitness-equipment.jpg" alt="Professional assembling fitness equipment in a home garage" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-photo"><img src="/images/work-fitness-equipment.jpg" alt="Professional assembling fitness equipment in a home garage" loading="eager" width="1400" height="933"></div>
       <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg></div></div>
       <div class="svc5-name">Fitness Equipment</div>
       <div class="svc5-desc">Treadmills, bikes, racks, benches, and home gym builds.</div>
@@ -870,7 +869,7 @@ section#service-area{display:block}
       <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=Outdoor+%26+Playsets">
-      <div class="svc5-photo"><img src="/images/work-outdoor-playset.jpg" alt="Professional assembling an outdoor playset in a backyard" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-photo"><img src="/images/work-outdoor-playset.jpg" alt="Professional assembling an outdoor playset in a backyard" loading="eager" width="1400" height="933"></div>
       <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div></div>
       <div class="svc5-name">Outdoor / Playsets</div>
       <div class="svc5-desc">Playsets, patio builds, outdoor furniture, and installs.</div>
@@ -878,7 +877,7 @@ section#service-area{display:block}
       <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=Office+Assembly">
-      <div class="svc5-photo"><img src="/images/work-office-assembly.jpg" alt="Professional assembling office furniture in a home office" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-photo"><img src="/images/work-office-assembly.jpg" alt="Professional assembling office furniture in a home office" loading="eager" width="1400" height="933"></div>
       <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/><path d="M7 8h10"/></svg></div></div>
       <div class="svc5-name">Office Assembly</div>
       <div class="svc5-desc">Desks, chairs, cubicles, shelving, and workspace setup.</div>
@@ -886,7 +885,7 @@ section#service-area{display:block}
       <span class="svc5-link">Book now &rarr;</span>
     </a>
     <a class="svc5-card" href="/book?service=Smart+Home">
-      <div class="svc5-photo"><img src="/images/work-smart-home.jpg" alt="Professional installing a smart home device near an entryway" loading="lazy" width="1400" height="933"></div>
+      <div class="svc5-photo"><img src="/images/work-smart-home.jpg" alt="Professional installing a smart home device near an entryway" loading="eager" width="1400" height="933"></div>
       <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="svc5-tag">Popular</span></div>
       <div class="svc5-name">Smart Home Setup</div>
       <div class="svc5-desc">Nest, Ring, Ecobee, smart locks &amp; cameras.</div>
@@ -907,7 +906,7 @@ section#service-area{display:block}
 <section class="people-band" aria-labelledby="people-band-title">
   <div class="people-band-inner">
     <div class="people-photo">
-      <img src="/images/people-service-calm.jpg" alt="Friendly service professional speaking with homeowners after a completed home project" loading="lazy" width="1400" height="933">
+      <img src="/images/people-service-calm.jpg" alt="Friendly service professional speaking with homeowners after a completed home project" loading="eager" width="1400" height="933">
     </div>
     <div class="people-copy">
       <div class="section-label">Calm, respectful service</div>
@@ -923,29 +922,8 @@ section#service-area{display:block}
   </div>
 </section>
 
-<!-- DESKTOP: TRUST BAR (shown ≥1024px) -->
-<div class="trust-bar">
-  <div class="trust-bar-inner">
-    <div class="trust-bar-item">
-      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-      <div class="trust-bar-text"><div class="trust-bar-title">Same-Day</div><div class="trust-bar-sub">Availability</div></div>
-    </div>
-    <div class="trust-bar-item">
-      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg></div>
-      <div class="trust-bar-text"><div class="trust-bar-title">Bundle &amp; Save</div><div class="trust-bar-sub">10&ndash;15% Off 3+ Items</div></div>
-    </div>
-    <div class="trust-bar-item">
-      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-      <div class="trust-bar-text"><div class="trust-bar-title">No Callout Fee</div><div class="trust-bar-sub">Pay Only When Done</div></div>
-    </div>
-    <div class="trust-bar-item">
-      <div class="trust-bar-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      <div class="trust-bar-text"><div class="trust-bar-title">Confirmed in 1 Hour</div><div class="trust-bar-sub">Same-Day Slots Available</div></div>
-    </div>
-  </div>
-</div>
 
-<!-- DESKTOP: HOW IT WORKS (shown ≥1024px) -->
+<!-- DESKTOP: HOW IT WORKS (shown =1024px) -->
 <section class="section" id="how-it-works">
   <div class="section-inner">
     <div class="section-header"><div class="section-label">Simple process</div><h2 class="section-title">How It Works</h2></div>
@@ -1026,7 +1004,7 @@ section#service-area{display:block}
 })();
 </script>
 
-<!-- DESKTOP: SERVICE AREA (shown ≥1024px) -->
+<!-- DESKTOP: SERVICE AREA (shown =1024px) -->
 <section class="section section-alt" id="service-area">
   <div class="section-inner">
     <div class="section-header">
@@ -1088,7 +1066,7 @@ section#service-area{display:block}
 }
 </style>
 
-<!-- DESKTOP: CTA (shown ≥1024px) -->
+<!-- DESKTOP: CTA (shown =1024px) -->
 <section class="cta-section">
   <div style="max-width:640px;margin:0 auto">
     <h2 class="cta-title">Ready to get started?</h2>
@@ -1188,7 +1166,7 @@ AAE.hasItem = function(name) { return AAE.cart.some(function(i) { return i.name 
 AAE.addItem = function(name, price) { if (!AAE.hasItem(name)) { AAE.cart.push({ name: name, price: price }); AAE.saveCart(); AAE.updateCartBar(); } };
 AAE.removeItem = function(name) { AAE.cart = AAE.cart.filter(function(i) { return i.name !== name; }); AAE.saveCart(); AAE.updateCartBar(); AAE.updateModalCart(); document.querySelectorAll('[data-item-name="'+name+'"]').forEach(function(btn) { btn.textContent = '+ Add to booking'; btn.style.background = ''; btn.style.color = ''; var card = btn.closest('.item-card'); if (card) card.classList.remove('selected'); }); };
 AAE.removeByIndex = function(idx) { if (AAE.cart[idx]) AAE.removeItem(AAE.cart[idx].name); };
-AAE.toggleItem = function(name, price, btn) { if (AAE.hasItem(name)) { AAE.removeItem(name); if (btn) { btn.textContent = '+ Add to booking'; btn.style.background = ''; btn.style.color = ''; var card = btn.closest('.item-card, .service-card'); if (card) card.classList.remove('selected', 'in-cart'); } } else { AAE.addItem(name, price); if (btn) { btn.textContent = '✓ Added — click to remove'; btn.style.background = 'var(--cyan)'; btn.style.color = '#fff'; var card2 = btn.closest('.item-card, .service-card'); if (card2) card2.classList.add('selected', 'in-cart'); } } };
+AAE.toggleItem = function(name, price, btn) { if (AAE.hasItem(name)) { AAE.removeItem(name); if (btn) { btn.textContent = '+ Add to booking'; btn.style.background = ''; btn.style.color = ''; var card = btn.closest('.item-card, .service-card'); if (card) card.classList.remove('selected', 'in-cart'); } } else { AAE.addItem(name, price); if (btn) { btn.textContent = '? Added — click to remove'; btn.style.background = 'var(--cyan)'; btn.style.color = '#fff'; var card2 = btn.closest('.item-card, .service-card'); if (card2) card2.classList.add('selected', 'in-cart'); } } };
 AAE.clearCart = function() { AAE.cart = []; AAE.saveCart(); AAE.updateCartBar(); };
 AAE.quickBook = function(name, price) { if (!AAE.hasItem(name)) AAE.addItem(name, price); AAE.openBooking(); };
 AAE.getTotal = function() { return AAE.cart.reduce(function(sum, i) { var p = parseFloat(String(i.price).replace(/[^0-9.]/g,'')); return sum + (isNaN(p) ? 0 : p); }, 0); };
@@ -1203,7 +1181,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') AAE.c
 document.addEventListener('DOMContentLoaded', function() {
   AAE.updateCartBar();
   if (window.location.hash === '#booking') { setTimeout(function() { AAE.openBooking(); }, 250); history.replaceState(null, '', window.location.pathname); }
-  AAE.cart.forEach(function(item) { document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) { btn.textContent = '✓ Added — click to remove'; btn.style.background = 'var(--cyan)'; btn.style.color = '#fff'; var card = btn.closest('.item-card, .service-card'); if (card) card.classList.add('selected', 'in-cart'); }); });
+  AAE.cart.forEach(function(item) { document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) { btn.textContent = '? Added — click to remove'; btn.style.background = 'var(--cyan)'; btn.style.color = '#fff'; var card = btn.closest('.item-card, .service-card'); if (card) card.classList.add('selected', 'in-cart'); }); });
   var overlay = document.getElementById('booking-modal');
   if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) AAE.closeBooking(); });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
@@ -1271,3 +1249,4 @@ window.addEventListener("DOMContentLoaded",function(){
 </script>
 </body>
 </html>
+
