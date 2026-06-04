@@ -971,6 +971,9 @@
 
       .form-textarea { font-size: 16px !important; }
 
+      /* Prevent iOS auto-zoom on search input (must be >=16px) */
+      .subcat-search { font-size: 16px !important; }
+
       .form-label { font-size: 0.8rem; }
 
 
@@ -992,6 +995,7 @@
       }
 
       .btn-next { font-size: 1rem; padding: 0.9rem; }
+      .step-actions.kb-hidden { display: none; }
 
       .btn-back-link { font-size: 0.85rem; }
 
@@ -2391,6 +2395,14 @@ document.getElementById('item-search-clear').addEventListener('click', function(
 
   if (inp) { inp.value = ''; filterItemList(''); inp.focus(); }
 
+});
+
+// Hide fixed CTA when keyboard opens on mobile (prevents overlap with search)
+document.getElementById('item-search').addEventListener('focus', function() {
+  document.querySelector('.step-actions') && document.querySelector('.step-actions').classList.add('kb-hidden');
+});
+document.getElementById('item-search').addEventListener('blur', function() {
+  document.querySelector('.step-actions') && document.querySelector('.step-actions').classList.remove('kb-hidden');
 });
 
 
