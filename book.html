@@ -1829,6 +1829,15 @@ var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city: 'Austin', state: 'T
 var SERVICE_AREA_LABEL = SERVICE_AREA.city + ' ' + SERVICE_AREA.state + ' (' + SERVICE_AREA.zipPrefixMin + 'xx-' + SERVICE_AREA.zipPrefixMax + 'xx)';
 
 
+(function() {
+  var d = new Date(); d.setDate(d.getDate() + 1);
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1); // skip Sunday
+  var label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  var el = document.getElementById('urgency-next');
+  if (el) el.textContent = label;
+})();
+
+
 
 // ----------------------------------------------------------------------------
 
