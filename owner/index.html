@@ -88,6 +88,7 @@
     .stat.teal::before{background:var(--teal)}
     .stat.orange::before{background:var(--orange)}
     .stat.amber::before{background:var(--amber)}
+    .stat.red::before{background:var(--red)}
     .stat.neutral::before{background:var(--border-md)}
     .stat-value{font-family:'DM Serif Display',serif;font-size:1.9rem;line-height:1;margin-bottom:0.3rem}
     .stat-label{font-size:0.78rem;color:var(--muted)}
@@ -284,6 +285,33 @@
     /* Input focus refinement */
     .search-input { transition:border-color 0.15s,box-shadow 0.15s; }
     .search-input:focus { box-shadow:0 0 0 3px rgba(29,158,117,0.1); }
+
+    /* Financial dashboard polish */
+    .topbar { position:static;top:auto;z-index:auto; }
+    #analytics-view .detail-panel { border-radius:10px; }
+    #analytics-stats-row { grid-template-columns:repeat(auto-fit,minmax(165px,1fr)) !important;gap:0.8rem;margin-bottom:1.35rem; }
+    #analytics-stats-row .stat { padding:1rem 1.05rem;min-width:0; }
+    #analytics-stats-row .stat-value { font-size:clamp(1.35rem,1.6vw,1.8rem);line-height:1.06;white-space:normal;overflow-wrap:anywhere; }
+    #analytics-stats-row .stat-label { line-height:1.25; }
+    #fin-formula { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)) !important; }
+    .finance-scroll { overflow-x:auto;scrollbar-color:rgba(17,24,39,0.35) transparent; }
+    .finance-scroll::-webkit-scrollbar { height:8px; }
+    .finance-scroll::-webkit-scrollbar-thumb { background:rgba(17,24,39,0.28);border-radius:999px; }
+    .finance-table { min-width:980px; }
+    .finance-table.pro-table { font-size:0.78rem; }
+    .finance-table.pro-table th { padding:0.48rem 0.55rem;font-size:0.62rem;letter-spacing:0.06em; }
+    .finance-table.pro-table td { padding:0.58rem 0.55rem;line-height:1.25; }
+    .finance-table .money-cell { font-variant-numeric:tabular-nums;white-space:nowrap; }
+    #an-expansion-summary { grid-template-columns:repeat(auto-fit,minmax(155px,1fr)) !important;gap:0.7rem; }
+    #an-expansion-summary .stat-value { white-space:normal;overflow-wrap:anywhere; }
+    @media(max-width:700px){
+      #analytics-stats-row { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+      #analytics-stats-row .stat { padding:0.85rem; }
+      #analytics-stats-row .stat-value { font-size:1.25rem; }
+    }
+    @media(max-width:460px){
+      #analytics-stats-row { grid-template-columns:1fr !important; }
+    }
   </style>
 </head>
 <body>
@@ -770,8 +798,8 @@
               </div>
               <div style="font-size:0.72rem;color:var(--muted)">North Star floor: $35 gross/job</div>
             </div>
-            <div style="overflow-x:auto">
-              <table class="pro-table" id="an-service-profit-table">
+            <div class="finance-scroll">
+              <table class="pro-table finance-table" id="an-service-profit-table">
                 <thead>
                   <tr>
                     <th>Service</th>
@@ -812,8 +840,8 @@
               <div class="detail-section-title" style="margin:0">Financial Ledger — Completed Jobs</div>
               <div style="font-size:0.72rem;color:var(--muted)" id="an-reconciliation-note">Server-calculated from payout ledger + bookings</div>
             </div>
-            <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;font-size:0.8rem" id="an-ledger">
+            <div class="finance-scroll">
+              <table class="finance-table" style="width:100%;border-collapse:collapse;font-size:0.8rem" id="an-ledger">
                 <thead>
                   <tr style="text-align:left;border-bottom:1px solid var(--border)">
                     <th style="padding:0.5rem 0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:0.68rem;letter-spacing:0.06em">Ref</th>
@@ -859,8 +887,8 @@
             <div class="detail-section-title" style="margin:0">Easer Payout Ledger</div>
             <div id="an-payout-totals" style="font-size:0.78rem;color:var(--muted)"></div>
           </div>
-          <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:0.82rem" id="an-payout-table">
+          <div class="finance-scroll">
+            <table class="finance-table" style="width:100%;border-collapse:collapse;font-size:0.82rem" id="an-payout-table">
               <thead>
                 <tr style="border-bottom:1px solid var(--border)">
                   <th style="padding:0.5rem 0.75rem;text-align:left;color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Easer</th>
@@ -3303,6 +3331,9 @@ function intelQuick(msg) {
     setText('an-repeat-rate', fmtPct(exec.repeatCustomerRate));
     setText('an-refund-rework-rate', fmtPct(exec.refundReworkRate));
     setText('an-active-easers', String(exec.activeEasers || 0));
+    setStatTone('an-gross-per-job', Number(exec.platformGrossProfitPerCompletedJob || 0) >= 3500 ? 'teal' : 'orange');
+    setStatTone('an-profit', Number(exec.platformGrossProfit || 0) >= 0 ? 'teal' : 'red');
+    setStatTone('an-net-profit', Number(exec.estimatedNetOperatingProfit || 0) >= 0 ? 'teal' : 'red');
 
     var formula = document.getElementById('fin-formula');
     if (formula) {
@@ -3322,6 +3353,14 @@ function intelQuick(msg) {
     }
   }
 
+  function setStatTone(valueId, tone) {
+    var valueEl = document.getElementById(valueId);
+    var card = valueEl && valueEl.closest ? valueEl.closest('.stat') : null;
+    if (!card) return;
+    card.classList.remove('teal', 'orange', 'amber', 'neutral', 'red');
+    card.classList.add(tone || 'neutral');
+  }
+
   function renderServiceProfitability(rows) {
     var tbody = document.getElementById('an-service-profit-body');
     if (!tbody) return;
@@ -3337,17 +3376,17 @@ function intelQuick(msg) {
       var contribColor = contrib >= 0 ? 'var(--text)' : '#dc2626';
       return '<tr>'
         + '<td><div style="font-weight:700;color:var(--text)">' + esc(row.serviceName || 'Other') + '</div></td>'
-        + '<td style="text-align:right">' + (row.completedJobs || 0) + '</td>'
-        + '<td style="text-align:right">' + fmt$(row.revenue) + '</td>'
-        + '<td style="text-align:right;color:var(--soft)">' + fmt$(row.baseServiceRevenue) + '</td>'
-        + '<td style="text-align:right;color:var(--teal);font-weight:700">' + fmt$(row.addOnRevenue) + '</td>'
-        + '<td style="text-align:right">' + fmt$(row.averageTicket) + '</td>'
-        + '<td style="text-align:right;color:#dc2626">-' + fmt$(row.processingFees) + '</td>'
-        + '<td style="text-align:right;color:var(--amber)">-' + fmt$(row.easerPayouts) + '</td>'
-        + '<td style="text-align:right;font-weight:700;color:' + (gross >= 0 ? 'var(--teal)' : '#dc2626') + '">' + fmtSigned$(gross) + '</td>'
-        + '<td style="text-align:right;font-weight:800;color:' + grossColor + '">' + fmtSigned$(grossPerJob) + '</td>'
-        + '<td style="text-align:right;color:var(--muted)">-' + fmt$(row.reworkRefundReserve) + '</td>'
-        + '<td style="text-align:right;font-weight:700;color:' + contribColor + '">' + fmtSigned$(contrib) + '</td>'
+        + '<td class="money-cell" style="text-align:right">' + (row.completedJobs || 0) + '</td>'
+        + '<td class="money-cell" style="text-align:right">' + fmt$(row.revenue) + '</td>'
+        + '<td class="money-cell" style="text-align:right;color:var(--soft)">' + fmt$(row.baseServiceRevenue) + '</td>'
+        + '<td class="money-cell" style="text-align:right;color:var(--teal);font-weight:700">' + fmt$(row.addOnRevenue) + '</td>'
+        + '<td class="money-cell" style="text-align:right">' + fmt$(row.averageTicket) + '</td>'
+        + '<td class="money-cell" style="text-align:right;color:#dc2626">-' + fmt$(row.processingFees) + '</td>'
+        + '<td class="money-cell" style="text-align:right;color:var(--amber)">-' + fmt$(row.easerPayouts) + '</td>'
+        + '<td class="money-cell" style="text-align:right;font-weight:700;color:' + (gross >= 0 ? 'var(--teal)' : '#dc2626') + '">' + fmtSigned$(gross) + '</td>'
+        + '<td class="money-cell" style="text-align:right;font-weight:800;color:' + grossColor + '">' + fmtSigned$(grossPerJob) + '</td>'
+        + '<td class="money-cell" style="text-align:right;color:var(--muted)">-' + fmt$(row.reworkRefundReserve) + '</td>'
+        + '<td class="money-cell" style="text-align:right;font-weight:700;color:' + contribColor + '">' + fmtSigned$(contrib) + '</td>'
         + '<td>' + actionBadge(row.recommendedAction) + '</td>'
       + '</tr>';
     }).join('');
@@ -3421,10 +3460,10 @@ function intelQuick(msg) {
         + '<td style="padding:0.55rem 0.75rem;font-family:monospace;font-size:0.78rem;color:var(--muted)">' + esc(row.ref || '—') + '</td>'
         + '<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--text)">' + esc(row.customerName || '—') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(row.easerName || 'Owner/unassigned') + '</div></td>'
         + '<td style="padding:0.55rem 0.75rem;font-size:0.82rem;color:var(--soft)">' + esc(row.service || '—') + '</td>'
-        + '<td style="padding:0.55rem 0.75rem;text-align:right;font-weight:600;color:var(--text)">' + fmt$(row.customerRevenue) + '</td>'
-        + '<td style="padding:0.55rem 0.75rem;text-align:right;color:#ef4444;font-size:0.8rem">' + (row.processingFee ? '-' + fmt$(row.processingFee) : '—') + '</td>'
-        + '<td style="padding:0.55rem 0.75rem;text-align:right;color:var(--amber)">' + (row.easerPayout ? '-' + fmt$(row.easerPayout) : '—') + '</td>'
-        + '<td style="padding:0.55rem 0.75rem;text-align:right;font-weight:700;color:' + profitColor + '">' + fmtSigned$(profit) + '</td>'
+        + '<td class="money-cell" style="padding:0.55rem 0.75rem;text-align:right;font-weight:600;color:var(--text)">' + fmt$(row.customerRevenue) + '</td>'
+        + '<td class="money-cell" style="padding:0.55rem 0.75rem;text-align:right;color:#ef4444;font-size:0.8rem">' + (row.processingFee ? '-' + fmt$(row.processingFee) : '—') + '</td>'
+        + '<td class="money-cell" style="padding:0.55rem 0.75rem;text-align:right;color:var(--amber)">' + (row.easerPayout ? '-' + fmt$(row.easerPayout) : '—') + '</td>'
+        + '<td class="money-cell" style="padding:0.55rem 0.75rem;text-align:right;font-weight:700;color:' + profitColor + '">' + fmtSigned$(profit) + '</td>'
         + '<td style="padding:0.55rem 0.75rem;font-size:0.75rem;color:var(--muted)">' + sourceLabel + '</td>'
         + '<td style="padding:0.55rem 0.75rem;font-size:0.78rem;color:var(--muted)">' + formatDate(row.completedAt || row.date) + '</td>'
       + '</tr>';
