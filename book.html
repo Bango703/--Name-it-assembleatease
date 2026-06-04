@@ -414,7 +414,7 @@
     .subcat-body { padding: 0.5rem 0; }
 
     /* -- Subcat search -- */
-    .subcat-search-wrap { padding: 0.5rem 0 0.85rem; position: relative; }
+    .subcat-search-wrap { padding: 0 0 0.85rem; position: relative; }
     .subcat-search {
       width: 100%; box-sizing: border-box;
       padding: 0.7rem 2.2rem 0.7rem 2.1rem;
@@ -2294,10 +2294,13 @@ function renderSubcats() {
 
   // Save open/search state per panel before rebuild
   var _savedPanelState = {};
-  wrap.querySelectorAll('[id^="qp-full-"]').forEach(function(el) {
-    var uid = el.id.replace('qp-full-', '');
-    var inp = el.querySelector('.subcat-search');
-    _savedPanelState[uid] = { open: el.classList.contains('open'), search: inp ? inp.value : '' };
+  wrap.querySelectorAll('.subcat-panel').forEach(function(panel) {
+    var fullList = panel.querySelector('[id^="qp-full-"]');
+    var inp = panel.querySelector('.subcat-search');
+    if (fullList) {
+      var uid = fullList.id.replace('qp-full-', '');
+      _savedPanelState[uid] = { open: fullList.classList.contains('open'), search: inp ? inp.value : '' };
+    }
   });
 
   wrap.innerHTML = '';
@@ -2358,7 +2361,13 @@ function renderSubcats() {
 
       + '<button class="subcat-close" data-close-svc="' + escAttr(svc) + '" title="Remove">\u00D7</button>'
 
-      + '</div><div class="subcat-body" style="padding:0.75rem 1rem">';
+      + '</div><div class="subcat-body" style="padding:0.75rem 1rem">'
+      + '<div class="subcat-search-wrap">'
+      + '<svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + '<input type="search" class="subcat-search" placeholder="Search items… e.g. queen bed, treadmill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">'
+      + '<button type="button" class="subcat-search-clear" tabindex="-1" aria-label="Clear search">×</button>'
+      + '</div>'
+      + '<div class="subcat-no-results">No items match “<span></span>”</div>';
 
 
 
@@ -2406,13 +2415,7 @@ function renderSubcats() {
 
     // Full grouped list (auto-open when no popular chips to show)
 
-    html += '<div class="qp-full-list' + (chipItems.length === 0 ? ' open' : '') + '" id="qp-full-' + uid + '">'
-      + '<div class="subcat-search-wrap">'
-      + '<svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-      + '<input type="search" class="subcat-search" placeholder="Search items…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">'
-      + '<button type="button" class="subcat-search-clear" tabindex="-1" aria-label="Clear search">×</button>'
-      + '</div>'
-      + '<div class="subcat-no-results">No items match “<span></span>”. Try a different word or browse the groups below.</div>';
+    html += '<div class=”qp-full-list' + (chipItems.length === 0 ? ' open' : '') + '” id=”qp-full-' + uid + '”>';
 
     groups.forEach(function(g) {
 
@@ -2443,7 +2446,7 @@ function renderSubcats() {
           if (tBtn) tBtn.textContent = '▲ Hide full item list';
         }
         if (savedState.search) {
-          var sInp = fullList.querySelector('.subcat-search');
+          var sInp = panel.querySelector('.subcat-search');
           if (sInp) { sInp.value = savedState.search; filterSubcatItems(sInp); }
         }
       }
@@ -2468,6 +2471,16 @@ function filterSubcatItems(inp) {
   var noResults = panel.querySelector('.subcat-no-results');
 
   if (clearBtn) clearBtn.classList.toggle('vis', q.length > 0);
+
+  // Auto-open the full list whenever user types anything
+  if (q) {
+    var fullList = panel.querySelector('.qp-full-list');
+    if (fullList && !fullList.classList.contains('open')) {
+      fullList.classList.add('open');
+      var tBtn = panel.querySelector('.qp-more-toggle');
+      if (tBtn) tBtn.textContent = '▲ Hide full item list';
+    }
+  }
 
   var groups = panel.querySelectorAll('.subcat-group');
 
