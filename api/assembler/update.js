@@ -136,7 +136,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase Application',
       replyTo: 'service@assembleatease.com',
-      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, !!refundId),
+      html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, !!refundId, !!profile.application_fee_waived),
     }).catch(e => console.error('Rejection email error:', e));
 
     return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId });
@@ -414,9 +414,11 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
 </body></html>`;
 }
 
-function buildRejectionEmail(firstName, reason, refunded) {
-  const refundNote = refunded
-    ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#166534"><strong>Refund issued:</strong> Your $30 application fee has been refunded to your original payment method. Please allow 5–10 business days for it to appear.</p></div>`
-    : `<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#92400e">The $30 application fee is non-refundable per our application terms.</p></div>`;
+function buildRejectionEmail(firstName, reason, refunded, feeWaived) {
+  const refundNote = feeWaived
+    ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#1e40af"><strong>No application fee was collected:</strong> Your Founding Easer application was submitted under the launch fee waiver.</p></div>`
+    : (refunded
+      ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#166534"><strong>Refund issued:</strong> Your $30 application fee has been refunded to your original payment method. Please allow 5–10 business days for it to appear.</p></div>`
+      : `<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#92400e">The application fee policy shown at submission applies.</p></div>`);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a"><div style="max-width:600px;margin:0 auto;padding:24px 16px"><div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;padding:2rem"><img src="${LOGO}" width="36" height="36" style="border-radius:50%;display:block;margin:0 0 1rem"/><p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p><p style="color:#52525b;line-height:1.7;margin:0 0 16px">Thank you for your interest in AssembleAtEase. After careful review, we are not able to move forward with your application at this time.</p>${reason ? `<div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;padding:14px 18px;margin-bottom:16px"><p style="margin:0;font-size:0.875rem;color:#52525b"><strong>Feedback:</strong> ${esc(reason)}</p></div>` : ''}${refundNote}<p style="color:#52525b;line-height:1.7">You are welcome to reapply after 90 days. Questions? <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p></div></div></body></html>`;
 }

@@ -16,6 +16,8 @@ const VALID_SERVICES = [
   'Office Assembly',
 ];
 
+const FOUNDING_EASER_FREE_APPLICATION_LIMIT = parseInt(process.env.FOUNDING_EASER_FREE_APPLICATION_LIMIT || '20', 10);
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -44,9 +46,13 @@ export default async function handler(req, res) {
   if (!yearsExperience || yearsExperience < 0) return res.status(400).json({ error: 'Years of experience is required' });
   if (!codeOfConduct) return res.status(400).json({ error: 'You must agree to the code of conduct' });
   if (!contractorAgreementSigned) return res.status(400).json({ error: 'You must read and sign the Independent Contractor Agreement' });
-  if (!paymentMethodId) return res.status(400).json({ error: 'Payment is required to submit your application' });
 
   const sb = getSupabase();
+  const foundingApplication = await getFoundingApplicationStatus(sb);
+  if (!foundingApplication.feeWaived && !paymentMethodId) {
+    return res.status(400).json({ error: 'Payment is required to submit your application' });
+  }
+
   const cleanName = fullName.trim();
   const cleanEmail = email.trim().toLowerCase();
   const cleanPhone = phone.trim();
@@ -105,6 +111,15 @@ export default async function handler(req, res) {
   }).eq('id', userId);
   if (extError) console.warn('Assembler columns update skipped:', extError.message);
 
+  // Founding Easer launch columns are additive; keep them separate so older schemas
+  // still save the core application fields before migration 018 is applied.
+  const { error: foundingErr } = await sb.from('profiles').update({
+    application_fee_waived: foundingApplication.feeWaived,
+    founding_easer: foundingApplication.feeWaived,
+    founding_easer_number: foundingApplication.foundingNumber,
+  }).eq('id', userId);
+  if (foundingErr) console.warn('Founding Easer columns update skipped:', foundingErr.message);
+
   // ---- If invite token, validate and update waitlist ----
   if (inviteToken) {
     try {
@@ -128,14 +143,21 @@ export default async function handler(req, res) {
     }
   }
 
-  // ---- Stripe: charge $30 application fee + create Identity session ----
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  // ---- Stripe: optionally charge application fee + create Identity session ----
+  const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
   let verificationUrl = null;
   let paymentIntentId = null;
   let stripeCustomerId = null;
   let verificationSessionId = null;
 
+  if (!stripe && !foundingApplication.feeWaived) {
+    await sb.auth.admin.deleteUser(userId).catch(() => {});
+    return res.status(500).json({ error: 'Payment processing is not configured. Please try again later.' });
+  }
+
   try {
+    if (!stripe) throw new Error('Stripe is not configured; skipping Identity session for founding application.');
+
     // Create Stripe customer
     const customer = await stripe.customers.create({
       email: cleanEmail,
@@ -144,25 +166,27 @@ export default async function handler(req, res) {
     });
     stripeCustomerId = customer.id;
 
-    // Charge $30 application fee
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: 3000,
-      currency: 'usd',
-      customer: customer.id,
-      payment_method: paymentMethodId,
-      confirm: true,
-      metadata: { userId, type: 'assembler_application_fee' },
-      description: 'AssembleAtEase Assembler Application Fee',
-      receipt_email: cleanEmail,
-      automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-    });
+    if (!foundingApplication.feeWaived) {
+      // Charge $30 application fee when the Founding Easer waiver is no longer available.
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: 3000,
+        currency: 'usd',
+        customer: customer.id,
+        payment_method: paymentMethodId,
+        confirm: true,
+        metadata: { userId, type: 'assembler_application_fee' },
+        description: 'AssembleAtEase Assembler Application Fee',
+        receipt_email: cleanEmail,
+        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+      });
 
-    if (paymentIntent.status !== 'succeeded') {
-      await sb.auth.admin.deleteUser(userId).catch(() => {});
-      return res.status(402).json({ error: 'Payment failed. Please check your card details and try again.' });
+      if (paymentIntent.status !== 'succeeded') {
+        await sb.auth.admin.deleteUser(userId).catch(() => {});
+        return res.status(402).json({ error: 'Payment failed. Please check your card details and try again.' });
+      }
+
+      paymentIntentId = paymentIntent.id;
     }
-
-    paymentIntentId = paymentIntent.id;
 
     // Create Stripe Identity verification session
     const verificationSession = await stripe.identity.verificationSessions.create({
@@ -186,20 +210,20 @@ export default async function handler(req, res) {
       stripe_customer_id: stripeCustomerId,
       stripe_payment_intent_id: paymentIntentId,
       stripe_verification_id: verificationSessionId,
-      payment_confirmed: true,
-      application_fee_paid: true,
+      payment_confirmed: !foundingApplication.feeWaived,
+      application_fee_paid: !foundingApplication.feeWaived,
     }).eq('id', userId);
 
   } catch (stripeErr) {
     console.error('Stripe error:', stripeErr);
-    if (!paymentIntentId) {
+    if (!foundingApplication.feeWaived && !paymentIntentId) {
       // Payment itself failed - clean up auth user
       await sb.auth.admin.deleteUser(userId).catch(() => {});
       const msg = stripeErr?.raw?.message || stripeErr?.message || 'Payment failed. Please check your card details.';
       return res.status(402).json({ error: msg });
     }
-    // Payment succeeded but identity setup failed - still proceed
-    console.warn('Stripe Identity session creation failed after payment - proceeding without verification URL');
+    // Founding application or paid application succeeded but identity setup failed - still proceed.
+    console.warn('Stripe Identity session creation failed - proceeding without verification URL');
   }
 
   // ---- Send owner notification ----
@@ -210,7 +234,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: cleanEmail,
       subject: 'New Assembler Application - ' + cleanName,
-      html: buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }),
+      html: buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId, feeWaived: foundingApplication.feeWaived, foundingNumber: foundingApplication.foundingNumber, verificationSessionId }),
     });
   } catch (e) { console.error('Owner email error:', e); }
 
@@ -220,15 +244,44 @@ export default async function handler(req, res) {
       to: cleanEmail,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Application Received - AssembleAtEase',
-      html: buildApplicantEmail(cleanName.split(' ')[0]),
+      html: buildApplicantEmail(cleanName.split(' ')[0], { feeWaived: foundingApplication.feeWaived, verificationUrl }),
       replyTo: ownerEmail(),
     });
   } catch (e) { console.error('Applicant email error:', e); }
 
-  return res.status(200).json({ success: true, verificationUrl });
+  return res.status(200).json({ success: true, verificationUrl, feeWaived: foundingApplication.feeWaived, foundingProgram: foundingApplication.feeWaived });
 }
 
-function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId }) {
+async function getFoundingApplicationStatus(sb) {
+  const limit = Number.isFinite(FOUNDING_EASER_FREE_APPLICATION_LIMIT)
+    ? Math.max(0, FOUNDING_EASER_FREE_APPLICATION_LIMIT)
+    : 20;
+
+  if (limit <= 0) return { feeWaived: false, foundingNumber: null };
+
+  try {
+    const { count, error } = await sb
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'assembler');
+
+    if (error) throw error;
+    const existingCount = count || 0;
+    return {
+      feeWaived: existingCount < limit,
+      foundingNumber: existingCount < limit ? existingCount + 1 : null,
+    };
+  } catch (err) {
+    console.warn('Founding Easer count unavailable; waiving application fee for launch safety:', err.message || err);
+    return { feeWaived: true, foundingNumber: null };
+  }
+}
+
+function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId, feeWaived, foundingNumber, verificationSessionId }) {
+  const paymentLine = feeWaived
+    ? `&#10003; Founding Easer application &bull; $30 fee waived${foundingNumber ? ` &bull; Founding #${foundingNumber}` : ''}`
+    : '&#10003; $30 application fee paid';
+  const verificationLine = verificationSessionId ? ' &bull; Stripe Identity initiated' : ' &bull; Identity verification pending';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr><td style="padding:20px 24px">
@@ -252,7 +305,7 @@ function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsEx
       <tr><td style="padding:8px 0;color:#71717a;vertical-align:top">About</td><td style="padding:8px 0">${esc(bio?.trim() || 'Not provided')}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px"><tr><td style="padding:14px 18px">
-      <p style="margin:0;font-size:13px;color:#166534;font-weight:600">&#10003; $30 application fee paid &bull; Stripe Identity verification initiated</p>
+      <p style="margin:0;font-size:13px;color:#166534;font-weight:600">${paymentLine}${verificationLine}</p>
       ${paymentIntentId ? `<p style="margin:4px 0 0;font-size:12px;color:#15803d">Stripe Payment ID: ${esc(paymentIntentId)}</p>` : ''}
     </td></tr></table>
   </td></tr></table>
@@ -262,7 +315,13 @@ function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsEx
 </div></body></html>`;
 }
 
-function buildApplicantEmail(firstName) {
+function buildApplicantEmail(firstName, { feeWaived, verificationUrl }) {
+  const paymentCopy = feeWaived
+    ? 'Your Founding Easer application was submitted with no application fee collected.'
+    : 'Your $30 application fee has been received.';
+  const statusCopy = verificationUrl
+    ? '&#10003; Application submitted &bull; Identity verification ready'
+    : '&#10003; Application submitted &bull; Identity verification pending';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -271,14 +330,14 @@ function buildApplicantEmail(firstName) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">Application received, ${esc(firstName)}!</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Thank you for applying to join the AssembleAtEase team. Your $30 application fee has been received.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Thank you for applying to join the AssembleAtEase team. ${paymentCopy}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;text-align:center">
-      <p style="margin:0;font-size:13px;color:#166534;font-weight:600">&#10003; Payment confirmed &bull; &#10003; Application submitted</p>
+      <p style="margin:0;font-size:13px;color:#166534;font-weight:600">${statusCopy}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:18px 20px">
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What happens next</p>
       <ol style="margin:8px 0 0;padding-left:16px;font-size:14px;color:#52525b;line-height:1.8">
-        <li>Complete your identity verification (link provided after payment)</li>
+        <li>Complete identity verification if a Stripe Identity link is shown</li>
         <li>Our team reviews your application</li>
         <li>Once approved, you will start receiving job assignments</li>
       </ol>

@@ -31,6 +31,7 @@
       background: #f6fafc;
       color: var(--apply-ink);
       font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
     }
 
     .apply-hero {
@@ -91,6 +92,7 @@
       gap: 3rem;
       align-items: end;
     }
+    .hero-grid > * { min-width: 0; }
     .hero-kicker {
       display: inline-flex;
       align-items: center;
@@ -118,6 +120,8 @@
       line-height: 0.92;
       letter-spacing: 0;
       color: #fff;
+      white-space: normal !important;
+      overflow-wrap: break-word;
     }
     .hero-copy {
       max-width: 560px;
@@ -742,8 +746,8 @@
     @media (max-width: 640px) {
       .apply-logo { font-size: 1.25rem; }
       .nav-link { display: none; }
-      .hero-title { font-size: clamp(2.45rem, 13vw, 3.35rem); }
-      .hero-copy { font-size: 0.95rem; }
+      .hero-title { font-size: clamp(1.95rem, 8.6vw, 2.35rem); line-height: 1.05; max-width: min(100%, 330px); overflow-wrap: break-word; }
+      .hero-copy { font-size: 0.95rem; max-width: min(100%, 340px); }
       .hero-actions { display: grid; grid-template-columns: 1fr; }
       .hero-btn { width: 100%; }
       .hero-photo { min-height: 285px; border-radius: 14px; }
@@ -793,7 +797,7 @@
   <div class="hero-grid">
     <div>
       <div class="hero-kicker">Austin Easer network</div>
-      <h1 class="hero-title">Earn with home projects done right.</h1>
+      <h1 class="hero-title">Earn with careful local jobs.</h1>
       <p class="hero-copy">Apply to receive local assembly, mounting, smart home, fitness, outdoor, and office jobs after approval. We review every application before dispatching work.</p>
       <div class="hero-actions">
         <a class="hero-btn hero-btn-primary" href="#apply-form">Start application &rarr;</a>
@@ -801,7 +805,7 @@
       </div>
       <div class="hero-proof" aria-label="Program details">
         <span>Local Austin jobs</span>
-        <span>Identity verification required</span>
+        <span>Identity verification after review</span>
         <span>Tools and transport reviewed</span>
       </div>
     </div>
@@ -827,7 +831,7 @@
           <h2>Apply to join</h2>
           <p>This takes a few minutes. Use accurate contact info because your phone number is required for dispatch after approval.</p>
         </div>
-        <div class="form-pill">$30 application fee</div>
+        <div class="form-pill">Founding Easer: fee waived</div>
       </div>
 
       <div id="alert" class="alert hidden"></div>
@@ -933,7 +937,7 @@
             </div>
             <span class="section-status">Reviewed</span>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="display:none">
             <label>Do you have your own tools? *</label>
             <div class="radio-row">
               <label class="radio-option">
@@ -976,7 +980,7 @@
           <div class="section-head">
             <div>
               <span class="section-kicker">Step 4</span>
-              <h3 class="section-title">Contractor Agreement &amp; Verification Fee</h3>
+              <h3 class="section-title">Contractor Agreement &amp; Launch Verification</h3>
             </div>
             <span class="section-status">Signature required</span>
           </div>
@@ -1018,11 +1022,11 @@
           <div class="fee-callout" style="margin-top:1rem">
             <div class="fee-row">
               <span class="fee-dot">$</span>
-              <div><strong>Application fee: $30.</strong> Charged when you submit. This helps cover identity verification and application processing.</div>
+              <div><strong>Founding Easer Program.</strong> The application fee is waived for the first launch group while we build Austin supply.</div>
             </div>
             <div class="fee-row warning">
               <span class="fee-dot">!</span>
-              <div><strong>Non-refundable.</strong> The application fee is not refunded if your application is declined or withdrawn.</div>
+              <div><strong>No payment collected today.</strong> Identity verification and owner review are still required before any jobs are offered.</div>
             </div>
           </div>
 
@@ -1036,7 +1040,7 @@
 
         <input type="hidden" id="invite-token" value="" />
         <div class="submit-pad">
-          <button type="submit" class="btn-apply" id="submit-btn">Pay $30 &amp; Submit Application</button>
+          <button type="submit" class="btn-apply" id="submit-btn">Submit Founding Easer Application</button>
         </div>
       </form>
     </section>
@@ -1047,8 +1051,8 @@
         <h3>Approval first. Jobs after.</h3>
         <p>Submitting this application does not guarantee work. Approved Easers are matched to jobs based on service skills, availability, and operational fit.</p>
         <div class="step-list">
-          <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service skills, and fee confirmation.</span></div></div>
-          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the Stripe Identity link after payment.</span></div></div>
+          <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service skills, and launch-program status.</span></div></div>
+          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the Stripe Identity link if one is shown after submission.</span></div></div>
           <div class="mini-step"><div class="mini-num">3</div><div><strong>Owner review</strong><span>We review your tools, transport, service fit, and professionalism.</span></div></div>
         </div>
       </div>
@@ -1073,7 +1077,7 @@
   <div class="success-box">
     <div class="success-icon">&#10003;</div>
     <h2 id="success-heading">Application submitted</h2>
-    <p id="success-msg">Thank you for applying. Your $30 fee has been received and a confirmation has been sent to your email.</p>
+    <p id="success-msg">Thank you for applying. No application fee was collected today, and a confirmation has been sent to your email.</p>
     <div id="identity-section" class="verify-card">
       <p>Complete identity verification to finish your application review.</p>
       <a id="verify-btn" href="#" class="btn-apply">Verify Identity &rarr;</a>
@@ -1085,36 +1089,18 @@
 
 <script>
 (function() {
-  // -- Stripe setup --
-  // Fetch the real publishable key before mounting the card element.
+  // -- Founding Easer launch setup --
+  // The first launch group is fee-waived; Stripe Identity is created server-side when configured.
+  var FOUNDING_EASER_FEE_WAIVED = true;
   var stripe = null;
   var cardElement = null;
 
   var cardWrap = document.getElementById('card-element');
   var cardErrEl = document.getElementById('card-error');
 
-  fetch('/api/config/public-key')
-    .then(function(r) { return r.ok ? r.json() : Promise.reject('no-key'); })
-    .then(function(d) {
-      var pk = d && d.publishableKey;
-      if (!pk) throw new Error('Missing publishable key');
-      stripe = Stripe(pk);
-      var elements = stripe.elements();
-      cardElement = elements.create('card', {
-        style: {
-          base: { fontFamily: 'DM Sans, -apple-system, sans-serif', fontSize: '15px', color: '#0d1117', '::placeholder': { color: '#a0aec0' } },
-          invalid: { color: '#ef4444' },
-        },
-      });
-      cardElement.mount('#card-element');
-      cardElement.on('change', function(event) {
-        cardErrEl.textContent = event.error ? event.error.message : '';
-      });
-    })
-    .catch(function() {
-      cardWrap.innerHTML = '<div style="color:#ef4444;font-size:0.875rem;padding:0.75rem 0">Unable to load payment form. Please refresh the page.</div>';
-      document.getElementById('submit-btn').disabled = true;
-    });
+  if (cardWrap) {
+    cardWrap.innerHTML = '<div style="font-size:0.875rem;color:#166534;padding:0.75rem 0">No card required for Founding Easer applications.</div>';
+  }
 
   // -- Handle ?verification=complete return from Stripe Identity --
   var params = new URLSearchParams(window.location.search);
@@ -1233,23 +1219,7 @@
 
     var btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.textContent = 'Processing payment...';
-
-    if (!stripe || !cardElement) {
-      showAlert('error', 'Payment form not ready. Please refresh the page and try again.');
-      btn.disabled = false;
-      btn.textContent = 'Pay $30 & Submit Application';
-      return;
-    }
-
-    // Create Stripe PaymentMethod from card element
-    var pmResult = await stripe.createPaymentMethod({ type: 'card', card: cardElement });
-    if (pmResult.error) {
-      document.getElementById('card-error').textContent = pmResult.error.message;
-      btn.disabled = false;
-      btn.textContent = 'Pay $30 & Submit Application';
-      return;
-    }
+    btn.textContent = 'Submitting application...';
 
     btn.textContent = 'Submitting...';
 
@@ -1270,7 +1240,7 @@
           bio: bio || null,
           codeOfConduct: true,
           contractorAgreementSigned: true,
-          paymentMethodId: pmResult.paymentMethod.id,
+          paymentMethodId: FOUNDING_EASER_FEE_WAIVED ? null : undefined,
           inviteToken: document.getElementById('invite-token').value || null,
         }),
       });
@@ -1280,7 +1250,7 @@
       if (!resp.ok) {
         showAlert('error', data.error || 'Something went wrong. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Pay $30 & Submit Application';
+        btn.textContent = 'Submit Founding Easer Application';
         return;
       }
 
@@ -1288,6 +1258,9 @@
       document.getElementById('application-panel').style.display = 'none';
       var successEl = document.getElementById('success-state');
       successEl.style.display = 'block';
+      if (data.feeWaived) {
+        document.getElementById('success-msg').textContent = 'Thank you for applying. Your Founding Easer application was submitted with no application fee collected today.';
+      }
       successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       // Show identity verification button if URL was returned
@@ -1299,7 +1272,7 @@
     } catch (err) {
       showAlert('error', 'Connection error. Please try again.');
       btn.disabled = false;
-      btn.textContent = 'Pay $30 & Submit Application';
+      btn.textContent = 'Submit Founding Easer Application';
     }
   });
 })();
