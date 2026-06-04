@@ -76,14 +76,6 @@
 .hv2-chip--3{animation:chipIn 0.5s 1.15s forwards,chipFloat1 4.5s 1.65s ease-in-out infinite reverse}
 @keyframes chipFloat1{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes chipFloat2{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-/* QBB form */
-.qbb-form{display:flex;border-radius:8px;overflow:hidden;border:2px solid var(--ink);background:#fff;margin-bottom:2rem;box-shadow:0 4px 24px rgba(0,0,0,0.13)}
-.qbb-select{flex:1;border:none;padding:0.85rem 1rem;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);background:#fff;outline:none;cursor:pointer;appearance:none;min-width:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.75rem center;padding-right:2.25rem}
-.qbb-btn{padding:0.85rem 1.5rem;background:var(--ink);color:#fff;border:none;font-family:var(--font-body);font-size:0.95rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background 0.15s;flex-shrink:0}
-.qbb-btn:hover{background:#0d2233;box-shadow:0 4px 16px rgba(0,0,0,0.28)}
-.qbb-select:focus{background:var(--cyan-light)}
-.qbb-or{display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;font-size:0.82rem;color:rgba(255,255,255,0.5)}
-.qbb-or::before,.qbb-or::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.2)}
 
 /* -----------------------------------------------------
    DESKTOP SERVICE GRID (=1024px only)
@@ -604,27 +596,6 @@ section#service-area{display:block}
     <div class="hv2-eyebrow">Professional Home Services</div>
     <h1 class="hv2-h1">Skilled help.<br>Done right.</h1>
     <p class="hv2-desc">Furniture assembly, TV mounting, and smart home setup&mdash;done right so you don&rsquo;t have to lift a finger.</p>
-    <form class="qbb-form" onsubmit="return qbbGo(event)">
-      <select class="qbb-select" id="qbb-svc" aria-label="Select a service">
-        <option value="">What do you need? &#9660;</option>
-        <option value="Furniture+Assembly">Furniture Assembly &mdash; from $69</option>
-        <option value="TV+Mounting">TV Mounting &mdash; from $69</option>
-        <option value="Fitness+Equipment">Fitness Equipment &mdash; from $129</option>
-        <option value="Outdoor+%26+Playsets">Outdoor / Playsets &mdash; from $149</option>
-        <option value="Office+Assembly">Office Assembly &mdash; from $95</option>
-        <option value="Smart+Home">Smart Home Setup &mdash; from $69</option>
-      </select>
-      <button type="submit" class="qbb-btn">Check Availability &rarr;</button>
-    </form>
-    <script>
-    function qbbGo(e) {
-      e.preventDefault();
-      var v = document.getElementById('qbb-svc').value;
-      window.location = '/book' + (v ? '?service=' + encodeURIComponent(v) : '');
-      return false;
-    }
-    </script>
-    <div class="qbb-or">or</div>
     <div class="hv2-actions" style="margin-bottom:2rem">
       <a href="/book" class="hv2-btn-book">BOOK NOW &rarr;</a>
     </div>
