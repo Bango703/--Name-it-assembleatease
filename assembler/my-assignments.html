@@ -665,6 +665,8 @@
       if (photoInput) photoInput.value = '';
       var section = document.getElementById('photo-prompt-section');
       if (section) section.style.display = '';
+      var yesBtn = document.getElementById('complete-sheet-yes');
+      if (yesBtn) { yesBtn.disabled = true; yesBtn.style.opacity = '0.45'; yesBtn.style.cursor = 'not-allowed'; }
     }
 
     document.getElementById('complete-btn').addEventListener('click', function() {
@@ -709,6 +711,8 @@
         if (img) img.src = _photoDataUrl;
         if (previewArea) previewArea.style.display = 'block';
         if (pickBtn) pickBtn.style.display = 'none';
+        var yesBtn = document.getElementById('complete-sheet-yes');
+        if (yesBtn) { yesBtn.disabled = false; yesBtn.style.opacity = ''; yesBtn.style.cursor = ''; }
       };
       reader.readAsDataURL(file);
     });
@@ -1213,10 +1217,10 @@
       <li>All requested work is fully finished</li>
       <li>Customer has reviewed the work (if on-site)</li>
       <li>Tools and materials are cleaned up</li>
-      <li>Completion photo added below (recommended)</li>
+      <li>Completion photo added below (required)</li>
     </ul>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
-      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Add a completion photo <span style="font-weight:400;color:#64748b">(optional)</span></div>
+      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Add a completion photo <span style="font-weight:400;color:#dc2626">(required)</span></div>
       <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
       <div id="photo-preview-area" style="display:none;margin-bottom:0.5rem">
         <img id="photo-preview-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px" alt="preview"/>
@@ -1229,7 +1233,7 @@
       <div id="photo-upload-status" style="display:none;font-size:0.78rem;margin-top:0.5rem"></div>
     </div>
     <div class="sheet-actions">
-      <button class="sheet-btn-primary" id="complete-sheet-yes">Yes, all work is done</button>
+      <button class="sheet-btn-primary" id="complete-sheet-yes" disabled style="opacity:0.45;cursor:not-allowed">Yes, all work is done</button>
       <button class="sheet-btn-cancel" id="complete-sheet-cancel">Cancel</button>
     </div>
   </div>

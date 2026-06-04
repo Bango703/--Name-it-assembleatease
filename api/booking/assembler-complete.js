@@ -56,6 +56,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'You must be assigned to this booking before marking it complete' });
   }
 
+  // Require at least one completion photo — no exceptions
+  const { data: evidenceRows } = await sb
+    .from('booking_evidence')
+    .select('id')
+    .eq('booking_id', booking.id)
+    .limit(1);
+  if (!evidenceRows?.length) {
+    return res.status(400).json({ error: 'A completion photo is required. Please upload a photo before marking this job complete.' });
+  }
+
   // Block completion if no payment is authorized — applies to quote bookings
   // where the owner has not yet called /api/owner/quote-approve.
   if (!booking.stripe_payment_intent_id) {
