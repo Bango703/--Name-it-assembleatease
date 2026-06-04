@@ -37,13 +37,16 @@ export default async function handler(req, res) {
     return res.status(409).json({ error: 'Payout already recorded for this booking.' });
   }
 
-  // Evidence presence check — warning only, never blocks payout
+  // Evidence check — hard block when owner has explicitly requested it and none exists yet
   const { data: evidenceRows } = await sb
     .from('booking_evidence')
     .select('id')
     .eq('booking_id', booking.id)
     .limit(1);
   const hasEvidence = !!(evidenceRows?.length);
+  if (booking.evidence_requested_at && !hasEvidence) {
+    return res.status(409).json({ error: 'Payout blocked — evidence upload required. The owner has requested completion photos before this payout can be processed.' });
+  }
   if (!hasEvidence) {
     console.warn(`[payout-no-evidence] ${booking.ref} — proceeding with no completion evidence on file`);
   }

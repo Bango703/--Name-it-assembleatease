@@ -176,6 +176,21 @@
         Mark Job as Complete
       </button>
     </div>
+    <!-- Evidence request section (shown when payout is held pending photo upload) -->
+    <div id="evidence-request-section" style="display:none;background:#fffbeb;border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:0.875rem 1rem;margin-top:0.5rem;margin-bottom:0.75rem">
+      <div style="font-size:0.82rem;font-weight:700;color:#92400e;margin-bottom:0.3rem">Payout On Hold — Upload Required</div>
+      <div style="font-size:0.78rem;color:#92400e;line-height:1.55;margin-bottom:0.75rem">The owner needs photos of the completed work before releasing your payout. Please upload at least one photo from your camera roll.</div>
+      <input type="file" id="evidence-req-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
+      <div id="evidence-req-preview" style="display:none;margin-bottom:0.6rem">
+        <img id="evidence-req-img" src="" alt="Preview" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:cover;display:block">
+        <button type="button" id="evidence-req-remove" style="margin-top:0.35rem;font-size:0.75rem;color:#92400e;background:none;border:none;cursor:pointer;padding:0">Remove photo</button>
+      </div>
+      <div style="display:flex;gap:0.5rem">
+        <button type="button" id="evidence-req-pick" class="btn" style="background:#f59e0b;border-color:#f59e0b;color:#fff;flex:1;font-size:0.85rem;min-height:42px">Choose Photo</button>
+        <button type="button" id="evidence-req-upload" class="btn btn-teal" style="flex:1;font-size:0.85rem;min-height:42px;display:none">Upload</button>
+      </div>
+      <div id="evidence-req-status" style="font-size:0.75rem;color:#92400e;margin-top:0.45rem;display:none"></div>
+    </div>
     <!-- Payout info section (shown for completed jobs) -->
     <div id="payout-info-section" style="display:none;background:rgba(5,150,105,0.07);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:0.75rem 1rem;margin-top:0.5rem;margin-bottom:1rem">
       <div style="font-size:0.8rem;font-weight:700;color:#065f46;margin-bottom:0.25rem">Your Payout</div>
@@ -213,6 +228,11 @@
   var _photoFile = null;
   var _photoDataUrl = null;
   var _photoUploaded = false;
+
+  // Evidence request upload state
+  var _evidenceReqFile = null;
+  var _evidenceReqBookingId = null;
+  var _evidenceReqInFlight = false;
 
   // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
   // sessionToken is set to the initial session access_token once auth completes.
@@ -698,6 +718,79 @@
       _resetPhotoState();
     });
 
+    // ── Evidence request upload flow ──────────────────────────────────────────
+    document.getElementById('evidence-req-pick').addEventListener('click', function() {
+      document.getElementById('evidence-req-photo-input').click();
+    });
+
+    document.getElementById('evidence-req-photo-input').addEventListener('change', function() {
+      var file = this.files && this.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        APP.showAlert('page-alert', 'Photo must be under 5 MB', 'error');
+        this.value = '';
+        return;
+      }
+      _evidenceReqFile = file;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        document.getElementById('evidence-req-img').src = ev.target.result;
+        document.getElementById('evidence-req-preview').style.display = '';
+        document.getElementById('evidence-req-upload').style.display = '';
+      };
+      reader.readAsDataURL(file);
+      this.value = '';
+    });
+
+    document.getElementById('evidence-req-remove').addEventListener('click', function() {
+      _evidenceReqFile = null;
+      document.getElementById('evidence-req-preview').style.display = 'none';
+      document.getElementById('evidence-req-upload').style.display = 'none';
+    });
+
+    document.getElementById('evidence-req-upload').addEventListener('click', async function() {
+      if (!_evidenceReqFile || !_evidenceReqBookingId || _evidenceReqInFlight) return;
+      _evidenceReqInFlight = true;
+      var uploadBtn = document.getElementById('evidence-req-upload');
+      var statusEl = document.getElementById('evidence-req-status');
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading…';
+      statusEl.textContent = 'Uploading photo…';
+      statusEl.style.display = '';
+      try {
+        var base64 = await new Promise(function(resolve, reject) {
+          var r = new FileReader();
+          r.onload = function(e) { resolve(e.target.result); };
+          r.onerror = reject;
+          r.readAsDataURL(_evidenceReqFile);
+        });
+        var resp = await fetch('/api/booking/upload-evidence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+          body: JSON.stringify({ bookingId: _evidenceReqBookingId, fileBase64: base64, mimeType: _evidenceReqFile.type, evidenceType: 'completion_photo' }),
+        });
+        var data = await resp.json();
+        if (!resp.ok || data.error) {
+          statusEl.textContent = data.error || 'Upload failed — please try again.';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Upload';
+          _evidenceReqInFlight = false;
+          return;
+        }
+        // Success — hide the hold banner, update payout note, update local state
+        document.getElementById('evidence-request-section').style.display = 'none';
+        document.getElementById('payout-info-note').textContent = 'Payout pending — typically 2–3 business days.';
+        var bk = allAssignments.find(function(x) { return x.id === _evidenceReqBookingId; });
+        if (bk) bk._evidence_uploaded = true;
+        APP.showAlert('page-alert', 'Evidence uploaded — your payout hold has been released.', 'success');
+      } catch (err) {
+        statusEl.textContent = 'Connection error — please try again.';
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload';
+      }
+      _evidenceReqInFlight = false;
+    });
+
     document.getElementById('complete-sheet-yes').addEventListener('click', async function() {
       if (_completionInFlight) return;
       var bookingIdToComplete = _pendingCompleteBookingId;
@@ -930,6 +1023,21 @@
     const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && (b.assembler_accepted_at || b.assigned_at);
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
 
+    // Evidence request section — shown when payout is held pending upload
+    var evReqSection = document.getElementById('evidence-request-section');
+    var evidenceHeld = b.status === 'completed' && b.evidence_requested_at && !b._evidence_uploaded;
+    if (evidenceHeld) {
+      evReqSection.style.display = '';
+      _evidenceReqBookingId = b.id;
+      _evidenceReqFile = null;
+      document.getElementById('evidence-req-preview').style.display = 'none';
+      document.getElementById('evidence-req-upload').style.display = 'none';
+      document.getElementById('evidence-req-status').style.display = 'none';
+      document.getElementById('evidence-req-status').textContent = '';
+    } else {
+      evReqSection.style.display = 'none';
+    }
+
     // Payout summary for completed jobs
     var payoutSection = document.getElementById('payout-info-section');
     if (b.status === 'completed') {
@@ -939,6 +1047,8 @@
       var payoutNote;
       if (b.payout_status === 'paid') {
         payoutNote = b.paid_out_at ? 'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
+      } else if (evidenceHeld) {
+        payoutNote = 'Payout on hold — upload photos above to release.';
       } else if (dueCents > 0) {
         payoutNote = 'Payout pending — typically 2–3 business days.';
       } else {

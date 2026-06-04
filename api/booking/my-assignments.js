@@ -55,7 +55,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, assignment_token, total_price')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, assignment_token, total_price, evidence_requested_at')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -139,6 +139,27 @@ export default async function handler(req, res) {
       b._offer_score      = offerMap[b.id].dispatch_score;
     }
   });
+
+  // For completed jobs where evidence was requested, flag whether evidence has been uploaded.
+  // This lets the Easer dashboard show/hide the upload prompt without a separate API call.
+  const evidenceRequestedIds = (assignedBookings || [])
+    .filter(b => b.evidence_requested_at)
+    .map(b => b.id);
+
+  if (evidenceRequestedIds.length) {
+    try {
+      const { data: evidenceRows } = await sb
+        .from('booking_evidence')
+        .select('booking_id')
+        .in('booking_id', evidenceRequestedIds);
+      const uploadedSet = new Set((evidenceRows || []).map(r => r.booking_id));
+      (assignedBookings || []).forEach(b => {
+        if (b.evidence_requested_at) b._evidence_uploaded = uploadedSet.has(b.id);
+      });
+    } catch (evErr) {
+      console.warn('my-assignments evidence check skipped:', evErr?.message || evErr);
+    }
+  }
 
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];

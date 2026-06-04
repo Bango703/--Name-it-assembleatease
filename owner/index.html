@@ -2211,6 +2211,11 @@ function intelQuick(msg) {
       } else {
         btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Review Requested</button>');
       }
+      if (b.assembler_id && !b.evidence_requested_at) {
+        btns.push('<button class="btn btn-amber" data-action="request-evidence" data-id="' + b.id + '">Request Evidence</button>');
+      } else if (b.evidence_requested_at) {
+        btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Evidence Requested</button>');
+      }
       if (b.payment_status === 'captured') {
         btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
         if (b.assembler_id && b.payout_status !== 'paid') {
@@ -2265,6 +2270,18 @@ function intelQuick(msg) {
           if (bk) { bk.review_requested_at = new Date().toISOString(); renderActions(bk); }
         })
         .catch(function(){ toast('Failed to send — check your connection', 'error'); btn.disabled=false; btn.textContent='Request Review'; });
+    } else if (action === 'request-evidence') {
+      btn.disabled = true;
+      btn.textContent = 'Requesting…';
+      fetch('/api/owner/request-evidence', { method:'POST', headers: headers(), body: JSON.stringify({ bookingId: id }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.error) { toast(d.error, 'error'); btn.disabled=false; btn.textContent='Request Evidence'; return; }
+          toast('Evidence requested — Easer has been notified ✓', 'success');
+          var bk = allBookings.find(function(x){ return x.id == id; });
+          if (bk) { bk.evidence_requested_at = new Date().toISOString(); renderActions(bk); }
+        })
+        .catch(function(){ toast('Failed to send — check your connection', 'error'); btn.disabled=false; btn.textContent='Request Evidence'; });
     } else if (action === 'confirm') {
       doAction('/confirm', { bookingId: id }, 'Booking confirmed ✓');
     } else if (action === 'complete') {
