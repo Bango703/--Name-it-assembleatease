@@ -343,6 +343,7 @@
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" style="display:none">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
+        <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews <span class="nav-count" id="nav-reviews" style="display:none">0</span></a></li>
         <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials</a></li>
         <li><a data-view="intelligence"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span> AI Intelligence <span class="nav-count" id="nav-alerts" style="display:none">!</span></a></li>
@@ -567,6 +568,55 @@
           <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
           <div class="empty-state-title">No jobs today</div>
           <div class="empty-state-desc">Nothing is scheduled for today's date. Pending bookings in the sidebar may be for a different date &mdash; click <strong>Bookings</strong> to see all.</div>
+        </div>
+      </div>
+
+      <!-- ─── MARKET DEMAND VIEW ─── -->
+      <div id="market-demand-view" style="display:none">
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Austin Metro remains the active fulfillment market. Other markets are demand collection only: no payment, no dispatch, and no booking guarantee until supply and operations are ready.</p>
+        <div class="stats-row" id="md-stats-row">
+          <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Active Markets</div></div>
+          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Emerging Markets</div></div>
+          <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Market Requests</div></div>
+          <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Market Conversion Rate</div></div>
+          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Easer Supply by Market</div></div>
+          <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Potential Revenue</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.5rem" class="content-grid">
+          <div class="detail-panel open">
+            <div class="detail-section-title">Top Demand Markets</div>
+            <div id="md-top-markets" style="margin-top:0.85rem"></div>
+          </div>
+
+          <div class="detail-panel open">
+            <div class="detail-section-title">Activation Rules</div>
+            <div style="display:grid;gap:0.65rem;margin-top:0.85rem;font-size:0.82rem;color:var(--soft);line-height:1.55">
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Active Market</strong><br>Full booking, payment, and dispatch are enabled.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Emerging Market</strong><br>Request captured only. No card, no guarantee, no dispatch.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Review Threshold</strong><br>10+ requests, 3+ approved Easers, or a strategic account opportunity.</div>
+            </div>
+          </div>
+
+          <div class="detail-panel open" style="grid-column:1/-1">
+            <div class="detail-section-title">Market Requests</div>
+            <div style="overflow-x:auto;margin-top:0.85rem">
+              <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.82rem">
+                <thead>
+                  <tr style="text-align:left">
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Ref</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Market</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Service</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Date</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:right">Est. Rev</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="md-requests-tbody"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1036,7 +1086,7 @@ function intelQuick(msg) {
     <label class="modal-label">Service</label>
     <select class="modal-input" id="eb-service">
       <option value="">— no change —</option>
-      <option>Furniture Assembly</option><option>TV Mounting</option>
+      <option>Furniture Assembly</option><option>Mounting &amp; Hanging</option>
       <option>Smart Home</option><option>Other / Custom</option>
     </select>
     <label class="modal-label">Address</label>
@@ -1196,7 +1246,7 @@ function intelQuick(msg) {
     <select id="nb-service">
       <option value="">Select a service...</option>
       <option value="Furniture Assembly">Furniture Assembly</option>
-      <option value="TV Mounting">TV Mounting</option>
+      <option value="Mounting & Hanging">Mounting &amp; Hanging</option>
       <option value="Smart Home">Smart Home</option>
       <option value="Other">Other / Custom</option>
     </select>
@@ -1308,6 +1358,15 @@ function intelQuick(msg) {
         if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
         else $navWl.style.display = 'none';
       }).catch(function(){});
+    // Nav badge: emerging-market demand requests
+    fetch('/api/owner/market-demand', { headers: headers() })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var count = ((d.summary || {}).marketRequests) || 0;
+        var $navMd = document.getElementById('nav-market-demand');
+        if (count > 0) { $navMd.textContent = count; $navMd.style.display = ''; }
+        else $navMd.style.display = 'none';
+      }).catch(function(){});
   }
 
   // Brute-force lockout: track failed attempts in sessionStorage
@@ -1387,6 +1446,7 @@ function intelQuick(msg) {
     try {
       if (currentView === 'assemblers') await loadAssemblerList();
       else if (currentView === 'waitlist') await loadWaitlist();
+      else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
       else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
       else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
@@ -2857,6 +2917,7 @@ function intelQuick(msg) {
   // ─── View switching ───
   var currentView = 'bookings';
   var $bookingsView   = document.getElementById('bookings-view');
+  var $marketDemandView = document.getElementById('market-demand-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
   var $todayView        = document.getElementById('today-view');
@@ -2867,7 +2928,7 @@ function intelQuick(msg) {
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoading = false;
@@ -2891,6 +2952,7 @@ function intelQuick(msg) {
       $newBookingBtn.style.display = view === 'bookings' ? '' : 'none';
       if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
+      else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
       // marketplace removed
@@ -3586,6 +3648,107 @@ function intelQuick(msg) {
     } catch(e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Failed to load payout data</td></tr>';
     }
+  }
+
+  // ─── Market Demand ───
+  async function loadMarketDemand() {
+    mdSetLoading();
+    try {
+      var r = await fetch('/api/owner/market-demand', { headers: headers() });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to load market demand');
+      renderMarketDemand(d);
+      var badge = document.getElementById('nav-market-demand');
+      var ct = ((d.summary || {}).marketRequests) || 0;
+      if (badge) {
+        if (ct > 0) { badge.textContent = ct; badge.style.display = ''; }
+        else badge.style.display = 'none';
+      }
+    } catch(e) {
+      document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load market demand. Run migration 017 if the market_requests table is missing.</div>';
+      document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Failed to load market requests.</td></tr>';
+    }
+  }
+
+  function mdSetLoading() {
+    ['md-active','md-emerging','md-requests','md-conversion','md-supply','md-potential'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Loading demand markets...</div>';
+    document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--muted)">Loading market requests...</td></tr>';
+  }
+
+  function renderMarketDemand(data) {
+    var s = data.summary || {};
+    document.getElementById('md-active').textContent = s.activeMarkets || 0;
+    document.getElementById('md-emerging').textContent = s.emergingMarkets || 0;
+    document.getElementById('md-requests').textContent = s.marketRequests || 0;
+    document.getElementById('md-conversion').textContent = fmtPct(s.marketConversionRate || 0);
+    document.getElementById('md-supply').textContent = s.easerSupplyByMarket || 0;
+    document.getElementById('md-potential').textContent = fmt$(s.totalPotentialRevenue || 0);
+    renderMarketRows(data.topMarkets || []);
+    renderMarketRequests(data.requests || []);
+  }
+
+  function renderMarketRows(markets) {
+    var el = document.getElementById('md-top-markets');
+    if (!markets.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:2rem 1rem"><div class="empty-state-title">No emerging-market demand yet</div><div class="empty-state-desc">Out-of-market service requests will appear here.</div></div>';
+      return;
+    }
+    el.innerHTML = markets.map(function(m) {
+      var services = (m.topServices || []).map(function(s){ return esc(s.service) + ' (' + s.count + ')'; }).join(', ') || 'No services yet';
+      var ratio = Number(m.demandToSupplyRatio || 0).toFixed(m.approvedEasers ? 1 : 0);
+      return '<div style="border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;margin-bottom:0.7rem;background:var(--surface)">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;margin-bottom:0.55rem">'
+        + '<div><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.market) + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.isActiveMarket ? 'Active fulfillment market' : 'Emerging demand market') + '</div></div>'
+        + mdStatusPill(m.activationStatus)
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.6rem;margin-bottom:0.65rem">'
+        + mdMiniMetric('Requests', m.requestCount)
+        + mdMiniMetric('Potential', fmt$(m.potentialRevenue))
+        + mdMiniMetric('Approved Easers', m.approvedEasers)
+        + mdMiniMetric('Demand/Supply', ratio)
+        + '</div>'
+        + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Top services:</strong> ' + services + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">ZIPs: ' + ((m.requestedZips || []).join(', ') || '—') + ' &bull; Easer apps: ' + (m.easerApplications || 0) + ' &bull; Waitlist: ' + (m.waitlistEasers || 0) + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function renderMarketRequests(requests) {
+    var tbody = document.getElementById('md-requests-tbody');
+    if (!requests.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:var(--muted)">No market requests yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = requests.slice(0, 80).map(function(r) {
+      return '<tr>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-weight:700;color:var(--text)">' + esc(r.requestRef || '—') + '</td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)"><div style="font-weight:700;color:var(--text)">' + esc(r.customerName || '—') + '</div><div style="font-size:0.72rem;color:var(--muted)">' + esc(r.customerEmail || '') + '</div></td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.city || '—') + ', ' + esc(r.state || '') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(r.zip || '') + '</div></td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.requestedService || '—') + '</td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.requestedDate || '—') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(r.desiredTime || '') + '</div></td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700">' + fmt$(r.estimatedRevenue || 0) + '</td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + mdStatusPill((r.status || 'new').toUpperCase()) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function mdMiniMetric(label, value) {
+    return '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.65rem;min-width:0"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">' + esc(label) + '</div><div style="font-size:0.92rem;font-weight:800;color:var(--text);margin-top:0.15rem;overflow-wrap:anywhere">' + esc(String(value)) + '</div></div>';
+  }
+
+  function mdStatusPill(status) {
+    var s = String(status || 'COLLECTING DEMAND').toUpperCase();
+    var color = '#075985', bg = '#e0f2fe', border = '#bae6fd';
+    if (s === 'ACTIVE') { color = '#065f46'; bg = '#d1fae5'; border = '#a7f3d0'; }
+    else if (s === 'READY TO REVIEW') { color = '#92400e'; bg = '#fef3c7'; border = '#fde68a'; }
+    else if (s === 'WATCH') { color = '#1d4ed8'; bg = '#dbeafe'; border = '#bfdbfe'; }
+    else if (s === 'NEW') { color = '#075985'; bg = '#e0f2fe'; border = '#bae6fd'; }
+    return '<span style="display:inline-flex;align-items:center;border:1px solid ' + border + ';background:' + bg + ';color:' + color + ';border-radius:999px;padding:0.2rem 0.55rem;font-size:0.66rem;font-weight:900;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">' + esc(s.replace(/_/g, ' ')) + '</span>';
   }
 
   // ─── Waitlist ───

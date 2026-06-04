@@ -81,7 +81,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Rush / same-day assembly', price: 39, addon: true }
       ]}
     ],
-    'TV Mounting': [
+    'Mounting & Hanging': [
       { group: 'TV Mounting by Size', items: [
         { name: 'TV up to 40” (standard wall)', price: 75 },
         { name: 'TV 41”–55” (standard wall)', price: 79, popular: true },

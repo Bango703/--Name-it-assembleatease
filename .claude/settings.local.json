@@ -4,7 +4,8 @@
       "WebFetch(domain:ukamyqnaukxlmeoncjgr.supabase.co)",
       "WebFetch(domain:www.taskrabbit.com)",
       "PowerShell(git -C \"c:\\\\Users\\\\tgbiz\\\\Trackadem\" ls-remote origin)",
-      "PowerShell(powershell -ExecutionPolicy Bypass -Command \"Set-Location 'c:\\\\Users\\\\tgbiz\\\\Trackadem'; foreach \\(`$line in Get-Content '.env'\\) { if \\(`$line -match '^\\([^#=]+\\)=\\(.+\\)$'\\) { [System.Environment]::SetEnvironmentVariable\\(`$matches[1], `$matches[2]\\) } }; npm run dev\" 2>&1)"
+      "PowerShell(powershell -ExecutionPolicy Bypass -Command \"Set-Location 'c:\\\\Users\\\\tgbiz\\\\Trackadem'; foreach \\(`$line in Get-Content '.env'\\) { if \\(`$line -match '^\\([^#=]+\\)=\\(.+\\)$'\\) { [System.Environment]::SetEnvironmentVariable\\(`$matches[1], `$matches[2]\\) } }; npm run dev\" 2>&1)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

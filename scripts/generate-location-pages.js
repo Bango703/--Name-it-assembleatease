@@ -168,9 +168,9 @@ const SERVICES = [
     mainPage: '/furniture',
   },
   {
-    name: 'TV Mounting',
+    name: 'Mounting & Hanging',
     slug: 'tv-mounting',
-    bookingParam: 'TV+Mounting',
+    bookingParam: 'Mounting+%26+Hanging',
     tagline: 'Safe, level, and clean TV mounting on any wall.',
     intro: 'We mount any TV on any wall — standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
     fromPrice: '$79',
@@ -491,7 +491,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services">Services</a>
   <a href="/furniture">Furniture Assembly</a>
-  <a href="/mounting">TV Mounting</a>
+  <a href="/mounting">Mounting & Hanging</a>
   <a href="/smarthome">Smart Home</a>
   <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-full">Book ${esc(service.name)}</a>
 </div>
@@ -677,7 +677,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
         <li><a href="/furniture">Furniture Assembly</a></li>
-        <li><a href="/mounting">TV Mounting</a></li>
+        <li><a href="/mounting">Mounting & Hanging</a></li>
         <li><a href="/smarthome">Smart Home Setup</a></li>
         <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
         <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>

@@ -252,7 +252,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
 
       // Derive tag from topic keywords
       const tLower = topic.toLowerCase();
-      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV Mounting'
+      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'Mounting & Hanging'
         : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart Home'
         : 'Furniture';
 

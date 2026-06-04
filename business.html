@@ -30,7 +30,7 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <style>
 body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav{position:relative;top:auto;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
 .nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
@@ -39,26 +39,48 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
 .nav-links a{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
 .nav-links a:hover{color:var(--cyan-dark)}
+.nav-earn-btn{display:inline-flex;background:transparent;color:var(--ink-soft);padding:0;border-radius:0;font-size:0.82rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:none}
+.nav-earn-btn:hover{background:transparent;color:var(--cyan-dark);box-shadow:none}
+.nav-book-pill{display:inline-flex;align-items:center;justify-content:center;padding:0.55rem 1.1rem;background:var(--cyan);color:#fff;border-radius:999px;font-size:0.82rem;font-weight:700;text-decoration:none;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
 .btn-cyan{background:var(--cyan);color:#fff}
 .btn-cyan:hover{background:var(--cyan-dark);box-shadow:0 4px 16px rgba(0,188,212,0.35);transform:translateY(-1px)}
 .btn-full{width:100%}
-.page-hero{background:linear-gradient(135deg,#0a1628,#132744);padding:4rem 2rem;text-align:center}
-.page-hero-inner{max-width:700px;margin:0 auto}
+.page-hero{background:radial-gradient(circle at 18% 20%,rgba(0,191,255,0.2),transparent 34%),linear-gradient(135deg,#071827,#0d2740 58%,#056b82);padding:4.25rem 2rem 4rem;text-align:center;position:relative;overflow:hidden}
+.page-hero::after{content:"";position:absolute;inset:auto 12% -70px auto;width:340px;height:180px;background:rgba(0,191,255,0.14);filter:blur(50px);pointer-events:none}
+.page-hero-inner{max-width:700px;width:100%;min-width:0;margin:0 auto}
 .page-back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.75);text-decoration:none;font-size:0.82rem;font-weight:500;margin-bottom:1.25rem;transition:color 0.15s}
 .page-back:hover{color:#fff}
 .page-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);color:#fff;margin-bottom:0.75rem}
+.page-title span{display:inline}
+.page-title span+span::before{content:" "}
 .page-desc{font-size:1rem;color:rgba(255,255,255,0.82);line-height:1.75}
-.b2b-section{padding:4rem 2rem}
-.b2b-inner{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 1.5fr;gap:4rem;align-items:start}
+.business-hero-proof{display:flex;align-items:center;justify-content:center;gap:0.6rem;flex-wrap:wrap;margin-top:1.35rem}
+.business-hero-proof span{display:inline-flex;align-items:center;gap:0.35rem;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.84);border-radius:999px;padding:0.38rem 0.72rem;font-size:0.76rem;font-weight:700}
+.business-hero-proof span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+.b2b-section{padding:4.5rem 2rem 4rem;background:linear-gradient(180deg,#fff 0%,#f7fbfc 100%)}
+.b2b-inner{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1.04fr 0.96fr;gap:3rem;align-items:start}
+.b2b-info{display:flex;flex-direction:column;gap:1.2rem;min-width:0}
+.b2b-kicker,.section-kicker{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;color:var(--cyan-dark)}
 .b2b-info h2{font-family:var(--font-display);font-size:1.6rem;color:var(--ink);margin-bottom:0.75rem}
+.b2b-info h2,.b2b-info p{max-width:100%;overflow-wrap:break-word}
 .b2b-info>p{font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:2rem}
-.b2b-service{display:flex;align-items:flex-start;gap:1rem;margin-bottom:1.5rem}
+.b2b-photo-card{position:relative;border-radius:22px;overflow:hidden;min-height:310px;box-shadow:0 20px 60px rgba(7,24,39,0.14);background:#dbe8ec url('/images/business-commercial-services.jpg') center/cover no-repeat}
+.b2b-photo-card img{width:100%;height:100%;min-height:310px;display:block;object-fit:cover;color:transparent;font-size:0}
+.b2b-photo-note{position:absolute;left:1rem;right:1rem;bottom:1rem;background:rgba(255,255,255,0.94);border:1px solid rgba(255,255,255,0.7);border-radius:16px;padding:0.9rem 1rem;box-shadow:0 14px 30px rgba(7,24,39,0.18)}
+.b2b-photo-note strong{display:block;font-size:0.9rem;color:var(--ink);margin-bottom:0.2rem}
+.b2b-photo-note span{display:block;font-size:0.78rem;color:var(--muted);line-height:1.45}
+.b2b-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem}
+.b2b-stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:0.95rem;box-shadow:0 8px 24px rgba(7,24,39,0.05)}
+.b2b-stat strong{display:block;font-family:var(--font-display);font-size:1.55rem;line-height:1;color:var(--cyan-dark);margin-bottom:0.35rem}
+.b2b-stat span{display:block;font-size:0.75rem;color:var(--muted);line-height:1.35}
+.b2b-service-list{display:grid;grid-template-columns:1fr 1fr;gap:0.85rem}
+.b2b-service{display:flex;align-items:flex-start;gap:0.85rem;padding:1rem;background:#fff;border:1px solid var(--border);border-radius:18px}
 .b2b-service-icon{width:44px;height:44px;border-radius:12px;background:var(--cyan-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.b2b-service-icon svg{width:22px;height:22px;fill:var(--cyan-dark)}
+.b2b-service-icon svg{width:22px;height:22px;stroke:var(--cyan-dark);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .b2b-service-title{font-size:0.9rem;font-weight:700;color:var(--ink);margin-bottom:2px}
 .b2b-service-desc{font-size:0.82rem;color:var(--muted);line-height:1.6}
-.b2b-form-box{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem}
+.b2b-form-box{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:2rem;box-shadow:0 18px 50px rgba(7,24,39,0.08);scroll-margin-top:24px;min-width:0}
 .b2b-form-box h3{font-family:var(--font-display);font-size:1.3rem;color:var(--ink);margin-bottom:0.5rem}
 .b2b-form-box>p{font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem}
 .form-group{margin-bottom:1rem}
@@ -66,6 +88,16 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .form-control{width:100%;padding:0.8rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:var(--white);outline:none;transition:border-color 0.15s}
 .form-control:focus{border-color:var(--cyan)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.business-lanes{padding:0 2rem 4.5rem;background:#f7fbfc}
+.business-lanes-inner{max-width:1120px;margin:0 auto}
+.section-head{text-align:center;max-width:680px;margin:0 auto 1.75rem}
+.section-head h2{font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.4rem);color:var(--ink);margin:0.4rem 0 0.5rem}
+.section-head p{font-size:0.95rem;color:var(--muted);line-height:1.7}
+.lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.lane-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:1.25rem;min-height:190px;box-shadow:0 8px 30px rgba(7,24,39,0.05)}
+.lane-card strong{display:block;font-size:0.95rem;color:var(--ink);margin-bottom:0.5rem}
+.lane-card p{font-size:0.82rem;color:var(--muted);line-height:1.65}
+.lane-card small{display:inline-flex;margin-bottom:0.85rem;padding:0.28rem 0.55rem;border-radius:999px;background:var(--cyan-light);color:var(--cyan-dark);font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em}
 .footer{background:#0a1628;padding:3rem 2rem 2rem}
 .footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
 .footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
@@ -94,11 +126,30 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .nav-mobile a{font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
 .nav-mobile a:last-child{border-bottom:none}
 .nav-mobile .btn{margin-top:0.5rem;text-align:center}
-@media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}}
+@media(max-width:900px){.nav-links,.nav-book-pill,.nav-earn-btn{display:none}.nav-inner{position:relative}.nav-inner>div[style]{display:none!important}.nav-logo{max-width:calc(100% - 54px)}.nav-hamburger{display:flex!important;position:fixed;right:1rem;top:10px;transform:none;margin-left:0;z-index:500;width:40px;height:40px;align-items:center;justify-content:center}.nav-hamburger::before{content:"";display:block;width:24px;height:2px;background:#0d1117;border-radius:2px;box-shadow:0 -7px 0 #0d1117,0 7px 0 #0d1117}.nav-hamburger span{display:none}.nav::after{content:"";position:fixed;right:24px;top:28px;width:24px;height:2px;background:#0d1117;border-radius:2px;box-shadow:0 -7px 0 #0d1117,0 7px 0 #0d1117;z-index:499;pointer-events:none}}
 @media(max-width:900px){
   .b2b-inner{grid-template-columns:1fr}
+  .b2b-service-list,.lane-grid{grid-template-columns:1fr}
+  .b2b-stat-row{grid-template-columns:1fr 1fr}
   .footer-inner{grid-template-columns:1fr;gap:2rem}
   .form-row{grid-template-columns:1fr}
+  .b2b-section{padding:3rem 1rem}
+  .business-lanes{padding:0 1rem 3rem}
+  .page-hero{padding:3rem 1.25rem}
+}
+@media(max-width:560px){
+  .nav-inner{padding:0 1rem}
+  .page-title{font-size:1.95rem;line-height:1.08;max-width:340px;margin-left:auto;margin-right:auto}
+  .page-title span{display:block}
+  .page-title span+span::before{content:""}
+  .page-desc{font-size:0.95rem;max-width:340px;margin-left:auto;margin-right:auto}
+  .business-hero-proof{gap:0.45rem}
+  .business-hero-proof span{font-size:0.72rem}
+  .b2b-info h2{font-size:1.45rem;line-height:1.12;max-width:340px}
+  .b2b-info p{max-width:340px}
+  .b2b-stat-row{grid-template-columns:1fr}
+  .b2b-form-box{padding:1.25rem;border-radius:18px}
+  .b2b-photo-card,.b2b-photo-card img{min-height:260px}
 }
 </style>
 </head>
@@ -127,26 +178,67 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services">Services</a>
   <a href="/furniture">Furniture Assembly</a>
-  <a href="/mounting">TV Mounting</a>
+  <a href="/mounting">Mounting &amp; Hanging</a>
   <a href="/smarthome">Smart Home</a>
-  <a href="/contact" class="btn btn-cyan btn-full">Get a Quote</a>
+  <a href="#b2b-form-wrap" class="btn btn-cyan btn-full">Get a Quote</a>
 </div>
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
+<main id="main-content">
 <section class="page-hero">
   <div class="page-hero-inner">
     <a href="/" class="page-back">&larr; Back to Home</a>
-    <h1 class="page-title">Business &amp; Commercial Services</h1>
-    <p class="page-desc">Custom handyman solutions for offices, property managers, and commercial spaces. No job too big &mdash; every project gets a tailored quote.</p>
+    <h1 class="page-title"><span>Business &amp;</span><span>Commercial Services</span></h1>
+    <p class="page-desc">Custom assembly, installs, and handyman support for offices, property managers, real estate teams, and commercial spaces.</p>
+    <div class="business-hero-proof">
+      <span>Custom quote</span>
+      <span>Multi-site support</span>
+      <span>Recurring work welcome</span>
+    </div>
   </div>
 </section>
 
 <section class="b2b-section">
   <div class="b2b-inner">
     <div class="b2b-info">
-      <h2>Built for businesses</h2>
-      <p>Whether you manage a portfolio of rental properties, run an office, or operate a commercial space &mdash; we handle assembly, installs, and repairs at scale with dedicated account support.</p>
+      <div>
+        <div class="b2b-kicker">Built for operators</div>
+        <h2>Business projects, organized.</h2>
+        <p>Whether you manage rentals, run an office, or coordinate move-in projects, we help turn scattered assembly and install tasks into one organized quote.</p>
+      </div>
 
+      <div class="b2b-photo-card">
+        <img src="/images/business-commercial-services.jpg" alt="Business client reviewing completed office setup with AssembleAtEase service pros" loading="eager" decoding="sync" fetchpriority="high" />
+        <div class="b2b-photo-note">
+          <strong>Commercial work should feel coordinated.</strong>
+          <span>Share the scope, number of locations, timeline, and access details. We will review it and respond with a tailored proposal.</span>
+        </div>
+      </div>
+
+      <div class="b2b-stat-row" aria-label="Business service highlights">
+        <div class="b2b-stat"><strong>1 day</strong><span>Typical proposal response for clear requests</span></div>
+        <div class="b2b-stat"><strong>1+</strong><span>Locations, units, rooms, or recurring projects</span></div>
+        <div class="b2b-stat"><strong>0</strong><span>Payment collected until a quote is approved</span></div>
+      </div>
+
+      <div class="b2b-service-list">
+        <div class="b2b-service">
+          <div class="b2b-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M6 7v12m12-12v12M8 12h8M8 16h8"/></svg></div>
+          <div><div class="b2b-service-title">Office setup</div><div class="b2b-service-desc">Desks, chairs, conference rooms, shelving, and workspace resets.</div></div>
+        </div>
+        <div class="b2b-service">
+          <div class="b2b-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M13 9h6v12M8 9h1M8 13h1M8 17h1M16 13h1M16 17h1"/></svg></div>
+          <div><div class="b2b-service-title">Property turns</div><div class="b2b-service-desc">Unit repairs, furniture builds, mounting, and move-in punch lists.</div></div>
+        </div>
+        <div class="b2b-service">
+          <div class="b2b-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M4 7h16v14H4zM4 12h16"/></svg></div>
+          <div><div class="b2b-service-title">Retail support</div><div class="b2b-service-desc">Furniture store installs, customer delivery support, and display setup.</div></div>
+        </div>
+        <div class="b2b-service">
+          <div class="b2b-service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 8h14M7 21h10M6 8l3 6h-6l3-6Zm12 0 3 6h-6l3-6Z"/></svg></div>
+          <div><div class="b2b-service-title">Custom scope</div><div class="b2b-service-desc">Bulk projects, odd jobs, phased work, and special timelines.</div></div>
+        </div>
+      </div>
     </div>
 
     <div class="b2b-form-box" id="b2b-form-wrap">
@@ -160,6 +252,18 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <div class="form-row">
           <div class="form-group"><label for="b-email">Email address *</label><input type="email" id="b-email" class="form-control" placeholder="you@company.com" autocomplete="email" /></div>
           <div class="form-group"><label for="b-phone">Phone number *</label><input type="tel" id="b-phone" class="form-control" placeholder="737-000-0000" autocomplete="tel" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="b-location">City / ZIP *</label><input type="text" id="b-location" class="form-control" placeholder="Austin, TX 78701" autocomplete="postal-code" /></div>
+          <div class="form-group"><label for="b-timeline">Preferred timeline</label>
+            <select id="b-timeline" class="form-control" style="cursor:pointer">
+              <option value="">Select one...</option>
+              <option value="As soon as possible">As soon as possible</option>
+              <option value="This week">This week</option>
+              <option value="Next 2 weeks">Next 2 weeks</option>
+              <option value="Flexible / planning ahead">Flexible / planning ahead</option>
+            </select>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label for="b-type">Type of work *</label>
@@ -197,6 +301,39 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
 </section>
 
+<section class="business-lanes">
+  <div class="business-lanes-inner">
+    <div class="section-head">
+      <div class="section-kicker">Who this helps</div>
+      <h2>Built for repeat work, not one-off confusion.</h2>
+      <p>Business requests need cleaner coordination than a normal home booking. This page now separates quote work from instant booking so your team does not overpromise availability or price.</p>
+    </div>
+    <div class="lane-grid">
+      <article class="lane-card">
+        <small>Rental teams</small>
+        <strong>Property managers</strong>
+        <p>Assembly, wall mounting, small repairs, and move-in readiness across units or properties.</p>
+      </article>
+      <article class="lane-card">
+        <small>Workplaces</small>
+        <strong>Office managers</strong>
+        <p>Desks, conference rooms, storage, displays, and workspace setup handled as one project.</p>
+      </article>
+      <article class="lane-card">
+        <small>Partnerships</small>
+        <strong>Furniture stores</strong>
+        <p>Install support for customers who need assembly, anchoring, mounting, or room setup.</p>
+      </article>
+      <article class="lane-card">
+        <small>Move-ins</small>
+        <strong>Realtors &amp; designers</strong>
+        <p>Support for staging, new-home setup, client punch lists, and time-sensitive installs.</p>
+      </article>
+    </div>
+  </div>
+</section>
+</main>
+
 <footer class="footer">
   <div class="footer-inner">
     <div>
@@ -210,7 +347,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
         <li><a href="/furniture">Furniture Assembly</a></li>
-        <li><a href="/mounting">TV Mounting</a></li>
+        <li><a href="/mounting">Mounting &amp; Hanging</a></li>
         <li><a href="/smarthome">Smart Home Setup</a></li>
         <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
         <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
@@ -257,6 +394,8 @@ async function sendB2B() {
   var company   = document.getElementById('b-company').value.trim();
   var email     = document.getElementById('b-email').value.trim();
   var phone     = document.getElementById('b-phone').value.trim();
+  var jobLocation = document.getElementById('b-location').value.trim();
+  var timeline  = document.getElementById('b-timeline').value;
   var type      = document.getElementById('b-type').value;
   var frequency = document.getElementById('b-frequency').value;
   var details   = document.getElementById('b-details').value.trim();
@@ -266,6 +405,7 @@ async function sendB2B() {
   if (!company) { err.textContent='Please enter your company name.'; err.style.display='block'; return; }
   if (!email||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { err.textContent='Please enter a valid email address.'; err.style.display='block'; return; }
   if (!phone)   { err.textContent='Please enter a phone number.'; err.style.display='block'; return; }
+  if (!jobLocation) { err.textContent='Please enter the city or ZIP for the project.'; err.style.display='block'; return; }
   if (!type)    { err.textContent='Please select the type of work.'; err.style.display='block'; return; }
   if (!details) { err.textContent='Please describe your project.'; err.style.display='block'; return; }
   var btn = document.getElementById('b-btn');
@@ -281,7 +421,9 @@ async function sendB2B() {
         subject: '[B2B] ' + type + ' | ' + company,
         message: 'Company: ' + company
           + '\nPhone: ' + phone
+          + '\nLocation: ' + jobLocation
           + '\nType: ' + type
+          + (timeline ? '\nTimeline: ' + timeline : '')
           + (frequency ? '\nFrequency: ' + frequency : '')
           + '\n\n' + details
       })
