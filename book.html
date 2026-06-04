@@ -198,6 +198,27 @@
 
     /* -- Service tiles (multi-select) -- */
 
+    .service-section-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 1rem; margin: 0 0 0.75rem;
+    }
+
+    .service-section-eyebrow {
+      display: block; color: var(--teal); font-size: 0.68rem;
+      font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+
+    .service-section-title {
+      font-size: 0.95rem; color: var(--ink); font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .service-section-note {
+      color: var(--muted); font-size: 0.78rem; line-height: 1.45;
+      text-align: right; max-width: 250px;
+    }
+
     .service-tiles {
 
       display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -222,9 +243,19 @@
 
     }
 
+    .service-tile:focus-visible { outline: 3px solid rgba(0,191,255,0.25); outline-offset: 3px; }
+
     .service-tile:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 14px 32px rgba(0,191,255,0.12), 0 7px 20px rgba(15,23,42,0.06); }
 
-    .service-tile.selected { border-color: var(--teal); background: #fff; box-shadow: 0 0 0 3px rgba(0,191,255,0.12), 0 18px 38px rgba(0,191,255,0.13); }
+    .service-tile.selected {
+      border-color: var(--teal); background: #fff;
+      box-shadow: 0 0 0 3px rgba(0,191,255,0.12), 0 18px 38px rgba(0,191,255,0.13);
+    }
+
+    .service-tile.selected::before {
+      content: ''; position: absolute; inset: 0 auto 0 0; width: 4px;
+      background: var(--teal); z-index: 2;
+    }
 
     .service-tile.selected .tile-check { display: flex; }
 
@@ -270,7 +301,43 @@
 
     .tile-from { font-size: 0.76rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.3; }
 
+    .tile-status {
+      display: none; margin-top: 0.45rem; color: var(--teal);
+      font-size: 0.69rem; font-weight: 800; letter-spacing: 0.02em;
+      line-height: 1.25;
+    }
+
+    .service-tile.selected .tile-status { display: block; }
+
     .tile-name, .tile-from { overflow-wrap: anywhere; }
+
+    .selected-service-strip {
+      display: none; align-items: center; justify-content: space-between;
+      gap: 0.8rem; margin: -0.25rem 0 1rem; padding: 0.85rem 0.95rem;
+      border: 1px solid rgba(0,191,255,0.24); border-radius: var(--radius-md);
+      background: linear-gradient(180deg, #f3fcff 0%, #effbff 100%);
+    }
+
+    .selected-service-strip.show { display: flex; }
+
+    .selected-service-copy { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.45; }
+
+    .selected-service-copy strong { color: var(--ink); }
+
+    .selected-service-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
+
+    .selected-service-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      border: 1px solid rgba(0,191,255,0.26); background: #fff;
+      color: var(--teal); border-radius: var(--radius-full);
+      padding: 0.3rem 0.55rem; font-size: 0.72rem; font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .selected-service-chip button {
+      border: none; background: none; color: var(--muted); cursor: pointer;
+      font: inherit; line-height: 1; padding: 0 0 0 0.1rem;
+    }
 
     .custom-tile { min-height: 0; grid-column: span 3; display: flex; align-items: center; justify-content: space-between; padding: 1rem; }
 
@@ -345,6 +412,31 @@
     .subcat-close:hover { color: var(--red); }
 
     .subcat-body { padding: 0.5rem 0; }
+
+    /* -- Subcat search -- */
+    .subcat-search-wrap { padding: 0.5rem 0 0.85rem; position: relative; }
+    .subcat-search {
+      width: 100%; box-sizing: border-box;
+      padding: 0.7rem 2.2rem 0.7rem 2.1rem;
+      border: 1.5px solid var(--border); border-radius: var(--radius-md);
+      font-size: 0.9rem; color: var(--ink); background: #fafcfe;
+      outline: none; transition: border-color var(--transition), box-shadow var(--transition);
+      -webkit-appearance: none; appearance: none;
+    }
+    .subcat-search:focus { border-color: var(--teal); background: #fff; box-shadow: 0 0 0 3px rgba(0,191,255,0.12); }
+    .subcat-search-icon {
+      position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%);
+      color: var(--muted); pointer-events: none; line-height: 0;
+    }
+    .subcat-search-clear {
+      position: absolute; right: 0.45rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      font-size: 1rem; padding: 0.3rem 0.4rem; display: none; line-height: 1;
+      border-radius: 50%; transition: background var(--transition), color var(--transition);
+    }
+    .subcat-search-clear.vis { display: block; }
+    .subcat-search-clear:hover { background: #f0f0f0; color: var(--ink); }
+    .subcat-no-results { font-size: 0.85rem; color: var(--muted); padding: 0.25rem 0 0.5rem; display: none; }
 
     .subcat-group { padding: 0.25rem 0; }
 
@@ -609,6 +701,7 @@
     .confidence-strip span::before { content: '?'; font-size: 0.75rem; }
 
     .svc-area-ok { display: none; font-size: 0.8rem; font-weight: 600; color: #166534; margin-top: 0.3rem; }
+    .svc-area-lead { display: none; font-size: 0.8rem; font-weight: 600; color: #075985; margin-top: 0.3rem; line-height: 1.45; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 0.65rem 0.75rem; }
 
     @media(min-width: 640px) {
 
@@ -821,13 +914,13 @@
 
     @media (max-width: 768px) {
 
-      html, body, .book-page { width: 100%; max-width: 100%; overflow-x: hidden; }
+      html, body, .book-page { width: 100%; max-width: 100vw; overflow-x: hidden; }
 
       /* Full-screen step panels, edge-to-edge */
 
-      .book-main { padding: 0; gap: 0; width: 100%; max-width: 100%; overflow-x: hidden; }
+      .book-main { padding: 0; gap: 0; width: 100vw; max-width: 100vw; overflow-x: hidden; }
 
-      .book-form-col { width: 100%; min-width: 0; }
+      .book-form-col { width: 100vw; max-width: 100vw; min-width: 0; }
 
       .book-sidebar { display: none; }
 
@@ -836,7 +929,7 @@
         border-radius: 0; border-left: none; border-right: none;
 
         border-top: none; padding: 1.25rem 1rem 100px;
-        width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden;
+        width: 100vw; max-width: 100vw; min-width: 0; overflow-x: hidden;
 
       }
 
@@ -918,6 +1011,20 @@
 
       /* Service tiles 2-col */
 
+      .service-section-head { align-items: flex-start; flex-direction: column; gap: 0.35rem; }
+
+      .step-heading, .step-sub, .service-section-head, .service-section-note {
+        width: 100%; max-width: calc(100vw - 2rem); min-width: 0;
+      }
+
+      .step-sub { max-width: calc(100vw - 4rem); }
+
+      @media (max-width: 520px) {
+        .step-sub { width: 300px; max-width: calc(100vw - 4rem); }
+      }
+
+      .service-section-note { text-align: left; max-width: none; font-size: 0.76rem; overflow-wrap: break-word; }
+
       .service-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; width: 100%; max-width: 100%; overflow: hidden; }
 
       .service-tile { min-height: 176px; border-radius: 14px; min-width: 0; }
@@ -950,6 +1057,10 @@
         }
         .tile-photo { height: 100%; min-height: 104px; }
         .tile-body { padding: 0.85rem; }
+        .tile-status { font-size: 0.66rem; }
+        .selected-service-strip { align-items: flex-start; flex-direction: column; width: 100%; max-width: calc(100vw - 2rem); min-width: 0; }
+        .selected-service-copy { width: 100%; max-width: calc(100vw - 3.9rem); min-width: 0; overflow-wrap: break-word; }
+        .selected-service-chips { justify-content: flex-start; }
         .custom-tile {
           grid-column: span 1;
           display: flex;
@@ -1095,11 +1206,11 @@
 
       <div class="step-panel" id="step-1">
 
-        <div class="step-kicker">Austin booking</div>
+        <div class="step-kicker">Austin-first service</div>
 
         <div class="step-heading">What do you need help with?</div>
 
-        <p class="step-sub">Choose one or more services, then pick the exact items for each. We'll group everything into one clear visit with no charge until the job is done.</p>
+        <p class="step-sub">Pick a service. Choose items below.</p>
 
         <div class="step-assurance" aria-label="Booking promises">
           <span><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-9.1 0V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9Z"/></svg> Secure checkout</span>
@@ -1109,9 +1220,17 @@
 
 
 
+        <div class="service-section-head">
+          <div>
+            <span class="service-section-eyebrow">Popular services</span>
+            <div class="service-section-title">Start with the main job</div>
+          </div>
+          <div class="service-section-note">Pick one or combine services. Item prices appear below.</div>
+        </div>
+
         <div class="service-tiles" id="service-tiles">
 
-          <div class="service-tile" data-service="Furniture Assembly" data-price="69" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Furniture Assembly" data-price="69" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
@@ -1122,12 +1241,13 @@
               <div>
                 <div class="tile-name">Furniture Assembly</div>
                 <div class="tile-from">From $69 &bull; 1-3 hrs</div>
+                <div class="tile-status">Selected - choose items below</div>
               </div>
             </div>
 
           </div>
 
-          <div class="service-tile" data-service="TV Mounting" data-price="69" onclick="tileClick(this)">
+          <div class="service-tile" data-service="TV Mounting" data-price="69" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
@@ -1138,12 +1258,13 @@
               <div>
                 <div class="tile-name">TV Mounting</div>
                 <div class="tile-from">From $69 &bull; about 1 hr</div>
+                <div class="tile-status">Selected - choose items below</div>
               </div>
             </div>
 
           </div>
 
-          <div class="service-tile" data-service="Smart Home" data-price="69" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Smart Home" data-price="69" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
@@ -1154,12 +1275,13 @@
               <div>
                 <div class="tile-name">Smart Home</div>
                 <div class="tile-from">From $69 &bull; about 1 hr</div>
+                <div class="tile-status">Selected - choose items below</div>
               </div>
             </div>
 
           </div>
 
-          <div class="service-tile" data-service="Fitness Equipment" data-price="129" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Fitness Equipment" data-price="129" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
@@ -1170,12 +1292,13 @@
               <div>
                 <div class="tile-name">Fitness Equipment</div>
                 <div class="tile-from">From $129 &bull; 1-3 hrs</div>
+                <div class="tile-status">Selected - choose items below</div>
               </div>
             </div>
 
           </div>
 
-          <div class="service-tile" data-service="Outdoor &amp; Playsets" data-price="149" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Outdoor &amp; Playsets" data-price="149" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
@@ -1186,12 +1309,13 @@
               <div>
                 <div class="tile-name">Outdoor &amp; Playsets</div>
                 <div class="tile-from">From $149 &bull; 2-4 hrs</div>
+                <div class="tile-status">Selected - choose items below</div>
               </div>
             </div>
 
           </div>
 
-          <div class="service-tile" data-service="Office Assembly" data-price="95" onclick="tileClick(this)">
+          <div class="service-tile" data-service="Office Assembly" data-price="95" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
 
             <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
 
@@ -1202,6 +1326,7 @@
               <div>
                 <div class="tile-name">Office Assembly</div>
                 <div class="tile-from">From $95 &bull; 1-3 hrs</div>
+                <div class="tile-status">Selected - choose items below</div>
               </div>
             </div>
 
@@ -1209,6 +1334,8 @@
 
 
         </div>
+
+        <div class="selected-service-strip" id="selected-service-strip" aria-live="polite"></div>
 
         <div class="tile-feedback" id="tile-feedback">&#10003;&ensp;Great choice. Now pick what you need below &darr;</div>
 
@@ -1425,6 +1552,8 @@
                 <input type="text" class="form-input" id="s3-zip" placeholder="78701" maxlength="5" autocomplete="postal-code" oninput="checkServiceZip(this.value)" />
 
                 <div class="svc-area-ok" id="svc-area-ok">&#10003; We service your area</div>
+
+                <div class="svc-area-lead" id="svc-area-lead">We are not actively booking this ZIP yet. You can still submit a service request; no payment is collected and no appointment is guaranteed until coverage is available.</div>
 
                 <div class="field-error" id="s3-zip-err">Required.</div>
 
@@ -1662,7 +1791,7 @@
 
             <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;color:var(--muted);margin-bottom:0.85rem">What happens next</div>
 
-            <div style="display:flex;flex-direction:column;gap:0.85rem">
+            <div style="display:flex;flex-direction:column;gap:0.85rem" id="confirm-next-steps">
 
               <div style="display:flex;align-items:flex-start;gap:0.75rem">
 
@@ -1828,6 +1957,8 @@ var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city: 'Austin', state: 'T
 
 var SERVICE_AREA_LABEL = SERVICE_AREA.city + ' ' + SERVICE_AREA.state + ' (' + SERVICE_AREA.zipPrefixMin + 'xx-' + SERVICE_AREA.zipPrefixMax + 'xx)';
 
+var ACTIVE_MARKET_LABEL = 'Austin Metro';
+
 
 (function() {
   var d = new Date(); d.setDate(d.getDate() + 1);
@@ -1862,6 +1993,14 @@ var BOOK = {
   time: '',
 
   address: '',
+
+  city: 'Austin',
+
+  state: 'TX',
+
+  zip: '',
+
+  isEmergingMarket: false,
 
   firstName: '',
 
@@ -1907,37 +2046,49 @@ function fieldErr(inId, errId, show) {
 
 }
 
+function isValidZip(zip) {
+  return !!zip && zip.length === 5 && /^\d{5}$/.test(zip);
+}
+
+function isActiveServiceZip(zip) {
+  if (!isValidZip(zip)) return false;
+  var prefix = parseInt(zip.slice(0, 3), 10);
+  return prefix >= SERVICE_AREA.zipPrefixMin && prefix <= SERVICE_AREA.zipPrefixMax;
+}
+
 function checkServiceZip(val) {
 
-  var okEl  = document.getElementById('svc-area-ok');
+  var okEl   = document.getElementById('svc-area-ok');
 
-  var errEl = document.getElementById('s3-zip-err');
+  var leadEl = document.getElementById('svc-area-lead');
 
-  var inEl  = document.getElementById('s3-zip');
+  var errEl  = document.getElementById('s3-zip-err');
 
-  var isValid = val && val.length === 5 && /^\d{5}$/.test(val);
+  var inEl   = document.getElementById('s3-zip');
 
-  var prefix  = isValid ? parseInt(val.slice(0, 3), 10) : 0;
+  var zip = String(val || '').trim();
 
-  var inArea  = isValid && prefix >= SERVICE_AREA.zipPrefixMin && prefix <= SERVICE_AREA.zipPrefixMax;
+  var valid = isValidZip(zip);
 
-  if (okEl) okEl.style.display = inArea ? 'block' : 'none';
+  var active = isActiveServiceZip(zip);
+
+  if (okEl) okEl.style.display = valid && active ? 'block' : 'none';
+
+  if (leadEl) leadEl.style.display = valid && !active ? 'block' : 'none';
 
   if (!errEl) return;
 
-  if (isValid && !inArea) {
-
-    errEl.textContent = 'Sorry, we don\'t service this ZIP yet. We cover ' + SERVICE_AREA_LABEL + '.';
-
-    errEl.style.display = 'block';
-
-    if (inEl) inEl.style.borderColor = '#ef4444';
-
-  } else if (inArea) {
+  if (valid && active) {
 
     errEl.style.display = 'none';
 
     if (inEl) inEl.style.borderColor = '#22c55e';
+
+  } else if (valid && !active) {
+
+    errEl.style.display = 'none';
+
+    if (inEl) inEl.style.borderColor = '#0ea5e9';
 
   } else {
 
@@ -1986,6 +2137,7 @@ function tileClick(el) {
     if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
 
     el.classList.add('selected');
+    el.setAttribute('aria-pressed', 'true');
 
     var fb = document.getElementById('tile-feedback');
 
@@ -1998,16 +2150,55 @@ function tileClick(el) {
     delete BOOK.selectedItems[svc];
 
     el.classList.remove('selected');
+    el.setAttribute('aria-pressed', 'false');
 
   }
 
   hideErr('s1-err');
 
   renderSubcats();
+  renderSelectedServices();
 
   updateOrderSummary();
 
 }
+
+document.querySelectorAll('.service-tile').forEach(function(tile) {
+  tile.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      tileClick(tile);
+    }
+  });
+});
+
+function renderSelectedServices() {
+  var strip = document.getElementById('selected-service-strip');
+  if (!strip) return;
+
+  if (BOOK.selectedServices.length === 0) {
+    strip.classList.remove('show');
+    strip.innerHTML = '';
+    return;
+  }
+
+  var serviceWord = BOOK.selectedServices.length === 1 ? 'service' : 'services';
+  var chips = BOOK.selectedServices.map(function(svc) {
+    return '<span class="selected-service-chip">' + esc(svc)
+      + '<button type="button" data-remove-svc="' + escAttr(svc) + '" aria-label="Remove ' + escAttr(svc) + '">&times;</button>'
+      + '</span>';
+  }).join('');
+
+  strip.classList.add('show');
+  strip.innerHTML = '<div class="selected-service-copy"><strong>' + BOOK.selectedServices.length + ' ' + serviceWord + ' selected.</strong> Pick items below.</div>'
+    + '<div class="selected-service-chips">' + chips + '</div>';
+}
+
+document.getElementById('selected-service-strip').addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-remove-svc]');
+  if (!btn) return;
+  deselectService(btn.dataset.removeSvc);
+});
 
 
 
@@ -2101,13 +2292,21 @@ function renderSubcats() {
 
   var intro = document.getElementById('subcat-intro');
 
+  // Save open/search state per panel before rebuild
+  var _savedPanelState = {};
+  wrap.querySelectorAll('[id^="qp-full-"]').forEach(function(el) {
+    var uid = el.id.replace('qp-full-', '');
+    var inp = el.querySelector('.subcat-search');
+    _savedPanelState[uid] = { open: el.classList.contains('open'), search: inp ? inp.value : '' };
+  });
+
   wrap.innerHTML = '';
 
   if (intro) intro.style.display = BOOK.selectedServices.length ? 'none' : 'block';
 
   if (BOOK.selectedServices.length === 0) {
 
-    wrap.innerHTML = '<div class="subcat-panel"><div class="subcat-body" style="padding:1rem 1rem 1.1rem"><div class="subcat-header-title" style="margin-bottom:0.35rem">Choose a service</div><div style="font-size:0.85rem;line-height:1.6;color:var(--muted)">Sub-categories appear here after you tap one of the service tiles above.</div></div></div>';
+    wrap.innerHTML = '<div class="subcat-panel"><div class="subcat-body" style="padding:1rem 1rem 1.1rem"><div class="subcat-header-title" style="margin-bottom:0.35rem">Choose a service first</div><div style="font-size:0.85rem;line-height:1.6;color:var(--muted)">After you select a card, common items and add-ons will appear here with prices.</div></div></div>';
 
     return;
 
@@ -2153,7 +2352,9 @@ function renderSubcats() {
 
     var html = '<div class="subcat-header">'
 
-      + '<div class="subcat-header-title">' + (SVC_ICONS[svc] || '') + ' ' + esc(svc) + '</div>'
+      + '<div><div class="subcat-header-title">' + (SVC_ICONS[svc] || '') + ' ' + esc(svc) + '</div>'
+
+      + '<div style="font-size:0.74rem;color:var(--muted);margin-top:0.18rem">Pick at least one item. Add-ons are optional.</div></div>'
 
       + '<button class="subcat-close" data-close-svc="' + escAttr(svc) + '" title="Remove">\u00D7</button>'
 
@@ -2165,7 +2366,7 @@ function renderSubcats() {
 
     if (chipItems.length > 0) {
 
-      html += '<div class="qp-wrap"><div class="qp-heading">Tap to select</div><div class="qp-chips">';
+      html += '<div class="qp-wrap"><div class="qp-heading">Most booked for this service</div><div class="qp-chips">';
 
       chipItems.forEach(function(item) {
 
@@ -2195,7 +2396,7 @@ function renderSubcats() {
 
       html += '</div>'
 
-        + '<button class="qp-more-toggle" data-toggle-target="qp-full-' + escAttr(uid) + '">\u25BC Show all options</button>'
+        + '<button class="qp-more-toggle" data-toggle-target="qp-full-' + escAttr(uid) + '">\u25BC See full item list</button>'
 
         + '</div>';
 
@@ -2205,7 +2406,13 @@ function renderSubcats() {
 
     // Full grouped list (auto-open when no popular chips to show)
 
-    html += '<div class="qp-full-list' + (chipItems.length === 0 ? ' open' : '') + '" id="qp-full-' + uid + '">';
+    html += '<div class="qp-full-list' + (chipItems.length === 0 ? ' open' : '') + '" id="qp-full-' + uid + '">'
+      + '<div class="subcat-search-wrap">'
+      + '<svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + '<input type="search" class="subcat-search" placeholder="Search items…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">'
+      + '<button type="button" class="subcat-search-clear" tabindex="-1" aria-label="Clear search">×</button>'
+      + '</div>'
+      + '<div class="subcat-no-results">No items match “<span></span>”. Try a different word or browse the groups below.</div>';
 
     groups.forEach(function(g) {
 
@@ -2225,7 +2432,80 @@ function renderSubcats() {
 
     wrap.appendChild(panel);
 
+    // Restore search/open state for this panel
+    var savedState = _savedPanelState[uid];
+    if (savedState) {
+      var fullList = document.getElementById('qp-full-' + uid);
+      if (fullList) {
+        if (savedState.open) {
+          fullList.classList.add('open');
+          var tBtn = panel.querySelector('.qp-more-toggle');
+          if (tBtn) tBtn.textContent = '▲ Hide full item list';
+        }
+        if (savedState.search) {
+          var sInp = fullList.querySelector('.subcat-search');
+          if (sInp) { sInp.value = savedState.search; filterSubcatItems(sInp); }
+        }
+      }
+    }
+
   });
+
+}
+
+
+
+function filterSubcatItems(inp) {
+
+  var q = inp.value.trim().toLowerCase();
+
+  var panel = inp.closest('.subcat-panel');
+
+  if (!panel) return;
+
+  var clearBtn = panel.querySelector('.subcat-search-clear');
+
+  var noResults = panel.querySelector('.subcat-no-results');
+
+  if (clearBtn) clearBtn.classList.toggle('vis', q.length > 0);
+
+  var groups = panel.querySelectorAll('.subcat-group');
+
+  var totalVisible = 0;
+
+  groups.forEach(function(group) {
+
+    var items = group.querySelectorAll('.subcat-item');
+
+    var groupVisible = 0;
+
+    items.forEach(function(item) {
+
+      var name = (item.dataset.itemName || '').toLowerCase();
+
+      var show = !q || name.indexOf(q) !== -1;
+
+      item.style.display = show ? '' : 'none';
+
+      if (show) groupVisible++;
+
+    });
+
+    group.style.display = groupVisible > 0 ? '' : 'none';
+
+    totalVisible += groupVisible;
+
+  });
+
+  if (noResults) {
+
+    noResults.style.display = totalVisible === 0 && q ? 'block' : 'none';
+
+    var sp = noResults.querySelector('span');
+
+    if (sp) sp.textContent = inp.value.trim();
+
+  }
 
 }
 
@@ -2243,6 +2523,15 @@ document.getElementById('subcats-wrap').addEventListener('click', function(e) {
 
 
 
+  // Clear search button
+  var clearBtn = e.target.closest('.subcat-search-clear');
+  if (clearBtn) {
+    var swrap = clearBtn.closest('.subcat-search-wrap');
+    var sinp = swrap && swrap.querySelector('.subcat-search');
+    if (sinp) { sinp.value = ''; filterSubcatItems(sinp); sinp.focus(); }
+    return;
+  }
+
   // Show all options toggle
 
   var toggleBtn = e.target.closest('[data-toggle-target]');
@@ -2255,7 +2544,9 @@ document.getElementById('subcats-wrap').addEventListener('click', function(e) {
 
       var open = target.classList.toggle('open');
 
-      toggleBtn.textContent = open ? '\u25B2 Hide options' : '\u25BC Show all options';
+      toggleBtn.textContent = open ? '\u25B2 Hide full item list' : '\u25BC See full item list';
+
+      if (open) { var srch = target.querySelector('.subcat-search'); if (srch) setTimeout(function(){ srch.focus(); }, 60); }
 
     }
 
@@ -2309,6 +2600,16 @@ document.getElementById('subcats-wrap').addEventListener('click', function(e) {
 
 
 
+document.getElementById('subcats-wrap').addEventListener('input', function(e) {
+
+  var inp = e.target.closest('.subcat-search');
+
+  if (inp) filterSubcatItems(inp);
+
+});
+
+
+
 function deselectService(svc) {
 
   var idx = BOOK.selectedServices.indexOf(svc);
@@ -2319,11 +2620,15 @@ function deselectService(svc) {
 
   document.querySelectorAll('.service-tile').forEach(function(t) {
 
-    if (t.dataset.service === svc) t.classList.remove('selected');
+    if (t.dataset.service === svc) {
+      t.classList.remove('selected');
+      t.setAttribute('aria-pressed', 'false');
+    }
 
   });
 
   renderSubcats();
+  renderSelectedServices();
 
   updateOrderSummary();
 
@@ -2727,11 +3032,17 @@ function goToStep4Contact() {
 
   var ok = true;
 
+  var zipIsValid = isValidZip(zip);
+
+  var zipInArea = isActiveServiceZip(zip);
+
+  var isEmergingMarket = zipIsValid && !zipInArea;
+
   if (!BOOK.date) { showErr('s3-date-err', 'Please select a date.'); ok = false; } else hideErr('s3-date-err');
 
   if (!BOOK.time) { showErr('s3-time-err', 'Please select a time slot.'); ok = false; } else hideErr('s3-time-err');
 
-  if (!street) { fieldErr('s3-street', 's3-addr-err', true); ok = false; } else fieldErr('s3-street', 's3-addr-err', false);
+  if (!street && !isEmergingMarket) { fieldErr('s3-street', 's3-addr-err', true); ok = false; } else fieldErr('s3-street', 's3-addr-err', false);
 
   var zipEl  = document.getElementById('s3-zip');
 
@@ -2747,27 +3058,29 @@ function goToStep4Contact() {
 
     ok = false;
 
+  } else if (!zipIsValid) {
+
+    zipErr.textContent = 'Please enter a valid 5-digit ZIP code.';
+
+    zipErr.style.display = 'block';
+
+    if (zipEl) zipEl.style.borderColor = '#ef4444';
+
+    ok = false;
+
   } else {
 
-    var zipPrefix = parseInt(zip.slice(0, 3), 10);
+    if (zipInArea) {
 
-    var zipInArea = zip.length === 5 && /^\d{5}$/.test(zip) && zipPrefix >= SERVICE_AREA.zipPrefixMin && zipPrefix <= SERVICE_AREA.zipPrefixMax;
+      zipErr.style.display = 'none';
 
-    if (!zipInArea) {
-
-      zipErr.textContent = 'Sorry, we don\'t service this ZIP. We cover ' + SERVICE_AREA_LABEL + '.';
-
-      zipErr.style.display = 'block';
-
-      if (zipEl) zipEl.style.borderColor = '#ef4444';
-
-      ok = false;
+      if (zipEl) zipEl.style.borderColor = '#22c55e';
 
     } else {
 
       zipErr.style.display = 'none';
 
-      if (zipEl) zipEl.style.borderColor = '#22c55e';
+      if (zipEl) zipEl.style.borderColor = '#0ea5e9';
 
     }
 
@@ -2775,7 +3088,15 @@ function goToStep4Contact() {
 
   if (!ok) return;
 
-  BOOK.address = street + (apt ? ', ' + apt : '') + ', ' + (city || 'Austin') + ', ' + (state || 'TX') + ' ' + zip;
+  BOOK.city = city || 'Austin';
+
+  BOOK.state = (state || 'TX').toUpperCase();
+
+  BOOK.zip = zip;
+
+  BOOK.isEmergingMarket = isEmergingMarket;
+
+  BOOK.address = (street ? street + (apt ? ', ' + apt : '') + ', ' : '') + BOOK.city + ', ' + BOOK.state + ' ' + zip;
 
   goToStep(4);
 
@@ -2787,7 +3108,9 @@ function goToStep4Contact() {
     });
   var s4Btn = document.getElementById('s4-next-btn');
   if (s4Btn) {
-    if (BOOK.wantsQuote || allCustom) {
+    if (BOOK.isEmergingMarket) {
+      s4Btn.innerHTML = 'Review service request <span>&#8594;</span>';
+    } else if (BOOK.wantsQuote || allCustom) {
       s4Btn.innerHTML = 'Review quote request <span>&#8594;</span>';
     } else {
       s4Btn.innerHTML = 'Continue to payment <span>&#8594;</span>';
@@ -3028,6 +3351,8 @@ async function goToStep5Payment() {
 
     var totalDisplay = hasCustom && subtotal === 0 ? 'Custom quote' : ('$' + grandTotal.toFixed(2) + (hasCustom ? '+ (some items need a quote)' : ''));
 
+    var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : 'No charge until job is done';
+
     var totalHtml = '<div class="summary-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
 
       + '<span class="summary-row-icon"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></span>'
@@ -3044,7 +3369,7 @@ async function goToStep5Payment() {
 
       + '<span style="font-size:1.1rem;font-weight:700;color:var(--ink)">' + totalDisplay + '</span>'
 
-      + '<span style="font-size:0.75rem;color:var(--muted)">No charge until job is done</span>'
+      + '<span style="font-size:0.75rem;color:var(--muted)">' + totalNote + '</span>'
 
       + '</div>'
 
@@ -3057,6 +3382,60 @@ async function goToStep5Payment() {
 
 
   goToStep(5);
+
+  if (BOOK.isEmergingMarket) {
+
+    BOOK._isQuoteFlow = false;
+
+    document.getElementById('s5-banner').textContent = 'Emerging market request';
+
+    document.getElementById('s5-heading').textContent = 'Submit a service request';
+
+    document.getElementById('s5-sub').innerHTML = '<strong>No payment collected.</strong> We are collecting demand in your area and will reach out if coverage becomes available.';
+
+    document.getElementById('s5-payment-section').style.display = 'none';
+
+    document.getElementById('s5-quote-section').style.display = 'block';
+
+    document.getElementById('s5-quote-section').innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);padding:1rem 1.1rem;font-size:0.86rem;color:#075985;line-height:1.65"><strong>No booking guarantee yet.</strong> ' + ACTIVE_MARKET_LABEL + ' is our active launch market. For ' + esc(BOOK.city) + ', ' + esc(BOOK.state) + ', we will save your request, track demand, and contact you before any scheduling or payment happens.</div>';
+
+    document.getElementById('s5-charge-note').style.display = 'none';
+
+    document.getElementById('s5-stripe-note').style.display = 'none';
+
+    document.getElementById('s5-confidence').innerHTML =
+      '<span>No payment</span><span>Demand tracked by market</span><span>We contact you before scheduling</span>';
+
+    document.getElementById('s5-submit').innerHTML = 'Submit Service Request <span>&#8594;</span>';
+
+    var emergingProg4Label = document.querySelector('#prog-4 .progress-label');
+    if (emergingProg4Label) emergingProg4Label.textContent = 'Request';
+
+    return;
+
+  }
+
+  document.getElementById('s5-banner').innerHTML = 'You&rsquo;re almost done &mdash; just 1 step left';
+
+  document.getElementById('s5-heading').textContent = 'Secure your booking';
+
+  document.getElementById('s5-sub').innerHTML = 'Enter your card to hold the appointment. <strong>You won&rsquo;t be charged until the job is done.</strong>';
+
+  document.getElementById('s5-payment-section').style.display = 'block';
+
+  document.getElementById('s5-quote-section').style.display = 'none';
+
+  document.getElementById('s5-charge-note').style.display = '';
+
+  document.getElementById('s5-stripe-note').style.display = '';
+
+  document.getElementById('s5-confidence').innerHTML =
+    '<span>Takes under 2 minutes</span><span>No charge until job is done</span><span>Instant confirmation</span>';
+
+  document.getElementById('s5-submit').innerHTML = 'Reserve My Time Slot <span>&#8594;</span>';
+
+  var resetProg4Label = document.querySelector('#prog-4 .progress-label');
+  if (resetProg4Label) resetProg4Label.textContent = 'Payment';
 
 
 
@@ -3634,6 +4013,30 @@ async function initStripe() {
 
 // ----------------------------------------------------------------------------
 
+function buildItemsPayload() {
+
+  var itemsPayload = {};
+
+  BOOK.selectedServices.forEach(function(svc) {
+
+    itemsPayload[svc] = (BOOK.selectedItems[svc]||[]).map(function(i){
+      return {
+        name: i.name,
+        price: i.price,
+        priceMax: i.priceMax || 0,
+        qty: i.qty,
+        addon: !!i.addon,
+        customQuote: !!i.customQuote,
+        group: findItemGroup(svc, i.name)
+      };
+    });
+
+  });
+
+  return itemsPayload;
+
+}
+
 async function submitBooking() {
 
   var submitBtn = document.getElementById('s5-submit');
@@ -3643,6 +4046,11 @@ async function submitBooking() {
   var errEl     = document.getElementById('s5-err');
 
   errEl.classList.remove('show'); errEl.textContent = '';
+
+  if (BOOK.isEmergingMarket) {
+    await submitMarketDemand();
+    return;
+  }
 
 
 
@@ -3676,23 +4084,7 @@ async function submitBooking() {
 
 
 
-  var itemsPayload = {};
-
-  BOOK.selectedServices.forEach(function(svc) {
-
-    itemsPayload[svc] = (BOOK.selectedItems[svc]||[]).map(function(i){
-      return {
-        name: i.name,
-        price: i.price,
-        priceMax: i.priceMax || 0,
-        qty: i.qty,
-        addon: !!i.addon,
-        customQuote: !!i.customQuote,
-        group: findItemGroup(svc, i.name)
-      };
-    });
-
-  });
+  var itemsPayload = buildItemsPayload();
 
 
 
@@ -3828,6 +4220,99 @@ async function submitBooking() {
 
 
   showConfirmation(data.ref, BOOK._isQuoteFlow);
+
+}
+
+async function submitMarketDemand() {
+
+  var submitBtn = document.getElementById('s5-submit');
+  var backBtn   = document.getElementById('s5-back');
+  var errEl     = document.getElementById('s5-err');
+
+  submitBtn.disabled = true;
+  backBtn.disabled = true;
+  submitBtn.innerHTML = 'Saving request&hellip;';
+
+  try {
+    var resp = await fetch('/api/market-demand', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        services: BOOK.selectedServices,
+        items: buildItemsPayload(),
+        requestedService: BOOK.selectedServices.join(', '),
+        name: BOOK.firstName + ' ' + BOOK.lastName,
+        phone: BOOK.phone,
+        email: BOOK.email,
+        address: BOOK.address,
+        city: BOOK.city,
+        state: BOOK.state,
+        zip: BOOK.zip,
+        date: BOOK.date,
+        time: BOOK.time,
+        details: BOOK.details,
+        totalCents: BOOK._grandTotalCents || 0,
+        source: 'booking_out_of_market'
+      })
+    });
+
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Could not save your request. Please try again.');
+
+    showMarketDemandConfirmation(data.requestRef);
+
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+    submitBtn.disabled = false;
+    backBtn.disabled = false;
+    submitBtn.innerHTML = 'Submit Service Request <span>&#8594;</span>';
+  }
+
+}
+
+function showMarketDemandConfirmation(ref) {
+
+  for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
+
+  document.getElementById('step-confirm').classList.remove('hidden');
+
+  var title = document.querySelector('#step-confirm .confirm-title');
+  if (title) title.textContent = 'Request received';
+
+  var refEl = document.getElementById('confirm-ref');
+  if (ref) refEl.textContent = 'Request: ' + ref; else refEl.style.display = 'none';
+
+  var svcEl = document.getElementById('confirm-services');
+  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' / ') || 'Your services';
+
+  var dtEl = document.getElementById('confirm-datetime');
+  if (dtEl) {
+    var summaryDate = BOOK.date ? new Date(BOOK.date + 'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) : 'Date requested';
+    dtEl.textContent = summaryDate + (BOOK.time ? ' at ' + BOOK.time : '');
+  }
+
+  var addrEl = document.getElementById('confirm-address');
+  if (addrEl) addrEl.textContent = BOOK.city + ', ' + BOOK.state + ' ' + BOOK.zip;
+
+  var stepsEl = document.getElementById('confirm-next-steps');
+  if (stepsEl) {
+    stepsEl.innerHTML =
+      '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Demand recorded</strong> - your request is now counted for this market.</div></div>'
+      + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">No payment collected</strong> - this is not a confirmed booking or guaranteed appointment.</div></div>'
+      + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">We will reach out</strong> - if coverage becomes available, we will contact you before scheduling or charging anything.</div></div>';
+  }
+
+  var portal = document.getElementById('confirm-portal-link');
+  if (portal) portal.style.display = 'none';
+
+  var cal = document.getElementById('confirm-calendar-link');
+  if (cal) cal.style.display = 'none';
+
+  var emailEl = document.getElementById('confirm-email');
+  if (emailEl) emailEl.textContent = BOOK.email || 'your email';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
 }
 
