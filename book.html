@@ -1207,19 +1207,6 @@
 
           </div>
 
-          <div class="service-tile custom-tile" data-service="Other" data-price="0" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
-              <div>
-                <div class="tile-name">Large or unusual project</div>
-                <div class="tile-from">Custom quote for multi-room or non-standard work</div>
-              </div>
-            </div>
-
-          </div>
 
         </div>
 
@@ -2346,6 +2333,26 @@ function getItemQty(svc, name) {
   var found = (BOOK.selectedItems[svc] || []).find(function(i) { return i.name === name; });
 
   return found ? found.qty : 1;
+
+}
+
+function findItemGroup(svc, itemName) {
+
+  var groups = SUBCATS[svc] || [];
+
+  for (var i = 0; i < groups.length; i++) {
+
+    var items = groups[i].items || [];
+
+    for (var j = 0; j < items.length; j++) {
+
+      if (items[j].name === itemName) return groups[i].group || svc;
+
+    }
+
+  }
+
+  return svc;
 
 }
 
@@ -3664,7 +3671,17 @@ async function submitBooking() {
 
   BOOK.selectedServices.forEach(function(svc) {
 
-    itemsPayload[svc] = (BOOK.selectedItems[svc]||[]).map(function(i){ return {name:i.name,price:i.price,qty:i.qty}; });
+    itemsPayload[svc] = (BOOK.selectedItems[svc]||[]).map(function(i){
+      return {
+        name: i.name,
+        price: i.price,
+        priceMax: i.priceMax || 0,
+        qty: i.qty,
+        addon: !!i.addon,
+        customQuote: !!i.customQuote,
+        group: findItemGroup(svc, i.name)
+      };
+    });
 
   });
 
