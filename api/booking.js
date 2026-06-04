@@ -62,6 +62,14 @@ export default async function handler(req, res) {
 
   const bookingId = savedBooking.id;
 
+  const bookingItemRows = buildBookingItemRows({ bookingId, itemsByService: items });
+  if (bookingItemRows.length) {
+    const { error: itemInsertErr } = await sb.from('booking_items').insert(bookingItemRows);
+    if (itemInsertErr) {
+      console.warn('Booking items insert skipped:', itemInsertErr.message || itemInsertErr);
+    }
+  }
+
   // Quote booking with saved card: store the customer + payment method from SetupIntent
   if (isQuoteRequest && paymentMethodId && stripeCustomerId) {
     await sb.from('bookings').update({
@@ -303,6 +311,61 @@ export default async function handler(req, res) {
     console.error(e);
     return res.status(500).json({ error: 'Failed' });
   }
+}
+
+function buildBookingItemRows({ bookingId, itemsByService }) {
+  if (!bookingId || !itemsByService || typeof itemsByService !== 'object') return [];
+
+  const rows = [];
+  for (const [serviceCategoryRaw, rawItems] of Object.entries(itemsByService)) {
+    const serviceCategory = cleanText(serviceCategoryRaw, 120) || 'Other';
+    const items = Array.isArray(rawItems) ? rawItems : [];
+
+    for (const item of items) {
+      const itemName = cleanText(item?.name, 180);
+      if (!itemName) continue;
+
+      const qty = clampInt(item?.qty, 1, 99, 1);
+      const isAddOn = item?.addon === true || item?.isAddOn === true;
+      const unitPriceCents = item?.customQuote ? 0 : dollarsToCents(item?.price);
+      const lineTotal = unitPriceCents * qty;
+      const addOnRevenue = isAddOn ? lineTotal : 0;
+      const baseServiceRevenue = isAddOn ? 0 : lineTotal;
+      const serviceName = cleanText(item?.group, 120) || serviceCategory;
+
+      rows.push({
+        booking_id: bookingId,
+        service_category: serviceCategory,
+        service_name: serviceName,
+        item_name: itemName,
+        item_price: unitPriceCents,
+        quantity: qty,
+        is_add_on: isAddOn,
+        add_on_name: isAddOn ? itemName : null,
+        add_on_price: isAddOn ? unitPriceCents : 0,
+        line_total: lineTotal,
+        add_on_revenue: addOnRevenue,
+        base_service_revenue: baseServiceRevenue,
+      });
+    }
+  }
+
+  return rows;
+}
+
+function cleanText(value, maxLength) {
+  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, maxLength);
+}
+
+function dollarsToCents(value) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
+}
+
+function clampInt(value, min, max, fallback) {
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
 }
 
 

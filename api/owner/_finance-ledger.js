@@ -4,7 +4,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   // Some environments may not have refund columns yet.
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, status, completed_at, date, service, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount')
+    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount')
     .eq('status', 'completed');
   if (from) bookingsQuery = bookingsQuery.gte('completed_at', from);
   if (to) bookingsQuery = bookingsQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -15,7 +15,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   } else {
     let fallbackQuery = sb
       .from('bookings')
-      .select('id, ref, status, completed_at, date, service, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status')
+      .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status')
       .eq('status', 'completed');
     if (from) fallbackQuery = fallbackQuery.gte('completed_at', from);
     if (to) fallbackQuery = fallbackQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -72,9 +72,12 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       bookingId: b.id,
       status: b.status,
       ref: b.ref,
+      createdAt: b.created_at,
       completedAt: b.completed_at,
       date: b.date,
       service: b.service,
+      customerName: b.customer_name,
+      customerEmail: b.customer_email,
       assemblerId: b.assembler_id,
       assemblerName: b.assembler_name,
       assemblerTier: b.assembler_tier,
