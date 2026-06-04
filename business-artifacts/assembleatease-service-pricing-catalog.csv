@@ -1,63 +1,63 @@
 service,group,item,price_min,price_max,display_price,addon,popular,custom_quote,notes_for_financial_model
-Furniture Assembly,Seating & Sofas,Accent chair / armchair,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Seating & Sofas,"Sofa (2-3 seat, standard)",89,89,$89,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Seating & Sofas,Accent chair / armchair,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Seating & Sofas,"Sofa (2-3 seat, standard)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Seating & Sofas,Sectional sofa (L-shape),125,155,$125-$155,No,Yes,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Seating & Sofas,Sectional sofa (U-shape / oversized),179,179,$179,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Seating & Sofas,Sleeper sofa / sofa bed,109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Seating & Sofas,Ottoman (storage),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Seating & Sofas,Bench (entryway or bedroom),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Bedroom,Bed frame - twin / full,85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Bedroom,Bed frame - queen,95,95,$95,No,Yes,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Seating & Sofas,Ottoman (storage),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Seating & Sofas,Bench (entryway or bedroom),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Bedroom,Bed frame - twin / full,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Bedroom,Bed frame - queen,99,99,$99,No,Yes,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Bedroom,Bed frame - king / cal king,109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,Bed frame with storage drawers,125,125,$125,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,Platform bed with upholstered headboard,135,135,$135,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,Bunk bed / loft bed,149,149,$149,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,Trundle bed,109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Bedroom,Crib / toddler bed,85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Bedroom,Nightstand (single),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Bedroom,Dresser (up to 6 drawers),85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Bedroom,Crib / toddler bed,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Bedroom,Nightstand (single),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Bedroom,Dresser (up to 6 drawers),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Bedroom,Dresser (7+ drawers / double),109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,Wardrobe / armoire (freestanding),109,135,$109-$135,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,IKEA PAX wardrobe (single unit),139,139,$139,No,Yes,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Bedroom,IKEA PAX wardrobe (per additional unit),79,79,$79,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-Furniture Assembly,Bedroom,Vanity with mirror,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Home Office & Study,"Desk (simple, flat-pack)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Bedroom,Vanity with mirror,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Home Office & Study,"Desk (simple, flat-pack)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Home Office & Study,Desk (L-shape / corner),109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Home Office & Study,Standing desk (electric),109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Home Office & Study,Office chair (standard),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Home Office & Study,Bookcase / shelving unit (up to 5 shelves),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Home Office & Study,Bookcase / shelving unit (6+ shelves),89,89,$89,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Home Office & Study,File cabinet (2-4 drawer),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Dining & Kitchen,Dining table (standard),79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Home Office & Study,Office chair (standard),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Home Office & Study,Bookcase / shelving unit (up to 5 shelves),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Home Office & Study,Bookcase / shelving unit (6+ shelves),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Home Office & Study,File cabinet (2-4 drawer),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Dining & Kitchen,Dining table (standard),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Dining & Kitchen,Dining table (extendable / large),109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Dining & Kitchen,Dining chairs (per 2 chairs),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Dining & Kitchen,Dining chairs (set of 4-6),75,95,$75-$95,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Dining & Kitchen,Bar stool (per 2 stools),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Dining & Kitchen,Kitchen island (freestanding),95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Dining & Kitchen,Dining chairs (per 2 chairs),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Dining & Kitchen,Dining chairs (set of 4-6),99,119,$99-$119,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Dining & Kitchen,Bar stool (per 2 stools),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Dining & Kitchen,Kitchen island (freestanding),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Dining & Kitchen,China cabinet / hutch,109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Dining & Kitchen,Buffet / sideboard,85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Living Room,Coffee table (simple),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Living Room,Coffee table (lift-top / storage),79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Living Room,Side / end table,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Living Room,TV stand / media console,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Dining & Kitchen,Buffet / sideboard,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Living Room,Coffee table (simple),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Living Room,Coffee table (lift-top / storage),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Living Room,Side / end table,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Living Room,TV stand / media console,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Living Room,Entertainment center (large),125,125,$125,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Living Room,Console table,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Living Room,Console table,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Outdoor & Patio,Outdoor dining set (table + 4 chairs),109,109,$109,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Outdoor & Patio,Outdoor dining set (table + 6+ chairs),139,139,$139,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Outdoor & Patio,Outdoor lounge set (sofa + 2 chairs),125,125,$125,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Outdoor & Patio,Adirondack / Adirondack set (per 2),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Outdoor & Patio,Patio umbrella + base,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Outdoor & Patio,Adirondack / Adirondack set (per 2),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Outdoor & Patio,Patio umbrella + base,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Outdoor & Patio,Pergola / gazebo (kit assembly),225,325,$225-$325,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Outdoor & Patio,Fire pit (assembly only),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Furniture Assembly,Outdoor & Patio,Grill (gas / charcoal assembly),85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
+Furniture Assembly,Outdoor & Patio,Fire pit (assembly only),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Furniture Assembly,Outdoor & Patio,Grill (gas / charcoal assembly),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Furniture Assembly,Outdoor & Patio,Storage shed (small kit),225,325,$225-$325,No,No,No,Model standalone profitability and minimum booking impact.
 Furniture Assembly,Add-ons,Furniture disposal (per piece),45,45,$45,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Furniture Assembly,Add-ons,Move to another room (per piece),29,29,$29,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Furniture Assembly,Add-ons,Broken hardware repair / replacement,29,29,$29,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Furniture Assembly,Add-ons,Rush / same-day assembly,39,39,$39,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-TV Mounting,TV Mounting by Size,"TV up to 40"" (standard wall)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,TV Mounting by Size,"TV 41""-55"" (standard wall)",79,79,$79,No,Yes,No,Model standalone profitability and minimum booking impact.
-TV Mounting,TV Mounting by Size,"TV 56""-65"" (standard wall)",89,89,$89,No,No,No,Model standalone profitability and minimum booking impact.
+TV Mounting,TV Mounting by Size,"TV up to 40"" (standard wall)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,TV Mounting by Size,"TV 41""-55"" (standard wall)",99,99,$99,No,Yes,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,TV Mounting by Size,"TV 56""-65"" (standard wall)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,TV Mounting by Size,"TV 66""-75"" (standard wall)",99,99,$99,No,No,No,Model standalone profitability and minimum booking impact.
 TV Mounting,TV Mounting by Size,"TV 76""-85"" (standard wall)",115,115,$115,No,No,No,Model standalone profitability and minimum booking impact.
 TV Mounting,TV Mounting by Size,"TV 86""+ / commercial display",135,175,$135-$175,No,No,No,Model standalone profitability and minimum booking impact.
@@ -66,67 +66,67 @@ TV Mounting,Wall Type Upgrades,Brick or concrete wall,45,45,$45,Yes,No,No,Treat 
 TV Mounting,Wall Type Upgrades,Tile wall,45,45,$45,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 TV Mounting,Wall Type Upgrades,Steel stud / metal framing,35,35,$35,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 TV Mounting,Wall Type Upgrades,Above fireplace mount,55,55,$55,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-TV Mounting,Cable & Cord Management,"Surface cord cover (raceway, up to 6 ft)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+TV Mounting,Cable & Cord Management,"Surface cord cover (raceway, up to 6 ft)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,Cable & Cord Management,In-wall cord concealment,99,99,$99,No,Yes,No,Model standalone profitability and minimum booking impact.
 TV Mounting,Cable & Cord Management,In-wall cord concealment (brick / concrete),115,115,$115,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Cable & Cord Management,Cable management box / hub install,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,"Floating shelf - single (up to 36"")",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,"Floating shelf - single (37""-60"")",79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
+TV Mounting,Cable & Cord Management,Cable management box / hub install,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Shelves & Wall Items,"Floating shelf - single (up to 36"")",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Shelves & Wall Items,"Floating shelf - single (37""-60"")",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,Shelves & Wall Items,Floating shelves - set of 3,115,115,$115,No,No,No,Model standalone profitability and minimum booking impact.
 TV Mounting,Shelves & Wall Items,Floating shelves - set of 5+,155,155,$155,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,"Heavy-duty shelf (sawtooth / bracket, per shelf)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,Gallery wall - up to 5 pieces,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+TV Mounting,Shelves & Wall Items,"Heavy-duty shelf (sawtooth / bracket, per shelf)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Shelves & Wall Items,Gallery wall - up to 5 pieces,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,Shelves & Wall Items,Gallery wall - 6-10 pieces,105,105,$105,No,Yes,No,Model standalone profitability and minimum booking impact.
 TV Mounting,Shelves & Wall Items,Gallery wall - 11-20 pieces,155,155,$155,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,Single framed picture / mirror (up to 30 lbs),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,Heavy mirror / artwork (30-80 lbs),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Shelves & Wall Items,Full-length mirror (floor lean / anchor),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Window Treatments,Curtain rod - 1 window,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Window Treatments,Curtain rod - 2 windows,85,85,$85,No,Yes,No,Model standalone profitability and minimum booking impact.
+TV Mounting,Shelves & Wall Items,Single framed picture / mirror (up to 30 lbs),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Shelves & Wall Items,Heavy mirror / artwork (30-80 lbs),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Shelves & Wall Items,Full-length mirror (floor lean / anchor),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Window Treatments,Curtain rod - 1 window,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Window Treatments,Curtain rod - 2 windows,99,99,$99,No,Yes,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,Window Treatments,Curtain rod - 3 windows,110,110,$110,No,No,No,Model standalone profitability and minimum booking impact.
 TV Mounting,Window Treatments,Curtain rod - 4 windows,135,135,$135,No,No,No,Model standalone profitability and minimum booking impact.
 TV Mounting,Window Treatments,Curtain rod - 5+ windows (per additional),25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 TV Mounting,Window Treatments,Double curtain rod (per window),15,15,$15,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-TV Mounting,Window Treatments,Blind install - 1 window,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+TV Mounting,Window Treatments,Blind install - 1 window,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,Window Treatments,Blind install - per additional window,25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-TV Mounting,Window Treatments,Cellular shade / roller shade install (per window),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-TV Mounting,Window Treatments,Motorized blind / shade install (per window),79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
+TV Mounting,Window Treatments,Cellular shade / roller shade install (per window),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+TV Mounting,Window Treatments,Motorized blind / shade install (per window),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 TV Mounting,Mounting Add-ons,TV mount hardware (if not provided),25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 TV Mounting,Mounting Add-ons,HDMI / cable routing to components,25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 TV Mounting,Mounting Add-ons,Soundbar mount (below/above TV),35,35,$35,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 TV Mounting,Mounting Add-ons,Patch drywall after unmount (small),45,45,$45,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-Smart Home,Climate Control,"Smart thermostat - Nest, Ecobee, Honeywell",79,79,$79,No,Yes,No,Model standalone profitability and minimum booking impact.
+Smart Home,Climate Control,"Smart thermostat - Nest, Ecobee, Honeywell",99,99,$99,No,Yes,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Smart Home,Climate Control,"Smart thermostat (no C-wire, adapter needed)",99,99,$99,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Climate Control,Smart vent install (per vent),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Climate Control,Smart AC controller (window / mini-split),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Climate Control,Whole-home thermostat multi-zone (per zone),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Security & Access,"Smart doorbell - Ring, Nest, Eufy",85,85,$85,No,Yes,No,Model standalone profitability and minimum booking impact.
-Smart Home,Security & Access,Smart doorbell (hardwired replacement),95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Security & Access,Smart lock - deadbolt replacement,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Security & Access,Smart lock - lever handle,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Smart Home,Climate Control,Smart vent install (per vent),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Climate Control,Smart AC controller (window / mini-split),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Climate Control,Whole-home thermostat multi-zone (per zone),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Security & Access,"Smart doorbell - Ring, Nest, Eufy",99,99,$99,No,Yes,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Security & Access,Smart doorbell (hardwired replacement),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Security & Access,Smart lock - deadbolt replacement,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Security & Access,Smart lock - lever handle,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Smart Home,Security & Access,Smart lock + deadbolt combo,135,135,$135,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Security & Access,Smart garage door opener / controller,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Security & Access,Keypad entry install (outdoor),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Cameras,Indoor security camera (plug-in),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Cameras,Indoor camera (mount + cable manage),79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Cameras,Outdoor camera - eave / soffit mount,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Cameras,Outdoor camera - brick / concrete,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Smart Home,Security & Access,Smart garage door opener / controller,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Security & Access,Keypad entry install (outdoor),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Cameras,Indoor security camera (plug-in),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Cameras,Indoor camera (mount + cable manage),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Cameras,Outdoor camera - eave / soffit mount,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Cameras,Outdoor camera - brick / concrete,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Smart Home,Cameras,Camera system - 2 cameras,135,135,$135,No,No,No,Model standalone profitability and minimum booking impact.
 Smart Home,Cameras,Camera system - 4 cameras,225,225,$225,No,Yes,No,Model standalone profitability and minimum booking impact.
 Smart Home,Cameras,Camera system - 6+ cameras,295,375,$295-$375,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Cameras,NVR / DVR setup + camera config,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Lighting,"Smart bulb install + app setup (per room, up to 4 bulbs)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Lighting,Smart switch install (per switch),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Lighting,Smart dimmer install (per switch),79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Lighting,Smart plug install + setup (per 2 plugs),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Lighting,LED strip lighting - per 10 ft run,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Lighting,Outdoor smart lighting (per fixture),79,79,$79,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Network & Hubs,Wi-Fi router setup + optimization,75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Network & Hubs,Wi-Fi extender / mesh node install (per node),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Smart Home,Cameras,NVR / DVR setup + camera config,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Lighting,"Smart bulb install + app setup (per room, up to 4 bulbs)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Lighting,Smart switch install (per switch),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Lighting,Smart dimmer install (per switch),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Lighting,Smart plug install + setup (per 2 plugs),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Lighting,LED strip lighting - per 10 ft run,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Lighting,Outdoor smart lighting (per fixture),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Network & Hubs,Wi-Fi router setup + optimization,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Smart Home,Network & Hubs,Wi-Fi extender / mesh node install (per node),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Smart Home,Network & Hubs,"Mesh network (3-node setup, full home)",125,125,$125,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Network & Hubs,"Smart home hub setup (Alexa, Google, Apple)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Smart Home,Network & Hubs,"Smart home hub setup (Alexa, Google, Apple)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Smart Home,Network & Hubs,Smart home hub + device automation setup,115,115,$115,No,No,No,Model standalone profitability and minimum booking impact.
-Smart Home,Network & Hubs,"TV streaming device setup (Apple TV, Roku, Fire)",75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Smart Home,Network & Hubs,"TV streaming device setup (Apple TV, Roku, Fire)",99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Smart Home,Add-ons,App setup + walkthrough (per platform),25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Smart Home,Add-ons,Voice assistant integration (Alexa / Google),25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Smart Home,Add-ons,Automation / routine programming (per device),15,15,$15,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
@@ -140,24 +140,24 @@ Outdoor & Playsets,Playsets & Backyard Structures,Sandbox / outdoor playhouse,14
 Outdoor & Playsets,Sports & Recreation,Basketball hoop assembly,179,179,$179,No,No,No,Model standalone profitability and minimum booking impact.
 Outdoor & Playsets,Sports & Recreation,Outdoor swing / glider set,145,145,$145,No,No,No,Model standalone profitability and minimum booking impact.
 Outdoor & Playsets,Sports & Recreation,Patio swing / hanging chair,125,125,$125,No,No,No,Model standalone profitability and minimum booking impact.
-Outdoor & Playsets,Sports & Recreation,Portable pickleball / sports net setup,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Outdoor & Playsets,Sports & Recreation,Portable pickleball / sports net setup,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Outdoor & Playsets,Add-ons,Anchoring / leveling / safety hardware,75,75,$75,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Outdoor & Playsets,Add-ons,Disassembly before move or pickup,95,95,$95,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Outdoor & Playsets,Add-ons,Same-day / rush outdoor assembly,75,75,$75,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Outdoor & Playsets,Add-ons,Heavy-duty material haul-away,85,85,$85,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
-Office Assembly,Desks & Workstations,Desk (simple flat-pack),95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Office Assembly,Desks & Workstations,Desk (simple flat-pack),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Office Assembly,Desks & Workstations,Desk (L-shape / executive),145,145,$145,No,Yes,No,Model standalone profitability and minimum booking impact.
 Office Assembly,Desks & Workstations,Standing desk (electric),155,155,$155,No,No,No,Model standalone profitability and minimum booking impact.
 Office Assembly,Desks & Workstations,Cubicle workstation / multi-desk setup,275,395,$275-$395,No,No,No,Model standalone profitability and minimum booking impact.
-Office Assembly,Seating & Storage,Office chair (standard),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
-Office Assembly,Seating & Storage,Office chair (ergonomic / heavy-duty),85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
-Office Assembly,Seating & Storage,Bookcase / shelving unit (up to 5 shelves),85,85,$85,No,No,No,Model standalone profitability and minimum booking impact.
+Office Assembly,Seating & Storage,Office chair (standard),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Office Assembly,Seating & Storage,Office chair (ergonomic / heavy-duty),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
+Office Assembly,Seating & Storage,Bookcase / shelving unit (up to 5 shelves),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Office Assembly,Seating & Storage,Bookcase / shelving unit (6+ shelves),105,105,$105,No,No,No,Model standalone profitability and minimum booking impact.
-Office Assembly,Seating & Storage,File cabinet (2-4 drawer),75,75,$75,No,No,No,Model standalone profitability and minimum booking impact.
+Office Assembly,Seating & Storage,File cabinet (2-4 drawer),99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Office Assembly,Seating & Storage,Credenza / sideboard,125,125,$125,No,No,No,Model standalone profitability and minimum booking impact.
 Office Assembly,Conference & Specialty,Conference table,175,225,$175-$225,No,No,No,Model standalone profitability and minimum booking impact.
 Office Assembly,Conference & Specialty,Reception desk / front counter,275,425,$275-$425,No,No,No,Model standalone profitability and minimum booking impact.
-Office Assembly,Conference & Specialty,Wall-mounted storage / overhead cabinet,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Office Assembly,Conference & Specialty,Wall-mounted storage / overhead cabinet,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Office Assembly,Conference & Specialty,Office partition / divider install,145,145,$145,No,No,No,Model standalone profitability and minimum booking impact.
 Office Assembly,Add-ons,Cable management / cord routing,25,25,$25,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
 Office Assembly,Add-ons,Wall anchoring / anti-tip hardware,35,35,$35,Yes,No,No,Treat as same-visit add-on unless bundled into minimum booking.
@@ -167,7 +167,7 @@ Fitness Equipment,Cardio Equipment,Treadmill assembly,149,149,$149,No,Yes,No,Mod
 Fitness Equipment,Cardio Equipment,Exercise bike / Peloton-style bike,139,139,$139,No,No,No,Model standalone profitability and minimum booking impact.
 Fitness Equipment,Cardio Equipment,Elliptical machine,159,159,$159,No,No,No,Model standalone profitability and minimum booking impact.
 Fitness Equipment,Cardio Equipment,Rowing machine,149,149,$149,No,No,No,Model standalone profitability and minimum booking impact.
-Fitness Equipment,Strength Equipment,Weight bench,95,95,$95,No,No,No,Model standalone profitability and minimum booking impact.
+Fitness Equipment,Strength Equipment,Weight bench,99,99,$99,No,No,No,"Raised to $99 standalone minimum for profitability; model travel, CAC, support, and payment processing impact."
 Fitness Equipment,Strength Equipment,Power rack / squat rack,179,179,$179,No,No,No,Model standalone profitability and minimum booking impact.
 Fitness Equipment,Strength Equipment,Dumbbell / weight set assembly,115,115,$115,No,No,No,Model standalone profitability and minimum booking impact.
 Fitness Equipment,Strength Equipment,Home gym / cable machine,249,349,$249-$349,No,No,No,Model standalone profitability and minimum booking impact.

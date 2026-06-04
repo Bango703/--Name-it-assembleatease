@@ -15,8 +15,24 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
 
-  // Delete related reviews first to avoid FK constraint
-  await sb.from('reviews').delete().in('booking_id', ids);
+  const relatedTables = [
+    ['reviews', 'booking_id'],
+    ['booking_items', 'booking_id'],
+    ['booking_evidence', 'booking_id'],
+    ['booking_notes', 'booking_id'],
+    ['dispatch_offers', 'booking_id'],
+    ['activity_logs', 'booking_id'],
+    ['notification_log', 'booking_id'],
+    ['financial_event_audit', 'booking_id'],
+    ['payout_ledger', 'booking_id'],
+  ];
+
+  for (const [table, column] of relatedTables) {
+    const { error: relErr } = await sb.from(table).delete().in(column, ids);
+    if (relErr && !['42P01', '42703'].includes(relErr.code)) {
+      console.warn('Bulk delete related row cleanup warning:', table, relErr.message);
+    }
+  }
 
   const { error } = await sb.from('bookings').delete().in('id', ids);
   if (error) {

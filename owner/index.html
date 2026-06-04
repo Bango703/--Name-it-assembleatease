@@ -372,6 +372,7 @@
       <div class="topbar-right">
         <button class="btn btn-red" id="bulk-delete-btn" style="display:none">Delete Selected (<span id="bulk-count">0</span>)</button>
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
+        <button class="btn" id="cleanup-test-data-btn" style="font-size:0.78rem">Clean Test Data</button>
         <button class="btn btn-teal" id="new-booking-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Booking</button>
         <button class="btn" id="refresh-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>
       </div>
@@ -1173,14 +1174,14 @@ function intelQuick(msg) {
         <input type="number" class="modal-input" id="ae-exp" placeholder="2" min="0" max="30"/>
       </div>
       <div>
-        <label class="modal-label">Has own tools?</label>
+        <label class="modal-label">Has own tools</label>
         <select class="modal-input" id="ae-tools">
           <option value="true">Yes</option>
           <option value="false">No</option>
         </select>
       </div>
     </div>
-    <label class="modal-label">Has own transport?</label>
+    <label class="modal-label">Has own transport</label>
     <select class="modal-input" id="ae-transport" style="margin-bottom:1rem">
       <option value="true">Yes</option>
       <option value="false">No</option>
@@ -1313,6 +1314,7 @@ function intelQuick(msg) {
   const $msgThread = document.getElementById('msg-thread');
   const $msgInput  = document.getElementById('msg-input');
   const $toast     = document.getElementById('toast');
+  const $cleanupTestBtn = document.getElementById('cleanup-test-data-btn');
   const $reasonModal = document.getElementById('reason-modal');
   const $reasonText  = document.getElementById('reason-text');
 
@@ -1458,6 +1460,66 @@ function intelQuick(msg) {
     }
   });
 
+  if ($cleanupTestBtn) {
+    $cleanupTestBtn.addEventListener('click', cleanupTestData);
+  }
+
+  async function cleanupTestData() {
+    if (!$cleanupTestBtn || $cleanupTestBtn.disabled) return;
+    $cleanupTestBtn.disabled = true;
+    $cleanupTestBtn.textContent = 'Checking...';
+    try {
+      var previewRes = await fetch('/api/owner/cleanup-test-data', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ keepNames: ['Barry B'] })
+      });
+      var preview = await previewRes.json();
+      if (preview.error) { toast(preview.error, 'error'); return; }
+
+      var deleteCount = (preview.deleteBookings || []).length;
+      var reviewCount = (preview.deleteReviews || []).length;
+      var keepRefs = (preview.keepBookings || []).map(function(b){ return b.ref || b.customerName; }).join(', ') || 'none found';
+      if (!deleteCount && !reviewCount) {
+        toast('No test data found. Barry booking kept: ' + keepRefs, 'success');
+        return;
+      }
+
+      var lines = [
+        'Clean test data and keep Barry B?',
+        '',
+        'Will delete bookings: ' + deleteCount,
+        'Will delete reviews: ' + reviewCount,
+        'Will keep: ' + keepRefs,
+        '',
+        'This also removes related payout, dispatch, notes, evidence, and audit rows for deleted test bookings.'
+      ];
+      if ((preview.warnings || []).length) lines.push('', 'Warning: ' + preview.warnings.join(' '));
+      if (!confirm(lines.join('\n'))) return;
+
+      $cleanupTestBtn.textContent = 'Cleaning...';
+      var runRes = await fetch('/api/owner/cleanup-test-data', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ keepNames: ['Barry B'], confirm: preview.confirmToken })
+      });
+      var result = await runRes.json();
+      if (result.error) { toast(result.error, 'error'); return; }
+
+      selectedId = null;
+      selectedIds.clear();
+      await loadBookings();
+      if (currentView === 'reviews') await loadReviews();
+      if (currentView === 'analytics') await renderAnalytics();
+      toast('Cleaned ' + result.deletedBookings + ' booking(s) and ' + result.deletedReviews + ' review(s). Barry B kept.', 'success');
+    } catch(e) {
+      toast('Cleanup failed — check connection/logs', 'error');
+    } finally {
+      $cleanupTestBtn.disabled = false;
+      $cleanupTestBtn.textContent = 'Clean Test Data';
+    }
+  }
+
   if (password) showDashboard();
 
   // ─── Search ───
@@ -1597,13 +1659,13 @@ function intelQuick(msg) {
       return '<tr>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:11px;color:#6b7280">'+b.ref+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+b.customer_name+'</div><div style="color:#9ca3af;font-size:10px">'+b.service+'</div></td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+fmtDate(b.date)+(b.time?'<br><span style="color:#9ca3af">'+b.time+'</span>':'')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+fmtDate(b.date)+(b.time ? '<br><span style="color:#9ca3af">'+b.time+'</span>' : '')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+(b.assembler_name||'Owner')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g?dollars(g):'—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#ef4444">'+(f?'-'+dollars(f):'—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n?dollars(n):'—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(p?'-'+dollars(p):'—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0?'#065f46':'#ef4444')+'">'+(g?dollars(profit):'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g ? dollars(g) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#ef4444">'+(f ? '-'+dollars(f) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n ? dollars(n) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(p ? '-'+dollars(p) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0 ? '#065f46' : '#ef4444')+'">'+(g ? dollars(profit) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+b.status+'</span></td>'
         +'</tr>';
     }).join('');
@@ -1702,7 +1764,8 @@ function intelQuick(msg) {
     }
     if (!filtered.length) {
       $list.innerHTML = searchQuery
-        ? '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-desc">No bookings match &ldquo;' + esc(searchQuery) + '&rdquo;</div></div>'
+        ?
+         '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-desc">No bookings match &ldquo;' + esc(searchQuery) + '&rdquo;</div></div>'
         : '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-title">No ' + (currentStatus === 'all' ? '' : currentStatus + ' ') + 'bookings</div><div class="empty-state-desc">New bookings will appear here as customers submit requests.</div></div>';
       return;
     }
@@ -1712,7 +1775,7 @@ function intelQuick(msg) {
       var chk = selectedIds.has(b.id);
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<label onclick="event.stopPropagation()" style="position:absolute;top:10px;right:10px;cursor:pointer;z-index:2">'
-          + '<input type="checkbox" ' + (chk?'checked':'') + ' data-chk="' + b.id + '" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer" onclick="event.stopPropagation();toggleSelect(this)">'
+          + '<input type="checkbox" ' + (chk ? 'checked' : '') + ' data-chk="' + b.id + '" style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer" onclick="event.stopPropagation();toggleSelect(this)">'
         + '</label>'
         + '<div class="card-top" style="padding-right:1.75rem"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
@@ -2147,7 +2210,7 @@ function intelQuick(msg) {
     document.getElementById('qm-error').style.display = 'none';
     if (_qmMode === 'approve') {
       document.querySelector('#quote-modal h3').textContent = 'Finalize Quote & Authorize Card';
-      document.querySelector('#quote-modal p').textContent = 'Enter the final price. The card on file will be authorized immediately — no charge until the Easer marks the job complete.';
+      document.querySelector('#quote-modal p').textContent = 'Enter the final price. The card on file will be authorized immediately and captured after the Easer marks the job complete.';
       document.getElementById('qm-submit').textContent = 'Authorize Card & Confirm';
       document.getElementById('qm-submit').style.background = '#059669';
       document.getElementById('qm-submit').style.borderColor = '#059669';
@@ -2928,6 +2991,7 @@ function intelQuick(msg) {
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
+  var $cleanupTestBtn2 = document.getElementById('cleanup-test-data-btn');
   var allViews = [$bookingsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
@@ -2950,6 +3014,7 @@ function intelQuick(msg) {
       link.classList.add('active');
       hideAllViews();
       $newBookingBtn.style.display = view === 'bookings' ? '' : 'none';
+      if ($cleanupTestBtn2) $cleanupTestBtn2.style.display = view === 'bookings' ? '' : 'none';
       if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
@@ -3039,7 +3104,7 @@ function intelQuick(msg) {
           return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
             + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.customer_name||'Customer')+(b.date?' &bull; '+esc(b.date):'')+'</div></div>'
+            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.customer_name||'Customer')+(b.date ? ' &bull; '+esc(b.date) : '')+'</div></div>'
             + '<span style="background:rgba(217,119,6,0.1);color:#d97706;font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">Pending Payment</span>'
             + '</div>'
             + '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">Submitted '+age+'min ago — awaiting payment confirmation</div>'
@@ -3055,7 +3120,7 @@ function intelQuick(msg) {
           return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
             + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time?' at '+esc(b.time):'')+'</div></div>'
+            + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time ? ' at '+esc(b.time) : '')+'</div></div>'
             + '<span style="background:rgba('+hexToRgb(badgeColor)+',0.1);color:'+badgeColor+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+label+'</span>'
             + '</div>'
             + '<button onclick="opsAction(\'dispatch\',\''+b.id+'\')" style="margin-top:0.4rem;background:var(--teal);color:#fff;border:none;border-radius:6px;padding:3px 12px;font-size:0.75rem;cursor:pointer">Dispatch Now</button>'
@@ -3198,7 +3263,7 @@ function intelQuick(msg) {
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:0.5rem">'
           + bookingBadge(b)
-          +(b.customer_phone?'<a href="tel:'+esc(b.customer_phone)+'" style="font-size:0.78rem;color:var(--teal);text-decoration:none;font-weight:600">Call</a>':'')
+          +(b.customer_phone ? '<a href="tel:'+esc(b.customer_phone)+'" style="font-size:0.78rem;color:var(--teal);text-decoration:none;font-weight:600">Call</a>' : '')
         +'</div>'
       +'</div>';
     }).join('');
@@ -3231,8 +3296,8 @@ function intelQuick(msg) {
     if(!total){ list.innerHTML=''; empty.style.display=''; return; }
     empty.style.display='none';
     list.innerHTML = allReviews.map(function(r){
-      var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating?'#f59e0b':'#374151')+'">★</span>';
-      var date=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+      var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating ? '#f59e0b' : '#374151')+'">★</span>';
+      var date=r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
       var approvedBg = r.approved ? 'rgba(29,158,117,0.12)' : 'rgba(245,158,11,0.12)';
       var approvedColor = r.approved ? 'var(--teal)' : 'var(--amber)';
       var approvedLabel = r.approved ? '✓ Visible' : '⊘ Hidden';
@@ -3240,11 +3305,11 @@ function intelQuick(msg) {
         +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
           +'<div>'
             +'<div style="font-size:1rem;margin-bottom:2px">'+stars+'</div>'
-            +'<div style="font-size:0.8rem;color:var(--muted)">'+(r.customer_name||'Customer')+' &bull; '+(r.service||'')+(date?' &bull; '+date:'')+'</div>'
+            +'<div style="font-size:0.8rem;color:var(--muted)">'+(r.customer_name||'Customer')+' &bull; '+(r.service||'')+(date ? ' &bull; '+date : '')+'</div>'
           +'</div>'
           +'<div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">'
             +'<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:'+approvedBg+';color:'+approvedColor+'">'+approvedLabel+'</span>'
-            +'<button onclick="toggleReview(\''+r.id+'\','+(r.approved?'false':'true')+')" class="btn" style="font-size:0.72rem;padding:3px 10px">'+(r.approved?'Hide':'Show')+'</button>'
+            +'<button onclick="toggleReview(\''+r.id+'\','+(r.approved ? 'false' : 'true')+')" class="btn" style="font-size:0.72rem;padding:3px 10px">'+(r.approved ? 'Hide' : 'Show')+'</button>'
             +'<button onclick="deleteReview(\''+r.id+'\')" class="btn btn-red" style="font-size:0.72rem;padding:3px 10px">Delete</button>'
           +'</div>'
         +'</div>'
@@ -3311,8 +3376,8 @@ function intelQuick(msg) {
       var date = c.lastDate ? new Date(c.lastDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
       return '<tr style="border-bottom:1px solid var(--border)">'
         +'<td style="padding:0.7rem 1rem"><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(c.name||'—')+'</div><div style="font-size:0.75rem;color:var(--muted)">'+esc(c.email||'')+'</div></td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft)">'+(c.phone?'<a href="tel:'+esc(c.phone)+'" style="color:var(--teal);text-decoration:none">'+esc(c.phone)+'</a>':'—')+'</td>'
-        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.bookings>1?' <span style="font-size:0.7rem;color:var(--teal);font-weight:700">REPEAT</span>':'')+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.85rem;color:var(--soft)">'+(c.phone ? '<a href="tel:'+esc(c.phone)+'" style="color:var(--teal);text-decoration:none">'+esc(c.phone)+'</a>' : '—')+'</td>'
+        +'<td style="padding:0.7rem 1rem;font-size:0.875rem;font-weight:600;color:var(--text)">'+c.bookings+(c.bookings>1 ? ' <span style="font-size:0.7rem;color:var(--teal);font-weight:700">REPEAT</span>' : '')+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">$'+(c.spent/100).toFixed(0)+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--soft)">'+esc(c.lastService)+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--muted)">'+date+'</td>'
@@ -3687,6 +3752,11 @@ function intelQuick(msg) {
     document.getElementById('md-conversion').textContent = fmtPct(s.marketConversionRate || 0);
     document.getElementById('md-supply').textContent = s.easerSupplyByMarket || 0;
     document.getElementById('md-potential').textContent = fmt$(s.totalPotentialRevenue || 0);
+    if (data.setupNeeded) {
+      document.getElementById('md-top-markets').innerHTML = '<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:0.9rem 1rem;font-size:0.85rem;font-weight:600">' + esc(data.setupMessage || 'Run migration 017_market_requests.sql to enable market demand tracking.') + '</div>';
+      document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1.25rem;color:var(--muted);text-align:center">Market demand tracking is not enabled yet.</td></tr>';
+      return;
+    }
     renderMarketRows(data.topMarkets || []);
     renderMarketRequests(data.requests || []);
   }

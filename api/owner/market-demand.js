@@ -25,6 +25,25 @@ export default async function handler(req, res) {
 
   if (requestsRes.error) {
     console.error('Market demand list error:', requestsRes.error);
+    if (requestsRes.error.code === '42P01' || /market_requests/i.test(requestsRes.error.message || '')) {
+      return res.status(200).json({
+        setupNeeded: true,
+        setupMessage: 'Run migration 017_market_requests.sql to enable market demand tracking.',
+        summary: {
+          activeMarkets: ACTIVE_MARKETS.length,
+          emergingMarkets: 0,
+          marketRequests: 0,
+          marketConversionRate: 0,
+          easerSupplyByMarket: 0,
+          totalPotentialRevenue: 0,
+        },
+        activeMarkets: ACTIVE_MARKETS,
+        topMarkets: [],
+        markets: [],
+        requests: [],
+        supply: [],
+      });
+    }
     return res.status(500).json({
       error: 'Failed to load market demand',
       tableMissing: /market_requests/i.test(requestsRes.error.message || ''),

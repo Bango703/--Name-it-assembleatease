@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         detail: error.message, // visible to owner in console, not exposed to public in prod
       });
     }
-    return res.status(200).json({ reviews: data || [] });
+    return res.status(200).json({ reviews: (data || []).filter(review => !isLikelyInternalTestReview(review)) });
   }
 
   // ── POST — submit a new review ────────────────────────────────────
@@ -124,6 +124,17 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).json({ success: true });
+}
+
+function isLikelyInternalTestReview(review) {
+  const text = `${review?.body || ''} ${review?.customer_name || ''} ${review?.service || ''}`;
+  return [
+    /phase\s*\d/i,
+    /post[-\s]?deploy/i,
+    /duplicate gate/i,
+    /\btest\b/i,
+    /seed/i,
+  ].some(pattern => pattern.test(text));
 }
 
 function isTransientInsertError(error) {

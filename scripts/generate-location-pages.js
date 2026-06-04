@@ -151,11 +151,11 @@ const SERVICES = [
     bookingParam: 'Furniture+Assembly',
     tagline: 'Professional assembly for any brand, any room.',
     intro: 'We assemble IKEA, Wayfair, Amazon, Ashley, and any other brand — beds, dressers, sofas, desks, wardrobes, and more. All tools included, work guaranteed.',
-    fromPrice: '$75',
+    fromPrice: '$99',
     pricingHighlights: [
-      { name: 'Bed Frame (Queen)', price: 'From $95', popular: true },
-      { name: 'Dresser / Chest', price: 'From $85', popular: false },
-      { name: 'Sofa / Sectional', price: 'From $89', popular: false },
+      { name: 'Bed Frame (Queen)', price: 'From $99', popular: true },
+      { name: 'Dresser / Chest', price: 'From $99', popular: false },
+      { name: 'Sofa / Sectional', price: 'From $99', popular: false },
       { name: 'Wardrobe / Armoire', price: '$109–$135', popular: false },
     ],
     faqs: [
@@ -173,10 +173,10 @@ const SERVICES = [
     bookingParam: 'Mounting+%26+Hanging',
     tagline: 'Safe, level, and clean TV mounting on any wall.',
     intro: 'We mount any TV on any wall — standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
-    fromPrice: '$79',
+    fromPrice: '$99',
     pricingHighlights: [
-      { name: 'TV up to 55" (standard wall)', price: 'From $79', popular: true },
-      { name: 'TV 56"–65" (standard wall)', price: '$89', popular: false },
+      { name: 'TV up to 55" (standard wall)', price: 'From $99', popular: true },
+      { name: 'TV 56"–65" (standard wall)', price: '$99', popular: false },
       { name: 'TV 66"–85" (standard wall)', price: '$99–$115', popular: false },
       { name: 'In-wall cord concealment', price: '$99', popular: false },
     ],
@@ -195,12 +195,12 @@ const SERVICES = [
     bookingParam: 'Smart+Home',
     tagline: 'Seamless smart device setup in every room.',
     intro: 'From smart thermostats and doorbells to locks, cameras, and lighting systems — we install, connect, and test every device so it works perfectly the first time.',
-    fromPrice: '$79',
+    fromPrice: '$99',
     pricingHighlights: [
-      { name: 'Smart Thermostat (Nest, Ecobee)', price: 'From $79', popular: true },
-      { name: 'Smart Doorbell (Ring, Nest)', price: 'From $85', popular: false },
-      { name: 'Smart Lock (deadbolt)', price: '$95', popular: false },
-      { name: 'Smart Lighting Setup', price: 'From $75', popular: false },
+      { name: 'Smart Thermostat (Nest, Ecobee)', price: 'From $99', popular: true },
+      { name: 'Smart Doorbell (Ring, Nest)', price: 'From $99', popular: false },
+      { name: 'Smart Lock (deadbolt)', price: '$99', popular: false },
+      { name: 'Smart Lighting Setup', price: 'From $99', popular: false },
     ],
     faqs: [
       { q: 'Do I need WiFi set up before the appointment?', a: 'Yes — a working WiFi network is required. We handle all device pairing, configuration, and app setup during the visit.' },
@@ -217,11 +217,11 @@ const SERVICES = [
     bookingParam: 'Fitness+Equipment',
     tagline: 'Get your home gym set up and ready to use today.',
     intro: 'We assemble treadmills, ellipticals, stationary bikes, weight benches, squat racks, and cable machines — heavy equipment handled safely and placed exactly where you want it.',
-    fromPrice: '$85',
+    fromPrice: '$99',
     pricingHighlights: [
-      { name: 'Stationary Bike / Rowing Machine', price: 'From $85', popular: false },
+      { name: 'Stationary Bike / Rowing Machine', price: 'From $99', popular: false },
       { name: 'Treadmill Assembly', price: 'From $109', popular: true },
-      { name: 'Weight Bench', price: 'From $85', popular: false },
+      { name: 'Weight Bench', price: 'From $99', popular: false },
       { name: 'Squat Rack / Power Cage', price: '$149–$225', popular: false },
     ],
     faqs: [
@@ -261,11 +261,11 @@ const SERVICES = [
     bookingParam: 'Office+Assembly',
     tagline: 'Home office and commercial workspace setup done right.',
     intro: 'We assemble desks, standing desks, L-shaped workstations, office chairs, bookcases, and filing cabinets — for home offices, commercial spaces, and everything in between.',
-    fromPrice: '$75',
+    fromPrice: '$99',
     pricingHighlights: [
-      { name: 'Desk (standard flat-pack)', price: 'From $75', popular: false },
+      { name: 'Desk (standard flat-pack)', price: 'From $99', popular: false },
       { name: 'L-Shape or Electric Standing Desk', price: 'From $109', popular: true },
-      { name: 'Office Chair', price: 'From $75', popular: false },
+      { name: 'Office Chair', price: 'From $99', popular: false },
       { name: 'Full Workstation Setup (3+ items)', price: 'Bundle pricing', popular: false },
     ],
     faqs: [
@@ -284,7 +284,7 @@ function generatePage(city, service) {
   const pageSlug = `${service.slug}-${city.slug}-tx`;
   const url = `https://www.assembleatease.com/${pageSlug}`;
   const title = `${service.name} in ${city.name}, TX — From ${service.fromPrice} | AssembleAtEase`;
-  const metaDesc = `Professional ${service.name.toLowerCase()} in ${city.name}, TX. ${city.bio.split('.')[0]}. Same-day available — book online and pay only after the job is done.`;
+  const metaDesc = `Professional ${service.name.toLowerCase()} in ${city.name}, TX. ${city.bio.split('.')[0]}. Same-day available — book online with secure payment.`;
 
   // JSON-LD schema
   const schema = safeJson({
@@ -511,10 +511,10 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;margin-bottom:2rem">
       <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#fff;font-family:var(--font-body);font-size:1.05rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;transition:all 0.18s;box-shadow:0 4px 20px rgba(0,191,255,0.3)" onmouseover="this.style.background='#0099CC';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#00BFFF';this.style.transform='none'">Book in ${esc(city.name)} &rarr;</a>
-      <span style="font-size:0.82rem;color:var(--muted)">From ${esc(service.fromPrice)} &bull; No charge until the job is done</span>
+      <span style="font-size:0.82rem;color:var(--muted)">From ${esc(service.fromPrice)} &bull; Secure payment at booking</span>
     </div>
     <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;font-size:0.82rem;color:var(--ink-soft)">
-      <span>&#10003; No charge until job is complete</span>
+      <span>&#10003; Secure payment at booking</span>
       <span>&#10003; Confirmed in 1 hour</span>
       <span>&#10003; Same-Day Available</span>
       <span>&#10003; Pay After</span>
@@ -568,7 +568,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Book Now &mdash; ${esc(city.name)}</a>
       <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:1.75rem;font-size:0.82rem;color:var(--muted)">
         <span>&#10003; Confirmed in 1 hour</span>
-        <span>&#10003; Pay after job done</span>
+        <span>&#10003; Balance after completion</span>
         <span>&#10003; No callout fee, ever</span>
       </div>
     </div>
@@ -606,7 +606,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Austin-based and built on referrals &mdash; every job matters to us personally.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem">
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4B3;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Pay only after the job is done</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Card authorized at booking &mdash; never charged until the work is complete to your satisfaction.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4B3;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Secure payment at booking</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Card secured at booking. For deposit jobs, the remaining balance is charged after completion.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4C5;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Same-day &amp; next-day available</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We keep open slots for last-minute bookings in ${esc(city.name)} and across the Austin metro.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F3F7;&#xFE0F;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flat-rate pricing &mdash; no surprises</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Every price shown upfront. No hourly rates, no hidden fees, no callout charges. Ever.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4CD;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Austin-based &amp; locally operated</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Not a national chain. We live and work in the same communities we serve, including ${esc(city.name)}.</p></div>
@@ -660,7 +660,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <section style="background:linear-gradient(135deg,#003d47,#006070);padding:5rem 2rem;text-align:center">
   <div style="max-width:600px;margin:0 auto">
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in ${esc(city.name)}?</h2>
-    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing, same-day available in ${esc(city.name)} and the Austin metro. Book in minutes &mdash; no charge until the job is complete.</p>
+    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing, same-day available in ${esc(city.name)} and the Austin metro. Book in minutes &mdash; secure payment at booking.</p>
     <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#006070;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book ${esc(service.name)} &rarr;</a>
     <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>

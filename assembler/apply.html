@@ -938,7 +938,7 @@
             <span class="section-status">Reviewed</span>
           </div>
           <div class="form-group" style="display:none">
-            <label>Do you have your own tools? *</label>
+            <label>Do you have your own tools *</label>
             <div class="radio-row">
               <label class="radio-option">
                 <input type="radio" name="tools" value="yes" />
@@ -954,7 +954,7 @@
             <span class="field-error" id="tools-error"></span>
           </div>
           <div class="form-group">
-            <label>Do you have reliable transportation? *</label>
+            <label>Do you have reliable transportation *</label>
             <div class="radio-row">
               <label class="radio-option">
                 <input type="radio" name="transport" value="yes" />
@@ -1066,7 +1066,7 @@
 
       <div class="aside-card">
         <div class="aside-eyebrow">Questions</div>
-        <h3>Need help applying?</h3>
+        <h3>Need help applying</h3>
         <p>Email <a href="mailto:service@assembleatease.com" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">(737) 290-6129</a>.</p>
       </div>
     </aside>
@@ -1102,7 +1102,7 @@
     cardWrap.innerHTML = '<div style="font-size:0.875rem;color:#166534;padding:0.75rem 0">No card required for Founding Easer applications.</div>';
   }
 
-  // -- Handle ?verification=complete return from Stripe Identity --
+  // -- Handle verification=complete return from Stripe Identity --
   var params = new URLSearchParams(window.location.search);
   if (params.get('verification') === 'complete') {
     var panel = document.getElementById('application-panel');
@@ -1118,7 +1118,7 @@
   var inviteToken = params.get('invite');
   if (inviteToken) {
     document.getElementById('invite-token').value = inviteToken;
-    fetch('/api/assembler/validate-invite?token=' + encodeURIComponent(inviteToken))
+    fetch('/api/assembler/validate-invitetoken=' + encodeURIComponent(inviteToken))
       .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
       .then(function(res) {
         if (res.ok && res.data.valid) {
@@ -1199,14 +1199,14 @@
       services.push(cb.value);
     });
 
-    var toolsVal = document.querySelector('input[name="tools"]:checked')?.value;
-    var transportVal = document.querySelector('input[name="transport"]:checked')?.value;
+    var toolsVal = document.querySelector('input[name="tools"]:checked').value;
+    var transportVal = document.querySelector('input[name="transport"]:checked').value;
 
     // Validate
     var hasErr = false;
     if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
-    if (!phone || !/^\+?[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
+    if (!phone || !/^\+[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
     if (!city) { fieldError('city', 'Required'); hasErr = true; }
     if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
     if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
@@ -1240,7 +1240,7 @@
           bio: bio || null,
           codeOfConduct: true,
           contractorAgreementSigned: true,
-          paymentMethodId: FOUNDING_EASER_FEE_WAIVED ? null : undefined,
+          paymentMethodId: FOUNDING_EASER_FEE_WAIVED  null : undefined,
           inviteToken: document.getElementById('invite-token').value || null,
         }),
       });

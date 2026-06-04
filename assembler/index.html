@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -422,7 +422,7 @@
       bg = 'rgba(239,68,68,0.07)';
     } else {
       title = 'Dashboard issue';
-      body = payload && payload.message ? payload.message : 'Please retry.';
+      body = payload && payload.message  payload.message : 'Please retry.';
       actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
       tone = 'rgba(239,68,68,0.18)';
       bg = 'rgba(239,68,68,0.07)';
@@ -434,7 +434,7 @@
     el.innerHTML = '<div style="display:flex;flex-direction:column;gap:0.2rem">'
       + '<div style="font-size:0.9rem;font-weight:700">' + esc(title) + '</div>'
       + '<div style="font-size:0.8rem;color:var(--e-muted);line-height:1.5">' + esc(body) + '</div>'
-      + (payload && payload.extra ? '<div style="font-size:0.75rem;color:var(--e-muted);margin-top:0.15rem">' + esc(payload.extra) + '</div>' : '')
+      + (payload && payload.extra  '<div style="font-size:0.75rem;color:var(--e-muted);margin-top:0.15rem">' + esc(payload.extra) + '</div>' : '')
       + actionHtml
       + '</div>';
 
@@ -442,7 +442,7 @@
     if (retryBtn) {
       retryBtn.onclick = function() {
         if (mode === 'auth_error') {
-          window.location.href = '/auth/login?return=' + encodeURIComponent('/assembler/');
+          window.location.href = '/auth/loginreturn=' + encodeURIComponent('/assembler/');
           return;
         }
         loadDashboardData('manual_retry');
@@ -451,15 +451,15 @@
   }
 
   function renderDashboardPayload(bookings, options) {
-    var list = Array.isArray(bookings) ? bookings.slice() : [];
+    var list = Array.isArray(bookings)  bookings.slice() : [];
     var liveStatuses=['en_route','arrived','in_progress'];
     var liveJobs     =list.filter(function(b){return liveStatuses.includes(b.status);});
     var pendingOffers=list.filter(function(b){return b._is_pending_offer;});
     var upcomingJobs =list.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
 
-    document.getElementById('active-section').style.display = liveJobs.length > 0 ? '' : 'none';
-    document.getElementById('offers-section').style.display = pendingOffers.length > 0 ? '' : 'none';
-    document.getElementById('upcoming-section').style.display = upcomingJobs.length > 0 ? '' : 'none';
+    document.getElementById('active-section').style.display = liveJobs.length > 0  '' : 'none';
+    document.getElementById('offers-section').style.display = pendingOffers.length > 0  '' : 'none';
+    document.getElementById('upcoming-section').style.display = upcomingJobs.length > 0  '' : 'none';
     document.getElementById('waiting-state').style.display = 'none';
 
     if (liveJobs.length>0) renderActiveJob(liveJobs[0]);
@@ -468,7 +468,7 @@
     if (upcomingJobs.length>0){
       document.getElementById('upcoming-list').innerHTML=upcomingJobs.slice(0,3).map(function(b){
         var dateStr=fmtDate(b.date);
-        var when=dateStr+(b.time?' · '+b.time:'');
+        var when=dateStr+(b.time' · '+b.time:'');
         return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
@@ -481,8 +481,8 @@
     } else if(liveJobs.length===0&&pendingOffers.length===0){
       var ws=document.getElementById('waiting-state');
       ws.style.display='';
-      document.getElementById('avail-card-title').textContent=available?"You're Online":"You're Offline";
-      document.getElementById('avail-card-sub').textContent=available?"You'll receive job offers when they're available":"Toggle Online to start receiving job offers";
+      document.getElementById('avail-card-title').textContent=available"You're Online":"You're Offline";
+      document.getElementById('avail-card-sub').textContent=available"You'll receive job offers when they're available":"Toggle Online to start receiving job offers";
     }
 
     if (options && options.warnings && options.warnings.length) {
@@ -498,8 +498,8 @@
       return;
     }
 
-    dashboardLoadState.mode = list.length > 0 ? 'success' : 'empty';
-    setDashboardStatus(list.length > 0 ? 'success' : 'empty');
+    dashboardLoadState.mode = list.length > 0  'success' : 'empty';
+    setDashboardStatus(list.length > 0  'success' : 'empty');
   }
 
   async function loadDashboardData(reason) {
@@ -527,7 +527,7 @@
         }
       } catch(e) {}
 
-      freshTok = session && session.access_token ? session.access_token : freshTok;
+      freshTok = session && session.access_token  session.access_token : freshTok;
       if(!freshTok) throw { kind:'auth_error', status:401, message:'Session missing' };
 
       var attemptTokenRefresh = false;
@@ -537,7 +537,7 @@
         try {
           lastResponse = await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok}});
         } catch (err) {
-          throw { kind: 'network_error', status: 0, message: err && err.message ? err.message : 'Network error' };
+          throw { kind: 'network_error', status: 0, message: err && err.message  err.message : 'Network error' };
         }
 
         if (lastResponse.status === 401 && !attemptTokenRefresh) {
@@ -566,12 +566,12 @@
         throw {
           kind: errorKind,
           status: lastResponse.status,
-          message: responseBody && responseBody.error ? responseBody.error : 'Dashboard load failed',
+          message: responseBody && responseBody.error  responseBody.error : 'Dashboard load failed',
         };
       }
 
-      var bookings = responseBody && Array.isArray(responseBody.bookings) ? responseBody.bookings : [];
-      var meta = responseBody && responseBody.meta ? responseBody.meta : null;
+      var bookings = responseBody && Array.isArray(responseBody.bookings)  responseBody.bookings : [];
+      var meta = responseBody && responseBody.meta  responseBody.meta : null;
 
       if (requestSeq !== dashboardLoadState.requestSeq) return;
 
@@ -582,7 +582,7 @@
       dashboardLoadState.mode = 'success';
 
       writeDashboardCache(bookings, meta);
-      renderDashboardPayload(bookings, { warnings: meta && Array.isArray(meta.warnings) ? meta.warnings : [] });
+      renderDashboardPayload(bookings, { warnings: meta && Array.isArray(meta.warnings)  meta.warnings : [] });
       return;
     })().catch(function(error) {
       if (requestSeq !== dashboardLoadState.requestSeq) return;
@@ -590,16 +590,16 @@
       var cache = readDashboardCache();
       var cacheAgeMs = getDashboardCachedAgeMs(cache);
       var canUseStale = cache && cacheAgeMs <= DASHBOARD_CACHE_STALE_MS;
-      var bookings = canUseStale ? cache.bookings : [];
+      var bookings = canUseStale  cache.bookings : [];
 
-      dashboardLoadState.lastError = error && error.message ? error.message : 'Dashboard load failed';
-      dashboardLoadState.lastHttpStatus = error && error.status ? error.status : null;
+      dashboardLoadState.lastError = error && error.message  error.message : 'Dashboard load failed';
+      dashboardLoadState.lastHttpStatus = error && error.status  error.status : null;
 
       if (canUseStale) {
         dashboardLoadState.staleSnapshot = cache;
         dashboardLoadState.mode = 'stale_data';
-        renderDashboardPayload(bookings, { warnings: (cache.meta && cache.meta.warnings) ? cache.meta.warnings : [] });
-        setDashboardStatus('stale_data', { extra: dashboardLoadState.retryCount >= 3 ? 'Auto-retry exhausted — tap Retry to try again.' : 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
+        renderDashboardPayload(bookings, { warnings: (cache.meta && cache.meta.warnings)  cache.meta.warnings : [] });
+        setDashboardStatus('stale_data', { extra: dashboardLoadState.retryCount >= 3  'Auto-retry exhausted — tap Retry to try again.' : 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
         if (dashboardLoadState.retryCount < 3) {
           var retryDelays = [2000, 5000, 15000];
           clearDashboardRetryTimer();
@@ -612,14 +612,14 @@
       }
 
       dashboardLoadState.staleSnapshot = null;
-      dashboardLoadState.mode = error && error.kind ? error.kind : 'server_error';
+      dashboardLoadState.mode = error && error.kind  error.kind : 'server_error';
       if (dashboardLoadState.mode === 'auth_error') {
         setDashboardStatus('auth_error');
-        window.location.href = '/auth/login?return=' + encodeURIComponent('/assembler/');
+        window.location.href = '/auth/loginreturn=' + encodeURIComponent('/assembler/');
         return;
       }
 
-      setDashboardStatus(dashboardLoadState.mode, { message: dashboardLoadState.lastError, extra: dashboardLoadState.retryCount >= 3 ? 'Auto-retry exhausted — tap Retry to try again.' : null });
+      setDashboardStatus(dashboardLoadState.mode, { message: dashboardLoadState.lastError, extra: dashboardLoadState.retryCount >= 3  'Auto-retry exhausted — tap Retry to try again.' : null });
 
       if (dashboardLoadState.retryCount < 3 && dashboardLoadState.mode !== 'auth_error') {
         var retryDelays2 = [2000, 5000, 15000];
@@ -661,13 +661,13 @@
   function setAvailUI(on) {
     document.getElementById('avail-pill').classList.toggle('on', on);
     document.getElementById('avail-toggle').classList.toggle('on', on);
-    document.getElementById('avail-label').textContent = on ? 'Online' : 'Offline';
+    document.getElementById('avail-label').textContent = on  'Online' : 'Offline';
     document.getElementById('eh-online-dot').classList.toggle('online', on);
-    document.getElementById('eh-greeting-sub-text').textContent = on ? "You're online and available" : "You're currently offline";
+    document.getElementById('eh-greeting-sub-text').textContent = on  "You're online and available" : "You're currently offline";
     var cardTitle = document.getElementById('avail-card-title');
     var cardSub   = document.getElementById('avail-card-sub');
-    if (cardTitle) cardTitle.textContent = on ? "You're Online" : "You're Offline";
-    if (cardSub)   cardSub.textContent   = on ? "You'll receive job offers when they're available" : "Toggle Online to start receiving job offers";
+    if (cardTitle) cardTitle.textContent = on  "You're Online" : "You're Offline";
+    if (cardSub)   cardSub.textContent   = on  "You'll receive job offers when they're available" : "Toggle Online to start receiving job offers";
   }
 
   // Build 4-step pipeline HTML
@@ -679,14 +679,14 @@
       { label:'Complete',  time:null,              done:b.status==='completed', current:false },
     ];
     return '<div class="eh-pipeline">' + steps.map(function(s,i){
-      var dotCls  = s.current ? 'current' : s.done ? 'done' : '';
-      var lblCls  = s.current ? 'active' : '';
-      var timeStr = s.time ? fmtTime(s.time) : '';
-      var conn    = i < steps.length-1 ? '<div class="eh-pipe-connector'+(s.done?' done':'')+'"></div>' : '';
+      var dotCls  = s.current  'current' : s.done  'done' : '';
+      var lblCls  = s.current  'active' : '';
+      var timeStr = s.time  fmtTime(s.time) : '';
+      var conn    = i < steps.length-1  '<div class="eh-pipe-connector'+(s.done' done':'')+'"></div>' : '';
       return '<div class="eh-pipe-node">'
         +'<div class="eh-pipe-dot '+dotCls+'"></div>'
         +'<div class="eh-pipe-label '+lblCls+'">'+s.label+'</div>'
-        +(timeStr?'<div class="eh-pipe-time">'+timeStr+'</div>':'')
+        +(timeStr'<div class="eh-pipe-time">'+timeStr+'</div>':'')
         +'</div>'+conn;
     }).join('')+'</div>';
   }
@@ -696,12 +696,12 @@
     document.getElementById('active-section').style.display = '';
     var statusLabel  = {en_route:'En Route',arrived:'On Site',in_progress:'In Progress'}[lj.status]||lj.status;
     var statusClass  = {en_route:'bk-en-route',arrived:'bk-arrived',in_progress:'bk-in-progress'}[lj.status]||'bk-confirmed';
-    var dateStr      = lj.date ? new Date(lj.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    var dateStr      = lj.date  new Date(lj.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     var timeStr      = lj.time || '—';
     var addrStr      = lj.address || 'Address on file';
     var customerName = lj.customer_name || lj.customer_email || '';
-    var mapsUrl      = lj.address ? 'https://maps.google.com/?q='+encodeURIComponent(lj.address) : '#';
-    var callUrl      = lj.customer_phone ? 'tel:'+lj.customer_phone : '#';
+    var mapsUrl      = lj.address  'https://maps.google.com/q='+encodeURIComponent(lj.address) : '#';
+    var callUrl      = lj.customer_phone  'tel:'+lj.customer_phone : '#';
     var showCall     = !!lj.customer_phone;
 
     // CTA button
@@ -726,7 +726,7 @@
           +'<div class="eh-job-title">'+esc(lj.service||'Active Job')+'</div>'
           +'<span class="sb '+statusClass+'" style="flex-shrink:0;font-size:0.68rem">'+esc(statusLabel)+'</span>'
         +'</div>'
-        +(customerName?'<div class="eh-job-customer">for '+esc(customerName)+'</div>':'')
+        +(customerName'<div class="eh-job-customer">for '+esc(customerName)+'</div>':'')
       +'</div>'
     +'</div>'
     +'<div class="eh-job-addr-row">'
@@ -751,7 +751,7 @@
         +'Get Directions'
       +'</a>'
       +(showCall
-        ?'<a class="eh-call-btn" href="'+callUrl+'">'
+        '<a class="eh-call-btn" href="'+callUrl+'">'
           +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92z"/></svg>'
           +'Call Customer'
         +'</a>'
@@ -761,9 +761,9 @@
         +'</span>')
     +'</div>'
     +(ctaLabel
-      ?'<button class="eh-cta-btn'+(ctaGreen?' green':'')+'" id="eh-cta-btn">'
+      '<button class="eh-cta-btn'+(ctaGreen' green':'')+'" id="eh-cta-btn">'
         +esc(ctaLabel)
-        +(ctaStage?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>':'')
+        +(ctaStage'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>':'')
       +'</button>'
       :'');
 
@@ -776,7 +776,7 @@
         var mins=Math.floor((Date.now()-new Date(tosStartTs).getTime())/60000);
         var h=Math.floor(mins/60);var m=mins%60;
         var el=document.getElementById('eh-tos-val');
-        if(el) el.textContent=h>0?h+'h '+m+'m':mins+' min';
+        if(el) el.textContent=h>0h+'h '+m+'m':mins+' min';
       }
       updateTOS();
       tosInterval=setInterval(updateTOS,30000);
@@ -815,7 +815,7 @@
     document.getElementById('eh-bell-badge').style.display='';
 
     document.getElementById('offers-list').innerHTML = offers.slice(0,2).map(function(b){
-      var pay = b.assembler_due ? fmtPay(b.assembler_due) : (b.total_price ? fmtPay(Math.round(b.total_price*0.75)) : '—');
+      var pay = b.assembler_due  fmtPay(b.assembler_due) : (b.total_price  fmtPay(Math.round(b.total_price*0.75)) : '—');
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
       return '<div class="eh-offer-card">'
         +'<div class="eh-offer-card-top">'
@@ -824,9 +824,9 @@
           +'</div>'
           +'<div class="eh-offer-info">'
             +'<div class="eh-offer-title">'+esc(b.service||'Service Job')+'</div>'
-            +(b.description?'<div class="eh-offer-spec">'+esc(b.description.substring(0,50))+'</div>':'')
-            +(b.address?'<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'+esc(b.address)+'</div>':'')
-            +(expiresAt?'<div class="eh-offer-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-expires-at="'+esc(expiresAt)+'">—</span></div>':'')
+            +(b.description'<div class="eh-offer-spec">'+esc(b.description.substring(0,50))+'</div>':'')
+            +(b.address'<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'+esc(b.address)+'</div>':'')
+            +(expiresAt'<div class="eh-offer-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-expires-at="'+esc(expiresAt)+'">—</span></div>':'')
           +'</div>'
           +'<div class="eh-offer-payout">'
             +'<div class="eh-offer-amount">'+pay+'</div>'
@@ -915,7 +915,7 @@
     function hideNotif(){_notifPanel.style.display='none';if(_notifBackdrop)_notifBackdrop.style.display='none';}
     document.getElementById('eh-bell-btn').addEventListener('click',function(e){
       e.stopPropagation();
-      _notifPanel.style.display==='none'?showNotif():hideNotif();
+      _notifPanel.style.display==='none'showNotif():hideNotif();
     });
     document.addEventListener('click',function(){ if(_notifPanel&&_notifPanel.style.display!=='none') hideNotif(); });
 
@@ -925,7 +925,7 @@
 
     // Avatar
     var avatarEl=document.getElementById('eh-avatar');
-    var initials=(profile.full_name||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+    var initials=(profile.full_name||'').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
     if(profile.profile_photo){
       avatarEl.innerHTML='<img src="'+esc(profile.profile_photo)+'" alt="'+esc(initials)+'">';
     } else {
@@ -933,20 +933,20 @@
     }
 
     // Greeting — name on main line (fits layout), time-of-day on sub
-    var firstName=profile.full_name?profile.full_name.split(' ')[0]:'there';
+    var firstName=profile.full_nameprofile.full_name.split(' ')[0]:'there';
     var hour=new Date().getHours();
-    var greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+    var greet=hour<12'Good morning':hour<17'Good afternoon':'Good evening';
     document.getElementById('eh-greeting-name').textContent=greet+', '+firstName+'!';
 
     // Stats strip
     var statsStrip=document.getElementById('eh-stats-strip');
     if(statsStrip){
       statsStrip.style.display='';
-      var ratingVal=profile.rating?profile.rating.toFixed(1)+' ★':'New';
+      var ratingVal=profile.ratingprofile.rating.toFixed(1)+' ★':'New';
       document.getElementById('stat-rating').textContent=ratingVal;
       document.getElementById('stat-jobs').textContent=profile.completed_jobs||'0';
       var earnedCents=profile.total_earned||0;
-      document.getElementById('stat-earned').textContent=earnedCents>0?'$'+Math.round(earnedCents/100):'$0';
+      document.getElementById('stat-earned').textContent=earnedCents>0'$'+Math.round(earnedCents/100):'$0';
     }
 
     // Offline banner
@@ -974,7 +974,7 @@
     window.addEventListener('pageshow', function(event) {
       if (!event.persisted) return; // normal load — already handled by DOMContentLoaded
       if (dashboardLoadState.inFlight) return; // fetch already in progress
-      var lastSuccess = dashboardLoadState.lastSuccessAt ? new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
+      var lastSuccess = dashboardLoadState.lastSuccessAt  new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
       if (Date.now() - lastSuccess < 60000) return; // fresh enough — skip
       dashboardLoadState.retryCount = 0;
       loadDashboardData('bfcache_restore');
@@ -1052,21 +1052,21 @@
           key:'identity',
           done: profile.identity_verified===true,
           label:'Verify your identity',
-          desc: profile.identity_verified ? 'Identity verified.' : 'Required to receive job offers.',
-          action: !profile.identity_verified ? (profile.stripe_verification_id ? null : {href:'/assembler/apply',label:'Continue'}) : null,
+          desc: profile.identity_verified  'Identity verified.' : 'Required to receive job offers.',
+          action: !profile.identity_verified  (profile.stripe_verification_id  null : {href:'/assembler/apply',label:'Continue'}) : null,
         },
         {
           key:'phone',
           done: !!profile.phone,
           label:'Add your phone number',
-          desc: profile.phone ? 'Phone number on file.' : 'Required for dispatch notifications.',
-          action: !profile.phone ? {href:'/assembler/profile',label:'Add Phone'} : null,
+          desc: profile.phone  'Phone number on file.' : 'Required for dispatch notifications.',
+          action: !profile.phone  {href:'/assembler/profile',label:'Add Phone'} : null,
         },
         {
           key:'online',
           done: available,
           label:'Go Online to receive jobs',
-          desc: available ? 'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
+          desc: available  'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
           action: null,
         },
       ];
@@ -1079,15 +1079,15 @@
         if(listEl){
           listEl.innerHTML=onbSteps.map(function(s){
             var iconSvg=s.done
-              ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
               : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
             var actionHtml=s.action&&!s.done
-              ? '<a href="'+s.action.href+'" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">'+s.action.label+'</a>'
+               '<a href="'+s.action.href+'" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">'+s.action.label+'</a>'
               : '';
             return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
               +'<span style="flex-shrink:0">'+iconSvg+'</span>'
               +'<div style="flex:1;min-width:0">'
-                +'<div style="font-size:0.82rem;font-weight:'+(s.done?'500':'600')+';color:'+(s.done?'var(--e-muted)':'var(--e-text)')+(s.done?';text-decoration:line-through':'')+' ">'+esc(s.label)+'</div>'
+                +'<div style="font-size:0.82rem;font-weight:'+(s.done'500':'600')+';color:'+(s.done'var(--e-muted)':'var(--e-text)')+(s.done';text-decoration:line-through':'')+' ">'+esc(s.label)+'</div>'
                 +'<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">'+esc(s.desc)+'</div>'
               +'</div>'
               +actionHtml
@@ -1153,7 +1153,7 @@
     var cache = readDashboardCache();
     if (cache && getDashboardCachedAgeMs(cache) <= DASHBOARD_CACHE_TTL_MS) {
       dashboardLoadState.staleSnapshot = cache;
-      renderDashboardPayload(cache.bookings || [], { warnings: cache.meta && Array.isArray(cache.meta.warnings) ? cache.meta.warnings : [] });
+      renderDashboardPayload(cache.bookings || [], { warnings: cache.meta && Array.isArray(cache.meta.warnings)  cache.meta.warnings : [] });
       setDashboardStatus('stale_data', { extra: 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
     } else {
       setDashboardStatus('loading');
@@ -1166,7 +1166,7 @@
 <!-- Complete job confirmation sheet -->
 <div class="sheet-overlay" id="home-complete-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Mark job as complete?</div>
+    <div class="sheet-title">Mark job as complete</div>
     <div class="sheet-body">
       Only mark complete when the work is fully finished and the customer is satisfied.<br><br>
       <strong>This will charge the customer's card and record your payout.</strong>
@@ -1181,7 +1181,7 @@
 <!-- Go offline confirmation sheet -->
 <div class="sheet-overlay" id="go-offline-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Go offline?</div>
+    <div class="sheet-title">Go offline</div>
     <div class="sheet-body">You won't receive new job offers while offline. You can go back online anytime.</div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="go-offline-confirm">Yes, go offline</button>

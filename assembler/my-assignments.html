@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -198,7 +198,7 @@
       <div id="payout-info-note" style="font-size:0.72rem;color:#047857;margin-top:0.2rem;line-height:1.5"></div>
     </div>
     <div style="margin-top:0.5rem;border-top:1px solid var(--pro-border)">
-      <button type="button" id="support-toggle" onclick="(function(){var b=document.getElementById('support-body');var c=document.getElementById('support-chevron');var open=b.style.display!=='none';b.style.display=open?'none':'block';c.style.transform=open?'rotate(0deg)':'rotate(180deg)';})()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
+      <button type="button" id="support-toggle" onclick="(function(){var b=document.getElementById('support-body');var c=document.getElementById('support-chevron');var open=b.style.display!=='none';b.style.display=open'none':'block';c.style.transform=open'rotate(0deg)':'rotate(180deg)';})()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
         <div style="text-align:left">
           <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
           <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
@@ -239,14 +239,14 @@
   async function getToken() {
     try {
       const { data: { session: s } } = await supabaseClient.auth.getSession();
-      if (s?.access_token) {
+      if (s.access_token) {
         // Only return the token if it's not expired (with 60s buffer)
         const now = Math.floor(Date.now() / 1000);
         if (!s.expires_at || s.expires_at > now + 60) return s.access_token;
       }
       // Token missing or expired — try to refresh
       const { data: refreshed } = await supabaseClient.auth.refreshSession();
-      if (refreshed?.session?.access_token) return refreshed.session.access_token;
+      if (refreshed.session.access_token) return refreshed.session.access_token;
     } catch {}
     return sessionToken;
   }
@@ -260,7 +260,7 @@
 
   function formatDate(str) {
     if (!str) return '—';
-    const d = new Date(str.includes('T') ? str : str + 'T12:00:00');
+    const d = new Date(str.includes('T')  str : str + 'T12:00:00');
     if (isNaN(d)) return str;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
@@ -291,10 +291,10 @@
     var upcoming  = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; }).length;
     var completed = list.filter(function(b){ return b.status === 'completed'; }).length;
     var el;
-    el = document.getElementById('fc-offers');    if (el) el.textContent = offers    ? '(' + offers    + ')' : '';
-    el = document.getElementById('fc-active');    if (el) el.textContent = active    ? '(' + active    + ')' : '';
-    el = document.getElementById('fc-upcoming');  if (el) el.textContent = upcoming  ? '(' + upcoming  + ')' : '';
-    el = document.getElementById('fc-completed'); if (el) el.textContent = completed ? '(' + completed + ')' : '';
+    el = document.getElementById('fc-offers');    if (el) el.textContent = offers     '(' + offers    + ')' : '';
+    el = document.getElementById('fc-active');    if (el) el.textContent = active     '(' + active    + ')' : '';
+    el = document.getElementById('fc-upcoming');  if (el) el.textContent = upcoming   '(' + upcoming  + ')' : '';
+    el = document.getElementById('fc-completed'); if (el) el.textContent = completed  '(' + completed + ')' : '';
   }
 
   function renderPipeline5(b) {
@@ -308,14 +308,14 @@
     ];
     var html = '<div class="e-pipeline-track">';
     steps.forEach(function(s, i) {
-      var dotCls = s.isCurrent ? ' current' : s.done ? ' done' : '';
-      var lblCls = s.isCurrent ? ' current' : '';
+      var dotCls = s.isCurrent  ' current' : s.done  ' done' : '';
+      var lblCls = s.isCurrent  ' current' : '';
       html += '<div class="e-pipeline-node">'
         + '<div class="e-pipeline-dot' + dotCls + '"></div>'
         + '<div class="e-pipeline-label' + lblCls + '">' + s.label + '</div>'
         + '</div>';
       if (i < steps.length - 1) {
-        html += '<div class="e-pipeline-connector' + (s.done ? ' done' : '') + '"></div>';
+        html += '<div class="e-pipeline-connector' + (s.done  ' done' : '') + '"></div>';
       }
     });
     html += '</div>';
@@ -347,7 +347,7 @@
   function maskName(n) {
     if (!n) return 'Customer';
     var p = n.trim().split(/\s+/);
-    return p[0] + (p.length > 1 ? ' ' + p[p.length-1][0].toUpperCase() + '.' : '');
+    return p[0] + (p.length > 1  ' ' + p[p.length-1][0].toUpperCase() + '.' : '');
   }
 
     function cardHtml(b) {
@@ -355,27 +355,27 @@
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
       const isCompleted = b.status === 'completed';
       const customerName = maskName(b.customer_name);
-      const payStr = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : '');
-      const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
+      const payStr = b._pay_estimate_lo  '$' + Math.round(b._pay_estimate_lo/100) : (b.assembler_due  '$' + Math.round(b.assembler_due/100) : '');
+      const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at  STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
 
       return '<div class="e-job-card" data-bid="' + b.id + '">' +
         '<div class="e-job-card-top">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
-            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerName) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
+            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at  'for ' + esc(customerName) : '') + (b.date  (b.assembler_accepted_at  ' &bull; ' : '') + formatDate(b.date) + (b.time  ' at ' + esc(b.time) : '') : '') + '</div>' +
           '</div>' +
-          (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
-          (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
+          (payStr && isPendingOffer  '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
+          (!isPendingOffer  '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
         '</div>' +
-        (b.address && !isCompleted ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
-        (isPendingOffer && b._offer_expires_at ? '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
-        (isLive ? renderPipeline5(b) : '') +
-        (isLive ? '<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="card-help-btn" data-bid="' + b.id + '" style="font-size:0.75rem;color:var(--pro-teal);background:none;border:1px solid rgba(0,191,255,0.35);border-radius:6px;padding:3px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent">Help</button></div>' : '') +
-        (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned $' + (b.assembler_due/100).toFixed(2) : '') + '</div>' : '') +
-        (isPendingOffer ?
+        (b.address && !isCompleted  '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
+        (isPendingOffer && b._offer_expires_at  '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
+        (isLive  renderPipeline5(b) : '') +
+        (isLive  '<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="card-help-btn" data-bid="' + b.id + '" style="font-size:0.75rem;color:var(--pro-teal);background:none;border:1px solid rgba(0,191,255,0.35);border-radius:6px;padding:3px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent">Help</button></div>' : '') +
+        (isCompleted && b.completed_at  '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due  ' &bull; Earned $' + (b.assembler_due/100).toFixed(2) : '') + '</div>' : '') +
+        (isPendingOffer 
           '<div class="e-job-card-actions">' +
             '<button class="e-job-card-accept card-accept-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '">Accept</button>' +
-            (b._offer_token ? '<button class="e-job-card-decline card-decline-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '">Decline</button>' : '<div></div>') +
+            (b._offer_token  '<button class="e-job-card-decline card-decline-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '">Decline</button>' : '<div></div>') +
           '</div>' : '') +
       '</div>';
     }
@@ -429,7 +429,7 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
-        const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
+        const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
       } catch {}
     });
@@ -475,7 +475,7 @@
           setTimeout(function(){ banner.remove(); }, 4000);
           try {
             var rf = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-            if (rf.ok) { var rd = await rf.json(); allAssignments = rd.bookings || []; var cfLink = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cfLink)); updateFilterCounts(allAssignments); }
+            if (rf.ok) { var rd = await rf.json(); allAssignments = rd.bookings || []; var cfLink = document.querySelector('.e-filter-pill.active').dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cfLink)); updateFilterCounts(allAssignments); }
           } catch {}
         } else {
           banner.style.background = '#ef4444';
@@ -502,7 +502,7 @@
     function hideNotif(){notifPanel.style.display='none';if(notifBackdrop)notifBackdrop.style.display='none';}
     document.getElementById('eh-bell-btn').addEventListener('click', function(e) {
       e.stopPropagation();
-      notifPanel.style.display === 'none' ? showNotif() : hideNotif();
+      notifPanel.style.display === 'none'  showNotif() : hideNotif();
     });
     document.addEventListener('click', function() {
       if (notifPanel && notifPanel.style.display !== 'none') hideNotif();
@@ -527,7 +527,7 @@
       if (resp.status === 401) {
         try {
           const { data: rd } = await supabaseClient.auth.refreshSession();
-          if (rd?.session?.access_token) {
+          if (rd.session.access_token) {
             token = rd.session.access_token;
             resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + token } });
           }
@@ -555,7 +555,7 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
-        const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
+        const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
         updateFilterCounts(allAssignments);
         if (alertOnNew) APP.showAlert('page-alert', 'You have been assigned a new booking!', 'success');
@@ -568,7 +568,7 @@
         { event: '*', schema: 'public', table: 'bookings', filter: 'assembler_id=eq.' + auth.user.id },
         (payload) => {
           const isNewAssignment = payload.eventType === 'INSERT' ||
-            (payload.eventType === 'UPDATE' && payload.old?.assembler_id !== payload.new?.assembler_id);
+            (payload.eventType === 'UPDATE' && payload.old.assembler_id !== payload.new.assembler_id);
           clearTimeout(_rtDebounce);
           _rtDebounce = setTimeout(() => refreshAssignments(isNewAssignment), 400);
         }
@@ -604,7 +604,7 @@
           const d = await r.json();
           if (!r.ok || d.error) {
             const msg = r.status === 409
-              ? 'This job was just accepted by another Easer.'
+               'This job was just accepted by another Easer.'
               : (d.error || 'Could not accept — job may already be taken');
             APP.showAlert('page-alert', msg, 'error');
             acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
@@ -612,7 +612,7 @@
           }
           APP.showAlert('page-alert', '&#10003; Job accepted! Open the job card to see details.', 'success');
           const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cf)); updateFilterCounts(allAssignments); }
+          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cf)); updateFilterCounts(allAssignments); }
         } catch {
           APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
           acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
@@ -812,7 +812,7 @@
       if (_photoFile && _photoDataUrl && !_photoUploaded) {
         if (statusEl) { statusEl.textContent = 'Uploading photo…'; statusEl.style.color = '#374151'; statusEl.style.display = 'block'; }
         try {
-          const raw = _photoDataUrl.includes(',') ? _photoDataUrl.split(',')[1] : _photoDataUrl;
+          const raw = _photoDataUrl.includes(',')  _photoDataUrl.split(',')[1] : _photoDataUrl;
           const uploadResp = await fetch('/api/booking/upload-evidence', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
@@ -888,7 +888,7 @@
               allAssignments = fd.bookings || [];
             }
           } catch {}
-          const cf = document.querySelector('.e-filter-pill.active')?.dataset.filter || 'all';
+          const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
           renderAssignments(filterList(allAssignments, cf));
           updateFilterCounts(allAssignments);
           _completionInFlight = false;
@@ -931,16 +931,16 @@
   function refreshThread(bId) {
     supabaseClient.from('messages').select('*').eq('booking_id', bId).order('created_at', { ascending: true })
       .then(function(r) {
-        var msgs = (r.error ? [] : r.data) || [];
+        var msgs = (r.error  [] : r.data) || [];
         var thread = document.getElementById('asgn-msg-thread');
         if (!msgs.length) {
           thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
         } else {
           thread.innerHTML = msgs.map(function(m) {
             var isMe = m.sender === 'assembler';
-            return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
+            return '<div style="display:flex;justify-content:' + (isMe  'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
               + '<div style="max-width:80%;padding:0.55rem 0.85rem;border-radius:12px;font-size:0.875rem;line-height:1.5;'
-              + (isMe ? 'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
+              + (isMe  'background:var(--teal);color:#fff;border-radius:12px 12px 2px 12px' : 'background:var(--pro-surface);color:var(--pro-text);border:1px solid var(--pro-border);border-radius:12px 12px 12px 2px') + '">' + esc(m.body) + '</div></div>';
           }).join('');
           thread.scrollTop = thread.scrollHeight;
         }
@@ -957,8 +957,8 @@
     const isCompleted = b.status === 'completed';
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
     const payEst = (b.status === 'completed')
-      ? (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null)
-      : (b._pay_estimate_lo ? (b._pay_estimate_lo === b._pay_estimate_hi ? '$' + Math.round(b._pay_estimate_lo/100) : '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100)) : (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null));
+       (b.assembler_due  '$' + (b.assembler_due/100).toFixed(2) : null)
+      : (b._pay_estimate_lo  (b._pay_estimate_lo === b._pay_estimate_hi  '$' + Math.round(b._pay_estimate_lo/100) : '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100)) : (b.assembler_due  '$' + (b.assembler_due/100).toFixed(2) : null));
 
     document.getElementById('asgn-modal-body').innerHTML = [
       // Header row: service title + status badge
@@ -968,27 +968,27 @@
       '</div>',
 
       // Pay estimate pill (for offers / accepted)
-      payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
+      payEst  '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
         + '<strong style="color:var(--pro-teal)">' + payEst + '</strong>'
-        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (b.status === 'completed' ? 'Your payout' : 'Est. take-home') + '</span>'
+        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (b.status === 'completed'  'Your payout' : 'Est. take-home') + '</span>'
         + '</div><br>' : '',
 
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
-        b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
-        b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
-        accepted && !isCompleted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(b.customer_phone) + '</a></div>' : '',
-        b.details ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + esc(b.details) + '</span></div>' : '',
-        b.ref ? '<div style="font-size:0.72rem;color:var(--pro-muted)">Ref: ' + esc(b.ref) + '</div>' : '',
+        b.date  '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time  ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
+        b.address && !isCompleted  '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
+        accepted && !isCompleted && b.customer_phone  '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(b.customer_phone) + '</a></div>' : '',
+        b.details  '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + esc(b.details) + '</span></div>' : '',
+        b.ref  '<div style="font-size:0.72rem;color:var(--pro-muted)">Ref: ' + esc(b.ref) + '</div>' : '',
       '</div>',
 
       // Offer expiry countdown
-      isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
+      isPendingOffer && b._offer_expires_at  '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
         + '<span style="color:#92400e">Offer expires in <strong id="offer-countdown-' + b.id + '">—</strong></span></div>' : '',
 
       // Accept / Decline buttons — shown for pending offers
-      isPendingOffer ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1rem" id="accept-job-section">'
+      isPendingOffer  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1rem" id="accept-job-section">'
         + '<button id="accept-job-btn" class="btn btn-teal" style="min-height:48px;border-radius:12px;font-size:0.95rem">Accept Job</button>'
         + '<button id="decline-job-btn" class="btn" style="min-height:48px;border-radius:12px;color:#dc2626;border-color:rgba(239,68,68,0.25)">Decline</button>'
         + '</div>' : '',
@@ -1025,7 +1025,7 @@
     }
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
     const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && (b.assembler_accepted_at || b.assigned_at);
-    document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
+    document.getElementById('complete-section').style.display = canComplete2  'block' : 'none';
 
     // Evidence request section — shown when payout is held pending upload
     var evReqSection = document.getElementById('evidence-request-section');
@@ -1047,10 +1047,10 @@
     if (b.status === 'completed') {
       payoutSection.style.display = 'block';
       var dueCents = b.assembler_due || 0;
-      document.getElementById('payout-info-amount').textContent = dueCents > 0 ? '$' + (dueCents / 100).toFixed(2) : '$0.00';
+      document.getElementById('payout-info-amount').textContent = dueCents > 0  '$' + (dueCents / 100).toFixed(2) : '$0.00';
       var payoutNote;
       if (b.payout_status === 'paid') {
-        payoutNote = b.paid_out_at ? 'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
+        payoutNote = b.paid_out_at  'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
       } else if (evidenceHeld) {
         payoutNote = 'Payout on hold — upload photos above to release.';
       } else if (dueCents > 0) {
@@ -1118,7 +1118,7 @@
           });
           const d = await r.json();
           if (!r.ok || d.error) {
-            const msg = r.status === 409 ? 'This job was just accepted by another Easer.' : (d.error || 'Could not accept — please try again.');
+            const msg = r.status === 409  'This job was just accepted by another Easer.' : (d.error || 'Could not accept — please try again.');
             APP.showAlert('page-alert', msg, 'error');
             acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job'; return;
           }
@@ -1181,8 +1181,8 @@
     var _sb = document.getElementById('support-body');
     var _sc = document.getElementById('support-chevron');
     const isLiveJob = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
-    if (_sb) _sb.style.display = isLiveJob ? '' : 'none';
-    if (_sc) _sc.style.transform = isLiveJob ? 'rotate(180deg)' : 'rotate(0deg)';
+    if (_sb) _sb.style.display = isLiveJob  '' : 'none';
+    if (_sc) _sc.style.transform = isLiveJob  'rotate(180deg)' : 'rotate(0deg)';
     // Load messages from Supabase
     refreshThread(bookingId);
   };
@@ -1211,7 +1211,7 @@
 <!-- Complete job confirmation sheet -->
 <div class="sheet-overlay" id="complete-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Is all work finished?</div>
+    <div class="sheet-title">Is all work finished</div>
     <div class="sheet-body">Only mark complete after <strong>all requested work is done</strong> — not when you've arrived or started. This charges the customer's card and sends a completion notice.</div>
     <ul style="margin:0.625rem 0 0.75rem;padding-left:1.2rem;font-size:0.82rem;color:#374151;line-height:1.85">
       <li>All requested work is fully finished</li>
@@ -1242,7 +1242,7 @@
 <!-- Decline offer reason sheet -->
 <div class="sheet-overlay" id="decline-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Why are you declining?</div>
+    <div class="sheet-title">Why are you declining</div>
     <div class="sheet-body">This helps us improve dispatch matching. Optional.</div>
     <div class="sheet-actions" id="decline-reason-list">
       <button class="decline-reason-btn" data-reason="scheduling_conflict">Scheduling conflict</button>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
@@ -113,7 +113,7 @@
   <div class="page-hero-inner">
     <a href="/" class="page-back">&larr; Back to Home</a>
     <h1 class="page-title">Contact Us</h1>
-    <p class="page-desc">Have a question? We respond to all messages within 1 hour during business hours.</p>
+    <p class="page-desc">Have a question We respond to all messages within 1 hour during business hours.</p>
   </div>
 </section>
 <section class="contact-section">
@@ -151,7 +151,7 @@
   </div>
 </section>
 <section style="padding:2.5rem 2rem;max-width:900px;margin:0 auto">
-  <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:#0d1117;margin-bottom:1rem">How Can We Help?</h2>
+  <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:#0d1117;margin-bottom:1rem">How Can We Help</h2>
   <p style="color:#6b7280;line-height:1.85;margin-bottom:1rem">Whether you have a question about pricing, want to schedule a service, or need a custom quote for a unique project, we are here to help. AssembleAtEase serves Austin, TX and surrounding areas including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, and more. Reach out to confirm availability in your zip code.</p>
   <p style="color:#6b7280;line-height:1.85;margin-bottom:1rem">Our team typically responds within 1 hour during business hours, Monday through Friday, 9am to 5pm. We offer free quotes on all services including furniture assembly, TV mounting, and smart home installation.</p>
   <p style="color:#6b7280;line-height:1.85;margin-bottom:1rem">No job is too big or too small. Fill out the form and we will get back to you with everything you need to know. Payment is only collected after the job is fully completed to your satisfaction.</p>
@@ -275,14 +275,14 @@
         <div id="card-errors" role="alert"></div>
       </div>
       <button class="btn btn-cyan btn-full btn-lg" id="card-submit-btn" onclick="AAE.confirmCard()">Authorize Card &rarr;</button>
-      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secured by <strong>Stripe</strong>. Your card is authorized now &mdash; <strong>no charge until the job is complete.</strong></p>
+      <p style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.75rem">Secured by <strong>Stripe</strong>. Your card is authorized now &mdash; <strong>secure payment at booking.</strong></p>
       <button onclick="AAE.backToForm()" style="display:block;margin:0.75rem auto 0;background:none;border:none;font-size:0.82rem;color:var(--muted);cursor:pointer;text-decoration:underline">&larr; Go back and edit</button>
     </div>
     <div class="success-state" id="success-state">
       <div class="success-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
       <div class="success-title">Booking Request Sent!</div>
       <p class="success-desc" id="success-desc">We received your request and will contact you within 1 hour to confirm.</p>
-      <p style="margin-top:0.75rem;font-size:0.875rem;color:var(--muted)">Questions? Email <strong><a href="mailto:service@assembleatease.com">service@assembleatease.com</a></strong></p>
+      <p style="margin-top:0.75rem;font-size:0.875rem;color:var(--muted)">Questions Email <strong><a href="mailto:service@assembleatease.com">service@assembleatease.com</a></strong></p>
       <p style="margin-top:0.75rem;font-size:0.875rem"><a href="/track" style="color:var(--cyan);font-weight:600">Track your booking &rarr;</a></p>
       <button class="btn btn-cyan" style="margin-top:1.5rem" onclick="AAE.closeBooking()">Close</button>
     </div>
@@ -364,7 +364,7 @@ AAE.quickBook = function(name, price) {
 AAE.getTotal = function() {
   return AAE.cart.reduce(function(sum, i) {
     var p = parseFloat(String(i.price).replace(/[^0-9.]/g,''));
-    return sum + (isNaN(p) ? 0 : p);
+    return sum + (isNaN(p)  0 : p);
   }, 0);
 };
 
@@ -460,7 +460,7 @@ AAE.initAddressAutocomplete = function() {
     var q = input.value.trim();
     if (q.length < 4) { dropdown.style.display = 'none'; return; }
     debounce = setTimeout(function() {
-      fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&addressdetails=1&limit=5&q=' + encodeURIComponent(q))
+      fetch('https://nominatim.openstreetmap.org/searchformat=json&countrycodes=us&addressdetails=1&limit=5&q=' + encodeURIComponent(q))
         .then(function(r) { return r.json(); })
         .then(function(results) {
           if (!results.length) { dropdown.style.display = 'none'; return; }
@@ -487,7 +487,7 @@ AAE.submitBooking = async function() {
   var time    = document.getElementById('f-time').value;
   var details = document.getElementById('f-details').value.trim();
   var customQuote = document.getElementById('f-custom-quote') && document.getElementById('f-custom-quote').checked;
-  var services = AAE.cart.length > 0 ? AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
+  var services = AAE.cart.length > 0  AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
   if (customQuote) services = '[CUSTOM QUOTE REQUESTED] ' + services;
   var errEl = document.getElementById('form-err');
   errEl.style.display = 'none';
@@ -517,12 +517,12 @@ AAE.submitBooking = async function() {
   } catch(e) {
     errEl.textContent = e.message || 'Something went wrong. Please try again or email us at service@assembleatease.com.';
     errEl.style.display='block';
-    btn.disabled = false; btn.textContent = 'Send Booking Request ?';
+    btn.disabled = false; btn.textContent = 'Send Booking Request ';
     return;
   }
 
   AAE.clearCart();
-  btn.disabled = false; btn.textContent = 'Send Booking Request ?';
+  btn.disabled = false; btn.textContent = 'Send Booking Request ';
 
   if (data.clientSecret) {
     AAE._pendingData = { ref: data.ref, bookingId: data.bookingId, services: services, address: address, date: date, time: time, isDeposit: data.isDeposit, depositAmountCents: data.depositAmountCents, totalCents: totalCents, bookingName: _bookingName, bookingEmail: _bookingEmail };
@@ -637,7 +637,7 @@ AAE.backToForm = function() {
 };
 
 AAE.showSuccess = function(ref, services, address, date, time) {
-  var desc = 'We received your booking' + (ref ? ' (' + ref + ')' : '') + ' for: ' + services + '. We will contact you within 1 hour to confirm your appointment at ' + address + ' on ' + date + ' at ' + time + '.';
+  var desc = 'We received your booking' + (ref  ' (' + ref + ')' : '') + ' for: ' + services + '. We will contact you within 1 hour to confirm your appointment at ' + address + ' on ' + date + ' at ' + time + '.';
   document.getElementById('success-desc').textContent = desc;
   document.getElementById('form-state').style.display = 'none';
   document.getElementById('card-step').style.display = 'none';
@@ -654,7 +654,7 @@ AAE.showSuccess = function(ref, services, address, date, time) {
     var today=new Date();today.setHours(0,0,0,0);
     var maxDate=new Date(today.getTime()+6*24*60*60*1000);
     var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
-    function pad(n){return n<10?'0'+n:n;}
+    function pad(n){return n<10'0'+n:n;}
     function render(){
       titleEl.textContent=months[curMonth]+' '+curYear;
       prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());

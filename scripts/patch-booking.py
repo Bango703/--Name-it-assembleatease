@@ -40,7 +40,7 @@ NEW_H1 = b("""\
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Furniture Assembly</div>
-              <div class="svc-row-meta">From $69 &bull; 1&ndash;3 hrs</div>
+              <div class="svc-row-meta">From $99 &bull; 1&ndash;3 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -50,7 +50,7 @@ NEW_H1 = b("""\
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">TV Mounting</div>
-              <div class="svc-row-meta">From $69 &bull; about 1 hr</div>
+              <div class="svc-row-meta">From $99 &bull; about 1 hr</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -60,7 +60,7 @@ NEW_H1 = b("""\
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Smart Home</div>
-              <div class="svc-row-meta">From $69 &bull; about 1 hr</div>
+              <div class="svc-row-meta">From $99 &bull; about 1 hr</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -90,7 +90,7 @@ NEW_H1 = b("""\
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Office Assembly</div>
-              <div class="svc-row-meta">From $95 &bull; 1&ndash;3 hrs</div>
+              <div class="svc-row-meta">From $99 &bull; 1&ndash;3 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -301,12 +301,12 @@ NEW_JS1 = b("""\
 // ----------------------------------------------------------------------------
 
 var SVC_FROM = {
-  'Furniture Assembly':  'From $69 · 1–3 hrs',
-  'TV Mounting':         'From $69 · about 1 hr',
-  'Smart Home':          'From $69 · about 1 hr',
+  'Furniture Assembly':  'From $99 · 1–3 hrs',
+  'TV Mounting':         'From $99 · about 1 hr',
+  'Smart Home':          'From $99 · about 1 hr',
   'Fitness Equipment':   'From $129 · 1–3 hrs',
   'Outdoor & Playsets':  'From $149 · 2–4 hrs',
-  'Office Assembly':     'From $95 · 1–3 hrs'
+  'Office Assembly':     'From $99 · 1–3 hrs'
 };
 
 function showItemScreen(svc) {
