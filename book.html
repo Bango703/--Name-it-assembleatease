@@ -688,7 +688,31 @@
 
     .slot-rec { display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); margin-top: 2px; }
 
-    .tile-feedback { display: none; align-items: center; gap: 0.5rem; background: #ecfdf5; border: 1px solid rgba(34,197,94,0.3); border-radius: var(--radius-md); padding: 0.65rem 1rem; font-size: 0.875rem; color: #166534; font-weight: 500; margin-top: 1rem; }
+    /* -- Service list (Screen A) -- */
+    .svc-list { display: flex; flex-direction: column; gap: 0.55rem; margin: 1.25rem 0 0; }
+    .svc-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.9rem 1rem; border: 1.5px solid rgba(148,163,184,0.34); border-radius: 14px; background: var(--white); cursor: pointer; text-align: left; width: 100%; outline: none; transition: border-color var(--transition), box-shadow var(--transition), background var(--transition); }
+    .svc-row:hover, .svc-row:focus-visible { border-color: var(--teal); box-shadow: 0 4px 16px rgba(0,191,255,0.1); }
+    .svc-row.has-items { border-color: var(--teal); background: #f6fcff; }
+    .svc-row-icon { width: 42px; height: 42px; flex-shrink: 0; background: #eefbff; color: var(--teal); border-radius: 13px; display: flex; align-items: center; justify-content: center; transition: background var(--transition), color var(--transition); }
+    .svc-row.has-items .svc-row-icon { background: var(--teal); color: #fff; }
+    .svc-row-icon svg { width: 21px; height: 21px; }
+    .svc-row-info { flex: 1; min-width: 0; }
+    .svc-row-name { font-size: 0.93rem; font-weight: 700; color: var(--ink); line-height: 1.25; }
+    .svc-row-meta { font-size: 0.76rem; color: var(--muted); margin-top: 0.18rem; }
+    .svc-row-badge { display: none; margin-top: 0.28rem; font-size: 0.69rem; font-weight: 700; color: var(--teal); }
+    .svc-row.has-items .svc-row-badge { display: block; }
+    .svc-row-chevron { color: rgba(148,163,184,0.6); flex-shrink: 0; transition: color var(--transition); }
+    .svc-row:hover .svc-row-chevron, .svc-row.has-items .svc-row-chevron { color: var(--teal); }
+
+    /* -- Item picker (Screen B) -- */
+    .item-screen-nav { margin-bottom: 1.1rem; }
+    .item-back-btn { background: none; border: none; cursor: pointer; color: var(--teal); font-size: 0.875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0; transition: opacity var(--transition); font-family: var(--font-body); }
+    .item-back-btn:hover { opacity: 0.72; }
+    .item-back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .item-screen-heading { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; color: var(--ink); line-height: 1.05; }
+    .item-screen-from { font-size: 0.82rem; color: var(--muted); margin-top: 0.35rem; margin-bottom: 1rem; }
+
+    .tile-feedback { display: none; }
 
     .book-progress-hint { text-align: center; font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; letter-spacing: 0.01em; }
 
@@ -1206,11 +1230,14 @@
 
       <div class="step-panel" id="step-1">
 
+        <!-- ── SCREEN A: Service Selection ─────────────────────────────── -->
+        <div id="svc-screen">
+
         <div class="step-kicker">Austin-first service</div>
 
         <div class="step-heading">What do you need help with?</div>
 
-        <p class="step-sub">Pick a service. Choose items below.</p>
+        <p class="step-sub">Choose a service to see options and pricing.</p>
 
         <div class="step-assurance" aria-label="Booking promises">
           <span><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-9.1 0V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9Z"/></svg> Secure checkout</span>
@@ -1220,166 +1247,132 @@
 
 
 
-        <div class="service-section-head">
-          <div>
-            <span class="service-section-eyebrow">Popular services</span>
-            <div class="service-section-title">Start with the main job</div>
-          </div>
-          <div class="service-section-note">Pick one or combine services. Item prices appear below.</div>
-        </div>
+        <div class="svc-list">
 
-        <div class="service-tiles" id="service-tiles">
-
-          <div class="service-tile" data-service="Furniture Assembly" data-price="69" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-photo"><img src="/images/booking-service-furniture-assembly.jpg?v=booking-photos-2" alt="" loading="eager" width="1536" height="1024"></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
-              <div>
-                <div class="tile-name">Furniture Assembly</div>
-                <div class="tile-from">From $69 &bull; 1-3 hrs</div>
-                <div class="tile-status">Selected - choose items below</div>
-              </div>
+          <button class="svc-row" data-service="Furniture Assembly" onclick="showItemScreen(this.dataset.service)">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">Furniture Assembly</div>
+              <div class="svc-row-meta">From $69 &bull; 1&ndash;3 hrs</div>
+              <div class="svc-row-badge"></div>
             </div>
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
 
-          </div>
-
-          <div class="service-tile" data-service="TV Mounting" data-price="69" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-photo"><img src="/images/booking-service-tv-mounting.jpg?v=booking-photos-2" alt="" loading="eager" width="1536" height="1024"></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
-              <div>
-                <div class="tile-name">TV Mounting</div>
-                <div class="tile-from">From $69 &bull; about 1 hr</div>
-                <div class="tile-status">Selected - choose items below</div>
-              </div>
+          <button class="svc-row" data-service="TV Mounting" onclick="showItemScreen(this.dataset.service)">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">TV Mounting</div>
+              <div class="svc-row-meta">From $69 &bull; about 1 hr</div>
+              <div class="svc-row-badge"></div>
             </div>
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
 
-          </div>
-
-          <div class="service-tile" data-service="Smart Home" data-price="69" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-photo"><img src="/images/booking-service-smart-home.jpg?v=booking-photos-2" alt="" loading="eager" width="1536" height="1024"></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
-              <div>
-                <div class="tile-name">Smart Home</div>
-                <div class="tile-from">From $69 &bull; about 1 hr</div>
-                <div class="tile-status">Selected - choose items below</div>
-              </div>
+          <button class="svc-row" data-service="Smart Home" onclick="showItemScreen(this.dataset.service)">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">Smart Home</div>
+              <div class="svc-row-meta">From $69 &bull; about 1 hr</div>
+              <div class="svc-row-badge"></div>
             </div>
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
 
-          </div>
-
-          <div class="service-tile" data-service="Fitness Equipment" data-price="129" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-photo"><img src="/images/booking-service-fitness-equipment.jpg?v=booking-photos-2" alt="" loading="lazy" width="1536" height="1024"></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-              <div>
-                <div class="tile-name">Fitness Equipment</div>
-                <div class="tile-from">From $129 &bull; 1-3 hrs</div>
-                <div class="tile-status">Selected - choose items below</div>
-              </div>
+          <button class="svc-row" data-service="Fitness Equipment" onclick="showItemScreen(this.dataset.service)">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">Fitness Equipment</div>
+              <div class="svc-row-meta">From $129 &bull; 1&ndash;3 hrs</div>
+              <div class="svc-row-badge"></div>
             </div>
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
 
-          </div>
-
-          <div class="service-tile" data-service="Outdoor &amp; Playsets" data-price="149" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-photo"><img src="/images/booking-service-outdoor-playsets.jpg?v=booking-photos-2" alt="" loading="lazy" width="1536" height="1024"></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22v-7h6v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-              <div>
-                <div class="tile-name">Outdoor &amp; Playsets</div>
-                <div class="tile-from">From $149 &bull; 2-4 hrs</div>
-                <div class="tile-status">Selected - choose items below</div>
-              </div>
+          <button class="svc-row" data-service="Outdoor &amp; Playsets" onclick="showItemScreen(this.dataset.service)">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">Outdoor &amp; Playsets</div>
+              <div class="svc-row-meta">From $149 &bull; 2&ndash;4 hrs</div>
+              <div class="svc-row-badge"></div>
             </div>
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
 
-          </div>
-
-          <div class="service-tile" data-service="Office Assembly" data-price="95" role="button" tabindex="0" aria-pressed="false" onclick="tileClick(this)">
-
-            <div class="tile-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg></div>
-
-            <div class="tile-photo"><img src="/images/booking-service-office-assembly.jpg?v=booking-photos-2" alt="" loading="lazy" width="1536" height="1024"></div>
-
-            <div class="tile-body">
-              <div class="tile-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-              <div>
-                <div class="tile-name">Office Assembly</div>
-                <div class="tile-from">From $95 &bull; 1-3 hrs</div>
-                <div class="tile-status">Selected - choose items below</div>
-              </div>
+          <button class="svc-row" data-service="Office Assembly" onclick="showItemScreen(this.dataset.service)">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">Office Assembly</div>
+              <div class="svc-row-meta">From $95 &bull; 1&ndash;3 hrs</div>
+              <div class="svc-row-badge"></div>
             </div>
-
-          </div>
-
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
 
         </div>
 
-        <div class="selected-service-strip" id="selected-service-strip" aria-live="polite"></div>
-
-        <div class="tile-feedback" id="tile-feedback">&#10003;&ensp;Great choice. Now pick what you need below &darr;</div>
-
-        <div class="subcat-intro" id="subcat-intro">Pick a service card above. Item options and common add-ons will appear here.</div>
+        </div><!-- /svc-screen -->
 
 
 
-        <!-- Sub-category panels injected here -->
+        <!-- ── SCREEN B: Item Selection ──────────────────────────────────────── -->
 
-        <div class="subcats-wrap" id="subcats-wrap"></div>
+        <div id="item-screen" style="display:none">
+
+          <div class="item-screen-nav">
+            <button class="item-back-btn" onclick="showSvcScreen()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+              Back to services
+            </button>
+          </div>
+
+          <div class="item-screen-heading" id="item-screen-heading"></div>
+          <div class="item-screen-from" id="item-screen-from"></div>
+
+          <div class="subcat-search-wrap">
+            <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" id="item-search" class="subcat-search" placeholder="Search items… e.g. queen bed, treadmill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="subcat-search-clear" id="item-search-clear" aria-label="Clear search">&times;</button>
+          </div>
+          <div id="item-no-results" class="subcat-no-results" style="display:none">No items match “<span></span>”</div>
+
+          <div id="item-list-wrap"></div>
 
 
 
-        <div class="form-fields" style="margin-top:0.5rem">
+          <div class="form-fields" style="margin-top:1.5rem">
 
-          <div class="form-group">
+            <div class="form-group">
 
-            <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+              <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
 
-            <textarea class="form-textarea" id="s1-details" rows="2"
+              <textarea class="form-textarea" id="s1-details" rows="2"
 
-              placeholder="Any extra details: brand, model, floor, access info..."></textarea>
+                placeholder="Any extra details: brand, model, floor, access info..."></textarea>
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> This is a large or complex job &mdash; I'd prefer a custom quote</label>
+
+            </div>
 
           </div>
 
-          <div class="form-group">
 
-            <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> This is a large or complex job &mdash; I'd prefer a custom quote</label>
+
+          <div class="step-err" id="s1-err">Please select at least one service.</div>
+
+          <div class="step-actions">
+
+            <button class="btn-next" id="s1-next" onclick="goToStep2Account()">Continue <span>&#8594;</span></button>
 
           </div>
 
-        </div>
+        </div><!-- /item-screen -->
 
-
-
-        <div class="step-err" id="s1-err">Please select at least one service.</div>
-
-        <div class="step-actions">
-
-          <button class="btn-next" id="s1-next" onclick="goToStep2Account()">Continue <span>&#8594;</span></button>
-
-        </div>
-
-      </div>
+      </div><!-- /step-1 -->
 
 
 
@@ -1980,7 +1973,8 @@ var BOOK = {
 
   selectedServices: [],
 
-  selectedItems: {},   // { ServiceName: [{name, price, priceMax, addon, customQuote, qty}] }
+  selectedItems: {},   // { ServiceName: [{name, price, priceMax, addon, customQuote, qty}] }
+  currentSvc: null,
 
   details: '',
 
@@ -2120,369 +2114,133 @@ function fmtPrice(item) {
 
 // ----------------------------------------------------------------------------
 
-// SERVICE TILE TOGGLE (multi-select), called via onclick attribute
+// SCREEN NAVIGATION
 
 // ----------------------------------------------------------------------------
 
-function tileClick(el) {
-
-  var svc = el.dataset.service;
-
-  var idx = BOOK.selectedServices.indexOf(svc);
-
-  if (idx === -1) {
-
-    BOOK.selectedServices.push(svc);
-
-    if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
-
-    el.classList.add('selected');
-    el.setAttribute('aria-pressed', 'true');
-
-    var fb = document.getElementById('tile-feedback');
-
-    if (fb) { fb.style.display='flex'; clearTimeout(window._fbTimer); window._fbTimer=setTimeout(function(){fb.style.display='none';},3000); }
-
-  } else {
-
-    BOOK.selectedServices.splice(idx, 1);
-
-    delete BOOK.selectedItems[svc];
-
-    el.classList.remove('selected');
-    el.setAttribute('aria-pressed', 'false');
-
-  }
-
-  hideErr('s1-err');
-
-  renderSubcats();
-  renderSelectedServices();
-
-  updateOrderSummary();
-
-}
-
-document.querySelectorAll('.service-tile').forEach(function(tile) {
-  tile.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      tileClick(tile);
-    }
-  });
-});
-
-function renderSelectedServices() {
-  var strip = document.getElementById('selected-service-strip');
-  if (!strip) return;
-
-  if (BOOK.selectedServices.length === 0) {
-    strip.classList.remove('show');
-    strip.innerHTML = '';
-    return;
-  }
-
-  var serviceWord = BOOK.selectedServices.length === 1 ? 'service' : 'services';
-  var chips = BOOK.selectedServices.map(function(svc) {
-    return '<span class="selected-service-chip">' + esc(svc)
-      + '<button type="button" data-remove-svc="' + escAttr(svc) + '" aria-label="Remove ' + escAttr(svc) + '">&times;</button>'
-      + '</span>';
-  }).join('');
-
-  strip.classList.add('show');
-  strip.innerHTML = '<div class="selected-service-copy"><strong>' + BOOK.selectedServices.length + ' ' + serviceWord + ' selected.</strong> Pick items below.</div>'
-    + '<div class="selected-service-chips">' + chips + '</div>';
-}
-
-document.getElementById('selected-service-strip').addEventListener('click', function(e) {
-  var btn = e.target.closest('[data-remove-svc]');
-  if (!btn) return;
-  deselectService(btn.dataset.removeSvc);
-});
-
-
-
-// ----------------------------------------------------------------------------
-
-// RENDER SUB-CATEGORY PANELS
-
-// ----------------------------------------------------------------------------
-
-var SVC_ICONS = {
-
-  'Furniture Assembly': '\uD83E\uDE91',
-
-  'TV Mounting': '\uD83D\uDCFA',
-
-
-  'Smart Home': '\uD83C\uDFE0',
-
-  'Outdoor & Playsets': '\u26F0\uFE0F',
-
-  'Office Assembly': '\uD83D\uDCBB',
-
-  'Fitness Equipment': '\uD83C\uDFCB\uFE0F',
-
-
-  'Other': '\uD83D\uDCAC'
-
+var SVC_FROM = {
+  'Furniture Assembly':  'From $69 · 1–3 hrs',
+  'TV Mounting':         'From $69 · about 1 hr',
+  'Smart Home':          'From $69 · about 1 hr',
+  'Fitness Equipment':   'From $129 · 1–3 hrs',
+  'Outdoor & Playsets':  'From $149 · 2–4 hrs',
+  'Office Assembly':     'From $95 · 1–3 hrs'
 };
 
+function showItemScreen(svc) {
 
+  BOOK.currentSvc = svc;
 
-function escAttr(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
-
-
-
-function itemRowHtml(svc, item) {
-
-  var sel = isItemSelected(svc, item.name);
-
-  var qty = getItemQty(svc, item.name);
-
-  var priceStr = fmtPrice(item);
-
-  var badge = item.popular ? '<span class="subcat-item-badge">Popular</span>' : '';
-
-  return '<div class="subcat-item' + (sel ? ' selected' : '') + '"'
-
-    + ' data-item-svc="' + escAttr(svc) + '"'
-
-    + ' data-item-name="' + escAttr(item.name) + '"'
-
-    + ' data-item-price="' + (item.price||0) + '"'
-
-    + ' data-item-price-max="' + (item.priceMax||0) + '"'
-
-    + ' data-item-addon="' + (!!item.addon) + '"'
-
-    + ' data-item-custom="' + (!!item.customQuote) + '">'
-
-    + '<div class="subcat-item-left">'
-
-    + '<div class="subcat-item-cb">' + CHECK_SVG + '</div>'
-
-    + '<span class="subcat-item-name">' + esc(item.name) + '</span>'
-
-    + badge
-
-    + '</div>'
-
-    + '<span class="subcat-item-price' + (item.addon ? ' addon' : '') + '">' + priceStr + '</span>'
-
-    + '<div class="subcat-qty">'
-
-    + '<button class="qty-btn" data-qty-svc="' + escAttr(svc) + '" data-qty-name="' + escAttr(item.name) + '" data-qty-delta="-1">\u2212</button>'
-
-    + '<span class="qty-val">' + qty + '</span>'
-
-    + '<button class="qty-btn" data-qty-svc="' + escAttr(svc) + '" data-qty-name="' + escAttr(item.name) + '" data-qty-delta="1">+</button>'
-
-    + '</div>'
-
-    + '</div>';
-
-}
-
-
-
-function renderSubcats() {
-
-  var wrap = document.getElementById('subcats-wrap');
-
-  var intro = document.getElementById('subcat-intro');
-
-  // Save open/search state per panel before rebuild
-  var _savedPanelState = {};
-  wrap.querySelectorAll('.subcat-panel').forEach(function(panel) {
-    var fullList = panel.querySelector('[id^="qp-full-"]');
-    var inp = panel.querySelector('.subcat-search');
-    if (fullList) {
-      var uid = fullList.id.replace('qp-full-', '');
-      _savedPanelState[uid] = { open: fullList.classList.contains('open'), search: inp ? inp.value : '' };
-    }
-  });
-
-  wrap.innerHTML = '';
-
-  if (intro) intro.style.display = BOOK.selectedServices.length ? 'none' : 'block';
-
-  if (BOOK.selectedServices.length === 0) {
-
-    wrap.innerHTML = '<div class="subcat-panel"><div class="subcat-body" style="padding:1rem 1rem 1.1rem"><div class="subcat-header-title" style="margin-bottom:0.35rem">Choose a service first</div><div style="font-size:0.85rem;line-height:1.6;color:var(--muted)">After you select a card, common items and add-ons will appear here with prices.</div></div></div>';
-
-    return;
-
+  if (BOOK.selectedServices.indexOf(svc) === -1) {
+    BOOK.selectedServices.push(svc);
+    if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
   }
 
-  BOOK.selectedServices.forEach(function(svc) {
+  document.getElementById('item-screen-heading').textContent = svc;
+  document.getElementById('item-screen-from').textContent = SVC_FROM[svc] || '';
 
-    var groups = SUBCATS[svc];
+  renderItemScreen(svc);
 
-    if (!groups) return;
+  document.getElementById('svc-screen').style.display = 'none';
+  document.getElementById('item-screen').style.display = '';
 
+  var panel = document.getElementById('step-1');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+}
 
-    // Gather popular + already-selected-non-popular items for chips
+function showSvcScreen() {
 
-    var allItems = [];
-
-    groups.forEach(function(g) { allItems = allItems.concat(g.items); });
-
-    var popularItems = allItems.filter(function(i) { return i.popular; });
-
-    var selectedNonPopular = allItems.filter(function(i) {
-
-      return !i.popular && isItemSelected(svc, i.name);
-
-    });
-
-    var chipItems = popularItems.concat(selectedNonPopular.filter(function(i) {
-
-      return !popularItems.some(function(p) { return p.name === i.name; });
-
-    }));
-
-
-
-    var panel = document.createElement('div');
-
-    panel.className = 'subcat-panel';
-
-    var uid = svc.replace(/\s+/g, '_');
-
-
-
-    var html = '<div class="subcat-header">'
-
-      + '<div><div class="subcat-header-title">' + (SVC_ICONS[svc] || '') + ' ' + esc(svc) + '</div>'
-
-      + '<div style="font-size:0.74rem;color:var(--muted);margin-top:0.18rem">Pick at least one item. Add-ons are optional.</div></div>'
-
-      + '<button class="subcat-close" data-close-svc="' + escAttr(svc) + '" title="Remove">\u00D7</button>'
-
-      + '</div><div class="subcat-body" style="padding:0.75rem 1rem">'
-      + '<div class="subcat-search-wrap">'
-      + '<svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-      + '<input type="search" class="subcat-search" placeholder="Search items… e.g. queen bed, treadmill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">'
-      + '<button type="button" class="subcat-search-clear" tabindex="-1" aria-label="Clear search">×</button>'
-      + '</div>'
-      + '<div class="subcat-no-results">No items match “<span></span>”</div>';
-
-
-
-    // Quick-pick chips
-
-    if (chipItems.length > 0) {
-
-      html += '<div class="qp-wrap"><div class="qp-heading">Most booked for this service</div><div class="qp-chips">';
-
-      chipItems.forEach(function(item) {
-
-        var sel = isItemSelected(svc, item.name);
-
-        html += '<span class="qp-chip' + (sel ? ' selected' : '') + '"'
-
-          + ' data-item-svc="' + escAttr(svc) + '"'
-
-          + ' data-item-name="' + escAttr(item.name) + '"'
-
-          + ' data-item-price="' + (item.price||0) + '"'
-
-          + ' data-item-price-max="' + (item.priceMax||0) + '"'
-
-          + ' data-item-addon="' + (!!item.addon) + '"'
-
-          + ' data-item-custom="' + (!!item.customQuote) + '">'
-
-          + (sel ? '\u2713 ' : '') + esc(item.name)
-
-          + ' <span class="qp-chip-price">' + fmtPrice(item) + '</span>'
-
-          + '</span>';
-
-      });
-
-      html += '</div>'
-
-        + '<button class="qp-more-toggle" data-toggle-target="qp-full-' + escAttr(uid) + '">\u25BC See full item list</button>'
-
-        + '</div>';
-
+  if (BOOK.currentSvc) {
+    var items = BOOK.selectedItems[BOOK.currentSvc] || [];
+    if (items.length === 0) {
+      var idx = BOOK.selectedServices.indexOf(BOOK.currentSvc);
+      if (idx !== -1) BOOK.selectedServices.splice(idx, 1);
+      delete BOOK.selectedItems[BOOK.currentSvc];
     }
+  }
 
+  BOOK.currentSvc = null;
 
+  document.getElementById('item-screen').style.display = 'none';
+  document.getElementById('svc-screen').style.display = '';
 
-    // Full grouped list (auto-open when no popular chips to show)
+  updateSvcRows();
+  updateOrderSummary();
 
-    html += '<div class=”qp-full-list' + (chipItems.length === 0 ? ' open' : '') + '” id=”qp-full-' + uid + '”>';
+  var panel = document.getElementById('step-1');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    groups.forEach(function(g) {
+}
 
-      html += '<div class="subcat-group"><div class="subcat-group-label">' + esc(g.group) + '</div>';
-
-      g.items.forEach(function(item) { html += itemRowHtml(svc, item); });
-
-      html += '</div>';
-
-    });
-
-    html += '</div></div>';
-
-
-
-    panel.innerHTML = html;
-
-    wrap.appendChild(panel);
-
-    // Restore search/open state for this panel
-    var savedState = _savedPanelState[uid];
-    if (savedState) {
-      var fullList = document.getElementById('qp-full-' + uid);
-      if (fullList) {
-        if (savedState.open) {
-          fullList.classList.add('open');
-          var tBtn = panel.querySelector('.qp-more-toggle');
-          if (tBtn) tBtn.textContent = '▲ Hide full item list';
-        }
-        if (savedState.search) {
-          var sInp = panel.querySelector('.subcat-search');
-          if (sInp) { sInp.value = savedState.search; filterSubcatItems(sInp); }
-        }
-      }
+function updateSvcRows() {
+  document.querySelectorAll('.svc-row').forEach(function(row) {
+    var svc = row.dataset.service;
+    var items = BOOK.selectedItems[svc] || [];
+    row.classList.toggle('has-items', items.length > 0);
+    var badge = row.querySelector('.svc-row-badge');
+    if (badge) {
+      badge.textContent = items.length > 0
+        ? (items.length === 1 ? '1 item selected' : items.length + ' items selected')
+        : '';
     }
+  });
+}
+
+
+
+// ----------------------------------------------------------------------------
+
+// RENDER ITEM SCREEN (Screen B)
+
+// ----------------------------------------------------------------------------
+
+function renderItemScreen(svc) {
+
+  var groups = SUBCATS[svc] || [];
+
+  var wrap = document.getElementById('item-list-wrap');
+
+  var html = '';
+
+  groups.forEach(function(g) {
+
+    html += '<div class="subcat-group"><div class="subcat-group-label">' + esc(g.group) + '</div>';
+
+    g.items.forEach(function(item) { html += itemRowHtml(svc, item); });
+
+    html += '</div>';
 
   });
+
+  wrap.innerHTML = html;
+
+  var inp = document.getElementById('item-search');
+  if (inp) inp.value = '';
+
+  var clearBtn = document.getElementById('item-search-clear');
+  if (clearBtn) clearBtn.classList.remove('vis');
+
+  var noRes = document.getElementById('item-no-results');
+  if (noRes) noRes.style.display = 'none';
 
 }
 
 
 
-function filterSubcatItems(inp) {
+function filterItemList(q) {
 
-  var q = inp.value.trim().toLowerCase();
+  var wrap = document.getElementById('item-list-wrap');
 
-  var panel = inp.closest('.subcat-panel');
+  if (!wrap) return;
 
-  if (!panel) return;
+  var clearBtn = document.getElementById('item-search-clear');
 
-  var clearBtn = panel.querySelector('.subcat-search-clear');
-
-  var noResults = panel.querySelector('.subcat-no-results');
+  var noRes = document.getElementById('item-no-results');
 
   if (clearBtn) clearBtn.classList.toggle('vis', q.length > 0);
 
-  // Auto-open the full list whenever user types anything
-  if (q) {
-    var fullList = panel.querySelector('.qp-full-list');
-    if (fullList && !fullList.classList.contains('open')) {
-      fullList.classList.add('open');
-      var tBtn = panel.querySelector('.qp-more-toggle');
-      if (tBtn) tBtn.textContent = '▲ Hide full item list';
-    }
-  }
-
-  var groups = panel.querySelectorAll('.subcat-group');
+  var groups = wrap.querySelectorAll('.subcat-group');
 
   var totalVisible = 0;
 
@@ -2510,13 +2268,13 @@ function filterSubcatItems(inp) {
 
   });
 
-  if (noResults) {
+  if (noRes) {
 
-    noResults.style.display = totalVisible === 0 && q ? 'block' : 'none';
+    noRes.style.display = totalVisible === 0 && q ? 'block' : 'none';
 
-    var sp = noResults.querySelector('span');
+    var sp = noRes.querySelector('span');
 
-    if (sp) sp.textContent = inp.value.trim();
+    if (sp) sp.textContent = q;
 
   }
 
@@ -2524,52 +2282,9 @@ function filterSubcatItems(inp) {
 
 
 
-// Event delegation for all subcat interactions
+// Event delegation for item list
 
-document.getElementById('subcats-wrap').addEventListener('click', function(e) {
-
-  // Close / deselect service
-
-  var closeBtn = e.target.closest('[data-close-svc]');
-
-  if (closeBtn) { deselectService(closeBtn.dataset.closeSvc); return; }
-
-
-
-  // Clear search button
-  var clearBtn = e.target.closest('.subcat-search-clear');
-  if (clearBtn) {
-    var swrap = clearBtn.closest('.subcat-search-wrap');
-    var sinp = swrap && swrap.querySelector('.subcat-search');
-    if (sinp) { sinp.value = ''; filterSubcatItems(sinp); sinp.focus(); }
-    return;
-  }
-
-  // Show all options toggle
-
-  var toggleBtn = e.target.closest('[data-toggle-target]');
-
-  if (toggleBtn) {
-
-    var target = document.getElementById(toggleBtn.dataset.toggleTarget);
-
-    if (target) {
-
-      var open = target.classList.toggle('open');
-
-      toggleBtn.textContent = open ? '\u25B2 Hide full item list' : '\u25BC See full item list';
-
-      if (open) { var srch = target.querySelector('.subcat-search'); if (srch) setTimeout(function(){ srch.focus(); }, 60); }
-
-    }
-
-    return;
-
-  }
-
-
-
-  // Qty button
+document.getElementById('item-list-wrap').addEventListener('click', function(e) {
 
   var qBtn = e.target.closest('[data-qty-delta]');
 
@@ -2582,10 +2297,6 @@ document.getElementById('subcats-wrap').addEventListener('click', function(e) {
     return;
 
   }
-
-
-
-  // Item row or chip toggle (but not when clicking qty area)
 
   var itemRow = e.target.closest('[data-item-svc]');
 
@@ -2613,11 +2324,19 @@ document.getElementById('subcats-wrap').addEventListener('click', function(e) {
 
 
 
-document.getElementById('subcats-wrap').addEventListener('input', function(e) {
+document.getElementById('item-search').addEventListener('input', function() {
 
-  var inp = e.target.closest('.subcat-search');
+  filterItemList(this.value.trim().toLowerCase());
 
-  if (inp) filterSubcatItems(inp);
+});
+
+
+
+document.getElementById('item-search-clear').addEventListener('click', function() {
+
+  var inp = document.getElementById('item-search');
+
+  if (inp) { inp.value = ''; filterItemList(''); inp.focus(); }
 
 });
 
@@ -2631,17 +2350,9 @@ function deselectService(svc) {
 
   delete BOOK.selectedItems[svc];
 
-  document.querySelectorAll('.service-tile').forEach(function(t) {
+  if (BOOK.currentSvc === svc) BOOK.currentSvc = null;
 
-    if (t.dataset.service === svc) {
-      t.classList.remove('selected');
-      t.setAttribute('aria-pressed', 'false');
-    }
-
-  });
-
-  renderSubcats();
-  renderSelectedServices();
+  updateSvcRows();
 
   updateOrderSummary();
 
@@ -2703,7 +2414,7 @@ function toggleItem(svc, name, price, priceMax, isAddon, isCustomQuote) {
 
   }
 
-  renderSubcats();
+  renderItemScreen(BOOK.currentSvc);
 
   updateOrderSummary();
 
@@ -2715,7 +2426,7 @@ function changeQty(svc, name, delta) {
 
   var found = (BOOK.selectedItems[svc] || []).find(function(i) { return i.name === name; });
 
-  if (found) { found.qty = Math.max(1, found.qty + delta); renderSubcats(); updateOrderSummary(); }
+  if (found) { found.qty = Math.max(1, found.qty + delta); renderItemScreen(BOOK.currentSvc); updateOrderSummary(); }
 
 }
 
@@ -3778,13 +3489,13 @@ function saveContactEdit() {
 
   var svcClean = svc.toLowerCase().replace(/[^a-z]/g,'');
 
-  document.querySelectorAll('.service-tile').forEach(function(tile) {
+  document.querySelectorAll('.svc-row').forEach(function(row) {
 
-    var tileClean = tile.dataset.service.toLowerCase().replace(/[^a-z]/g,'');
+    var rowClean = (row.dataset.service || '').toLowerCase().replace(/[^a-z]/g,'');
 
-    if (tileClean.indexOf(svcClean) !== -1 || svcClean.indexOf(tileClean) !== -1) {
+    if (rowClean.indexOf(svcClean) !== -1 || svcClean.indexOf(rowClean) !== -1) {
 
-      tileClick(tile);
+      showItemScreen(row.dataset.service);
 
     }
 
