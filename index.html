@@ -81,9 +81,6 @@
 .qbb-select{flex:1;border:none;padding:0.85rem 1rem;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);background:#fff;outline:none;cursor:pointer;appearance:none;min-width:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.75rem center;padding-right:2.25rem}
 .qbb-btn{padding:0.85rem 1.5rem;background:var(--ink);color:#fff;border:none;font-family:var(--font-body);font-size:0.95rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background 0.15s;flex-shrink:0}
 .qbb-btn:hover{background:#0d2233;box-shadow:0 4px 16px rgba(0,0,0,0.28)}
-.qbb-zip{width:96px;border:none;border-left:1.5px solid #e5e7eb;padding:0.85rem 0.6rem;font-family:var(--font-body);font-size:0.9rem;color:var(--ink);background:#fff;outline:none;text-align:center;letter-spacing:0.04em;flex-shrink:0}
-.qbb-zip::placeholder{color:#9ca3af}
-.qbb-zip:focus{background:var(--cyan-light);border-left-color:var(--cyan)}
 .qbb-select:focus{background:var(--cyan-light)}
 .qbb-or{display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;font-size:0.82rem;color:rgba(255,255,255,0.5)}
 .qbb-or::before,.qbb-or::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.2)}
@@ -617,31 +614,13 @@ section#service-area{display:block}
         <option value="Office+Assembly">Office Assembly &mdash; from $95</option>
         <option value="Smart+Home">Smart Home Setup &mdash; from $69</option>
       </select>
-      <input class="qbb-zip" id="qbb-zip" type="text" inputmode="numeric" placeholder="ZIP" maxlength="5" aria-label="Your ZIP code">
       <button type="submit" class="qbb-btn">Check Availability &rarr;</button>
     </form>
-    <p id="qbb-zip-err" style="display:none;color:#fca5a5;font-size:0.82rem;margin-top:0.5rem;font-weight:500"></p>
     <script>
     function qbbGo(e) {
       e.preventDefault();
       var v = document.getElementById('qbb-svc').value;
-      var z = (document.getElementById('qbb-zip').value || '').trim();
-      var err = document.getElementById('qbb-zip-err');
-      var zipEl = document.getElementById('qbb-zip');
-      if (z.length > 0) {
-        var prefix = z.length === 5 && /^\d{5}$/.test(z) ? parseInt(z.slice(0,3), 10) : -1;
-        var inArea = prefix >= 786 && prefix <= 788;
-        if (!inArea) {
-          err.textContent = z.length < 5 ? 'Please enter a valid 5-digit ZIP code.' : 'Sorry, we don\'t service that area yet — we cover Austin TX (786xx–788xx).';
-          err.style.display = 'block';
-          zipEl.style.outline = '2px solid #ef4444';
-          return false;
-        }
-      }
-      err.style.display = 'none'; zipEl.style.outline = '';
-      var url = '/book' + (v ? '?service=' + encodeURIComponent(v) : '');
-      if (z.length === 5) url += (v ? '&' : '?') + 'zip=' + encodeURIComponent(z);
-      window.location = url;
+      window.location = '/book' + (v ? '?service=' + encodeURIComponent(v) : '');
       return false;
     }
     </script>
