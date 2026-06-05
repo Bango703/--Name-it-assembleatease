@@ -3,13 +3,14 @@ import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
+import { getServiceCallFeeCents, getServiceCallZone } from './_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
-  const { services, items, service: serviceLegacy, name, phone, email, address, date, time, details, totalCents, isQuoteRequest, paymentMethodId, stripeCustomerId } = req.body;
+  const { services, items, service: serviceLegacy, name, phone, email, address, zip, date, time, details, totalCents, isQuoteRequest, paymentMethodId, stripeCustomerId } = req.body;
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
@@ -30,10 +31,22 @@ export default async function handler(req, res) {
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
   const TX_TAX_RATE = 0.0825; // Texas 6.25% + Austin 2%
-  const MIN_BOOKING_SUBTOTAL_CENTS = 9900;
-  const MIN_BOOKING_TOTAL_CENTS = Math.round(MIN_BOOKING_SUBTOTAL_CENTS * (1 + TX_TAX_RATE));
-  const requestedAmount = Math.max(parseInt(totalCents) || 0, 0);
-  const amount = requestedAmount > 0 ? Math.max(requestedAmount, MIN_BOOKING_TOTAL_CENTS) : 0; // tax-inclusive total in cents
+
+  // Service Call Fee — covers dispatch, travel, and appointment setup.
+  // Always calculated server-side from ZIP; never trusted from client.
+  const callZone = getServiceCallZone(zip);
+  const callFeeCents = getServiceCallFeeCents(zip) || 0;
+
+  // Service subtotal sent by client (items only, pre-tax, pre-call-fee).
+  // We recalculate: service subtotal = clientTotal - clientCallFee, then re-add server call fee.
+  const clientTotal = Math.max(parseInt(totalCents) || 0, 0);
+  // Strip out any client-side call fee approximation and rebuild from server truth.
+  // The client sends the full amount including call fee, so we back out the service portion.
+  const serviceSubtotalCents = clientTotal > 0 ? Math.max(clientTotal - callFeeCents, 0) : 0;
+  const taxableSubtotalCents = serviceSubtotalCents + callFeeCents;
+  const amount = taxableSubtotalCents > 0
+    ? Math.round(taxableSubtotalCents * (1 + TX_TAX_RATE))
+    : 0;
   // Back-calculate subtotal and tax for record-keeping
   const subtotalCents = amount > 0 ? Math.round(amount / (1 + TX_TAX_RATE)) : 0;
   const taxCents = amount - subtotalCents;
@@ -56,6 +69,8 @@ export default async function handler(req, res) {
     tax_amount: taxCents,
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
+    service_call_fee: callFeeCents || null,
+    call_zone: callZone || null,
   }).select('id').single();
 
   if (insertErr) {
@@ -127,6 +142,8 @@ export default async function handler(req, res) {
           type: 'customer_booking',
           isDeposit: isDeposit ? 'true' : 'false',
           depositAmountCents: depositAmountCents ? String(depositAmountCents) : '0',
+          callFeeCents: String(callFeeCents),
+          callZone: callZone || 'unknown',
         },
       });
 

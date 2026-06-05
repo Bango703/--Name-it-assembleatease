@@ -61,6 +61,27 @@ export function getPlatformFeePct(isMember) {
   return isMember ? MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER : MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER;
 }
 
+// Service call fee by ZIP zone — covers Easer dispatch, travel, and appointment setup.
+// Zone is determined by 3-digit ZIP prefix. Server always recalculates; never trust the client value.
+export const SERVICE_CALL_ZONES = Object.freeze({
+  austin_core:  { label: 'Austin core',    fee: 3500 },  // 787xx — Austin proper, Bee Cave, Lakeway
+  near_suburb:  { label: 'Near suburbs',   fee: 5000 },  // 786xx — Round Rock, Cedar Park, Georgetown, Pflugerville, Kyle, Buda, Leander, Manor, Hutto
+  far_suburb:   { label: 'Far suburbs',    fee: 6500 },  // 788xx — Bastrop, Lockhart
+});
+
+export function getServiceCallZone(zip) {
+  const prefix = String(zip || '').slice(0, 3);
+  if (prefix === '787') return 'austin_core';
+  if (prefix === '786') return 'near_suburb';
+  if (prefix === '788') return 'far_suburb';
+  return null;
+}
+
+export function getServiceCallFeeCents(zip) {
+  const zone = getServiceCallZone(zip);
+  return zone ? SERVICE_CALL_ZONES[zone].fee : null;
+}
+
 export function isActiveBookingStatus(status) {
   return ACTIVE_BOOKING_STATUSES.includes(status);
 }

@@ -2107,6 +2107,14 @@ function isActiveServiceZip(zip) {
   return prefix >= SERVICE_AREA.zipPrefixMin && prefix <= SERVICE_AREA.zipPrefixMax;
 }
 
+function getServiceCallFee(zip) {
+  var prefix = String(zip || '').slice(0, 3);
+  if (prefix === '787') return 35;  // Austin core
+  if (prefix === '786') return 50;  // Near suburbs
+  if (prefix === '788') return 65;  // Far suburbs
+  return 35; // default
+}
+
 function checkServiceZip(val) {
 
   var okEl   = document.getElementById('svc-area-ok');
@@ -2591,21 +2599,21 @@ function updateOrderSummary() {
 
   var discountedTotal = runningTotal > 0 ? Math.round(runningTotal * (1 - bundle.pct / 100)) : 0;
 
-  var minimumAdjustment = discountedTotal > 0 && discountedTotal < 99 ? 99 - discountedTotal : 0;
+  var callFee = discountedTotal > 0 ? getServiceCallFee(BOOK.zip || '') : 0;
 
-  if (minimumAdjustment > 0) {
+  if (callFee > 0) {
 
-    html += '<div class="order-line" style="color:var(--ink);font-weight:600;margin-top:0.25rem">'
+    html += '<div class="order-line" style="color:var(--ink-soft);margin-top:0.25rem">'
 
-      + '<span class="order-line-name">Minimum booking</span>'
+      + '<span class="order-line-name" style="font-size:0.79rem">Service Call Fee</span>'
 
-      + '<span class="order-line-price">$' + minimumAdjustment + '</span></div>';
+      + '<span class="order-line-price">$' + callFee + '</span></div>';
 
   }
 
   linesEl.innerHTML = html;
 
-  var displayTotal = discountedTotal + minimumAdjustment;
+  var displayTotal = discountedTotal + callFee;
 
   var prefix = (hasRange || hasCustom) ? 'From $' : '$';
 
@@ -3116,9 +3124,9 @@ async function goToStep5Payment() {
 
     var discountedSubtotal = subtotal - discountAmount;
 
-    var minimumAdjustment = discountedSubtotal > 0 && discountedSubtotal < 99 ? Math.round((99 - discountedSubtotal) * 100) / 100 : 0;
+    var callFee = discountedSubtotal > 0 ? getServiceCallFee(BOOK.zip || '') : 0;
 
-    var taxableSubtotal = discountedSubtotal + minimumAdjustment;
+    var taxableSubtotal = discountedSubtotal + callFee;
 
     BOOK._discountPct = bundle.pct;
 
@@ -3142,13 +3150,13 @@ async function goToStep5Payment() {
 
       : '';
 
-    var minimumLineHtml = minimumAdjustment > 0
+    var callFeeLineHtml = callFee > 0
 
-      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--ink);font-weight:600;margin-bottom:0.25rem">'
+      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--ink-soft);margin-bottom:0.25rem">'
 
-        + '<span>Minimum booking</span>'
+        + '<span>Service Call Fee <span style="font-weight:400;color:var(--muted);font-size:0.75rem">— dispatch, travel &amp; setup</span></span>'
 
-        + '<span>$' + minimumAdjustment.toFixed(2) + '</span></div>'
+        + '<span>$' + callFee.toFixed(2) + '</span></div>'
 
       : '';
 
@@ -3160,7 +3168,7 @@ async function goToStep5Payment() {
 
         + discountLineHtml
 
-        + minimumLineHtml
+        + callFeeLineHtml
 
         + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
 
@@ -3956,7 +3964,7 @@ async function submitBooking() {
 
         name: BOOK.firstName + ' ' + BOOK.lastName,
 
-        phone: BOOK.phone, email: BOOK.email, address: BOOK.address,
+        phone: BOOK.phone, email: BOOK.email, address: BOOK.address, zip: BOOK.zip,
 
         date: BOOK.date, time: BOOK.time, details: BOOK.details,
 
