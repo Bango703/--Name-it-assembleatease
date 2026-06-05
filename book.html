@@ -739,6 +739,14 @@
 
     .step-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
 
+    @media (min-width: 641px) {
+      .step-actions {
+        position: sticky; bottom: 1.5rem; z-index: 10;
+        background: linear-gradient(to bottom, transparent 0%, var(--white) 28%);
+        padding-top: 1.25rem; margin-top: 1rem;
+      }
+    }
+
     .btn-next { flex: 1; padding: 1rem 1.5rem; background: var(--teal); color: #fff; border: none; border-radius: 14px; font-family: var(--font-body); font-size: 0.98rem; font-weight: 800; cursor: pointer; transition: background var(--transition), transform var(--transition), box-shadow var(--transition); text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 14px 28px rgba(0,191,255,0.22); }
 
     .btn-next:hover:not(:disabled) { background: var(--teal-dark); transform: translateY(-1px); box-shadow: 0 18px 34px rgba(0,153,204,0.24); }
@@ -1954,6 +1962,12 @@ var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city: 'Austin', state: 'T
 
 var SERVICE_AREA_LABEL = SERVICE_AREA.city + ' ' + SERVICE_AREA.state + ' (' + SERVICE_AREA.zipPrefixMin + 'xx-' + SERVICE_AREA.zipPrefixMax + 'xx)';
 
+var SERVICE_CALL_ZONES = {
+  '787': { label: 'Austin core', fee: 35 },
+  '786': { label: 'Near suburbs', fee: 50 },
+  '788': { label: 'Far suburbs', fee: 65 }
+};
+
 var ACTIVE_MARKET_LABEL = 'Austin Metro';
 
 
@@ -2105,6 +2119,11 @@ function isActiveServiceZip(zip) {
   if (!isValidZip(zip)) return false;
   var prefix = parseInt(zip.slice(0, 3), 10);
   return prefix >= SERVICE_AREA.zipPrefixMin && prefix <= SERVICE_AREA.zipPrefixMax;
+}
+
+function getServiceCallFee(zip) {
+  var prefix = String(zip || '').slice(0, 3);
+  return SERVICE_CALL_ZONES[prefix] ? SERVICE_CALL_ZONES[prefix].fee : 0;
 }
 
 
@@ -3105,7 +3124,9 @@ async function goToStep5Payment() {
 
     var discountedSubtotal = subtotal - discountAmount;
 
-    var taxableSubtotal = discountedSubtotal;
+    var serviceCallFee = subtotal > 0 ? getServiceCallFee(BOOK.zip) : 0;
+
+    var taxableSubtotal = discountedSubtotal + serviceCallFee;
 
     BOOK._discountPct = bundle.pct;
 
@@ -3129,7 +3150,13 @@ async function goToStep5Payment() {
 
       : '';
 
-    var callFeeLineHtml = '';
+    var callFeeLineHtml = serviceCallFee > 0
+
+      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
+
+        + '<span>Service call fee</span><span>$' + serviceCallFee.toFixed(2) + '</span></div>'
+
+      : '';
 
     var taxLineHtml = taxableSubtotal > 0
 
