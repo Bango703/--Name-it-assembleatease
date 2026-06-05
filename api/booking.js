@@ -3,7 +3,6 @@ import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
-import { getServiceCallFeeCents, getServiceCallZone } from './_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -32,22 +31,9 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const TX_TAX_RATE = 0.0825; // Texas 6.25% + Austin 2%
 
-  // Service Call Fee — covers dispatch, travel, and appointment setup.
-  // Always calculated server-side from ZIP; never trusted from client.
-  const callZone = getServiceCallZone(zip);
-  const callFeeCents = getServiceCallFeeCents(zip) || 0;
-
-  // Service subtotal sent by client (items only, pre-tax, pre-call-fee).
-  // We recalculate: service subtotal = clientTotal - clientCallFee, then re-add server call fee.
-  const clientTotal = Math.max(parseInt(totalCents) || 0, 0);
-  // Strip out any client-side call fee approximation and rebuild from server truth.
-  // The client sends the full amount including call fee, so we back out the service portion.
-  const serviceSubtotalCents = clientTotal > 0 ? Math.max(clientTotal - callFeeCents, 0) : 0;
-  const taxableSubtotalCents = serviceSubtotalCents + callFeeCents;
-  const amount = taxableSubtotalCents > 0
-    ? Math.round(taxableSubtotalCents * (1 + TX_TAX_RATE))
-    : 0;
-  // Back-calculate subtotal and tax for record-keeping
+  // Trust the client-calculated total. Items are priced realistically in the catalog
+  // so no minimum floor or adjustment fee is needed. Tax is the only server-side addition.
+  const amount = Math.max(parseInt(totalCents) || 0, 0);
   const subtotalCents = amount > 0 ? Math.round(amount / (1 + TX_TAX_RATE)) : 0;
   const taxCents = amount - subtotalCents;
   const isDeposit = amount >= 20000; // $200+ → deposit flow
@@ -69,8 +55,6 @@ export default async function handler(req, res) {
     tax_amount: taxCents,
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
-    service_call_fee: callFeeCents || null,
-    call_zone: callZone || null,
   }).select('id').single();
 
   if (insertErr) {
@@ -142,8 +126,6 @@ export default async function handler(req, res) {
           type: 'customer_booking',
           isDeposit: isDeposit ? 'true' : 'false',
           depositAmountCents: depositAmountCents ? String(depositAmountCents) : '0',
-          callFeeCents: String(callFeeCents),
-          callZone: callZone || 'unknown',
         },
       });
 

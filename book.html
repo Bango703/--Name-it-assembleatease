@@ -1257,7 +1257,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Furniture Assembly</div>
-              <div class="svc-row-meta">From $69 • 30 min–3 hrs</div>
+              <div class="svc-row-meta">From $79 • 30 min–3 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1267,7 +1267,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Mounting &amp; Hanging</div>
-              <div class="svc-row-meta">From $59 • 30 min–2 hrs</div>
+              <div class="svc-row-meta">From $99 • 30 min–2 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1277,7 +1277,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Smart Home</div>
-              <div class="svc-row-meta">From $49 • 30 min–2 hrs</div>
+              <div class="svc-row-meta">From $69 • 30 min–2 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1287,7 +1287,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Fitness Equipment</div>
-              <div class="svc-row-meta">From $109 • 1–3 hrs</div>
+              <div class="svc-row-meta">From $129 • 1–3 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1297,7 +1297,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Outdoor &amp; Playsets</div>
-              <div class="svc-row-meta">From $89 • 1–5 hrs</div>
+              <div class="svc-row-meta">From $99 • 1–5 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1307,7 +1307,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Office Assembly</div>
-              <div class="svc-row-meta">From $79 • 30 min–3 hrs</div>
+              <div class="svc-row-meta">From $89 • 30 min–3 hrs</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -2107,13 +2107,6 @@ function isActiveServiceZip(zip) {
   return prefix >= SERVICE_AREA.zipPrefixMin && prefix <= SERVICE_AREA.zipPrefixMax;
 }
 
-function getServiceCallFee(zip) {
-  var prefix = String(zip || '').slice(0, 3);
-  if (prefix === '787') return 35;  // Austin core
-  if (prefix === '786') return 50;  // Near suburbs
-  if (prefix === '788') return 65;  // Far suburbs
-  return 35; // default
-}
 
 function checkServiceZip(val) {
 
@@ -2599,21 +2592,9 @@ function updateOrderSummary() {
 
   var discountedTotal = runningTotal > 0 ? Math.round(runningTotal * (1 - bundle.pct / 100)) : 0;
 
-  var callFee = discountedTotal > 0 ? getServiceCallFee(BOOK.zip || '') : 0;
-
-  if (callFee > 0) {
-
-    html += '<div class="order-line" style="color:var(--ink-soft);margin-top:0.25rem">'
-
-      + '<span class="order-line-name" style="font-size:0.79rem">Service Call Fee</span>'
-
-      + '<span class="order-line-price">$' + callFee + '</span></div>';
-
-  }
-
   linesEl.innerHTML = html;
 
-  var displayTotal = discountedTotal + callFee;
+  var displayTotal = discountedTotal;
 
   var prefix = (hasRange || hasCustom) ? 'From $' : '$';
 
@@ -3124,9 +3105,7 @@ async function goToStep5Payment() {
 
     var discountedSubtotal = subtotal - discountAmount;
 
-    var callFee = discountedSubtotal > 0 ? getServiceCallFee(BOOK.zip || '') : 0;
-
-    var taxableSubtotal = discountedSubtotal + callFee;
+    var taxableSubtotal = discountedSubtotal;
 
     BOOK._discountPct = bundle.pct;
 
@@ -3150,15 +3129,7 @@ async function goToStep5Payment() {
 
       : '';
 
-    var callFeeLineHtml = callFee > 0
-
-      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--ink-soft);margin-bottom:0.25rem">'
-
-        + '<span>Service Call Fee <span style="font-weight:400;color:var(--muted);font-size:0.75rem">— dispatch, travel &amp; setup</span></span>'
-
-        + '<span>$' + callFee.toFixed(2) + '</span></div>'
-
-      : '';
+    var callFeeLineHtml = '';
 
     var taxLineHtml = taxableSubtotal > 0
 
