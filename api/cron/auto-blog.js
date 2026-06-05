@@ -96,6 +96,51 @@ const TOPIC_POOL = [
   'security camera system installation austin tx',
   'doorbell camera installation cost austin',
   'smart home device setup and configuration austin',
+
+  // ── AUSTIN NEIGHBORHOODS (hyper-local "near me" SEO) ─────────────
+  'furniture assembly south congress austin',
+  'furniture assembly service east austin tx',
+  'furniture assembly domain northside austin',
+  'tv mounting service south lamar austin',
+  'furniture assembly westlake hills texas',
+  'handyman service mueller austin texas',
+  'furniture assembly tarrytown austin tx',
+  'tv mounting hyde park austin texas',
+  'furniture assembly service barton hills austin',
+  'same day furniture assembly north austin',
+  'furniture assembly bouldin creek austin',
+  'handyman assembly service cedar park texas',
+  'furniture assembly steiner ranch austin tx',
+  'tv mounting round rock texas near me',
+  'furniture assembly pflugerville tx near me',
+  'handyman assembly lakeway texas',
+  'furniture assembly bee cave tx',
+  'ikea assembly service near me austin tx',
+  'wayfair furniture assembly near me austin',
+  'same day assembly service near me austin',
+
+  // ── HIGH-INTENT BUYER KEYWORDS ────────────────────────────────────
+  'how much does furniture assembly cost in austin',
+  'furniture assembly service cost austin 2025',
+  'is it worth hiring someone to assemble furniture austin',
+  'how to find a furniture assembler near me austin',
+  'best furniture assembly companies austin tx',
+  'how to book furniture assembly online austin',
+  'what to expect from a furniture assembly service',
+  'furniture assembly tips for new homeowners austin',
+  'apartment furniture assembly service austin texas',
+  'moving into a new home furniture assembly austin',
+
+  // ── COMPARISON + FAQ CONTENT ──────────────────────────────────────
+  'ikea vs wayfair which is harder to assemble austin',
+  'diy furniture assembly vs hiring a pro austin',
+  'how long does ikea furniture assembly take austin',
+  'what tools does furniture assembly require',
+  'how to prepare your home for furniture assembly service',
+  'furniture assembly mistakes to avoid austin',
+  'tv mount types explained which is best for your wall',
+  'how to pick the right tv wall mount austin',
+  'smart home thermostat nest vs ecobee austin',
 ];
 
 export default async function handler(req, res) {

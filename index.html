@@ -1178,14 +1178,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var wrap = document.querySelector('.reviews-marquee-wrap');
     if(!wrap) return;
-    var paused = false, resumeTimer, speed = 0.32, dir = 1, edgePause = 0;
+    var paused = false, resumeTimer, speed = 0.22, dir = 1, edgePause = 0;
     function tick(){
       if(!paused && edgePause <= 0){
         var max = wrap.scrollWidth - wrap.clientWidth;
         if(max > 0){
           wrap.scrollLeft += speed * dir;
-          if(wrap.scrollLeft >= max - 1){ dir = -1; edgePause = 70; }
-          if(wrap.scrollLeft <= 1){ dir = 1; edgePause = 50; }
+          if(wrap.scrollLeft >= max - 1){ dir = -1; edgePause = 120; }
+          if(wrap.scrollLeft <= 1){ dir = 1; edgePause = 90; }
         }
       } else if(edgePause > 0) {
         edgePause--;
@@ -1193,9 +1193,9 @@ document.addEventListener('DOMContentLoaded', function() {
       requestAnimationFrame(tick);
     }
     wrap.addEventListener('touchstart', function(){ paused = true; clearTimeout(resumeTimer); }, {passive:true});
-    wrap.addEventListener('touchend', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 2200); }, {passive:true});
+    wrap.addEventListener('touchend', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 5000); }, {passive:true});
     wrap.addEventListener('pointerenter', function(){ paused = true; clearTimeout(resumeTimer); });
-    wrap.addEventListener('pointerleave', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 900); });
+    wrap.addEventListener('pointerleave', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 1200); });
     requestAnimationFrame(tick);
   })();
 
