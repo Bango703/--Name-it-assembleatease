@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "AssembleAtEase - Assembly services marketplace connecting customers with skilled assemblers",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "stripe:connect:seed": "node scripts/seed-stripe-connect-test-data.mjs"
   },
   "repository": {
     "type": "git",

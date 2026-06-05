@@ -5,6 +5,7 @@ import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -428,6 +429,12 @@ function getEaserEligibility(profile) {
 
   if (!['starter', 'professional', 'elite'].includes(tier)) {
     return { ok: false, error: 'Your Easer tier is not eligible for job acceptance.' };
+  }
+
+  if (isStripeConnectEnabled()) {
+    if (!profile.stripe_connect_onboarding_complete || !profile.stripe_connect_charges_enabled || !profile.stripe_connect_payouts_enabled) {
+      return { ok: false, error: 'Complete Stripe payout setup before accepting jobs.' };
+    }
   }
 
   return { ok: true };

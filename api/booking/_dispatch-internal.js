@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -54,7 +55,7 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   // ── Easer eligibility query ───────────────────────────────────────────────
   const { data: easers } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, status, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at')
+    .select('id, full_name, email, phone, city, zip, status, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('role', 'assembler')
     .eq('status', 'active')
     .eq('identity_verified', true)
@@ -63,10 +64,17 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
 
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
 
+  const requireConnect = isStripeConnectEnabled();
+
   // ── Filter by availability and service area ───────────────────────────────
   // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
   // Do NOT filter on active_jobs_today here — the profile counter can be stale.
   let eligible = easers.filter(e => {
+    if (requireConnect) {
+      if (!e.stripe_connect_onboarding_complete || !e.stripe_connect_charges_enabled || !e.stripe_connect_payouts_enabled) {
+        return false;
+      }
+    }
     if (!e.is_available) return false;
     if (bookingCity && e.city) {
       const bc = bookingCity.toLowerCase();

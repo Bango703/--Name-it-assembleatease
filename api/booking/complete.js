@@ -7,6 +7,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -202,6 +203,7 @@ export default async function handler(req, res) {
   const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
   const platformFee = Math.round(finalAmountCharged * PLATFORM_FEE_PCT / 100);
   const assemblerDue = finalAmountCharged - platformFee;
+  let connectPayout = { status: 'disabled' };
 
   // Atomic guard: only update if not already completed or captured.
   // If another request beat us here (double-click, retry, race with assembler-complete),
@@ -229,6 +231,116 @@ export default async function handler(req, res) {
   }
   if (!updatedRows || updatedRows.length === 0) {
     return res.status(400).json({ error: 'Booking already completed — payment has already been captured.' });
+  }
+
+  // Optional Stripe Connect payout path. If disabled or not ready, booking remains pending payout.
+  if (isStripeConnectEnabled() && booking.assembler_id && assemblerDue > 0 && process.env.STRIPE_SECRET_KEY) {
+    const connectState = await getAssemblerConnectAccount(sb, booking.assembler_id);
+    if (!connectState.ok) {
+      connectPayout = {
+        status: 'pending_manual',
+        reason: connectState.reason,
+      };
+    } else {
+      const transferIdempotencyKey = `complete-owner-transfer-${booking.id}`;
+      try {
+        await writeFinancialAudit(sb, {
+          eventType: 'transfer_attempt',
+          eventSource: 'booking_complete_owner',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey: transferIdempotencyKey,
+          status: 'processing',
+          metadata: {
+            ref: booking.ref,
+            destinationAccount: connectState.accountId,
+            amount: assemblerDue,
+          },
+        });
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const transfer = await stripe.transfers.create({
+          amount: assemblerDue,
+          currency: 'usd',
+          destination: connectState.accountId,
+          transfer_group: `booking_${booking.id}`,
+          metadata: {
+            bookingId: booking.id,
+            bookingRef: booking.ref,
+            type: 'assembler_payout',
+          },
+        }, {
+          idempotencyKey: transferIdempotencyKey,
+        });
+
+        const transferNotes = `Stripe Connect transfer ${transfer.id}`;
+        const { error: payoutErr } = await sb.rpc('record_booking_payout', {
+          p_booking_id: booking.id,
+          p_payout_amount_cents: assemblerDue,
+          p_notes: transferNotes,
+          p_recorded_by: 'system_connect',
+          p_payout_method: 'stripe_connect',
+        });
+
+        if (payoutErr) {
+          console.error('Connect payout RPC error:', payoutErr);
+          await sb.from('bookings').update({
+            payout_status: 'paid',
+            payout_amount: assemblerDue,
+            paid_out_at: new Date().toISOString(),
+            payout_notes: transferNotes,
+          }).eq('id', booking.id);
+        }
+
+        await sb.from('bookings').update({
+          stripe_transfer_id: transfer.id,
+          stripe_destination_account_id: connectState.accountId,
+        }).eq('id', booking.id);
+
+        await writeFinancialAudit(sb, {
+          eventType: 'transfer_attempt',
+          eventSource: 'booking_complete_owner',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey: transferIdempotencyKey,
+          status: 'processed',
+          metadata: {
+            ref: booking.ref,
+            destinationAccount: connectState.accountId,
+            transferId: transfer.id,
+            amount: assemblerDue,
+          },
+        });
+
+        connectPayout = {
+          status: 'paid',
+          transferId: transfer.id,
+          destinationAccount: connectState.accountId,
+          amount: assemblerDue,
+        };
+      } catch (connectErr) {
+        console.error('Stripe Connect transfer error:', connectErr);
+        await writeFinancialAudit(sb, {
+          eventType: 'transfer_attempt',
+          eventSource: 'booking_complete_owner',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey: transferIdempotencyKey,
+          status: 'failed',
+          metadata: {
+            ref: booking.ref,
+            destinationAccount: connectState.accountId,
+            amount: assemblerDue,
+          },
+          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
+        });
+        connectPayout = {
+          status: 'pending_manual',
+          reason: 'transfer-failed',
+          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
+        };
+      }
+    }
   }
 
   // Increment assembler's completed_jobs atomically via RPC (prevents lost-update race
@@ -303,5 +415,9 @@ export default async function handler(req, res) {
   }
 
   logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((finalAmountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged: finalAmountCharged, platformFee, assemblerDue } });
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED } });
+  return res.status(200).json({
+    success: true,
+    booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
+    payout: connectPayout,
+  });
 }

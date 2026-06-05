@@ -596,6 +596,31 @@ export default async function handler(req, res) {
         break;
       }
 
+      // ── Stripe Connect account capability updates ──
+      case 'account.updated': {
+        const acct = event.data.object;
+        if (!acct?.id) break;
+
+        const updates = {
+          stripe_connect_details_submitted: !!acct.details_submitted,
+          stripe_connect_charges_enabled: !!acct.charges_enabled,
+          stripe_connect_payouts_enabled: !!acct.payouts_enabled,
+          stripe_connect_onboarding_complete: !!(acct.details_submitted && acct.charges_enabled && acct.payouts_enabled),
+          stripe_connect_updated_at: new Date().toISOString(),
+        };
+
+        const { error: connectErr } = await sb
+          .from('profiles')
+          .update(updates)
+          .eq('stripe_connect_account_id', acct.id)
+          .eq('role', 'assembler');
+
+        if (connectErr) {
+          console.error('Connect account update sync failed:', connectErr.message);
+        }
+        break;
+      }
+
       default:
         // Unhandled event type — ignore silently
         break;

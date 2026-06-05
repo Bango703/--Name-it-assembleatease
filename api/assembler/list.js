@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 /**
  * GET /api/assembler/list
@@ -31,6 +32,7 @@ export default async function handler(req, res) {
   }
 
   const assemblers = data || [];
+  const requireConnect = isStripeConnectEnabled();
 
   // Normalise: if DB hasn't been migrated yet (no status column), derive status from tier
   assemblers.forEach(a => {
@@ -53,10 +55,13 @@ export default async function handler(req, res) {
     starter:       assemblers.filter(a => a.status === 'active' && a.tier === 'starter').length,
     professional:  assemblers.filter(a => a.status === 'active' && a.tier === 'professional').length,
     elite:         assemblers.filter(a => a.status === 'active' && a.tier === 'elite').length,
-    dispatchEligible: assemblers.filter(a =>
-      a.status === 'active' && a.identity_verified &&
-      ['starter', 'professional', 'elite'].includes(a.tier)
-    ).length,
+    dispatchEligible: assemblers.filter(a => {
+      if (!(a.status === 'active' && a.identity_verified && ['starter', 'professional', 'elite'].includes(a.tier))) {
+        return false;
+      }
+      if (!requireConnect) return true;
+      return !!(a.stripe_connect_onboarding_complete && a.stripe_connect_charges_enabled && a.stripe_connect_payouts_enabled);
+    }).length,
   };
 
   return res.status(200).json({ assemblers, stats });
