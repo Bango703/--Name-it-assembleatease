@@ -126,7 +126,23 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </script></head>
 <body>
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
-<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/><div class="nav-logo-text">AssembleAtEase</div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Blog</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/contact" class="btn btn-cyan">Get a Quote</a></div></nav>
+<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/><div class="nav-logo-text">AssembleAtEase</div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Blog</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/contact" class="btn btn-cyan">Get a Quote</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="nav-mobile" id="mobileNav">
+  <a href="/book?service=Furniture+Assembly">Furniture Assembly</a>
+  <a href="/book?service=Mounting+%26+Hanging">Mounting &amp; Hanging</a>
+  <a href="/book?service=Fitness+Equipment">Fitness Equipment</a>
+  <a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a>
+  <a href="/book?service=Office+Assembly">Office Assembly</a>
+  <a href="/book?service=Smart+Home">Smart Home Setup</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/about">About Us</a>
+  <a href="/track">Track My Booking</a>
+  <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
+</div>
+<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
 <section class="page-hero"><div class="page-hero-inner"><a href="/blog/" class="page-back">&larr; Back to Blog</a><h1 class="page-title">IKEA PAX Wardrobe Assembly: Why It Takes 3 Hours</h1><p class="page-desc">April 10, 2026 &bull; 6 min read</p></div></section>
 
