@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Business Judgment Standard
+
+When making business decisions, prioritize real-world business judgment over mathematical neatness. If a recommendation looks unrealistic, generic, or unlike what successful companies actually do, revise it until it reflects how an experienced operator would think.
+
+Apply this to pricing, service design, dashboards, marketing copy, business plans, and expansion strategy. Optimize for realism, not simplicity. Customers should immediately understand why one thing costs more than another. Artificial pricing patterns (everything at $99, round-number uniformity, no variance) make the platform look automated and inexperienced.
+
 ## Platform Overview
 
 **AssembleAtEase** — Austin TX assembly-only marketplace. Customers book furniture assembly, TV mounting, smart home setup, fitness equipment, outdoor/playsets, and office assembly. "Easers" are the service pros. Owner manages everything via a private dashboard.
