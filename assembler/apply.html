@@ -1199,21 +1199,24 @@
       services.push(cb.value);
     });
 
+    var toolsInput = document.querySelector('input[name="tools"]');
+    var toolsGroup = toolsInput ? toolsInput.closest('.form-group') : null;
+    var toolsHidden = toolsGroup ? window.getComputedStyle(toolsGroup).display === 'none' : true;
     var toolsChecked = document.querySelector('input[name="tools"]:checked');
     var transportChecked = document.querySelector('input[name="transport"]:checked');
-    var toolsVal = toolsChecked ? toolsChecked.value : '';
+    var toolsVal = toolsChecked ? toolsChecked.value : (toolsHidden ? 'yes' : '');
     var transportVal = transportChecked ? transportChecked.value : '';
 
     // Validate
     var hasErr = false;
     if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
-    if (!phone || !/^\+[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
+    if (!phone || !/^\+?[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
     if (!city) { fieldError('city', 'Required'); hasErr = true; }
     if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
     if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
     if (!services.length) { fieldError('services', 'Select at least one service'); hasErr = true; }
-    if (!toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
+    if (!toolsHidden && !toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
     if (!transportVal) { fieldError('transport', 'Required'); hasErr = true; }
     if (!contractorAgreed) { fieldError('contractor', 'You must read and sign the Contractor Agreement to continue'); hasErr = true; }
     if (!conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
