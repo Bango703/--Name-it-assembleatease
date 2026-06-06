@@ -344,9 +344,9 @@ export default async function handler(req, res) {
   const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId);
   const { error: assignErr } = isDispatch
     ? await updateQuery.is('assembler_id', null)
-    : await updateQuery;
+    : await updateQuery.eq('assembler_id', assemblerId);   // CAS guard: fails if booking was reassigned
 
-  if (assignErr) return res.status(409).json({ error: 'Sorry — another Easer accepted this job first' });
+  if (assignErr) return res.status(409).json({ error: 'Sorry — this job is no longer available.' });
 
   await sb.from('profiles').update({ last_assigned_at: now }).eq('id', assemblerId);
 
