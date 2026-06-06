@@ -146,14 +146,14 @@
     <span class="easer-wordmark-text">Easer</span>
   </a>
   <button class="eh-bell-btn" aria-label="Notifications" id="eh-bell-btn">
-      var dotCls  = s.current ? 'current' : (s.done ? 'done' : '');
-      var lblCls  = s.current ? 'active' : '';
-      var timeStr = s.time ? fmtTime(s.time) : '';
-      var conn    = i < steps.length-1 ? '<div class="eh-pipe-connector'+(s.done ? ' done' : '')+'"></div>' : '';
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="eh-bell-badge" id="eh-bell-badge" style="display:none">0</span>
+  </button>
+</header>
 <div id="notif-backdrop" style="display:none;position:fixed;inset:0;top:56px;z-index:1499;background:rgba(0,0,0,0.2)" onclick="document.getElementById('notif-panel').style.display='none';this.style.display='none'"></div>
 <div id="notif-panel" style="display:none;position:fixed;top:56px;right:0;left:0;background:#fff;border-bottom:1px solid var(--e-border);z-index:1500;padding:1rem 1.25rem;box-shadow:0 4px 16px rgba(0,0,0,0.08)">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-        +(timeStr ? '<div class="eh-pipe-time">'+timeStr+'</div>' : '')
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
     <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
   <div style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">No new notifications</div>
@@ -815,7 +815,7 @@
     document.getElementById('eh-bell-badge').style.display='';
 
     document.getElementById('offers-list').innerHTML = offers.slice(0,2).map(function(b){
-      var pay = b.assembler_due  fmtPay(b.assembler_due) : (b.total_price  fmtPay(Math.round(b.total_price*0.75)) : '—');
+      var pay = b.assembler_due ? fmtPay(b.assembler_due) : (b.total_price ? fmtPay(Math.round(b.total_price*0.75)) : '—');
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
       return '<div class="eh-offer-card">'
         +'<div class="eh-offer-card-top">'
@@ -974,7 +974,7 @@
     window.addEventListener('pageshow', function(event) {
       if (!event.persisted) return; // normal load — already handled by DOMContentLoaded
       if (dashboardLoadState.inFlight) return; // fetch already in progress
-      var lastSuccess = dashboardLoadState.lastSuccessAt  new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
+      var lastSuccess = dashboardLoadState.lastSuccessAt ? new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
       if (Date.now() - lastSuccess < 60000) return; // fresh enough — skip
       dashboardLoadState.retryCount = 0;
       loadDashboardData('bfcache_restore');
