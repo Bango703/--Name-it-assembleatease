@@ -1199,8 +1199,10 @@
       services.push(cb.value);
     });
 
-    var toolsVal = document.querySelector('input[name="tools"]:checked').value;
-    var transportVal = document.querySelector('input[name="transport"]:checked').value;
+    var toolsChecked = document.querySelector('input[name="tools"]:checked');
+    var transportChecked = document.querySelector('input[name="transport"]:checked');
+    var toolsVal = toolsChecked ? toolsChecked.value : '';
+    var transportVal = transportChecked ? transportChecked.value : '';
 
     // Validate
     var hasErr = false;
