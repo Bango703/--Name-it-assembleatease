@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 function taxReadinessFromAccount(account, dueCount) {
   if (!account) {
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
   let dueCount = null;
   let disabledReason = null;
   let account = null;
+  const connectRequired = isStripeConnectEnabled();
 
   if (process.env.STRIPE_SECRET_KEY && profile.stripe_connect_account_id) {
     try {
@@ -85,21 +87,23 @@ export default async function handler(req, res) {
   const missingItems = [];
   if (!applicationSubmitted) missingItems.push('Application submitted');
   if (!contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
-  if (!agreementVersion) missingItems.push('Agreement version');
   if (!identityVerified) missingItems.push('Identity verified');
   if (!ownerApproved) missingItems.push('Owner approved');
-  if (!connectStarted) missingItems.push('Stripe Connect started');
-  if (!connectComplete) missingItems.push('Stripe Connect complete');
-  if (!payoutsEnabled) missingItems.push('Payouts enabled');
-  if (requirementsDueCount != null && requirementsDueCount > 0) missingItems.push('Stripe requirements due: ' + requirementsDueCount);
-  if (disabledReason) missingItems.push('Stripe disabled reason: ' + disabledReason);
-  if (taxReadiness.code === 'action_required') missingItems.push('Tax readiness status: Action Required');
+  if (connectRequired) {
+    if (!connectStarted) missingItems.push('Stripe Connect started');
+    if (!connectComplete) missingItems.push('Stripe Connect complete');
+    if (!payoutsEnabled) missingItems.push('Payouts enabled');
+    if (requirementsDueCount != null && requirementsDueCount > 0) missingItems.push('Stripe requirements due: ' + requirementsDueCount);
+    if (disabledReason) missingItems.push('Stripe disabled reason: ' + disabledReason);
+    if (taxReadiness.code === 'action_required') missingItems.push('Tax readiness status: Action Required');
+  }
 
   const finalStatus = missingItems.length === 0 ? 'READY FOR JOBS' : 'ACTION REQUIRED';
 
   return res.status(200).json({
     ok: true,
     readiness: {
+      connectRequired,
       applicationSubmitted,
       contractorAgreementAccepted,
       agreementVersion,

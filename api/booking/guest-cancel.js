@@ -6,6 +6,7 @@ import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
+import { writeFinancialAudit } from '../_financial-audit.js';
 
 /**
  * POST /api/booking/guest-cancel
@@ -55,17 +56,57 @@ export default async function handler(req, res) {
 
   // Stripe: release hold or charge cancellation fee
   let feeCaptured = 0;
-  if (process.env.STRIPE_SECRET_KEY && booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+  const stripeMutationRequired = booking.payment_status === 'authorized';
+  if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please call us at (737) 290-6129.' });
+  }
+  if (stripeMutationRequired && !booking.stripe_payment_intent_id) {
+    return res.status(409).json({ error: 'Your booking needs manual cancellation assistance. Please call us at (737) 290-6129.' });
+  }
+
+  if (stripeMutationRequired) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       if (withinWindow && (booking.total_price || 0) > 0) {
         const feeCents = Math.round((booking.total_price || 0) * 0.5);
-        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents });
+        const idempotencyKey = `guest-cancel-fee-${booking.id}-${feeCents}`;
+        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
         feeCaptured = feeCents;
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_attempt',
+          eventSource: 'booking_cancel_guest',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'guest_cancel_fee', feeCaptured },
+        });
       } else {
+        const idempotencyKey = `guest-cancel-release-${booking.id}`;
         await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+        await writeFinancialAudit(sb, {
+          eventType: 'capture_release',
+          eventSource: 'booking_cancel_guest',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          idempotencyKey,
+          status: 'processed',
+          metadata: { reason: 'guest_cancel_release' },
+        });
       }
-    } catch (e) { console.error('Stripe guest-cancel error:', e); }
+    } catch (e) {
+      console.error('Stripe guest-cancel error:', e);
+      await writeFinancialAudit(sb, {
+        eventType: 'booking_cancel_financial',
+        eventSource: 'booking_cancel_guest',
+        bookingId: booking.id,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        status: 'failed',
+        metadata: { paymentStatus: booking.payment_status, withinWindow },
+        error: e?.message || 'Guest cancellation Stripe mutation failed',
+      });
+      return res.status(502).json({ error: 'We could not complete the payment portion of this cancellation. Your booking is unchanged. Please try again or call us at (737) 290-6129.' });
+    }
   }
 
   const { error: updateErr } = await sb.from('bookings').update({

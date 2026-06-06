@@ -54,7 +54,15 @@ export default async function handler(req, res) {
 
   // Stripe: release hold or charge cancellation fee
   let feeCaptured = 0;
-  if (process.env.STRIPE_SECRET_KEY && booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+  const stripeMutationRequired = booking.payment_status === 'authorized';
+  if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please contact support.' });
+  }
+  if (stripeMutationRequired && !booking.stripe_payment_intent_id) {
+    return res.status(409).json({ error: 'This booking needs manual cancellation help. Please contact support.' });
+  }
+
+  if (stripeMutationRequired) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       if (withinWindow && (booking.total_price || 0) > 0) {
@@ -95,6 +103,7 @@ export default async function handler(req, res) {
         metadata: { paymentStatus: booking.payment_status, withinWindow },
         error: e?.message || 'Customer cancellation Stripe mutation failed',
       });
+      return res.status(502).json({ error: 'We could not complete the payment portion of this cancellation. Your booking is unchanged. Please try again or contact support.' });
     }
   }
 

@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, payment_status, status')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, payment_status, status, assembler_id')
     .eq('id', bookingId)
     .single();
 
@@ -36,8 +36,19 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Booking not found' });
   }
 
-  // Guard: already confirmed — idempotent, return success without re-processing.
+  async function ensureDispatch() {
+    if (booking.status !== 'confirmed' || booking.assembler_id) return;
+    try {
+      await dispatchBooking(bookingId);
+    } catch (dispatchErr) {
+      console.error('booking-confirmed dispatch error:', dispatchErr?.message || dispatchErr);
+    }
+  }
+
+  // Guard: already confirmed — idempotent, but still retry dispatch in case
+  // a prior request confirmed the booking and failed before dispatch ran.
   if (booking.payment_status === 'authorized' || booking.status === 'confirmed') {
+    await ensureDispatch();
     return res.status(200).json({ success: true, alreadyConfirmed: true });
   }
 
@@ -67,8 +78,14 @@ export default async function handler(req, res) {
 
   if (updateErr) {
     console.error('booking-confirmed status update error:', updateErr);
-    // Non-fatal: still send email, but log for manual resolution
+    // Re-fetching is unnecessary here because the idempotent guard above will
+    // retry dispatch on a follow-up call if another request already confirmed it.
   }
+
+  booking.payment_status = 'authorized';
+  booking.status = 'confirmed';
+
+  await ensureDispatch();
 
   const { ref, service, customer_name: name, customer_email: email, address, date, time, details,
           total_price: amount } = booking;
@@ -133,7 +150,7 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`;
 
-  const result = await sendEmail({
+  const customerEmailResult = await sendEmail({
     from: 'AssembleAtEase <booking@assembleatease.com>',
     to: email,
     subject: `Booking Confirmed — ${ref}`,
@@ -142,9 +159,8 @@ export default async function handler(req, res) {
     meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
   });
 
-  if (!result.ok) {
-    console.error('booking-confirmed send error:', result.error);
-    return res.status(500).json({ error: 'Failed to send confirmation email' });
+  if (!customerEmailResult.ok) {
+    console.error('booking-confirmed customer send error:', customerEmailResult.error);
   }
 
   // ── Owner notification — sent here (not in /api/booking) so it only fires
@@ -187,7 +203,7 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`;
 
-  await sendEmail({
+  const ownerEmailResult = await sendEmail({
     from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
     to: TO,
     subject: `New Booking (Card Authorized) — ${ref} — ${service}`,
@@ -196,9 +212,18 @@ export default async function handler(req, res) {
     meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'owner' },
   });
 
+  if (!ownerEmailResult.ok) {
+    console.error('booking-confirmed owner send error:', ownerEmailResult.error);
+  }
+
   const sb2 = getSupabase();
   logActivity(sb2, { bookingId, eventType: 'booking_created', actorType: 'customer', actorName: booking.ref ? 'Customer' : 'Unknown', description: `Booking created — card authorized. ${booking.service} on ${booking.date}.`, metadata: { amount: booking.total_price } });
-  dispatchBooking(bookingId).catch(e => console.error('Auto-dispatch error:', e.message));
 
-  return res.status(200).json({ success: true });
+  return res.status(200).json({
+    success: true,
+    warnings: [
+      !customerEmailResult.ok ? 'customer_confirmation_email_failed' : null,
+      !ownerEmailResult.ok ? 'owner_notification_email_failed' : null,
+    ].filter(Boolean),
+  });
 }

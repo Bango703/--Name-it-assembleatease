@@ -124,6 +124,7 @@ export default async function handler(req, res) {
         currency: 'usd',
         customer: customer.id,
         capture_method: 'manual',
+        setup_future_usage: 'off_session',
         payment_method_types: ['card'],
         payment_method_options: {
           card: {
