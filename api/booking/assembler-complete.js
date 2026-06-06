@@ -220,7 +220,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Tiered fee: members pay 18%, non-members pay 25%
+  // Tiered fee: members pay 25%, non-members pay 35% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
   const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
   const isMember = easerProf?.has_membership === true;
   const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
@@ -264,7 +264,8 @@ export default async function handler(req, res) {
         reason: connectState.reason,
       };
     } else {
-      const transferIdempotencyKey = `assembler-complete-transfer-${booking.id}`;
+      // Shared key with owner complete.js — Stripe rejects duplicate if both race.
+      const transferIdempotencyKey = `transfer-booking-${booking.id}`;
       try {
         await writeFinancialAudit(sb, {
           eventType: 'transfer_attempt',

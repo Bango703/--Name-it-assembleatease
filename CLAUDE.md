@@ -87,7 +87,7 @@ Stripe manual-capture flow:
 3. `api/booking/payout.js` — Owner manually records Easer payout via `payout_ledger` (no Stripe Connect — payouts are manual/offline)
 4. `api/cron/reauth-payments.js` — Daily at 10:00 UTC: re-authorizes cards 5 days before appointment (7-day Stripe auth window)
 
-**Fee structure:** Members pay 18% platform fee, non-members pay 25%. Use `getPlatformFeePct(hasMembership)` from `_source-of-truth.js`.
+**Fee structure:** Members pay 25% platform fee, non-members pay 35%. Use `getPlatformFeePct(hasMembership)` from `_source-of-truth.js`. Constants are defined in `MEMBERSHIP_PLATFORM_FEE_PCT` — never hardcode rates.
 
 ### Dispatch Engine
 

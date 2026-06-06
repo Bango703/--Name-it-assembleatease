@@ -147,7 +147,14 @@ export default async function handler(req, res) {
       clientSecret = pi.client_secret;
     } catch (stripeErr) {
       console.error('Stripe setup error:', stripeErr);
-      // Non-fatal: booking saved, payment setup failed — owner notified via email
+      // Delete the booking row we just created — do not leave an unpayable ghost booking.
+      await sb.from('bookings').delete().eq('id', bookingId).catch(delErr =>
+        console.error('Failed to clean up ghost booking after Stripe error:', delErr)
+      );
+      return res.status(502).json({
+        error: 'Payment setup failed. Please try again in a moment. Your card was not charged.',
+        code: 'STRIPE_SETUP_FAILED',
+      });
     }
   }
 

@@ -1,7 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, getPlatformFeePct } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -51,11 +51,16 @@ export default async function handler(req, res) {
     console.warn(`[payout-no-evidence] ${booking.ref} — proceeding with no completion evidence on file`);
   }
 
-  // Auto-derive payout from assembler_due (recorded at job completion), or fall back to 80% of amount_charged
-  const PLATFORM_FEE_PCT = Math.min(100, Math.max(0, parseInt(process.env.PLATFORM_FEE_PCT || '20')));
-  const derivedDue = booking.assembler_due != null
-    ? booking.assembler_due
-    : Math.round((booking.amount_charged || 0) * (1 - PLATFORM_FEE_PCT / 100));
+  // Auto-derive payout from assembler_due (recorded at job completion).
+  // Fallback: look up easer membership and apply canonical fee (25% member / 35% non-member).
+  let derivedDue;
+  if (booking.assembler_due != null) {
+    derivedDue = booking.assembler_due;
+  } else {
+    const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).maybeSingle();
+    const feePct = getPlatformFeePct(asmProf?.has_membership === true);
+    derivedDue = Math.round((booking.amount_charged || 0) * (1 - feePct / 100));
+  }
 
   const payoutCents = amount ? parseInt(amount, 10) : derivedDue;
   if (!payoutCents || payoutCents <= 0) return res.status(400).json({ error: 'Cannot determine payout amount — no assembler_due recorded and no amount supplied' });

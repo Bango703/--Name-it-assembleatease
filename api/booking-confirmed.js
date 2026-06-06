@@ -1,4 +1,5 @@
-﻿import { getSupabase } from './_supabase.js';
+﻿import Stripe from 'stripe';
+import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price')
+    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, payment_status, status')
     .eq('id', bookingId)
     .single();
 
@@ -35,11 +36,34 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Booking not found' });
   }
 
+  // Guard: already confirmed — idempotent, return success without re-processing.
+  if (booking.payment_status === 'authorized' || booking.status === 'confirmed') {
+    return res.status(200).json({ success: true, alreadyConfirmed: true });
+  }
+
+  // Verify the PaymentIntent is genuinely authorized with Stripe before marking the booking.
+  // This prevents IDOR abuse where anyone with a bookingId could call this endpoint.
+  if (booking.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+      // Valid post-auth PI states: requires_capture (manual) or succeeded (auto-capture)
+      if (pi.status !== 'requires_capture' && pi.status !== 'succeeded') {
+        console.warn(`[booking-confirmed] PI ${pi.id} in unexpected state: ${pi.status} for booking ${bookingId}`);
+        return res.status(402).json({ error: 'Payment not yet authorized. Please complete payment before confirming.' });
+      }
+    } catch (piErr) {
+      console.error('[booking-confirmed] Stripe PI verification error:', piErr);
+      return res.status(502).json({ error: 'Could not verify payment status. Please try again.' });
+    }
+  }
+
   // Confirm booking + mark card authorized. Promotes status so dispatch can run.
   const { error: updateErr } = await sb
     .from('bookings')
     .update({ payment_status: 'authorized', payment_authorized_at: new Date().toISOString(), status: 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: 'payment' })
-    .eq('id', bookingId);
+    .eq('id', bookingId)
+    .eq('payment_status', 'pending');
 
   if (updateErr) {
     console.error('booking-confirmed status update error:', updateErr);
