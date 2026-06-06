@@ -318,6 +318,9 @@
   var tosInterval = null;
   var offerTimerInterval = null;
   var _pendingCompleteBookingId = null;
+  var _homePhotoFile = null;
+  var _homePhotoDataUrl = null;
+  var _homePhotoUploaded = false;
   var dashboardLoadState = {
     mode: 'loading',
     lastSuccessAt: null,
@@ -761,10 +764,9 @@
         +'</span>')
     +'</div>'
     +(ctaLabel
-      ? '<button class="eh-cta-btn'+(ctaGreen ? ' green' : '')+'" id="eh-cta-btn">'
-        +esc(ctaLabel)
-        +(ctaStage ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>' : '')
-      +'</button>'
+      ? (ctaStage
+          ? '<button class="eh-cta-btn'+(ctaGreen ? ' green' : '')+'" id="eh-cta-btn">'+esc(ctaLabel)+'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>'
+          : '<label for="home-photo-input" class="eh-cta-btn green" id="eh-cta-btn" style="cursor:pointer;-webkit-tap-highlight-color:transparent">'+esc(ctaLabel)+'</label>')
       : '');
 
     document.getElementById('active-job-card').innerHTML = html;
@@ -799,9 +801,11 @@
         } catch{ctaBtn.disabled=false;ctaBtn.textContent=ctaLabel;}
       });
     } else if(ctaBtn && lj.status==='in_progress') {
-      ctaBtn.addEventListener('click', function(){
+      ctaBtn.addEventListener('click', function(e){
+        if(!lj.id){ e.preventDefault(); return; }
         _pendingCompleteBookingId = lj.id;
-        document.getElementById('home-complete-sheet').classList.add('open');
+        _homePhotoFile = null; _homePhotoDataUrl = null; _homePhotoUploaded = false;
+        // Label default behavior opens home-photo-input natively — no .click() needed
       });
     }
   }
@@ -1002,13 +1006,45 @@
         setAvailUI(true);
       }
     });
+    document.getElementById('home-photo-input').addEventListener('change', function(){
+      var file = this.files && this.files[0];
+      if(!file || !_pendingCompleteBookingId) return;
+      if(file.size > 5 * 1024 * 1024){ alert('Photo must be under 5 MB.'); this.value=''; return; }
+      _homePhotoFile = file;
+      _homePhotoUploaded = false;
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        _homePhotoDataUrl = ev.target.result;
+        var img = document.getElementById('home-photo-img');
+        var preview = document.getElementById('home-photo-preview');
+        if(img) img.src = _homePhotoDataUrl;
+        if(preview) preview.style.display = '';
+        document.getElementById('home-complete-sheet').classList.add('open');
+      };
+      reader.readAsDataURL(file);
+    });
+
     document.getElementById('home-complete-yes').addEventListener('click',async function(){
-      document.getElementById('home-complete-sheet').classList.remove('open');
       var bookingId=_pendingCompleteBookingId;
-      _pendingCompleteBookingId=null;
       if(!bookingId) return;
+      document.getElementById('home-complete-sheet').classList.remove('open');
+      _pendingCompleteBookingId=null;
       var btn=document.getElementById('eh-cta-btn');
-      if(btn){btn.disabled=true;btn.textContent='Processing…';}
+      if(btn){btn.style.pointerEvents='none';btn.textContent='Uploading photo…';}
+      // Upload photo first if we have one
+      if(_homePhotoFile && !_homePhotoUploaded){
+        try{
+          var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res((e.target.result+'').split(',')[1]||e.target.result);};r.onerror=rej;r.readAsDataURL(_homePhotoFile);});
+          var up=await fetch('/api/booking/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},body:JSON.stringify({bookingId:bookingId,fileBase64:base64,mimeType:_homePhotoFile.type,evidenceType:'completion_photo'})});
+          if(up.ok) _homePhotoUploaded=true;
+        }catch(upErr){
+          if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
+          alert('Photo upload failed — please try again.');
+          _pendingCompleteBookingId=bookingId;
+          return;
+        }
+      }
+      if(btn) btn.textContent='Completing…';
       try{
         var r=await fetch('/api/booking/assembler-complete',{
           method:'POST',
@@ -1017,13 +1053,13 @@
         });
         var d=await r.json();
         if(!r.ok||d.error){
-          if(btn){btn.disabled=false;btn.textContent='Mark Job Complete';}
+          if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
           alert(d.error||'Could not complete job. Please try again.');
           return;
         }
         window.location.reload();
       }catch(e){
-        if(btn){btn.disabled=false;btn.textContent='Mark Job Complete';}
+        if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
         alert('Network error — please try again.');
       }
     });
@@ -1163,13 +1199,17 @@
   });
 </script>
 
+<!-- Hidden file input for completion photo — label on CTA triggers this natively -->
+<input type="file" id="home-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">
+
 <!-- Complete job confirmation sheet -->
 <div class="sheet-overlay" id="home-complete-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Mark job as complete</div>
-    <div class="sheet-body">
-      Only mark complete when the work is fully finished and the customer is satisfied.<br><br>
-      <strong>This will charge the customer's card and record your payout.</strong>
+    <div class="sheet-title">Confirm job complete</div>
+    <div class="sheet-body">All work is done and the customer is satisfied.</div>
+    <div id="home-photo-preview" style="margin:0.75rem 0;border-radius:10px;overflow:hidden;display:none">
+      <img id="home-photo-img" style="width:100%;max-height:160px;object-fit:cover;display:block" alt="Completion photo">
+      <label for="home-photo-input" style="display:block;text-align:center;padding:0.4rem;font-size:0.75rem;color:var(--e-muted);cursor:pointer;background:var(--e-surface)">Retake photo</label>
     </div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="home-complete-yes">Yes, job is complete</button>
