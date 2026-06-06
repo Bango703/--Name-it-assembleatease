@@ -340,6 +340,13 @@ export default async function handler(req, res) {
           reason: 'transfer-failed',
           error: connectErr?.message || 'Unknown Stripe Connect transfer error',
         };
+        // Alert owner — manual payout action required
+        sendEmail({
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          to: ownerEmail(),
+          subject: `ACTION REQUIRED — Connect transfer failed — ${booking.ref}`,
+          html: `<p>The Stripe Connect transfer for booking <strong>${esc(booking.ref)}</strong> failed and requires manual payout.</p><p><strong>Easer:</strong> ${esc(connectState.accountId)}<br/><strong>Amount:</strong> $${(assemblerDue / 100).toFixed(2)}<br/><strong>Error:</strong> ${esc(connectErr?.message || 'Unknown error')}</p><p>Check the financial audit log and process manually via the owner dashboard.</p>`,
+        }).catch(e => console.error('Connect failure owner alert email error:', e));
       }
     }
   }

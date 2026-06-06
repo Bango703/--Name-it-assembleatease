@@ -43,6 +43,19 @@ export default async function handler(req, res) {
   const discountCents = pricing.discountCents;
   const taxCents = pricing.taxCents;
   const serviceCallFeeCents = pricing.serviceCallFeeCents;
+
+  // Hard floor: all paid bookings must meet the $99 minimum (9900 cents).
+  // Quote-only requests (amount === 0) are exempt — they never hit Stripe.
+  const MIN_BOOKING_CENTS = 9900;
+  if (amount > 0 && amount < MIN_BOOKING_CENTS) {
+    return res.status(400).json({
+      error: `Minimum booking total is $99.00. Your current selection totals $${(amount / 100).toFixed(2)}. Please add more services.`,
+      code: 'BELOW_MINIMUM',
+      totalCents: amount,
+      minimumCents: MIN_BOOKING_CENTS,
+    });
+  }
+
   const isDeposit = false;
   const depositAmountCents = null;
 

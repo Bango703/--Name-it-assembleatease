@@ -66,8 +66,12 @@ export default async function handler(req, res) {
         });
       } else if (booking.payment_status === 'authorized') {
         if (!waiveFee && withinCancellationWindow && (booking.total_price || 0) > 0) {
-          // Within 24hr window — capture 50% as cancellation fee
-          const feeCents = Math.round((booking.total_price || 0) * 0.5);
+          // Within 24hr window — capture 50% as cancellation fee.
+          // Use the actual PI authorized amount (not total_price which may have been edited)
+          // to guarantee the capture never exceeds what Stripe holds.
+          const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+          const authorizedCents = pi.amount;
+          const feeCents = Math.round(authorizedCents * 0.5);
           const idempotencyKey = `owner-cancel-fee-${booking.id}-${feeCents}`;
           await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, {
             amount_to_capture: feeCents,
