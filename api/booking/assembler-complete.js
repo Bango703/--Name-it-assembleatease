@@ -197,8 +197,14 @@ export default async function handler(req, res) {
         });
       } catch (e) { console.error('Capture failure alert error:', e); }
 
+      // Detect expired/uncapturable PI and give a clearer message
+      const isUncapturable = stripeErr?.code === 'payment_intent_unexpected_state'
+        || (stripeErr?.message || '').includes('requires_payment_method')
+        || (stripeErr?.message || '').includes('requires_capture');
       return res.status(502).json({
-        error: 'Payment capture failed. Booking was not completed. Please resolve payment and retry.',
+        error: isUncapturable
+          ? 'The card authorization for this job has expired or is no longer valid. The owner has been notified and will collect payment manually. You can message support if you need help.'
+          : 'Payment capture failed. The owner has been alerted and will resolve this. Please message support if you need assistance.',
         code: 'CAPTURE_FAILED',
       });
     }
