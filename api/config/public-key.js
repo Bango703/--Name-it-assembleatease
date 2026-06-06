@@ -11,7 +11,7 @@ export default function handler(req, res) {
     return res.status(503).json({ error: 'Stripe not configured' });
   }
 
-  // Cache for 1 hour — key rarely changes
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  // No caching — key changes require immediate propagation (e.g. live→test switch)
+  res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({ publishableKey });
 }
