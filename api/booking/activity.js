@@ -67,14 +67,22 @@ export default async function handler(req, res) {
 
 function formatNotifDescription(n) {
   const typeLabels = {
-    dispatch_offer:  'Dispatch offer',
-    job_accepted:    'Job accepted notification',
-    completion:      'Completion receipt',
-    cancellation:    'Cancellation notification',
-    review_request:  'Review request',
-    reminder:        'Appointment reminder',
-    payout_summary:  'Payout summary',
-    transactional:   'Email',
+    booking_created:          'Booking created',
+    booking_confirmed:        'Booking confirmation email',
+    dispatch_offer:           'Job offer sent to Easer',
+    assignment_confirmation:  'Assignment confirmation to Easer',
+    job_accepted:             'Easer confirmed — customer notified',
+    en_route:                 'Easer on the way — customer notified',
+    arrived:                  'Easer arrived — customer notified',
+    in_progress:              'Job started — customer notified',
+    completion:               'Completion receipt sent',
+    payment_receipt:          'Payment receipt sent',
+    cancellation:             'Cancellation notification sent',
+    review_request:           'Review request sent',
+    reminder:                 'Appointment reminder sent',
+    payout_summary:           'Payout summary sent',
+    cron_alert:               'System alert',
+    transactional:            'Email notification',
   };
   const recipientLabels = {
     customer: 'customer',

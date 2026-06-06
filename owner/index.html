@@ -2009,10 +2009,12 @@ function intelQuick(msg) {
       if (!items.length) { el.innerHTML = '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>'; return; }
       var dotColors = {
         booking_created:'#3b82f6', confirmed:'#1d9e75', dispatched:'#8b5cf6',
-        easer_accepted:'#1d9e75', en_route:'#3b82f6', arrived:'#00BFFF',
-        in_progress:'#10b981', completed:'#065f46', cancelled:'#ef4444',
-        refunded:'#f59e0b', note_added:'#6b7280', payout_released:'#10b981',
+        easer_accepted:'#1d9e75', easer_declined:'#ef4444', en_route:'#3b82f6',
+        arrived:'#00BFFF', in_progress:'#10b981', completed:'#065f46',
+        cancelled:'#ef4444', refunded:'#f59e0b', note_added:'#6b7280',
+        payout_released:'#10b981', payout_recorded:'#10b981',
         reassigned:'#f59e0b', owner_action:'#00BFFF',
+        notification_sent:'#94a3b8',
       };
       el.innerHTML = '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
@@ -2801,7 +2803,7 @@ function intelQuick(msg) {
         cls = 'bk-dispatched'; label = 'Needs Easer';
       } else if (!b.assembler_id) {
         cls = 'bk-confirmed'; label = 'Confirmed';
-      } else if (b.assembler_id && !b.assembler_accepted_at) {
+      } else if (b.assembler_id && !b.assembler_accepted_at && b.dispatch_status !== 'accepted') {
         cls = 'bk-dispatched'; label = 'Awaiting Accept';
       } else {
         cls = 'bk-accepted'; label = 'Accepted';
@@ -2935,7 +2937,11 @@ function intelQuick(msg) {
     if (b.assembler_id) {
       var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; });
       var aName = a ? a.full_name : (b.assembler_name || 'Assigned Easer');
-      var accepted = b.assembler_accepted_at ? ' &bull; <span style="color:#1d9e75">Accepted</span>' : ' &bull; <span style="color:#f59e0b">Pending acceptance</span>';
+      var isAccepted = !!(b.assembler_accepted_at || b.dispatch_status === 'accepted');
+      var acceptedAt = b.assembler_accepted_at ? ' at ' + new Date(b.assembler_accepted_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+      var accepted = isAccepted
+        ? ' &bull; <span style="color:#1d9e75">Accepted' + acceptedAt + '</span>'
+        : ' &bull; <span style="color:#f59e0b">Awaiting acceptance</span>';
       status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted + ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>';
       controls.style.display = 'none';
     } else {
