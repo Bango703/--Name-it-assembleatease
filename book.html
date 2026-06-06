@@ -3032,7 +3032,7 @@ async function goToStep5Payment() {
 
       summaryDate + ' &nbsp;&middot;&nbsp; ' + BOOK.time,
 
-      '<input type="date" class="summary-addr-input" id="s5-dt-date" value="' + escAttr(BOOK.date) + '" min="' + escAttr(new Date(Date.now()+86400000).toISOString().slice(0,10)) + '" />'
+      '<input type="date" class="summary-addr-input" id="s5-dt-date" value="' + escAttr(BOOK.date) + '" min="' + escAttr(new Date(Date.now()+86400000).toISOString().slice(0,10)) + '" max="' + escAttr(new Date(Date.now()+6*24*60*60*1000).toISOString().slice(0,10)) + '" />'
 
       + '<div id="s5-dt-times" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem">'
 
@@ -3620,7 +3620,7 @@ function saveContactEdit() {
 
   var today = new Date(); today.setHours(0,0,0,0);
 
-  var maxDate = new Date(today.getTime() + 30*24*60*60*1000);
+  var maxDate = new Date(today.getTime() + 6*24*60*60*1000);
 
   var curMonth = today.getMonth(), curYear = today.getFullYear();
 

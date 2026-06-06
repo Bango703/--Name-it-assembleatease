@@ -22,6 +22,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  const requestedDate = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(requestedDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid appointment date.' });
+  }
+
+  const bookingWindowStart = new Date();
+  bookingWindowStart.setHours(0, 0, 0, 0);
+  const bookingWindowEnd = new Date(bookingWindowStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+  if (requestedDate < bookingWindowStart || requestedDate > bookingWindowEnd) {
+    return res.status(400).json({
+      error: 'Online booking is temporarily limited to appointments within the next 6 days. For later dates, email service@assembleatease.com.',
+      code: 'BOOKING_WINDOW_RESTRICTED',
+      latestBookableDate: bookingWindowEnd.toISOString().slice(0, 10),
+    });
+  }
+
   const KEY = process.env.RESEND_API_KEY;
   const TO  = ownerEmail();
   const ref = 'AAE-' + Date.now().toString(36).toUpperCase();
