@@ -171,10 +171,10 @@
       <div style="background:#fffbeb;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem 1rem;font-size:0.8rem;color:#92400e;margin-bottom:0.875rem;line-height:1.55">
         Only mark complete after <strong>all work is done</strong> — not when you've arrived or started. Completion triggers payment processing and customer notification.
       </div>
-      <button class="btn btn-teal" id="complete-btn" style="width:100%;margin-bottom:1rem;background:#059669;border-color:#059669;border-radius:12px;min-height:48px;font-size:0.95rem">
+      <label for="photo-input" id="complete-btn" class="btn btn-teal" style="width:100%;margin-bottom:1rem;background:#059669;border-color:#059669;border-radius:12px;min-height:48px;font-size:0.95rem;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;-webkit-tap-highlight-color:transparent">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         Mark Job as Complete
-      </button>
+      </label>
     </div>
     <!-- Evidence request section (shown when payout is held pending photo upload) -->
     <div id="evidence-request-section" style="display:none;background:#fffbeb;border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:0.875rem 1rem;margin-top:0.5rem;margin-bottom:0.75rem">
@@ -669,13 +669,12 @@
       if (yesBtn) { yesBtn.disabled = true; yesBtn.style.opacity = '0.45'; yesBtn.style.cursor = 'not-allowed'; }
     }
 
-    document.getElementById('complete-btn').addEventListener('click', function() {
-      if (!selectedBookingId) return;
+    document.getElementById('complete-btn').addEventListener('click', function(e) {
+      if (!selectedBookingId) { e.preventDefault(); return; }
       _pendingCompleteBookingId = selectedBookingId;
       _resetPhotoState();
-      // Trigger camera FIRST — direct user gesture, no DOM mutations before this.
-      // Sheet opens after photo is selected (see photo-input change handler below).
-      document.getElementById('photo-input').click();
+      // Label's default behavior opens the file input (photo-input) natively.
+      // No .click() needed — browser label→input binding works on all platforms.
     });
 
     document.getElementById('complete-sheet-cancel').addEventListener('click', function() {
