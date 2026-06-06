@@ -674,6 +674,9 @@
       _pendingCompleteBookingId = selectedBookingId;
       _resetPhotoState();
       document.getElementById('complete-sheet').classList.add('open');
+      // Auto-open camera immediately — we are still inside the user-gesture chain
+      // so browsers allow programmatic .click() on the file input here.
+      document.getElementById('photo-input').click();
     });
 
     document.getElementById('complete-sheet-cancel').addEventListener('click', function() {
@@ -1215,24 +1218,18 @@
 <!-- Complete job confirmation sheet -->
 <div class="sheet-overlay" id="complete-sheet">
   <div class="sheet-box">
-    <div class="sheet-title">Is all work finished</div>
-    <div class="sheet-body">Only mark complete after <strong>all requested work is done</strong> — not when you've arrived or started. This charges the customer's card and sends a completion notice.</div>
-    <ul style="margin:0.625rem 0 0.75rem;padding-left:1.2rem;font-size:0.82rem;color:#374151;line-height:1.85">
-      <li>All requested work is fully finished</li>
-      <li>Customer has reviewed the work (if on-site)</li>
-      <li>Tools and materials are cleaned up</li>
-      <li>Completion photo added below (required)</li>
-    </ul>
+    <div class="sheet-title">Take a completion photo</div>
+    <div class="sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete and payment is processed.</div>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
-      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Add a completion photo <span style="font-weight:400;color:#dc2626">(required)</span></div>
-      <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
+      <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Completion photo <span style="font-weight:400;color:#dc2626">(required to submit)</span></div>
+      <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">
       <div id="photo-preview-area" style="display:none;margin-bottom:0.5rem">
         <img id="photo-preview-img" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px" alt="preview"/>
-        <button id="photo-remove-btn" style="font-size:0.72rem;color:#64748b;background:none;border:none;cursor:pointer;margin-top:4px;padding:0;-webkit-tap-highlight-color:transparent">Remove photo</button>
+        <button id="photo-remove-btn" style="font-size:0.72rem;color:#64748b;background:none;border:none;cursor:pointer;margin-top:4px;padding:0;-webkit-tap-highlight-color:transparent">Retake photo</button>
       </div>
-      <button id="photo-pick-btn" style="display:flex;align-items:center;gap:8px;width:100%;padding:0.6rem 0.875rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:0.875rem;color:#374151;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        Take or choose a photo
+      <button id="photo-pick-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:0.75rem 0.875rem;border:none;border-radius:10px;background:#0ea5e9;color:#fff;font-size:0.925rem;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Open Camera
       </button>
       <div id="photo-upload-status" style="display:none;font-size:0.78rem;margin-top:0.5rem"></div>
     </div>
