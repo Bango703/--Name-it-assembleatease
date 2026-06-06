@@ -143,7 +143,7 @@ export default async function handler(req, res) {
         const pi = event.data.object;
         if (pi.metadata?.type !== 'customer_booking') break;
 
-        const { bookingId, isDeposit, depositAmountCents } = pi.metadata;
+        const { bookingId } = pi.metadata;
         if (!bookingId) break;
         webhookBookingId = bookingId;
         webhookPaymentIntentId = pi.id;
@@ -166,8 +166,6 @@ export default async function handler(req, res) {
         }
 
         const paymentMethodId = pi.payment_method;
-        const needsDeposit = isDeposit === 'true' && parseInt(depositAmountCents || '0') > 0;
-
         // Update booking: authorized only from pre-capture states.
         const { error: authErr } = await sb.from('bookings').update({
           payment_status: 'authorized',
@@ -181,71 +179,17 @@ export default async function handler(req, res) {
           break;
         }
 
-        // If deposit job: capture 25% immediately — remaining hold released, card saved for balance later
-        if (needsDeposit) {
-          const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY);
-          const depositCents = parseInt(depositAmountCents);
-          const idempotencyKey = `webhook-deposit-${bookingId}`;
-          try {
-            await writeFinancialAudit(sb, {
-              eventType: 'capture_attempt',
-              eventSource: 'stripe_webhook',
-              stripeEventId: event.id,
-              bookingId,
-              paymentIntentId: pi.id,
-              idempotencyKey,
-              status: 'processing',
-              eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
-              metadata: { reason: 'deposit_capture', amountToCapture: depositCents },
-            });
-
-            await stripe2.paymentIntents.capture(pi.id, { amount_to_capture: depositCents }, { idempotencyKey });
-            await sb.from('bookings').update({
-              payment_status: 'deposit_paid',
-            }).eq('id', bookingId).neq('payment_status', 'captured').neq('payment_status', 'refunded');
-
-            await writeFinancialAudit(sb, {
-              eventType: 'capture_attempt',
-              eventSource: 'stripe_webhook',
-              stripeEventId: event.id,
-              bookingId,
-              paymentIntentId: pi.id,
-              idempotencyKey,
-              status: 'processed',
-              eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
-              metadata: { reason: 'deposit_capture', amountToCapture: depositCents },
-            });
-          } catch (capErr) {
-            console.error('Deposit capture error:', capErr);
-            webhookOutcome = 'failed';
-            webhookError = capErr?.message || 'Deposit capture failed';
-            await writeFinancialAudit(sb, {
-              eventType: 'capture_attempt',
-              eventSource: 'stripe_webhook',
-              stripeEventId: event.id,
-              bookingId,
-              paymentIntentId: pi.id,
-              idempotencyKey,
-              status: 'failed',
-              eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
-              metadata: { reason: 'deposit_capture', amountToCapture: depositCents },
-              error: capErr?.message || 'Deposit capture failed',
-            });
-          }
-        }
-
         // Send customer confirmation email
         const bk = existing;
 
         if (bk) {
           const totalDisplay = bk.total_price ? `$${(bk.total_price/100).toFixed(2)}` : 'TBD';
-          const depositDisplay = bk.deposit_amount ? `$${(bk.deposit_amount/100).toFixed(2)}` : null;
           try {
             await sendEmail({
               to: bk.customer_email,
               from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Booking Confirmed — ${esc(bk.ref)}`,
-              html: buildBookingConfirmEmail(bk, totalDisplay, depositDisplay),
+              html: buildBookingConfirmEmail(bk, totalDisplay),
               replyTo: ownerEmail(),
             });
           } catch (e) { console.error('Booking confirm email error:', e); }
@@ -846,11 +790,9 @@ function buildPaymentFailEmail(firstName, reason) {
 </div></body></html>`;
 }
 
-function buildBookingConfirmEmail(booking, totalDisplay, depositDisplay) {
+function buildBookingConfirmEmail(booking, totalDisplay) {
   const firstName = esc((booking.customer_name || '').split(' ')[0]);
-  const paymentNote = depositDisplay
-    ? `A 25% deposit of <strong>${depositDisplay}</strong> has been collected. The remaining balance will be charged after job completion.`
-    : `Your card is securely authorized for <strong>${totalDisplay}</strong> and will only be charged after the job is complete.`;
+  const paymentNote = `Your card is securely authorized for <strong>${totalDisplay}</strong> and will only be charged after the job is complete.`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">

@@ -3,13 +3,14 @@ import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
+import { calculateBookingPricing } from './_pricing.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
-  const { services, items, service: serviceLegacy, name, phone, email, address, zip, date, time, details, totalCents, isQuoteRequest, paymentMethodId, stripeCustomerId } = req.body;
+  const { services, items, service: serviceLegacy, name, phone, email, address, zip, date, time, details, isQuoteRequest, paymentMethodId, stripeCustomerId } = req.body;
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
@@ -29,15 +30,21 @@ export default async function handler(req, res) {
 
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
-  const TX_TAX_RATE = 0.0825; // Texas 6.25% + Austin 2%
+  const pricing = calculateBookingPricing({ services: serviceList, itemsByService: items, zip });
+  if (pricing.invalidItems.length) {
+    return res.status(400).json({
+      error: 'Some selected services are no longer available. Please refresh and try again.',
+      invalidItems: pricing.invalidItems,
+    });
+  }
 
-  // Trust the client-calculated total. Items are priced realistically in the catalog
-  // so no minimum floor or adjustment fee is needed. Tax is the only server-side addition.
-  const amount = Math.max(parseInt(totalCents) || 0, 0);
-  const subtotalCents = amount > 0 ? Math.round(amount / (1 + TX_TAX_RATE)) : 0;
-  const taxCents = amount - subtotalCents;
-  const isDeposit = amount >= 20000; // $200+ → deposit flow
-  const depositAmountCents = isDeposit ? Math.round(amount * 0.25) : null;
+  const amount = pricing.totalCents;
+  const subtotalCents = pricing.itemSubtotalCents;
+  const discountCents = pricing.discountCents;
+  const taxCents = pricing.taxCents;
+  const serviceCallFeeCents = pricing.serviceCallFeeCents;
+  const isDeposit = false;
+  const depositAmountCents = null;
 
   const { data: savedBooking, error: insertErr } = await sb.from('bookings').insert({
     ref,
@@ -53,6 +60,8 @@ export default async function handler(req, res) {
     payment_status: amount > 0 ? 'pending' : 'not_required',
     total_price: amount,
     tax_amount: taxCents,
+    service_call_fee: serviceCallFeeCents,
+    call_zone: pricing.callZone,
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
   }).select('id').single();
@@ -64,7 +73,7 @@ export default async function handler(req, res) {
 
   const bookingId = savedBooking.id;
 
-  const bookingItemRows = buildBookingItemRows({ bookingId, itemsByService: items });
+  const bookingItemRows = buildBookingItemRows({ bookingId, itemsByService: pricing.normalizedItems });
   if (bookingItemRows.length) {
     const { error: itemInsertErr } = await sb.from('booking_items').insert(bookingItemRows);
     if (itemInsertErr) {
@@ -124,8 +133,8 @@ export default async function handler(req, res) {
           bookingRef: ref,
           bookingId,
           type: 'customer_booking',
-          isDeposit: isDeposit ? 'true' : 'false',
-          depositAmountCents: depositAmountCents ? String(depositAmountCents) : '0',
+          isDeposit: 'false',
+          depositAmountCents: '0',
         },
       });
 
@@ -179,7 +188,11 @@ export default async function handler(req, res) {
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sDate}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${sTime}</td></tr>
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Details</td><td style="padding:10px 0;line-height:1.6">${sDetails || 'None provided'}</td></tr>
-      ${amount > 0 ? `<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}${isDeposit ? ` <span style="font-weight:400;color:#71717a;font-size:12px">(25% deposit = $${(depositAmountCents/100).toFixed(2)} collected at booking)</span>` : ''}</td></tr>` : ''}
+      ${amount > 0 ? `<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Subtotal</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:600">$${(subtotalCents/100).toFixed(2)}</td></tr>
+      ${discountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Bundle Discount</td><td style="padding:10px 0;font-weight:600;color:#0d9488">-$${(discountCents/100).toFixed(2)}</td></tr>` : ''}
+      ${serviceCallFeeCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Service Call</td><td style="padding:10px 0;font-weight:600">$${(serviceCallFeeCents/100).toFixed(2)}</td></tr>` : ''}
+      <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Tax</td><td style="padding:10px 0;font-weight:600">$${(taxCents/100).toFixed(2)}</td></tr>
+      <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}
       ${clientSecret ? '<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-top:1px solid #f0f0f0"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CARD PENDING AUTHORIZATION</span></td></tr>' : ''}
     </table>
 
@@ -228,7 +241,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll email you within 1 hour to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${isDeposit ? 'Deposit collected — balance after completion' : (clientSecret ? 'Card authorized — charged after completion' : 'Pay after completion')}</strong> — ${clientSecret ? (isDeposit ? `A 25% deposit ($${(depositAmountCents/100).toFixed(2)}) is collected at booking. The remaining balance is charged after the job is complete.` : 'Your card is securely held and will only be charged once the job is complete.') : "No upfront payment. You pay only when you're 100% satisfied with the work."}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${clientSecret ? 'Card authorized — charged after completion' : 'Pay after completion'}</strong> — ${clientSecret ? 'Your card is securely authorized now and captured only after the job is complete.' : "No upfront payment. You pay only when you're 100% satisfied with the work."}</td></tr>
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
@@ -308,6 +321,14 @@ export default async function handler(req, res) {
       clientSecret,
       isDeposit,
       depositAmountCents,
+      pricing: {
+        itemSubtotalCents: subtotalCents,
+        discountCents,
+        discountPct: pricing.discountPct,
+        serviceCallFeeCents,
+        taxCents,
+        totalCents: amount,
+      },
     });
   } catch (e) {
     console.error(e);

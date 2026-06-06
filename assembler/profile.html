@@ -356,7 +356,7 @@
     document.getElementById('basic-summary-name').textContent = name || '—';
     document.getElementById('basic-summary-phone').textContent = phone || '';
     var loc = [city, state].filter(Boolean).join(', ');
-    if (zip) loc += (loc  ' ' : '') + zip;
+    if (zip) loc += (loc ? ' ' : '') + zip;
     document.getElementById('basic-summary-location').textContent = loc;
     document.getElementById('basic-summary').style.display = '';
     document.getElementById('basic-fields').style.display = 'none';
@@ -373,7 +373,7 @@
     var rate   = document.getElementById('hourly-rate').value;
     // Rate
     var rateEl = document.getElementById('prof-summary-rate');
-    rateEl.textContent = rate  '$' + rate + '/hr' : '';
+    rateEl.textContent = rate ? '$' + rate + '/hr' : '';
     // Skills
     var skillsEl = document.getElementById('prof-summary-skills');
     skillsEl.innerHTML = skills.map(function(s) {
@@ -428,12 +428,12 @@
     document.getElementById('completion-pct').textContent = pct + '%';
     document.getElementById('completion-fill').style.width = pct + '%';
     document.getElementById('completion-fill').style.background =
-      pct === 100  'var(--pro-teal)' : pct >= 60  '#f59e0b' : '#e86a2e';
+      pct === 100 ? 'var(--pro-teal)' : pct >= 60 ? '#f59e0b' : '#e86a2e';
     var cl = document.getElementById('completion-checklist');
     if (cl) {
       cl.innerHTML = checks.map(function(c) {
-        return '<span style="color:' + (c.ok  '#059669' : '#94a3b8') + '">'
-          + (c.ok  '&#10003; ' : '&#9675; ') + c.label + '</span>';
+        return '<span style="color:' + (c.ok ? '#059669' : '#94a3b8') + '">'
+          + (c.ok ? '&#10003; ' : '&#9675; ') + c.label + '</span>';
       }).join('');
     }
   }
@@ -499,7 +499,7 @@
     function hideNotif(){_notifPanel.style.display='none';if(_notifBackdrop)_notifBackdrop.style.display='none';}
     document.getElementById('eh-bell-btn').addEventListener('click', function(e) {
       e.stopPropagation();
-      _notifPanel.style.display === 'none'  showNotif() : hideNotif();
+      _notifPanel.style.display === 'none' ? showNotif() : hideNotif();
     });
     document.addEventListener('click', function() { if (_notifPanel && _notifPanel.style.display !== 'none') hideNotif(); });
 
@@ -514,7 +514,7 @@
     document.getElementById('city').value        = profile.city        || '';
     document.getElementById('state').value       = profile.state       || '';
     document.getElementById('zip').value         = profile.zip         || '';
-    document.getElementById('hourly-rate').value = profile.hourly_rate && profile.hourly_rate >= 65  profile.hourly_rate : (profile.hourly_rate  65 : '');
+    document.getElementById('hourly-rate').value = profile.hourly_rate && profile.hourly_rate >= 65 ? profile.hourly_rate : (profile.hourly_rate ? 65 : '');
     document.getElementById('email-display').textContent  = user.email;
 
     // Lock name and location for verified users — cannot be changed after approval
@@ -541,8 +541,8 @@
     if (idRating) {
       if (profile.rating) {
         var stars = '';
-        for (var i = 0; i < 5; i++) stars += i < Math.round(profile.rating)  '★' : '☆';
-        idRating.textContent = stars + ' ' + Number(profile.rating).toFixed(1) + (profile.review_count  ' (' + profile.review_count + ' reviews)' : '');
+        for (var i = 0; i < 5; i++) stars += i < Math.round(profile.rating) ? '★' : '☆';
+        idRating.textContent = stars + ' ' + Number(profile.rating).toFixed(1) + (profile.review_count ? ' (' + profile.review_count + ' reviews)' : '');
         idRating.style.color = '#f59e0b';
       } else {
         idRating.textContent = 'No reviews yet';
@@ -558,18 +558,18 @@
     }
     document.getElementById('jobs-done').textContent      = profile.completed_jobs || 0;
     document.getElementById('rating-display').textContent = profile.rating
-       Number(profile.rating).toFixed(1) + ' \u2605' + (profile.review_count  ' (' + profile.review_count + ' review' + (profile.review_count !== 1  's' : '') + ')' : '')
+      ? Number(profile.rating).toFixed(1) + ' \u2605' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
       : 'New';
     document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = '$' + ((profile.total_earned || 0) / 100).toFixed(2));
     // Hero card stats
     var statJobs = document.getElementById('prof-stat-jobs');
     if (statJobs) statJobs.textContent = profile.completed_jobs || 0;
     var statRating = document.getElementById('prof-stat-rating');
-    if (statRating) statRating.textContent = profile.rating  Number(profile.rating).toFixed(1) : '\u2014';
+    if (statRating) statRating.textContent = profile.rating ? Number(profile.rating).toFixed(1) : '\u2014';
     var statEarned = document.getElementById('prof-stat-earned');
-    if (statEarned) statEarned.textContent = profile.total_earned  '$' + (Number(profile.total_earned) / 100).toFixed(2) : '$0.00';
+    if (statEarned) statEarned.textContent = profile.total_earned ? '$' + (Number(profile.total_earned) / 100).toFixed(2) : '$0.00';
     document.getElementById('member-since').textContent   = profile.created_at
-       new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
+      ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
     // Tier & verification
     var tierLabels = { pending: 'Pending Review', starter: 'Starter', professional: 'Professional', elite: 'Elite', suspended: 'Suspended' };
@@ -579,12 +579,12 @@
     var accountTypeEl = document.getElementById('account-type-display');
     if (accountTypeEl) {
       var accountTypeMap = { pending: 'Easer (Pending Review)', starter: 'Easer — Starter', professional: 'Easer — Professional', elite: 'Elite Easer', suspended: 'Easer (Suspended)' };
-      accountTypeEl.textContent = accountTypeMap[profile.tier] || (profile.tier  'Easer — ' + profile.tier : 'Easer');
+      accountTypeEl.textContent = accountTypeMap[profile.tier] || (profile.tier ? 'Easer — ' + profile.tier : 'Easer');
     }
     document.getElementById('identity-value').innerHTML = profile.identity_verified
-       '<span style="color:#00BFFF">&#10003; Verified</span>'
+      ? '<span style="color:#00BFFF">&#10003; Verified</span>'
       : profile.stripe_verification_id
-         '<span style="color:#f59e0b">In progress</span>'
+        ? '<span style="color:#f59e0b">In progress</span>'
         : '<span style="color:#9ca3af">Not started</span>';
 
     if (!profile.identity_verified) {
@@ -678,7 +678,7 @@
     updateCompletion();
     // Auto-collapse sections on load if data already exists
     if (profile.full_name) collapseBasicSection();
-    if (profile.hourly_rate || (Array.isArray(profile.skills)  profile.skills.length : profile.skills)) collapseProfSection();
+    if (profile.hourly_rate || (Array.isArray(profile.skills) ? profile.skills.length : profile.skills)) collapseProfSection();
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -700,8 +700,8 @@
         const cityEl = document.getElementById('city');
         const updates = {
           phone: phone || null,
-          hourly_rate: (!isNaN(hourlyRate) && hourlyRate >= 65)  hourlyRate : null,
-          skills: skills.length  skills : null,
+          hourly_rate: (!isNaN(hourlyRate) && hourlyRate >= 65) ? hourlyRate : null,
+          skills: skills.length ? skills : null,
         };
         // Only update locked fields if they are not readonly (non-verified users)
         if (!fullNameEl.readOnly) updates.full_name = fullName;
@@ -772,7 +772,7 @@
         list.innerHTML = reviews.map(function(r) {
           var name = (r.reviewer.full_name || 'Customer').split(' ')[0];
           var stars = '';
-          for (var i = 0; i < 5; i++) stars += i < r.rating  '&#9733;' : '&#9734;';
+          for (var i = 0; i < 5; i++) stars += i < r.rating ? '&#9733;' : '&#9734;';
           var date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
           return '<div style="padding:0.85rem 0;border-bottom:1px solid var(--pro-border)">'
             + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem">'
@@ -780,7 +780,7 @@
             + '<span style="color:#f59e0b;font-size:0.85rem">' + stars + '</span>'
             + '</div>'
             + '<div style="color:var(--pro-soft);line-height:1.6">' + (r.comment || 'No comment.') + '</div>'
-            + (r.customer_would_rehire  '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,191,255,0.15)">&#10003; Would hire again</div>' : '')
+            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,191,255,0.15)">&#10003; Would hire again</div>' : '')
             + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
             + '</div>';
         }).join('');

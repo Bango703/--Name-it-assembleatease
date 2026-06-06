@@ -683,6 +683,8 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Tier</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">ID Verification</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Connect Status</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Payouts Enabled</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Jobs</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rating</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Applied</th>
@@ -3955,6 +3957,7 @@ function intelQuick(msg) {
   // ─── Assembler management ───
   var allAssemblerProfiles = [];
   var currentTierFilter = 'all';
+  var asmConnectRequired = false;
 
   // ─── EASER MANAGEMENT — CLEAN STATUS/TIER/ID ARCHITECTURE ──────────────────
   // status: pending | active | suspended | rejected  (platform access)
@@ -3969,6 +3972,7 @@ function intelQuick(msg) {
       var data = await r.json();
       allAssemblerProfiles = data.assemblers || [];
       var stats = data.stats || {};
+      asmConnectRequired = !!stats.connectRequired;
       document.getElementById('asm-total').textContent = stats.total || 0;
       document.getElementById('asm-pending').textContent = stats.pending || 0;
       document.getElementById('asm-active').textContent = stats.active || 0;
@@ -3978,7 +3982,7 @@ function intelQuick(msg) {
       else $navApps.style.display = 'none';
       renderAssemblerTable();
     } catch(e) {
-      document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--red)">Failed to load Easers</td></tr>';
+      document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--red)">Failed to load Easers</td></tr>';
     }
   }
 
@@ -3995,6 +3999,30 @@ function intelQuick(msg) {
   function statusBadge(status) { return easerAccountBadge(status); }
   function tierBadge(tier)     { return easerTierBadge(tier); }
   function idVerificationBadge(a) { return verificationBadge(a); }
+  function connectState(a) {
+    if (!a || !a.stripe_connect_account_id) {
+      return { code:'not-started', label:'Not started', bg:'#f1f5f9', fg:'#475569' };
+    }
+    if (a.stripe_connect_onboarding_complete && a.stripe_connect_charges_enabled && a.stripe_connect_payouts_enabled) {
+      return { code:'enabled', label:'Enabled', bg:'#d1fae5', fg:'#065f46' };
+    }
+    if (a.stripe_connect_details_submitted && (!a.stripe_connect_charges_enabled || !a.stripe_connect_payouts_enabled)) {
+      return { code:'restricted', label:'Restricted', bg:'#fef3c7', fg:'#92400e' };
+    }
+    if (a.stripe_connect_account_id && !a.stripe_connect_details_submitted) {
+      return { code:'pending', label:'Pending', bg:'#e0f2fe', fg:'#0369a1' };
+    }
+    return { code:'action-required', label:'Action required', bg:'#fee2e2', fg:'#991b1b' };
+  }
+  function connectBadge(a) {
+    var s = connectState(a);
+    return '<span style="display:inline-block;background:' + s.bg + ';color:' + s.fg + ';font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">' + s.label + '</span>';
+  }
+  function boolBadge(value) {
+    return value
+      ? '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">TRUE</span>'
+      : '<span style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">FALSE</span>';
+  }
 
   function renderAssemblerTable() {
     var filtered;
@@ -4023,7 +4051,7 @@ function intelQuick(msg) {
     });
 
     var tbody = document.getElementById('asm-tbody');
-    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="10" style="padding:2rem;text-align:center;color:var(--muted)">No Easers found</td></tr>'; return; }
     var rs = 'padding:0.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle';
 
     tbody.innerHTML = filtered.map(function(a) {
@@ -4051,6 +4079,8 @@ function intelQuick(msg) {
         + '<td style="' + rs + '">' + statusBadge(a.status) + '</td>'
         + '<td style="' + rs + '">' + tierBadge(a.tier) + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
+        + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
+        + '<td style="' + rs + '">' + boolBadge(!!a.stripe_connect_payouts_enabled) + '</td>'
         + '<td style="' + rs + '">' + (a.completed_jobs||0) + '</td>'
         + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) : '—') + '</td>'
         + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
@@ -4163,7 +4193,8 @@ function intelQuick(msg) {
     }
 
     // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
-    var dispatchEligible = a.status === 'active' && a.identity_verified && !!a.phone && ['starter','professional','elite'].includes(a.tier) && a.is_available;
+    var connectReadyForDispatch = !asmConnectRequired || (!!a.stripe_connect_onboarding_complete && !!a.stripe_connect_charges_enabled && !!a.stripe_connect_payouts_enabled);
+    var dispatchEligible = a.status === 'active' && a.identity_verified && !!a.phone && ['starter','professional','elite'].includes(a.tier) && a.is_available && connectReadyForDispatch;
     var dispatchChip;
     if (a.status !== 'active') {
       dispatchChip = '<span style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">N/A</span>';
@@ -4186,6 +4217,7 @@ function intelQuick(msg) {
         + chk(!!a.phone, 'Phone on file')
         + chk(['starter','professional','elite'].includes(a.tier), 'Valid tier')
         + chk(!!a.is_available, 'Available right now')
+        + (asmConnectRequired ? chk(connectReadyForDispatch, 'Stripe Connect payouts ready') : '')
         + '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:0.78rem;display:grid;grid-template-columns:1fr 1fr;gap:2px 1rem">'
         + '<div><strong>Online:</strong> <span style="color:' + availColor + ';font-weight:600">' + (a.is_available ? 'Online' : 'Offline') + '</span></div>'
         + '<div><strong>Active Jobs Today:</strong> ' + (a.active_jobs_today || 0) + '</div>'
@@ -4202,6 +4234,8 @@ function intelQuick(msg) {
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Account Status</div>' + statusBadge(a.status) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Connect Status</div>' + connectBadge(a) + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Payouts Enabled</div>' + boolBadge(!!a.stripe_connect_payouts_enabled) + '</div>'
         + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#00BFFF;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchChip + '</div>'
         + '</div>',
@@ -4213,6 +4247,12 @@ function intelQuick(msg) {
         + '</div>',
       // Dispatch readiness checklist
       dispatchChecklist,
+      // Payout setup section
+      '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Payout Setup</div>'
+        + '<strong>Stripe account:</strong> ' + (a.stripe_connect_account_id ? esc(a.stripe_connect_account_id) : 'Not started') + '<br>'
+        + '<strong>Details submitted:</strong> ' + (a.stripe_connect_details_submitted ? 'Yes' : 'No') + ' &nbsp;&bull;&nbsp; <strong>Charges:</strong> ' + (a.stripe_connect_charges_enabled ? 'Enabled' : 'Disabled') + ' &nbsp;&bull;&nbsp; <strong>Payouts:</strong> ' + (a.stripe_connect_payouts_enabled ? 'Enabled' : 'Disabled') + '<br>'
+        + '<strong>Last synced:</strong> ' + (a.stripe_connect_updated_at ? formatDate(a.stripe_connect_updated_at) : 'Never')
+        + '</div>',
       // Performance section
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Performance</div>'
         + '<strong>Jobs Completed:</strong> ' + (a.completed_jobs||0) + ' &nbsp;&bull;&nbsp; <strong>Rating:</strong> ' + (a.rating ? Number(a.rating).toFixed(1) + ' (' + (a.review_count||0) + ' reviews)' : 'No reviews') + '<br>'

@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, is_deposit, deposit_amount')
+    .select('ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price')
     .eq('id', bookingId)
     .single();
 
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   }
 
   const { ref, service, customer_name: name, customer_email: email, address, date, time, details,
-          total_price: amount, is_deposit: isDeposit, deposit_amount: depositAmount } = booking;
+          total_price: amount } = booking;
 
   const sName    = esc(name);
   const sService = esc(service);
@@ -60,9 +60,7 @@ export default async function handler(req, res) {
   const SITE = 'https://www.assembleatease.com';
   const TO   = ownerEmail();
 
-  const paymentLine = isDeposit && depositAmount
-    ? `A 25% deposit of $${(depositAmount / 100).toFixed(2)} has been collected. The remaining balance will be charged after the job is complete.`
-    : amount > 0
+  const paymentLine = amount > 0
     ? `Your card has been authorized for $${(amount / 100).toFixed(2)} and will only be charged once the job is complete.`
     : `No upfront payment. You pay only when you're 100% satisfied with the work.`;
 
@@ -93,7 +91,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We confirm your appointment</strong> — We'll reach out within 1 hour to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${isDeposit ? 'Deposit collected — balance after completion' : 'Pay after completion'}</strong> — ${paymentLine}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card authorized — charged after completion</strong> — ${paymentLine}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
       <strong>Cancellation policy:</strong> Cancel at least 24 hours before your appointment at no charge. Cancellations within 24 hours may incur a 50% fee. No-shows will be charged the full amount.
@@ -129,7 +127,7 @@ export default async function handler(req, res) {
   //    after the card has been successfully authorized. If auth fails, owner
   //    gets no email and the booking stays in Supabase as 'pending' for cleanup.
   const paymentStatus = amount > 0
-    ? (isDeposit && depositAmount ? `DEPOSIT COLLECTED — $${(depositAmount / 100).toFixed(2)} paid, balance after completion` : `CARD AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`)
+    ? `CARD AUTHORIZED — $${(amount / 100).toFixed(2)} held, charged after completion`
     : 'No payment required';
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">

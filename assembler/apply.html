@@ -1118,7 +1118,7 @@
   var inviteToken = params.get('invite');
   if (inviteToken) {
     document.getElementById('invite-token').value = inviteToken;
-    fetch('/api/assembler/validate-invitetoken=' + encodeURIComponent(inviteToken))
+    fetch('/api/assembler/validate-invite?token=' + encodeURIComponent(inviteToken))
       .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
       .then(function(res) {
         if (res.ok && res.data.valid) {
@@ -1240,7 +1240,7 @@
           bio: bio || null,
           codeOfConduct: true,
           contractorAgreementSigned: true,
-          paymentMethodId: FOUNDING_EASER_FEE_WAIVED  null : undefined,
+          paymentMethodId: FOUNDING_EASER_FEE_WAIVED ? null : undefined,
           inviteToken: document.getElementById('invite-token').value || null,
         }),
       });

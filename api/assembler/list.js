@@ -62,6 +62,7 @@ export default async function handler(req, res) {
       if (!requireConnect) return true;
       return !!(a.stripe_connect_onboarding_complete && a.stripe_connect_charges_enabled && a.stripe_connect_payouts_enabled);
     }).length,
+    connectRequired: requireConnect,
   };
 
   return res.status(200).json({ assemblers, stats });
