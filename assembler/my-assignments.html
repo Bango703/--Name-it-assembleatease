@@ -673,9 +673,8 @@
       if (!selectedBookingId) return;
       _pendingCompleteBookingId = selectedBookingId;
       _resetPhotoState();
-      document.getElementById('complete-sheet').classList.add('open');
-      // Auto-open camera immediately — we are still inside the user-gesture chain
-      // so browsers allow programmatic .click() on the file input here.
+      // Trigger camera FIRST — direct user gesture, no DOM mutations before this.
+      // Sheet opens after photo is selected (see photo-input change handler below).
       document.getElementById('photo-input').click();
     });
 
@@ -690,7 +689,7 @@
       document.getElementById('photo-input').click();
     });
 
-    // File selected → validate client-side, show preview
+    // File selected → validate client-side, open sheet (if not already open), show preview
     document.getElementById('photo-input').addEventListener('change', function() {
       var file = this.files && this.files[0];
       if (!file) return;
@@ -705,6 +704,12 @@
       statusEl.style.display = 'none';
       _photoFile = file;
       _photoUploaded = false;
+      // Open the confirmation sheet now that we have a photo.
+      // This fires after camera returns so the browser allows it.
+      var sheet = document.getElementById('complete-sheet');
+      if (_pendingCompleteBookingId && !sheet.classList.contains('open')) {
+        sheet.classList.add('open');
+      }
       var reader = new FileReader();
       reader.onload = function(ev) {
         _photoDataUrl = ev.target.result;
