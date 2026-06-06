@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to save application. ' + (profileError.message || '') });
   }
 
-  // Assembler-specific columns - may not exist in schema yet, non-blocking
+  // Assembler-specific columns — all known-good after migration 018
   const { error: extError } = await sb.from('profiles').update({
     services_offered: validServices,
     has_tools: hasTools,
@@ -106,10 +106,23 @@ export default async function handler(req, res) {
     tier: 'pending',
     identity_verified: false,
     application_status: 'applied',
-    code_of_conduct_agreed_at: new Date().toISOString(),
-    contractor_agreement_signed_at: new Date().toISOString(),
   }).eq('id', userId);
-  if (extError) console.warn('Assembler columns update skipped:', extError.message);
+  if (extError) {
+    console.error('Assembler core columns update failed:', extError.message);
+    return res.status(500).json({ error: 'Failed to save application details. Please try again.' });
+  }
+
+  // Agreement timestamps — added in migration 019; isolated so a schema gap fails
+  // only this block and doesn't suppress the core application write above.
+  const agreementTs = new Date().toISOString();
+  const { error: agreementErr } = await sb.from('profiles').update({
+    code_of_conduct_agreed_at: agreementTs,
+    contractor_agreement_signed_at: agreementTs,
+  }).eq('id', userId);
+  if (agreementErr) {
+    // This only fails if migration 019 hasn't been run yet. Log prominently.
+    console.error('Agreement timestamp columns missing — run migration 019:', agreementErr.message);
+  }
 
   // Founding Easer launch columns are additive; keep them separate so older schemas
   // still save the core application fields before migration 018 is applied.

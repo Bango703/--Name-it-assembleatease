@@ -4154,6 +4154,81 @@ function intelQuick(msg) {
     }
   });
 
+  function readinessChip(ok) {
+    return ok
+      ? '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">YES</span>'
+      : '<span style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">NO</span>';
+  }
+
+  function renderOnboardingReadinessPanel(data) {
+    var container = document.getElementById('asm-onboarding-readiness-panel');
+    if (!container) return;
+
+    if (!data || !data.readiness) {
+      container.innerHTML = '<div style="color:var(--red);font-size:0.8rem">Could not load onboarding readiness.</div>';
+      return;
+    }
+
+    var r = data.readiness;
+    var ready = r.finalStatus === 'READY FOR JOBS';
+    var statusBg = ready ? '#d1fae5' : '#fee2e2';
+    var statusFg = ready ? '#065f46' : '#991b1b';
+
+    var rows = [
+      ['Application Submitted', readinessChip(!!r.applicationSubmitted)],
+      ['Contractor Agreement Accepted', readinessChip(!!r.contractorAgreementAccepted)],
+      ['Agreement Version', r.agreementVersion ? esc(r.agreementVersion) : '<span style="color:var(--red)">Missing</span>'],
+      ['Identity Verified', readinessChip(!!r.identityVerified)],
+      ['Owner Approved', readinessChip(!!r.ownerApproved)],
+      ['Stripe Connect Started', readinessChip(!!r.connectStarted)],
+      ['Stripe Connect Complete', readinessChip(!!r.connectComplete)],
+      ['Payouts Enabled', readinessChip(!!r.payoutsEnabled)],
+      ['Requirements Due Count', (r.requirementsDueCount == null ? 'Unknown' : String(r.requirementsDueCount))],
+      ['Disabled Reason', r.disabledReason ? esc(r.disabledReason) : 'None'],
+      ['Tax Readiness Status', esc(r.taxReadinessStatus || 'Unknown')],
+    ];
+
+    var tableHtml = rows.map(function(row) {
+      return '<div style="display:flex;justify-content:space-between;gap:0.75rem;padding:0.38rem 0;border-bottom:1px solid var(--border)">'
+        + '<div style="font-size:0.79rem;color:var(--muted)">' + row[0] + '</div>'
+        + '<div style="font-size:0.79rem;color:var(--text);text-align:right">' + row[1] + '</div>'
+        + '</div>';
+    }).join('');
+
+    var missingHtml = (r.missingItems || []).length
+      ? '<div style="margin-top:0.7rem;padding:0.65rem 0.75rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">'
+        + '<div style="font-size:0.72rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem">Exact Missing Items</div>'
+        + (r.missingItems || []).map(function(item) {
+          return '<div style="font-size:0.79rem;color:#9a3412;line-height:1.45">- ' + esc(item) + '</div>';
+        }).join('')
+        + '</div>'
+      : '<div style="margin-top:0.7rem;font-size:0.79rem;color:#166534">No missing items.</div>';
+
+    container.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem">'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Onboarding Readiness</div>'
+        + '<span style="display:inline-block;background:' + statusBg + ';color:' + statusFg + ';font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.05em">' + esc(r.finalStatus || 'ACTION REQUIRED') + '</span>'
+      + '</div>'
+      + '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.7rem">'
+      + tableHtml
+      + '</div>'
+      + missingHtml;
+  }
+
+  async function loadEaserOnboardingReadiness(assemblerId) {
+    var container = document.getElementById('asm-onboarding-readiness-panel');
+    if (!container) return;
+    container.innerHTML = '<div style="font-size:0.8rem;color:var(--muted)">Loading onboarding readiness...</div>';
+    try {
+      var r = await fetch('/api/owner/easer-readiness?assemblerId=' + encodeURIComponent(assemblerId), { headers: headers() });
+      var d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || 'Failed to load readiness');
+      renderOnboardingReadinessPanel(d);
+    } catch (err) {
+      container.innerHTML = '<div style="font-size:0.8rem;color:var(--red)">Failed to load onboarding readiness.</div>';
+    }
+  }
+
   function showAssemblerDetail(a) {
     document.getElementById('asm-detail-name').textContent = a.full_name;
 
@@ -4253,6 +4328,8 @@ function intelQuick(msg) {
         + '</div>',
       // Dispatch readiness checklist
       dispatchChecklist,
+      // Onboarding readiness panel
+      '<div id="asm-onboarding-readiness-panel" style="margin-bottom:0.75rem"></div>',
       // Payout setup section
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Payout Setup</div>'
         + '<strong>Stripe account:</strong> ' + (a.stripe_connect_account_id ? esc(a.stripe_connect_account_id) : 'Not started') + '<br>'
@@ -4281,6 +4358,7 @@ function intelQuick(msg) {
       '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + actionBtns + '</div>',
     ].filter(Boolean).join('');
     document.getElementById('asm-detail-modal').classList.add('open');
+    loadEaserOnboardingReadiness(a.id);
   }
 
   // Universal Easer action handler

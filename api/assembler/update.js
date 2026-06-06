@@ -61,13 +61,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Easer is already active.' });
     }
 
-    // Always update tier (definitely exists); best-effort update new columns
+    // Tier and core status — both columns are known-good
     await sb.from('profiles').update({ tier: 'starter' }).eq('id', assemblerId);
     await sb.from('profiles').update({
       status: 'active',
       application_status: 'approved',
       approved_at: new Date().toISOString(),
-      welcome_email_sent: true,
       is_available: false,
       completed_jobs: 0,
     }).eq('id', assemblerId);
@@ -85,15 +84,39 @@ export default async function handler(req, res) {
     } catch(e) { console.warn('generateLink error:', e.message); }
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    sendEmail({
+    const emailResult = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Set your password to get started',
       replyTo: 'service@assembleatease.com',
       html: buildApprovalEmail(firstName, profile.email, resetUrl),
-    }).catch(e => console.error('Approval email error:', e));
+      meta: {
+        notificationType: 'approval',
+        recipientType: 'easer',
+        recipientUserId: assemblerId,
+        disableDedupe: true,
+      },
+    }).catch(e => {
+      console.error('Approval email send error:', e.message);
+      return { ok: false, error: e.message };
+    });
 
-    return res.status(200).json({ ok: true, action: 'approved', status: 'active', tier: 'starter' });
+    // Gate flag on confirmed delivery — never mark sent before confirming
+    const emailSent = emailResult?.ok === true && !emailResult?.suppressed;
+    await sb.from('profiles').update({ welcome_email_sent: emailSent }).eq('id', assemblerId);
+
+    if (!emailSent) {
+      console.error('Approval email NOT delivered. result:', JSON.stringify(emailResult));
+    }
+
+    return res.status(200).json({
+      ok: true,
+      action: 'approved',
+      status: 'active',
+      tier: 'starter',
+      emailDelivered: emailSent,
+      emailError: emailSent ? null : (emailResult?.error || emailResult?.reason || 'unknown'),
+    });
   }
 
   // ── REJECT ───────────────────────────────────────────────────────────────

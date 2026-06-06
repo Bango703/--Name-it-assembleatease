@@ -17,9 +17,16 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!sig || !webhookSecret) {
+  // Two Stripe webhook endpoints share the same handler URL but carry different
+  // signing secrets: one for Connect/Payment events (STRIPE_WEBHOOK_SECRET) and
+  // one for Identity events (STRIPE_IDENTITY_WEBHOOK_SECRET). Try both so that
+  // adding a second endpoint never causes the other to silently reject.
+  const primarySecret   = process.env.STRIPE_WEBHOOK_SECRET;
+  const identitySecret  = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
+  const secrets = [primarySecret, identitySecret].filter(Boolean);
+
+  if (!sig || secrets.length === 0) {
     return res.status(400).json({ error: 'Missing Stripe signature or webhook secret' });
   }
 
@@ -33,11 +40,19 @@ export default async function handler(req, res) {
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   let event;
+  let verifyErr;
 
-  try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-  } catch (err) {
-    console.error('Stripe webhook signature verification failed:', err.message);
+  for (const secret of secrets) {
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+      break; // verified successfully with this secret
+    } catch (err) {
+      verifyErr = err;
+    }
+  }
+
+  if (!event) {
+    console.error('Stripe webhook signature verification failed (tried', secrets.length, 'secrets):', verifyErr?.message);
     return res.status(400).json({ error: 'Invalid Stripe webhook signature' });
   }
 
