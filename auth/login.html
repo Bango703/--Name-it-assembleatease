@@ -309,8 +309,8 @@
         if (returnTo && returnTo.startsWith('/')) {
           window.location.href = returnTo;
         } else {
-          window.location.href = profile.role === 'assembler'  '/assembler/'
-            : profile.role === 'owner'  '/owner/' : '/';
+          window.location.href = profile.role === 'assembler' ? '/assembler/'
+            : profile.role === 'owner' ? '/owner/' : '/';
         }
 
       } catch (err) {
