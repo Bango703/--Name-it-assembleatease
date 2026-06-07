@@ -492,7 +492,7 @@ async function confirmCancel() {
     document.getElementById('cancelResultTitle').textContent  = 'Booking cancelled';
     document.getElementById('cancelResultDesc').textContent   =
       data.feeCaptured > 0
-         'A cancellation fee of $' + (data.feeCaptured / 100).toFixed(2) + ' was charged. A confirmation email is on its way.'
+        ? 'A cancellation fee of $' + (data.feeCaptured / 100).toFixed(2) + ' was charged. A confirmation email is on its way.'
         : 'Your booking has been cancelled and your card hold released. A confirmation email is on its way.';
     resultEl.style.display = 'block';
 
@@ -536,7 +536,7 @@ function formatDate(str) {
   if (!str) return '—';
   try {
     // Handle YYYY-MM-DD and ISO strings
-    const d = new Date(str.includes('T')  str : str + 'T12:00:00');
+    const d = new Date(str.includes('T') ? str : str + 'T12:00:00');
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   } catch { return str; }
 }
@@ -547,7 +547,7 @@ function capitalize(str) {
 
 function isWithin24hrs(dateStr, timeStr) {
   try {
-    const apptDate = new Date(dateStr.includes('T')  dateStr : dateStr + 'T12:00:00');
+    const apptDate = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
     const slotStart = (timeStr || '').split('-')[0].trim();
     const match = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
     if (match) {
