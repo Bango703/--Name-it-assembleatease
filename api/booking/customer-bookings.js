@@ -68,10 +68,17 @@ export default async function handler(req, res) {
   }));
 
   // Compute stats
+  const CONFIRMED_OR_IN_FLIGHT = new Set([
+    BOOKING_STATUS.CONFIRMED,
+    BOOKING_STATUS.EN_ROUTE,
+    BOOKING_STATUS.ARRIVED,
+    BOOKING_STATUS.IN_PROGRESS,
+  ]);
+
   const stats = {
     total: bookings.length,
     pending: bookings.filter(b => b.status === BOOKING_STATUS.PENDING).length,
-    confirmed: bookings.filter(b => b.status === BOOKING_STATUS.CONFIRMED).length,
+    confirmed: bookings.filter(b => CONFIRMED_OR_IN_FLIGHT.has(b.status)).length,
     completed: bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length,
   };
 

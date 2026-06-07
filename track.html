@@ -369,7 +369,7 @@ function renderBooking(b) {
   document.getElementById('bName').textContent     = b.customer_name;
   document.getElementById('bDate').textContent     = formatDate(b.date);
   document.getElementById('bTime').textContent     = b.time || '—';
-  document.getElementById('bPrice').textContent    = b.total_price  '$' + (b.total_price / 100).toFixed(2) : '—';
+  document.getElementById('bPrice').textContent    = b.total_price ? '$' + (b.total_price / 100).toFixed(2) : '—';
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
 
   const addrEl = document.getElementById('bAddress');
@@ -397,7 +397,7 @@ function renderBooking(b) {
     declined: 'Unable to Complete',
   };
   // Badge CSS class: pipeline statuses use specific classes; declined maps to cancelled
-  var badgeClass = PIPELINE.includes(statusText)  statusText : (statusText === 'declined'  'cancelled' : statusText || 'pending');
+  var badgeClass = PIPELINE.includes(statusText) ? statusText : (statusText === 'declined' ? 'cancelled' : statusText || 'pending');
   badge.className = 'booking-status-badge status-' + badgeClass;
   // Prefer the customer-friendly label from the API (includes Easer first name when accepted)
   document.getElementById('bStatusText').textContent = b.customer_status || statusLabels[statusText] || capitalize(b.status || 'pending');

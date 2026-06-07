@@ -1752,7 +1752,11 @@ function intelQuick(msg) {
 
   // ─── Render list with search + status filter ───
   function renderList() {
-    var filtered = currentStatus === 'all' ? allBookings : allBookings.filter(function(b){return b.status===currentStatus});
+    var filtered = currentStatus === 'all'
+      ? allBookings
+      : currentStatus === 'confirmed'
+        ? allBookings.filter(function(b){ return b.status === 'confirmed' || PIPELINE_STATUSES.includes(b.status); })
+        : allBookings.filter(function(b){ return b.status === currentStatus; });
     if (searchQuery) {
       filtered = filtered.filter(function(b) {
         var q = searchQuery;
@@ -4104,7 +4108,11 @@ function intelQuick(msg) {
         var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, action:'approve' }) });
         var d = await r.json();
         if (d.error) { toast(d.error, 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; return; }
-        toast('Easer approved — welcome email sent', 'success');
+        if (d.emailDelivered === false) {
+          toast('Easer approved, but welcome email failed: ' + (d.emailError || 'unknown error'), 'error');
+        } else {
+          toast('Easer approved — welcome email sent', 'success');
+        }
         loadAssemblerList(); loadAssemblers();
       } catch { toast('Failed to approve', 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; }
       return;

@@ -43,7 +43,13 @@ export default async function handler(req, res) {
   function getCustomerLabel(b) {
     if (b.status === BOOKING_STATUS.CANCELLED) return { label: 'Booking cancelled', detail: null };
     if (b.status === BOOKING_STATUS.DECLINED)  return { label: 'Booking could not be confirmed', detail: 'Please contact us to reschedule.' };
-    if (b.status === BOOKING_STATUS.COMPLETED) return { label: 'Job complete — thank you!', detail: 'Payment has been processed.' };
+    if (b.status === BOOKING_STATUS.COMPLETED) {
+      const paymentProcessed = ['captured', 'deposit_paid'].includes(String(b.payment_status || '').toLowerCase());
+      return {
+        label: 'Job complete — thank you!',
+        detail: paymentProcessed ? 'Payment has been processed.' : 'Your booking is complete.',
+      };
+    }
     if (b.status === BOOKING_STATUS.IN_PROGRESS) return { label: 'Work is underway', detail: null };
     if (b.status === BOOKING_STATUS.ARRIVED)     return { label: 'Your service pro has arrived', detail: null };
     if (b.status === BOOKING_STATUS.EN_ROUTE)    return { label: 'Your service pro is on the way', detail: null };

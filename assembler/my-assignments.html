@@ -552,9 +552,7 @@
         '<div class="pro-error">&#9888; Could not load assignments. Please refresh.</div>';
     }
 
-    // Realtime: live updates when a booking is assigned or status changes
-    // Debounce re-renders — ignore rapid successive updates from the same event
-    let _rtDebounce = null;
+    // Keep assignment list current with periodic polling (manual-refresh architecture).
     async function refreshAssignments(alertOnNew, oldPayload) {
       try {
         const r = await fetch('/api/booking/my-assignments', {
@@ -570,28 +568,15 @@
       } catch {}
     }
 
-    const assignmentsChannel = supabaseClient
-      .channel('assembler-assignments-' + auth.user.id)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings', filter: 'assembler_id=eq.' + auth.user.id },
-        (payload) => {
-          const isNewAssignment = payload.eventType === 'INSERT' ||
-            (payload.eventType === 'UPDATE' && payload.old.assembler_id !== payload.new.assembler_id);
-          clearTimeout(_rtDebounce);
-          _rtDebounce = setTimeout(() => refreshAssignments(isNewAssignment), 400);
-        }
-      )
-      .on('system', {}, (status) => {
-        if (status === 'SUBSCRIBED') return;
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          // Realtime dropped — silently re-fetch once so list stays current
-          refreshAssignments(false);
-        }
-      })
-      .subscribe((status, err) => {
-        if (err) console.warn('Realtime subscription error:', err);
-      });
-    window.addEventListener('beforeunload', () => assignmentsChannel.unsubscribe());
+    const assignmentsPoll = setInterval(function() {
+      refreshAssignments(false);
+    }, 30000);
+
+    window.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') refreshAssignments(false);
+    });
+
+    window.addEventListener('beforeunload', () => clearInterval(assignmentsPoll));
 
     // Card-level Accept / Decline event delegation
     document.getElementById('assignments-list').addEventListener('click', async function(e) {
