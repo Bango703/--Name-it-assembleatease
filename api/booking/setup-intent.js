@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { rateLimit } from '../_ratelimit.js';
+import { rateLimit, rateLimitKey } from '../_ratelimit.js';
 
 /**
  * POST /api/booking/setup-intent
@@ -13,12 +13,21 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
-  if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  if (!await rateLimit(ip, 'setup_intent')) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
 
   const { name, email } = req.body || {};
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail)) {
     return res.status(400).json({ error: 'Valid email required' });
   }
+  if (String(name || '').length > 120) {
+    return res.status(400).json({ error: 'Name is too long' });
+  }
+
+  // Add a tighter per-ip+email bucket to slow down card-setup abuse.
+  const emailScopeAllowed = await rateLimitKey(`${ip}:${normalizedEmail}`, 'setup_intent_email');
+  if (!emailScopeAllowed) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+
   if (!process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Payment service unavailable' });
   }
@@ -27,10 +36,10 @@ export default async function handler(req, res) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     // Reuse existing Stripe customer if one exists for this email
-    const existing = await stripe.customers.list({ email, limit: 1 });
+    const existing = await stripe.customers.list({ email: normalizedEmail, limit: 1 });
     const customer = existing.data[0] || await stripe.customers.create({
-      email,
-      name: name || email,
+      email: normalizedEmail,
+      name: name || normalizedEmail,
       metadata: { source: 'quote_booking' },
     });
 
@@ -40,7 +49,7 @@ export default async function handler(req, res) {
       customer: customer.id,
       payment_method_types: ['card'],
       usage: 'off_session',
-      metadata: { email, source: 'quote_booking' },
+      metadata: { email: normalizedEmail, source: 'quote_booking' },
     });
 
     return res.status(200).json({

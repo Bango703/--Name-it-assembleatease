@@ -212,21 +212,97 @@ export function ownerEmail() {
   return process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
 }
 
+const OWNER_AUTH_WINDOW_MS = 10 * 60 * 1000;
+const OWNER_AUTH_LOCK_MS = 15 * 60 * 1000;
+const OWNER_AUTH_MAX_FAILS = 8;
+const ownerAuthAttempts = new Map();
+
+function getClientIp(req) {
+  const forwarded = String(req?.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
+  const realIp = String(req?.headers?.['x-real-ip'] || '').trim();
+  const cfIp = String(req?.headers?.['cf-connecting-ip'] || '').trim();
+  return forwarded || realIp || cfIp || 'unknown';
+}
+
+function getOwnerAuthKey(req) {
+  const ip = getClientIp(req);
+  const ua = String(req?.headers?.['user-agent'] || '').slice(0, 180);
+  return `${ip}|${ua}`;
+}
+
+function ownerAuthLocked(req) {
+  const key = getOwnerAuthKey(req);
+  const now = Date.now();
+  const state = ownerAuthAttempts.get(key);
+  if (!state) return false;
+  if (state.lockUntil && state.lockUntil > now) return true;
+  if (state.windowStart && now - state.windowStart > OWNER_AUTH_WINDOW_MS) {
+    ownerAuthAttempts.delete(key);
+  }
+  return false;
+}
+
+function recordOwnerAuthFailure(req) {
+  const key = getOwnerAuthKey(req);
+  const now = Date.now();
+  const state = ownerAuthAttempts.get(key);
+
+  if (!state || now - (state.windowStart || 0) > OWNER_AUTH_WINDOW_MS) {
+    ownerAuthAttempts.set(key, { fails: 1, windowStart: now, lockUntil: 0 });
+    return;
+  }
+
+  state.fails += 1;
+  if (state.fails >= OWNER_AUTH_MAX_FAILS) {
+    state.lockUntil = now + OWNER_AUTH_LOCK_MS;
+    state.fails = 0;
+    state.windowStart = now;
+  }
+  ownerAuthAttempts.set(key, state);
+}
+
+function recordOwnerAuthSuccess(req) {
+  const key = getOwnerAuthKey(req);
+  ownerAuthAttempts.delete(key);
+}
+
 /**
  * Verify owner authorization via password header.
  * Returns true if authorized.
  */
 export function verifyOwner(req) {
+  if (ownerAuthLocked(req)) return false;
+
   const pw = process.env.OWNER_PASSWORD;
-  if (!pw) return false;
+  if (!pw) {
+    recordOwnerAuthFailure(req);
+    return false;
+  }
+
   const provided = req.headers['x-owner-password'] || req.body?.ownerPassword;
-  if (!provided) return false;
+  if (!provided) {
+    recordOwnerAuthFailure(req);
+    return false;
+  }
+
   try {
     const a = Buffer.from(String(pw));
     const b = Buffer.from(String(provided));
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
-  } catch { return false; }
+    if (a.length !== b.length) {
+      recordOwnerAuthFailure(req);
+      return false;
+    }
+    const ok = timingSafeEqual(a, b);
+    if (!ok) {
+      recordOwnerAuthFailure(req);
+      return false;
+    }
+    recordOwnerAuthSuccess(req);
+    return true;
+  } catch {
+    recordOwnerAuthFailure(req);
+    return false;
+  }
 }
 
 /**

@@ -2,6 +2,10 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 
 export default async function handler(req, res) {
+  if (process.env.VERCEL_ENV === 'production' && process.env.ENABLE_TEST_ENDPOINTS !== 'true') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 

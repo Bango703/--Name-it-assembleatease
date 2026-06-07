@@ -22,11 +22,25 @@ const limiters = {
     limiter: Ratelimit.slidingWindow(3, '300 s'),
     prefix: 'rl:apply',
   }),
+  setup_intent: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(3, '600 s'),
+    prefix: 'rl:setup_intent',
+  }),
+  setup_intent_email: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(2, '600 s'),
+    prefix: 'rl:setup_intent_email',
+  }),
 };
 
-export async function rateLimit(ip, type = 'default') {
+export async function rateLimitKey(key, type = 'default') {
   const limiter = limiters[type] || limiters.default;
-  const { success } = await limiter.limit(ip);
+  const { success } = await limiter.limit(String(key || 'unknown'));
   return success;
+}
+
+export async function rateLimit(ip, type = 'default') {
+  return rateLimitKey(ip, type);
 }
 
