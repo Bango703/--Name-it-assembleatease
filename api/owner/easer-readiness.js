@@ -87,6 +87,7 @@ export default async function handler(req, res) {
   const missingItems = [];
   if (!applicationSubmitted) missingItems.push('Application submitted');
   if (!contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
+  if (!agreementVersion) missingItems.push('Agreement version');
   if (!identityVerified) missingItems.push('Identity verified');
   if (!ownerApproved) missingItems.push('Owner approved');
   if (connectRequired) {
