@@ -5,6 +5,7 @@ const OPERATIONAL_EVENTS_TABLE = 'operational_events';
 const ALLOWED_REASON_CODES = new Set([
   'unauthorized_missing_bearer',
   'unauthorized_invalid_token',
+  'forbidden_booking_access',
   'invalid_input',
   'offer_not_found',
   'offer_expired',

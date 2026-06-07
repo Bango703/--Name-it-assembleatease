@@ -5,6 +5,7 @@ import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
+import { buildRequestId, getDeploymentMetadata, hashIdentifier, insertOperationalEventFailOpen } from '../_observability.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
@@ -19,6 +20,9 @@ import { appointmentTimestampMs } from './_appt-date.js';
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const requestId = buildRequestId(req.headers || {});
+  const deployment = getDeploymentMetadata() || {};
 
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
@@ -36,8 +40,39 @@ export default async function handler(req, res) {
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
 
-  // Verify this booking belongs to the requesting customer
-  if (booking.customer_id && booking.customer_id !== user.id) {
+  const normalizedUserEmail = String(user.email || '').trim().toLowerCase();
+  const normalizedBookingEmail = String(booking.customer_email || '').trim().toLowerCase();
+  const customerIdMatches = !!booking.customer_id && booking.customer_id === user.id;
+  const customerEmailMatches = !!normalizedUserEmail && !!normalizedBookingEmail && normalizedBookingEmail === normalizedUserEmail;
+
+  // Verify this booking belongs to the requesting customer by either bound
+  // customer_id or the booking email when no account link exists yet.
+  if (!customerIdMatches && !customerEmailMatches) {
+    await insertOperationalEventFailOpen(sb, {
+      event_type: 'customer_cancel_forbidden',
+      request_id: requestId,
+      route: '/api/booking/customer-cancel',
+      method: req.method,
+      deployment_id: deployment.deployment_id || null,
+      commit_sha: deployment.commit_sha || null,
+      environment: deployment.environment || null,
+      app_version: deployment.app_version || null,
+      actor_role: 'customer',
+      actor_id_hash: hashIdentifier(user.id, { prefix: 'cu' }),
+      booking_hash: hashIdentifier(booking.id, { prefix: 'bk' }),
+      stage: 'authorization',
+      status_code: 403,
+      reason_code: 'forbidden_booking_access',
+      reason_detail: 'Authenticated user attempted to cancel a booking they do not own.',
+      mutation_result: 'rejected',
+      latency_ms: null,
+      payload: {
+        has_customer_id: !!booking.customer_id,
+        customer_id_match: customerIdMatches,
+        customer_email_match: customerEmailMatches,
+      },
+    });
+
     return res.status(403).json({ error: 'This booking does not belong to your account' });
   }
 
