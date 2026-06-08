@@ -74,6 +74,7 @@
 .track-help a:hover{text-decoration:underline}
 .new-lookup-btn{display:block;text-align:center;margin-top:2rem;background:none;border:none;font-family:var(--font-body);font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:underline;width:100%}
 .new-lookup-btn:hover{color:var(--ink)}
+.form-info{display:none;margin-top:1rem;background:#ecfdf5;border:1.5px solid #86efac;color:#166534;border-radius:10px;padding:0.75rem 0.9rem;font-size:0.82rem;line-height:1.5}
 
 /* ── CONFIRM CANCEL MODAL ───────────────────────────────── */
 .cancel-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
@@ -176,6 +177,7 @@
           <p style="font-size:0.75rem;color:var(--muted);margin-top:5px">Found in the subject line of your confirmation email</p>
         </div>
         <div class="form-err" id="trackErr" style="margin-top:1rem"></div>
+        <div class="form-info" id="trackInfo"></div>
         <button type="submit" class="btn btn-cyan btn-full" id="trackSubmit" style="margin-top:1.25rem">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           Look Up My Booking
@@ -328,6 +330,7 @@
 // ── State ──────────────────────────────────────────────────
 let currentBooking = null;
 let currentEmail   = null;
+let autoLookupPending = false;
 
 // ── Lookup ─────────────────────────────────────────────────
 async function lookupBooking(e) {
@@ -335,9 +338,11 @@ async function lookupBooking(e) {
   const email  = document.getElementById('t-email').value.trim();
   const ref    = document.getElementById('t-ref').value.trim();
   const errEl  = document.getElementById('trackErr');
+  const infoEl = document.getElementById('trackInfo');
   const btn    = document.getElementById('trackSubmit');
 
   errEl.style.display = 'none';
+  infoEl.style.display = 'none';
   btn.disabled = true;
   btn.textContent = 'Looking up…';
 
@@ -352,10 +357,16 @@ async function lookupBooking(e) {
 
     currentBooking = data.booking;
     currentEmail   = email;
+    if (autoLookupPending) {
+      infoEl.textContent = 'Booking loaded from your confirmation link.';
+      infoEl.style.display = 'block';
+      autoLookupPending = false;
+    }
     renderBooking(data.booking);
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
+    autoLookupPending = false;
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Look Up My Booking';
@@ -527,8 +538,10 @@ document.getElementById('cancelModal').addEventListener('click', function(e) {
 function resetLookup() {
   currentBooking = null;
   currentEmail   = null;
+  autoLookupPending = false;
   document.getElementById('trackResult').classList.remove('show');
   document.getElementById('trackErr').style.display = 'none';
+  document.getElementById('trackInfo').style.display = 'none';
   document.getElementById('trackForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -576,6 +589,7 @@ function isWithin24hrs(dateStr, timeStr) {
     document.getElementById('t-email').value = email;
   }
   if (ref && email) {
+    autoLookupPending = true;
     setTimeout(function() {
       document.getElementById('trackForm').dispatchEvent(new Event('submit', { cancelable: true }));
     }, 300);
