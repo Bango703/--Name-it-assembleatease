@@ -59,7 +59,8 @@
       "Bash(find api/booking -name \"my-assignments*\")",
       "Bash(dir api\\\\booking /b)",
       "Bash(git checkout *)",
-      "Bash(python3 -u -c ' *)"
+      "Bash(python3 -u -c ' *)",
+      "Bash(python -c ' *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",
