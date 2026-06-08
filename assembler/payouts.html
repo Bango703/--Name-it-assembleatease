@@ -115,6 +115,51 @@
       cursor: pointer;
       font-family: inherit;
     }
+    .payout-guide {
+      margin-top: 1rem;
+      background: #fff;
+      border: 1px solid var(--pro-border);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+    .payout-guide-title {
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--pro-muted);
+      font-weight: 700;
+      margin-bottom: 0.55rem;
+    }
+    .payout-guide-body {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .payout-guide-row {
+      padding: 0.75rem 0;
+      border-top: 1px solid var(--pro-border);
+    }
+    .payout-guide-row:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+    .payout-guide-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--pro-text);
+      margin-bottom: 0.2rem;
+    }
+    .payout-guide-copy {
+      font-size: 0.76rem;
+      line-height: 1.55;
+      color: var(--pro-soft);
+    }
+    .payout-guide-list {
+      margin-top: 0.4rem;
+      padding-left: 1rem;
+      color: var(--pro-soft);
+      font-size: 0.76rem;
+      line-height: 1.55;
+    }
   </style>
 </head>
 <body class="theme-pro">
@@ -169,6 +214,11 @@
     </div>
     <div class="connect-note" id="connect-note"></div>
     <button class="connect-btn" id="connect-action" style="display:none">Complete Setup</button>
+  </div>
+
+  <div class="payout-guide" id="payout-guide">
+    <div class="payout-guide-title">Payout Guide</div>
+    <div class="payout-guide-body" id="payout-guide-body"></div>
   </div>
 
   <div id="payouts-list">
@@ -270,6 +320,50 @@
     var memberNote = '';
 
     el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>' + memberNote;
+  }
+
+  function renderPayoutGuide(list, connectData) {
+    var guide = document.getElementById('payout-guide-body');
+    if (!guide) return;
+
+    var latestPaid = list.filter(function(b) { return b.payout_status === 'paid' && b.paid_out_at; })
+      .sort(function(a, b) { return new Date(b.paid_out_at) - new Date(a.paid_out_at); })[0] || null;
+    var pendingCount = list.filter(function(b) { return b.payout_status !== 'paid'; }).length;
+    var latestPaidCopy = latestPaid
+      ? 'Last payout recorded ' + fmtDate(latestPaid.paid_out_at) + ' for ' + fmt(latestPaid.assembler_due) + '.'
+      : 'No payout has been recorded on this account yet.';
+
+    var payoutChangeCopy = (!connectData || connectData.enabled === false || !connectData.connect)
+      ? 'Payout details are handled by the AssembleAtEase team right now. If your payout destination changes, contact support with the details below so the team can update your records before the next payout run.'
+      : 'When Stripe payouts are enabled, changes happen in Stripe onboarding or the Stripe dashboard. Keep these details current so payouts do not get delayed.';
+
+    var requirements = (connectData && Array.isArray(connectData.requirementsCurrentlyDue) && connectData.requirementsCurrentlyDue.length)
+      ? '<ul class="payout-guide-list">' + connectData.requirementsCurrentlyDue.map(function(item) {
+          return '<li>' + esc(item) + '</li>';
+        }).join('') + '</ul>'
+      : '';
+
+    guide.innerHTML = ''
+      + '<div class="payout-guide-row">'
+        + '<div class="payout-guide-label">How pending payouts work</div>'
+        + '<div class="payout-guide-copy">Completed jobs stay in pending until the team reviews the final amount and records the payout. You currently have ' + pendingCount + ' pending job' + (pendingCount === 1 ? '' : 's') + '.</div>'
+      + '</div>'
+      + '<div class="payout-guide-row">'
+        + '<div class="payout-guide-label">Latest payout status</div>'
+        + '<div class="payout-guide-copy">' + latestPaidCopy + '</div>'
+      + '</div>'
+      + '<div class="payout-guide-row">'
+        + '<div class="payout-guide-label">If payout details change</div>'
+        + '<div class="payout-guide-copy">' + payoutChangeCopy + '</div>'
+        + '<ul class="payout-guide-list">'
+          + '<li>Legal name on the payout account</li>'
+          + '<li>Best email and phone number for payout questions</li>'
+          + '<li>Payout method and account holder type</li>'
+          + '<li>Bank name plus the last 4 digits of the routing and account numbers</li>'
+          + '<li>Billing ZIP and any tax identity details Stripe requests</li>'
+        + '</ul>'
+        + requirements
+      + '</div>';
   }
 
   function renderConnectStatus(data) {
@@ -383,12 +477,14 @@
     try {
       let token = await getToken();
       if (!token) { window.location.href = '/auth/login.html'; return; }
+      var connectData = null;
 
       var connectResp = await fetch('/api/assembler/connect-status', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       if (connectResp.ok) {
-        renderConnectStatus(await connectResp.json());
+        connectData = await connectResp.json();
+        renderConnectStatus(connectData);
       }
       var connectBtn = document.getElementById('connect-action');
       if (connectBtn) {
@@ -413,6 +509,7 @@
       const data = await resp.json();
       allCompleted = (data.bookings || []).filter(function(b){ return b.status === 'completed'; });
       renderEarnings(allCompleted);
+      renderPayoutGuide(allCompleted, connectData);
     } catch (err) {
       document.getElementById('payouts-list').innerHTML =
         '<div class="e-alert error show">Could not load earnings history. Please refresh.</div>';

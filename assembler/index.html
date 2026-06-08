@@ -460,6 +460,9 @@
     var liveJobs     =list.filter(function(b){return liveStatuses.includes(b.status);});
     var pendingOffers=list.filter(function(b){return b._is_pending_offer;});
     var upcomingJobs =list.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
+    var hasUrgentWork = liveJobs.length > 0 || pendingOffers.length > 0;
+
+    setHomePriorityMode(hasUrgentWork);
 
     document.getElementById('active-section').style.display = liveJobs.length > 0 ? '' : 'none';
     document.getElementById('offers-section').style.display = pendingOffers.length > 0 ? '' : 'none';
@@ -504,6 +507,18 @@
 
     dashboardLoadState.mode = list.length > 0 ? 'success' : 'empty';
     setDashboardStatus(list.length > 0 ? 'success' : 'empty');
+  }
+
+  function setHomePriorityMode(hasUrgentWork) {
+    var checklist = document.getElementById('onboarding-checklist');
+    if (checklist && checklist.dataset.deferWhenBusy === 'true') {
+      checklist.style.display = hasUrgentWork ? 'none' : '';
+    }
+
+    var profileBanner = document.getElementById('profile-banner');
+    if (profileBanner && profileBanner.dataset.deferWhenBusy === 'true') {
+      profileBanner.classList.toggle('hidden', hasUrgentWork);
+    }
   }
 
   async function loadDashboardData(reason) {
@@ -1134,6 +1149,7 @@
           var lastItem=listEl.lastElementChild;
           if(lastItem) lastItem.style.borderBottom='none';
         }
+        document.getElementById('onboarding-checklist').dataset.deferWhenBusy='true';
         document.getElementById('onboarding-checklist').style.display='';
       }
     }
@@ -1152,6 +1168,7 @@
 
     if(!profile.phone){
       var pb=document.getElementById('profile-banner');
+      pb.dataset.deferWhenBusy='false';
       pb.classList.remove('hidden');
       pb.style.background='rgba(239,68,68,0.06)';
       pb.style.borderColor='rgba(239,68,68,0.2)';
@@ -1159,6 +1176,7 @@
       document.getElementById('profile-banner-sub').textContent='Easers without a phone number cannot be dispatched.';
       document.getElementById('profile-banner-cta').textContent='Add Phone';
     } else if(!profile.hourly_rate||!profile.city){
+      document.getElementById('profile-banner').dataset.deferWhenBusy='true';
       document.getElementById('profile-banner').classList.remove('hidden');
     }
 

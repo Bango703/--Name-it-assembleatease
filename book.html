@@ -4263,9 +4263,9 @@ function showConfirmation(ref, isQuote) {
 
   var trackUrl = '/track';
 
-  if (ref && BOOK.email) trackUrl += 'ref=' + encodeURIComponent(ref) + '&email=' + encodeURIComponent(BOOK.email);
+  if (ref && BOOK.email) trackUrl += '?ref=' + encodeURIComponent(ref) + '&email=' + encodeURIComponent(BOOK.email);
 
-  else if (ref) trackUrl += 'ref=' + encodeURIComponent(ref);
+  else if (ref) trackUrl += '?ref=' + encodeURIComponent(ref);
 
   document.getElementById('confirm-portal-link').href = trackUrl;
 
