@@ -1,13 +1,39 @@
 # AssembleAtEase
-> Professional furniture assembly and handyman services in Austin, TX.
+> Professional assembly and installation services in Austin, TX and the surrounding metro.
 
 ## Services
-- Furniture Assembly: https://www.assembleatease.com/furniture.html
-- TV Mounting: https://www.assembleatease.com/mounting.html
-- Home Repairs: https://www.assembleatease.com/repairs.html
-- Smart Home: https://www.assembleatease.com/smarthome.html
-- Junk Removal: https://www.assembleatease.com/junk.html
+- Furniture Assembly: https://www.assembleatease.com/furniture
+- TV Mounting: https://www.assembleatease.com/mounting
+- Smart Home Installation: https://www.assembleatease.com/smarthome
+- Fitness Equipment Assembly: https://www.assembleatease.com/pricing
+- Playset & Outdoor Assembly: https://www.assembleatease.com/pricing
+- Office Furniture Assembly: https://www.assembleatease.com/pricing
 
-## Contact
+## Austin Service Pages
+- Furniture Assembly Austin: https://www.assembleatease.com/furniture-assembly-austin-tx
+- TV Mounting Austin: https://www.assembleatease.com/tv-mounting-austin-tx
+- Smart Home Installation Austin: https://www.assembleatease.com/smart-home-installation-austin-tx
+- Fitness Equipment Assembly Austin: https://www.assembleatease.com/fitness-equipment-assembly-austin-tx
+- Playset Assembly Austin: https://www.assembleatease.com/playset-assembly-austin-tx
+- Office Furniture Assembly Austin: https://www.assembleatease.com/office-furniture-assembly-austin-tx
+
+## Nearby Cities Served
+- Round Rock, TX: https://www.assembleatease.com/furniture-assembly-round-rock-tx
+- Cedar Park, TX: https://www.assembleatease.com/furniture-assembly-cedar-park-tx
+- Pflugerville, TX: https://www.assembleatease.com/furniture-assembly-pflugerville-tx
+- Georgetown, TX: https://www.assembleatease.com/furniture-assembly-georgetown-tx
+- Leander, TX: https://www.assembleatease.com/furniture-assembly-leander-tx
+- Kyle, TX: https://www.assembleatease.com/furniture-assembly-kyle-tx
+- Buda, TX: https://www.assembleatease.com/furniture-assembly-buda-tx
+- Hutto, TX: https://www.assembleatease.com/furniture-assembly-hutto-tx
+- Bee Cave, TX: https://www.assembleatease.com/furniture-assembly-bee-cave-tx
+- Lakeway, TX: https://www.assembleatease.com/furniture-assembly-lakeway-tx
+- Manor, TX: https://www.assembleatease.com/furniture-assembly-manor-tx
+
+## Business Info
 - Email: service@assembleatease.com
-- Website: https://www.assembleatease.com
+- Phone: +1-737-290-6129
+- Book Online: https://www.assembleatease.com/book
+- Pricing: https://www.assembleatease.com/pricing
+- About: https://www.assembleatease.com/about
+- Contact: https://www.assembleatease.com/contact
