@@ -563,14 +563,19 @@ function isWithin24hrs(dateStr, timeStr) {
   } catch { return false; }
 }
 
-// Pre-fill from URL params: /trackref=AAE-XXX
-// Email is intentionally not read from URL to avoid PII exposure in server logs and browser history.
+// Pre-fill from URL params.
+// If both ref and email are present from a post-booking link, auto-run lookup.
 (function() {
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
+  const email = params.get('email');
   if (ref) {
     document.getElementById('t-ref').value = ref.toUpperCase();
-    // Auto-submit on ref alone — user still confirms their email manually
+  }
+  if (email) {
+    document.getElementById('t-email').value = email;
+  }
+  if (ref && email) {
     setTimeout(function() {
       document.getElementById('trackForm').dispatchEvent(new Event('submit', { cancelable: true }));
     }, 300);

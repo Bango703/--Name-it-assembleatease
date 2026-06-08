@@ -391,12 +391,40 @@
     pill.className = 'connect-pill ' + code;
 
     if (code === 'enabled') {
-      btn.style.display = 'none';
+      btn.style.display = '';
+      btn.dataset.mode = 'portal';
+      btn.textContent = 'Update payout details';
       return;
     }
 
     btn.style.display = '';
+    btn.dataset.mode = 'onboarding';
     btn.textContent = code === 'action_required' ? 'Fix in Stripe' : 'Complete Setup';
+  }
+
+  async function openConnectPortal(token) {
+    var btn = document.getElementById('connect-action');
+    if (!btn) return;
+    btn.disabled = true;
+    var prev = btn.textContent;
+    btn.textContent = 'Opening…';
+    try {
+      var r = await fetch('/api/assembler/connect-login', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Unable to open Stripe dashboard');
+      if (d.url) window.location.href = d.url;
+    } catch (err) {
+      alert(err.message || 'Unable to open payout settings right now. Please try again.');
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
   }
 
   async function openConnectOnboarding(token) {
@@ -488,7 +516,14 @@
       }
       var connectBtn = document.getElementById('connect-action');
       if (connectBtn) {
-        connectBtn.addEventListener('click', function() { openConnectOnboarding(token); });
+        connectBtn.addEventListener('click', function() {
+          var mode = connectBtn.dataset.mode || 'onboarding';
+          if (mode === 'portal') {
+            openConnectPortal(token);
+            return;
+          }
+          openConnectOnboarding(token);
+        });
       }
 
       let resp = await fetch('/api/booking/my-assignments', {
