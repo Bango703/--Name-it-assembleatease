@@ -308,7 +308,7 @@ export default async function handler(req, res) {
 function buildApprovalEmail(firstName, email, resetUrl) {
   const steps = [
     { num: '1', title: 'Set your password', desc: 'Click the button below to create your password and log into your Easer dashboard.' },
-    { num: '2', title: 'Complete your profile', desc: 'Add your profile photo, bio, and confirm your service skills in the Profile section.' },
+    { num: '2', title: 'Complete your profile', desc: 'Add your profile photo and confirm your phone number and city in the Profile section.' },
     { num: '3', title: 'Go Online', desc: 'Tap the "Offline" pill on your dashboard home screen to switch to Online. You will not receive job offers while offline.' },
     { num: '4', title: 'Wait for your first offer', desc: 'When a matching job is dispatched to you, you will receive a push notification and email with a 20-minute acceptance window.' },
   ];

@@ -136,6 +136,26 @@ export default async function handler(req, res) {
     });
   }
 
+  const payoutReviewRequired = booking.payout_status === 'paid';
+  if (payoutReviewRequired) {
+    try {
+      const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
+      await sendEmail({
+        to: ownerEmail(),
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `Payout Review Required — Refund after payout — ${esc(booking.ref)}`,
+        html: `
+          <div style="font-family:Inter,Arial,sans-serif;max-width:620px;margin:0 auto;padding:24px;color:#18181b">
+            <h2 style="margin:0 0 12px">Refund issued after Easer payout was marked paid</h2>
+            <p style="margin:0 0 16px;line-height:1.6">Booking <strong>${esc(booking.ref)}</strong> has been refunded for <strong>${refundDisplay}</strong>, but payout status is already <strong>paid</strong>.</p>
+            <p style="margin:0;line-height:1.6">Review whether this needs an Easer recovery, owner adjustment, or manual ledger note before closing the job financially.</p>
+          </div>`,
+      });
+    } catch (notifyErr) {
+      console.error('Refund payout review email error:', notifyErr);
+    }
+  }
+
   // #7 — Send customer refund email
   try {
     const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
@@ -182,5 +202,6 @@ export default async function handler(req, res) {
     refundId: stripeRefund.id,
     amount: stripeRefund.amount,
     status: stripeRefund.status,
+    payoutReviewRequired,
   });
 }

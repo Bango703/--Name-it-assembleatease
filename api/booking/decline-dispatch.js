@@ -83,7 +83,7 @@ export default async function handler(req, res) {
   const reasonLabels = {
     scheduling_conflict: 'Scheduling conflict',
     too_far: 'Location too far',
-    not_my_skill: 'Outside my skill set',
+    not_my_skill: 'Outside service scope',
     unavailable: 'Currently unavailable',
     other: 'Other',
   };

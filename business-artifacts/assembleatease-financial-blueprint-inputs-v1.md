@@ -84,12 +84,12 @@ Do not expand beyond Austin until the business has:
 - Stable dispatch process with no recurring manual bottleneck.
 - Documented service-level profitability by category.
 
-## Important Platform Conflict to Resolve
+## Important Platform Conflict Status
 
-- Terms page says Easer payouts go through linked Stripe Connect on a weekly schedule.
-- Contractor agreement says payouts are manual and the company does not use Stripe Connect.
-- Financial blueprint should assume manual payouts for now because the contractor agreement and current API/payout ledger appear closer to actual operations, but this must be reconciled before launch.
-- This is a legal/operational consistency issue and should be reviewed by counsel.
+- Earlier drafts conflicted on Easer payouts and application fees.
+- Current intended launch assumption: manual payouts are allowed and Stripe Connect is optional when enabled and tested.
+- Current intended launch assumption: Founding Easer application fees may be waived; if a fee is charged, the submission-time fee terms control.
+- This should still be reviewed by counsel before broad launch, but the operating model should assume manual payouts for the first 25 jobs unless Stripe Connect is deliberately enabled and reconciled.
 
 ## Files Provided
 

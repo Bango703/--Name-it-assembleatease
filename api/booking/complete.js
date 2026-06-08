@@ -55,8 +55,9 @@ export default async function handler(req, res) {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
       if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
-        // Capture the full held amount — idempotency key prevents double-capture on retry/double-click
-        const idempotencyKey = `complete-owner-${booking.id}`;
+        // Shared with assembler-complete.js so owner/Easer races cannot create
+        // two distinct Stripe capture attempts for the same booking.
+        const idempotencyKey = `booking-complete-capture-${booking.id}`;
         await writeFinancialAudit(sb, {
           eventType: 'capture_attempt',
           eventSource: 'booking_complete_owner',
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
         // Deposit already taken — charge the remaining 75% off-session
         const balanceCents = (booking.total_price || 0) - (booking.deposit_amount || 0);
         if (balanceCents > 0) {
-          const idempotencyKey = `complete-owner-balance-${booking.id}`;
+          const idempotencyKey = `booking-complete-balance-${booking.id}`;
           await writeFinancialAudit(sb, {
             eventType: 'capture_recovery_attempt',
             eventSource: 'booking_complete_owner',
@@ -230,7 +231,31 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to update booking' });
   }
   if (!updatedRows || updatedRows.length === 0) {
-    return res.status(400).json({ error: 'Booking already completed — payment has already been captured.' });
+    const { data: current } = await sb
+      .from('bookings')
+      .select('id, ref, status, payment_status, payout_status, stripe_transfer_id, stripe_destination_account_id')
+      .eq('id', booking.id)
+      .maybeSingle();
+
+    if (current?.status === BOOKING_STATUS.COMPLETED || current?.payment_status === 'captured') {
+      return res.status(200).json({
+        success: true,
+        alreadyCompleted: true,
+        booking: { id: booking.id, ref: booking.ref, status: current.status || BOOKING_STATUS.COMPLETED },
+        payout: current.stripe_transfer_id
+          ? {
+              status: current.payout_status === 'paid' ? 'paid' : 'pending_manual',
+              transferId: current.stripe_transfer_id,
+              destinationAccount: current.stripe_destination_account_id || null,
+            }
+          : { status: current.payout_status === 'paid' ? 'paid' : 'pending_manual' },
+      });
+    }
+
+    return res.status(409).json({
+      error: 'Completion capture succeeded, but booking state was changed by another request. Review this booking before retrying.',
+      code: 'COMPLETION_STATE_RACE',
+    });
   }
 
   // Optional Stripe Connect payout path. If disabled or not ready, booking remains pending payout.

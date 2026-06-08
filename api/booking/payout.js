@@ -106,7 +106,7 @@ export default async function handler(req, res) {
       await sendEmail({
         to: assembler.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Payout Sent — ${booking.ref} — ${payoutDisplay}`,
+        subject: `Payout Recorded — ${booking.ref} — ${payoutDisplay}`,
         html: buildPayoutEmail({
           firstName: (assembler.full_name || 'there').split(' ')[0],
           ref: booking.ref,
@@ -114,6 +114,7 @@ export default async function handler(req, res) {
           date: booking.date,
           payoutDisplay,
           notes: notes?.trim() || null,
+          method: method?.trim() || 'manual',
         }),
         replyTo: ownerEmail(),
       });
@@ -142,7 +143,8 @@ export default async function handler(req, res) {
   });
 }
 
-function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes }) {
+function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes, method }) {
+  const methodLabel = method && method !== 'manual' ? method : 'manual payout';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -150,8 +152,8 @@ function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes 
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">You've been paid, ${esc(firstName)}!</p>
-    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">We've sent your payout for the following completed job. Thank you for your great work!</p>
+    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">Your payout has been recorded, ${esc(firstName)}.</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">AssembleAtEase has recorded a ${esc(methodLabel)} for the following completed job. If you do not receive the funds by the expected timing, reply to this email so we can reconcile it.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payout Amount</p>
       <p style="margin:0;font-size:26px;font-weight:700;color:#065f46">${esc(payoutDisplay)}</p>
@@ -161,6 +163,7 @@ function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes 
         <tr><td style="padding:6px 0;color:#71717a;width:110px;border-bottom:1px solid #f0f0f0">Reference</td><td style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(ref)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a;border-bottom:1px solid #f0f0f0">Service</td><td style="padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(service)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date || 'Completed')}</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a">Method</td><td style="padding:6px 0">${esc(methodLabel)}</td></tr>
         ${notes ? `<tr><td style="padding:6px 0;color:#71717a;vertical-align:top">Notes</td><td style="padding:6px 0">${esc(notes)}</td></tr>` : ''}
       </table>
     </td></tr></table>

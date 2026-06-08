@@ -216,7 +216,7 @@
   <div id="profile-banner" class="eh-banner hidden">
     <div>
       <div class="eh-banner-title" id="profile-banner-title">Complete your profile</div>
-      <div class="eh-banner-sub" id="profile-banner-sub">Add your skills and rate to get more jobs.</div>
+      <div class="eh-banner-sub" id="profile-banner-sub">Add your city and profile photo to complete your profile.</div>
     </div>
     <a href="/assembler/profile" class="eh-banner-btn" id="profile-banner-cta">Update Profile</a>
   </div>
@@ -1175,7 +1175,7 @@
       document.getElementById('profile-banner-title').textContent='Phone number required to receive jobs';
       document.getElementById('profile-banner-sub').textContent='Easers without a phone number cannot be dispatched.';
       document.getElementById('profile-banner-cta').textContent='Add Phone';
-    } else if(!profile.hourly_rate||!profile.city){
+    } else if(!profile.city){
       document.getElementById('profile-banner').dataset.deferWhenBusy='true';
       document.getElementById('profile-banner').classList.remove('hidden');
     }

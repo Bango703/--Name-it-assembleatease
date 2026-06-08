@@ -26,7 +26,7 @@ const API = {
     return { data, error };
   },
 
-  async getAssemblers({ search, skills, city, minRate, maxRate, limit = 12, offset = 0 } = {}) {
+  async getAssemblers({ search, city, limit = 12, offset = 0 } = {}) {
     let query = supabaseClient
       .from('profiles')
       .select('*')
@@ -39,9 +39,7 @@ const API = {
     if (search) {
       query = query.or(`full_name.ilike.%${search}%,bio.ilike.%${search}%`);
     }
-    if (city)    query = query.ilike('city', `%${city}%`);
-    if (minRate) query = query.gte('hourly_rate', minRate);
-    if (maxRate) query = query.lte('hourly_rate', maxRate);
+    if (city) query = query.ilike('city', `%${city}%`);
 
     const { data, error, count } = await query;
     return { data, error, count };
@@ -87,7 +85,7 @@ const API = {
       .select(`
         *,
         customer:profiles!jobs_customer_id_fkey(id, full_name, city, state, email),
-        bids(*, assembler:profiles!bids_assembler_id_fkey(id, full_name, hourly_rate, rating, completed_jobs, city))
+        bids(*, assembler:profiles!bids_assembler_id_fkey(id, full_name, rating, completed_jobs, city))
       `)
       .eq('id', jobId)
       .single();
@@ -149,7 +147,7 @@ const API = {
       .from('bids')
       .select(`
         *,
-        assembler:profiles!bids_assembler_id_fkey(id, full_name, hourly_rate, rating, completed_jobs, city, skills, bio)
+        assembler:profiles!bids_assembler_id_fkey(id, full_name, rating, completed_jobs, city, bio)
       `)
       .eq('job_id', jobId)
       .order('created_at', { ascending: false });

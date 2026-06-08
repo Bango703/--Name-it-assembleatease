@@ -54,6 +54,7 @@ export default async function handler(req, res) {
 
   // Verify the PaymentIntent is genuinely authorized with Stripe before marking the booking.
   // This prevents IDOR abuse where anyone with a bookingId could call this endpoint.
+  let verifiedPaymentMethodId = null;
   if (booking.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -63,6 +64,7 @@ export default async function handler(req, res) {
         console.warn(`[booking-confirmed] PI ${pi.id} in unexpected state: ${pi.status} for booking ${bookingId}`);
         return res.status(402).json({ error: 'Payment not yet authorized. Please complete payment before confirming.' });
       }
+      verifiedPaymentMethodId = typeof pi.payment_method === 'string' ? pi.payment_method : null;
     } catch (piErr) {
       console.error('[booking-confirmed] Stripe PI verification error:', piErr);
       return res.status(502).json({ error: 'Could not verify payment status. Please try again.' });
@@ -70,16 +72,44 @@ export default async function handler(req, res) {
   }
 
   // Confirm booking + mark card authorized. Promotes status so dispatch can run.
-  const { error: updateErr } = await sb
+  const updatePayload = {
+    payment_status: 'authorized',
+    payment_authorized_at: new Date().toISOString(),
+    status: 'confirmed',
+    confirmed_at: new Date().toISOString(),
+    confirmed_by: 'payment',
+  };
+  if (verifiedPaymentMethodId) updatePayload.stripe_payment_method_id = verifiedPaymentMethodId;
+
+  const { error: updateErr, data: updatedRows } = await sb
     .from('bookings')
-    .update({ payment_status: 'authorized', payment_authorized_at: new Date().toISOString(), status: 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: 'payment' })
+    .update(updatePayload)
     .eq('id', bookingId)
-    .eq('payment_status', 'pending');
+    .eq('payment_status', 'pending')
+    .select('id');
 
   if (updateErr) {
     console.error('booking-confirmed status update error:', updateErr);
     // Re-fetching is unnecessary here because the idempotent guard above will
     // retry dispatch on a follow-up call if another request already confirmed it.
+  }
+  if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
+    const { data: current } = await sb
+      .from('bookings')
+      .select('id, status, payment_status, assembler_id')
+      .eq('id', bookingId)
+      .maybeSingle();
+    if (current?.payment_status === 'authorized' || current?.status === 'confirmed') {
+      booking.payment_status = current.payment_status || 'authorized';
+      booking.status = current.status || 'confirmed';
+      booking.assembler_id = current.assembler_id || null;
+      await ensureDispatch();
+      return res.status(200).json({ success: true, alreadyConfirmed: true });
+    }
+    return res.status(409).json({
+      error: 'Payment was verified, but booking state changed before confirmation. Please retry or review the booking.',
+      code: 'CONFIRMATION_STATE_RACE',
+    });
   }
 
   booking.payment_status = 'authorized';

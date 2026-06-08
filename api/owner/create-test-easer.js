@@ -75,7 +75,6 @@ export default async function handler(req, res) {
     has_tools: true, has_transport: true,
     years_experience: 3,
     bio: 'Test account for platform testing.',
-    hourly_rate: 25,
     rating: 4.8,
     completed_jobs: 5,
     is_available: true,

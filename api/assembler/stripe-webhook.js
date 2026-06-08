@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
+import { dispatchBooking } from '../booking/_dispatch-internal.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -164,7 +165,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = pi.id;
 
         const { data: existing } = await sb.from('bookings')
-          .select('id, ref, payment_status, status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit')
+          .select('id, ref, payment_status, status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id')
           .eq('id', bookingId)
           .maybeSingle();
 
@@ -180,19 +181,45 @@ export default async function handler(req, res) {
           break;
         }
 
+        if (existing.payment_status === 'authorized' || existing.status === 'confirmed') {
+          if (existing.status === 'confirmed' && !existing.assembler_id) {
+            dispatchBooking(bookingId).catch(err => console.error('webhook dispatch retry error:', err?.message || err));
+          }
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'already-authorized', bookingId, currentPaymentStatus: existing.payment_status, currentStatus: existing.status };
+          break;
+        }
+
         const paymentMethodId = pi.payment_method;
-        // Update booking: authorized only from pre-capture states.
-        const { error: authErr } = await sb.from('bookings').update({
+        // Update booking: authorized only from pre-capture states. Also promote to
+        // confirmed so webhook-only authorization cannot strand dispatch.
+        const { error: authErr, data: authRows } = await sb.from('bookings').update({
           payment_status: 'authorized',
           payment_authorized_at: new Date().toISOString(),
           stripe_payment_method_id: paymentMethodId,
-        }).eq('id', bookingId).neq('payment_status', 'captured').neq('payment_status', 'refunded').neq('payment_status', 'deposit_paid');
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString(),
+          confirmed_by: 'stripe_webhook',
+        })
+          .eq('id', bookingId)
+          .eq('payment_status', 'pending')
+          .neq('payment_status', 'captured')
+          .neq('payment_status', 'refunded')
+          .neq('payment_status', 'deposit_paid')
+          .select('id');
 
         if (authErr) {
           webhookOutcome = 'failed';
           webhookError = authErr.message || 'Failed to sync authorized status';
           break;
         }
+        if (!authRows || authRows.length === 0) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'authorization-state-not-pending', bookingId, currentPaymentStatus: existing.payment_status, currentStatus: existing.status };
+          break;
+        }
+
+        dispatchBooking(bookingId).catch(err => console.error('webhook dispatch error:', err?.message || err));
 
         // Send customer confirmation email
         const bk = existing;
@@ -206,6 +233,7 @@ export default async function handler(req, res) {
               subject: `Booking Confirmed — ${esc(bk.ref)}`,
               html: buildBookingConfirmEmail(bk, totalDisplay),
               replyTo: ownerEmail(),
+              meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
             });
           } catch (e) { console.error('Booking confirm email error:', e); }
         }
@@ -223,7 +251,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = pi.id;
 
         const { data: current } = await sb.from('bookings')
-          .select('id, payment_status, amount_charged, customer_name, customer_email, ref, service, date')
+          .select('id, payment_status, status, amount_charged, customer_name, customer_email, ref, service, date')
           .eq('id', bookingId)
           .maybeSingle();
 
@@ -236,6 +264,12 @@ export default async function handler(req, res) {
         if (current.payment_status === 'refunded') {
           webhookOutcome = 'ignored';
           webhookMetadata = { ...webhookMetadata, reason: 'stale-captured-after-refund', bookingId };
+          break;
+        }
+
+        if (current.payment_status === 'captured' && current.status === 'completed') {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'already-captured-and-completed', bookingId };
           break;
         }
 

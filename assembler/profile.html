@@ -42,16 +42,8 @@
     body.theme-pro .photo-upload-info h5 { font-size:0.875rem; font-weight:500; color:var(--pro-text); margin-bottom:4px; font-family:var(--font-body); }
     body.theme-pro .photo-upload-info p { font-size:0.75rem; color:var(--pro-muted); margin-bottom:0.75rem; }
 
-    /* Skills */
-    body.theme-pro .skills-wrap { border:1px solid var(--pro-border-md); border-radius:8px; padding:0.5rem 0.75rem; display:flex; flex-wrap:wrap; gap:6px; background:var(--pro-elevated); cursor:text; transition:border-color 0.15s; min-height:46px; align-items:center; }
-    body.theme-pro .skills-wrap:focus-within { border-color:var(--pro-teal); }
-    body.theme-pro .skill-tag { display:inline-flex; align-items:center; gap:5px; background:var(--pro-teal-glow); color:var(--pro-teal); border:1px solid rgba(0,191,255,0.15); padding:0.2rem 0.6rem; border-radius:999px; font-size:0.78rem; font-weight:500; }
-    body.theme-pro .skill-tag button { background:none; border:none; cursor:pointer; color:var(--pro-teal); font-size:0.9rem; line-height:1; padding:0; opacity:0.7; }
-    body.theme-pro .skill-tag button:hover { opacity:1; }
-    body.theme-pro .skills-input { border:none; outline:none; font-family:var(--font-body); font-size:0.875rem; color:var(--pro-text); background:transparent; min-width:140px; flex:1; padding:0.2rem 0; }
     /* Prevent double-spacing: easer.css .form-group has margin-bottom:1.1rem which stacks with the flex gap */
     body.theme-pro .form-fields > .form-group { margin-bottom: 0; }
-    body.theme-pro .skills-input::placeholder { color:var(--pro-muted); }
 
     /* ── Self-contained form + button system ──────────────────────────
        These mirror easer.css globals but are scoped to body.theme-pro so
@@ -221,35 +213,6 @@
           </div>
         </div>
 
-        <!-- Professional -->
-        <div class="form-section" id="prof-section">
-          <div class="form-section-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span>Professional details</span>
-            <button type="button" id="prof-edit-btn" onclick="expandProfSection()" style="display:none;font-size:0.72rem;font-weight:600;color:var(--pro-teal);background:none;border:none;cursor:pointer;padding:0;letter-spacing:0.01em">Edit</button>
-          </div>
-          <!-- Collapsed summary (shown after save) -->
-          <div id="prof-summary" style="display:none">
-            <div id="prof-summary-rate" style="font-size:0.875rem;color:var(--pro-text);font-weight:600;margin-bottom:0.5rem"></div>
-            <div id="prof-summary-skills" style="display:flex;flex-wrap:wrap;gap:5px"></div>
-          </div>
-          <!-- Edit fields -->
-          <div class="form-fields" id="prof-fields">
-            <div class="form-group">
-              <label for="hourly-rate">Hourly rate ($)</label>
-              <input type="number" id="hourly-rate" class="form-control" placeholder="e.g. 65" min="65" max="500" step="1" style="max-width:200px" />
-              <span class="field-error" id="hourly-rate-error"></span>
-            </div>
-            <div class="form-group">
-              <label>Skills</label>
-              <div class="skills-wrap" id="skills-wrap">
-                <input class="skills-input" id="skills-input" placeholder="Type a skill, press Enter or comma..." />
-              </div>
-            </div>
-            <div style="margin-top:0.75rem">
-              <button type="submit" id="prof-save-btn" class="btn btn-teal" style="width:100%">Save</button>
-            </div>
-          </div>
-        </div>
       </form>
 
       <!-- Account settings -->
@@ -344,7 +307,6 @@
 </nav>
 
 <script>
-  let skills = [];
   let photoBase64 = null;
 
   function collapseBasicSection() {
@@ -369,49 +331,6 @@
     document.getElementById('full-name').focus();
   }
 
-  function collapseProfSection() {
-    var rate   = document.getElementById('hourly-rate').value;
-    // Rate
-    var rateEl = document.getElementById('prof-summary-rate');
-    rateEl.textContent = rate ? '$' + rate + '/hr' : '';
-    // Skills
-    var skillsEl = document.getElementById('prof-summary-skills');
-    skillsEl.innerHTML = skills.map(function(s) {
-      return '<span style="display:inline-flex;align-items:center;background:rgba(0,191,255,0.1);color:var(--pro-teal);border:1px solid rgba(0,191,255,0.18);padding:0.15rem 0.55rem;border-radius:999px;font-size:0.76rem;font-weight:500">' + s + '</span>';
-    }).join('');
-    // Toggle
-    document.getElementById('prof-summary').style.display = '';
-    document.getElementById('prof-fields').style.display = 'none';
-    document.getElementById('prof-edit-btn').style.display = '';
-  }
-
-  function expandProfSection() {
-    document.getElementById('prof-summary').style.display = 'none';
-    document.getElementById('prof-fields').style.display = '';
-    document.getElementById('prof-edit-btn').style.display = 'none';
-    document.getElementById('hourly-rate').focus();
-  }
-
-  function renderSkills() {
-    const wrap  = document.getElementById('skills-wrap');
-    const input = document.getElementById('skills-input');
-    wrap.querySelectorAll('.skill-tag').forEach(t => t.remove());
-    skills.forEach((skill, i) => {
-      const tag = document.createElement('span');
-      tag.className = 'skill-tag';
-      tag.innerHTML = `${skill}<button type="button" onclick="removeSkill(${i})" title="Remove">&times;</button>`;
-      wrap.insertBefore(tag, input);
-    });
-    updateCompletion();
-  }
-
-  function addSkill(val) {
-    const trimmed = val.trim();
-    if (trimmed && !skills.includes(trimmed)) { skills.push(trimmed); renderSkills(); }
-  }
-
-  function removeSkill(i) { skills.splice(i, 1); renderSkills(); }
-
   function updateCompletion() {
     const hasPhoto = !!photoBase64 || !!(document.getElementById('profile-id-avatar') && document.getElementById('profile-id-avatar').querySelector('img'));
     const checks = [
@@ -419,8 +338,6 @@
       { label: 'Phone',       ok: !!(document.getElementById('phone').value.trim()) },
       { label: 'City',        ok: !!(document.getElementById('city').value.trim()) },
       { label: 'ZIP',         ok: !!(document.getElementById('zip').value.trim()) },
-      { label: 'Rate',        ok: !!(document.getElementById('hourly-rate').value.trim()) },
-      { label: 'Skills',      ok: skills.length > 0 },
       { label: 'Photo',       ok: hasPhoto },
     ];
     const done = checks.filter(function(c){ return c.ok; }).length;
@@ -438,20 +355,11 @@
     }
   }
 
-  ['full-name','city','state','zip','hourly-rate'].forEach(id => {
+  ['full-name','city','state','zip'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCompletion);
   });
 
   document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('skills-input');
-    const wrap  = document.getElementById('skills-wrap');
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill(input.value); input.value = ''; }
-      if (e.key === 'Backspace' && !input.value && skills.length) removeSkill(skills.length - 1);
-    });
-    input.addEventListener('blur', () => { if (input.value.trim()) { addSkill(input.value); input.value = ''; } });
-    wrap.addEventListener('click', () => input.focus());
-
     // Photo preview — use FileReader (data: URL) so it passes the CSP img-src policy.
     // blob: URLs are blocked by the site's Content-Security-Policy.
     document.getElementById('photo-input').addEventListener('change', (e) => {
@@ -514,7 +422,6 @@
     document.getElementById('city').value        = profile.city        || '';
     document.getElementById('state').value       = profile.state       || '';
     document.getElementById('zip').value         = profile.zip         || '';
-    document.getElementById('hourly-rate').value = profile.hourly_rate && profile.hourly_rate >= 65 ? profile.hourly_rate : (profile.hourly_rate ? 65 : '');
     document.getElementById('email-display').textContent  = user.email;
 
     // Lock name and location for verified users — cannot be changed after approval
@@ -669,16 +576,9 @@
       document.getElementById('profile-id-avatar').innerHTML = `<img src="${profile.profile_photo}" alt="Profile" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
     }
 
-    if (Array.isArray(profile.skills)) {
-      skills = [...profile.skills];
-    } else if (typeof profile.skills === 'string' && profile.skills) {
-      skills = profile.skills.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    renderSkills();
     updateCompletion();
     // Auto-collapse sections on load if data already exists
     if (profile.full_name) collapseBasicSection();
-    if (profile.hourly_rate || (Array.isArray(profile.skills) ? profile.skills.length : profile.skills)) collapseProfSection();
 
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -686,22 +586,16 @@
       const fullNameEl = document.getElementById('full-name');
       const fullName   = fullNameEl.value.trim();
       const phone      = document.getElementById('phone').value.trim();
-      const hourlyRate = parseFloat(document.getElementById('hourly-rate').value);
       let hasError = false;
       if (!fullNameEl.readOnly && !fullName) { APP.fieldError('full-name', 'Full name is required.'); hasError = true; }
       if (phone && !/^\+[\d\s\-(). ]{7,}$/.test(phone)) { APP.fieldError('phone', 'Enter a valid phone number.'); hasError = true; }
-      if (document.getElementById('hourly-rate').value && (isNaN(hourlyRate)||hourlyRate<65)) { APP.fieldError('hourly-rate','Minimum rate is $65/hr.'); hasError = true; }
       if (hasError) return;
 
       APP.setLoading('save-btn', true, 'Saving...');
-      var profSaveEl = document.getElementById('prof-save-btn');
-      if (profSaveEl) { profSaveEl.disabled = true; profSaveEl.textContent = 'Saving...'; }
       try {
         const cityEl = document.getElementById('city');
         const updates = {
           phone: phone || null,
-          hourly_rate: (!isNaN(hourlyRate) && hourlyRate >= 65) ? hourlyRate : null,
-          skills: skills.length ? skills : null,
         };
         // Only update locked fields if they are not readonly (non-verified users)
         if (!fullNameEl.readOnly) updates.full_name = fullName;
@@ -723,15 +617,12 @@
         }
         photoBase64 = null;
         collapseBasicSection();
-        collapseProfSection();
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         APP.showAlert('page-alert', err.message || 'Failed to save profile. Please try again.', 'error');
       } finally {
         APP.setLoading('save-btn', false, 'Save');
-        var pse = document.getElementById('prof-save-btn');
-        if (pse) { pse.disabled = false; pse.textContent = 'Save'; }
       }
     });
 

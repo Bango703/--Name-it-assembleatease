@@ -60,15 +60,28 @@ export default async function handler(req, res) {
   const taxCents = pricing.taxCents;
   const serviceCallFeeCents = pricing.serviceCallFeeCents;
 
-  // Hard floor: all paid bookings must meet the $99 minimum (9900 cents).
-  // Quote-only requests (amount === 0) are exempt — they never hit Stripe.
-  const MIN_BOOKING_CENTS = 9900;
-  if (amount > 0 && amount < MIN_BOOKING_CENTS) {
+  if (amount > 0 && pricing.callZone === 'far_suburb') {
     return res.status(400).json({
-      error: `Minimum booking total is $99.00. Your current selection totals $${(amount / 100).toFixed(2)}. Please add more services.`,
+      error: 'This address requires a custom quote before booking online. Please email service@assembleatease.com with your address, service items, and preferred time.',
+      code: 'CUSTOM_QUOTE_REQUIRED_FOR_ZONE',
+      callZone: pricing.callZone,
+    });
+  }
+
+  // Hard floor: protect standalone jobs from losing money after travel, support,
+  // payment processing, and rework reserve. Quote-only requests are exempt.
+  const MIN_BOOKING_BY_ZONE_CENTS = {
+    austin_core: 9900,
+    near_suburb: 14900,
+  };
+  const minBookingCents = MIN_BOOKING_BY_ZONE_CENTS[pricing.callZone] || 9900;
+  if (amount > 0 && amount < minBookingCents) {
+    return res.status(400).json({
+      error: `Minimum booking total for this address is $${(minBookingCents / 100).toFixed(2)}. Your current selection totals $${(amount / 100).toFixed(2)}. Please add more services or email service@assembleatease.com for a custom quote.`,
       code: 'BELOW_MINIMUM',
       totalCents: amount,
-      minimumCents: MIN_BOOKING_CENTS,
+      minimumCents: minBookingCents,
+      callZone: pricing.callZone,
     });
   }
 

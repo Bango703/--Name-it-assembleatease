@@ -17,6 +17,7 @@ const VALID_SERVICES = [
 ];
 
 const FOUNDING_EASER_FREE_APPLICATION_LIMIT = parseInt(process.env.FOUNDING_EASER_FREE_APPLICATION_LIMIT || '20', 10);
+const CONTRACTOR_AGREEMENT_VERSION = '2026-06-08';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -56,6 +57,8 @@ export default async function handler(req, res) {
   const cleanName = fullName.trim();
   const cleanEmail = email.trim().toLowerCase();
   const cleanPhone = phone.trim();
+  const agreementIp = getClientIp(req);
+  const agreementUserAgent = String(req.headers['user-agent'] || '').slice(0, 500);
 
   // Generate a random temporary password — assembler sets their real password via the approval email link
   const tempPassword = randomUUID() + randomUUID();
@@ -118,6 +121,10 @@ export default async function handler(req, res) {
   const { error: agreementErr } = await sb.from('profiles').update({
     code_of_conduct_agreed_at: agreementTs,
     contractor_agreement_signed_at: agreementTs,
+    contractor_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
+    contractor_agreement_ip: agreementIp,
+    contractor_agreement_user_agent: agreementUserAgent,
+    contractor_agreement_signed_name: cleanName,
   }).eq('id', userId);
   if (agreementErr) {
     // This only fails if migration 019 hasn't been run yet. Log prominently.
@@ -263,6 +270,13 @@ export default async function handler(req, res) {
   } catch (e) { console.error('Applicant email error:', e); }
 
   return res.status(200).json({ success: true, verificationUrl, feeWaived: foundingApplication.feeWaived, foundingProgram: foundingApplication.feeWaived });
+}
+
+function getClientIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const realIp = String(req.headers['x-real-ip'] || '').trim();
+  const cfIp = String(req.headers['cf-connecting-ip'] || '').trim();
+  return (forwarded || realIp || cfIp || req.socket?.remoteAddress || 'unknown').slice(0, 120);
 }
 
 async function getFoundingApplicationStatus(sb) {
