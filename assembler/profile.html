@@ -764,12 +764,14 @@
 
     // Load reviews for this assembler
     try {
-      const { data: reviews } = await API.getReviews(user.id);
+      const { data: reviews, error: reviewsError } = await API.getReviews(user.id);
+      if (reviewsError) throw reviewsError;
       const list = document.getElementById('my-reviews-list');
       const countLabel = document.getElementById('review-count-label');
-      if (reviews.length) {
-        countLabel.textContent = '(' + reviews.length + ')';
-        list.innerHTML = reviews.map(function(r) {
+      const reviewList = Array.isArray(reviews) ? reviews : [];
+      if (reviewList.length) {
+        countLabel.textContent = '(' + reviewList.length + ')';
+        list.innerHTML = reviewList.map(function(r) {
           var name = (r.reviewer.full_name || 'Customer').split(' ')[0];
           var stars = '';
           for (var i = 0; i < 5; i++) stars += i < r.rating ? '&#9733;' : '&#9734;';
@@ -789,7 +791,7 @@
         list.innerHTML = '<p style="padding:0.5rem 0">No reviews yet. Complete jobs and build your reputation!</p>';
       }
     } catch (e) {
-      document.getElementById('my-reviews-list').innerHTML = '<p>Could not load reviews.</p>';
+      document.getElementById('my-reviews-list').innerHTML = '<p>Reviews are temporarily unavailable. Please try again shortly.</p>';
     }
   });
 </script>

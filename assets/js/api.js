@@ -214,15 +214,41 @@ const API = {
   // ── REVIEWS ───────────────────────────────
 
   async getReviews(assemblerId) {
-    const { data, error } = await supabaseClient
-      .from('reviews')
-      .select(`
-        *,
-        reviewer:profiles!reviews_reviewer_id_fkey(full_name)
-      `)
+    const { data: bookings, error: bookingError } = await supabaseClient
+      .from('bookings')
+      .select('id, customer_name')
       .eq('assembler_id', assemblerId)
+      .eq('status', 'completed');
+
+    if (bookingError) return { data: null, error: bookingError };
+
+    const bookingList = Array.isArray(bookings) ? bookings : [];
+    if (!bookingList.length) return { data: [], error: null };
+
+    const bookingIds = bookingList.map(booking => booking.id).filter(Boolean);
+    const customerNameByBookingId = bookingList.reduce((lookup, booking) => {
+      lookup[booking.id] = booking.customer_name || 'Customer';
+      return lookup;
+    }, {});
+
+    const { data: reviews, error } = await supabaseClient
+      .from('reviews')
+      .select('id, booking_id, customer_name, rating, body, comment, customer_would_rehire, created_at, approved')
+      .in('booking_id', bookingIds)
+      .eq('approved', true)
       .order('created_at', { ascending: false });
-    return { data, error };
+
+    if (error) return { data: null, error };
+
+    const normalized = (reviews || []).map(review => ({
+      ...review,
+      comment: review.comment || review.body || '',
+      reviewer: {
+        full_name: review.customer_name || customerNameByBookingId[review.booking_id] || 'Customer'
+      }
+    }));
+
+    return { data: normalized, error: null };
   },
 
   async createReview(reviewData) {

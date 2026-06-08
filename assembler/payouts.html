@@ -281,9 +281,9 @@
     card.style.display = '';
 
     if (!data || data.enabled === false || !data.connect) {
-      state.textContent = 'Not Enabled';
-      note.textContent = 'Stripe Connect is currently disabled for this environment.';
-      pill.textContent = 'Disabled';
+      state.textContent = 'Manual payouts';
+      note.textContent = 'Payouts are recorded by the AssembleAtEase team after completed jobs. No Stripe setup is required here.';
+      pill.textContent = 'Managed by team';
       pill.className = 'connect-pill restricted';
       btn.style.display = 'none';
       return;
