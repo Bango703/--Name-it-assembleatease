@@ -85,6 +85,12 @@ export default async function handler(req, res) {
     completed_at: booking.completed_at || null,
     cancel_reason: booking.cancel_reason || null,
     cancellation_fee: booking.cancellation_fee || null,
+    // Pro trust signal — first name only (never full name/phone to customer),
+    // shown once the Pro has accepted the job.
+    pro_first_name: (booking.assembler_accepted_at && booking.assembler_name)
+      ? booking.assembler_name.split(' ')[0]
+      : null,
+    pro_verified: booking.identity_verified === true,
   };
 
   return res.status(200).json({ booking: safe });
