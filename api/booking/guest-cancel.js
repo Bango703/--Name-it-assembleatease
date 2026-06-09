@@ -3,7 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
@@ -120,6 +120,15 @@ export default async function handler(req, res) {
     console.error('Guest cancel update failed:', updateErr);
     return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
   }
+
+  // Cancel all open dispatch offers so an Easer cannot accept a cancelled booking
+  sb.from('dispatch_offers')
+    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
+    .eq('booking_id', booking.id)
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
+    .then(({ error: doErr }) => {
+      if (doErr) console.error('dispatch_offers cancel cleanup error (guest):', doErr.message);
+    });
 
   logActivity(sb, {
     bookingId: booking.id,
