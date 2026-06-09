@@ -50,7 +50,10 @@ export default async function handler(req, res) {
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience?</p>
     <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">We hope you loved your <strong>${esc(b.service)}</strong> service! A quick Google review takes 60 seconds and makes a huge difference for a small local business like ours.</p>
     <table cellpadding="0" cellspacing="0" style="margin:0 0 16px;width:100%"><tr><td style="background:#00BFFF;border-radius:8px;padding:0;text-align:center"><a href="${googleReviewUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">&#11088; Leave a Google Review</a></td></tr></table>
-    <p style="margin:0 0 16px;font-size:12px;color:#a1a1aa;text-align:center;line-height:1.5">Prefer to rate directly on our site? <a href="${internalReviewUrl}" style="color:#00BFFF;text-decoration:none">Rate your Easer here</a>.</p>
+    <p style="margin:0 0 16px;font-size:12px;color:#a1a1aa;text-align:center;line-height:1.5">Prefer to rate directly on our site? <a href="${internalReviewUrl}" style="color:#00BFFF;text-decoration:none">Rate your Pro here</a>.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin:0 0 16px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
+      Not happy with something? Just reply to this email within 48 hours and we&rsquo;ll make it right.
+    </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Thank you for choosing AssembleAtEase!</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
