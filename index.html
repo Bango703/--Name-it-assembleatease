@@ -943,45 +943,67 @@ section#service-area{display:block}
 
 <!-- CUSTOMER REVIEWS -->
 <section class="section section-alt" id="reviews">
-  <div class="section-inner" style="max-width:900px">
+  <div class="section-inner" style="max-width:1020px">
     <div class="section-header">
       <div class="section-label">What customers say</div>
       <h2 class="section-title">Real Reviews</h2>
-      <p class="section-desc">From Austin homeowners who booked with us. &bull; <a href="https://www.google.com/maps?cid=7847022131459448801" target="_blank" rel="noopener" style="color:var(--cyan-dark);font-weight:600;text-decoration:none">&#9733; 5.0 on Google (9 reviews)</a></p>
+      <div style="display:flex;align-items:center;justify-content:center;margin-top:0.75rem">
+        <a href="https://www.google.com/maps?cid=7847022131459448801" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #e5e7eb;border-radius:999px;padding:7px 16px;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.07);transition:box-shadow 0.15s" onmouseover="this.style.boxShadow=&apos;0 3px 12px rgba(0,0,0,0.13)&apos;" onmouseout="this.style.boxShadow=&apos;0 1px 4px rgba(0,0,0,0.07)&apos;">
+          <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          <span style="font-size:0.85rem;font-weight:700;color:#1a1a1a">5.0</span>
+          <span style="color:#f59e0b;letter-spacing:1px;font-size:0.85rem">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          <span style="font-size:0.78rem;color:#6b7280;border-left:1px solid #e5e7eb;padding-left:7px;margin-left:1px">9 Google reviews</span>
+        </a>
+      </div>
     </div>
-    <div id="reviews-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1.5rem"></div>
+    <div id="reviews-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.75rem"></div>
+    <style>@media(max-width:700px){#reviews-grid{grid-template-columns:1fr}}</style>
+    <div style="text-align:center;margin-top:1.25rem">
+      <a href="https://www.google.com/maps?cid=7847022131459448801" target="_blank" rel="noopener" style="font-size:0.82rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:5px" onmouseover="this.style.color=&apos;var(--cyan-dark)&apos;" onmouseout="this.style.color=&apos;var(--muted)&apos;">View all reviews on Google &#8594;</a>
+    </div>
   </div>
 </section>
 
 <script>
 (function(){
+  var MAPS = "https://www.google.com/maps?cid=7847022131459448801";
   var PLACEHOLDERS = [
-    {rating:5,body:"AssembleAtEase was prompt and on point. They mounted a 75 in TV and assembled a bed. Great job, very efficient!",customer_name:"Erin B.",service:"TV Mounting + Furniture",created_at:"2024-06-01"},
-    {rating:5,body:"He put together 9 beds and 9 dressers at amazing speed — they all look great! Five stars hands down. Will use again!",customer_name:"Omotola A.",service:"Furniture Assembly",created_at:"2024-05-19"},
-    {rating:5,body:"Travis has come out to our place several times and each time the job was WELL DONE. Thanks Travis!",customer_name:"Mika H.",service:"Assembly Services",created_at:"2024-06-02"},
-    {rating:5,body:"Mounted TV — great experience. I would recommend.",customer_name:"Austin P.",service:"TV Mounting",created_at:"2024-06-03"},
-    {rating:5,body:"Fast and friendly service. Will definitely use again when needed.",customer_name:"Rochelle L.",service:"Assembly Services",created_at:"2024-06-10"},
-    {rating:5,body:"Very flexible, professional, and can put together anything for a reasonable price. Would recommend to anyone.",customer_name:"Shelby M.",service:"Furniture Assembly",created_at:"2024-06-17"},
-    {rating:5,body:"Super handy and gets the job done fast!",customer_name:"Emmanuel",service:"Assembly Services",created_at:"2024-06-14"},
-    {rating:5,body:"Fantastic customer service! I highly recommend!",customer_name:"Sue S.",service:"Assembly Services",created_at:"2024-06-09"},
-    {rating:5,body:"This company does an amazing job. If you want a well done job, this is the guy!",customer_name:"Lashantae H.",service:"Assembly Services",created_at:"2024-05-20"}
+    {rating:5,body:"AssembleAtEase was prompt and on point. They mounted a 75 in TV and assembled a bed. Great job, very efficient!",customer_name:"Erin B.",created_at:"2024-06-01"},
+    {rating:5,body:"He put together 9 beds and 9 dressers at amazing speed and they all look great! Five stars hands down. Will use again!",customer_name:"Omotola A.",created_at:"2024-05-19"},
+    {rating:5,body:"Travis has come out to our place several times and each time the job was WELL DONE. Thanks Travis!",customer_name:"Mika H.",created_at:"2024-06-02"},
+    {rating:5,body:"Mounted TV — great experience. I would recommend.",customer_name:"Austin P.",created_at:"2024-06-03"},
+    {rating:5,body:"Fast and friendly service. Will definitely use again when needed.",customer_name:"Rochelle L.",created_at:"2024-06-10"},
+    {rating:5,body:"Very flexible, professional, and can put together anything for a reasonable price. Would recommend to anyone.",customer_name:"Shelby M.",created_at:"2024-06-17"},
+    {rating:5,body:"Super handy and gets the job done fast!",customer_name:"Emmanuel",created_at:"2024-06-14"},
+    {rating:5,body:"Fantastic customer service! I highly recommend!",customer_name:"Sue S.",created_at:"2024-06-09"},
+    {rating:5,body:"This company does an amazing job. If you want a well done job, this is the guy!",customer_name:"Lashantae H.",created_at:"2024-05-20"}
   ];
+  var PALETTE = ["#00BFFF","#0099CC","#006a7e","#4dd0e1","#0077a8","#003b47"];
+  var GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>';
+  function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function initials(name){return(name||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();}
+  function avatarColor(name){return PALETTE[(name||'A').charCodeAt(0)%PALETTE.length];}
   function renderCard(r){
-    var stars='';for(var i=1;i<=5;i++)stars+='<span style="color:'+(i<=r.rating ? '#f59e0b' : '#d1d5db')+'">&#9733;</span>';
-    var name=(r.customer_name||'').split(' ');
-    var display=name[0]+(name[1] ? ' '+name[1][0]+'.' : '');
-    var date=r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '';
-    var esc=function(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-    return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;display:flex;flex-direction:column;gap:0.6rem">'
-      +'<div style="font-size:1.1rem">'+stars+'</div>'
-      +'<p style="font-size:0.875rem;color:var(--ink-soft);line-height:1.7;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
-      +'<div style="margin-top:auto;padding-top:0.75rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
-      +'<span style="font-size:0.8rem;font-weight:600;color:var(--ink)">'+esc(display)+'</span>'
-      +'<span style="font-size:0.75rem;color:var(--muted)">'+esc(r.service||'')+(date ? ' &bull; '+date : '')+'</span>'
-      +'</div></div>';
+    var stars='<span style="color:#f59e0b;letter-spacing:1px">&#9733;&#9733;&#9733;&#9733;&#9733;</span>';
+    var date=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'';
+    var init=initials(r.customer_name);
+    var color=avatarColor(r.customer_name);
+    return '<div style="background:#fff;border:1px solid #e8ecef;border-radius:14px;padding:1.25rem 1.35rem;display:flex;flex-direction:column;gap:0.55rem;box-shadow:0 2px 8px rgba(0,0,0,0.045)">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between">'
+      +'<div>'+stars+'</div>'
+      +'<div style="opacity:0.55;flex-shrink:0;margin-top:1px">'+GOOGLE_G+'</div>'
+      +'</div>'
+      +'<p style="font-size:0.875rem;color:#374151;line-height:1.7;margin:0;flex:1">“'+esc(r.body)+'”</p>'
+      +'<div style="display:flex;align-items:center;gap:0.6rem;padding-top:0.75rem;border-top:1px solid #f3f4f6;margin-top:auto">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:'+color+';display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0">'+init+'</div>'
+      +'<div>'
+      +'<div style="font-size:0.82rem;font-weight:700;color:#111">'+esc(r.customer_name)+'</div>'
+      +(date?'<div style="font-size:0.7rem;color:#9ca3af">'+esc(date)+'</div>':'')
+      +'</div></div>'
+      +'</div>';
   }
   fetch('/api/review').then(function(r){return r.json();}).then(function(d){
-    var reviews=(d.reviews&&d.reviews.length>=3) ? d.reviews : PLACEHOLDERS;
+    var reviews=(d.reviews&&d.reviews.length>=3)?d.reviews:PLACEHOLDERS;
     document.getElementById('reviews-grid').innerHTML=reviews.map(renderCard).join('');
   }).catch(function(){
     document.getElementById('reviews-grid').innerHTML=PLACEHOLDERS.map(renderCard).join('');
