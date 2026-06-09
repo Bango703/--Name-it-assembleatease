@@ -242,10 +242,10 @@
         <span class="price-value" id="bPrice"></span>
       </div>
 
-      <!-- Late cancel warning (shown if applicable) -->
+      <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
-        <strong>⚠️ Late-cancellation fee applies</strong>
-        Your appointment is within 24 hours. Cancelling now will charge a 50% cancellation fee of <span id="cancelFeeAmt"></span>.
+        <strong>⚠️ Cancellation fee applies</strong>
+        <span id="cancelFeeMsg"></span>
       </div>
 
       <!-- Actions -->
@@ -290,6 +290,7 @@
       <div class="cancel-modal-result-icon" id="cancelResultIcon"></div>
       <div class="cancel-modal-result-title" id="cancelResultTitle"></div>
       <p class="cancel-modal-result-desc" id="cancelResultDesc"></p>
+      <button class="btn btn-cyan" style="width:100%;justify-content:center;margin-top:0.5rem" onclick="closeCancelModal()">Done</button>
     </div>
   </div>
 </div>
@@ -320,6 +321,7 @@
       <div class="cancel-modal-result-icon" id="rescheduleResultIcon"></div>
       <div class="cancel-modal-result-title" id="rescheduleResultTitle"></div>
       <p class="cancel-modal-result-desc" id="rescheduleResultDesc"></p>
+      <button class="btn btn-cyan" style="width:100%;justify-content:center;margin-top:0.5rem" onclick="closeRescheduleModal()">Done</button>
     </div>
   </div>
 </div>
@@ -497,11 +499,14 @@ function renderBooking(b) {
     }
   } else {
     cancelBtn.style.display = '';
-    // Check 24hr window
+    // Fee applies if within 24h OR the booking was rescheduled (free cancel forfeited).
     const withinWindow = isWithin24hrs(b.date, b.time);
-    if (withinWindow && b.total_price) {
+    const feeApplies = (withinWindow || b.was_rescheduled) && b.total_price;
+    if (feeApplies) {
       const fee = '$' + ((b.total_price * 0.5) / 100).toFixed(2);
-      document.getElementById('cancelFeeAmt').textContent = fee;
+      document.getElementById('cancelFeeMsg').textContent = b.was_rescheduled && !withinWindow
+        ? 'Because this booking was rescheduled, cancelling now will charge a 50% fee of ' + fee + '.'
+        : 'Your appointment is within 24 hours. Cancelling now will charge a 50% fee of ' + fee + '.';
       feeWarn.style.display = 'block';
     } else {
       feeWarn.style.display = 'none';
@@ -521,9 +526,12 @@ function openCancelModal() {
   const feeEl  = document.getElementById('cancelModalFee');
   const descEl = document.getElementById('cancelModalDesc');
 
-  if (withinWindow && currentBooking.total_price) {
+  const feeApplies = (withinWindow || currentBooking.was_rescheduled) && currentBooking.total_price;
+  if (feeApplies) {
     const fee = '$' + ((currentBooking.total_price * 0.5) / 100).toFixed(2);
-    feeEl.innerHTML = '<strong>⚠️ Late-cancellation fee: ' + fee + '</strong> Since your appointment is within 24 hours, cancelling will charge 50% of your booking total.';
+    feeEl.innerHTML = currentBooking.was_rescheduled && !withinWindow
+      ? '<strong>⚠️ Cancellation fee: ' + fee + '</strong> Because this booking was rescheduled, it is no longer eligible for free cancellation — cancelling will charge 50% of your booking total.'
+      : '<strong>⚠️ Late-cancellation fee: ' + fee + '</strong> Since your appointment is within 24 hours, cancelling will charge 50% of your booking total.';
     feeEl.style.display = 'block';
     descEl.textContent  = 'Are you sure you want to cancel This action cannot be undone.';
   } else {
@@ -610,11 +618,12 @@ async function confirmReschedule() {
       + (typeof data.reschedulesRemaining === 'number' && data.reschedulesRemaining === 0 ? ' This was your final self-service reschedule.' : '');
     document.getElementById('rescheduleModalResult').style.display = 'block';
 
-    // Update the visible card
+    // Update local state: new date/time + fee-lock now in effect, then re-render
+    // so the card's cancel affordances immediately reflect the forfeited free cancel.
     currentBooking.date = date;
     currentBooking.time = time;
-    document.getElementById('bDate').textContent = formatDate(date);
-    document.getElementById('bTime').textContent = time;
+    currentBooking.was_rescheduled = true;
+    renderBooking(currentBooking);
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';

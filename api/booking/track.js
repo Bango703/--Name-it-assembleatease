@@ -64,6 +64,18 @@ export default async function handler(req, res) {
 
   const customerStatus = getCustomerLabel(booking);
 
+  // Has this booking been rescheduled? If so, free cancellation is forfeited —
+  // the cancel UI must warn about the 50% fee regardless of the 24h window.
+  let wasRescheduled = false;
+  try {
+    const { count } = await sb
+      .from('activity_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('booking_id', booking.id)
+      .eq('event_type', 'rescheduled');
+    wasRescheduled = (count || 0) > 0;
+  } catch (e) { /* non-fatal: default to false */ }
+
   // Return only safe/public fields — never expose Stripe IDs, phone, raw payment data
   const safe = {
     id: booking.id,
@@ -85,6 +97,7 @@ export default async function handler(req, res) {
     completed_at: booking.completed_at || null,
     cancel_reason: booking.cancel_reason || null,
     cancellation_fee: booking.cancellation_fee || null,
+    was_rescheduled: wasRescheduled,
     // Pro trust signal — first name only (never full name/phone to customer),
     // shown once the Pro has accepted the job.
     pro_first_name: (booking.assembler_accepted_at && booking.assembler_name)
