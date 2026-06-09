@@ -54,6 +54,20 @@ export default async function handler(req, res) {
     withinWindow = hoursAway >= 0 && hoursAway < 24;
   } catch (e) { console.error('Date parse error:', e); }
 
+  // A rescheduled booking forfeits free cancellation — the 50% fee applies on any
+  // later cancellation regardless of the 24h window (disclosed at reschedule time).
+  let wasRescheduled = false;
+  try {
+    const { count } = await sb
+      .from('activity_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('booking_id', booking.id)
+      .eq('event_type', 'rescheduled');
+    wasRescheduled = (count || 0) > 0;
+  } catch (e) { console.warn('Reschedule-lock check failed (continuing):', e.message); }
+
+  const feeApplies = withinWindow || wasRescheduled;
+
   // Stripe: release hold or charge cancellation fee
   let feeCaptured = 0;
   const stripeMutationRequired = booking.payment_status === 'authorized';
@@ -67,7 +81,7 @@ export default async function handler(req, res) {
   if (stripeMutationRequired) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      if (withinWindow && (booking.total_price || 0) > 0) {
+      if (feeApplies && (booking.total_price || 0) > 0) {
         const feeCents = Math.round((booking.total_price || 0) * 0.5);
         const idempotencyKey = `guest-cancel-fee-${booking.id}-${feeCents}`;
         await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
@@ -79,7 +93,7 @@ export default async function handler(req, res) {
           paymentIntentId: booking.stripe_payment_intent_id,
           idempotencyKey,
           status: 'processed',
-          metadata: { reason: 'guest_cancel_fee', feeCaptured },
+          metadata: { reason: wasRescheduled && !withinWindow ? 'guest_cancel_fee_rescheduled' : 'guest_cancel_fee', feeCaptured, withinWindow, wasRescheduled },
         });
       } else {
         const idempotencyKey = `guest-cancel-release-${booking.id}`;
@@ -145,9 +159,12 @@ export default async function handler(req, res) {
 
   // Email customer
   try {
+    const feeReasonText = (wasRescheduled && !withinWindow)
+      ? 'was charged because this booking had been rescheduled (rescheduled bookings are not eligible for free cancellation)'
+      : 'was charged since this cancellation was within 24 hours of your appointment';
     const feeHtml = feeCaptured > 0
       ? `<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">
-           A late-cancellation fee of <strong>$${(feeCaptured / 100).toFixed(2)}</strong> (50% of your booking total) was charged since this cancellation was within 24 hours of your appointment.
+           A cancellation fee of <strong>$${(feeCaptured / 100).toFixed(2)}</strong> (50% of your booking total) ${feeReasonText}.
          </p>`
       : `<p style="margin:0 0 16px;font-size:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;color:#166534">
            No charge &mdash; your card hold has been fully released.
