@@ -250,6 +250,10 @@
 
       <!-- Actions -->
       <div class="booking-card-actions" id="bookingActions">
+        <button class="btn-portal" id="btnRescheduleOpen" onclick="openRescheduleModal()" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Reschedule
+        </button>
         <button class="btn-cancel-booking" id="btnCancelOpen" onclick="openCancelModal()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Cancel This Booking
@@ -286,6 +290,36 @@
       <div class="cancel-modal-result-icon" id="cancelResultIcon"></div>
       <div class="cancel-modal-result-title" id="cancelResultTitle"></div>
       <p class="cancel-modal-result-desc" id="cancelResultDesc"></p>
+    </div>
+  </div>
+</div>
+
+<!-- RESCHEDULE MODAL -->
+<div class="cancel-modal-overlay" id="rescheduleModal">
+  <div class="cancel-modal">
+    <div id="rescheduleModalContent">
+      <h2 class="cancel-modal-title">Reschedule your appointment</h2>
+      <div class="cancel-modal-fee" style="display:block;background:#f0f9ff;border-color:#bae6fd;color:#0c4a6e">
+        Rescheduling is free (up to 2 times). Note: once you reschedule, this booking is no longer eligible for free cancellation &mdash; a 50% fee applies to any cancellation.
+      </div>
+      <div style="margin-bottom:1rem">
+        <label for="rsDate" style="display:block;font-size:0.75rem;font-weight:700;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">New date</label>
+        <input type="date" id="rsDate" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);outline:none"/>
+      </div>
+      <div style="margin-bottom:1.25rem">
+        <label for="rsTime" style="display:block;font-size:0.75rem;font-weight:700;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">New time</label>
+        <select id="rsTime" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);outline:none;background:#fff"></select>
+      </div>
+      <div id="rsError" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:0.6rem 0.9rem;font-size:0.83rem;margin-bottom:1rem"></div>
+      <div class="cancel-modal-actions">
+        <button class="btn-keep-booking" onclick="closeRescheduleModal()">Never Mind</button>
+        <button class="btn-confirm-cancel" id="btnConfirmReschedule" style="background:var(--cyan-dark)" onclick="confirmReschedule()">Confirm New Time</button>
+      </div>
+    </div>
+    <div class="cancel-modal-result" id="rescheduleModalResult">
+      <div class="cancel-modal-result-icon" id="rescheduleResultIcon"></div>
+      <div class="cancel-modal-result-title" id="rescheduleResultTitle"></div>
+      <p class="cancel-modal-result-desc" id="rescheduleResultDesc"></p>
     </div>
   </div>
 </div>
@@ -449,6 +483,9 @@ function renderBooking(b) {
   const ACTIVE_PIPELINE = ['en_route', 'arrived', 'in_progress'];
   const cancelBtn = document.getElementById('btnCancelOpen');
   const feeWarn  = document.getElementById('cancelFeeWarn');
+  const reschedBtn = document.getElementById('btnRescheduleOpen');
+  // Reschedule is self-service only while pending/confirmed (matches server rules)
+  if (reschedBtn) reschedBtn.style.display = ['pending', 'confirmed'].includes(b.status) ? '' : 'none';
 
   if (['cancelled', 'completed', 'declined'].includes(b.status) || ACTIVE_PIPELINE.includes(b.status)) {
     cancelBtn.style.display = 'none';
@@ -501,6 +538,88 @@ function openCancelModal() {
 
 function closeCancelModal() {
   document.getElementById('cancelModal').classList.remove('open');
+}
+
+// ── Reschedule modal ───────────────────────────────────────
+var RS_TIME_SLOTS = ['7:00 AM – 9:00 AM','9:00 AM – 11:00 AM','11:00 AM – 1:00 PM','1:00 PM – 3:00 PM','3:00 PM – 5:00 PM','5:00 PM – 7:00 PM'];
+
+function openRescheduleModal() {
+  if (!currentBooking) return;
+  var dateEl = document.getElementById('rsDate');
+  var timeEl = document.getElementById('rsTime');
+  var errEl  = document.getElementById('rsError');
+
+  // Date bounds: today .. today + 6 days (matches server booking window)
+  var today = new Date();
+  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+  var fmt = function(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+  var max = new Date(today.getTime() + 6 * 86400000);
+  dateEl.min = fmt(today);
+  dateEl.max = fmt(max);
+  dateEl.value = currentBooking.date && currentBooking.date >= fmt(today) ? currentBooking.date : fmt(today);
+
+  timeEl.innerHTML = RS_TIME_SLOTS.map(function(s){
+    return '<option value="' + s + '"' + (currentBooking.time === s ? ' selected' : '') + '>' + s + '</option>';
+  }).join('');
+
+  errEl.style.display = 'none';
+  document.getElementById('rescheduleModalContent').style.display = '';
+  document.getElementById('rescheduleModalResult').style.display  = 'none';
+  var btn = document.getElementById('btnConfirmReschedule');
+  btn.disabled = false; btn.textContent = 'Confirm New Time';
+  document.getElementById('rescheduleModal').classList.add('open');
+}
+
+function closeRescheduleModal() {
+  document.getElementById('rescheduleModal').classList.remove('open');
+}
+
+async function confirmReschedule() {
+  var btn = document.getElementById('btnConfirmReschedule');
+  var errEl = document.getElementById('rsError');
+  var date = document.getElementById('rsDate').value;
+  var time = document.getElementById('rsTime').value;
+  errEl.style.display = 'none';
+
+  if (!date || !time) {
+    errEl.textContent = 'Please choose a new date and time.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (date === currentBooking.date && time === currentBooking.time) {
+    errEl.textContent = 'That is already your scheduled date and time.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Rescheduling…';
+  try {
+    var res = await fetch('/api/booking/reschedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref, date: date, time: time }),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Reschedule failed');
+
+    document.getElementById('rescheduleModalContent').style.display = 'none';
+    document.getElementById('rescheduleResultIcon').textContent  = '✅';
+    document.getElementById('rescheduleResultTitle').textContent = 'Appointment rescheduled';
+    document.getElementById('rescheduleResultDesc').textContent  =
+      'Your appointment is now ' + date + ' at ' + time + '. A confirmation email is on its way.'
+      + (typeof data.reschedulesRemaining === 'number' && data.reschedulesRemaining === 0 ? ' This was your final self-service reschedule.' : '');
+    document.getElementById('rescheduleModalResult').style.display = 'block';
+
+    // Update the visible card
+    currentBooking.date = date;
+    currentBooking.time = time;
+    document.getElementById('bDate').textContent = formatDate(date);
+    document.getElementById('bTime').textContent = time;
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Confirm New Time';
+  }
 }
 
 async function confirmCancel() {
