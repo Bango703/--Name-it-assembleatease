@@ -214,7 +214,7 @@ export function ownerEmail() {
 
 const OWNER_AUTH_WINDOW_MS = 10 * 60 * 1000;
 const OWNER_AUTH_LOCK_MS = 15 * 60 * 1000;
-const OWNER_AUTH_MAX_FAILS = 8;
+const OWNER_AUTH_MAX_FAILS = 5;
 const ownerAuthAttempts = new Map();
 
 function getClientIp(req) {
@@ -225,9 +225,10 @@ function getClientIp(req) {
 }
 
 function getOwnerAuthKey(req) {
-  const ip = getClientIp(req);
-  const ua = String(req?.headers?.['user-agent'] || '').slice(0, 180);
-  return `${ip}|${ua}`;
+  // Key brute-force lockout by IP ONLY. Including the User-Agent let an attacker
+  // reset their attempt budget simply by spoofing the UA header on each request,
+  // which defeated the lockout. IP-only is the correct, standard choice.
+  return getClientIp(req);
 }
 
 function ownerAuthLocked(req) {
