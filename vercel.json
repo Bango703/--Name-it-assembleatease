@@ -16,6 +16,16 @@
       "source": "/assembler/earn",
       "destination": "/assembler/apply",
       "permanent": true
+    },
+    {
+      "source": "/blog/junk-removal-cost-austin",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/home-repairs-diy-vs-hire-austin",
+      "destination": "/",
+      "permanent": true
     }
   ],
   "crons": [
