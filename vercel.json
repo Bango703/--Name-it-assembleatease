@@ -2,9 +2,21 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/repairs",        "destination": "/",                  "permanent": true },
-    { "source": "/junk",           "destination": "/",                  "permanent": true },
-    { "source": "/assembler/earn", "destination": "/assembler/apply",   "permanent": true }
+    {
+      "source": "/repairs",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/junk",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/assembler/earn",
+      "destination": "/assembler/apply",
+      "permanent": true
+    }
   ],
   "crons": [
     {
@@ -22,6 +34,10 @@
     {
       "path": "/api/cron/stale-booking",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/no-show-check",
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/tier-check",
