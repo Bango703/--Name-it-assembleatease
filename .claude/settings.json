@@ -60,7 +60,8 @@
       "Bash(dir api\\\\booking /b)",
       "Bash(git checkout *)",
       "Bash(python3 -u -c ' *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python scripts/seo_new_pages.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\tgbiz\\.claude\\projects\\c--Users-tgbiz-Handyman-marketplace\\memory",
