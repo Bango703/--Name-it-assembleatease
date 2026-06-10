@@ -50,6 +50,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/ops-alert",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/tier-check",
       "schedule": "0 7 * * *"
     },
