@@ -4,9 +4,14 @@ import { getSupabase } from './_supabase.js';
 let _configured = false;
 function configure() {
   if (_configured) return;
-  const pub  = process.env.VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  const mail = process.env.VAPID_EMAIL || 'mailto:service@assembleatease.com';
+  // Trim env values defensively. VAPID keys/subject pasted into a hosting
+  // dashboard often carry a trailing newline or stray whitespace. web-push's
+  // setVapidDetails then throws ("public key should be 65 bytes when decoded"),
+  // which is caught by every caller and makes push SILENTLY do nothing — no
+  // delivery, no log row. Trimming makes configuration robust to that.
+  const pub  = (process.env.VAPID_PUBLIC_KEY  || '').trim();
+  const priv = (process.env.VAPID_PRIVATE_KEY || '').trim();
+  const mail = (process.env.VAPID_EMAIL || 'mailto:service@assembleatease.com').trim();
   if (!pub || !priv) throw new Error('VAPID keys not configured');
   webpush.setVapidDetails(mail, pub, priv);
   _configured = true;
