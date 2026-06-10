@@ -1210,6 +1210,7 @@
     // Validate
     var hasErr = false;
     if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
+    else if (fullName.split(/\s+/).filter(Boolean).length < 2) { fieldError('full-name', 'Enter your first and last name'); hasErr = true; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
     if (!phone || !/^\+?[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
     if (!city) { fieldError('city', 'Required'); hasErr = true; }

@@ -35,6 +35,7 @@ export default async function handler(req, res) {
 
   // ---- Validation ----
   if (!fullName?.trim()) return res.status(400).json({ error: 'Full name is required' });
+  if (fullName.trim().split(/\s+/).filter(Boolean).length < 2) return res.status(400).json({ error: 'Please enter your first and last name.' });
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
   if (!phone?.trim() || !/^\+?[\d\s().-]{7,}$/.test(phone.trim())) return res.status(400).json({ error: 'Valid phone number is required' });
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });

@@ -21,6 +21,7 @@ export default async function handler(req, res) {
   const { fullName, email, phone, city, zip, services, hasTools, hasTransport, yearsExperience, bio } = req.body;
 
   if (!fullName?.trim()) return res.status(400).json({ error: 'Full name is required' });
+  if (fullName.trim().split(/\s+/).filter(Boolean).length < 2) return res.status(400).json({ error: 'Please enter the Easer\'s first and last name.' });
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
 
