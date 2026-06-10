@@ -419,20 +419,19 @@ async function sendB2B() {
   btn.disabled = true;
   btn.textContent = 'Sending...';
   try {
-    var resp = await fetch('/api/contact', {
+    var resp = await fetch('/api/business-inquiry', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        name: name + ' (' + company + ')',
+        name: name,
+        company: company,
         email: email,
-        subject: '[B2B] ' + type + ' | ' + company,
-        message: 'Company: ' + company
-          + '\nPhone: ' + phone
-          + '\nLocation: ' + jobLocation
-          + '\nType: ' + type
-          + (timeline  '\nTimeline: ' + timeline : '')
-          + (frequency  '\nFrequency: ' + frequency : '')
-          + '\n\n' + details
+        phone: phone,
+        location: jobLocation,
+        timeline: timeline,
+        type: type,
+        frequency: frequency,
+        details: details
       })
     });
     if (!resp.ok) throw new Error('Server error');
