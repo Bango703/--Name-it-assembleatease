@@ -79,9 +79,17 @@ export async function sendPushToUser(userId, payload, meta = {}) {
   // response flush, so non-awaited inserts are abandoned and never reach the DB.
   // Supabase v2 returns { error } instead of throwing — check explicitly to surface failures.
   if (logRows.length) {
-    const { error: logErr } = await sb.from('notification_log').insert(logRows)
-      .catch(err => ({ error: err }));
-    if (logErr) console.error('[push] notification_log insert failed:', logErr.message || logErr, logErr.code || '');
+    // NOTE: a Supabase PostgrestBuilder is thenable but has NO .catch() method —
+    // chaining .catch() here threw "insert(...).catch is not a function" on EVERY
+    // push, rejecting sendPushToUser after the send. Callers swallow it with
+    // .catch(), so delivery looked silent and nothing was ever logged. Await
+    // normally ({ error } is returned, not thrown) and guard against real throws.
+    try {
+      const { error: logErr } = await sb.from('notification_log').insert(logRows);
+      if (logErr) console.error('[push] notification_log insert failed:', logErr.message || logErr, logErr.code || '');
+    } catch (e) {
+      console.error('[push] notification_log insert threw:', e && (e.message || String(e)));
+    }
   }
   if (dead.length) {
     await sb.from('push_subscriptions').delete().in('endpoint', dead);
