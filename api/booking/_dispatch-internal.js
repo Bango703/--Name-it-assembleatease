@@ -2,7 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, getPlatformFeePct } from '../_source-of-truth.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -245,9 +245,13 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
     const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
     const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
 
+    // Show net pay in the push too, so a Pro accepting from their phone isn't blind.
+    const pushPay = booking.total_price > 0
+      ? '$' + Math.round((booking.total_price / 100) * (1 - getPlatformFeePct(easer.has_membership) / 100)) + ' pay · '
+      : '';
     sendPushToUser(easer.id, {
       title: 'New Job Available!',
-      body:  `${booking.service || 'Service'} · ${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Accept in ${OFFER_TTL_MIN} min`,
+      body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Accept in ${OFFER_TTL_MIN} min`,
       url:   acceptUrl,
       jobId: bookingId,
       urgent: true,
@@ -321,8 +325,11 @@ function extractZip(address) {
 // ── Offer email ───────────────────────────────────────────────────────────────
 function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt) {
   const firstName   = (easer.full_name || 'there').split(' ')[0];
+  // Net pay = booking total minus the platform fee for this Easer's membership tier.
+  // Use the canonical fee source so the offer matches the actual completion payout.
+  const feePct = getPlatformFeePct(easer.has_membership);
   const payEstimate = booking.total_price > 0
-    ? '$' + Math.round((booking.total_price / 100) * (easer.has_membership ? 0.82 : 0.75)).toLocaleString() + '–$' + Math.round((booking.total_price / 100) * (easer.has_membership ? 0.85 : 0.78)).toLocaleString()
+    ? '$' + Math.round((booking.total_price / 100) * (1 - feePct / 100)).toLocaleString()
     : 'Custom quote — price set by owner after review';
   const expiryMin   = Math.round((new Date(expiresAt) - Date.now()) / 60000);
   const tierLabel   = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[easer.tier] || easer.tier;

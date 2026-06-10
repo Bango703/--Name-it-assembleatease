@@ -5,6 +5,7 @@ import {
   DISPATCH_OFFER_STATUS,
   ACTIVE_BOOKING_STATUSES,
   VISIBLE_ASSIGNMENT_STATUSES,
+  getPlatformFeePct,
 } from '../_source-of-truth.js';
 
 /**
@@ -50,7 +51,9 @@ export default async function handler(req, res) {
     pushWarning('profile_lookup_partial_failure', 'Membership status could not be verified for this refresh.');
   }
   const easerIsMember = easerProfile?.has_membership === true;
-  const feePct = easerIsMember ? 18 : 25;
+  // Canonical fee — must match the completion payout (assembler-complete.js) so the
+  // dashboard estimate never overstates what the Pro will actually receive.
+  const feePct = getPlatformFeePct(easerIsMember);
 
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
