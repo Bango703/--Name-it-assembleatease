@@ -286,122 +286,15 @@ export default async function handler(req, res) {
     });
   }
 
-  // Optional Stripe Connect payout path. If disabled or not ready, booking remains pending payout.
-  if (isStripeConnectEnabled() && assemblerDue > 0 && process.env.STRIPE_SECRET_KEY) {
-    const connectState = await getAssemblerConnectAccount(sb, user.id);
-    if (!connectState.ok) {
-      connectPayout = {
-        status: 'pending_manual',
-        reason: connectState.reason,
-      };
-    } else {
-      // Shared key with owner complete.js — Stripe rejects duplicate if both race.
-      const transferIdempotencyKey = `transfer-booking-${booking.id}`;
-      try {
-        await writeFinancialAudit(sb, {
-          eventType: 'transfer_attempt',
-          eventSource: 'booking_complete_assembler',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey: transferIdempotencyKey,
-          status: 'processing',
-          metadata: {
-            ref: booking.ref,
-            destinationAccount: connectState.accountId,
-            amount: assemblerDue,
-          },
-        });
-
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-        const transfer = await stripe.transfers.create({
-          amount: assemblerDue,
-          currency: 'usd',
-          destination: connectState.accountId,
-          transfer_group: `booking_${booking.id}`,
-          metadata: {
-            bookingId: booking.id,
-            bookingRef: booking.ref,
-            type: 'assembler_payout',
-          },
-        }, {
-          idempotencyKey: transferIdempotencyKey,
-        });
-
-        const transferNotes = `Stripe Connect transfer ${transfer.id}`;
-        const { error: payoutErr } = await sb.rpc('record_booking_payout', {
-          p_booking_id: booking.id,
-          p_payout_amount_cents: assemblerDue,
-          p_notes: transferNotes,
-          p_recorded_by: 'system_connect',
-          p_payout_method: 'stripe_connect',
-        });
-
-        if (payoutErr) {
-          console.error('Connect payout RPC error:', payoutErr);
-          await sb.from('bookings').update({
-            payout_status: 'paid',
-            payout_amount: assemblerDue,
-            paid_out_at: new Date().toISOString(),
-            payout_notes: transferNotes,
-          }).eq('id', booking.id);
-        }
-
-        await sb.from('bookings').update({
-          stripe_transfer_id: transfer.id,
-          stripe_destination_account_id: connectState.accountId,
-        }).eq('id', booking.id);
-
-        await writeFinancialAudit(sb, {
-          eventType: 'transfer_attempt',
-          eventSource: 'booking_complete_assembler',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey: transferIdempotencyKey,
-          status: 'processed',
-          metadata: {
-            ref: booking.ref,
-            destinationAccount: connectState.accountId,
-            transferId: transfer.id,
-            amount: assemblerDue,
-          },
-        });
-
-        connectPayout = {
-          status: 'paid',
-          transferId: transfer.id,
-          destinationAccount: connectState.accountId,
-          amount: assemblerDue,
-        };
-      } catch (connectErr) {
-        console.error('Stripe Connect transfer error:', connectErr);
-        await writeFinancialAudit(sb, {
-          eventType: 'transfer_attempt',
-          eventSource: 'booking_complete_assembler',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey: transferIdempotencyKey,
-          status: 'failed',
-          metadata: {
-            ref: booking.ref,
-            destinationAccount: connectState.accountId,
-            amount: assemblerDue,
-          },
-          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
-        });
-        connectPayout = {
-          status: 'pending_manual',
-          reason: 'transfer-failed',
-          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
-        };
-        // Alert owner — manual payout action required
-        sendEmail({
-          from: 'AssembleAtEase <booking@assembleatease.com>',
-          to: ownerEmail(),
-          subject: `ACTION REQUIRED — Connect transfer failed — ${booking.ref}`,
-          html: `<p>The Stripe Connect transfer for booking <strong>${esc(booking.ref)}</strong> failed and requires manual payout.</p><p><strong>Easer:</strong> ${esc(connectState.accountId)}<br/><strong>Amount:</strong> $${(assemblerDue / 100).toFixed(2)}<br/><strong>Error:</strong> ${esc(connectErr?.message || 'Unknown error')}</p><p>Check the financial audit log and process manually via the owner dashboard.</p>`,
-        }).catch(e => console.error('Connect failure owner alert email error:', e));
-      }
-    }
+  // Payout is HELD, not sent now. A 'release-payouts' cron transfers it via Stripe
+  // Connect ~48h after completion. That hold (a) gives a dispute/verification window
+  // and (b) lets the just-captured funds settle from pending -> available, since
+  // Stripe transfers require AVAILABLE balance (an immediate transfer fails otherwise).
+  // The booking is already payout_status='pending' (set above); the cron does the rest.
+  if (isStripeConnectEnabled() && assemblerDue > 0) {
+    connectPayout = { status: 'scheduled', note: 'Releases ~48h after completion (dispute window + funds settling).' };
+  } else if (assemblerDue > 0) {
+    connectPayout = { status: 'pending_manual', reason: 'connect-disabled' };
   }
 
   // ── Increment completed_jobs + total_earned atomically ──────────────────────
@@ -494,7 +387,10 @@ export default async function handler(req, res) {
         <tr style="border-top:1px solid #bbf7d0"><td style="padding:8px 0 4px;font-weight:700;color:#065f46">Your payout</td><td style="padding:8px 0 4px;text-align:right;font-weight:700;color:#065f46;font-size:18px">$${(assemblerDue/100).toFixed(2)}</td></tr>
       </table>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Payouts are processed on our regular schedule. Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a> with any questions.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:14px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
+      Your payout releases to your bank <strong>about 48 hours after completion</strong>, once the job is confirmed and clear of any dispute. You'll see it move from <em>Pending</em> to <em>Paid</em> on your Payouts page.
+    </td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a>.</p>
   </td></tr></table>
 </div></body></html>`,
       });

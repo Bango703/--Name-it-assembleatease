@@ -80,6 +80,10 @@
     {
       "path": "/api/cron/followup",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/release-payouts",
+      "schedule": "0 * * * *"
     }
   ],
   "headers": [
