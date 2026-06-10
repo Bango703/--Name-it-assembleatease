@@ -76,6 +76,24 @@ export default async function handler(req, res) {
     wasRescheduled = (count || 0) > 0;
   } catch (e) { /* non-fatal: default to false */ }
 
+  // Pro trust details — photo, rating, jobs done — once a Pro has accepted.
+  // Builds confidence before a stranger arrives. First name + these only; no PII.
+  let proPhoto = null, proRating = null, proJobs = null;
+  if (booking.assembler_accepted_at && booking.assembler_id) {
+    try {
+      const { data: pro } = await sb
+        .from('profiles')
+        .select('profile_photo, rating, completed_jobs')
+        .eq('id', booking.assembler_id)
+        .maybeSingle();
+      if (pro) {
+        proPhoto  = pro.profile_photo || null;
+        proRating = (pro.rating != null && pro.rating > 0) ? Number(pro.rating) : null;
+        proJobs   = (pro.completed_jobs != null) ? Number(pro.completed_jobs) : null;
+      }
+    } catch (e) { /* non-fatal */ }
+  }
+
   // Return only safe/public fields — never expose Stripe IDs, phone, raw payment data
   const safe = {
     id: booking.id,
@@ -104,6 +122,9 @@ export default async function handler(req, res) {
       ? booking.assembler_name.split(' ')[0]
       : null,
     pro_verified: booking.identity_verified === true,
+    pro_photo: proPhoto,
+    pro_rating: proRating,
+    pro_jobs: proJobs,
   };
 
   return res.status(200).json({ booking: safe });

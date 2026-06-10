@@ -417,6 +417,27 @@ export default async function handler(req, res) {
   try {
     const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
     const amountDisplay = finalAmount > 0 ? `$${(finalAmount / 100).toFixed(2)}` : null;
+
+    // Completion photo — visual proof of the finished work (signed URL, 30-day expiry).
+    let photoBlock = '';
+    try {
+      const { data: photoRows } = await sb
+        .from('booking_evidence')
+        .select('storage_path, evidence_type, created_at')
+        .eq('booking_id', booking.id)
+        .order('created_at', { ascending: false });
+      const path = (photoRows || []).find(r => r.evidence_type === 'completion_photo')?.storage_path
+        || (photoRows || [])[0]?.storage_path;
+      if (path) {
+        const { data: signed } = await sb.storage.from('booking-evidence').createSignedUrl(path, 60 * 60 * 24 * 30);
+        if (signed?.signedUrl) {
+          photoBlock = `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr><td>
+            <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#374151">Here's a photo of the finished work:</p>
+            <img src="${signed.signedUrl}" alt="Completed ${esc(booking.service)}" style="width:100%;max-width:520px;border-radius:10px;border:1px solid #e4e4e7;display:block"/>
+          </td></tr></table>`;
+        }
+      }
+    } catch (photoErr) { console.error('Completion photo signed-url error:', photoErr.message); }
     const receiptBlock = amountDisplay ? `
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
         <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment Receipt</p>
@@ -441,6 +462,7 @@ export default async function handler(req, res) {
         headline: `Your job is complete, ${esc((booking.customer_name || '').split(' ')[0])}.`,
         bodyHtml: `
           <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase!</p>
+          ${photoBlock}
           ${receiptBlock}
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
             <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
