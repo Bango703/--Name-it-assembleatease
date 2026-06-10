@@ -506,14 +506,14 @@
               <!-- Messages tab -->
               <div id="tab-messages">
                 <div class="msg-thread" id="msg-thread"></div>
-                <div id="msg-target-row" style="display:none;margin-bottom:0.4rem;font-size:0.78rem;color:var(--muted)">
-                  Send to:
-                  <button id="msg-target-customer" onclick="setMsgTarget('customer')" style="margin-left:6px;padding:2px 10px;border-radius:99px;border:1px solid var(--teal);background:var(--teal);color:#fff;font-size:0.75rem;cursor:pointer">Customer</button>
-                  <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="margin-left:4px;padding:2px 10px;border-radius:99px;border:1px solid var(--teal);background:none;color:var(--teal);font-size:0.75rem;cursor:pointer">Easer</button>
+                <div id="msg-target-row" style="display:none;align-items:center;gap:8px;margin-bottom:0.5rem;font-size:0.8rem">
+                  <span style="color:var(--muted)">Send to:</span>
+                  <button id="msg-target-customer" onclick="setMsgTarget('customer')" style="padding:3px 12px;border-radius:99px;border:1.5px solid var(--teal);background:var(--teal);color:#fff;font-size:0.76rem;font-weight:600;cursor:pointer">Customer</button>
+                  <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="padding:3px 12px;border-radius:99px;border:1.5px solid #7c3aed;background:none;color:#7c3aed;font-size:0.76rem;font-weight:600;cursor:pointer">Easer</button>
                 </div>
                 <div class="msg-compose">
-                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="1"></textarea>
-                  <button class="btn btn-teal" id="msg-send">Send</button>
+                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="1" style="border-color:var(--teal)"></textarea>
+                  <button class="btn" id="msg-send" style="background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;white-space:nowrap">Send to Customer</button>
                 </div>
               </div>
 
@@ -2789,11 +2789,25 @@ function intelQuick(msg) {
 
   function setMsgTarget(t) {
     _msgTarget = t;
-    document.getElementById('msg-target-customer').style.background = t === 'customer' ? 'var(--teal)' : 'none';
-    document.getElementById('msg-target-customer').style.color = t === 'customer' ? '#fff' : 'var(--teal)';
-    document.getElementById('msg-target-assembler').style.background = t === 'assembler' ? 'var(--teal)' : 'none';
-    document.getElementById('msg-target-assembler').style.color = t === 'assembler' ? '#fff' : 'var(--teal)';
-    document.getElementById('msg-input').placeholder = t === 'assembler' ? 'Message Easer...' : 'Message customer...';
+    // Distinct color per recipient so the two are never confused at a glance:
+    // Customer = teal (brand), Easer = violet. The Send button names the recipient
+    // and matches the color, so you can't misfire to the wrong person on autopilot.
+    var EASER_COLOR = '#7c3aed';
+    var color = t === 'assembler' ? EASER_COLOR : 'var(--teal)';
+    var cBtn = document.getElementById('msg-target-customer');
+    var aBtn = document.getElementById('msg-target-assembler');
+    cBtn.style.background = t === 'customer' ? 'var(--teal)' : 'none';
+    cBtn.style.color      = t === 'customer' ? '#fff' : 'var(--teal)';
+    aBtn.style.background = t === 'assembler' ? EASER_COLOR : 'none';
+    aBtn.style.color      = t === 'assembler' ? '#fff' : EASER_COLOR;
+    var input = document.getElementById('msg-input');
+    input.placeholder = t === 'assembler' ? 'Message Easer...' : 'Message customer...';
+    input.style.borderColor = color;
+    var send = document.getElementById('msg-send');
+    send.textContent = t === 'assembler' ? 'Send to Easer' : 'Send to Customer';
+    send.style.background = color;
+    send.style.borderColor = color;
+    send.style.color = '#fff';
   }
   window.setMsgTarget = setMsgTarget;
 
