@@ -197,8 +197,8 @@
       <div id="payout-info-amount" style="font-size:1.1rem;font-weight:700;color:#059669"></div>
       <div id="payout-info-note" style="font-size:0.72rem;color:#047857;margin-top:0.2rem;line-height:1.5"></div>
     </div>
-    <div style="margin-top:0.5rem;border-top:1px solid var(--pro-border)">
-      <button type="button" id="support-toggle" onclick="(function(){var b=document.getElementById('support-body');var c=document.getElementById('support-chevron');var open=b.style.display!=='none';b.style.display=open'none':'block';c.style.transform=open'rotate(0deg)':'rotate(180deg)';})()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
+    <div id="support-section" style="margin-top:0.5rem;border-top:1px solid var(--pro-border)">
+      <button type="button" id="support-toggle" onclick="(function(){var b=document.getElementById('support-body');var c=document.getElementById('support-chevron');var open=b.style.display!=='none';b.style.display=open?'none':'block';c.style.transform=open?'rotate(0deg)':'rotate(180deg)';})()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
         <div style="text-align:left">
           <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
           <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
@@ -1104,6 +1104,77 @@
       if (pipeline.children.length) {
         const completeSection = document.getElementById('complete-section');
         if (completeSection) completeSection.parentNode.insertBefore(pipeline, completeSection);
+      }
+    }
+
+    // Drop-job section — only for an accepted job that hasn't started yet.
+    // Within 15 min of acceptance the Pro can self-drop; after that it's support-only.
+    const existingDrop = document.getElementById('drop-section');
+    if (existingDrop) existingDrop.remove();
+    if (accepted && b.status === 'confirmed') {
+      const acceptedAt = b.assembler_accepted_at ? new Date(b.assembler_accepted_at).getTime() : null;
+      const minsSince  = acceptedAt ? (Date.now() - acceptedAt) / 60000 : 999;
+      const canDrop    = !!acceptedAt && minsSince <= 15;
+      const minsLeft   = Math.max(0, Math.ceil(15 - minsSince));
+      const dropEl = document.createElement('div');
+      dropEl.id = 'drop-section';
+      dropEl.style.cssText = 'margin-top:0.75rem';
+      if (canDrop) {
+        dropEl.innerHTML =
+          '<button type="button" id="drop-job-btn" class="btn" style="width:100%;min-height:44px;border-radius:12px;color:#dc2626;border:1px solid rgba(239,68,68,0.3);background:#fff;font-size:0.9rem;font-weight:600">Drop this job</button>'
+          + '<div style="font-size:0.72rem;color:var(--pro-muted);text-align:center;margin-top:0.4rem;line-height:1.5">You can drop within 15 min of accepting (about ' + minsLeft + ' min left). After that, message support to be released.</div>';
+      } else {
+        dropEl.innerHTML =
+          '<div style="background:#fff7ed;border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:0.75rem 0.9rem">'
+          + '<div style="font-size:0.8rem;font-weight:700;color:#92400e;margin-bottom:0.2rem">Need to drop this job?</div>'
+          + '<div style="font-size:0.74rem;color:#92400e;line-height:1.5;margin-bottom:0.6rem">The 15-minute window to drop has passed. Message support below and we’ll release you.</div>'
+          + '<button type="button" id="drop-contact-support" class="btn btn-teal" style="width:100%;min-height:42px;border-radius:10px;font-size:0.85rem">Message Support</button>'
+          + '</div>';
+      }
+      const supportSection = document.getElementById('support-section');
+      if (supportSection && supportSection.parentNode) {
+        supportSection.parentNode.insertBefore(dropEl, supportSection);
+      }
+
+      const dropBtn = document.getElementById('drop-job-btn');
+      if (dropBtn) {
+        dropBtn.addEventListener('click', async function() {
+          if (!confirm('Drop this job? It will be offered to other Pros right away. You can only do this within 15 minutes of accepting.')) return;
+          dropBtn.disabled = true; dropBtn.textContent = 'Dropping…';
+          try {
+            const r = await fetch('/api/booking/drop-job', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+              body: JSON.stringify({ bookingId: b.id }),
+            });
+            const d = await r.json();
+            if (!r.ok || d.error) {
+              APP.showAlert('page-alert', d.error || 'Could not drop this job.', 'error');
+              dropBtn.disabled = false; dropBtn.textContent = 'Drop this job'; return;
+            }
+            document.getElementById('asgn-modal').classList.remove('open');
+            APP.showAlert('page-alert', 'Job dropped. It has been sent to other Pros.', 'info');
+            const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
+          } catch {
+            APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
+            dropBtn.disabled = false; dropBtn.textContent = 'Drop this job';
+          }
+        });
+      }
+
+      const dropSupportBtn = document.getElementById('drop-contact-support');
+      if (dropSupportBtn) {
+        dropSupportBtn.addEventListener('click', function() {
+          const sBody = document.getElementById('support-body');
+          const sChev = document.getElementById('support-chevron');
+          if (sBody) sBody.style.display = 'block';
+          if (sChev) sChev.style.transform = 'rotate(180deg)';
+          const supSec = document.getElementById('support-section');
+          if (supSec) supSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const ta = document.getElementById('asgn-msg-input');
+          if (ta) setTimeout(function() { ta.focus(); }, 300);
+        });
       }
     }
 
