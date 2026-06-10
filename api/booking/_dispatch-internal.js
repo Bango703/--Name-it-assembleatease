@@ -64,23 +64,21 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
 
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
 
-  const requireConnect = isStripeConnectEnabled();
-
   // ── Filter by availability and service area ───────────────────────────────
+  // We intentionally do NOT gate dispatch on Stripe Connect onboarding. A verified,
+  // approved, online Pro can take a job and link their bank any time before the
+  // payout releases (48h hold). The payout cron (release-payouts.js) refuses to
+  // transfer until their Connect account is ready, so money is never at risk —
+  // but supply isn't choked by Pros who haven't linked a bank yet.
   // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
   // Do NOT filter on active_jobs_today here — the profile counter can be stale.
   let eligible = easers.filter(e => {
-    if (requireConnect) {
-      if (!e.stripe_connect_onboarding_complete || !e.stripe_connect_charges_enabled || !e.stripe_connect_payouts_enabled) {
-        return false;
-      }
-    }
     if (!e.is_available) return false;
-    if (bookingCity && e.city) {
-      const bc = bookingCity.toLowerCase();
-      const ec = (e.city || '').toLowerCase();
-      if (!ec.includes(bc) && !bc.includes(ec)) return false;
-    }
+    // No hard city filter. The booking already passed the service-area (ZIP 786–788)
+    // check at creation, and every Pro serves the one Austin metro. City NAME matching
+    // wrongly excludes Pros whose profile city differs from the booking's (e.g. an
+    // "Austin" Pro on a Pflugerville job, or a mistyped city) — which silently chokes
+    // dispatch. Proximity is rewarded in scoring (ZIP-match bonus) instead.
     return true;
   });
 
