@@ -1,6 +1,9 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { sendPushToUser } from '../_push.js';
 import { createClient } from '@supabase/supabase-js';
+
+const SITE = 'https://www.assembleatease.com';
 
 export default async function handler(req, res) {
   // GET — list messages for a booking (owner only)
@@ -126,6 +129,14 @@ export default async function handler(req, res) {
         replyTo: ownerEmail(),
         meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: booking.assembler_id },
       });
+      // Push the message straight to the Easer's device so it isn't silent —
+      // same channel as job offers. Email alone is easy to miss on a job.
+      sendPushToUser(booking.assembler_id, {
+        title: 'New message from dispatch',
+        body: msgBody.trim().slice(0, 140),
+        url: SITE + '/assembler/my-assignments',
+        jobId: booking.id,
+      }, { bookingId: booking.id, notificationType: 'owner_message', recipientType: 'easer' }).catch(() => {});
     } else if (resolvedSender === 'owner') {
       // Notify customer
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
