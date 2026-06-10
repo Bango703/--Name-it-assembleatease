@@ -87,7 +87,9 @@ export default async function handler(req, res) {
   const missingItems = [];
   if (!applicationSubmitted) missingItems.push('Application submitted');
   if (!contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
-  if (!agreementVersion) missingItems.push('Agreement version');
+  // Agreement VERSION is informational, not a dispatch blocker. If the Pro accepted
+  // the agreement, a missing version string is just a recording gap (older signups
+  // predate version tracking) — it must not hold an otherwise-ready Pro in limbo.
   if (!identityVerified) missingItems.push('Identity verified');
   if (!ownerApproved) missingItems.push('Owner approved');
   if (connectRequired) {
@@ -107,7 +109,7 @@ export default async function handler(req, res) {
       connectRequired,
       applicationSubmitted,
       contractorAgreementAccepted,
-      agreementVersion,
+      agreementVersion: agreementVersion || (contractorAgreementAccepted ? 'Accepted (version not recorded)' : null),
       identityVerified,
       ownerApproved,
       connectStarted,
