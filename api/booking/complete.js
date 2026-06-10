@@ -195,7 +195,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Tiered fee: members pay 25%, non-members pay 35% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
+  // Tiered fee: members pay 25%, non-members pay 30% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
   let isMember = false;
   if (booking.assembler_id) {
     const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();

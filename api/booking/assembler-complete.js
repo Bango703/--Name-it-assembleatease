@@ -227,7 +227,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Tiered fee: members pay 25%, non-members pay 35% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
+  // Tiered fee: members pay 25%, non-members pay 30% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
   const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
   const isMember = easerProf?.has_membership === true;
   const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);

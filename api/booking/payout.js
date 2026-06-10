@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   }
 
   // Auto-derive payout from assembler_due (recorded at job completion).
-  // Fallback: look up easer membership and apply canonical fee (25% member / 35% non-member).
+  // Fallback: look up easer membership and apply canonical fee (25% member / 30% non-member).
   let derivedDue;
   if (booking.assembler_due != null) {
     derivedDue = booking.assembler_due;
