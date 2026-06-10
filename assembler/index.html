@@ -335,6 +335,7 @@
   };
   var dashboardRetryTimer = null;
   var dashboardPendingPromise = null;
+  var _silentLoad = false; // true during background polling — suppress loading/error banners
 
   function clearDashboardRetryTimer() {
     if (dashboardRetryTimer) clearTimeout(dashboardRetryTimer);
@@ -384,6 +385,9 @@
   function setDashboardStatus(mode, payload) {
     var el = document.getElementById('dashboard-status');
     if (!el) return;
+    // During a silent background poll, never flash a loading/stale/error banner —
+    // only let 'success'/'empty' through (they just hide the banner).
+    if (_silentLoad && mode !== 'success' && mode !== 'empty') return;
 
     if (mode === 'success' || mode === 'empty') {
       el.style.display = 'none';
@@ -987,6 +991,19 @@
         window.location.reload();
       }
     });
+
+    // Live-feel polling: quietly re-check for new job offers every 12s while the tab
+    // is visible, so an offer pops up on its own (no navigate-away-and-back needed).
+    // No WebSockets (platform constraint) — just a silent refetch. Push + email still
+    // alert instantly; this keeps the open dashboard in sync.
+    setInterval(function() {
+      if (document.visibilityState !== 'visible') return;
+      if (dashboardLoadState.inFlight) return;
+      var sheet = document.getElementById('home-complete-sheet');
+      if (sheet && sheet.classList.contains('open')) return; // don't disrupt job completion
+      _silentLoad = true;
+      Promise.resolve(loadDashboardData('poll')).finally(function() { _silentLoad = false; });
+    }, 12000);
 
     // bfcache restoration — browser may restore page from memory on back-nav without
     // firing DOMContentLoaded or visibilitychange. Trigger a soft refetch if the last
