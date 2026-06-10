@@ -20,7 +20,7 @@ const MAX_DAILY_JOBS   = parseInt(process.env.DISPATCH_MAX_DAILY_JOBS     || '3'
  *
  * Returns { dispatched, message, offeredTo, dryRun? }
  */
-export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
+export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserId = null } = {}) {
   const sb = getSupabase();
 
   const { data: booking, error: bErr } = await sb
@@ -74,6 +74,9 @@ export async function dispatchBooking(bookingId, { dryRun = false } = {}) {
   // Do NOT filter on active_jobs_today here — the profile counter can be stale.
   let eligible = easers.filter(e => {
     if (!e.is_available) return false;
+    // When re-dispatching a job a Pro just dropped, don't bounce it straight back
+    // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
+    if (excludeEaserId && e.id === excludeEaserId) return false;
     // No hard city filter. The booking already passed the service-area (ZIP 786–788)
     // check at creation, and every Pro serves the one Austin metro. City NAME matching
     // wrongly excludes Pros whose profile city differs from the booking's (e.g. an
