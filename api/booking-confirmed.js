@@ -142,12 +142,12 @@ export default async function handler(req, res) {
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">You're booked, ${sName}!</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your payment is on file and your appointment is confirmed. A member of our team will reach out within <strong>1 hour</strong> with any final details.</p>
+    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">Request received, ${sName}!</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your card is authorized (not charged) and we're matching you with a verified local pro now. We'll email you again the moment your pro is assigned — usually within <strong>1 hour</strong>.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
-        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CONFIRMED</span></td></tr>
+        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">MATCHING PRO</span></td></tr>
       </table>
     </td></tr></table>
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Appointment Details</p>
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
     </table>
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What Happens Next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
-      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We confirm your appointment</strong> — We'll reach out within 1 hour to confirm date, time, and scope.</td></tr>
+      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We match you with a pro</strong> — A verified local pro accepts your job, usually within 1 hour. You'll get a confirmation email the moment they're assigned.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card authorized — charged after completion</strong> — ${paymentLine}</td></tr>
     </table>
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
   const customerEmailResult = await sendEmail({
     from: 'AssembleAtEase <booking@assembleatease.com>',
     to: email,
-    subject: `Booking Confirmed — ${ref}`,
+    subject: `Booking request received — ${ref}`,
     html: customerHtml,
     replyTo: TO,
     meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
