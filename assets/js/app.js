@@ -410,6 +410,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof window === 'undefined' || !window.location) return;
   if (location.pathname.indexOf('/assembler') !== 0) return; // Easer routes only
 
+  // Ensure the service worker is registered on whatever Easer route the Pro lands
+  // on (incl. onboarding pages that don't register it themselves). Android needs a
+  // SW in scope before it will offer install; this is idempotent with index.html.
+  if ('serviceWorker' in navigator) {
+    try {
+      navigator.serviceWorker.getRegistration('/assembler/').then(function (reg) {
+        if (!reg) navigator.serviceWorker.register('/sw.js', { scope: '/assembler/' }).catch(function () {});
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
     || window.navigator.standalone === true;
   if (isStandalone) return; // already installed — nothing to offer
