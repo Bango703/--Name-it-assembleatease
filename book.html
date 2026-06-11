@@ -2766,7 +2766,7 @@ function goToStep(n) {
 
   setProgress(n);
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  (function(){var panel=document.getElementById('step-'+n);if(!panel){window.scrollTo({top:0,behavior:'smooth'});return;}var y=panel.getBoundingClientRect().top+window.pageYOffset-12;window.scrollTo({top:Math.max(0,y),behavior:'smooth'});if(n===4){setTimeout(function(){var fld=panel.querySelector('input[type=text], input[type=email]');if(fld&&!fld.value){try{fld.focus({preventScroll:true});}catch(e){}}},380);}})();
 
 }
 
@@ -3673,7 +3673,7 @@ function saveContactEdit() {
 
         BOOK.date = this.dataset.date; BOOK.time = '';
 
-        renderCal(); renderTimes(); hideErr('s3-date-err');
+        renderCal(); renderTimes(); hideErr('s3-date-err'); var tw=document.getElementById('dt-times-wrap'); if(tw) setTimeout(function(){ tw.scrollIntoView({behavior:'smooth',block:'center'}); }, 100);
 
       });
 
@@ -3739,7 +3739,7 @@ function saveContactEdit() {
 
     timesEl.querySelectorAll('.dt-time-btn:not([disabled])').forEach(function(btn) {
 
-      btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); });
+      btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); var st=document.getElementById('s3-street'); if(st) setTimeout(function(){ st.scrollIntoView({behavior:'smooth',block:'center'}); }, 120); });
 
     });
 
