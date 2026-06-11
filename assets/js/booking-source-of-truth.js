@@ -37,14 +37,14 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'IKEA PAX wardrobe (per additional unit)', price: 99, addon: true },
         { name: 'Vanity with mirror', price: 119 }
       ]},
-      { group: 'Home Office & Study', items: [
-        { name: 'Desk (simple, flat-pack)', price: 99 },
-        { name: 'Desk (L-shape / corner)', price: 129 },
-        { name: 'Standing desk (electric)', price: 149 },
-        { name: 'Office chair (standard)', price: 89 },
-        { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 99 },
-        { name: 'Bookcase / shelving unit (6+ shelves)', price: 119 },
-        { name: 'File cabinet (2–4 drawer)', price: 89 }
+      { group: 'Home Office Furniture', items: [
+        { name: 'Home desk (simple, flat-pack)', price: 99 },
+        { name: 'Home desk (L-shape / corner)', price: 129 },
+        { name: 'Home standing desk (electric)', price: 149 },
+        { name: 'Home office chair (standard)', price: 89 },
+        { name: 'Home bookcase / shelving unit (up to 5 shelves)', price: 99 },
+        { name: 'Home bookcase / shelving unit (6+ shelves)', price: 119 },
+        { name: 'Home file cabinet (2–4 drawer)', price: 89 }
       ]},
       { group: 'Dining & Kitchen', items: [
         { name: 'Dining table (standard)', price: 109 },
@@ -64,16 +64,19 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Entertainment center (large)', price: 159 },
         { name: 'Console table', price: 89 }
       ]},
+      { group: 'Storage & Entryway', items: [
+        { name: 'Storage cabinet / pantry cabinet', price: 109 },
+        { name: 'Shoe cabinet / entryway organizer', price: 89 },
+        { name: 'Closet organizer system (basic kit)', price: 149, priceMax: 199 },
+        { name: 'Bathroom cabinet / over-toilet storage', price: 89 },
+        { name: 'Toy storage / cube organizer', price: 79 }
+      ]},
       { group: 'Outdoor & Patio', items: [
         { name: 'Outdoor dining set (table + 4 chairs)', price: 149 },
         { name: 'Outdoor dining set (table + 6+ chairs)', price: 179 },
         { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 169 },
         { name: 'Adirondack chairs (per 2)', price: 99 },
-        { name: 'Patio umbrella + base', price: 89 },
-        { name: 'Pergola / gazebo (kit assembly)', price: 349, priceMax: 549 },
-        { name: 'Fire pit (assembly only)', price: 99 },
-        { name: 'Grill (gas / charcoal assembly)', price: 109 },
-        { name: 'Storage shed (small kit)', price: 299, priceMax: 449 }
+        { name: 'Patio umbrella + base', price: 89 }
       ]},
       { group: 'Add-ons', items: [
         { name: 'Furniture disposal (per piece)', price: 49, addon: true },
@@ -117,6 +120,13 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Heavy mirror / artwork (30–80 lbs)', price: 129 },
         { name: 'Full-length mirror (floor lean / anchor)', price: 79 }
       ]},
+      { group: 'Specialty Mounting', items: [
+        { name: 'Projector mount (ceiling or wall)', price: 149 },
+        { name: 'Whiteboard / bulletin board mount', price: 99 },
+        { name: 'Coat rack / wall hooks', price: 89 },
+        { name: 'Mailbox / house numbers mount', price: 79 },
+        { name: 'Baby gate install (pressure or hardware mount)', price: 89 }
+      ]},
       { group: 'Window Treatments', items: [
         { name: 'Curtain rod — 1 window', price: 89 },
         { name: 'Curtain rod — 2 windows', price: 119, popular: true },
@@ -151,13 +161,16 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Smart lock — lever handle', price: 99 },
         { name: 'Smart lock + deadbolt combo', price: 159 },
         { name: 'Smart garage door opener / controller', price: 109 },
-        { name: 'Keypad entry install (outdoor)', price: 119 }
+        { name: 'Keypad entry install (outdoor)', price: 119 },
+        { name: 'Door / window contact sensors (up to 4)', price: 89 },
+        { name: 'Smart smoke / CO detector setup (battery-powered)', price: 79 }
       ]},
       { group: 'Cameras', items: [
         { name: 'Indoor security camera (plug-in)', price: 79 },
         { name: 'Indoor camera (mount + cable manage)', price: 89 },
         { name: 'Outdoor camera — eave / soffit mount', price: 109 },
         { name: 'Outdoor camera — brick / concrete', price: 139 },
+        { name: 'Floodlight camera (hardwired replacement)', price: 149 },
         { name: 'Camera system — 2 cameras', price: 169 },
         { name: 'Camera system — 4 cameras', price: 249, popular: true },
         { name: 'Camera system — 6+ cameras', price: 349, priceMax: 449 },
@@ -177,7 +190,8 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Mesh network (3-node setup, full home)', price: 159 },
         { name: 'Smart home hub setup (Alexa, Google, Apple)', price: 89 },
         { name: 'Smart home hub + device automation setup', price: 139 },
-        { name: 'TV streaming device setup (Apple TV, Roku, Fire)', price: 79 }
+        { name: 'TV streaming device setup (Apple TV, Roku, Fire)', price: 79 },
+        { name: 'Smart sprinkler controller setup', price: 119 }
       ]},
       { group: 'Add-ons', items: [
         { name: 'App setup + walkthrough (per platform)', price: 29, addon: true },
@@ -196,10 +210,19 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Sandbox / outdoor playhouse', price: 169 }
       ]},
       { group: 'Sports & Recreation', items: [
-        { name: 'Basketball hoop assembly', price: 219 },
+        { name: 'Basketball hoop assembly (portable)', price: 219 },
+        { name: 'In-ground basketball hoop (custom quote)', price: 0, customQuote: true },
         { name: 'Outdoor swing / glider set', price: 159 },
         { name: 'Patio swing / hanging chair', price: 139 },
-        { name: 'Portable pickleball / sports net setup', price: 99 }
+        { name: 'Portable pickleball / sports net setup', price: 99 },
+        { name: 'Soccer goal / sports goal assembly', price: 99 }
+      ]},
+      { group: 'Outdoor Living', items: [
+        { name: 'Grill (gas / charcoal assembly)', price: 109 },
+        { name: 'Fire pit (assembly only)', price: 99 },
+        { name: 'Patio heater assembly', price: 109 },
+        { name: 'Deck box / outdoor storage bench', price: 89 },
+        { name: 'Outdoor storage cabinet', price: 119 }
       ]},
       { group: 'Add-ons', items: [
         { name: 'Anchoring / leveling / safety hardware', price: 99, addon: true },
@@ -221,6 +244,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Bookcase / shelving unit (up to 5 shelves)', price: 99 },
         { name: 'Bookcase / shelving unit (6+ shelves)', price: 129 },
         { name: 'File cabinet (2–4 drawer)', price: 89 },
+        { name: 'Office storage cabinet / lateral file', price: 129 },
         { name: 'Credenza / sideboard', price: 149 }
       ]},
       { group: 'Conference & Specialty', items: [
@@ -231,7 +255,9 @@ window.AAE_BOOKING_SOURCE = {
       ]},
       { group: 'Add-ons', items: [
         { name: 'Cable management / cord routing', price: 39, addon: true },
+        { name: 'Monitor arm install (desk clamp)', price: 39, addon: true },
         { name: 'Wall anchoring / anti-tip hardware', price: 45, addon: true },
+        { name: 'Box breakdown / packaging cleanup', price: 35, addon: true },
         { name: 'Rush / same-day office assembly', price: 75, addon: true },
         { name: 'Furniture disposal / haul-away', price: 59, addon: true }
       ]}
@@ -241,17 +267,21 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Treadmill assembly', price: 189, popular: true },
         { name: 'Exercise bike / Peloton-style bike', price: 159 },
         { name: 'Elliptical machine', price: 209 },
-        { name: 'Rowing machine', price: 169 }
+        { name: 'Rowing machine', price: 169 },
+        { name: 'Stair climber / stepper machine', price: 189 }
       ]},
       { group: 'Strength Equipment', items: [
         { name: 'Weight bench', price: 129 },
+        { name: 'Inversion table', price: 119 },
         { name: 'Power rack / squat rack', price: 219 },
+        { name: 'Punching bag stand', price: 129 },
         { name: 'Dumbbell / weight set assembly', price: 139 },
         { name: 'Home gym / cable machine', price: 299, priceMax: 429 },
         { name: 'Multi-station gym', price: 0, customQuote: true }
       ]},
       { group: 'Add-ons', items: [
         { name: 'Disassembly before move or storage', price: 65, addon: true },
+        { name: 'Equipment move within home (same floor)', price: 55, addon: true },
         { name: 'Floor leveling / placement support', price: 45, addon: true },
         { name: 'Safety anchoring / wall securing', price: 55, addon: true },
         { name: 'Same-day / rush fitness assembly', price: 85, addon: true }
