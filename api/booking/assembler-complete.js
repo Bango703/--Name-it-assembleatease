@@ -6,7 +6,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 
@@ -227,12 +227,16 @@ export default async function handler(req, res) {
     });
   }
 
-  // Tiered fee: members pay 25%, non-members pay 30% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
+  // Canonical money split — tax is a pass-through liability and is EXCLUDED from
+  // the fee/payout base. Members 25% / non-members 30% (see _source-of-truth.js).
   const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
   const isMember = easerProf?.has_membership === true;
-  const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
-  const platformFee = Math.round(finalAmount * PLATFORM_FEE_PCT / 100);
-  const assemblerDue = finalAmount - platformFee;
+  const split = computeBookingSplit(finalAmount, isMember, { taxCents: booking.tax_amount || 0 });
+  const PLATFORM_FEE_PCT = split.feePct;
+  const platformFee      = split.platformFeeCents;
+  const assemblerDue     = split.assemblerDueCents;
+  const taxCents         = split.taxCents;
+  const revenueBaseCents = split.revenueBaseCents;
   let connectPayout = { status: 'disabled' };
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
@@ -383,7 +387,9 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 20px">
       <table width="100%" style="font-size:14px">
         <tr><td style="padding:4px 0;color:#166534">Total charged to customer</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(finalAmount/100).toFixed(2)}</td></tr>
-        <tr><td style="padding:4px 0;color:#166534">Platform fee (${PLATFORM_FEE_PCT}%)</td><td style="padding:4px 0;text-align:right;color:#dc2626">&minus;$${(platformFee/100).toFixed(2)}</td></tr>
+        ${taxCents > 0 ? `<tr><td style="padding:4px 0;color:#166534">Sales tax (paid to the state)</td><td style="padding:4px 0;text-align:right;color:#71717a">&minus;$${(taxCents/100).toFixed(2)}</td></tr>
+        <tr><td style="padding:4px 0;color:#166534">Service amount</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(revenueBaseCents/100).toFixed(2)}</td></tr>` : ''}
+        <tr><td style="padding:4px 0;color:#166534">Platform fee (${PLATFORM_FEE_PCT}% of service amount)</td><td style="padding:4px 0;text-align:right;color:#dc2626">&minus;$${(platformFee/100).toFixed(2)}</td></tr>
         <tr style="border-top:1px solid #bbf7d0"><td style="padding:8px 0 4px;font-weight:700;color:#065f46">Your payout</td><td style="padding:8px 0 4px;text-align:right;font-weight:700;color:#065f46;font-size:18px">$${(assemblerDue/100).toFixed(2)}</td></tr>
       </table>
     </td></tr></table>

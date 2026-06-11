@@ -64,6 +64,56 @@ export function getPlatformFeePct(isMember) {
   return isMember ? MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER : MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER;
 }
 
+// ── Sales tax ────────────────────────────────────────────────────────────────
+// Texas sales tax rate (8.25%). Tax is a PASS-THROUGH LIABILITY owed to the state —
+// it is NEVER platform revenue and must be excluded from the platform fee and the
+// Easer payout base. Online bookings store the exact tax in bookings.tax_amount;
+// owner-set custom quotes are entered tax-exclusive (tax_amount stays 0).
+export const SALES_TAX_RATE = 0.0825;
+
+/**
+ * THE canonical money split for a priced booking. Every surface — completion,
+ * payout, dashboard, estimate, email — must derive earnings from this so the
+ * whole platform shares one financial truth.
+ *
+ *   total  = amount charged to the customer (tax-inclusive)
+ *   tax    = pass-through liability (from booking.tax_amount; 0 if none)
+ *   base   = total - tax                       (what platform + Easer split)
+ *   fee    = base * platformFeePct             (platform commission)
+ *   payout = base - fee                        (Easer earnings, assembler_due)
+ *
+ * @param {number}  totalInclusiveCents
+ * @param {boolean} isMember
+ * @param {{taxCents?: number}} opts  stored booking.tax_amount (default 0)
+ * @returns {{ totalCents, taxCents, revenueBaseCents, feePct, platformFeeCents, assemblerDueCents }}
+ */
+export function computeBookingSplit(totalInclusiveCents, isMember, { taxCents = 0 } = {}) {
+  const total = Math.max(0, Math.round(Number(totalInclusiveCents) || 0));
+  const tax   = Math.min(total, Math.max(0, Math.round(Number(taxCents) || 0)));
+  const revenueBase  = total - tax;
+  const feePct       = getPlatformFeePct(isMember);
+  const platformFee  = Math.round(revenueBase * feePct / 100);
+  const assemblerDue = revenueBase - platformFee;
+  return {
+    totalCents:        total,
+    taxCents:          tax,
+    revenueBaseCents:  revenueBase,
+    feePct,
+    platformFeeCents:  platformFee,
+    assemblerDueCents: assemblerDue,
+  };
+}
+
+/**
+ * Estimated Stripe processing fee (2.9% + $0.30). This is an ESTIMATE for
+ * projections only — the authoritative fee comes from the Stripe balance
+ * transaction at capture. One canonical estimator so the rate never diverges.
+ */
+export function estimateStripeFeeCents(chargeCents) {
+  const c = Math.round(Number(chargeCents) || 0);
+  return c > 0 ? Math.round(c * 0.029) + 30 : 0;
+}
+
 // Service call fee by ZIP zone — covers Easer dispatch, travel, and appointment setup.
 // Zone is determined by 3-digit ZIP prefix. Server always recalculates; never trust the client value.
 export const SERVICE_CALL_ZONES = Object.freeze({

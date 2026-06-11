@@ -41,9 +41,10 @@ export default async function handler(req, res) {
     if ((Number(row.refund || 0) > 0 || row.isRefunded) && row.bookingId) issueBookingIds.add(row.bookingId);
   }
   const customerRevenue = sum(rows, row => row.netCharged);
+  const salesTaxCollected = sum(rows, row => row.taxCollected); // pass-through liability — never profit
   const processingFees = sum(rows, row => estimateProcessingFee(row.charged));
   const easerPayouts = sum(rows, row => payoutForProfit(row));
-  const platformGrossProfit = customerRevenue - processingFees - easerPayouts;
+  const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
   const operatingExpenses = periodOperatingExpenses(period);
   const estimatedNetOperatingProfit = platformGrossProfit - reworkRefundReserve - operatingExpenses - cacCents;
@@ -243,9 +244,10 @@ async function buildExpansionReadiness(sb, rows, activeEasers) {
   const damageClaimBookingIds = await loadIssueBookingIds(sb, bookingIds);
   const refundedJobs = rows.filter(row => Number(row.refund || 0) > 0 || row.isRefunded).length;
   const customerRevenue = sum(rows, row => row.netCharged);
+  const salesTaxCollected = sum(rows, row => row.taxCollected); // pass-through liability — never profit
   const processingFees = sum(rows, row => estimateProcessingFee(row.charged));
   const easerPayouts = sum(rows, row => payoutForProfit(row));
-  const platformGrossProfit = customerRevenue - processingFees - easerPayouts;
+  const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
   const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve - periodOperatingExpenses('all');
   const refundRate = completedJobs > 0 ? refundedJobs / completedJobs : 0;

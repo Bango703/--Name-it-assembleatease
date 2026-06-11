@@ -248,6 +248,7 @@
         <span class="price-label">Booking Total</span>
         <span class="price-value" id="bPrice"></span>
       </div>
+      <div id="priceBreakdown" style="display:none;margin-top:0.5rem;font-size:0.82rem;color:var(--muted);line-height:1.7"></div>
 
       <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
@@ -430,7 +431,31 @@ function renderBooking(b) {
   document.getElementById('bName').textContent     = b.customer_name;
   document.getElementById('bDate').textContent     = formatDate(b.date);
   document.getElementById('bTime').textContent     = b.time || '—';
-  document.getElementById('bPrice').textContent    = b.total_price ? '$' + (b.total_price / 100).toFixed(2) : '—';
+  var displayTotal = (b.amount_charged != null ? b.amount_charged : b.total_price);
+  document.getElementById('bPrice').textContent    = displayTotal ? '$' + (displayTotal / 100).toFixed(2) : '—';
+
+  // Customer breakdown — subtotal / service call / tax / total (reconciles to total).
+  (function(){
+    var bd = document.getElementById('priceBreakdown');
+    if (!bd) return;
+    var total = Number(displayTotal) || 0;
+    var tax   = Number(b.tax_amount) || 0;
+    var call  = Number(b.service_call_fee) || 0;
+    if (total <= 0) { bd.style.display = 'none'; return; }
+    var serviceItems = Math.max(0, total - tax - call);
+    function money(c){ return '$' + (c/100).toFixed(2); }
+    function row(label, val, strong){
+      return '<div style="display:flex;justify-content:space-between;gap:1rem">'
+        + '<span>' + label + '</span>'
+        + '<span style="color:var(--ink)' + (strong ? ';font-weight:700' : '') + '">' + money(val) + '</span></div>';
+    }
+    bd.innerHTML =
+        row('Service &amp; items', serviceItems)
+      + (call > 0 ? row('Service call fee', call) : '')
+      + (tax  > 0 ? row('Sales tax', tax) : '')
+      + '<div style="border-top:1px solid var(--border,#e5e7eb);margin-top:5px;padding-top:5px">' + row('Total charged', total, true) + '</div>';
+    bd.style.display = '';
+  })();
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
 
   const addrEl = document.getElementById('bAddress');

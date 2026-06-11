@@ -2,7 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, getPlatformFeePct } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -242,18 +242,20 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   // ── Send notifications (non-blocking) ────────────────────────────────────
   let notified = 0;
   for (const easer of top) {
-    const token    = tokenByEaser[easer.id];
-    const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
-    const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
+    // Notifications/emails OPEN the offer in the app — they NEVER accept it. A job
+    // is accepted only when the Easer taps Accept inside the app (source of truth).
+    const offerUrl = `${SITE}/assembler/my-assignments?offer=${bookingId}`;
 
-    // Show net pay in the push too, so a Pro accepting from their phone isn't blind.
-    const pushPay = booking.total_price > 0
-      ? '$' + Math.round((booking.total_price / 100) * (1 - getPlatformFeePct(easer.has_membership) / 100)) + ' pay · '
-      : '';
+    // Show net pay in the push too, so a Pro isn't blind. Use the canonical split
+    // (tax excluded) so this matches the in-app estimate and the final payout.
+    const estPayCents = booking.total_price > 0
+      ? computeBookingSplit(booking.total_price, easer.has_membership, { taxCents: booking.tax_amount || 0 }).assemblerDueCents
+      : 0;
+    const pushPay = estPayCents > 0 ? '$' + Math.round(estPayCents / 100) + ' pay · ' : '';
     sendPushToUser(easer.id, {
       title: 'New Job Available!',
-      body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Accept in ${OFFER_TTL_MIN} min`,
-      url:   acceptUrl,
+      body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Tap to review`,
+      url:   offerUrl,
       jobId: bookingId,
       urgent: true,
     }, { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer' }).catch(function(err) {
@@ -265,7 +267,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         to:       easer.email,
         from:     'AssembleAtEase <booking@assembleatease.com>',
         subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity}`,
-        html:     buildOfferEmail(easer, booking, bookingCity, acceptUrl, declineUrl, expiresAt),
+        html:     buildOfferEmail(easer, booking, bookingCity, offerUrl, expiresAt),
         replyTo:  'service@assembleatease.com',
         meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id },
       });
@@ -324,13 +326,13 @@ function extractZip(address) {
 }
 
 // ── Offer email ───────────────────────────────────────────────────────────────
-function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt) {
+function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
   const firstName   = (easer.full_name || 'there').split(' ')[0];
-  // Net pay = booking total minus the platform fee for this Easer's membership tier.
-  // Use the canonical fee source so the offer matches the actual completion payout.
-  const feePct = getPlatformFeePct(easer.has_membership);
+  // Net take-home from the canonical split (tax excluded, then platform fee for this
+  // Easer's tier) so the offer matches the in-app estimate and the actual payout.
+  const split = computeBookingSplit(booking.total_price || 0, easer.has_membership, { taxCents: booking.tax_amount || 0 });
   const payEstimate = booking.total_price > 0
-    ? '$' + Math.round((booking.total_price / 100) * (1 - feePct / 100)).toLocaleString()
+    ? '$' + Math.round(split.assemblerDueCents / 100).toLocaleString()
     : 'Custom quote — price set by owner after review';
   const expiryMin   = Math.round((new Date(expiresAt) - Date.now()) / 60000);
   const tierLabel   = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[easer.tier] || easer.tier;
@@ -354,16 +356,8 @@ function buildOfferEmail(easer, booking, city, acceptUrl, declineUrl, expiresAt)
         <span style="font-size:1rem">⏱</span>
         <span style="font-size:0.85rem;color:#92400e;font-weight:600">Offer expires in ~${expiryMin} minutes</span>
       </div>
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="padding-right:6px">
-            <a href="${esc(acceptUrl)}" style="display:block;text-align:center;background:#00BFFF;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">Accept Job</a>
-          </td>
-          <td style="padding-left:6px">
-            <a href="${esc(declineUrl)}" style="display:block;text-align:center;background:#f9fafb;color:#6b7280;padding:13px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;border:1px solid #e5e7eb">Decline</a>
-          </td>
-        </tr>
-      </table>
+      <a href="${esc(offerUrl)}" style="display:block;text-align:center;background:#00BFFF;color:#fff;padding:14px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">View Job &amp; Respond →</a>
+      <p style="margin:10px 0 0;text-align:center;font-size:11px;color:#9ca3af">Opens your dashboard — review the details and tap Accept there.</p>
     </div>
     <div style="padding:0.875rem 1.5rem;border-top:1px solid #f0f0f0;text-align:center;font-size:11px;color:#9ca3af">
       View all your assignments at <a href="${SITE}/assembler/my-assignments" style="color:#00BFFF">AssembleAtEase</a>

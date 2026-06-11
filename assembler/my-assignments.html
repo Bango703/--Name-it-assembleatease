@@ -457,43 +457,29 @@
       } catch {}
     });
 
-    // ── Handle dispatch accept from email/push link ──────────────────
+    // ── Open a job offer from an email/push link — NEVER auto-accept ──────────
+    // SOURCE OF TRUTH: a job is accepted ONLY when the Easer taps Accept in the app.
+    // The notification just deep-links here; we open the offer so they can review
+    // and decide. Legacy ?accept= / ?decline= links are treated the same (open only).
     (async function() {
       var params = new URLSearchParams(window.location.search);
-      var bookingId = params.get('accept');
-      var token     = params.get('token');
-      if (!bookingId || !token) return;
-      // Clean URL
-      history.replaceState({}, '', window.location.pathname);
-      // Show accepting banner
-      var banner = document.createElement('div');
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#00BFFF;color:#fff;text-align:center;padding:0.75rem;font-size:0.9rem;font-weight:600;z-index:9999';
-      banner.textContent = 'Accepting job…';
-      document.body.prepend(banner);
+      var bookingId = params.get('offer') || params.get('accept') || params.get('decline');
+      if (!bookingId) return;
+      history.replaceState({}, '', window.location.pathname); // clean URL, no params re-run
       try {
-        var r = await fetch('/api/booking/accept-dispatch', {
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await getToken())},
-          body: JSON.stringify({ bookingId: bookingId, token: token }),
-        });
-        var d = await r.json();
-        if (r.ok && d.ok) {
-          banner.style.background = '#059669';
-          banner.textContent = '✓ Job accepted! Ref: ' + (d.ref||'') + ' — loading your assignments…';
-          setTimeout(function(){ banner.remove(); }, 4000);
-          try {
-            var rf = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-            if (rf.ok) { var rd = await rf.json(); allAssignments = rd.bookings || []; var cfLink = document.querySelector('.e-filter-pill.active').dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cfLink)); updateFilterCounts(allAssignments); }
-          } catch {}
-        } else {
-          banner.style.background = '#ef4444';
-          banner.textContent = d.error || 'Could not accept job — it may already be taken.';
-          setTimeout(function(){ banner.remove(); }, 5000);
+        var rf = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+        if (rf.ok) {
+          var rd = await rf.json();
+          allAssignments = rd.bookings || [];
+          var activePill = document.querySelector('.e-filter-pill.active');
+          var cf = activePill ? (activePill.dataset.filter || 'all') : 'all';
+          renderAssignments(filterList(allAssignments, cf));
+          updateFilterCounts(allAssignments);
         }
-      } catch(e) {
-        banner.style.background = '#ef4444';
-        banner.textContent = 'Failed to accept. Check your connection.';
-        setTimeout(function(){ banner.remove(); }, 5000);
+      } catch (e) {}
+      // Open the offer detail so the Easer can review and tap Accept themselves.
+      if (typeof window.openDetail === 'function') {
+        setTimeout(function(){ window.openDetail(bookingId); }, 150);
       }
     })();
 

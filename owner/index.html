@@ -1666,20 +1666,22 @@ function intelQuick(msg) {
     function sfee(g) { return g > 0 ? Math.round(g * 0.029) + 30 : 0; }
 
     var completed = allBookings.filter(function(b){return b.status==='completed';});
-    var totGross=0, totFee=0, totPayout=0;
+    var totGross=0, totFee=0, totPayout=0, totTax=0;
     completed.forEach(function(b){
       var g=Number(b.amount_charged || b.total_price)||0; totGross+=g;
+      totTax += Math.min(Math.max(0, Number(b.tax_amount)||0), g);  // sales tax = liability, not revenue
       totFee += sfee(g); totPayout += Number(b.assembler_due)||0;
     });
-    var totNet = totGross - totFee;
-    var totProfit = totNet - totPayout;
+    var totNet = totGross - totTax - totFee;   // net after sales tax + Stripe
+    var totProfit = totNet - totPayout;        // = platform commission - Stripe fee
 
     var rows = allBookings.map(function(b) {
       var g = Number(b.amount_charged || b.total_price)||0;
+      var tax = Math.min(Math.max(0, Number(b.tax_amount)||0), g);
       var f = sfee(g);
-      var n = g - f;
+      var n = g - tax - f;                     // net after sales tax + Stripe
       var p = Number(b.assembler_due)||0;
-      var profit = n - p;
+      var profit = g ? (n - p) : 0;
       var statusColor = {completed:'#065f46',confirmed:'#0369a1',pending:'#92400e',cancelled:'#475569',declined:'#be123c',refunded:'#c2410c',en_route:'#1d4ed8',in_progress:'#059669'}[b.status]||'#374151';
       var statusBg = {completed:'#d1fae5',confirmed:'#e0f2fe',pending:'#fef3c7',cancelled:'#f1f5f9',declined:'#fff1f2',refunded:'#fff7ed',en_route:'#dbeafe',in_progress:'#d1fae5'}[b.status]||'#f4f4f5';
       return '<tr>'
@@ -1719,11 +1721,12 @@ function intelQuick(msg) {
       +'</div>'
 
       // Summary cards
-      +'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:2rem">'
+      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:2rem">'
         +[
           ['Gross Revenue',dollars(totGross),'#00BFFF'],
+          ['Sales Tax (owed to state)','-'+dollars(totTax),'#7c3aed'],
           ['Stripe Fees','-'+dollars(totFee),'#ef4444'],
-          ['Net After Stripe',dollars(totNet),'#374151'],
+          ['Net After Tax+Stripe',dollars(totNet),'#374151'],
           ['Easer Payouts','-'+dollars(totPayout),'#f59e0b'],
           ['Platform Profit',dollars(totProfit),'#065f46'],
         ].map(function(c){

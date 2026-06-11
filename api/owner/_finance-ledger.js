@@ -4,7 +4,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   // Some environments may not have refund columns yet.
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount')
+    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount')
     .eq('status', 'completed');
   if (from) bookingsQuery = bookingsQuery.gte('completed_at', from);
   if (to) bookingsQuery = bookingsQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -15,7 +15,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   } else {
     let fallbackQuery = sb
       .from('bookings')
-      .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status')
+      .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, tax_amount')
       .eq('status', 'completed');
     if (from) fallbackQuery = fallbackQuery.gte('completed_at', from);
     if (to) fallbackQuery = fallbackQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -68,6 +68,10 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
     const isRefunded = b.payment_status === 'refunded' || refund > 0;
     const legacyDerived = !ledger;
 
+    // Sales tax is a pass-through liability owed to the state — NOT platform revenue.
+    // Exclude it from platform revenue so the books reconcile to true operating profit.
+    const taxCollected = Math.min(Math.max(0, Number(b.tax_amount || 0)), netCharged);
+
     return {
       bookingId: b.id,
       status: b.status,
@@ -89,7 +93,8 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       paidOut,
       payoutAmount,
       owed,
-      platformRevenue: netCharged - (paidOut ? payoutAmount : (isRefunded ? 0 : owed)),
+      taxCollected,
+      platformRevenue: netCharged - (paidOut ? payoutAmount : (isRefunded ? 0 : owed)) - taxCollected,
       isRefunded,
       hasLedger: !!ledger,
       legacyDerived,
@@ -143,10 +148,12 @@ export function summarizeFinanceRows(rows) {
   let totalPaidOut = 0;
   let totalPlatformRevenue = 0;
   let pendingPayouts = 0;
+  let totalTaxCollected = 0;
 
   for (const row of rows || []) {
     completedJobs++;
     totalCharged += Number(row.netCharged || 0);
+    totalTaxCollected += Number(row.taxCollected || 0);
 
     if (row.paidOut) {
       paidOutJobs++;
@@ -166,6 +173,7 @@ export function summarizeFinanceRows(rows) {
     totalCharged,
     totalPaidOut,
     totalPlatformRevenue,
+    totalTaxCollected,
     pendingPayouts,
   };
 }

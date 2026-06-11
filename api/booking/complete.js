@@ -5,7 +5,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
 
@@ -195,15 +195,17 @@ export default async function handler(req, res) {
     });
   }
 
-  // Tiered fee: members pay 25%, non-members pay 30% (canonical: _source-of-truth.js MEMBERSHIP_PLATFORM_FEE_PCT)
+  // Canonical money split — tax is a pass-through liability and is EXCLUDED from
+  // the fee/payout base. Members 25% / non-members 30% (see _source-of-truth.js).
   let isMember = false;
   if (booking.assembler_id) {
     const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
     isMember = asmProf?.has_membership === true;
   }
-  const PLATFORM_FEE_PCT = getPlatformFeePct(isMember);
-  const platformFee = Math.round(finalAmountCharged * PLATFORM_FEE_PCT / 100);
-  const assemblerDue = finalAmountCharged - platformFee;
+  const split = computeBookingSplit(finalAmountCharged, isMember, { taxCents: booking.tax_amount || 0 });
+  const PLATFORM_FEE_PCT = split.feePct;
+  const platformFee      = split.platformFeeCents;
+  const assemblerDue     = split.assemblerDueCents;
   let connectPayout = { status: 'disabled' };
 
   // Atomic guard: only update if not already completed or captured.
