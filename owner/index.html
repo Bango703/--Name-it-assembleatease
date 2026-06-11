@@ -1670,7 +1670,8 @@ function intelQuick(msg) {
     completed.forEach(function(b){
       var g=Number(b.amount_charged || b.total_price)||0; totGross+=g;
       totTax += Math.min(Math.max(0, Number(b.tax_amount)||0), g);  // sales tax = liability, not revenue
-      totFee += sfee(g); totPayout += Number(b.assembler_due)||0;
+      totFee += (b.stripe_fee != null ? Number(b.stripe_fee) : sfee(g)); // actual Stripe fee if captured, else estimate
+      totPayout += Number(b.assembler_due)||0;
     });
     var totNet = totGross - totTax - totFee;   // net after sales tax + Stripe
     var totProfit = totNet - totPayout;        // = platform commission - Stripe fee
@@ -1678,7 +1679,7 @@ function intelQuick(msg) {
     var rows = allBookings.map(function(b) {
       var g = Number(b.amount_charged || b.total_price)||0;
       var tax = Math.min(Math.max(0, Number(b.tax_amount)||0), g);
-      var f = sfee(g);
+      var f = (b.stripe_fee != null ? Number(b.stripe_fee) : sfee(g)); // actual Stripe fee if captured, else estimate
       var n = g - tax - f;                     // net after sales tax + Stripe
       var p = Number(b.assembler_due)||0;
       var profit = g ? (n - p) : 0;

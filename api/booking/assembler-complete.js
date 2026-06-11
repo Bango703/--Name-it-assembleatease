@@ -84,6 +84,7 @@ export default async function handler(req, res) {
 
   // ── Stripe: capture payment ──────────────────────────────────────────────
   let amountCharged = 0;
+  let actualStripeFee = null; // actual Stripe fee (cents) from the balance transaction, if captured
   const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
   if (captureRequired && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({
@@ -111,10 +112,13 @@ export default async function handler(req, res) {
 
         const captured = await stripe.paymentIntents.capture(
           booking.stripe_payment_intent_id,
-          {},
+          { expand: ['latest_charge.balance_transaction'] },
           { idempotencyKey },
         );
         amountCharged = captured.amount_received;
+        // Actual Stripe processing fee from the balance transaction (authoritative).
+        const _bt = captured.latest_charge && captured.latest_charge.balance_transaction;
+        if (_bt && typeof _bt.fee === 'number') actualStripeFee = _bt.fee;
 
         await writeFinancialAudit(sb, {
           eventType: 'capture_attempt',
@@ -288,6 +292,15 @@ export default async function handler(req, res) {
       error: 'Completion capture succeeded, but booking state was changed by another request. Contact AssembleAtEase before retrying.',
       code: 'COMPLETION_STATE_RACE',
     });
+  }
+
+  // Store the actual Stripe fee (best-effort, non-fatal). Separate from the main
+  // update so a not-yet-applied migration (column missing) can never block completion.
+  if (actualStripeFee != null) {
+    try {
+      const { error: feeErr } = await sb.from('bookings').update({ stripe_fee: actualStripeFee }).eq('id', booking.id);
+      if (feeErr) console.warn('stripe_fee store skipped (run migration 011):', feeErr.message || feeErr);
+    } catch (e) { console.warn('stripe_fee store error:', e && (e.message || e)); }
   }
 
   // Payout is HELD, not sent now. A 'release-payouts' cron transfers it via Stripe

@@ -1,10 +1,12 @@
+import { estimateStripeFeeCents } from '../_source-of-truth.js';
+
 export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   let bookings = null;
 
   // Some environments may not have refund columns yet.
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount')
+    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee')
     .eq('status', 'completed');
   if (from) bookingsQuery = bookingsQuery.gte('completed_at', from);
   if (to) bookingsQuery = bookingsQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -22,7 +24,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
 
     const secondAttempt = await fallbackQuery;
     if (secondAttempt.error) throw secondAttempt.error;
-    bookings = (secondAttempt.data || []).map(b => ({ ...b, refund_amount: null }));
+    bookings = (secondAttempt.data || []).map(b => ({ ...b, refund_amount: null, stripe_fee: (b.stripe_fee != null ? b.stripe_fee : null) }));
   }
 
   const completed = bookings || [];
@@ -94,6 +96,9 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       payoutAmount,
       owed,
       taxCollected,
+      // Actual Stripe fee when captured (migration 011); else the canonical estimate.
+      stripeFee: (b.stripe_fee != null ? Number(b.stripe_fee) : estimateStripeFeeCents(netCharged)),
+      stripeFeeIsActual: b.stripe_fee != null,
       platformRevenue: netCharged - (paidOut ? payoutAmount : (isRefunded ? 0 : owed)) - taxCollected,
       isRefunded,
       hasLedger: !!ledger,
@@ -149,11 +154,15 @@ export function summarizeFinanceRows(rows) {
   let totalPlatformRevenue = 0;
   let pendingPayouts = 0;
   let totalTaxCollected = 0;
+  let totalStripeFees = 0;
+  let stripeFeesAllActual = true;
 
   for (const row of rows || []) {
     completedJobs++;
     totalCharged += Number(row.netCharged || 0);
     totalTaxCollected += Number(row.taxCollected || 0);
+    totalStripeFees += Number(row.stripeFee || 0);
+    if (!row.stripeFeeIsActual) stripeFeesAllActual = false;
 
     if (row.paidOut) {
       paidOutJobs++;
@@ -174,6 +183,8 @@ export function summarizeFinanceRows(rows) {
     totalPaidOut,
     totalPlatformRevenue,
     totalTaxCollected,
+    totalStripeFees,
+    stripeFeesAllActual,
     pendingPayouts,
   };
 }

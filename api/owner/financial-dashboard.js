@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
   const customerRevenue = sum(rows, row => row.netCharged);
   const salesTaxCollected = sum(rows, row => row.taxCollected); // pass-through liability — never profit
-  const processingFees = sum(rows, row => estimateProcessingFee(row.charged));
+  const processingFees = sum(rows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
   const easerPayouts = sum(rows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
@@ -245,7 +245,7 @@ async function buildExpansionReadiness(sb, rows, activeEasers) {
   const refundedJobs = rows.filter(row => Number(row.refund || 0) > 0 || row.isRefunded).length;
   const customerRevenue = sum(rows, row => row.netCharged);
   const salesTaxCollected = sum(rows, row => row.taxCollected); // pass-through liability — never profit
-  const processingFees = sum(rows, row => estimateProcessingFee(row.charged));
+  const processingFees = sum(rows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
   const easerPayouts = sum(rows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
