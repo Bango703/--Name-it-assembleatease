@@ -438,7 +438,16 @@
     .subcat-search-clear:hover { background: #f0f0f0; color: var(--ink); }
     .subcat-no-results { font-size: 0.85rem; color: var(--muted); padding: 0.25rem 0 0.5rem; display: none; }
 
-    .subcat-group { padding: 0.25rem 0; }
+    .subcat-group { padding: 0; border-top: 1px solid var(--border); }
+    .subcat-group:first-child { border-top: none; }
+    .subcat-group-head { display:flex; align-items:center; gap:0.6rem; width:100%; background:none; border:none; cursor:pointer; padding:0.85rem 0.25rem; -webkit-tap-highlight-color:transparent; }
+    .subcat-group-head .subcat-group-label { padding:0; margin:0; flex:1; text-align:left; }
+    .subcat-group-count { font-size:0.7rem; font-weight:600; color:var(--muted); background:rgba(0,0,0,0.05); border-radius:999px; padding:2px 9px; flex-shrink:0; }
+    .subcat-chev { color:var(--muted); flex-shrink:0; transition:transform 0.2s; }
+    .subcat-group.open .subcat-chev { transform:rotate(180deg); }
+    .subcat-group-body { display:none; padding-bottom:0.4rem; }
+    .subcat-group.open > .subcat-group-body { display:block; }
+    #item-list-wrap.searching .subcat-group-body { display:block; }
 
     .subcat-group-label {
 
@@ -2269,6 +2278,8 @@ function updateSvcRows() {
 
 // ----------------------------------------------------------------------------
 
+function toggleSubcat(btn){ var g = btn.closest('.subcat-group'); if (g) g.classList.toggle('open'); }
+
 function renderItemScreen(svc) {
 
   var groups = SUBCATS[svc] || [];
@@ -2277,11 +2288,11 @@ function renderItemScreen(svc) {
 
   var html = '';
 
-  groups.forEach(function(g) {
+  groups.forEach(function(g, gi) {
 
-    html += '<div class="subcat-group"><div class="subcat-group-label">' + esc(g.group) + '</div>';
+    html += '<div class="subcat-group' + (gi===0?' open':'') + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '</span><span class="subcat-group-count">' + g.items.length + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
 
-    g.items.forEach(function(item) { html += itemRowHtml(svc, item); });
+    g.items.forEach(function(item) { html += itemRowHtml(svc, item); }); html += '</div>';
 
     html += '</div>';
 
@@ -2313,6 +2324,8 @@ function filterItemList(q) {
   var noRes = document.getElementById('item-no-results');
 
   if (clearBtn) clearBtn.classList.toggle('vis', q.length > 0);
+
+  wrap.classList.toggle('searching', q.length > 0);
 
   var groups = wrap.querySelectorAll('.subcat-group');
 
