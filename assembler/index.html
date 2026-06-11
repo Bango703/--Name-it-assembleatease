@@ -839,7 +839,12 @@
     document.getElementById('eh-bell-badge').style.display='';
 
     document.getElementById('offers-list').innerHTML = offers.slice(0,2).map(function(b){
-      var pay = b.assembler_due ? fmtPay(b.assembler_due) : (b.total_price ? fmtPay(Math.round(b.total_price*0.75)) : '—');
+      // Use the server's canonical estimate (_pay_estimate_lo, computed with the real
+      // platform fee for THIS Pro) so the home card matches the offer push/email and the
+      // My Assignments detail exactly. Never re-derive pay with a hardcoded rate here.
+      var pay = b.assembler_due ? fmtPay(b.assembler_due)
+        : (b._pay_estimate_lo ? fmtPay(b._pay_estimate_lo)
+        : (b.total_price ? fmtPay(Math.round(b.total_price*0.70)) : '—'));
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
       return '<div class="eh-offer-card">'
         +'<div class="eh-offer-card-top">'

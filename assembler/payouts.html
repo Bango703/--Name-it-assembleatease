@@ -217,7 +217,7 @@
   </div>
 
   <div class="payout-guide" id="payout-guide">
-    <div class="payout-guide-title">Payout Guide</div>
+    <div class="payout-guide-title">Payouts</div>
     <div class="payout-guide-body" id="payout-guide-body"></div>
   </div>
 
@@ -326,44 +326,41 @@
     var guide = document.getElementById('payout-guide-body');
     if (!guide) return;
 
+    var connectOn    = !!(connectData && connectData.enabled !== false && connectData.connect);
+    var connectReady = connectOn && connectData.connect.code === 'enabled';
+
     var latestPaid = list.filter(function(b) { return b.payout_status === 'paid' && b.paid_out_at; })
       .sort(function(a, b) { return new Date(b.paid_out_at) - new Date(a.paid_out_at); })[0] || null;
     var pendingCount = list.filter(function(b) { return b.payout_status !== 'paid'; }).length;
-    var latestPaidCopy = latestPaid
-      ? 'Last payout recorded ' + fmtDate(latestPaid.paid_out_at) + ' for ' + fmt(latestPaid.assembler_due) + '.'
-      : 'No payout has been recorded on this account yet.';
 
-    var payoutChangeCopy = (!connectData || connectData.enabled === false || !connectData.connect)
-      ? 'Payout details are handled by the AssembleAtEase team right now. If your payout destination changes, contact support with the details below so the team can update your records before the next payout run.'
-      : 'When Stripe payouts are enabled, changes happen in Stripe onboarding or the Stripe dashboard. Keep these details current so payouts do not get delayed.';
+    // Accurate to how the platform actually pays: a 48h hold after completion, then
+    // an automatic Stripe transfer to the Pro's bank once their payout setup is done.
+    var howCopy = connectOn
+      ? (connectReady
+          ? 'When you mark a job complete, your earnings are held for 48 hours, then sent automatically to your bank through Stripe. No action needed on your end.'
+          : 'When you mark a job complete, your earnings are held for 48 hours, then sent to your bank through Stripe. Finish your payout setup above so transfers can go through.')
+      : 'When you mark a job complete, the AssembleAtEase team reviews and releases your payout. Nothing to do here.';
 
-    var requirements = (connectData && Array.isArray(connectData.requirementsCurrentlyDue) && connectData.requirementsCurrentlyDue.length)
-      ? '<ul class="payout-guide-list">' + connectData.requirementsCurrentlyDue.map(function(item) {
-          return '<li>' + esc(item) + '</li>';
-        }).join('') + '</ul>'
-      : '';
-
-    guide.innerHTML = ''
+    var rows = ''
       + '<div class="payout-guide-row">'
-        + '<div class="payout-guide-label">How pending payouts work</div>'
-        + '<div class="payout-guide-copy">Completed jobs stay in pending until the team reviews the final amount and records the payout. You currently have ' + pendingCount + ' pending job' + (pendingCount === 1 ? '' : 's') + '.</div>'
+        + '<div class="payout-guide-label">How payouts work</div>'
+        + '<div class="payout-guide-copy">' + howCopy + '</div>'
       + '</div>'
       + '<div class="payout-guide-row">'
-        + '<div class="payout-guide-label">Latest payout status</div>'
-        + '<div class="payout-guide-copy">' + latestPaidCopy + '</div>'
-      + '</div>'
-      + '<div class="payout-guide-row">'
-        + '<div class="payout-guide-label">If payout details change</div>'
-        + '<div class="payout-guide-copy">' + payoutChangeCopy + '</div>'
-        + '<ul class="payout-guide-list">'
-          + '<li>Legal name on the payout account</li>'
-          + '<li>Best email and phone number for payout questions</li>'
-          + '<li>Payout method and account holder type</li>'
-          + '<li>Bank name plus the last 4 digits of the routing and account numbers</li>'
-          + '<li>Billing ZIP and any tax identity details Stripe requests</li>'
-        + '</ul>'
-        + requirements
+        + '<div class="payout-guide-label">Pending</div>'
+        + '<div class="payout-guide-copy">' + (pendingCount
+            ? pendingCount + ' job' + (pendingCount === 1 ? '' : 's') + ' awaiting payout.'
+            : 'You’re all caught up — no payouts pending.') + '</div>'
       + '</div>';
+
+    if (latestPaid) {
+      rows += '<div class="payout-guide-row">'
+        + '<div class="payout-guide-label">Last payout</div>'
+        + '<div class="payout-guide-copy">' + fmt(latestPaid.assembler_due) + ' on ' + fmtDate(latestPaid.paid_out_at) + '.</div>'
+      + '</div>';
+    }
+
+    guide.innerHTML = rows;
   }
 
   function renderConnectStatus(data) {
