@@ -1,6 +1,6 @@
 // Booking catalog — source of truth for service subcategories, pricing, and ZIP range.
-// Prices reflect realistic Austin market rates. Travel overhead is baked into item prices.
-// No minimum adjustments. No visible call fees. What the customer sees is what they pay.
+// Prices reflect realistic Austin market rates. Booking totals add the zone-based
+// service call fee, tax, and launch minimum guardrails in the booking/pricing flow.
 
 window.AAE_BOOKING_SOURCE = {
   serviceArea: {

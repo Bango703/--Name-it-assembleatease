@@ -24,6 +24,8 @@ export function calculateBookingPricing({ services, itemsByService, zip }) {
   const catalogByService = buildCatalogIndex(catalog);
 
   let itemSubtotalCents = 0;
+  let baseItemSubtotalCents = 0;
+  let addonItemSubtotalCents = 0;
   let discountableItemCount = 0;
   const servicesWithPricedItems = new Set();
   const normalizedItems = {};
@@ -56,6 +58,11 @@ export function calculateBookingPricing({ services, itemsByService, zip }) {
       if (catalogItem.customQuote) hasCustomQuote = true;
       itemSubtotalCents += lineTotal;
       if (!catalogItem.customQuote && unitPriceCents > 0) {
+        if (catalogItem.addon === true) {
+          addonItemSubtotalCents += lineTotal;
+        } else {
+          baseItemSubtotalCents += lineTotal;
+        }
         discountableItemCount += qty;
         servicesWithPricedItems.add(serviceName);
       }
@@ -91,11 +98,17 @@ export function calculateBookingPricing({ services, itemsByService, zip }) {
     discountPct,
     discountCents,
     discountedItemSubtotalCents,
+    taxableSubtotalCents,
     serviceCallFeeCents: normalizedServiceCallFeeCents,
     callZone,
     taxCents,
     totalCents,
     hasCustomQuote,
+    baseItemSubtotalCents,
+    addonItemSubtotalCents,
+    hasPricedBaseItem: baseItemSubtotalCents > 0,
+    hasPricedAddonItem: addonItemSubtotalCents > 0,
+    isAddonOnly: addonItemSubtotalCents > 0 && baseItemSubtotalCents === 0,
     normalizedItems,
     invalidItems,
   };

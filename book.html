@@ -1971,9 +1971,9 @@ var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city: 'Austin', state: 'T
 var SERVICE_AREA_LABEL = SERVICE_AREA.city + ' ' + SERVICE_AREA.state + ' (' + SERVICE_AREA.zipPrefixMin + 'xx-' + SERVICE_AREA.zipPrefixMax + 'xx)';
 
 var SERVICE_CALL_ZONES = {
-  '787': { label: 'Austin core', fee: 35 },
-  '786': { label: 'Near suburbs', fee: 50 },
-  '788': { label: 'Far suburbs', fee: 65 }
+  '787': { label: 'Austin core', fee: 35, minPretax: 129 },
+  '786': { label: 'Near suburbs', fee: 50, minPretax: 149 },
+  '788': { label: 'Far suburbs', fee: 65, minPretax: 169 }
 };
 
 var ACTIVE_MARKET_LABEL = 'Austin Metro';
@@ -2132,6 +2132,89 @@ function isActiveServiceZip(zip) {
 function getServiceCallFee(zip) {
   var prefix = String(zip || '').slice(0, 3);
   return SERVICE_CALL_ZONES[prefix] ? SERVICE_CALL_ZONES[prefix].fee : 0;
+}
+
+function getServiceCallZoneInfo(zip) {
+  var prefix = String(zip || '').slice(0, 3);
+  return SERVICE_CALL_ZONES[prefix] || null;
+}
+
+function dollars(value) {
+  var n = Number(value || 0);
+  return '$' + n.toFixed(2).replace(/\.00$/, '');
+}
+
+function getPricingSnapshot(zip) {
+  var itemSubtotal = 0;
+  var baseSubtotal = 0;
+  var addonSubtotal = 0;
+  var hasCustom = false;
+
+  BOOK.selectedServices.forEach(function(svc) {
+    (BOOK.selectedItems[svc] || []).forEach(function(item) {
+      if (item.customQuote) {
+        hasCustom = true;
+        return;
+      }
+
+      var qty = Math.max(1, parseInt(item.qty, 10) || 1);
+      var unit = Number(item.price || 0);
+      if (!Number.isFinite(unit) || unit <= 0) return;
+
+      var lineTotal = Math.round(unit * qty * 100) / 100;
+      itemSubtotal += lineTotal;
+      if (item.addon) addonSubtotal += lineTotal;
+      else baseSubtotal += lineTotal;
+    });
+  });
+
+  var bundle = getBundleDiscount();
+  var discountAmount = itemSubtotal > 0 ? Math.round(itemSubtotal * bundle.pct) / 100 : 0;
+  var discountedSubtotal = Math.max(0, Math.round((itemSubtotal - discountAmount) * 100) / 100);
+  var zoneInfo = getServiceCallZoneInfo(zip);
+  var serviceCallFee = itemSubtotal > 0 && zoneInfo ? zoneInfo.fee : 0;
+  var taxableSubtotal = Math.round((discountedSubtotal + serviceCallFee) * 100) / 100;
+  var taxAmount = Math.round(taxableSubtotal * 0.0825 * 100) / 100;
+  var grandTotal = Math.round((taxableSubtotal + taxAmount) * 100) / 100;
+
+  return {
+    itemSubtotal: itemSubtotal,
+    baseSubtotal: baseSubtotal,
+    addonSubtotal: addonSubtotal,
+    hasCustom: hasCustom,
+    hasPricedBaseItem: baseSubtotal > 0,
+    hasPricedAddonItem: addonSubtotal > 0,
+    isAddonOnly: addonSubtotal > 0 && baseSubtotal === 0,
+    bundle: bundle,
+    discountAmount: discountAmount,
+    discountedSubtotal: discountedSubtotal,
+    zoneInfo: zoneInfo,
+    serviceCallFee: serviceCallFee,
+    taxableSubtotal: taxableSubtotal,
+    taxAmount: taxAmount,
+    grandTotal: grandTotal
+  };
+}
+
+function getOnlineBookingPolicyMessage() {
+  if (BOOK.wantsQuote || BOOK.isEmergingMarket) return '';
+
+  var snapshot = getPricingSnapshot(BOOK.zip);
+  if (snapshot.hasCustom || snapshot.taxableSubtotal <= 0) return '';
+
+  if (snapshot.isAddonOnly) {
+    return 'Add-ons are for same-visit work. Please add a main service item, or choose the custom quote option so we can review it manually.';
+  }
+
+  var zoneInfo = snapshot.zoneInfo;
+  if (!zoneInfo || !zoneInfo.minPretax) return '';
+
+  if (snapshot.taxableSubtotal < zoneInfo.minPretax) {
+    var shortfall = Math.round((zoneInfo.minPretax - snapshot.taxableSubtotal) * 100) / 100;
+    return 'Minimum online booking for ' + zoneInfo.label + ' is ' + dollars(zoneInfo.minPretax) + ' before tax. Your current pre-tax service total is ' + dollars(snapshot.taxableSubtotal) + '. Add about ' + dollars(shortfall) + ' more in services, or choose the custom quote option.';
+  }
+
+  return '';
 }
 
 
@@ -2804,11 +2887,18 @@ function goToStep2Account() {
 
   }
 
+  var selectedQuote = document.getElementById('s1-quote').checked;
+  var selectionSnapshot = getPricingSnapshot('');
+  if (!selectedQuote && selectionSnapshot.isAddonOnly) {
+    showErr('s1-err', 'Add-ons are for same-visit work. Please add a main service item, or check "I\'d prefer a custom quote" so we can review it manually.');
+    return;
+  }
+
   hideErr('s1-err');
 
   BOOK.details = document.getElementById('s1-details').value.trim();
 
-  BOOK.wantsQuote = document.getElementById('s1-quote').checked;
+  BOOK.wantsQuote = selectedQuote;
 
   BOOK.accountMode = 'guest'; // auto guest, no friction step
 
@@ -2972,6 +3062,16 @@ async function goToStep5Payment() {
   if (!ok) return;
 
   BOOK.firstName = first; BOOK.lastName = last; BOOK.email = email; BOOK.phone = phone;
+
+  hideErr('s4-err');
+  var policyMessage = getOnlineBookingPolicyMessage();
+  if (policyMessage) {
+    showErr('s4-err', policyMessage);
+    return;
+  }
+
+  var pricingSnapshotForFlow = getPricingSnapshot(BOOK.zip);
+  BOOK._hasCustomQuoteItems = pricingSnapshotForFlow.hasCustom;
 
 
 
@@ -3281,7 +3381,7 @@ async function goToStep5Payment() {
 
   // Detect quote-only flow: all items are custom quotes OR user checked the quote checkbox
 
-  var isQuoteFlow = (BOOK._grandTotalCents === 0) || BOOK.wantsQuote;
+  var isQuoteFlow = (BOOK._grandTotalCents === 0) || BOOK.wantsQuote || BOOK._hasCustomQuoteItems;
 
   BOOK._isQuoteFlow = isQuoteFlow;
 
@@ -3942,6 +4042,13 @@ async function submitBooking() {
 
   if (BOOK.isEmergingMarket) {
     await submitMarketDemand();
+    return;
+  }
+
+  var policyMessage = getOnlineBookingPolicyMessage();
+  if (policyMessage) {
+    errEl.textContent = policyMessage;
+    errEl.classList.add('show');
     return;
   }
 

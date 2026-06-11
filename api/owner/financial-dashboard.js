@@ -1,9 +1,10 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { MIN_PRETAX_BOOKING_BY_ZONE } from '../_source-of-truth.js';
 import { loadLedgerFirstFinanceRows } from './_finance-ledger.js';
 
 const DEFAULT_ASSUMPTIONS = Object.freeze({
-  reserveRate: 0.02,
+  reserveRate: 0.05,
   processingRate: 0.029,
   processingFixedCents: 30,
   annualOperatingExpensesCents: 350000,
@@ -11,6 +12,8 @@ const DEFAULT_ASSUMPTIONS = Object.freeze({
   baseRepeatCustomerRate: 0.20,
   baseCancellationRate: 0.05,
 });
+
+const MIN_PROFITABLE_TICKET_CENTS = MIN_PRETAX_BOOKING_BY_ZONE.austin_core;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -115,6 +118,7 @@ export default async function handler(req, res) {
       cacCents,
       processingFeeLabel: 'Estimated at 2.9% + $0.30 per captured transaction',
       operatingExpenseLabel: '$3,500/year allocated to selected period',
+      launchMinimums: MIN_PRETAX_BOOKING_BY_ZONE,
     },
     labels: {
       customerRevenue: 'actual',
@@ -631,10 +635,10 @@ function pushServicePart(parts, value) {
 function recommendServiceAction({ serviceName, completedJobs, averageTicket, platformGrossPerJob, netContributionEstimate }) {
   const name = String(serviceName || '').toLowerCase();
   if (name.includes('other') || name.includes('custom')) return 'Custom Quote';
-  if (netContributionEstimate <= 0 && averageTicket < 9900) return 'Add-On Only';
-  if (platformGrossPerJob < 3000 && averageTicket < 9900) return 'Bundle';
+  if (netContributionEstimate <= 0 && averageTicket < MIN_PROFITABLE_TICKET_CENTS) return 'Add-On Only';
+  if (platformGrossPerJob < 3000 && averageTicket < MIN_PROFITABLE_TICKET_CENTS) return 'Bundle';
   if (platformGrossPerJob < 3500) return 'Raise Price';
-  if (completedJobs < 2 && averageTicket < 9900) return 'Bundle';
+  if (completedJobs < 2 && averageTicket < MIN_PROFITABLE_TICKET_CENTS) return 'Bundle';
   return 'Keep';
 }
 

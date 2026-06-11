@@ -122,6 +122,18 @@ export const SERVICE_CALL_ZONES = Object.freeze({
   far_suburb:   { label: 'Far suburbs',    fee: 6500 },  // 788xx — Bastrop, Lockhart
 });
 
+// Launch profit guardrails. These are pre-tax service-revenue floors, so sales
+// tax can never make a weak job look profitable. Quote requests are exempt.
+export const MIN_PRETAX_BOOKING_BY_ZONE = Object.freeze({
+  austin_core: 12900,
+  near_suburb: 14900,
+  far_suburb: 16900,
+});
+
+export function getMinimumPretaxBookingCents(zone) {
+  return MIN_PRETAX_BOOKING_BY_ZONE[zone] || null;
+}
+
 export function getServiceCallZone(zip) {
   const prefix = String(zip || '').slice(0, 3);
   if (prefix === '787') return 'austin_core';

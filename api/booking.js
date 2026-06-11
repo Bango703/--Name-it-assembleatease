@@ -4,6 +4,7 @@ import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { calculateBookingPricing } from './_pricing.js';
+import { getMinimumPretaxBookingCents } from './_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -54,33 +55,40 @@ export default async function handler(req, res) {
     });
   }
 
+  const quoteRequested = isQuoteRequest === true;
   const amount = pricing.totalCents;
   const subtotalCents = pricing.itemSubtotalCents;
   const discountCents = pricing.discountCents;
+  const taxableSubtotalCents = pricing.taxableSubtotalCents;
   const taxCents = pricing.taxCents;
   const serviceCallFeeCents = pricing.serviceCallFeeCents;
+  const shouldChargeNow = amount > 0 && !quoteRequested;
 
-  if (amount > 0 && pricing.callZone === 'far_suburb') {
+  if (amount > 0 && !pricing.callZone) {
     return res.status(400).json({
-      error: 'This address requires a custom quote before booking online. Please email service@assembleatease.com with your address, service items, and preferred time.',
-      code: 'CUSTOM_QUOTE_REQUIRED_FOR_ZONE',
+      error: 'This ZIP is outside the active online booking area. Please submit a service request or email service@assembleatease.com.',
+      code: 'OUTSIDE_ACTIVE_BOOKING_AREA',
+      callZone: pricing.callZone,
+    });
+  }
+
+  if (amount > 0 && !quoteRequested && pricing.isAddonOnly) {
+    return res.status(400).json({
+      error: 'Add-ons can only be booked with a base service item. Please add a main service item or request a custom quote.',
+      code: 'ADDON_ONLY_NOT_ALLOWED',
       callZone: pricing.callZone,
     });
   }
 
   // Hard floor: protect standalone jobs from losing money after travel, support,
-  // payment processing, and rework reserve. Quote-only requests are exempt.
-  const MIN_BOOKING_BY_ZONE_CENTS = {
-    austin_core: 9900,
-    near_suburb: 14900,
-  };
-  const minBookingCents = MIN_BOOKING_BY_ZONE_CENTS[pricing.callZone] || 9900;
-  if (amount > 0 && amount < minBookingCents) {
+  // payment processing, and rework reserve. Compare against pre-tax revenue.
+  const minBookingCents = getMinimumPretaxBookingCents(pricing.callZone);
+  if (amount > 0 && !quoteRequested && minBookingCents && taxableSubtotalCents < minBookingCents) {
     return res.status(400).json({
-      error: `Minimum booking total for this address is $${(minBookingCents / 100).toFixed(2)}. Your current selection totals $${(amount / 100).toFixed(2)}. Please add more services or email service@assembleatease.com for a custom quote.`,
+      error: `Minimum pre-tax service total for this address is $${(minBookingCents / 100).toFixed(2)}. Your current pre-tax service total is $${(taxableSubtotalCents / 100).toFixed(2)}. Please add more services or request a custom quote.`,
       code: 'BELOW_MINIMUM',
-      totalCents: amount,
-      minimumCents: minBookingCents,
+      taxableSubtotalCents,
+      minimumPretaxCents: minBookingCents,
       callZone: pricing.callZone,
     });
   }
@@ -99,7 +107,7 @@ export default async function handler(req, res) {
     time,
     details,
     status: 'pending',
-    payment_status: amount > 0 ? 'pending' : 'not_required',
+    payment_status: shouldChargeNow ? 'pending' : 'not_required',
     total_price: amount,
     tax_amount: taxCents,
     service_call_fee: serviceCallFeeCents,
@@ -124,7 +132,7 @@ export default async function handler(req, res) {
   }
 
   // Quote booking with saved card: store the customer + payment method from SetupIntent
-  if (isQuoteRequest && paymentMethodId && stripeCustomerId) {
+  if (quoteRequested && paymentMethodId && stripeCustomerId) {
     await sb.from('bookings').update({
       stripe_customer_id: stripeCustomerId,
       stripe_payment_method_id: paymentMethodId,
@@ -135,7 +143,7 @@ export default async function handler(req, res) {
   // ── Stripe: create customer + PaymentIntent (skip if no price) ──
   let clientSecret = null;
 
-  if (amount > 0 && process.env.STRIPE_SECRET_KEY) {
+  if (shouldChargeNow && process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -376,8 +384,10 @@ export default async function handler(req, res) {
         discountCents,
         discountPct: pricing.discountPct,
         serviceCallFeeCents,
+        taxableSubtotalCents,
         taxCents,
         totalCents: amount,
+        minimumPretaxCents: minBookingCents,
       },
     });
   } catch (e) {
