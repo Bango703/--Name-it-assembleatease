@@ -357,7 +357,7 @@ AAE.quickBook = function(name, price) {
 AAE.getTotal = function() {
   return AAE.cart.reduce(function(sum, i) {
     var p = parseFloat(String(i.price).replace(/[^0-9.]/g,''));
-    return sum + (isNaN(p)  0 : p);
+    return sum + (isNaN(p) ? 0 : p);
   }, 0);
 };
 
@@ -409,12 +409,11 @@ AAE.updateModalCart = function() {
 };
 
 AAE.openBooking = function() {
-  AAE.updateModalCart();
-  document.getElementById('form-state').style.display = 'block';
-  document.getElementById('card-step').style.display = 'none';
-  document.getElementById('success-state').classList.remove('show');
-  document.getElementById('booking-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Single source of truth for booking: always use the real /book flow (item + ZIP
+  // priced, server-validated). The contact page no longer runs a separate
+  // booking/payment path — that bypassed pricing and could create bad bookings.
+  var first = (AAE.cart && AAE.cart.length) ? AAE.cart[0].name : '';
+  window.location.href = '/book' + (first ? ('?service=' + encodeURIComponent(first)) : '');
 };
 
 AAE.closeBooking = function() {
@@ -480,7 +479,7 @@ AAE.submitBooking = async function() {
   var time    = document.getElementById('f-time').value;
   var details = document.getElementById('f-details').value.trim();
   var customQuote = document.getElementById('f-custom-quote') && document.getElementById('f-custom-quote').checked;
-  var services = AAE.cart.length > 0  AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
+  var services = AAE.cart.length > 0 ? AAE.cart.map(function(i){return i.name+' ('+i.price+')';}).join(', ') : 'See details below';
   if (customQuote) services = '[CUSTOM QUOTE REQUESTED] ' + services;
   var errEl = document.getElementById('form-err');
   errEl.style.display = 'none';
@@ -630,13 +629,14 @@ AAE.backToForm = function() {
 };
 
 AAE.showSuccess = function(ref, services, address, date, time) {
-  var desc = 'We received your booking' + (ref  ' (' + ref + ')' : '') + ' for: ' + services + '. We will contact you within 1 hour to confirm your appointment at ' + address + ' on ' + date + ' at ' + time + '.';
+  var desc = 'We received your booking' + (ref ? ' (' + ref + ')' : '') + ' for: ' + services + '. We will reach out within 1 hour to match you with a pro for ' + address + ' on ' + date + ' at ' + time + '.';
   document.getElementById('success-desc').textContent = desc;
   document.getElementById('form-state').style.display = 'none';
   document.getElementById('card-step').style.display = 'none';
   document.getElementById('success-state').classList.add('show');
 };
 
+document.addEventListener('DOMContentLoaded', function() {
   (function initDateTimePicker(){
     var grid=document.getElementById('dt-cal-grid'),titleEl=document.getElementById('dt-cal-title'),prevBtn=document.getElementById('dt-prev'),nextBtn=document.getElementById('dt-next'),timesEl=document.getElementById('dt-times'),selEl=document.getElementById('dt-selected');
     if(!grid)return;
@@ -647,7 +647,7 @@ AAE.showSuccess = function(ref, services, address, date, time) {
     var today=new Date();today.setHours(0,0,0,0);
     var maxDate=new Date(today.getTime()+6*24*60*60*1000);
     var curMonth=today.getMonth(),curYear=today.getFullYear(),selectedDate='';
-    function pad(n){return n<10'0'+n:n;}
+    function pad(n){return n<10 ? '0'+n : n;}
     function render(){
       titleEl.textContent=months[curMonth]+' '+curYear;
       prevBtn.disabled=(curYear===today.getFullYear()&&curMonth===today.getMonth());

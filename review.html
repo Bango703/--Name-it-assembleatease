@@ -158,7 +158,7 @@ stars.forEach(function(btn) {
   btn.addEventListener('click', function() {
     selectedRating = +this.dataset.val;
     paintStars(selectedRating, true);
-    document.getElementById('star-label').textContent = labels[selectedRating] + (selectedRating === 5  ' ⭐' : '');
+    document.getElementById('star-label').textContent = labels[selectedRating] + (selectedRating === 5 ? ' ⭐' : '');
   });
 });
 
