@@ -1517,9 +1517,11 @@
 
               <label class="form-label" for="s3-street">Where should we come <span style="color:var(--teal)">*</span></label>
 
-              <input type="text" class="form-input" id="s3-street" placeholder="123 Main St" autocomplete="off" />
+              <input type="text" class="form-input" id="s3-street" name="address-line1" placeholder="123 Main St" autocomplete="address-line1" aria-autocomplete="list" aria-controls="s3-addr-dropdown" />
 
               <div id="s3-addr-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto"></div>
+
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.35rem">Address suggestions &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">OpenStreetMap contributors</a></div>
 
               <div class="field-error" id="s3-addr-err">Please enter your street address.</div>
 
@@ -1529,7 +1531,7 @@
 
               <label class="form-label" for="s3-apt">Apt / Suite / Unit <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
 
-              <input type="text" class="form-input" id="s3-apt" placeholder="Apt 4B, Suite 200, Unit 3..." autocomplete="off" />
+              <input type="text" class="form-input" id="s3-apt" name="address-line2" placeholder="Apt 4B, Suite 200, Unit 3..." autocomplete="address-line2" />
 
             </div>
 
@@ -1539,7 +1541,7 @@
 
                 <label class="form-label" for="s3-city">City <span style="color:var(--teal)">*</span></label>
 
-                <input type="text" class="form-input" id="s3-city" placeholder="Austin" value="Austin" autocomplete="address-level2" />
+                <input type="text" class="form-input" id="s3-city" name="address-level2" placeholder="Austin" value="Austin" autocomplete="address-level2" />
 
               </div>
 
@@ -1547,7 +1549,7 @@
 
                 <label class="form-label" for="s3-state">State</label>
 
-                <input type="text" class="form-input" id="s3-state" placeholder="TX" value="TX" maxlength="2" autocomplete="address-level1" />
+                <input type="text" class="form-input" id="s3-state" name="address-level1" placeholder="TX" value="TX" maxlength="2" autocomplete="address-level1" />
 
               </div>
 
@@ -1555,7 +1557,7 @@
 
                 <label class="form-label" for="s3-zip">ZIP <span style="color:var(--teal)">*</span></label>
 
-                <input type="text" class="form-input" id="s3-zip" placeholder="78701" maxlength="5" autocomplete="postal-code" oninput="checkServiceZip(this.value)" />
+                <input type="text" class="form-input" id="s3-zip" name="postal-code" placeholder="78701" maxlength="5" inputmode="numeric" pattern="[0-9]*" autocomplete="postal-code" oninput="checkServiceZip(this.value)" />
 
                 <div class="svc-area-ok" id="svc-area-ok">&#10003; We service your area</div>
 
@@ -3470,7 +3472,7 @@ function saveContactEdit() {
 
 // ----------------------------------------------------------------------------
 
-// -- ADDRESS AUTOCOMPLETE (Nominatim) -----------------------------------------
+// -- ADDRESS AUTOCOMPLETE (OpenStreetMap/Nominatim) ---------------------------
 
 (function initAddressAutocomplete() {
 
@@ -3481,72 +3483,98 @@ function saveContactEdit() {
   if (!input || !dropdown) return;
 
   var debounce;
+  var cache = {};
+  var lastLookupAt = 0;
+  var lookupToken = 0;
+
+  function hideDropdown() { dropdown.style.display = 'none'; }
+
+  function txState(value) {
+    var v = String(value || '').trim();
+    return v.toLowerCase() === 'texas' ? 'TX' : (v || 'TX');
+  }
+
+  function normalizedResults(results) {
+    return (results || []).map(function(r) {
+      var a = r.address || {};
+      var street = [a.house_number, a.road].filter(Boolean).join(' ').trim();
+      if (!street) return null;
+      var city = a.city || a.town || a.village || a.suburb || 'Austin';
+      var state = txState(a.state_code || a.state);
+      var zip = String(a.postcode || '').slice(0, 5);
+      var label = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+      return { street: street, city: city, state: state, zip: zip, label: label };
+    }).filter(Boolean).slice(0, 5);
+  }
+
+  function renderSuggestions(items) {
+    if (!items.length) { hideDropdown(); return; }
+
+    dropdown.innerHTML = items.map(function(item) {
+      return '<div role="option" data-street="' + escAttr(item.street) + '" data-city="' + escAttr(item.city) + '" data-state="' + escAttr(item.state) + '" data-zip="' + escAttr(item.zip) + '" style="padding:0.6rem 1rem;cursor:pointer;font-size:0.875rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s" onmouseenter="this.style.background=\'#e0f7fa\'" onmouseleave="this.style.background=\'#fff\'">' + esc(item.label) + '</div>';
+    }).join('');
+
+    dropdown.querySelectorAll('[role="option"]').forEach(function(opt) {
+      opt.addEventListener('mousedown', function(ev) {
+        ev.preventDefault();
+        input.value = opt.dataset.street || input.value;
+
+        var cityEl = document.getElementById('s3-city');
+        var stateEl = document.getElementById('s3-state');
+        var zipEl = document.getElementById('s3-zip');
+
+        if (opt.dataset.city && cityEl) cityEl.value = opt.dataset.city;
+        if (opt.dataset.state && stateEl) stateEl.value = opt.dataset.state;
+        if (opt.dataset.zip && zipEl) {
+          zipEl.value = opt.dataset.zip;
+          checkServiceZip(opt.dataset.zip);
+        }
+
+        hideDropdown();
+      });
+    });
+
+    dropdown.style.display = 'block';
+  }
+
+  function lookupAddress(q) {
+    var key = q.toLowerCase();
+    var token = ++lookupToken;
+
+    if (cache[key]) { renderSuggestions(cache[key]); return; }
+
+    lastLookupAt = Date.now();
+
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=us&addressdetails=1&limit=5&viewbox=-98.2,31.0,-97.1,29.7&bounded=0&q=' + encodeURIComponent(q + ', TX');
+
+    fetch(url)
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(results) {
+        if (token !== lookupToken) return;
+        cache[key] = normalizedResults(results);
+        renderSuggestions(cache[key]);
+      })
+      .catch(hideDropdown);
+  }
 
   input.addEventListener('input', function() {
-
     clearTimeout(debounce);
 
     var q = input.value.trim();
 
-    if (q.length < 4) { dropdown.style.display = 'none'; return; }
+    if (q.length < 5) { hideDropdown(); return; }
 
     debounce = setTimeout(function() {
-
-      fetch('https://nominatim.openstreetmap.org/searchformat=json&countrycodes=us&addressdetails=1&limit=6&q=' + encodeURIComponent(q + ' Austin TX'))
-
-        .then(function(r) { return r.json(); })
-
-        .then(function(results) {
-
-          if (!results.length) { dropdown.style.display = 'none'; return; }
-
-          dropdown.innerHTML = results.map(function(r) {
-
-            var a = r.address || {};
-
-            var street = (a.house_number ? a.house_number + ' ' : '') + (a.road || '');
-
-            var city   = a.city || a.town || a.village || 'Austin';
-
-            var state  = a.state_code || a.state || 'TX';
-
-            var zip    = a.postcode || '';
-
-            var label  = r.display_name.replace(/, United States$/, '');
-
-            return '<div data-street="' + street + '" data-city="' + city + '" data-state="' + state + '" data-zip="' + zip + '" style="padding:0.6rem 1rem;cursor:pointer;font-size:0.875rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s" onmouseenter="this.style.background=\'#e0f7fa\'" onmouseleave="this.style.background=\'#fff\'">' + label + '</div>';
-
-          }).join('');
-
-          dropdown.querySelectorAll('div').forEach(function(opt) {
-
-            opt.addEventListener('mousedown', function(ev) {
-
-              ev.preventDefault();
-
-              input.value = opt.dataset.street || input.value;
-
-              if (opt.dataset.city)  document.getElementById('s3-city').value  = opt.dataset.city;
-
-              if (opt.dataset.state) document.getElementById('s3-state').value = opt.dataset.state;
-
-              if (opt.dataset.zip)   document.getElementById('s3-zip').value   = opt.dataset.zip;
-
-              dropdown.style.display = 'none';
-
-            });
-
-          });
-
-          dropdown.style.display = 'block';
-
-        }).catch(function() { dropdown.style.display = 'none'; });
-
-    }, 400);
-
+      var wait = Math.max(0, 1200 - (Date.now() - lastLookupAt));
+      debounce = setTimeout(function() { lookupAddress(q); }, wait);
+    }, 700);
   });
 
-  input.addEventListener('blur', function() { setTimeout(function(){ dropdown.style.display='none'; }, 200); });
+  input.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape') hideDropdown();
+  });
+
+  input.addEventListener('blur', function() { setTimeout(hideDropdown, 200); });
 
 })();
 
