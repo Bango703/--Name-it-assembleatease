@@ -1579,7 +1579,7 @@
 
         <div class="step-actions">
 
-          <button class="btn-back-link" onclick="goToStep(2)">&larr; Back</button>
+          <button class="btn-back-link" onclick="goToStep(1)">&larr; Back</button>
 
           <button class="btn-next" onclick="goToStep4Contact()">Continue <span>&#8594;</span></button>
 
@@ -2758,6 +2758,9 @@ function setProgress(step) {
 
 
 function goToStep(n) {
+
+  // Step 2 was removed from the live flow; never navigate to its hidden panel.
+  if (n === 2) n = 1;
 
   for (var i = 1; i <= TOTAL_STEPS; i++) {
 
