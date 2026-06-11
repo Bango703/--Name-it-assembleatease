@@ -1733,7 +1733,7 @@
 
         <div class="step-err" id="s5-err"></div>
 
-        <div class="confidence-strip" id="s5-confidence">
+        <div class="confidence-strip" id="s5-confidence" style="display:none">
 
           <span>Takes under 2 minutes</span>
 
@@ -1751,7 +1751,7 @@
 
         </div>
 
-        <p id="s5-charge-note" style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500">
+        <p id="s5-charge-note" style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500;display:none">
 
           You won&rsquo;t be charged until the job is complete.
 
@@ -3255,12 +3255,12 @@ async function goToStep5Payment() {
 
   document.getElementById('s5-quote-section').style.display = 'none';
 
-  document.getElementById('s5-charge-note').style.display = '';
+  document.getElementById('s5-charge-note').style.display = 'none';
 
   document.getElementById('s5-stripe-note').style.display = '';
 
   document.getElementById('s5-confidence').innerHTML =
-    '<span>Takes under 2 minutes</span><span>Secure payment at booking</span><span>Instant confirmation</span>';
+    '';
 
   document.getElementById('s5-submit').innerHTML = 'Reserve My Time Slot <span>&#8594;</span>';
 
@@ -3295,7 +3295,7 @@ async function goToStep5Payment() {
 
     document.getElementById('s5-confidence').innerHTML =
 
-      '<span>No charge today</span><span>Custom quote in as little as 1 hour</span><span>You approve the price before we schedule</span>';
+      '';
 
     document.getElementById('s5-submit').innerHTML = 'Save Card & Request Quote <span>&#8594;</span>';
 
