@@ -1521,7 +1521,7 @@
 
               <div id="s3-addr-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:999;max-height:220px;overflow-y:auto"></div>
 
-              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.35rem">Address suggestions &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">OpenStreetMap contributors</a></div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:0.35rem">Address suggestions by <a href="https://www.geoapify.com/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Geoapify</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">OpenStreetMap contributors</a></div>
 
               <div class="field-error" id="s3-addr-err">Please enter your street address.</div>
 
@@ -3494,7 +3494,7 @@ function saveContactEdit() {
     return v.toLowerCase() === 'texas' ? 'TX' : (v || 'TX');
   }
 
-  function normalizedResults(results) {
+  function normalizedNominatimResults(results) {
     return (results || []).map(function(r) {
       var a = r.address || {};
       var street = [a.house_number, a.road].filter(Boolean).join(' ').trim();
@@ -3503,6 +3503,18 @@ function saveContactEdit() {
       var state = txState(a.state_code || a.state);
       var zip = String(a.postcode || '').slice(0, 5);
       var label = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+      return { street: street, city: city, state: state, zip: zip, label: label };
+    }).filter(Boolean).slice(0, 5);
+  }
+
+  function normalizedSuggestionResults(results) {
+    return (results || []).map(function(r) {
+      var street = String(r.street || '').trim();
+      if (!street) return null;
+      var city = r.city || 'Austin';
+      var state = txState(r.state || 'TX');
+      var zip = String(r.zip || '').slice(0, 5);
+      var label = r.label || [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
       return { street: street, city: city, state: state, zip: zip, label: label };
     }).filter(Boolean).slice(0, 5);
   }
@@ -3545,13 +3557,28 @@ function saveContactEdit() {
 
     lastLookupAt = Date.now();
 
+    fetch('/api/address/autocomplete?q=' + encodeURIComponent(q))
+      .then(function(r) {
+        if (!r.ok) throw new Error('Geoapify unavailable');
+        return r.json();
+      })
+      .then(function(data) {
+        if (token !== lookupToken) return;
+        cache[key] = normalizedSuggestionResults(data.suggestions);
+        if (!cache[key].length) throw new Error('No Geoapify suggestions');
+        renderSuggestions(cache[key]);
+      })
+      .catch(function() { lookupOpenStreetMapAddress(q, key, token); });
+  }
+
+  function lookupOpenStreetMapAddress(q, key, token) {
     var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=us&addressdetails=1&limit=5&viewbox=-98.2,31.0,-97.1,29.7&bounded=0&q=' + encodeURIComponent(q + ', TX');
 
     fetch(url)
       .then(function(r) { return r.ok ? r.json() : []; })
       .then(function(results) {
         if (token !== lookupToken) return;
-        cache[key] = normalizedResults(results);
+        cache[key] = normalizedNominatimResults(results);
         renderSuggestions(cache[key]);
       })
       .catch(hideDropdown);
