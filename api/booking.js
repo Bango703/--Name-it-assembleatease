@@ -80,18 +80,10 @@ export default async function handler(req, res) {
     });
   }
 
-  // Hard floor: protect standalone jobs from losing money after travel, support,
-  // payment processing, and rework reserve. Compare against pre-tax revenue.
+  // No hard minimum BLOCK. The per-ZIP service-call fee already covers travel and
+  // overhead on small jobs, so we take the booking instead of turning the customer
+  // away over a few dollars. (minBookingCents kept as informational context only.)
   const minBookingCents = getMinimumPretaxBookingCents(pricing.callZone);
-  if (amount > 0 && !quoteRequested && minBookingCents && taxableSubtotalCents < minBookingCents) {
-    return res.status(400).json({
-      error: `Minimum pre-tax service total for this address is $${(minBookingCents / 100).toFixed(2)}. Your current pre-tax service total is $${(taxableSubtotalCents / 100).toFixed(2)}. Please add more services or request a custom quote.`,
-      code: 'BELOW_MINIMUM',
-      taxableSubtotalCents,
-      minimumPretaxCents: minBookingCents,
-      callZone: pricing.callZone,
-    });
-  }
 
   const isDeposit = false;
   const depositAmountCents = null;
