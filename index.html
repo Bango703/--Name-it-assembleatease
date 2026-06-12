@@ -477,13 +477,10 @@ section#service-area{display:none}
   .nav-logo-text{font-size:0.98rem}
 }
 
-/* Mobile: gentle section-by-section scroll. 'proximity' snaps only when you pause
-   near a section edge, so tall sections (service list, reviews, FAQ) still scroll
-   normally and nobody gets trapped. */
-@media(max-width:900px){
-  html{scroll-snap-type:y proximity;scroll-padding-top:8px}
-  .svc-section,.people-band,.benefits-section,#reviews,#service-area,#faq,.cta-section{scroll-snap-align:start;scroll-snap-stop:normal}
-}
+/* Mobile: the page scrolls normally and always rests at the very top on load.
+   (A previous y-axis scroll-snap on <html> made mobile browsers jump past the
+   hero to the services list on load — so the first visible word was "Mounting"
+   instead of the headline. Horizontal carousels keep their own x-axis snap.) */
 
 @media(prefers-reduced-motion:reduce){
   .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,.hv2-right img,.hv2-chip,.hv2-right::after,.m-hero-kicker::before,.m-hero-photo img,.m-float-card,.svc-item,.how-num{animation:none!important}
@@ -876,7 +873,7 @@ section#service-area{display:block}
     </div>
     <div class="guides-grid">
       <a href="/blog/smart-home-installation-austin" class="guide-card">
-        <span class="guide-thumb"><img src="/images/service-smart-home.jpg" alt="Smart lock and camera setup service in Austin" loading="lazy" width="300" height="300"></span>
+        <span class="guide-thumb"><img src="/images/work-smart-home.jpg" alt="Smart lock and camera setup service in Austin" loading="lazy" width="300" height="300"></span>
         <span>
           <span class="guide-meta">Smart home</span>
           <span class="guide-title">Smart Locks, Cameras &amp; Doorbells: What to Know First</span>
@@ -885,7 +882,7 @@ section#service-area{display:block}
         </span>
       </a>
       <a href="/blog/new-home-setup-checklist-austin" class="guide-card">
-        <span class="guide-thumb"><img src="/images/people-service-calm.jpg" alt="Calm home service visit in Austin" loading="lazy" width="300" height="300"></span>
+        <span class="guide-thumb"><img src="/images/about-story-customer-review.jpg" alt="Calm home service visit in Austin" loading="lazy" width="300" height="300"></span>
         <span>
           <span class="guide-meta">Move-in setup</span>
           <span class="guide-title">New Home Setup Checklist for Austin Movers</span>
@@ -894,7 +891,7 @@ section#service-area{display:block}
         </span>
       </a>
       <a href="/blog/tv-mounting-costs-austin" class="guide-card">
-        <span class="guide-thumb"><img src="/images/service-tv-mounting.jpg" alt="TV mounting service in Austin" loading="lazy" width="300" height="300"></span>
+        <span class="guide-thumb"><img src="/images/booking-service-tv-mounting.jpg" alt="TV mounting service in Austin" loading="lazy" width="300" height="300"></span>
         <span>
           <span class="guide-meta">TV mounting</span>
           <span class="guide-title">TV Mounting Costs in Austin TX</span>
@@ -912,7 +909,7 @@ section#service-area{display:block}
         </span>
       </a>
       <a href="/blog/ikea-assembly-cost-austin" class="guide-card">
-        <span class="guide-thumb"><img src="/images/service-furniture-assembly.jpg" alt="Furniture assembly service in Austin" loading="lazy" width="300" height="300"></span>
+        <span class="guide-thumb"><img src="/images/booking-service-furniture-assembly.jpg" alt="Furniture assembly service in Austin" loading="lazy" width="300" height="300"></span>
         <span>
           <span class="guide-meta">Furniture</span>
           <span class="guide-title">IKEA Assembly Cost in Austin</span>
