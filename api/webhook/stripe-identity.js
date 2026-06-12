@@ -2,6 +2,8 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 
+export const config = { api: { bodyParser: false } };
+
 /**
  * POST /api/webhook/stripe-identity
  * Handles Stripe Identity verification session webhooks.
@@ -18,16 +20,15 @@ export default async function handler(req, res) {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
 
-  if (!webhookSecret) {
-    console.warn('STRIPE_IDENTITY_WEBHOOK_SECRET not set — webhook not validated');
-    return res.status(500).json({ error: 'Webhook secret not configured' });
+  if (!sig || !webhookSecret || !process.env.STRIPE_SECRET_KEY) {
+    console.warn('Stripe Identity webhook missing signature, webhook secret, or Stripe secret key');
+    return res.status(500).json({ error: 'Stripe Identity webhook is not configured' });
   }
 
   let event;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    // req.body must be the raw buffer — Vercel provides it as Buffer when content-type is application/json
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const rawBody = await readRawBody(req);
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch(err) {
     console.error('Stripe Identity webhook signature error:', err.message);
@@ -111,4 +112,13 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).json({ received: true, event: event.type, profileId: profile.id });
+}
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
 }
