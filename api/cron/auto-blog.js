@@ -297,21 +297,27 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
 
       // Derive tag from topic keywords
       const tLower = topic.toLowerCase();
-      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'Mounting & Hanging'
+      const tag = tLower.includes('tv') || tLower.includes('mount') || tLower.includes('projector') ? 'TV Mounting'
         : tLower.includes('smart') || tLower.includes('nest') || tLower.includes('ring') || tLower.includes('camera') || tLower.includes('thermostat') || tLower.includes('lock') ? 'Smart Home'
         : 'Furniture';
+      const image = tag === 'TV Mounting' ? '/images/service-tv-mounting.jpg'
+        : tag === 'Smart Home' ? '/images/service-smart-home.jpg'
+        : '/images/service-furniture-assembly.jpg';
 
       const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       const excerpt = articleHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '…';
-      const newCard = `\n    <a href="/blog/${slug}" class="blog-card">
-      <div class="blog-meta"><span class="blog-tag">${tag}</span> ${displayDate} &bull; ${readTime} min read</div>
-      <div class="blog-card-title">${title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-      <div class="blog-card-excerpt">${excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-      <div class="blog-read-more">Read more &rarr;</div>
-    </a>\n`;
+      const safeTitle = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const safeExcerpt = excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const newCard = `\n      <a href="/blog/${slug}" class="guide-card">
+        <span class="guide-thumb"><img src="${image}" alt="${tag} guide in Austin" loading="lazy" width="300" height="300"></span>
+        <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read guide &rarr;</span></span>
+      </a>\n`;
 
-      // Insert after the opening <div class="blog-grid">
-      const updatedIdx = idxHtml.replace(/(<div class="blog-grid">)/, '$1' + newCard);
+      // Insert after the opening <div class="guides-grid">
+      const updatedIdx = idxHtml.replace(/(<div class="guides-grid">)/, '$1' + newCard);
+      if (updatedIdx === idxHtml) {
+        throw new Error('Guide grid marker not found in blog/index.html');
+      }
 
       await fetch(
         `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/blog/index.html`,
@@ -357,6 +363,7 @@ function capitalize(str) {
 function buildBlogPage({ title, canonicalUrl, today, readTime, body }) {
   const escaped = title.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const shareUrl = encodeURIComponent(canonicalUrl);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -443,19 +450,33 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </head>
 <body>
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
-<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="nav-logo-text">Assemble<span>AtEase</span></div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Blog</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/book" class="btn btn-cyan">Book Now</a></div></nav>
+<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="nav-logo-text">Assemble<span>AtEase</span></div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Guides</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/book" class="btn btn-cyan">Book Now</a></div></nav>
 
-<section class="page-hero" id="main-content"><div class="page-hero-inner"><a href="/blog/" class="page-back">&larr; Back to Blog</a><h1 class="page-title">${escaped}</h1><p class="page-desc">${displayDate} &bull; ${readTime} min read</p></div></section>
+<section class="page-hero" id="main-content"><div class="page-hero-inner"><a href="/blog/" class="page-back">&larr; Back to Guides</a><h1 class="page-title">${escaped}</h1><p class="page-desc">${displayDate} &bull; ${readTime} min read</p></div></section>
 
 <article class="article">
 ${body}
 </article>
 
+<section class="article-share-kit" aria-label="Share this guide">
+  <div class="article-share-inner">
+    <div class="article-share-copy">
+      <strong>Share this Austin setup guide.</strong>
+      <span>Send it to someone planning a move-in, mount, assembly, or smart home visit.</span>
+    </div>
+    <div class="article-share-actions">
+      <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener">Facebook</a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow</a>
+    </div>
+  </div>
+</section>
+
 <section style="background:linear-gradient(135deg,#003d47,#006070);padding:3rem 2rem;text-align:center;margin-top:3rem">
   <div style="max-width:560px;margin:0 auto">
     <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;font-weight:700">Austin TX &bull; Same-Day Available</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;margin-bottom:0.85rem;line-height:1.2">Ready to book a pro in Austin?</h2>
-    <p style="font-size:0.95rem;color:rgba(255,255,255,0.8);margin-bottom:1.75rem;line-height:1.7">Flat-rate pricing. Vetted professionals. Secure checkout.</p>
+    <p style="font-size:0.95rem;color:rgba(255,255,255,0.8);margin-bottom:1.75rem;line-height:1.7">Flat-rate pricing. Identity-verified pros. Secure checkout.</p>
     <a href="/book" class="btn btn-cyan btn-lg" style="color:#fff;font-weight:700">Book a Service &rarr;</a>
   </div>
 </section>
@@ -471,7 +492,7 @@ ${body}
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
         <li><a href="/furniture">Furniture Assembly</a></li>
-        <li><a href="/mounting">TV &amp; Mounting</a></li>
+        <li><a href="/mounting">TV Mounting</a></li>
         <li><a href="/smarthome">Smart Home</a></li>
       </ul>
     </div>
@@ -480,7 +501,7 @@ ${body}
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/blog/">Guides</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms</a></li>
