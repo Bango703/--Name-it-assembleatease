@@ -91,6 +91,8 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {
     channelId: channel.channelId,
     schedulingType: BUFFER_DEFAULT_SCHEDULING_TYPE,
     mode: dueAt ? 'customScheduled' : BUFFER_DEFAULT_MODE,
+    metadata: metadataForChannel(channel, { url }),
+    assets: [],
     source: 'assembleatease-content-engine',
     aiAssisted: true,
   };
@@ -98,6 +100,21 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {
   if (dueAt) input.dueAt = dueAt;
   if (imageUrl && shouldAttachImage()) input.assets = [{ image: { url: imageUrl } }];
   return input;
+}
+
+function metadataForChannel(channel, { url } = {}) {
+  if (channel.key === 'facebook') return { facebook: { type: 'post' } };
+  if (channel.key === 'googleBusiness') {
+    return {
+      google: {
+        type: 'whats_new',
+        detailsWhatsNew: { button: 'book', link: url },
+      },
+    };
+  }
+  if (channel.key === 'instagram') return { instagram: { type: 'post', shouldShareToFeed: true } };
+  if (channel.key === 'linkedin') return { linkedin: { type: 'post' } };
+  return undefined;
 }
 
 function textForChannel(channel, { title, url, kit }) {

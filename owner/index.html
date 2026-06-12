@@ -1427,9 +1427,10 @@ function intelQuick(msg) {
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Publish failed');
       _ckLast = { slug: slug, kit: d.kit };
-      status.textContent = dryRun ? '✓ Test complete.' : '✓ Publish attempt complete.';
+      var summary = ckPublishSummary(d.publish || {}, dryRun);
+      status.textContent = summary.text;
       results.innerHTML = ckPublishRender(d.publish || {}) + ckRender(d.kit || {});
-      toast(dryRun ? 'Social publish test complete' : 'Social publish attempted', 'success');
+      toast(summary.toast, summary.ok ? 'success' : 'error');
     } catch (e) {
       status.textContent = 'Error: ' + (e.message || 'failed');
       toast('Social publish failed', 'error');
@@ -1454,6 +1455,16 @@ function intelQuick(msg) {
           return '<div style="font-size:0.82rem;line-height:1.5;color:' + color + '"><strong>' + esc(k) + ':</strong> ' + esc(p.status || 'unknown') + detail + '</div>';
         }).join('')
       + '</div>';
+  }
+  function ckPublishSummary(publish, dryRun) {
+    var keys = Object.keys(publish || {});
+    var queued = keys.filter(function(k){ return publish[k] && publish[k].status === 'queued'; }).length;
+    var tested = keys.filter(function(k){ return publish[k] && publish[k].status === 'dry_run'; }).length;
+    var errors = keys.filter(function(k){ return publish[k] && publish[k].status === 'error'; }).length;
+    if (dryRun && tested) return { ok: true, text: '✓ Test complete. No Buffer posts were created.', toast: 'Social publish test complete' };
+    if (!dryRun && queued) return { ok: true, text: '✓ Queued ' + queued + ' Buffer post' + (queued === 1 ? '.' : 's.'), toast: 'Queued in Buffer' };
+    if (errors) return { ok: false, text: 'Buffer did not queue a post. See errors below.', toast: 'Buffer publish failed' };
+    return { ok: false, text: 'Buffer did not queue a post. See publish results below.', toast: 'No Buffer posts queued' };
   }
   function ckRender(kit) {
     var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
