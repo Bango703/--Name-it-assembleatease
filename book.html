@@ -2220,7 +2220,7 @@ function getOnlineBookingPolicyMessage() {
 
   if (snapshot.taxableSubtotal < zoneInfo.minPretax) {
     var shortfall = Math.round((zoneInfo.minPretax - snapshot.taxableSubtotal) * 100) / 100;
-    return 'Minimum online booking for ' + zoneInfo.label + ' is ' + dollars(zoneInfo.minPretax) + ' before tax. Your current pre-tax service total is ' + dollars(snapshot.taxableSubtotal) + '. Add about ' + dollars(shortfall) + ' more in services, or choose the custom quote option.';
+    return '';  // no minimum block: the service-call fee already covers small-job overhead, so never block the sale
   }
 
   return '';
