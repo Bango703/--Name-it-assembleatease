@@ -841,7 +841,7 @@ function buildPaymentFailEmail(firstName, reason) {
 
 function buildBookingConfirmEmail(booking, totalDisplay) {
   const firstName = esc((booking.customer_name || '').split(' ')[0]);
-  const paymentNote = `Your card is securely authorized for <strong>${totalDisplay}</strong> and will only be charged after the job is complete.`;
+  const paymentNote = `Your payment method has been verified securely for <strong>${totalDisplay}</strong>. Payment is processed after the job is complete.`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
@@ -857,7 +857,7 @@ function buildBookingConfirmEmail(booking, totalDisplay) {
       </table>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
-      <strong>Cancellation policy:</strong> Cancel at least 24 hours before your appointment for a full release. Cancellations within 24 hours may incur a 50% fee. No-shows will be charged the full amount.
+      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your appointment for a full release. Inside 24 hours, a late-cancel fee may apply because a pro has already reserved the time.
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>

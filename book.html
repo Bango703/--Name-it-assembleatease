@@ -1182,9 +1182,9 @@
 
       <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Secure checkout</span>
 
-      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Secure payment at booking</span>
+      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Total shown upfront</span>
 
-      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg> Balance after completion</span>
+      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg> Payment after completion</span>
 
     </div>
 
@@ -1748,7 +1748,7 @@
 
           <span>Takes under 2 minutes</span>
 
-          <span>Secure payment at booking</span>
+          <span>Secure checkout</span>
 
           <span>Status updates by email</span>
 
@@ -3339,7 +3339,7 @@ async function goToStep5Payment() {
 
     var totalDisplay = hasCustom && subtotal === 0 ? 'Custom quote' : ('$' + grandTotal.toFixed(2) + (hasCustom ? '+ (some items need a quote)' : ''));
 
-    var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : 'Secure payment at booking';
+    var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : 'Secure checkout';
 
     var totalHtml = '<div class="summary-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
 
@@ -3385,7 +3385,7 @@ async function goToStep5Payment() {
 
     document.getElementById('s5-quote-section').style.display = 'block';
 
-    document.getElementById('s5-quote-section').innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);padding:1rem 1.1rem;font-size:0.86rem;color:#075985;line-height:1.65"><strong>No booking guarantee yet.</strong> ' + ACTIVE_MARKET_LABEL + ' is our active launch market. For ' + esc(BOOK.city) + ', ' + esc(BOOK.state) + ', we will save your request, track demand, and contact you before any scheduling or payment happens.</div>';
+    document.getElementById('s5-quote-section').innerHTML = '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius-md);padding:1rem 1.1rem;font-size:0.86rem;color:#075985;line-height:1.65"><strong>We will contact you first.</strong> ' + ACTIVE_MARKET_LABEL + ' is our active launch market. For ' + esc(BOOK.city) + ', ' + esc(BOOK.state) + ', we will save your request, check local coverage, and contact you before any scheduling or payment happens.</div>';
 
     document.getElementById('s5-charge-note').style.display = 'none';
 
@@ -3407,7 +3407,7 @@ async function goToStep5Payment() {
 
   document.getElementById('s5-heading').textContent = 'Secure your booking';
 
-  document.getElementById('s5-sub').textContent = 'Enter your card to complete your booking. You will see a temporary hold for the total - you are only charged after the job is done.';
+  document.getElementById('s5-sub').textContent = 'Enter your card to complete your booking. The full total is shown before you confirm, and payment is processed after the job is complete.';
 
   document.getElementById('s5-payment-section').style.display = 'block';
 

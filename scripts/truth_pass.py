@@ -27,7 +27,7 @@ TARGETED = {
     "about.html": [
         (">Vetted pros<", ">Identity-verified pros<"),
         ("Licensed and insured for every job. You're protected, and so is your home, from the moment we walk in.",
-         "You don't pay until the work is finished. Your card is only charged after the job is complete and done right."),
+         "The total is clear before checkout, and payment is handled after the work is complete."),
         ("Every pro is vetted before their first job. We only work with people we&rsquo;d trust in our own home.",
          "Every pro is identity-verified and personally reviewed before their first job. We only work with people we&rsquo;d trust in our own home."),
     ],

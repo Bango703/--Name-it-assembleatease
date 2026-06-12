@@ -132,7 +132,7 @@ export default async function handler(req, res) {
   const TO   = ownerEmail();
 
   const paymentLine = amount > 0
-    ? `Your card has been authorized for $${(amount / 100).toFixed(2)} — that's a temporary hold (you may see it as "pending"), not a charge. We capture it only after the job is complete; cancellation fees may apply.`
+    ? `Your payment method has been verified securely for $${(amount / 100).toFixed(2)}. Payment is processed after the job is complete.`
     : `No payment has been collected for this request.`;
 
   const customerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">Request received, ${sName}!</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your card is authorized for the total &mdash; you may see this as a temporary &ldquo;pending&rdquo; hold on your account. It&rsquo;s not a charge yet; we only capture it after the job is complete. We&rsquo;re matching you with a verified local pro now and will email you again once they&rsquo;re assigned.</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your payment method has been verified securely and the full total is on record. We process payment after the job is complete. We&rsquo;re matching you with a verified local pro now and will email you again once they&rsquo;re assigned.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card authorized — charged after completion</strong> — ${paymentLine}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
-      <strong>Cancellation policy:</strong> Cancel at least 24 hours before your appointment at no charge. Cancellations within 24 hours may incur a 50% fee. No-shows will be charged the full amount.
+      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your appointment at no charge. Inside 24 hours, a late-cancel fee may apply because a pro has already reserved the time.
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
       <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Questions? Contact Us</a>
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
     <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
     <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Austin, TX &bull; Reviewed local pros &bull; Balance after completion</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Austin, TX &bull; Reviewed local pros &bull; Clear pricing</p>
     <p style="margin:0;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
     <p style="margin:10px 0 0;font-size:10px;color:#d4d4d8">You received this email because a booking was submitted at assembleatease.com. To cancel or reschedule, reply to this email.</p>
   </td></tr></table>

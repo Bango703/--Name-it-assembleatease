@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       status: BOOKING_STATUS.CONFIRMED,
     }).eq('id', bookingId);
 
-    // Notify customer — card is authorized, job is confirmed
+    // Notify customer that the quote is confirmed and checkout is secure.
     sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       </table>
     </div>
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#1e40af;line-height:1.65">
-      <strong>Your card is authorized, not charged.</strong> We hold the amount on your card and only capture it <em>after</em> the Easer marks the job complete.
+      <strong>Secure checkout complete.</strong> Your payment method has been verified securely. Payment is processed after the job is complete.
     </div>
     <p style="font-size:13px;color:#6b7280;margin-bottom:4px">Reference: <strong>${esc(booking.ref)}</strong></p>
     <p style="font-size:13px;color:#6b7280">Questions? <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p>

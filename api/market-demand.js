@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     success: true,
     requestRef: data.request_ref,
     marketType: 'emerging',
-    message: 'Request received. No payment was collected and this is not a guaranteed booking yet.',
+    message: 'Request received. We will contact you before scheduling or payment.',
   });
 }
 
@@ -197,7 +197,7 @@ function buildCustomerEmail(row) {
     <div style="padding:28px 24px;text-align:center;border-bottom:1px solid #e5e7eb">
       <div style="font-size:18px;font-weight:800">Assemble<span style="color:#00BFFF">AtEase</span></div>
       <div style="font-size:24px;font-weight:800;margin-top:18px">We received your request.</div>
-      <div style="font-size:14px;color:#64748b;margin-top:8px;line-height:1.6">We are collecting demand in ${esc(row.city)}, ${esc(row.state)}. No payment was collected, and this is not a guaranteed booking yet.</div>
+      <div style="font-size:14px;color:#64748b;margin-top:8px;line-height:1.6">We are checking local coverage in ${esc(row.city)}, ${esc(row.state)}. No payment was collected. We will contact you before anything is scheduled.</div>
     </div>
     <div style="padding:24px">
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:18px">
