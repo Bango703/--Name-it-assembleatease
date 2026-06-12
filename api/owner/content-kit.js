@@ -117,11 +117,12 @@ function cleanSlug(value) {
 function readArticle(blogDir, slug) {
   const filePath = join(blogDir, slug + '.html');
   try {
+    const title = extractTitle(filePath);
     return {
       slug,
-      title: extractTitle(filePath),
+      title,
       url: `${SITE}/blog/${slug}`,
-      imageUrl: extractImageUrl(filePath),
+      imageUrl: extractImageUrl(filePath, { slug, title }),
     };
   } catch (_) {
     return null;
@@ -137,16 +138,28 @@ function extractTitle(filePath) {
   return raw || 'AssembleAtEase Guide';
 }
 
-function extractImageUrl(filePath) {
+function extractImageUrl(filePath, article = {}) {
   try {
     const html = readFileSync(filePath, 'utf8');
     const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
     const firstImg = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-    const raw = og?.[1] || firstImg?.[1] || '/images/people-service-calm.jpg';
+    const raw = og?.[1] || firstImg?.[1] || imageForArticle(article);
     if (/^https?:\/\//i.test(raw)) return raw;
     if (raw.startsWith('/')) return SITE + raw;
     return SITE + '/' + raw.replace(/^\.?\//, '');
   } catch (_) {
-    return SITE + '/images/people-service-calm.jpg';
+    return SITE + imageForArticle(article);
   }
+}
+
+function imageForArticle({ slug = '', title = '' } = {}) {
+  const text = `${slug} ${title}`.toLowerCase();
+  if (/(smart|camera|lock|doorbell|thermostat|security|ring|nest|ecobee)/.test(text)) return '/images/service-smart-home.jpg';
+  if (/(tv|mount|wall|cord|outdoor-tv)/.test(text)) return '/images/service-tv-mounting.jpg';
+  if (/(bed|ikea|wayfair|crate|barrel|furniture|pax|dresser|desk)/.test(text)) return '/images/service-furniture-assembly.jpg';
+  if (/(garage|shelving|storage)/.test(text)) return '/images/work-office-assembly.jpg';
+  if (/(fitness|treadmill|bike|gym|rack|bench)/.test(text)) return '/images/service-fitness-equipment.jpg';
+  if (/(playset|outdoor|gazebo|patio|backyard)/.test(text)) return '/images/service-outdoor-playsets.jpg';
+  if (/(office|workspace|cubicle)/.test(text)) return '/images/service-office-assembly.jpg';
+  return '/images/people-service-calm.jpg';
 }

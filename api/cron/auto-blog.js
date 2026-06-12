@@ -366,7 +366,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
         socialPublish = await publishContentKit({
           title,
           url: canonicalUrl,
-          imageUrl: `${SITE}/images/people-service-calm.jpg`,
+          imageUrl: `${SITE}${imageForTopic({ title, topic, slug })}`,
           kit,
         });
         console.log('Auto-blog: social publish attempted for', slug, socialPublish);
@@ -377,6 +377,18 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
   }
 
   return res.status(200).json({ success: true, slug, title, url: canonicalUrl, contentKitEmailed, socialPublish });
+}
+
+function imageForTopic({ title = '', topic = '', slug = '' } = {}) {
+  const text = `${title} ${topic} ${slug}`.toLowerCase();
+  if (/(smart|camera|lock|doorbell|thermostat|security|ring|nest|ecobee)/.test(text)) return '/images/service-smart-home.jpg';
+  if (/(tv|mount|wall|cord|outdoor-tv)/.test(text)) return '/images/service-tv-mounting.jpg';
+  if (/(bed|ikea|wayfair|crate|barrel|furniture|pax|dresser|desk)/.test(text)) return '/images/service-furniture-assembly.jpg';
+  if (/(garage|shelving|storage)/.test(text)) return '/images/work-office-assembly.jpg';
+  if (/(fitness|treadmill|bike|gym|rack|bench)/.test(text)) return '/images/service-fitness-equipment.jpg';
+  if (/(playset|outdoor|gazebo|patio|backyard)/.test(text)) return '/images/service-outdoor-playsets.jpg';
+  if (/(office|workspace|cubicle)/.test(text)) return '/images/service-office-assembly.jpg';
+  return '/images/people-service-calm.jpg';
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
