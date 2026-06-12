@@ -132,7 +132,7 @@ export default async function handler(req, res) {
   const TO   = ownerEmail();
 
   const paymentLine = amount > 0
-    ? `Your card has been authorized for $${(amount / 100).toFixed(2)}. Payment is captured after the job is complete; cancellation fees may apply.`
+    ? `Your card has been authorized for $${(amount / 100).toFixed(2)} — that's a temporary hold (you may see it as "pending"), not a charge. We capture it only after the job is complete; cancellation fees may apply.`
     : `No payment has been collected for this request.`;
 
   const customerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">Request received, ${sName}!</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your card is authorized and we're matching you with a verified local pro now. We'll email you again once your pro is assigned.</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your card is authorized for the total &mdash; you may see this as a temporary &ldquo;pending&rdquo; hold on your account. It&rsquo;s not a charge yet; we only capture it after the job is complete. We&rsquo;re matching you with a verified local pro now and will email you again once they&rsquo;re assigned.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
