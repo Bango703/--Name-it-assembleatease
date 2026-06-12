@@ -1072,14 +1072,18 @@ function intelQuick(msg) {
       <button onclick="document.getElementById('content-kit-modal').classList.remove('open')" style="background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:#999">&times;</button>
     </div>
     <p style="font-size:0.8rem;color:#666;margin:0 0 0.75rem">Pick a guide, generate the social kit, then send it to your connected Buffer channels. Copy buttons stay as a backup, not the main workflow.</p>
+    <div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.4fr);gap:0.5rem;margin-bottom:0.6rem">
+      <input id="ck-filter" placeholder="Search guides..." oninput="window.ckRenderArticleOptions&&window.ckRenderArticleOptions()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit" />
+      <select id="ck-article" onchange="window.ckArticleChanged&&window.ckArticleChanged()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit"><option>Loading…</option></select>
+    </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.6rem">
-      <select id="ck-article" style="flex:1;min-width:200px;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit"><option>Loading…</option></select>
       <button class="btn btn-teal" id="ck-generate" onclick="window.ckGenerate(false)">Generate</button>
       <button class="btn btn-teal" id="ck-publish" onclick="window.ckPublish(false)">Publish now</button>
       <button class="btn" id="ck-dryrun" onclick="window.ckPublish(true)">Test only</button>
       <button class="btn" id="ck-email" onclick="window.ckGenerate(true)">Email to me</button>
     </div>
     <div id="ck-status" style="font-size:0.8rem;color:#666;margin-bottom:0.5rem"></div>
+    <div id="ck-history" style="font-size:0.78rem;color:#555;margin-bottom:0.65rem"></div>
     <div id="ck-results"></div>
   </div>
 </div>
@@ -1371,6 +1375,8 @@ function intelQuick(msg) {
   // ── Content Kit (one Guide -> ready-to-paste social posts) ──────────────
   let _ckLoaded = false;
   let _ckLast = null;
+  let _ckArticles = [];
+  var CK_HISTORY_KEY = 'aae-content-kit-history-v1';
   window.openContentKit = async function() {
     document.getElementById('content-kit-modal').classList.add('open');
     if (_ckLoaded) return;
@@ -1380,14 +1386,36 @@ function intelQuick(msg) {
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed');
       var arts = (d.articles || []).sort(function(a, b){ return String(a.title).localeCompare(String(b.title)); });
-      sel.innerHTML = arts.length
-        ? arts.map(function(a){ return '<option value="' + esc(a.slug) + '">' + esc(a.title) + '</option>'; }).join('')
-        : '<option value="">No articles found</option>';
+      _ckArticles = arts;
+      window.ckRenderArticleOptions();
       document.getElementById('ck-status').textContent = ckAutomationLine(d.socialAutomation);
+      window.ckArticleChanged();
       _ckLoaded = true;
     } catch (e) {
       sel.innerHTML = '<option value="">Could not load articles</option>';
     }
+  };
+  window.ckRenderArticleOptions = function() {
+    var sel = document.getElementById('ck-article');
+    if (!sel) return;
+    var current = sel.value;
+    var q = String((document.getElementById('ck-filter') || {}).value || '').toLowerCase();
+    var history = ckHistory();
+    var filtered = _ckArticles.filter(function(a) {
+      return !q || String(a.title + ' ' + a.slug).toLowerCase().indexOf(q) !== -1;
+    });
+    sel.innerHTML = filtered.length
+      ? filtered.map(function(a){
+          var last = ckLastAction(history[a.slug]);
+          var mark = last ? (' [' + last + ']') : '';
+          return '<option value="' + esc(a.slug) + '">' + esc(a.title + mark) + '</option>';
+        }).join('')
+      : '<option value="">No matching guides</option>';
+    if (current && filtered.some(function(a){ return a.slug === current; })) sel.value = current;
+  };
+  window.ckArticleChanged = function() {
+    var slug = document.getElementById('ck-article').value;
+    ckRenderHistory(slug);
   };
   window.ckGenerate = async function(email) {
     var slug = document.getElementById('ck-article').value;
@@ -1406,6 +1434,7 @@ function intelQuick(msg) {
       _ckLast = { slug: slug, kit: d.kit };
       status.textContent = (email && d.emailed) ? ('✓ Emailed to ' + d.emailed) : ('✓ Ready. ' + ckAutomationLine(d.socialAutomation));
       results.innerHTML = ckRender(d.kit);
+      ckRemember(slug, { action: email ? 'emailed' : 'generated', title: d.title || ckArticleTitle(slug), note: email && d.emailed ? ('Emailed to ' + d.emailed) : 'Generated fresh copy' });
     } catch (e) {
       status.textContent = 'Error: ' + (e.message || 'failed');
     } finally {
@@ -1430,6 +1459,7 @@ function intelQuick(msg) {
       var summary = ckPublishSummary(d.publish || {}, dryRun);
       status.textContent = summary.text;
       results.innerHTML = ckPublishRender(d.publish || {}) + ckRender(d.kit || {});
+      ckRemember(slug, { action: dryRun ? 'tested' : (summary.ok ? 'published' : 'publish_failed'), title: d.title || ckArticleTitle(slug), note: summary.text, publish: d.publish || {} });
       toast(summary.toast, summary.ok ? 'success' : 'error');
     } catch (e) {
       status.textContent = 'Error: ' + (e.message || 'failed');
@@ -1465,6 +1495,60 @@ function intelQuick(msg) {
     if (!dryRun && queued) return { ok: true, text: '✓ Queued ' + queued + ' Buffer post' + (queued === 1 ? '.' : 's.'), toast: 'Queued in Buffer' };
     if (errors) return { ok: false, text: 'Buffer did not queue a post. See errors below.', toast: 'Buffer publish failed' };
     return { ok: false, text: 'Buffer did not queue a post. See publish results below.', toast: 'No Buffer posts queued' };
+  }
+  function ckArticleTitle(slug) {
+    var article = _ckArticles.find(function(a){ return a.slug === slug; });
+    return article ? article.title : slug;
+  }
+  function ckHistory() {
+    try { return JSON.parse(localStorage.getItem(CK_HISTORY_KEY) || '{}') || {}; } catch (_) { return {}; }
+  }
+  function ckSaveHistory(history) {
+    localStorage.setItem(CK_HISTORY_KEY, JSON.stringify(history));
+  }
+  function ckRemember(slug, entry) {
+    var history = ckHistory();
+    var rows = history[slug] || [];
+    rows.unshift(Object.assign({ at: new Date().toISOString() }, entry || {}));
+    history[slug] = rows.slice(0, 8);
+    ckSaveHistory(history);
+    window.ckRenderArticleOptions();
+    var sel = document.getElementById('ck-article');
+    if (sel) sel.value = slug;
+    ckRenderHistory(slug);
+  }
+  function ckLastAction(rows) {
+    if (!rows || !rows.length) return '';
+    var action = rows[0].action;
+    if (action === 'published') return 'queued';
+    if (action === 'tested') return 'tested';
+    if (action === 'generated') return 'generated';
+    if (action === 'emailed') return 'emailed';
+    if (action === 'publish_failed') return 'failed';
+    return action || '';
+  }
+  function ckRenderHistory(slug) {
+    var box = document.getElementById('ck-history');
+    if (!box) return;
+    var rows = (ckHistory()[slug] || []).slice(0, 4);
+    if (!slug) { box.innerHTML = ''; return; }
+    if (!rows.length) {
+      box.innerHTML = '<div style="border:1px solid #e5e7eb;background:#fafafa;border-radius:8px;padding:8px 10px">No action history for this guide yet.</div>';
+      return;
+    }
+    box.innerHTML = '<div style="border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;padding:8px 10px">'
+      + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;margin-bottom:5px">This guide history</div>'
+      + rows.map(function(row) {
+          var when = new Date(row.at).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+          var channels = ckHistoryChannels(row.publish);
+          return '<div style="font-size:0.78rem;line-height:1.45;color:#1f2937"><strong>' + esc(row.action || 'action') + '</strong> - ' + esc(when) + (row.note ? (' - ' + esc(row.note)) : '') + channels + '</div>';
+        }).join('')
+      + '</div>';
+  }
+  function ckHistoryChannels(publish) {
+    var keys = Object.keys(publish || {});
+    if (!keys.length) return '';
+    return ' <span style="color:#64748b">(' + keys.map(function(k){ return k + ':' + ((publish[k] || {}).status || 'unknown'); }).join(', ') + ')</span>';
   }
   function ckRender(kit) {
     var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
