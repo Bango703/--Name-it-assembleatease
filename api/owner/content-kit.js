@@ -40,7 +40,8 @@ export default async function handler(req, res) {
   const article = readArticle(blogDir, slug);
   if (!article) return res.status(404).json({ error: 'Article not found: ' + slug });
 
-  const kit = await generateContentKit({ title: article.title, url: article.url });
+  const hookStyle = cleanHookStyle(req.query.hookStyle);
+  const kit = await generateContentKit({ title: article.title, url: article.url, hookStyle });
   if (!kit) return res.status(502).json({ error: 'Content kit generation failed (check ANTHROPIC_API_KEY).' });
 
   const wantsEmail = req.query.email === '1' || req.query.email === 'true';
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
         emailError: e?.message || String(e),
         ...article,
         kit,
+        hookStyle,
         socialAutomation: getSocialAutomationStatus({ imageUrl: article.imageUrl }),
       });
     }
@@ -67,6 +69,7 @@ export default async function handler(req, res) {
       emailed: ownerEmail(),
       ...article,
       kit,
+      hookStyle,
       socialAutomation: getSocialAutomationStatus({ imageUrl: article.imageUrl }),
     });
   }
@@ -75,6 +78,7 @@ export default async function handler(req, res) {
     success: true,
     ...article,
     kit,
+    hookStyle,
     socialAutomation: getSocialAutomationStatus({ imageUrl: article.imageUrl }),
   });
 }
@@ -89,7 +93,7 @@ async function handlePublish(req, res, blogDir) {
 
   const kit = body.kit && typeof body.kit === 'object'
     ? body.kit
-    : await generateContentKit({ title: article.title, url: article.url });
+    : await generateContentKit({ title: article.title, url: article.url, hookStyle: cleanHookStyle(body.hookStyle) });
   if (!kit) return res.status(502).json({ error: 'Content kit generation failed (check ANTHROPIC_API_KEY).' });
 
   const publish = await publishContentKit({
@@ -112,6 +116,11 @@ async function handlePublish(req, res, blogDir) {
 
 function cleanSlug(value) {
   return String(value || '').replace(/[^a-z0-9-]/gi, '');
+}
+
+function cleanHookStyle(value) {
+  const v = String(value || '').trim().toLowerCase();
+  return ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer'].includes(v) ? v : '';
 }
 
 function readArticle(blogDir, slug) {
@@ -143,13 +152,19 @@ function extractImageUrl(filePath, article = {}) {
     const html = readFileSync(filePath, 'utf8');
     const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
     const firstImg = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-    const raw = og?.[1] || firstImg?.[1] || imageForArticle(article);
+    const candidate = og?.[1] || firstImg?.[1] || '';
+    const raw = isPlaceholderArticleImage(candidate) ? imageForArticle(article) : (candidate || imageForArticle(article));
     if (/^https?:\/\//i.test(raw)) return raw;
     if (raw.startsWith('/')) return SITE + raw;
     return SITE + '/' + raw.replace(/^\.?\//, '');
   } catch (_) {
     return SITE + imageForArticle(article);
   }
+}
+
+function isPlaceholderArticleImage(raw) {
+  const value = String(raw || '').toLowerCase();
+  return !value || value.includes('/images/logo.jpg') || value.includes('/images/logo.webp') || value.endsWith('/images/favicon.svg');
 }
 
 function imageForArticle({ slug = '', title = '' } = {}) {

@@ -7,29 +7,33 @@ const MODEL = 'claude-haiku-4-5-20251001';
 
 /**
  * Generate a social content kit for one article.
- * @param {{title:string, url:string, tag?:string}} article
+ * @param {{title:string, url:string, tag?:string, hookStyle?:string}} article
  * @returns {Promise<object|null>} { facebook, instagram, linkedin, googleBusiness, videoScript, apartmentOutreach } or null on failure
  */
-export async function generateContentKit({ title, url, tag } = {}) {
+export async function generateContentKit({ title, url, tag, hookStyle: requestedHookStyle } = {}) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key || !title) return null;
 
   const anthropic = new Anthropic({ apiKey: key });
-  const hookStyle = pickHookStyle(title || tag || url || '');
+  const hookStyle = normalizeHookStyle(requestedHookStyle) || pickHookStyle(title || tag || url || '');
 
   const system = `You are the social-media manager for AssembleAtEase, a professional furniture assembly, TV mounting, smart-home, and home-setup service in Austin, TX.
 Voice: warm, helpful, professional, local, confident, and alive. Honest - NEVER overpromise (no "guaranteed same-day", no fake urgency, no fake crime claims, no scare tactics). A little useful opinion is good; fake drama is not.
 Turn ONE blog article into native, ready-to-review posts for each channel. Each must sound natural on its platform, mention Austin, and point people toward booking or following.
 
 Use the assigned hook style to avoid boring recap posts:
-- security: smart locks, cameras, porch visibility, "before you need it" urgency, without claiming a specific crime happened.
+- security: smart locks, cameras, porch visibility, "before you need it" urgency, without claiming a specific crime happened or implying a recent break-in.
 - cost: what gets expensive when the job is done wrong or delayed.
 - mistake: common DIY mistake, what to check first, what not to assume.
 - local: Austin move-ins, apartments, heat, rentals, tight schedules, local homes.
 - proof: careful work, clean finish, verified pro, job done right.
 - direct-offer: short, clear service offer with one practical benefit.
 
-Do not use the same opening structure for every channel. No generic "Ready to..." opener unless it is the direct-offer style. No emojis unless the platform strongly benefits from one, and never in Google Business.`;
+Hard content rules:
+- No emojis or emoji-style symbols on any platform.
+- No fake crime claims, fake urgency, or scare tactics.
+- No generic "Ready to..." opener unless it is the direct-offer style.
+- Keep each post direct, useful, and easy to approve.`;
 
   const user = `Article title: "${title}"
 Article URL: ${url || ''}
@@ -74,6 +78,11 @@ function pickHookStyle(seed) {
   let total = 0;
   for (const ch of String(seed || '')) total += ch.charCodeAt(0);
   return styles[total % styles.length];
+}
+
+function normalizeHookStyle(value) {
+  const v = String(value || '').trim().toLowerCase();
+  return ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer'].includes(v) ? v : '';
 }
 
 function esc(s) {

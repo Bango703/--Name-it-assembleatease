@@ -13,6 +13,21 @@
       "permanent": true
     },
     {
+      "source": "/furniture",
+      "destination": "/furniture-assembly-austin-tx",
+      "permanent": true
+    },
+    {
+      "source": "/mounting",
+      "destination": "/tv-mounting-austin-tx",
+      "permanent": true
+    },
+    {
+      "source": "/smarthome",
+      "destination": "/smart-home-installation-austin-tx",
+      "permanent": true
+    },
+    {
       "source": "/assembler/earn",
       "destination": "/assembler/apply",
       "permanent": true

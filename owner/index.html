@@ -1076,6 +1076,17 @@ function intelQuick(msg) {
       <input id="ck-filter" placeholder="Search guides..." oninput="window.ckRenderArticleOptions&&window.ckRenderArticleOptions()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit" />
       <select id="ck-article" onchange="window.ckArticleChanged&&window.ckArticleChanged()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit"><option>Loading…</option></select>
     </div>
+    <div style="display:grid;grid-template-columns:minmax(160px,0.9fr) minmax(240px,1.4fr);gap:0.5rem;margin-bottom:0.6rem">
+      <select id="ck-hook" onchange="window.ckHookChanged&&window.ckHookChanged()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit">
+        <option value="security">Security angle</option>
+        <option value="cost">Cost angle</option>
+        <option value="mistake">DIY mistake angle</option>
+        <option value="local">Austin local angle</option>
+        <option value="proof">Proof / trust angle</option>
+        <option value="direct-offer">Direct offer angle</option>
+      </select>
+      <div id="ck-hook-desc" style="font-size:0.78rem;color:#555;line-height:1.45;padding:0.45rem 0.55rem;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa">Smart locks, cameras, porch visibility, and before-you-need-it urgency without fake crime claims.</div>
+    </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.6rem">
       <button class="btn btn-teal" id="ck-generate" onclick="window.ckGenerate(false)">Generate</button>
       <button class="btn btn-teal" id="ck-publish" onclick="window.ckPublish(false)">Publish now</button>
@@ -1415,7 +1426,15 @@ function intelQuick(msg) {
   };
   window.ckArticleChanged = function() {
     var slug = document.getElementById('ck-article').value;
+    if (slug) ckRemember(slug, { action: 'selected', title: ckArticleTitle(slug), note: 'Selected for review' }, true);
     ckRenderHistory(slug);
+  };
+  window.ckHookChanged = function() {
+    var hook = ckCurrentHook();
+    var box = document.getElementById('ck-hook-desc');
+    if (box) box.textContent = ckHookDescription(hook);
+    var slug = document.getElementById('ck-article').value;
+    if (slug) ckRemember(slug, { action: 'selected', title: ckArticleTitle(slug), note: 'Hook angle: ' + ckHookLabel(hook) }, true);
   };
   window.ckGenerate = async function(email) {
     var slug = document.getElementById('ck-article').value;
@@ -1427,14 +1446,15 @@ function intelQuick(msg) {
     status.textContent = email ? 'Generating + emailing…' : 'Generating posts… (a few seconds)';
     if (!email) results.innerHTML = '';
     try {
-      var url = '/api/owner/content-kit?slug=' + encodeURIComponent(slug) + (email ? '&email=1' : '');
+      var hook = ckCurrentHook();
+      var url = '/api/owner/content-kit?slug=' + encodeURIComponent(slug) + '&hookStyle=' + encodeURIComponent(hook) + (email ? '&email=1' : '');
       var r = await fetch(url, { headers: headers() });
       var d = await r.json();
       if (!r.ok || !d.kit) throw new Error(d.error || 'Generation failed');
       _ckLast = { slug: slug, kit: d.kit };
       status.textContent = (email && d.emailed) ? ('✓ Emailed to ' + d.emailed) : ('✓ Ready. ' + ckAutomationLine(d.socialAutomation));
       results.innerHTML = ckRender(d.kit);
-      ckRemember(slug, { action: email ? 'emailed' : 'generated', title: d.title || ckArticleTitle(slug), note: email && d.emailed ? ('Emailed to ' + d.emailed) : 'Generated fresh copy' });
+      ckRemember(slug, { action: email ? 'emailed' : 'generated', title: d.title || ckArticleTitle(slug), note: (email && d.emailed ? ('Emailed to ' + d.emailed) : 'Generated fresh copy') + ' - ' + ckHookLabel(hook) });
     } catch (e) {
       status.textContent = 'Error: ' + (e.message || 'failed');
     } finally {
@@ -1450,7 +1470,8 @@ function intelQuick(msg) {
     buttons.forEach(function(b){ if (b) b.disabled = true; });
     status.textContent = dryRun ? 'Testing Buffer payloads...' : 'Publishing to Buffer queue...';
     try {
-      var body = { slug: slug, dryRun: !!dryRun };
+      var hook = ckCurrentHook();
+      var body = { slug: slug, dryRun: !!dryRun, hookStyle: hook };
       if (_ckLast && _ckLast.slug === slug && _ckLast.kit) body.kit = _ckLast.kit;
       var r = await fetch('/api/owner/content-kit', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
       var d = await r.json();
@@ -1459,7 +1480,7 @@ function intelQuick(msg) {
       var summary = ckPublishSummary(d.publish || {}, dryRun);
       status.textContent = summary.text;
       results.innerHTML = ckPublishRender(d.publish || {}) + ckRender(d.kit || {});
-      ckRemember(slug, { action: dryRun ? 'tested' : (summary.ok ? 'published' : 'publish_failed'), title: d.title || ckArticleTitle(slug), note: summary.text, publish: d.publish || {} });
+      ckRemember(slug, { action: dryRun ? 'tested' : (summary.ok ? 'published' : 'publish_failed'), title: d.title || ckArticleTitle(slug), note: summary.text + ' - ' + ckHookLabel(hook), publish: d.publish || {} });
       toast(summary.toast, summary.ok ? 'success' : 'error');
     } catch (e) {
       status.textContent = 'Error: ' + (e.message || 'failed');
@@ -1506,16 +1527,17 @@ function intelQuick(msg) {
   function ckSaveHistory(history) {
     localStorage.setItem(CK_HISTORY_KEY, JSON.stringify(history));
   }
-  function ckRemember(slug, entry) {
+  function ckRemember(slug, entry, quiet) {
     var history = ckHistory();
     var rows = history[slug] || [];
+    if (quiet && rows[0] && rows[0].action === entry.action && rows[0].note === entry.note) return;
     rows.unshift(Object.assign({ at: new Date().toISOString() }, entry || {}));
     history[slug] = rows.slice(0, 8);
     ckSaveHistory(history);
     window.ckRenderArticleOptions();
     var sel = document.getElementById('ck-article');
     if (sel) sel.value = slug;
-    ckRenderHistory(slug);
+    if (!quiet) ckRenderHistory(slug);
   }
   function ckLastAction(rows) {
     if (!rows || !rows.length) return '';
@@ -1524,6 +1546,7 @@ function intelQuick(msg) {
     if (action === 'tested') return 'tested';
     if (action === 'generated') return 'generated';
     if (action === 'emailed') return 'emailed';
+    if (action === 'selected') return 'selected';
     if (action === 'publish_failed') return 'failed';
     return action || '';
   }
@@ -1549,6 +1572,32 @@ function intelQuick(msg) {
     var keys = Object.keys(publish || {});
     if (!keys.length) return '';
     return ' <span style="color:#64748b">(' + keys.map(function(k){ return k + ':' + ((publish[k] || {}).status || 'unknown'); }).join(', ') + ')</span>';
+  }
+  function ckCurrentHook() {
+    var sel = document.getElementById('ck-hook');
+    return sel && sel.value ? sel.value : 'security';
+  }
+  function ckHookLabel(value) {
+    var labels = {
+      security: 'security angle',
+      cost: 'cost angle',
+      mistake: 'DIY mistake angle',
+      local: 'Austin local angle',
+      proof: 'proof / trust angle',
+      'direct-offer': 'direct offer angle'
+    };
+    return labels[value] || 'security angle';
+  }
+  function ckHookDescription(value) {
+    var desc = {
+      security: 'Smart locks, cameras, porch visibility, and before-you-need-it urgency without fake crime claims.',
+      cost: 'What gets expensive when furniture, mounts, or smart devices are installed wrong.',
+      mistake: 'A common DIY mistake, what to check first, and what not to assume.',
+      local: 'Austin move-ins, apartments, heat, rentals, tight schedules, and local home setups.',
+      proof: 'Careful work, clean finish, verified pro, and job-done-right trust.',
+      'direct-offer': 'Short service offer with one practical booking benefit.'
+    };
+    return desc[value] || desc.security;
   }
   function ckRender(kit) {
     var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];

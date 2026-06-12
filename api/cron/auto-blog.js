@@ -195,28 +195,26 @@ export default async function handler(req, res) {
 
   const systemPrompt = `You are an SEO content writer for AssembleAtEase, a professional furniture assembly and handyman service in Austin, TX.
 
-Write a detailed, helpful blog post as complete HTML content (article body only — no <html>, <head>, or <body> tags).
+Write a short, booking-focused guide as complete HTML content (article body only - no <html>, <head>, or <body> tags).
 
 Rules:
 - Target audience: Austin homeowners
-- Tone: helpful, expert, conversational
-- Length: 600–900 words of actual content
-- Include 3–5 <h2> headings
-- Include at least one <table class="price-table"> with realistic Austin prices if relevant
-- Include <ul> or <ol> lists where appropriate
-- End with a <div class="article-cta"> section
-- Reference AssembleAtEase naturally 2–3 times
+- Tone: helpful, expert, conversational, direct
+- Maximum length: exactly 2 short <p> paragraphs before the CTA
+- Do not include headings, tables, lists, emojis, or decorative symbols
+- End with one <div class="article-cta"> section
+- Reference AssembleAtEase naturally once
 - Mention Austin TX specifically throughout
 - Use <strong> for key phrases
 - Do NOT include CSS, scripts, or outer HTML structure
-- The CTA div must end with: <a href="/book" class="btn btn-cyan btn-lg">Book a Service in Austin &rarr;</a>
+- The CTA div must end with: <a href="/book" class="btn btn-cyan btn-lg">Book a Service in Austin</a>
 
-Output ONLY the HTML article content — nothing else.`;
+Output ONLY the HTML article content - nothing else.`;
 
-  const userPrompt = `Write a blog post about: "${topic}"
+  const userPrompt = `Write a short booking-focused guide about: "${topic}"
 
 The article title should be an SEO-friendly question or statement about this topic in Austin TX.
-Make it genuinely useful — real prices, real tips, real comparisons.`;
+Make it genuinely useful with practical booking advice. Keep it to two paragraphs.`;
 
   let articleHtml;
   try {
@@ -241,16 +239,17 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
   const h2Match = articleHtml.match(/<h2[^>]*>(.*?)<\/h2>/i);
   const rawTitle = (h1Match?.[1] || h2Match?.[1] || topic)
     .replace(/<[^>]+>/g, '').trim();
-  const title = rawTitle.length > 10 ? rawTitle : `${capitalize(topic)} — Austin TX`;
+  const title = rawTitle.length > 10 ? rawTitle : `${capitalize(topic)} - Austin TX`;
 
   // Remove any accidental h1 from body (we put it in the hero)
-  const cleanBody = articleHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, '');
+  const cleanBody = compactArticleHtml(articleHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, ''), topic);
 
   // ── 3. Build the full HTML page ──────────────────────────────────
   const canonicalUrl = `${SITE}/blog/${slug}`;
-  const readTime = Math.max(3, Math.round(cleanBody.replace(/<[^>]+>/g, '').split(/\s+/).length / 200));
+  const readTime = 1;
+  const articleImage = imageForTopic({ title, topic, slug });
 
-  const fullHtml = buildBlogPage({ title, canonicalUrl, today, readTime, body: cleanBody });
+  const fullHtml = buildBlogPage({ title, canonicalUrl, today, readTime, body: cleanBody, image: articleImage });
 
   // ── 4. Commit to GitHub ──────────────────────────────────────────
   const filePath = `blog/${slug}.html`;
@@ -308,12 +307,12 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
         : '/images/service-furniture-assembly.jpg';
 
       const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      const excerpt = articleHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '…';
+      const excerpt = cleanBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '...';
       const safeTitle = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const safeExcerpt = excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const newCard = `\n      <a href="/blog/${slug}" class="guide-card">
         <span class="guide-thumb"><img src="${image}" alt="${tag} guide in Austin" loading="lazy" width="300" height="300"></span>
-        <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read guide &rarr;</span></span>
+        <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read guide</span></span>
       </a>\n`;
 
       // Insert after the opening <div class="guides-grid">
@@ -356,7 +355,7 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
       await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Social content kit — ${title}`,
+        subject: `Social content kit - ${title}`,
         html: renderContentKitEmailHtml({ title, url: canonicalUrl, kit }),
       });
       contentKitEmailed = true;
@@ -391,6 +390,26 @@ function imageForTopic({ title = '', topic = '', slug = '' } = {}) {
   return '/images/people-service-calm.jpg';
 }
 
+function compactArticleHtml(html, topic) {
+  const text = String(html || '');
+  const paragraphs = [...text.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+    .map((m) => m[1].replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  const fallback = [
+    `${capitalize(topic)} in Austin TX works best when the job details are clear before the visit. Share the item, room, wall type, device model, or photos so the Easer can arrive prepared.`,
+    `AssembleAtEase keeps the visit focused on getting the job done cleanly instead of turning it into a long back-and-forth. Book online when you are ready to get the setup handled.`,
+  ];
+  const p1 = paragraphs[0] || fallback[0];
+  const p2 = paragraphs[1] || fallback[1];
+  return `<p>${p1}</p>
+<p>${p2}</p>
+<div class="article-cta">
+  <strong>Need this handled in Austin?</strong>
+  <a href="/book" class="btn btn-cyan btn-lg">Book a Service in Austin</a>
+</div>`;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function topicToSlug(topic) {
@@ -406,7 +425,7 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function buildBlogPage({ title, canonicalUrl, today, readTime, body }) {
+function buildBlogPage({ title, canonicalUrl, today, readTime, body, image }) {
   const escaped = title.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const displayDate = new Date(today).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const shareUrl = encodeURIComponent(canonicalUrl);
@@ -426,10 +445,10 @@ function buildBlogPage({ title, canonicalUrl, today, readTime, body }) {
 <meta property="og:description" content="${escaped}. Expert advice from AssembleAtEase, Austin TX."/>
 <meta property="og:url" content="${canonicalUrl}"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
-<meta property="og:image" content="${SITE}/images/logo.jpg"/>
-<meta name="twitter:card" content="summary"/>
+<meta property="og:image" content="${SITE}${image}"/>
+<meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${escaped}"/>
-<meta name="twitter:image" content="${SITE}/images/logo.jpg"/>
+<meta name="twitter:image" content="${SITE}${image}"/>
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -491,7 +510,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 @media(max-width:900px){.nav-links{display:none}.footer-inner{grid-template-columns:1fr;gap:2rem}}
 </style>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","headline":"${escaped}","description":"${escaped}. Expert advice from AssembleAtEase, Austin TX.","url":"${canonicalUrl}","datePublished":"${today}","dateModified":"${today}","author":{"@type":"Organization","name":"AssembleAtEase","url":"${SITE}"},"publisher":{"@type":"Organization","name":"AssembleAtEase","url":"${SITE}","logo":{"@type":"ImageObject","url":"${SITE}/images/logo.jpg"}},"image":"${SITE}/images/logo.jpg","mainEntityOfPage":"${canonicalUrl}"}
+{"@context":"https://schema.org","@type":"BlogPosting","headline":"${escaped}","description":"${escaped}. Expert advice from AssembleAtEase, Austin TX.","url":"${canonicalUrl}","datePublished":"${today}","dateModified":"${today}","author":{"@type":"Organization","name":"AssembleAtEase","url":"${SITE}"},"publisher":{"@type":"Organization","name":"AssembleAtEase","url":"${SITE}","logo":{"@type":"ImageObject","url":"${SITE}/images/logo.jpg"}},"image":"${SITE}${image}","mainEntityOfPage":"${canonicalUrl}"}
 </script>
 </head>
 <body>
@@ -523,7 +542,7 @@ ${body}
     <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.6);margin-bottom:0.75rem;font-weight:700">Austin TX &bull; Same-Day Available</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;margin-bottom:0.85rem;line-height:1.2">Ready to book a pro in Austin?</h2>
     <p style="font-size:0.95rem;color:rgba(255,255,255,0.8);margin-bottom:1.75rem;line-height:1.7">Flat-rate pricing. Identity-verified pros. Secure checkout.</p>
-    <a href="/book" class="btn btn-cyan btn-lg" style="color:#fff;font-weight:700">Book a Service &rarr;</a>
+    <a href="/book" class="btn btn-cyan btn-lg" style="color:#fff;font-weight:700">Book a Service</a>
   </div>
 </section>
 
@@ -537,9 +556,9 @@ ${body}
     <div>
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
-        <li><a href="/furniture">Furniture Assembly</a></li>
-        <li><a href="/mounting">TV Mounting</a></li>
-        <li><a href="/smarthome">Smart Home</a></li>
+        <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
+        <li><a href="/tv-mounting-austin-tx">TV Mounting</a></li>
+        <li><a href="/smart-home-installation-austin-tx">Smart Home</a></li>
       </ul>
     </div>
     <div>
