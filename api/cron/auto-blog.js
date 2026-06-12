@@ -1,4 +1,6 @@
 ﻿import Anthropic from '@anthropic-ai/sdk';
+import { sendEmail, ownerEmail } from '../_email.js';
+import { generateContentKit, renderContentKitEmailHtml } from '../_content-kit.js';
 
 const REPO_OWNER = 'Bango703';
 const REPO_NAME  = '--Name-it-assembleatease';
@@ -342,7 +344,28 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
     console.error('Blog index update error (non-fatal):', idxErr);
   }
 
-  return res.status(200).json({ success: true, slug, title, url: canonicalUrl });
+  // ── 6. Email the owner a ready-to-post social content kit (non-fatal) ──
+  // Phase 2 of the content engine: every new Guide arrives with native posts for
+  // Facebook, Instagram, LinkedIn, Google Business Profile, a short-video script,
+  // and an apartment-outreach line — owner just reviews and posts.
+  let contentKitEmailed = false;
+  try {
+    const kit = await generateContentKit({ title, url: canonicalUrl, tag: topic });
+    if (kit) {
+      await sendEmail({
+        to: ownerEmail(),
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `Social content kit — ${title}`,
+        html: renderContentKitEmailHtml({ title, url: canonicalUrl, kit }),
+      });
+      contentKitEmailed = true;
+      console.log('Auto-blog: content kit emailed to owner for', slug);
+    }
+  } catch (kitErr) {
+    console.error('Auto-blog content kit (non-fatal):', kitErr?.message || kitErr);
+  }
+
+  return res.status(200).json({ success: true, slug, title, url: canonicalUrl, contentKitEmailed });
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
