@@ -1071,10 +1071,12 @@ function intelQuick(msg) {
       <h3 style="margin:0">Social Content Kit</h3>
       <button onclick="document.getElementById('content-kit-modal').classList.remove('open')" style="background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:#999">&times;</button>
     </div>
-    <p style="font-size:0.8rem;color:#666;margin:0 0 0.75rem">Pick a guide and generate ready-to-paste posts for every channel. Review before posting.</p>
+    <p style="font-size:0.8rem;color:#666;margin:0 0 0.75rem">Pick a guide, generate the social kit, then send it to your connected Buffer channels. Copy buttons stay as a backup, not the main workflow.</p>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.6rem">
       <select id="ck-article" style="flex:1;min-width:200px;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit"><option>Loading…</option></select>
       <button class="btn btn-teal" id="ck-generate" onclick="window.ckGenerate(false)">Generate</button>
+      <button class="btn btn-teal" id="ck-publish" onclick="window.ckPublish(false)">Publish now</button>
+      <button class="btn" id="ck-dryrun" onclick="window.ckPublish(true)">Test only</button>
       <button class="btn" id="ck-email" onclick="window.ckGenerate(true)">Email to me</button>
     </div>
     <div id="ck-status" style="font-size:0.8rem;color:#666;margin-bottom:0.5rem"></div>
@@ -1368,6 +1370,7 @@ function intelQuick(msg) {
 
   // ── Content Kit (one Guide -> ready-to-paste social posts) ──────────────
   let _ckLoaded = false;
+  let _ckLast = null;
   window.openContentKit = async function() {
     document.getElementById('content-kit-modal').classList.add('open');
     if (_ckLoaded) return;
@@ -1380,6 +1383,7 @@ function intelQuick(msg) {
       sel.innerHTML = arts.length
         ? arts.map(function(a){ return '<option value="' + esc(a.slug) + '">' + esc(a.title) + '</option>'; }).join('')
         : '<option value="">No articles found</option>';
+      document.getElementById('ck-status').textContent = ckAutomationLine(d.socialAutomation);
       _ckLoaded = true;
     } catch (e) {
       sel.innerHTML = '<option value="">Could not load articles</option>';
@@ -1390,8 +1394,8 @@ function intelQuick(msg) {
     if (!slug) return;
     var status = document.getElementById('ck-status');
     var results = document.getElementById('ck-results');
-    var gBtn = document.getElementById('ck-generate'), eBtn = document.getElementById('ck-email');
-    gBtn.disabled = true; eBtn.disabled = true;
+    var gBtn = document.getElementById('ck-generate'), eBtn = document.getElementById('ck-email'), pBtn = document.getElementById('ck-publish'), dBtn = document.getElementById('ck-dryrun');
+    gBtn.disabled = true; eBtn.disabled = true; pBtn.disabled = true; dBtn.disabled = true;
     status.textContent = email ? 'Generating + emailing…' : 'Generating posts… (a few seconds)';
     if (!email) results.innerHTML = '';
     try {
@@ -1399,14 +1403,58 @@ function intelQuick(msg) {
       var r = await fetch(url, { headers: headers() });
       var d = await r.json();
       if (!r.ok || !d.kit) throw new Error(d.error || 'Generation failed');
-      status.textContent = (email && d.emailed) ? ('✓ Emailed to ' + d.emailed) : '✓ Ready — copy any post below.';
+      _ckLast = { slug: slug, kit: d.kit };
+      status.textContent = (email && d.emailed) ? ('✓ Emailed to ' + d.emailed) : ('✓ Ready. ' + ckAutomationLine(d.socialAutomation));
       results.innerHTML = ckRender(d.kit);
     } catch (e) {
       status.textContent = 'Error: ' + (e.message || 'failed');
     } finally {
-      gBtn.disabled = false; eBtn.disabled = false;
+      gBtn.disabled = false; eBtn.disabled = false; pBtn.disabled = false; dBtn.disabled = false;
     }
   };
+  window.ckPublish = async function(dryRun) {
+    var slug = document.getElementById('ck-article').value;
+    if (!slug) return;
+    var status = document.getElementById('ck-status');
+    var results = document.getElementById('ck-results');
+    var buttons = ['ck-generate','ck-email','ck-publish','ck-dryrun'].map(function(id){ return document.getElementById(id); });
+    buttons.forEach(function(b){ if (b) b.disabled = true; });
+    status.textContent = dryRun ? 'Testing Buffer payloads...' : 'Publishing to Buffer queue...';
+    try {
+      var body = { slug: slug, dryRun: !!dryRun };
+      if (_ckLast && _ckLast.slug === slug && _ckLast.kit) body.kit = _ckLast.kit;
+      var r = await fetch('/api/owner/content-kit', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Publish failed');
+      _ckLast = { slug: slug, kit: d.kit };
+      status.textContent = dryRun ? '✓ Test complete.' : '✓ Publish attempt complete.';
+      results.innerHTML = ckPublishRender(d.publish || {}) + ckRender(d.kit || {});
+      toast(dryRun ? 'Social publish test complete' : 'Social publish attempted', 'success');
+    } catch (e) {
+      status.textContent = 'Error: ' + (e.message || 'failed');
+      toast('Social publish failed', 'error');
+    } finally {
+      buttons.forEach(function(b){ if (b) b.disabled = false; });
+    }
+  };
+  function ckAutomationLine(status) {
+    if (!status || !status.channels) return '';
+    var ready = Object.keys(status.channels).filter(function(k){ return status.channels[k].ready; });
+    return ready.length ? ('Buffer connected: ' + ready.join(', ') + '.') : 'Buffer is not connected yet.';
+  }
+  function ckPublishRender(publish) {
+    var keys = Object.keys(publish || {});
+    if (!keys.length) return '<div style="border:1px solid #fbbf24;background:#fffbeb;color:#92400e;border-radius:8px;padding:10px 12px;font-size:0.82rem;margin-bottom:10px">No Buffer channels are configured yet. Add the Buffer API key and channel IDs, then Publish now will send posts to Buffer.</div>';
+    return '<div style="border:1px solid #d1fae5;background:#ecfdf5;border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+      + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#047857;margin-bottom:6px">Publish results</div>'
+      + keys.map(function(k){
+          var p = publish[k] || {};
+          var color = p.status === 'published' || p.status === 'queued' || p.status === 'dry_run' ? '#047857' : (p.status === 'skipped' ? '#92400e' : '#b91c1c');
+          var detail = p.id ? (' ID: ' + esc(p.id)) : (p.reason ? (' ' + esc(p.reason)) : (p.error ? (' ' + esc(p.error)) : ''));
+          return '<div style="font-size:0.82rem;line-height:1.5;color:' + color + '"><strong>' + esc(k) + ':</strong> ' + esc(p.status || 'unknown') + detail + '</div>';
+        }).join('')
+      + '</div>';
+  }
   function ckRender(kit) {
     var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
     return sections.map(function(s, i){

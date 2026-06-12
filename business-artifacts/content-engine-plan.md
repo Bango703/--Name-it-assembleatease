@@ -115,9 +115,8 @@ Apartment outreach talking point:
 
 Do not turn on automatic social posting until:
 
-- Facebook page access is confirmed.
-- Instagram Business or Creator account is connected to the Facebook page.
-- LinkedIn organization page admin access is confirmed.
-- Google Business Profile owner or manager access is confirmed.
+- Buffer API key is added as `BUFFER_API_KEY`.
+- Facebook, Instagram, LinkedIn, and Google Business Profile are connected inside Buffer.
+- Buffer channel IDs are added for the channels you want to publish to.
 - UTM tracking is decided.
-- A manual review step exists before posting.
+- Buffer queue/review settings are confirmed so posts do not go out at messy times.

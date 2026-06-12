@@ -1,6 +1,7 @@
 ﻿import Anthropic from '@anthropic-ai/sdk';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { generateContentKit, renderContentKitEmailHtml } from '../_content-kit.js';
+import { publishContentKit } from '../_social-publisher.js';
 
 const REPO_OWNER = 'Bango703';
 const REPO_NAME  = '--Name-it-assembleatease';
@@ -344,11 +345,11 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
     console.error('Blog index update error (non-fatal):', idxErr);
   }
 
-  // ── 6. Email the owner a ready-to-post social content kit (non-fatal) ──
-  // Phase 2 of the content engine: every new Guide arrives with native posts for
-  // Facebook, Instagram, LinkedIn, Google Business Profile, a short-video script,
-  // and an apartment-outreach line — owner just reviews and posts.
+  // ── 6. Generate the social kit and optionally auto-publish (non-fatal) ──
+  // Email remains as an owner record. Real posting happens when SOCIAL_AUTO_PUBLISH
+  // is true and the Buffer API key/channel IDs are configured.
   let contentKitEmailed = false;
+  let socialPublish = null;
   try {
     const kit = await generateContentKit({ title, url: canonicalUrl, tag: topic });
     if (kit) {
@@ -360,12 +361,22 @@ Make it genuinely useful — real prices, real tips, real comparisons.`;
       });
       contentKitEmailed = true;
       console.log('Auto-blog: content kit emailed to owner for', slug);
+
+      if (String(process.env.SOCIAL_AUTO_PUBLISH || '').toLowerCase() === 'true') {
+        socialPublish = await publishContentKit({
+          title,
+          url: canonicalUrl,
+          imageUrl: `${SITE}/images/people-service-calm.jpg`,
+          kit,
+        });
+        console.log('Auto-blog: social publish attempted for', slug, socialPublish);
+      }
     }
   } catch (kitErr) {
     console.error('Auto-blog content kit (non-fatal):', kitErr?.message || kitErr);
   }
 
-  return res.status(200).json({ success: true, slug, title, url: canonicalUrl, contentKitEmailed });
+  return res.status(200).json({ success: true, slug, title, url: canonicalUrl, contentKitEmailed, socialPublish });
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
