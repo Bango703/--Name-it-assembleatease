@@ -229,7 +229,7 @@ function buildReauthEmail(booking) {
 
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf9;border:1px solid #bbf7e0;border-radius:6px;margin-bottom:24px">
         <tr><td style="padding:14px 18px;font-size:13px;color:#166534;line-height:1.6">
-          Your card is <strong>held (not charged)</strong> until your job is complete and you approve the work. You&rsquo;ll be charged only after we&rsquo;ve finished.
+          Your card authorization has been refreshed. Payment is captured after the job is complete; cancellation fees may apply under the cancellation policy.
         </td></tr>
       </table>
 

@@ -712,6 +712,11 @@
     .svc-row.has-items .svc-row-badge { display: block; }
     .svc-row-chevron { color: rgba(148,163,184,0.6); flex-shrink: 0; transition: color var(--transition); }
     .svc-row:hover .svc-row-chevron, .svc-row.has-items .svc-row-chevron { color: var(--teal); }
+    .svc-row.quote-row { margin-top: 0.35rem; border-color: rgba(0,191,255,0.34); background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); }
+    .svc-row.quote-row .svc-row-icon { background: var(--teal); color: #fff; }
+    .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
+    .quote-helper { margin-top: 0.75rem; padding: 0.8rem 0.95rem; border: 1px solid rgba(0,191,255,0.26); border-radius: var(--radius-md); background: #f6fcff; color: var(--ink-soft); font-size: 0.82rem; line-height: 1.55; }
+    .quote-helper strong { color: var(--ink); }
 
     /* -- Item picker (Screen B) -- */
     .item-screen-nav { margin-bottom: 1.1rem; }
@@ -1322,6 +1327,16 @@
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
 
+          <button class="svc-row quote-row" type="button" data-service="Other" onclick="startCustomQuoteFlow()">
+            <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></div>
+            <div class="svc-row-info">
+              <div class="svc-row-name">Custom Quote</div>
+              <div class="svc-row-meta"><strong>Not sure what to pick?</strong> Use this for large, unusual, or multi-room projects.</div>
+              <div class="svc-row-badge"></div>
+            </div>
+            <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+
         </div>
 
         </div><!-- /svc-screen -->
@@ -1367,7 +1382,8 @@
 
             <div class="form-group">
 
-              <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> This is a large or complex job &mdash; I'd prefer a custom quote</label>
+              <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> Request a custom quote instead of instant pricing</label>
+              <div class="quote-helper"><strong>Use this when the listed items do not fit.</strong> We review the notes, send a final price, and only schedule once the quote is approved.</div>
 
             </div>
 
@@ -1681,7 +1697,7 @@
 
         <div class="step-heading" id="s5-heading">Secure your booking</div>
 
-        <p class="step-sub" id="s5-sub">Enter your card to hold the appointment. <strong>You won&rsquo;t be charged until the job is done.</strong></p>
+        <p class="step-sub" id="s5-sub">Enter your card to complete your booking securely.</p>
 
 
 
@@ -1700,14 +1716,6 @@
             <div id="stripe-card-wrap"><div id="stripe-card-element"></div></div>
 
             <div id="card-errors" role="alert"></div>
-
-          </div>
-
-          <div class="auth-note">
-
-            <span class="auth-note-icon"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:#166534"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></span>
-
-            <div>Your card is authorized to hold the appointment and is captured after the job is marked complete.</div>
 
           </div>
 
@@ -1750,13 +1758,13 @@
 
           <button class="btn-back-link" id="s5-back" onclick="goToStep(4)">&larr; Back</button>
 
-          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Reserve My Time Slot <span>&#8594;</span></button>
+          <button class="btn-next" id="s5-submit" onclick="submitBooking()">Complete Booking <span>&#8594;</span></button>
 
         </div>
 
         <p id="s5-charge-note" style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.6rem;line-height:1.5;font-weight:500;display:none">
 
-          You won&rsquo;t be charged until the job is complete.
+          See pricing FAQ for payment details.
 
         </p>
 
@@ -1882,7 +1890,7 @@
 
         </div>
 
-        <p class="order-note" id="order-note" style="display:none">Final price confirmed after review. Card authorized at booking &mdash; charged only after the job is complete.</p>
+        <p class="order-note" id="order-note" style="display:none">Final price confirmed after review. Your card is saved securely; any authorization happens only after you approve the quote.</p>
 
         <div style="margin-top:0.75rem">
 
@@ -1915,9 +1923,9 @@
 
         <div class="next-list">
           <div class="next-item"><div class="next-num">1</div><div><strong>Choose exact items</strong><span>Common services show quick prices so the estimate makes sense.</span></div></div>
-          <div class="next-item"><div class="next-num">2</div><div><strong>Pick your time</strong><span>Your card is authorized only to hold the appointment.</span></div></div>
+          <div class="next-item"><div class="next-num">2</div><div><strong>Pick your time</strong><span>Choose the appointment window that works best.</span></div></div>
           <div class="next-item"><div class="next-num">3</div><div><strong>We confirm fast</strong><span>A real person reviews the job details and follows up quickly.</span></div></div>
-          <div class="next-item"><div class="next-num">4</div><div><strong>Pay when done</strong><span>You are charged only after the work is complete.</span></div></div>
+          <div class="next-item"><div class="next-num">4</div><div><strong>Final receipt</strong><span>We send your receipt after the job is complete.</span></div></div>
         </div>
 
       </div>
@@ -1939,6 +1947,7 @@
     <a href="tel:+17372906129" style="color:rgba(255,255,255,0.6);text-decoration:none">(737) 290-6129</a> •
 
     <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.6);text-decoration:none">service@assembleatease.com</a><br>
+    <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none">Follow Austin project updates</a><br>
 
     <a href="/terms" style="color:rgba(255,255,255,0.45);text-decoration:none" target="_blank">Terms &amp; Conditions</a> &nbsp;•&nbsp;
 
@@ -2292,10 +2301,44 @@ var SVC_FROM = {
   'Smart Home':          'From $69 • 30 min–2 hrs',
   'Fitness Equipment':   'From $119 • 1–3 hrs',
   'Outdoor & Playsets':  'From $89 • 1–5 hrs',
-  'Office Assembly':     'From $89 • 30 min–3 hrs'
+  'Office Assembly':     'From $89 • 30 min–3 hrs',
+  'Other':               'Custom quote'
 };
 
+function startCustomQuoteFlow() {
+  var quoteItemName = 'Describe your project in the notes below (custom quote)';
+  BOOK.selectedServices = ['Other'];
+  BOOK.selectedItems = {
+    'Other': [{ name: quoteItemName, price: 0, priceMax: 0, addon: false, customQuote: true, qty: 1 }]
+  };
+  BOOK.wantsQuote = true;
+  showItemScreen('Other');
+
+  var quoteBox = document.getElementById('s1-quote');
+  if (quoteBox) quoteBox.checked = true;
+
+  var heading = document.getElementById('item-screen-heading');
+  if (heading) heading.textContent = 'Custom Quote';
+
+  var from = document.getElementById('item-screen-from');
+  if (from) from.textContent = 'Tell us what you need. We review it before scheduling.';
+
+  var details = document.getElementById('s1-details');
+  if (details) details.placeholder = 'Describe the project, item brand/model, room count, photos you can send, access notes, or anything unusual.';
+
+  updateSvcRows();
+  updateOrderSummary();
+}
+
 function showItemScreen(svc) {
+
+  if (svc !== 'Other' && BOOK.selectedServices.indexOf('Other') !== -1 && BOOK.wantsQuote) {
+    BOOK.selectedServices = BOOK.selectedServices.filter(function(name) { return name !== 'Other'; });
+    delete BOOK.selectedItems.Other;
+    BOOK.wantsQuote = false;
+    var quoteBox = document.getElementById('s1-quote');
+    if (quoteBox) quoteBox.checked = false;
+  }
 
   BOOK.currentSvc = svc;
 
@@ -2304,8 +2347,11 @@ function showItemScreen(svc) {
     if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
   }
 
-  document.getElementById('item-screen-heading').textContent = svc;
+  document.getElementById('item-screen-heading').textContent = svc === 'Other' ? 'Custom Quote' : svc;
   document.getElementById('item-screen-from').textContent = SVC_FROM[svc] || '';
+
+  var details = document.getElementById('s1-details');
+  if (details && svc !== 'Other') details.placeholder = 'Any extra details: brand, model, floor, access info...';
 
   renderItemScreen(svc);
 
@@ -2662,7 +2708,8 @@ function updateOrderSummary() {
 
     var items = BOOK.selectedItems[svc] || [];
 
-    html += '<div class="order-group-label">' + esc(svc) + '</div>';
+    var displaySvc = svc === 'Other' ? 'Custom Quote' : svc;
+    html += '<div class="order-group-label">' + esc(displaySvc) + '</div>';
 
     if (items.length === 0) {
 
@@ -3081,7 +3128,8 @@ async function goToStep5Payment() {
 
     var items = BOOK.selectedItems[svc] || [];
 
-    return items.length ? svc + ' (' + items.map(function(i){return i.qty > 1 ? i.name + ' \xD7' + i.qty : i.name;}).join(', ') + ')' : svc;
+    var displaySvc = svc === 'Other' ? 'Custom Quote' : svc;
+    return items.length ? displaySvc + ' (' + items.map(function(i){return i.qty > 1 ? i.name + ' \xD7' + i.qty : i.name;}).join(', ') + ')' : displaySvc;
 
   }).join(' \u2022 ');
 
@@ -3359,7 +3407,7 @@ async function goToStep5Payment() {
 
   document.getElementById('s5-heading').textContent = 'Secure your booking';
 
-  document.getElementById('s5-sub').innerHTML = 'Enter your card to hold the appointment. <strong>You won&rsquo;t be charged until the job is done.</strong>';
+  document.getElementById('s5-sub').textContent = 'Enter your card to complete your booking securely.';
 
   document.getElementById('s5-payment-section').style.display = 'block';
 
@@ -3372,7 +3420,7 @@ async function goToStep5Payment() {
   document.getElementById('s5-confidence').innerHTML =
     '';
 
-  document.getElementById('s5-submit').innerHTML = 'Reserve My Time Slot <span>&#8594;</span>';
+  document.getElementById('s5-submit').innerHTML = 'Complete Booking <span>&#8594;</span>';
 
   var resetProg4Label = document.querySelector('#prog-4 .progress-label');
   if (resetProg4Label) resetProg4Label.textContent = 'Payment';
@@ -3389,11 +3437,11 @@ async function goToStep5Payment() {
 
   if (isQuoteFlow) {
 
-    document.getElementById('s5-banner').textContent = 'Almost done &mdash; save your card';
+    document.getElementById('s5-banner').textContent = 'Almost done - request your quote';
 
-    document.getElementById('s5-heading').textContent = 'Save your card to hold your spot';
+    document.getElementById('s5-heading').textContent = 'Request custom quote';
 
-    document.getElementById('s5-sub').innerHTML = 'Your card is saved securely. We only charge it once we send you a custom quote and you approve the price.';
+    document.getElementById('s5-sub').textContent = 'Save your card securely so we can confirm faster if you approve the quote. No appointment is confirmed yet.';
 
     document.getElementById('s5-payment-section').style.display = 'block';
 
@@ -3407,7 +3455,7 @@ async function goToStep5Payment() {
 
       '';
 
-    document.getElementById('s5-submit').innerHTML = 'Save Card & Request Quote <span>&#8594;</span>';
+    document.getElementById('s5-submit').innerHTML = 'Request Custom Quote <span>&#8594;</span>';
 
     var prog4Label = document.querySelector('#prog-4 .progress-label');
     if (prog4Label) prog4Label.textContent = 'Review';
@@ -4110,7 +4158,7 @@ async function submitBooking() {
       errEl.textContent = setupResult.error.message;
       errEl.classList.add('show');
       submitBtn.disabled=false; backBtn.disabled=false;
-      submitBtn.innerHTML = 'Save Card & Request Quote <span>&#8594;</span>'; return;
+      submitBtn.innerHTML = 'Request Custom Quote <span>&#8594;</span>'; return;
     }
 
     savedPaymentMethodId = setupResult.setupIntent.payment_method;
@@ -4167,7 +4215,7 @@ async function submitBooking() {
 
     submitBtn.disabled=false; backBtn.disabled=false;
 
-    submitBtn.innerHTML = 'Confirm Booking <span>&#8594;</span>'; return;
+    submitBtn.innerHTML = 'Complete Booking <span>&#8594;</span>'; return;
 
   }
 
@@ -4207,7 +4255,7 @@ async function submitBooking() {
 
       submitBtn.disabled=false; backBtn.disabled=false;
 
-      submitBtn.innerHTML = 'Confirm Booking <span>&#8594;</span>'; return;
+      submitBtn.innerHTML = 'Complete Booking <span>&#8594;</span>'; return;
 
     }
 
@@ -4284,7 +4332,11 @@ function showMarketDemandConfirmation(ref) {
   if (ref) refEl.textContent = 'Request: ' + ref; else refEl.style.display = 'none';
 
   var svcEl = document.getElementById('confirm-services');
-  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' / ') || 'Your services';
+  if (svcEl) {
+    svcEl.textContent = isQuote && BOOK.selectedServices.indexOf('Other') !== -1
+      ? 'Custom Quote'
+      : (BOOK.selectedServices.join(' / ') || 'Your services');
+  }
 
   var dtEl = document.getElementById('confirm-datetime');
   if (dtEl) {
@@ -4332,16 +4384,21 @@ function showConfirmation(ref, isQuote) {
 
   if (isQuote) {
 
-    var h = document.querySelector('#step-confirm .confirm-heading');
-
-    var sub = document.querySelector('#step-confirm .confirm-subheading');
-
+    var h = document.querySelector('#step-confirm .confirm-title');
+    var steps = document.getElementById('confirm-next-steps');
+    var portal = document.getElementById('confirm-portal-link');
     var cal = document.getElementById('confirm-calendar-link');
 
-    if (h) h.textContent = 'Quote request received!';
+    if (h) h.textContent = 'Quote request received';
 
-    if (sub) sub.textContent = 'We\'ll review your project and send a custom quote to ' + (BOOK.email || 'your email') + ' in as little as 1 hour. No payment has been taken.';
+    if (steps) {
+      steps.innerHTML =
+        '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">We review your notes</strong> - a real person checks the scope before scheduling.</div></div>'
+        + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">We send the final price</strong> - no appointment is confirmed until the quote is approved.</div></div>'
+        + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Then we schedule</strong> - your card is saved securely, but no payment has been taken.</div></div>';
+    }
 
+    if (portal) portal.textContent = 'Track Your Request \u2192';
     if (cal) cal.style.display = 'none';
 
   }
@@ -4398,7 +4455,9 @@ function showConfirmation(ref, isQuote) {
 
   var calEl = document.getElementById('confirm-calendar-link');
 
-  if (calEl && BOOK.date && BOOK.time) {
+  if (calEl && isQuote) {
+    calEl.style.display = 'none';
+  } else if (calEl && BOOK.date && BOOK.time) {
 
     try {
 

@@ -201,7 +201,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const sService = esc(service);
+  const sService = esc(quoteRequested && service === 'Other' ? 'Custom Quote' : service);
   const sName = esc(name);
   const sPhone = esc(phone);
   const sEmail = esc(email);
@@ -248,7 +248,7 @@ export default async function handler(req, res) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Action Required</p>
-      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.</p>
+    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`}</p>
     </td></tr></table>
   </td></tr></table>
 
@@ -268,13 +268,13 @@ export default async function handler(req, res) {
 
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">We received your booking,&nbsp;${sName}.</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Thank you for choosing AssembleAtEase. A member of our team will email you within <strong>1 hour</strong> to confirm your appointment.</p>
+    <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">${quoteRequested ? `We received your quote request,&nbsp;${sName}.` : `We received your booking,&nbsp;${sName}.`}</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">${quoteRequested ? `We will review your project notes and follow up with the next step before anything is scheduled.` : `Thank you for choosing AssembleAtEase. A member of our team will follow up to confirm your appointment details.`}</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
-        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">PENDING CONFIRMATION</span></td></tr>
+        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${quoteRequested ? 'QUOTE REQUEST' : 'PENDING CONFIRMATION'}</span></td></tr>
       </table>
     </td></tr></table>
 
@@ -289,9 +289,15 @@ export default async function handler(req, res) {
 
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What Happens Next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
+      ${quoteRequested ? `
+      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We review the scope</strong> — A real person checks your notes before confirming availability.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We send the final price</strong> — No appointment is confirmed until the quote is approved.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Then we schedule</strong> — Your card is saved securely, but no payment has been taken.</td></tr>
+      ` : `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll follow up to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${clientSecret ? 'Card authorized — charged after completion' : 'Payment reviewed after confirmation'}</strong> — ${clientSecret ? 'Your card is securely authorized now and captured only after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.'}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${clientSecret ? 'Card authorized — captured after completion' : 'Payment reviewed after confirmation'}</strong> — ${clientSecret ? 'Your card is securely authorized now. Payment is captured after the job is complete; cancellation fees may apply.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.'}</td></tr>
+      `}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
@@ -327,7 +333,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
           to: [TO],
-          subject: 'New Booking - ' + service + ' from ' + name,
+          subject: (quoteRequested ? 'New Quote Request - ' : 'New Booking - ') + (quoteRequested && service === 'Other' ? 'Custom Quote' : service) + ' from ' + name,
           html: ownerHtml,
           reply_to: email,
         }),
@@ -343,7 +349,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'AssembleAtEase <booking@assembleatease.com>',
           to: [email],
-          subject: 'Booking Confirmed - We received your request!',
+          subject: quoteRequested ? 'Quote request received - ' + ref : 'Booking Confirmed - We received your request!',
           html: customerHtml,
           reply_to: TO,
         }),
