@@ -238,9 +238,9 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     </div>
     <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;font-size:0.82rem;color:var(--ink-soft)">
       <span>&#10003; Secure payment at booking</span>
-      <span>&#10003; Confirmed in 1 hour</span>
+      <span>&#10003; Fast follow-up</span>
       <span>&#10003; Same-Day Available</span>
-      <span>&#10003; Pay After</span>
+      <span>&#10003; Clear pricing</span>
     </div>
   </div>
 </section>
@@ -251,15 +251,15 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Transparent Pricing</div>
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">{h1.replace(' in Austin, TX','')} Pricing in Austin</h2>
-      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront rates &mdash; no surprises, no callout fee.</p>
+      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront item pricing. Service-call fees and visit minimums are shown before checkout.</p>
     </div>
     <div class="pricing-grid">{price_cards_html}</div>
     <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:3rem 2rem;text-align:center">
       <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--ink);margin-bottom:0.65rem">Ready to book in Austin?</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:520px;margin-left:auto;margin-right:auto">Book in minutes. We confirm within the hour and show up on time, every time.</p>
+      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:520px;margin-left:auto;margin-right:auto">Book in minutes. We follow up quickly and show up on time.</p>
       <a href="/book?service={book_param}" class="btn btn-cyan btn-lg">Book Now &mdash; Austin</a>
       <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:1.75rem;font-size:0.82rem;color:var(--muted)">
-        <span>&#10003; Confirmed in 1 hour</span><span>&#10003; Balance after completion</span><span>&#10003; No callout fee, ever</span>
+        <span>&#10003; Fast follow-up</span><span>&#10003; Balance after completion</span><span>&#10003; Service-call fee shown upfront</span>
       </div>
     </div>
   </div>
@@ -317,7 +317,7 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
 <section style="background:linear-gradient(135deg,#003d47,#006070);padding:5rem 2rem;text-align:center">
   <div style="max-width:600px;margin:0 auto">
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in Austin?</h2>
-    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing, same-day available. Book in minutes &mdash; pay only after the job is done.</p>
+    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing, same-day available. Book in minutes with secure payment at booking.</p>
     <a href="/book?service={book_param}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#006070;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book Now &rarr;</a>
     <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
@@ -443,7 +443,7 @@ PAGES = [
     {
         "slug": "ikea-assembly-austin-tx",
         "title": "IKEA Furniture Assembly in Austin, TX — From $69 | AssembleAtEase",
-        "meta": "IKEA furniture assembly in Austin, TX — PAX wardrobes, MALM dressers, HEMNES beds, KALLAX shelving and more. From $69. Same-day available. Book online, pay only after the job is done.",
+        "meta": "IKEA furniture assembly in Austin, TX — PAX wardrobes, MALM dressers, HEMNES beds, KALLAX shelving and more. From $69. Same-day available with secure payment at booking.",
         "h1": "IKEA Furniture Assembly in Austin, TX",
         "tagline": "Every IKEA item assembled fast, clean, and correctly.",
         "city_blurb": "Austin is one of the busiest IKEA markets in Texas &mdash; new apartments, tech workers moving in, and growing families furnishing homes every day. We know every flat-pack, every hardware bag.",
@@ -460,7 +460,7 @@ PAGES = [
     {
         "slug": "gazebo-assembly-austin-tx",
         "title": "Gazebo Assembly in Austin, TX — From $399 | AssembleAtEase",
-        "meta": "Professional gazebo and pergola assembly in Austin, TX — any brand, any kit. Sunjoy, Yardistry, Costco, Hampton Bay and more. From $399. Book online, pay only after the job is done.",
+        "meta": "Professional gazebo and pergola assembly in Austin, TX — any brand, any kit. Sunjoy, Yardistry, Costco, Hampton Bay and more. From $399. Secure payment at booking.",
         "h1": "Gazebo Assembly in Austin, TX",
         "tagline": "Pergolas, gazebos, and outdoor structures assembled and anchored.",
         "city_blurb": "Austin's year-round outdoor lifestyle means more backyard pergolas and gazebos going up than anywhere in Central Texas. Our team handles any kit, any surface, any size.",
@@ -477,7 +477,7 @@ PAGES = [
     {
         "slug": "trampoline-assembly-austin-tx",
         "title": "Trampoline Assembly in Austin, TX — From $199 | AssembleAtEase",
-        "meta": "Professional trampoline assembly in Austin, TX — Springfree, Skywalker, Vuly, Acon and more. From $199. Same-day available. Book online, pay only after the job is done.",
+        "meta": "Professional trampoline assembly in Austin, TX — Springfree, Skywalker, Vuly, Acon and more. From $199. Same-day available with secure payment at booking.",
         "h1": "Trampoline Assembly in Austin, TX",
         "tagline": "All brands, all sizes &mdash; assembled and anchored safely.",
         "city_blurb": "Austin's family-friendly suburbs &mdash; Round Rock, Cedar Park, Georgetown, Kyle &mdash; are full of backyards that need trampolines set up right. We handle the springs, nets, and anchors so you don't have to.",

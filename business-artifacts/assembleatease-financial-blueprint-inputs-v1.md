@@ -62,7 +62,7 @@ These are draft operating assumptions for Theodore to use in a first financial m
 
 | KPI | Early target |
 | --- | --- |
-| Average ticket | $125+ initially, then $150+ |
+| Average ticket | $149+ target, with no standalone checkout below the zone minimum |
 | Platform gross per completed job | $35+ minimum, $50+ blended target |
 | Rework rate | Under 5% |
 | Refund rate | Under 2% |

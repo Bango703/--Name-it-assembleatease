@@ -107,17 +107,17 @@ Prepared from the live customer booking catalog in assets/js/booking-source-of-t
 
 | Group | Item | Price | Add-on | Popular | Custom quote |
 | --- | --- | --- | --- | --- | --- |
-| TV Mounting by Size | TV up to 40" (standard wall) | $75 | No | No | No |
-| TV Mounting by Size | TV 41"-55" (standard wall) | $79 | No | Yes | No |
-| TV Mounting by Size | TV 56"-65" (standard wall) | $89 | No | No | No |
-| TV Mounting by Size | TV 66"-75" (standard wall) | $99 | No | No | No |
-| TV Mounting by Size | TV 76"-85" (standard wall) | $115 | No | No | No |
-| TV Mounting by Size | TV 86"+ / commercial display | $135-$175 | No | No | No |
-| TV Mounting by Size | Second TV (same visit) | $25 | Yes | No | No |
-| Wall Type Upgrades | Brick or concrete wall | $45 | Yes | No | No |
-| Wall Type Upgrades | Tile wall | $45 | Yes | No | No |
-| Wall Type Upgrades | Steel stud / metal framing | $35 | Yes | No | No |
-| Wall Type Upgrades | Above fireplace mount | $55 | Yes | No | No |
+| TV Mounting by Size | TV up to 40" (standard wall) | $99 | No | No | No |
+| TV Mounting by Size | TV 41"-55" (standard wall) | $119 | No | Yes | No |
+| TV Mounting by Size | TV 56"-65" (standard wall) | $149 | No | No | No |
+| TV Mounting by Size | TV 66"-75" (standard wall) | $179 | No | No | No |
+| TV Mounting by Size | TV 76"-85" (standard wall) | $209 | No | No | No |
+| TV Mounting by Size | TV 86"+ / commercial display | $249-$329 | No | No | No |
+| TV Mounting by Size | Second TV (same visit) | $69 | Yes | No | No |
+| Wall Type Upgrades | Brick or concrete wall | $75 | Yes | No | No |
+| Wall Type Upgrades | Tile wall | $65 | Yes | No | No |
+| Wall Type Upgrades | Steel stud / metal framing | $55 | Yes | No | No |
+| Wall Type Upgrades | Above fireplace mount | $85 | Yes | No | No |
 | Cable & Cord Management | Surface cord cover (raceway, up to 6 ft) | $75 | No | No | No |
 | Cable & Cord Management | In-wall cord concealment | $99 | No | Yes | No |
 | Cable & Cord Management | In-wall cord concealment (brick / concrete) | $115 | No | No | No |
@@ -138,7 +138,7 @@ Prepared from the live customer booking catalog in assets/js/booking-source-of-t
 | Window Treatments | Curtain rod - 3 windows | $110 | No | No | No |
 | Window Treatments | Curtain rod - 4 windows | $135 | No | No | No |
 | Window Treatments | Curtain rod - 5+ windows (per additional) | $25 | Yes | No | No |
-| Window Treatments | Double curtain rod (per window) | $15 | Yes | No | No |
+| Window Treatments | Double curtain rod (per window) | $25 | Yes | No | No |
 | Window Treatments | Blind install - 1 window | $75 | No | No | No |
 | Window Treatments | Blind install - per additional window | $25 | Yes | No | No |
 | Window Treatments | Cellular shade / roller shade install (per window) | $75 | No | No | No |
@@ -186,7 +186,7 @@ Prepared from the live customer booking catalog in assets/js/booking-source-of-t
 | Network & Hubs | TV streaming device setup (Apple TV, Roku, Fire) | $75 | No | No | No |
 | Add-ons | App setup + walkthrough (per platform) | $25 | Yes | No | No |
 | Add-ons | Voice assistant integration (Alexa / Google) | $25 | Yes | No | No |
-| Add-ons | Automation / routine programming (per device) | $15 | Yes | No | No |
+| Add-ons | Automation / routine programming (per device) | $25 | Yes | No | No |
 | Add-ons | Device migration (old to new system) | $35 | Yes | No | No |
 
 ### Outdoor & Playsets
@@ -218,16 +218,16 @@ Prepared from the live customer booking catalog in assets/js/booking-source-of-t
 | Desks & Workstations | Cubicle workstation / multi-desk setup | $275-$395 | No | No | No |
 | Seating & Storage | Office chair (standard) | $75 | No | No | No |
 | Seating & Storage | Office chair (ergonomic / heavy-duty) | $85 | No | No | No |
-| Seating & Storage | Bookcase / shelving unit (up to 5 shelves) | $85 | No | No | No |
-| Seating & Storage | Bookcase / shelving unit (6+ shelves) | $105 | No | No | No |
-| Seating & Storage | File cabinet (2-4 drawer) | $75 | No | No | No |
-| Seating & Storage | Credenza / sideboard | $125 | No | No | No |
-| Conference & Specialty | Conference table | $175-$225 | No | No | No |
-| Conference & Specialty | Reception desk / front counter | $275-$425 | No | No | No |
-| Conference & Specialty | Wall-mounted storage / overhead cabinet | $95 | No | No | No |
-| Conference & Specialty | Office partition / divider install | $145 | No | No | No |
-| Add-ons | Cable management / cord routing | $25 | Yes | No | No |
-| Add-ons | Wall anchoring / anti-tip hardware | $35 | Yes | No | No |
+| Seating & Storage | Bookcase / shelving unit (up to 5 shelves) | $99 | No | No | No |
+| Seating & Storage | Bookcase / shelving unit (6+ shelves) | $129 | No | No | No |
+| Seating & Storage | File cabinet (2-4 drawer) | $89 | No | No | No |
+| Seating & Storage | Credenza / sideboard | $149 | No | No | No |
+| Conference & Specialty | Conference table | $229-$329 | No | No | No |
+| Conference & Specialty | Reception desk / front counter | $399-$599 | No | No | No |
+| Conference & Specialty | Wall-mounted storage / overhead cabinet | $119 | No | No | No |
+| Conference & Specialty | Office partition / divider install | $189 | No | No | No |
+| Add-ons | Cable management / cord routing | $39 | Yes | No | No |
+| Add-ons | Wall anchoring / anti-tip hardware | $45 | Yes | No | No |
 | Add-ons | Rush / same-day office assembly | $55 | Yes | No | No |
 | Add-ons | Furniture disposal / haul-away | $45 | Yes | No | No |
 
@@ -273,6 +273,6 @@ Prepared from the live customer booking catalog in assets/js/booking-source-of-t
 ## Known Strategic Flags
 
 - Many currently listed items sit at $75, which may be too low for standalone work after payment fees, CAC, support, rework reserve, and travel time.
-- Some add-ons are priced very low ($15-$35) and should be modeled as same-visit incremental revenue, not standalone services.
+- Some add-ons are priced very low ($25-$35) and should be modeled as same-visit incremental revenue, not standalone services.
 - Outdoor, office, multi-camera, and home gym work likely offer better platform gross dollars per job than one-off quick jobs.
 - Business accounts should be modeled separately from one-time residential work because repeat demand can lower CAC materially.

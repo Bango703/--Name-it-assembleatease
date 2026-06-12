@@ -153,10 +153,10 @@ const SERVICES = [
     intro: 'We assemble IKEA, Wayfair, Amazon, Ashley, and any other brand — beds, dressers, sofas, desks, wardrobes, and more. All tools included, work guaranteed.',
     fromPrice: '$69',
     pricingHighlights: [
-      { name: 'Bed Frame (Queen)', price: '$109', popular: true },
+      { name: 'Bed Frame (Queen)', price: '$119', popular: true },
       { name: 'Sectional Sofa (L-shape)', price: '$139–$169', popular: false },
       { name: 'Dresser / Chest of Drawers', price: '$99–$119', popular: false },
-      { name: 'IKEA PAX Wardrobe', price: '$149+', popular: false },
+      { name: 'IKEA PAX Wardrobe', price: '$169+', popular: false },
     ],
     faqs: [
       { q: 'How long does furniture assembly take?', a: 'Most single items take 30–90 minutes. A full bedroom set (bed + dresser + desk) typically takes 2–3 hours. We\'ll give you a time estimate when confirming your booking.' },
@@ -171,19 +171,19 @@ const SERVICES = [
     name: 'Mounting & Hanging',
     slug: 'tv-mounting',
     bookingParam: 'Mounting+%26+Hanging',
-    tagline: 'Safe, level, and clean TV mounting on any wall.',
-    intro: 'We mount any TV on any wall — standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
-    fromPrice: '$89',
+    tagline: 'Safe, level, and clean mounting on any wall.',
+    intro: 'We mount TVs, shelves, mirrors, gallery walls, curtain rods, projectors, and more — standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
+    fromPrice: '$79',
     pricingHighlights: [
-      { name: 'TV up to 40" (standard drywall)', price: '$89', popular: false },
-      { name: 'TV 41"–55" (standard wall)', price: '$109', popular: true },
-      { name: 'TV 56"–75" (standard wall)', price: '$129–$149', popular: false },
-      { name: 'In-wall cord concealment', price: '$169', popular: false },
+      { name: 'Single framed picture / mirror', price: '$79', popular: false },
+      { name: 'TV up to 40" (standard wall)', price: '$99', popular: false },
+      { name: 'TV 41"–55" (standard wall)', price: '$119', popular: true },
+      { name: 'In-wall cord concealment', price: '$189', popular: false },
     ],
     faqs: [
-      { q: 'Do you supply the TV mount?', a: 'We can supply a standard mount for $35, or we\'ll use yours — your choice at booking.' },
-      { q: 'Can you mount a TV above a fireplace?', a: 'Yes. Above-fireplace mounts include a $75 add-on for the extra height, reach, and precise tilt-angle work required.' },
-      { q: 'What wall types do you work with?', a: 'Drywall, brick, concrete, tile, and steel-stud framing. Brick and concrete include a $65 add-on; tile and steel stud are $45–$55.' },
+      { q: 'Do you supply the TV mount?', a: 'We can supply TV mount hardware for $39, or we\'ll use yours — your choice at booking.' },
+      { q: 'Can you mount a TV above a fireplace?', a: 'Yes. Above-fireplace mounts include an $85 add-on for the extra height, reach, and precise tilt-angle work required.' },
+      { q: 'What wall types do you work with?', a: 'Drywall, brick, concrete, tile, and steel-stud framing. Brick/concrete is a $75 add-on, tile is $65, and steel stud framing is $55.' },
     ],
     relatedService: 'smart-home-installation',
     brands: ['Samsung', 'LG', 'Sony', 'TCL', 'Vizio', 'Hisense'],
@@ -194,17 +194,17 @@ const SERVICES = [
     slug: 'smart-home-installation',
     bookingParam: 'Smart+Home',
     tagline: 'Seamless smart device setup in every room.',
-    intro: 'From smart thermostats and doorbells to locks, cameras, and lighting systems — we install, connect, and test every device so it works perfectly the first time.',
-    fromPrice: '$49',
+    intro: 'From smart thermostats and doorbells to locks, cameras, lighting systems, hubs, Wi-Fi, and streaming devices — we install, connect, and test every device so it works perfectly the first time.',
+    fromPrice: '$69',
     pricingHighlights: [
-      { name: 'Smart Thermostat (Nest, Ecobee)', price: '$89', popular: true },
-      { name: 'Smart Doorbell — hardwired replacement', price: '$109', popular: false },
-      { name: 'Smart Lock (deadbolt)', price: '$99', popular: false },
-      { name: 'Camera System (4 cameras)', price: '$229', popular: false },
+      { name: 'Smart plug install + setup (per 2 plugs)', price: '$69', popular: false },
+      { name: 'Smart Thermostat (Nest, Ecobee)', price: '$99', popular: true },
+      { name: 'Smart Doorbell — wireless', price: '$89', popular: false },
+      { name: 'Camera System (4 cameras)', price: '$249', popular: false },
     ],
     faqs: [
       { q: 'Do I need WiFi set up before the appointment?', a: 'Yes — a working WiFi network is required. We handle all device pairing, configuration, and app setup during the visit.' },
-      { q: 'Can you install a smart thermostat without a C-wire?', a: 'Yes. We handle no-C-wire installs using a power adapter kit — included as a $30 add-on.' },
+      { q: 'Can you install a smart thermostat without a C-wire?', a: 'Yes. Choose the no-C-wire thermostat option in booking; current catalog price is $129.' },
       { q: 'Do you set up the app on my phone too?', a: 'Yes — we configure and test the device app on your phone before we leave, so everything works before we go.' },
     ],
     relatedService: 'tv-mounting',
@@ -215,19 +215,19 @@ const SERVICES = [
     name: 'Fitness Equipment Assembly',
     slug: 'fitness-equipment-assembly',
     bookingParam: 'Fitness+Equipment',
-    tagline: 'Get your home gym set up and ready to use today.',
-    intro: 'We assemble treadmills, ellipticals, stationary bikes, weight benches, squat racks, and cable machines — heavy equipment handled safely and placed exactly where you want it.',
-    fromPrice: '$109',
+    tagline: 'Get your home gym set up and ready to use.',
+    intro: 'We assemble treadmills, ellipticals, stationary bikes, rowing machines, weight benches, squat racks, and cable machines — heavy equipment handled safely and placed exactly where you want it.',
+    fromPrice: '$119',
     pricingHighlights: [
-      { name: 'Treadmill Assembly', price: '$169', popular: true },
-      { name: 'Elliptical Machine', price: '$189', popular: false },
-      { name: 'Stationary Bike / Rowing Machine', price: '$149–$159', popular: false },
-      { name: 'Squat Rack / Power Cage', price: '$199+', popular: false },
+      { name: 'Inversion Table', price: '$119', popular: false },
+      { name: 'Treadmill Assembly', price: '$189', popular: true },
+      { name: 'Elliptical Machine', price: '$209', popular: false },
+      { name: 'Squat Rack / Power Cage', price: '$219+', popular: false },
     ],
     faqs: [
-      { q: 'Do you move the equipment to the right room?', a: 'Yes — we\'ll move boxes from the delivery location to the room of your choice before assembly begins.' },
+      { q: 'Do you move the equipment to the right room?', a: 'Yes — same-floor equipment moves can be added during booking. Heavy or stair moves may need a custom quote.' },
       { q: 'Can you assemble Peloton or NordicTrack machines?', a: 'Yes. We assemble all major brands including Peloton, NordicTrack, Bowflex, Life Fitness, Concept2, and more.' },
-      { q: 'What if the machine is very heavy?', a: 'We\'re prepared for heavy equipment. Two-person jobs for very large machines may include a small team add-on — we\'ll confirm before booking.' },
+      { q: 'What if the machine is very heavy?', a: 'We\'re prepared for heavy equipment. Very large machines or two-person moves may need a custom quote before booking.' },
     ],
     relatedService: 'furniture-assembly',
     brands: ['Peloton', 'NordicTrack', 'Bowflex', 'Life Fitness', 'Rogue', 'Concept2'],
@@ -237,19 +237,19 @@ const SERVICES = [
     name: 'Playset Assembly',
     slug: 'playset-assembly',
     bookingParam: 'Outdoor+%26+Playsets',
-    tagline: 'Professional outdoor playset and pergola assembly.',
-    intro: 'We assemble swing sets, playsets, pergolas, gazebos, and storage sheds — fully built, safely anchored, and ready for your family to enjoy the same day.',
-    fromPrice: '$175',
+    tagline: 'Professional outdoor playset, trampoline, and structure assembly.',
+    intro: 'We assemble swing sets, playsets, trampolines, pergolas, gazebos, storage sheds, and outdoor structures — fully built, safely leveled, and ready for your family to enjoy.',
+    fromPrice: '$169',
     pricingHighlights: [
-      { name: 'Swing Set (small, up to 3 components)', price: 'From $175', popular: false },
-      { name: 'Playset / Swing Set (large modular)', price: '$225–$325', popular: true },
-      { name: 'Pergola / Gazebo (kit)', price: '$225–$325', popular: false },
-      { name: 'Storage Shed (small kit)', price: '$225–$325', popular: false },
+      { name: 'Sandbox / Outdoor Playhouse', price: '$169', popular: false },
+      { name: 'Trampoline Assembly', price: '$199', popular: true },
+      { name: 'Swing Set / Backyard Playset', price: '$299–$379', popular: false },
+      { name: 'Pergola / Gazebo Kit', price: '$399–$599', popular: false },
     ],
     faqs: [
-      { q: 'Do you anchor the playset to the ground?', a: 'Yes — we anchor and level all playsets per manufacturer specifications. Ground anchoring hardware is included in the assembly price.' },
-      { q: 'How long does playset assembly take?', a: 'Small swing sets take 2–3 hours. Large modular playsets can take 4–6 hours. We\'ll confirm timing when you book.' },
-      { q: 'Do you work on concrete pads or grass?', a: 'Both. Standard grass anchoring and concrete or paver installs are both supported. Just let us know your surface type when booking.' },
+      { q: 'Do you anchor the playset to the ground?', a: 'Yes — anchoring, leveling, and safety hardware can be added during booking when the kit or ground conditions require it.' },
+      { q: 'How long does playset assembly take?', a: 'Small outdoor items may take a couple of hours. Large modular playsets, gazebos, and sheds often take longer and may need a custom quote.' },
+      { q: 'Do you work on concrete pads or grass?', a: 'Both. Grass, concrete, paver, and deck installs are supported. Tell us your surface type when booking.' },
     ],
     relatedService: 'furniture-assembly',
     brands: ['Lifetime', 'Step2', 'Gorilla Playsets', 'Cedar Summit', 'KidKraft', 'Backyard Discovery'],
@@ -260,16 +260,16 @@ const SERVICES = [
     slug: 'office-furniture-assembly',
     bookingParam: 'Office+Assembly',
     tagline: 'Home office and commercial workspace setup done right.',
-    intro: 'We assemble desks, standing desks, L-shaped workstations, office chairs, bookcases, and filing cabinets — for home offices, commercial spaces, and everything in between.',
-    fromPrice: '$79',
+    intro: 'We assemble desks, standing desks, L-shaped workstations, office chairs, bookcases, filing cabinets, conference tables, and storage — for home offices, commercial spaces, and everything in between.',
+    fromPrice: '$89',
     pricingHighlights: [
-      { name: 'Simple Flat-Pack Desk', price: '$89', popular: false },
-      { name: 'L-Shape / Executive Desk', price: '$159', popular: true },
-      { name: 'Electric Standing Desk', price: '$179', popular: false },
-      { name: 'Cubicle / Multi-Desk Buildout', price: 'Custom quote', popular: false },
+      { name: 'Office Chair / File Cabinet', price: '$89', popular: false },
+      { name: 'Simple Flat-Pack Desk', price: '$99', popular: false },
+      { name: 'L-Shape / Executive Desk', price: '$179', popular: true },
+      { name: 'Electric Standing Desk', price: '$199', popular: false },
     ],
     faqs: [
-      { q: 'Can you do a full office setup in one visit?', a: 'Yes — we can knock out multiple desks, chairs, and shelving units in a single visit. Bundle pricing applies for 3+ items booked together.' },
+      { q: 'Can you do a full office setup in one visit?', a: 'Yes — we can knock out multiple desks, chairs, and shelving units in a single visit. Bundle pricing applies for 3+ qualifying items booked together.' },
       { q: 'Do you assemble motorized standing desks?', a: 'Yes. We assemble and test all electric standing desks including UPLIFT, Flexispot, Autonomous, and similar brands.' },
       { q: 'Can you handle a commercial office buildout?', a: 'Yes — we work with businesses, real estate offices, and coworking spaces. Contact us for a custom quote on larger commercial projects.' },
     ],
@@ -324,7 +324,7 @@ function generatePage(city, service) {
   // City-specific FAQ
   const cityFaq = {
     q: `Do you serve ${city.nearby[0]} too?`,
-    a: `Yes — in addition to ${city.name}, we cover ${city.nearby.join(', ')}, and the entire Austin metro. Book online and we’ll confirm within the hour.`,
+    a: `Yes — in addition to ${city.name}, we cover ${city.nearby.join(', ')}, and the entire Austin metro. Book online and we’ll follow up quickly to confirm the details.`,
   };
 
   const allFaqs = [...service.faqs, cityFaq];
@@ -520,9 +520,9 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     </div>
     <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;font-size:0.82rem;color:var(--ink-soft)">
       <span>&#10003; Secure payment at booking</span>
-      <span>&#10003; Confirmed in 1 hour</span>
+      <span>&#10003; Fast follow-up</span>
       <span>&#10003; Same-Day Available</span>
-      <span>&#10003; Pay After</span>
+      <span>&#10003; Clear pricing</span>
     </div>
   </div>
 </section>
@@ -544,13 +544,13 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <div style="text-align:center;padding:1.5rem 1rem">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">2</div>
         <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">We confirm</h3>
-        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Within 1 hour we confirm and assign a verified, background-checked Easer in ${esc(city.name)}.</p>
+        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We follow up quickly to confirm availability and assign a reviewed service pro in ${esc(city.name)}.</p>
       </div>
       <div style="font-size:1.5rem;color:var(--border);padding-top:2.5rem">&#8594;</div>
       <div style="text-align:center;padding:1.5rem 1rem">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">3</div>
-        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Pay after</h3>
-        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Work completed to your satisfaction. Only then is your card charged. Done.</p>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Final payment</h3>
+        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">When the work is complete, the authorized card is captured according to the final approved total.</p>
       </div>
     </div>
   </div>
@@ -562,19 +562,19 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Transparent Pricing</div>
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">${esc(service.name)} Pricing in ${esc(city.name)}</h2>
-      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront rates &mdash; no surprises, no callout fee. Serving ${esc(city.name)} and nearby ${esc(city.landmark)}.</p>
+      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront item pricing. Service-call fees and visit minimums are shown before checkout for ${esc(city.name)} and nearby ${esc(city.landmark)}.</p>
     </div>
     <div class="pricing-grid">
       ${priceCards}
     </div>
     <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:3rem 2rem;text-align:center">
       <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--ink);margin-bottom:0.65rem">Ready to book in ${esc(city.name)}?</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:520px;margin-left:auto;margin-right:auto">Book in minutes. We confirm within the hour and show up on time, every time.</p>
+      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:520px;margin-left:auto;margin-right:auto">Book in minutes. We follow up quickly and show up on time.</p>
       <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Book Now &mdash; ${esc(city.name)}</a>
       <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:1.75rem;font-size:0.82rem;color:var(--muted)">
-        <span>&#10003; Confirmed in 1 hour</span>
+        <span>&#10003; Fast follow-up</span>
         <span>&#10003; Balance after completion</span>
-        <span>&#10003; No callout fee, ever</span>
+        <span>&#10003; Service-call fee shown upfront</span>
       </div>
     </div>
   </div>
@@ -613,9 +613,9 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem">
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4B3;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Secure payment at booking</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Card secured at booking. For deposit jobs, the remaining balance is charged after completion.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4C5;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Same-day &amp; next-day available</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We keep open slots for last-minute bookings in ${esc(city.name)} and across the Austin metro.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F3F7;&#xFE0F;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flat-rate pricing &mdash; no surprises</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Every price shown upfront. No hourly rates, no hidden fees, no callout charges. Ever.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F3F7;&#xFE0F;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flat-rate pricing &mdash; no surprises</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Every item price, service-call fee, and visit minimum is shown before checkout.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F4CD;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Austin-based &amp; locally operated</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Not a national chain. We live and work in the same communities we serve, including ${esc(city.name)}.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x26A1;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Confirmed within 1 hour</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Book online and get a real confirmation fast &mdash; not a chatbot, not days later.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x26A1;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Fast follow-up</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Book online and get a real confirmation fast &mdash; not a chatbot, not days later.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="font-size:1.75rem;margin-bottom:0.75rem">&#x1F6E1;&#xFE0F;</div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Careful, clean, respectful</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We treat your home like it&rsquo;s ours. No rushing, no shortcuts. Every time.</p></div>
     </div>
   </div>
@@ -704,7 +704,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
   <div class="footer-bottom">
     <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
-    <div class="footer-copy">${esc(city.name)}, TX &bull; Same-Day Available &bull; Pay After Job Done</div>
+    <div class="footer-copy">${esc(city.name)}, TX &bull; Same-Day Available &bull; Clear Pricing</div>
   </div>
 </footer>
 
