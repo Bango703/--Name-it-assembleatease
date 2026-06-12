@@ -477,6 +477,14 @@ section#service-area{display:none}
   .nav-logo-text{font-size:0.98rem}
 }
 
+/* Mobile: gentle section-by-section scroll. 'proximity' snaps only when you pause
+   near a section edge, so tall sections (service list, reviews, FAQ) still scroll
+   normally and nobody gets trapped. */
+@media(max-width:900px){
+  html{scroll-snap-type:y proximity;scroll-padding-top:8px}
+  .svc-section,.people-band,.benefits-section,#reviews,#service-area,#faq,.cta-section{scroll-snap-align:start;scroll-snap-stop:normal}
+}
+
 @media(prefers-reduced-motion:reduce){
   .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,.hv2-right img,.hv2-chip,.hv2-right::after,.m-hero-kicker::before,.m-hero-photo img,.m-float-card,.svc-item,.how-num{animation:none!important}
   .reviews-marquee-track{animation:none}
