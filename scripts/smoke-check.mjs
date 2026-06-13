@@ -36,4 +36,24 @@ for (const check of staleCopyChecks) {
   }
 }
 
+const homepage = readFileSync('index.html', 'utf8');
+const homepageGuides = homepage.match(/<section class="guides-section guides-section--alt" id="guides">([\s\S]*?)<\/section>/)?.[1];
+if (!homepageGuides) throw new Error('Homepage guides section not found');
+
+const homepageGuideCount = (homepageGuides.match(/class="guide-card"/g) || []).length;
+if (homepageGuideCount < 6 || homepageGuideCount % 2 !== 0) {
+  throw new Error(`Homepage guides must use an even count of at least 6 cards; found ${homepageGuideCount}`);
+}
+
+const homepageGuideImages = [...homepageGuides.matchAll(/<img[^>]+src="([^"]+)"/g)].map((match) => match[1]);
+const duplicateGuideImage = homepageGuideImages.find((src, index) => homepageGuideImages.indexOf(src) !== index);
+if (duplicateGuideImage) {
+  throw new Error(`Homepage guides must not reuse the same image: ${duplicateGuideImage}`);
+}
+
+const faviconSvg = readFileSync('images/favicon.svg', 'utf8');
+if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
+  throw new Error('Favicon must use the logo mark, not plain AE text');
+}
+
 console.log('Smoke checks passed');
