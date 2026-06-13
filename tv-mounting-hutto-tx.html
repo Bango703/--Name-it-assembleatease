@@ -37,6 +37,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
 .nav-links a{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
 .nav-links a:hover{color:var(--cyan)}
+.nav-easer-link{display:flex;align-items:center;gap:1rem}
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
 .btn-cyan{background:var(--cyan);color:#fff}
 .btn-cyan:hover{background:var(--cyan-dark);box-shadow:0 4px 16px rgba(0,191,255,0.35);transform:translateY(-1px)}
@@ -78,6 +79,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 @media(max-width:768px){
   .nav-inner{padding:0 1rem}
   .nav-inner>.btn-cyan{display:none}
+  .nav-easer-link{display:none}
   .pricing-grid{display:flex;flex-direction:column;gap:0}
   .price-card{border:none;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);padding:.9rem 0;display:grid;grid-template-areas:"name price" "btn btn";grid-template-columns:1fr auto;align-items:center;gap:0 .75rem}
   .price-card:first-child{border-top:1px solid var(--border)}
@@ -95,7 +97,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   .how-grid > div{width:100%!important;padding:0.95rem 0.5rem!important}
 }
 </style>
-<style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#00BFFF;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#00BFFF;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}</style>
+<style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#00BFFF;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#00BFFF;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}@media(max-width:680px){#cookie-banner{left:.75rem;right:.75rem;bottom:.75rem;border-radius:14px;padding:.85rem;display:block;font-size:.78rem;line-height:1.45}.cookie-btns{display:flex;gap:.5rem;margin-top:.75rem}.cookie-btn{flex:1;min-height:44px;padding:.55rem .8rem}}</style>
 </head>
 <body>
 
@@ -111,7 +113,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><a href="/pricing">Pricing</a></li>
     </ul>
     <a href="/book" class="btn btn-cyan" style="padding:0.5rem 1.25rem;font-size:0.875rem">Book Now &rarr;</a>
-    <div style="display:flex;align-items:center;gap:1rem">
+    <div class="nav-easer-link">
       <a href="/assembler/apply" style="font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none">Become an Easer</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">

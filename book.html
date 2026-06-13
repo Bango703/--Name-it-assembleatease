@@ -996,6 +996,28 @@
       /* Prevent iOS auto-zoom on search input (must be >=16px) */
       .subcat-search { font-size: 16px !important; }
 
+      .subcat-item[data-item-custom="true"] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: flex-start;
+        gap: 0.55rem 0.75rem;
+        padding: 0.85rem;
+      }
+
+      .subcat-item[data-item-custom="true"] .subcat-item-left {
+        grid-column: 1 / -1;
+        align-items: flex-start;
+      }
+
+      .subcat-item[data-item-custom="true"] .subcat-item-name {
+        line-height: 1.45;
+        overflow-wrap: break-word;
+      }
+
+      .subcat-item[data-item-custom="true"] .subcat-item-price {
+        padding-left: calc(18px + 0.6rem);
+      }
+
       .form-label { font-size: 0.8rem; }
 
 
