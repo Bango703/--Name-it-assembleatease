@@ -3806,6 +3806,11 @@ function saveContactEdit() {
 
   var svcClean = svc.toLowerCase().replace(/[^a-z]/g,'');
 
+  if (svcClean === 'other' || svcClean === 'customquote' || svcClean === 'quote') {
+    startCustomQuoteFlow();
+    return;
+  }
+
   document.querySelectorAll('.svc-row').forEach(function(row) {
 
     var rowClean = (row.dataset.service || '').toLowerCase().replace(/[^a-z]/g,'');
