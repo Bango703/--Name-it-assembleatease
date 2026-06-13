@@ -1346,6 +1346,7 @@ function intelQuick(msg) {
   let allBookings = [];
   let selectedId = null;
   let _msgTarget = 'customer';
+  let _messageSending = false;
   let currentStatus = 'all';
   let searchQuery = '';
   var _evidenceCache = {}; // { [bookingId]: { evidence, total, loading, error } }
@@ -3086,13 +3087,39 @@ function intelQuick(msg) {
 
   async function sendMessage() {
     var body = $msgInput.value.trim();
-    if (!body || !selectedId) return;
+    if (!body || !selectedId || _messageSending) return;
+    var bookingId = selectedId;
+    var target = _msgTarget;
+    var sendBtn = document.getElementById('msg-send');
+    var sendingLabel = target === 'assembler' ? 'Sending to Easer...' : 'Sending to Customer...';
+    _messageSending = true;
     $msgInput.value = '';
+    $msgInput.disabled = true;
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = sendingLabel;
+      sendBtn.style.opacity = '0.75';
+      sendBtn.style.cursor = 'wait';
+    }
     try {
-      var data = await apiPost('/message', { bookingId: selectedId, body: body, sender: 'owner', target: _msgTarget });
-      if (data.error) { toast(data.error, 'error'); return; }
-      loadMessages(selectedId);
-    } catch { toast('Failed to send message', 'error'); }
+      var data = await apiPost('/message', { bookingId: bookingId, body: body, sender: 'owner', target: target });
+      if (data.error || data.success === false) throw new Error(data.error || 'Failed to send message');
+      if (selectedId === bookingId) await loadMessages(bookingId);
+      toast('Message sent', 'success');
+    } catch (err) {
+      if (selectedId === bookingId && !$msgInput.value) $msgInput.value = body;
+      toast((err && err.message) || 'Failed to send message', 'error');
+    } finally {
+      _messageSending = false;
+      $msgInput.disabled = false;
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '';
+        sendBtn.style.cursor = '';
+        setMsgTarget(_msgTarget);
+      }
+      if (selectedId === bookingId) $msgInput.focus();
+    }
   }
 
   document.getElementById('detail-close').addEventListener('click', function() {

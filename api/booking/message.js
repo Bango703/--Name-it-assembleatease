@@ -127,7 +127,13 @@ export default async function handler(req, res) {
         subject: 'Job update from dispatcher — ' + booking.ref,
         html: easerHtml,
         replyTo: ownerEmail(),
-        meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: booking.assembler_id },
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'owner_message',
+          recipientType: 'easer',
+          recipientUserId: booking.assembler_id,
+          disableDedupe: true,
+        },
       });
       // Push the message straight to the Easer's device so it isn't silent —
       // same channel as job offers. Email alone is easy to miss on a job.
@@ -163,6 +169,12 @@ export default async function handler(req, res) {
         subject: 'Message about booking ' + booking.ref,
         html,
         replyTo: ownerEmail(),
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'owner_message',
+          recipientType: 'customer',
+          disableDedupe: true,
+        },
       });
     } else if (resolvedSender === 'assembler') {
       // Notify owner about assembler message
@@ -182,6 +194,12 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`,
         replyTo: ownerEmail(),
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'easer_message',
+          recipientType: 'owner',
+          disableDedupe: true,
+        },
       });
     } else {
       // Customer message — notify owner
@@ -210,6 +228,12 @@ export default async function handler(req, res) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</td></tr></table>
 </div></body></html>`,
         replyTo: booking.customer_email,
+        meta: {
+          bookingId: booking.id,
+          notificationType: 'customer_message',
+          recipientType: 'owner',
+          disableDedupe: true,
+        },
       });
     }
   } catch (emailErr) {

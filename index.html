@@ -335,12 +335,12 @@ section#service-area{display:none}
 .reviews-marquee-wrap{overflow:hidden;width:100%;-webkit-mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);padding:18px 0}
 .reviews-marquee-track{display:flex;gap:1rem;width:max-content;animation:reviews-scroll 42s linear infinite}
 .reviews-marquee-wrap:hover .reviews-marquee-track{animation-play-state:paused}
-.review-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.1rem;width:268px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+.review-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.1rem;width:268px;flex-shrink:0;scroll-snap-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
 
 /* Mobile: JS-driven scroll (auto-scroll + touch override) */
 @media(max-width:1023px){
   .benefits-section{overflow:hidden;background:#fff;padding:12px 0 20px}
-  .reviews-marquee-wrap{overflow-x:auto;overflow-y:hidden;-webkit-mask:none;mask:none;padding:8px 0 0;max-width:100vw}
+  .reviews-marquee-wrap{overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-mask:none;mask:none;padding:8px 0 0;max-width:100vw}
   .reviews-marquee-track{animation:none;width:max-content;overflow:visible;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;padding:4px 1rem 12px;gap:10px}
   .reviews-marquee-wrap{scrollbar-width:none;-ms-overflow-style:none}
   .reviews-marquee-wrap::-webkit-scrollbar{display:none}
@@ -351,7 +351,6 @@ section#service-area{display:none}
 .benefit-icon svg{width:15px;height:15px;stroke:var(--cyan-dark);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .benefit-label{font-size:0.72rem;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.35rem}
 .review-card p{font-size:0.8rem;color:var(--muted);line-height:1.65}
-@media(max-width:1023px){.benefits-section .review-card:nth-child(n+7){display:none}}
 
 /* Customer Reviews &mdash; horizontal swipe carousel on mobile (no more vertical stack) */
 @media(max-width:899px){
@@ -508,10 +507,10 @@ section#how-it-works{display:block}
 section#service-area{display:block}
 .cta-section{display:block}
 .benefits-section{background:#fff;padding:2.25rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.reviews-marquee-wrap{padding:0 2rem;overflow:visible;-webkit-mask:none;mask:none}
-.reviews-marquee-track{animation:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;max-width:1120px;width:auto;margin:0 auto}
-.review-card{width:auto;min-height:170px;padding:1.4rem}
-.benefits-section .review-card:nth-child(n+7){display:none}
+.reviews-marquee-wrap{padding:0 2rem 0.75rem;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);scrollbar-width:none;-ms-overflow-style:none}
+.reviews-marquee-wrap::-webkit-scrollbar{display:none}
+.reviews-marquee-track{animation:none;display:flex;gap:1rem;max-width:none;width:max-content;margin:0 auto;padding:0.25rem 0 0.65rem}
+.review-card{width:300px;min-height:170px;padding:1.4rem}
 .benefit-label{font-size:0.82rem}
 .review-card p{font-size:0.86rem;line-height:1.65}
 /* -- HIDE mobile sections -- */
@@ -1205,31 +1204,59 @@ document.addEventListener('DOMContentLoaded', function() {
   if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) AAE.closeBooking(); });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
   (function(){ var cb = document.getElementById('cart-bar'), mb = document.getElementById('m-book-bar'); if (!cb||!mb) return; new MutationObserver(function(){ mb.classList.toggle('hide', cb.classList.contains('show')); }).observe(cb, {attributes:true, attributeFilter:['class']}); })();
-  // Benefits cards: slow mobile auto-scroll + touch pause/resume
+  // Benefits cards: readable auto-advance with touch/hover pause.
   (function(){
-    if(window.innerWidth >= 1024) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var wrap = document.querySelector('.reviews-marquee-wrap');
     if(!wrap) return;
-    var paused = false, resumeTimer, speed = 0.22, dir = 1, edgePause = 0;
-    function tick(){
-      if(!paused && edgePause <= 0){
-        var max = wrap.scrollWidth - wrap.clientWidth;
-        if(max > 0){
-          wrap.scrollLeft += speed * dir;
-          if(wrap.scrollLeft >= max - 1){ dir = -1; edgePause = 120; }
-          if(wrap.scrollLeft <= 1){ dir = 1; edgePause = 90; }
-        }
-      } else if(edgePause > 0) {
-        edgePause--;
-      }
-      requestAnimationFrame(tick);
+    var track = wrap.querySelector('.reviews-marquee-track');
+    var cards = Array.prototype.slice.call(wrap.querySelectorAll('.review-card'));
+    if(!track || cards.length < 2) return;
+    var uniqueCount = Math.max(1, Math.floor(cards.length / 2));
+    var index = 0;
+    var paused = false;
+    var resumeTimer;
+    var advanceTimer;
+    var intervalMs = 3000;
+    function cardLeft(i){
+      return Math.max(0, cards[i].offsetLeft - track.offsetLeft);
     }
-    wrap.addEventListener('touchstart', function(){ paused = true; clearTimeout(resumeTimer); }, {passive:true});
-    wrap.addEventListener('touchend', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 5000); }, {passive:true});
-    wrap.addEventListener('pointerenter', function(){ paused = true; clearTimeout(resumeTimer); });
-    wrap.addEventListener('pointerleave', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 1200); });
-    requestAnimationFrame(tick);
+    function goTo(i, smooth){
+      wrap.scrollTo({ left: cardLeft(i), behavior: smooth ? 'smooth' : 'auto' });
+    }
+    function syncIndex(){
+      var current = wrap.scrollLeft;
+      var visible = cards.slice(0, uniqueCount).reduce(function(best, card, i){
+        var dist = Math.abs((card.offsetLeft - track.offsetLeft) - current);
+        return dist < best.dist ? { index: i, dist: dist } : best;
+      }, { index: index, dist: Infinity });
+      index = visible.index;
+    }
+    function schedule(){
+      clearInterval(advanceTimer);
+      advanceTimer = setInterval(function(){
+        if(paused) return;
+        index += 1;
+        goTo(index, true);
+        if(index >= uniqueCount){
+          index = 0;
+          window.setTimeout(function(){ if(!paused) goTo(0, false); }, 650);
+        }
+      }, intervalMs);
+    }
+    function pause(ms){
+      paused = true;
+      clearTimeout(resumeTimer);
+      if(ms){
+        resumeTimer = setTimeout(function(){ syncIndex(); paused = false; }, ms);
+      }
+    }
+    wrap.addEventListener('touchstart', function(){ pause(0); }, {passive:true});
+    wrap.addEventListener('touchend', function(){ pause(6000); }, {passive:true});
+    wrap.addEventListener('pointerenter', function(){ pause(0); });
+    wrap.addEventListener('pointerleave', function(){ pause(1600); });
+    window.addEventListener('resize', function(){ syncIndex(); goTo(index, false); });
+    schedule();
   })();
 
   // Keep the desktop hero photo stable so it never gets obscured by motion transforms.
