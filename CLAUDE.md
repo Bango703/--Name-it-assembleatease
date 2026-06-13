@@ -46,7 +46,7 @@ All API routes are ES modules (`"type": "module"` in package.json). Import with 
 
 | Area | Files |
 |---|---|
-| Customer marketing + booking | `index.html`, `book.html`, `pricing.html`, `furniture.html`, `mounting.html`, `smarthome.html` |
+| Customer marketing + booking | `index.html`, `book.html`, `pricing.html`, `furniture-assembly-austin-tx.html`, `tv-mounting-austin-tx.html`, `smart-home-installation-austin-tx.html` |
 | Customer tracking + cancel | `track.html` |
 | Easer dashboard | `assembler/my-assignments.html`, `assembler/apply.html`, `assembler/payouts.html` |
 | Owner dashboard | `owner/index.html` (single large SPA-style page, all panels in one file) |

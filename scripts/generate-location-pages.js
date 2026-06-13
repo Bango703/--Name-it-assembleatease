@@ -165,7 +165,7 @@ const SERVICES = [
     ],
     relatedService: 'office-furniture-assembly',
     brands: ['IKEA', 'Wayfair', 'Amazon', 'Ashley', 'West Elm', 'Pottery Barn', 'Costco', 'Target'],
-    mainPage: '/furniture',
+    mainPage: '/furniture-assembly-austin-tx',
   },
   {
     name: 'Mounting & Hanging',
@@ -187,7 +187,7 @@ const SERVICES = [
     ],
     relatedService: 'smart-home-installation',
     brands: ['Samsung', 'LG', 'Sony', 'TCL', 'Vizio', 'Hisense'],
-    mainPage: '/mounting',
+    mainPage: '/tv-mounting-austin-tx',
   },
   {
     name: 'Smart Home Installation',
@@ -209,7 +209,7 @@ const SERVICES = [
     ],
     relatedService: 'tv-mounting',
     brands: ['Nest', 'Ring', 'Ecobee', 'August', 'Schlage', 'Lutron', 'Philips Hue'],
-    mainPage: '/smarthome',
+    mainPage: '/smart-home-installation-austin-tx',
   },
   {
     name: 'Fitness Equipment Assembly',
@@ -681,9 +681,9 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div>
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
-        <li><a href="/furniture">Furniture Assembly</a></li>
-        <li><a href="/mounting">Mounting & Hanging</a></li>
-        <li><a href="/smarthome">Smart Home Setup</a></li>
+        <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
+        <li><a href="/tv-mounting-austin-tx">Mounting & Hanging</a></li>
+        <li><a href="/smart-home-installation-austin-tx">Smart Home Setup</a></li>
         <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
         <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
         <li><a href="/book?service=Office+Assembly">Office Assembly</a></li>

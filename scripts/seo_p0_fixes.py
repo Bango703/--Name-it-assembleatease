@@ -114,7 +114,7 @@ changed.append("playset-assembly-*.html — price $175 -> $169")
 
 # ── 5. Hub pages: LocalBusiness + BreadcrumbList + FAQPage ──────────────────
 HUB_FAQS = {
-    "furniture.html": [
+    "furniture-assembly-austin-tx.html": [
         ("How long does furniture assembly take?",
          "Most single items take 30-90 minutes. A full bedroom set typically takes 2-3 hours. We will give you a time estimate when confirming your booking."),
         ("Do you bring your own tools?",
@@ -124,7 +124,7 @@ HUB_FAQS = {
         ("What if I have a large order?",
          "Bundle discounts apply for 3+ items in one booking. For whole-home setups or large commercial projects, contact us for a custom quote."),
     ],
-    "mounting.html": [
+    "tv-mounting-austin-tx.html": [
         ("Do you bring your own TV mount?",
          "We bring all installation tools - drill, anchors, level, and stud finder. If you have a specific mount you want used, we are happy to use yours."),
         ("Can you mount a TV on a brick or concrete wall?",
@@ -134,7 +134,7 @@ HUB_FAQS = {
         ("What TV sizes do you mount?",
          'We mount TVs from 30" up to 85"+. Very large or commercial displays (86"+) are available with a custom quote.'),
     ],
-    "smarthome.html": [
+    "smart-home-installation-austin-tx.html": [
         ("Do you bring the smart devices or do I?",
          "You provide the devices - we install and configure them. If you are unsure which product to buy, just ask in your booking notes."),
         ("Will you set up the app and connect it to my network?",
@@ -147,9 +147,9 @@ HUB_FAQS = {
 }
 
 HUB_CONFIGS = {
-    "furniture.html": ("AssembleAtEase — Furniture Assembly Austin TX", SITE+"/furniture",  "Furniture Assembly Austin TX"),
-    "mounting.html":  ("AssembleAtEase — TV Mounting Austin TX",        SITE+"/mounting",   "TV Mounting Austin TX"),
-    "smarthome.html": ("AssembleAtEase — Smart Home Installation Austin TX", SITE+"/smarthome", "Smart Home Installation Austin TX"),
+    "furniture-assembly-austin-tx.html": ("AssembleAtEase — Furniture Assembly Austin TX", SITE+"/furniture-assembly-austin-tx",  "Furniture Assembly Austin TX"),
+    "tv-mounting-austin-tx.html":  ("AssembleAtEase — TV Mounting Austin TX",        SITE+"/tv-mounting-austin-tx",   "TV Mounting Austin TX"),
+    "smart-home-installation-austin-tx.html": ("AssembleAtEase — Smart Home Installation Austin TX", SITE+"/smart-home-installation-austin-tx", "Smart Home Installation Austin TX"),
     "business.html":  ("AssembleAtEase — Business Services Austin TX",  SITE+"/business",   "Business Assembly Services Austin TX"),
 }
 

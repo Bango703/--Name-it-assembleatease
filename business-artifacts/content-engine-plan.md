@@ -19,7 +19,7 @@ Purpose: turn each local guide into bookings, social content, Google Business Pr
 
 Every article should include:
 
-- Service page link: `/furniture`, `/mounting`, `/smarthome`, `/business`, or `/book`.
+- Service page link: `/furniture-assembly-austin-tx`, `/tv-mounting-austin-tx`, `/smart-home-installation-austin-tx`, `/business`, or `/book`.
 - Booking link: `/book` or the matching `/book?service=...` path.
 - Social share links: Facebook and LinkedIn.
 - One follow link: current Facebook profile until Instagram and LinkedIn company profiles are live.
@@ -81,33 +81,33 @@ Apartment outreach talking point:
 ## Top 30 Article Topics Ranked By Booking Potential
 
 1. Austin move-in setup checklist: furniture, TV mounting, and smart home setup - `/book`
-2. TV mounting cost in Austin by TV size and wall type - `/mounting`
-3. IKEA furniture assembly cost in Austin - `/furniture`
+2. TV mounting cost in Austin by TV size and wall type - `/tv-mounting-austin-tx`
+3. IKEA furniture assembly cost in Austin - `/furniture-assembly-austin-tx`
 4. Same-day furniture assembly and TV mounting in Austin - `/book`
-5. Wayfair furniture assembly in Austin: delivery add-on vs local pro - `/furniture`
-6. Apartment TV mounting in Austin: what renters should know - `/mounting`
+5. Wayfair furniture assembly in Austin: delivery add-on vs local pro - `/furniture-assembly-austin-tx`
+6. Apartment TV mounting in Austin: what renters should know - `/tv-mounting-austin-tx`
 7. New apartment setup in Austin: what to book before move-in weekend - `/book`
-8. Bed frame assembly in Austin: cost, time, and prep - `/furniture`
-9. Smart doorbell installation in Austin: Ring, Nest, and wiring basics - `/smarthome`
-10. Above-fireplace TV mounting in Austin: cost and mistakes to avoid - `/mounting`
+8. Bed frame assembly in Austin: cost, time, and prep - `/furniture-assembly-austin-tx`
+9. Smart doorbell installation in Austin: Ring, Nest, and wiring basics - `/smart-home-installation-austin-tx`
+10. Above-fireplace TV mounting in Austin: cost and mistakes to avoid - `/tv-mounting-austin-tx`
 11. Furniture assembly for Austin property managers and leasing teams - `/business`
 12. Office furniture assembly in Austin for small businesses - `/business`
-13. Outdoor TV installation in Austin: patio and weather planning - `/mounting`
-14. IKEA PAX wardrobe assembly in Austin: why it takes longer - `/furniture`
-15. How to prepare for a furniture assembly appointment - `/furniture`
-16. Smart thermostat installation in Austin: Nest vs Ecobee - `/smarthome`
-17. Cord concealment options for Austin TV mounting - `/mounting`
+13. Outdoor TV installation in Austin: patio and weather planning - `/tv-mounting-austin-tx`
+14. IKEA PAX wardrobe assembly in Austin: why it takes longer - `/furniture-assembly-austin-tx`
+15. How to prepare for a furniture assembly appointment - `/furniture-assembly-austin-tx`
+16. Smart thermostat installation in Austin: Nest vs Ecobee - `/smart-home-installation-austin-tx`
+17. Cord concealment options for Austin TV mounting - `/tv-mounting-austin-tx`
 18. Garage shelving installation in Austin: cost and wall anchoring - `/business`
-19. Best furniture assembly service in Austin: what to look for - `/furniture`
+19. Best furniture assembly service in Austin: what to look for - `/furniture-assembly-austin-tx`
 20. Moving into a new home in Round Rock: setup checklist - `/book`
 21. Cedar Park furniture assembly and TV mounting checklist - `/book`
 22. Pflugerville move-in setup guide for renters and homeowners - `/book`
 23. Lakeway and Bee Cave large-item assembly planning - `/book`
-24. Nursery furniture assembly in Austin: crib, dresser, changing table - `/furniture`
+24. Nursery furniture assembly in Austin: crib, dresser, changing table - `/furniture-assembly-austin-tx`
 25. Home gym equipment assembly in Austin: what to prepare - `/book?service=Fitness+Equipment`
 26. Playset and outdoor assembly in Austin: when it needs a quote - `/book?service=Outdoor+%26+Playsets`
-27. Soundbar mounting and TV setup in Austin - `/mounting`
-28. Smart lock installation in Austin: compatibility checklist - `/smarthome`
+27. Soundbar mounting and TV setup in Austin - `/tv-mounting-austin-tx`
+28. Smart lock installation in Austin: compatibility checklist - `/smart-home-installation-austin-tx`
 29. How local pros help Austin residents avoid failed DIY installs - `/book`
 30. Move-in packages for Austin apartments: furniture, TV, and smart home in one visit - `/business`
 
