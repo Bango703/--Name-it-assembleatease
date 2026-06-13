@@ -507,10 +507,10 @@ section#how-it-works{display:block}
 section#service-area{display:block}
 .cta-section{display:block}
 .benefits-section{background:#fff;padding:2.25rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.reviews-marquee-wrap{padding:0 2rem 0.75rem;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);mask:linear-gradient(90deg,transparent,#fff 6%,#fff 94%,transparent);scrollbar-width:none;-ms-overflow-style:none}
-.reviews-marquee-wrap::-webkit-scrollbar{display:none}
-.reviews-marquee-track{animation:none;display:flex;gap:1rem;max-width:none;width:max-content;margin:0 auto;padding:0.25rem 0 0.65rem}
-.review-card{width:300px;min-height:170px;padding:1.4rem}
+.reviews-marquee-wrap{max-width:1120px;margin:0 auto;padding:0 2rem;overflow:visible;-webkit-mask:none;mask:none}
+.reviews-marquee-track{animation:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;max-width:1120px;width:100%;margin:0 auto;padding:0}
+.reviews-marquee-track .review-card:nth-child(n+7){display:none}
+.review-card{width:auto;min-height:170px;padding:1.25rem}
 .benefit-label{font-size:0.82rem}
 .review-card p{font-size:0.86rem;line-height:1.65}
 /* -- HIDE mobile sections -- */
@@ -942,12 +942,14 @@ section#service-area{display:block}
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="benefit-label">Locally Owned</div><p>Not a national chain. Building our reputation one job at a time.</p></div>
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="benefit-label">We Make It Right</div><p>Not happy with the finished work? Tell us within 48 hours and we&rsquo;ll make it right.</p></div>
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></div><div class="benefit-label">Careful, Respectful Pros</div><p>We treat every home like it&rsquo;s ours &mdash; no rushing, no shortcuts, no mess left behind.</p></div>
+      <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 15l2.2 2.2L16 12"/></svg></div><div class="benefit-label">Fast Confirmation</div><p>We follow up quickly so your appointment details are clear before the workday arrives.</p></div>
       <!-- duplicate for seamless loop -->
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg></div><div class="benefit-label">Identity-Verified Pros</div><p>Every pro completes identity verification and is personally reviewed before their first job.</p></div>
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="benefit-label">Flat-Rate Pricing</div><p>Every price shown upfront before you book. No hourly billing, no hidden charges — every fee shown upfront.</p></div>
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="benefit-label">Locally Owned</div><p>Not a national chain. Building our reputation one job at a time.</p></div>
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="benefit-label">We Make It Right</div><p>Not happy with the finished work? Tell us within 48 hours and we&rsquo;ll make it right.</p></div>
       <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></div><div class="benefit-label">Careful, Respectful Pros</div><p>We treat every home like it&rsquo;s ours &mdash; no rushing, no shortcuts, no mess left behind.</p></div>
+      <div class="review-card"><div class="benefit-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 15l2.2 2.2L16 12"/></svg></div><div class="benefit-label">Fast Confirmation</div><p>We follow up quickly so your appointment details are clear before the workday arrives.</p></div>
     </div>
   </div>
 </section>
@@ -1103,22 +1105,24 @@ section#service-area{display:block}
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" loading="lazy" width="38" height="38" style="border-radius:50%;object-fit:cover"/></picture><div class="footer-logo-text">AssembleAtEase</div></div>
-      <p class="footer-tagline">Professional furniture assembly, TV mounting, and home services in Austin, Texas.</p>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services in Austin, Texas.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.89a16 16 0 0 0 6 6l.61-.61a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>(737) 290-6129</a>
-        <a href="mailto:service@assembleatease.com"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>service@assembleatease.com</a><a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener" aria-label="Follow AssembleAtEase on Facebook"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>Follow Austin project updates</a>
+        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
+        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow Austin project updates</a>
       </div>
     </div>
     <div>
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
-        <li><a href="/book?service=Furniture+Assembly">Furniture Assembly</a></li>
-        <li><a href="/book?service=Mounting+%26+Hanging">TV Mounting</a></li>
-        <li><a href="/book?service=Smart+Home">Smart Home Setup</a></li>
-        <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
-        <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
-        <li><a href="/book?service=Office+Assembly">Office Assembly</a></li>
+        <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
+        <li><a href="/tv-mounting-austin-tx">TV Mounting</a></li>
+        <li><a href="/smart-home-installation-austin-tx">Smart Home Setup</a></li>
+        <li><a href="/fitness-equipment-assembly-austin-tx">Fitness Equipment</a></li>
+        <li><a href="/office-furniture-assembly-austin-tx">Office Furniture</a></li>
+        <li><a href="/playset-assembly-austin-tx">Outdoor / Playsets</a></li>
+        <li><a href="/business">Business &amp; Custom Quotes</a></li>
       </ul>
     </div>
     <div>
@@ -1128,8 +1132,10 @@ section#service-area{display:block}
         <li><a href="/pricing">Pricing</a></li>
         <li><a href="/blog/">Guides</a></li>
         <li><a href="/#faq">FAQ</a></li>
+        <li><a href="/track">Track My Booking</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/business">Business Services</a></li>
+        <li><a href="/assembler/apply">Become an Easer</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms &amp; Conditions</a></li>
       </ul>
@@ -1140,18 +1146,18 @@ section#service-area{display:block}
         <li><a href="/blog/ikea-assembly-cost-austin">IKEA Assembly Cost Austin</a></li>
         <li><a href="/blog/tv-mounting-costs-austin">TV Mounting Costs Austin</a></li>
         <li><a href="/blog/best-furniture-assembly-austin">Best Assembly Service Austin</a></li>
-        <li><a href="/blog/ikea-pax-wardrobe-assembly">IKEA PAX Wardrobe Assembly</a></li>
-        <li><a href="/blog/why-hire-handyman-austin">Why Hire a Handyman Austin</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New Home Setup Checklist</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart Home Install Austin</a></li>
         <li><a href="/blog/">All Guides &rarr;</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved.</div>
-    
-    <button class="footer-back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679; Back to top</button>
+    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>
+<script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
 
 <div id="m-book-bar">
   <a href="/book" class="m-book-btn">Book Now &rarr;</a>
@@ -1216,6 +1222,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Benefits cards: readable auto-advance with touch/hover pause.
   (function(){
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(min-width: 1024px)').matches) return;
     var wrap = document.querySelector('.reviews-marquee-wrap');
     if(!wrap) return;
     var track = wrap.querySelector('.reviews-marquee-track');

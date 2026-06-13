@@ -362,19 +362,24 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 <footer class="footer">
   <div class="footer-inner">
     <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">AssembleAtEase</div></div>
-      <p class="footer-tagline">Professional assembly and installation services in Kyle, TX and the greater Austin area. Quality work, done right.</p>
-      <div class="footer-contact"><a href="mailto:service@assembleatease.com">service@assembleatease.com</a></div>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services in Austin, Texas.</p>
+      <div class="footer-contact">
+        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
+        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow Austin project updates</a>
+      </div>
     </div>
     <div>
       <div class="footer-col-title">Services</div>
       <ul class="footer-links">
         <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
-        <li><a href="/tv-mounting-austin-tx">Mounting & Hanging</a></li>
+        <li><a href="/tv-mounting-austin-tx">TV Mounting</a></li>
         <li><a href="/smart-home-installation-austin-tx">Smart Home Setup</a></li>
-        <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
-        <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
-        <li><a href="/book?service=Office+Assembly">Office Assembly</a></li>
+        <li><a href="/fitness-equipment-assembly-austin-tx">Fitness Equipment</a></li>
+        <li><a href="/office-furniture-assembly-austin-tx">Office Furniture</a></li>
+        <li><a href="/playset-assembly-austin-tx">Outdoor / Playsets</a></li>
+        <li><a href="/business">Business &amp; Custom Quotes</a></li>
       </ul>
     </div>
     <div>
@@ -382,19 +387,34 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
         <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/blog/">Guides</a></li>
         <li><a href="/#faq">FAQ</a></li>
+        <li><a href="/track">Track My Booking</a></li>
         <li><a href="/contact">Contact</a></li>
         <li><a href="/business">Business Services</a></li>
+        <li><a href="/assembler/apply">Become an Easer</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms &amp; Conditions</a></li>
+      </ul>
+    </div>
+    <div style="grid-column:1 / -1">
+      <div class="footer-col-title">Home Setup Guides</div>
+      <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
+        <li><a href="/blog/ikea-assembly-cost-austin">IKEA Assembly Cost Austin</a></li>
+        <li><a href="/blog/tv-mounting-costs-austin">TV Mounting Costs Austin</a></li>
+        <li><a href="/blog/best-furniture-assembly-austin">Best Assembly Service Austin</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New Home Setup Checklist</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart Home Install Austin</a></li>
+        <li><a href="/blog/">All Guides &rarr;</a></li>
       </ul>
     </div>
   </div>
   <div class="footer-bottom">
     <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
-    <div class="footer-copy">Kyle, TX &bull; Same-Day Available &bull; Clear Pricing</div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>
+<script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
 
 <div id="m-svc-bar"><a href="/book?service=Mounting+%26+Hanging">Book Mounting &amp; Hanging &#8594;</a></div>
 
