@@ -1,4 +1,4 @@
-﻿import Anthropic from '@anthropic-ai/sdk';
+import Anthropic from '@anthropic-ai/sdk';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { generateContentKit, renderContentKitEmailHtml } from '../_content-kit.js';
 import { publishContentKit } from '../_social-publisher.js';
@@ -7,9 +7,9 @@ const REPO_OWNER = 'Bango703';
 const REPO_NAME  = '--Name-it-assembleatease';
 const SITE       = 'https://www.assembleatease.com';
 
-// Topics pool — AI picks the best untouched one each run
+// Topics pool � AI picks the best untouched one each run
 const TOPIC_POOL = [
-  // ── FURNITURE ASSEMBLY ───────────────────────────────────────────
+  // -- FURNITURE ASSEMBLY -------------------------------------------
   'how to hang a tv on a brick wall in austin',
   'wayfair furniture assembly tips austin tx',
   'home office setup assembly austin',
@@ -56,7 +56,7 @@ const TOPIC_POOL = [
   'l shaped desk assembly austin tx',
   'corner desk assembly service austin',
 
-  // ── TV MOUNTING ───────────────────────────────────────────────────
+  // -- TV MOUNTING ---------------------------------------------------
   'how to mount a tv without studs',
   'tv mounting cost austin tx',
   'best height to mount a tv in bedroom',
@@ -78,7 +78,7 @@ const TOPIC_POOL = [
   'cord concealment service austin tx',
   'tv mounting and cable management austin',
 
-  // ── SMART HOME ────────────────────────────────────────────────────
+  // -- SMART HOME ----------------------------------------------------
   'smart doorbell installation austin',
   'nest thermostat installation austin tx',
   'ring doorbell installation austin texas',
@@ -100,7 +100,7 @@ const TOPIC_POOL = [
   'doorbell camera installation cost austin',
   'smart home device setup and configuration austin',
 
-  // ── AUSTIN NEIGHBORHOODS (hyper-local "near me" SEO) ─────────────
+  // -- AUSTIN NEIGHBORHOODS (hyper-local "near me" SEO) -------------
   'furniture assembly south congress austin',
   'furniture assembly service east austin tx',
   'furniture assembly domain northside austin',
@@ -122,7 +122,7 @@ const TOPIC_POOL = [
   'wayfair furniture assembly near me austin',
   'same day assembly service near me austin',
 
-  // ── HIGH-INTENT BUYER KEYWORDS ────────────────────────────────────
+  // -- HIGH-INTENT BUYER KEYWORDS ------------------------------------
   'how much does furniture assembly cost in austin',
   'furniture assembly service cost austin 2025',
   'is it worth hiring someone to assemble furniture austin',
@@ -134,7 +134,7 @@ const TOPIC_POOL = [
   'apartment furniture assembly service austin texas',
   'moving into a new home furniture assembly austin',
 
-  // ── COMPARISON + FAQ CONTENT ──────────────────────────────────────
+  // -- COMPARISON + FAQ CONTENT --------------------------------------
   'ikea vs wayfair which is harder to assemble austin',
   'diy furniture assembly vs hiring a pro austin',
   'how long does ikea furniture assembly take austin',
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Missing GITHUB_TOKEN or ANTHROPIC_API_KEY' });
   }
 
-  // ── 1. Get existing blog files to avoid duplicates ──────────────
+  // -- 1. Get existing blog files to avoid duplicates --------------
   let existingSlugs = [];
   try {
     const ghRes = await fetch(
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
   const slug  = topicToSlug(topic);
   const today = new Date().toISOString().slice(0, 10);
 
-  // ── 2. Generate blog post HTML with Claude ───────────────────────
+  // -- 2. Generate blog post HTML with Claude -----------------------
   const anthropic = new Anthropic({ apiKey: anthropicKey });
 
   const systemPrompt = `You are an SEO content writer for AssembleAtEase, a professional furniture assembly and handyman service in Austin, TX.
@@ -244,14 +244,14 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
   // Remove any accidental h1 from body (we put it in the hero)
   const cleanBody = compactArticleHtml(articleHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, ''), topic);
 
-  // ── 3. Build the full HTML page ──────────────────────────────────
+  // -- 3. Build the full HTML page ----------------------------------
   const canonicalUrl = `${SITE}/blog/${slug}`;
   const readTime = 1;
   const articleImage = imageForTopic({ title, topic, slug });
 
   const fullHtml = buildBlogPage({ title, canonicalUrl, today, readTime, body: cleanBody, image: articleImage });
 
-  // ── 4. Commit to GitHub ──────────────────────────────────────────
+  // -- 4. Commit to GitHub ------------------------------------------
   const filePath = `blog/${slug}.html`;
   const content  = Buffer.from(fullHtml).toString('base64');
 
@@ -285,7 +285,7 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
 
   console.log(`Auto-blog published: ${filePath}`);
 
-  // ── 5. Update blog/index.html — prepend new card ────────────────
+  // -- 5. Update blog/index.html � prepend new card ----------------
   try {
     // Fetch current index
     const idxRes = await fetch(
@@ -344,7 +344,7 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
     console.error('Blog index update error (non-fatal):', idxErr);
   }
 
-  // ── 6. Generate the social kit and optionally auto-publish (non-fatal) ──
+  // -- 6. Generate the social kit and optionally auto-publish (non-fatal) --
   // Email remains as an owner record. Real posting happens when SOCIAL_AUTO_PUBLISH
   // is true and the Buffer API key/channel IDs are configured.
   let contentKitEmailed = false;
@@ -410,7 +410,7 @@ function compactArticleHtml(html, topic) {
 </div>`;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// -- Helpers ----------------------------------------------------------
 
 function topicToSlug(topic) {
   return topic
@@ -580,8 +580,6 @@ ${body}
         <li><a href="/contact">Contact</a></li>
         <li><a href="/business">Business Services</a></li>
         <li><a href="/assembler/apply">Become an Easer</a></li>
-        <li><a href="/privacy">Privacy Policy</a></li>
-        <li><a href="/terms">Terms &amp; Conditions</a></li>
       </ul>
     </div>
     <div style="grid-column:1 / -1">

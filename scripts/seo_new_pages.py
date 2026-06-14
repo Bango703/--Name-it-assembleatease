@@ -69,7 +69,7 @@ def schema_json(name, url, offers, service_type):
         "areaServed": {"@type": "City", "name": "Austin", "containedInPlace": {"@type": "State", "name": "Texas"}},
         "priceRange": "$$",
         "sameAs": MAPS,
-        "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5.0", "reviewCount": "9", "bestRating": "5"},
+        "aggregateRating": {"@type": "AggregateRating", "ratingValue": "5.0", "reviewCount": "11", "bestRating": "5"},
         "potentialAction": {"@type": "ReserveAction",
                             "target": {"@type": "EntryPoint", "urlTemplate": SITE + "/book"},
                             "result": {"@type": "Reservation", "name": "Book " + service_type}},
@@ -231,7 +231,7 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:1.75rem;flex-wrap:wrap">
       <span style="display:flex;gap:2px;color:#f59e0b">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
       <strong style="font-size:0.95rem;color:var(--ink)">5.0</strong>
-      <span style="font-size:0.85rem;color:var(--muted)">&bull; 9 Google reviews &bull; Serving Austin &amp; metro</span>
+      <span style="font-size:0.85rem;color:var(--muted)">&bull; 11 Google reviews &bull; Serving Austin &amp; metro</span>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;margin-bottom:2rem">
       <a href="/book?service={book_param}" style="display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#fff;font-family:var(--font-body);font-size:1.05rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;transition:all 0.18s;box-shadow:0 4px 20px rgba(0,191,255,0.3)" onmouseover="this.style.background='#0099CC';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#00BFFF';this.style.transform='none'">Book in Austin &rarr;</a>
@@ -354,8 +354,6 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
         <li><a href="/track">Track My Booking</a></li>
         <li><a href="/business">Business Services</a></li>
         <li><a href="/assembler/apply">Become an Easer</a></li>
-        <li><a href="/privacy">Privacy Policy</a></li>
-        <li><a href="/terms">Terms &amp; Conditions</a></li>
       </ul>
     </div>
     <div style="grid-column:1 / -1">

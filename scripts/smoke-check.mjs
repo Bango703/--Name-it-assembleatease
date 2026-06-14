@@ -52,6 +52,15 @@ if (duplicateGuideImage) {
   throw new Error(`Homepage guides must not reuse the same image: ${duplicateGuideImage}`);
 }
 
+const customerReviewsSection = homepage.match(/<section class="section section-alt" id="reviews">([\s\S]*?)<\/script>/)?.[1];
+if (!customerReviewsSection) throw new Error('Homepage customer reviews section not found');
+
+const displayedReviewCount = Number(customerReviewsSection.match(/(\d+)\s+Google reviews/)?.[1] || 0);
+const customerReviewCount = (customerReviewsSection.match(/{b:"/g) || []).length;
+if (!displayedReviewCount || displayedReviewCount !== customerReviewCount) {
+  throw new Error(`Homepage Google review count must match carousel cards; displayed ${displayedReviewCount}, found ${customerReviewCount}`);
+}
+
 const faviconSvg = readFileSync('images/favicon.svg', 'utf8');
 if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
   throw new Error('Favicon must use the logo mark, not plain AE text');
@@ -109,6 +118,11 @@ for (const file of publicHtmlFiles) {
   }
   if (footer.includes('/book?service=')) {
     throw new Error(`Public footer should link to real service pages, not booking query links, in ${file}`);
+  }
+  const privacyLinkCount = (footer.match(/href="\/privacy"/g) || []).length;
+  const termsLinkCount = (footer.match(/href="\/terms"/g) || []).length;
+  if (privacyLinkCount !== 1 || termsLinkCount !== 1) {
+    throw new Error(`Public footer should include one legal link row only in ${file}`);
   }
 }
 

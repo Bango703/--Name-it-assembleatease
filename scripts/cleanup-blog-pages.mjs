@@ -441,8 +441,6 @@ function footer() {
         <li><a href="/contact">Contact</a></li>
         <li><a href="/business">Business Services</a></li>
         <li><a href="/assembler/apply">Become an Easer</a></li>
-        <li><a href="/privacy">Privacy Policy</a></li>
-        <li><a href="/terms">Terms &amp; Conditions</a></li>
       </ul>
     </div>
     <div style="grid-column:1 / -1">

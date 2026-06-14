@@ -15,7 +15,7 @@ ADDR  = {"@type":"PostalAddress","streetAddress":"1910 W Braker Ln",
          "addressLocality":"Austin","addressRegion":"TX",
          "postalCode":"78701","addressCountry":"US"}
 GEO   = {"@type":"GeoCoordinates","latitude":"30.4140535","longitude":"-97.7491735"}
-RATING = {"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"9","bestRating":"5"}
+RATING = {"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"11","bestRating":"5"}
 ACTION = {"@type":"ReserveAction",
           "target":{"@type":"EntryPoint","urlTemplate":BOOK},
           "result":{"@type":"Reservation","name":"Book Assembly Service"}}

@@ -23,7 +23,7 @@ NEW_SECTION = f"""<section class="section section-alt" id="reviews">
         {G}
         <span style="font-size:0.84rem;font-weight:700;color:#1a1a1a">5.0</span>
         <span style="color:#f59e0b;font-size:0.8rem">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-        <span style="font-size:0.73rem;color:#6b7280;border-left:1px solid #e5e7eb;padding-left:7px">9 Google reviews</span>
+        <span style="font-size:0.73rem;color:#6b7280;border-left:1px solid #e5e7eb;padding-left:7px">11 Google reviews</span>
       </a>
     </div>
     <div style="overflow:hidden">
@@ -46,6 +46,8 @@ NEW_SECTION = f"""<section class="section section-alt" id="reviews">
   var G='{G}';
   var COLORS=["#00BFFF","#0099CC","#006a7e","#4dd0e1","#0077a8","#003b47"];
   var DATA=[
+    {{b:"Excellent",n:"Krispercs Focus",d:"Verified review"}},
+    {{b:"Had my bed and dressers assembled. Very professional, fast and the price was right. Will definitely use this company again. I highly recommend AssembleAtEase.",n:"Brenda Mitchell",d:"Verified review"}},
     {{b:"AssembleAtEase was prompt and on point. Mounted a 75-inch TV and assembled a bed. Great job, very efficient!",n:"Erin B.",d:"Jun 2024"}},
     {{b:"He put together 9 beds and 9 dressers at amazing speed and they all look great! Five stars hands down.",n:"Omotola A.",d:"May 2024"}},
     {{b:"Travis has come out to our place several times and each time the job was WELL DONE. Thanks Travis!",n:"Mika H.",d:"Jun 2024"}},
