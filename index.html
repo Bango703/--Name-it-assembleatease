@@ -580,7 +580,7 @@ section#service-area{display:block}
 <section class="hero-v2">
   <div class="hv2-left">
     <div class="hv2-eyebrow">Home setup made simple</div>
-    <h1 class="hv2-h1">Furniture Assembly &amp; TV Mounting<br>in Austin, TX.</h1>
+    <h1 class="hv2-h1">Furniture Assembly &amp;<br>TV Mounting<span data-loc-in></span>.</h1>
     <p class="hv2-desc">Furniture assembly, TV mounting, and smart home setup&mdash;done right so you don&rsquo;t have to lift a finger.</p>
     <div class="hv2-actions" style="margin-bottom:2rem">
       <a href="/book" class="hv2-btn-book">BOOK NOW &rarr;</a>
@@ -612,7 +612,7 @@ section#service-area{display:block}
 
   <!-- Heading - mobile app-style hero -->
   <div class="m-hero m-hero-refresh">
-    <h1 class="m-hero-title">Furniture Assembly &amp; TV Mounting.</h1>
+    <h1 class="m-hero-title">Furniture Assembly &amp; TV Mounting<span data-loc-in></span>.</h1>
     <p class="m-hero-copy">Pick a service, choose a time, and reserve online.</p>
     <div class="m-hero-photo">
       <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high" decoding="sync">
@@ -1048,7 +1048,7 @@ section#service-area{display:block}
     <div>
       <div style="display:inline-block;background:rgba(0,191,255,0.12);border:1px solid rgba(0,191,255,0.25);border-radius:999px;padding:0.3rem 1rem;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#4dd0e1;margin-bottom:1.1rem">Earn with AssembleAtEase</div>
       <h2 style="font-family:'DM Serif Display',serif;font-size:clamp(1.9rem,4vw,2.75rem);color:#fff;line-height:1.1;margin-bottom:1rem">Earn money doing what you&rsquo;re good at.</h2>
-      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.75;margin-bottom:1.75rem;max-width:480px">Join our network of skilled Easers in Austin. Set your schedule, accept jobs that fit, and get paid after completed service.</p>
+      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.75;margin-bottom:1.75rem;max-width:480px">Join our network of skilled Easers<span data-loc-in></span>. Set your schedule, accept jobs that fit, and get paid after completed service.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem 1.5rem;margin-bottom:2rem">
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Flexible schedule</div>
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Fast, reliable payouts</div>
@@ -1082,11 +1082,11 @@ section#service-area{display:block}
   <div class="footer-inner">
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services in Austin, Texas.</p>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services<span data-loc-in></span>.</p>
       <div class="footer-contact">
         <a href="tel:+17372906129">(737) 290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
-        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow Austin project updates</a>
+        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow our project updates</a>
       </div>
     </div>
     <div>
@@ -1127,7 +1127,7 @@ section#service-area{display:block}
     </div>
   </div>
   <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
+    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved.</div>
     <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>
@@ -1256,6 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleFaq(el) { var isOpen = el.classList.contains('open'); el.classList.toggle('open'); el.setAttribute('aria-expanded', isOpen ? 'false' : 'true'); }
 function toggleFaqMore(btn) { var more = document.getElementById('faq-more'); if (more.style.display === 'none') { more.style.display = 'block'; btn.innerHTML = 'Show fewer questions &uarr;'; } else { more.style.display = 'none'; btn.innerHTML = 'Show more questions &darr;'; } }
 </script>
+<script src="/assets/js/aae-location.js" defer></script>
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 <div id="cookie-banner" class="hidden">
   <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
