@@ -30,7 +30,7 @@ The system skips any channel ID that is missing and shows the missing value in t
 
 `SOCIAL_AUTO_PUBLISH=true`
 
-When true, future auto-blog posts are automatically sent to Buffer after the Guide is created. Leave this off until the Buffer channels are confirmed.
+When true, future auto-blog posts are automatically sent to Buffer after the Blog is created. Leave this off until the Buffer channels are confirmed.
 
 `BUFFER_POST_MODE=addToQueue`
 

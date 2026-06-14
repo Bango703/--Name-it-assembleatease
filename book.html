@@ -438,14 +438,16 @@
     .subcat-search-clear:hover { background: #f0f0f0; color: var(--ink); }
     .subcat-no-results { font-size: 0.85rem; color: var(--muted); padding: 0.25rem 0 0.5rem; display: none; }
 
-    .subcat-group { padding: 0; border-top: 1px solid var(--border); }
-    .subcat-group:first-child { border-top: none; }
-    .subcat-group-head { display:flex; align-items:center; gap:0.6rem; width:100%; background:none; border:none; cursor:pointer; padding:0.85rem 0.25rem; -webkit-tap-highlight-color:transparent; }
+    .subcat-group { padding: 0; border: 1px solid rgba(148,163,184,0.24); border-radius: 14px; overflow: hidden; background: #fff; }
+    .subcat-group + .subcat-group { margin-top: 0.7rem; }
+    .subcat-group:first-child { border-top: 1px solid rgba(148,163,184,0.24); }
+    .subcat-group-head { display:flex; align-items:center; gap:0.75rem; width:100%; background:#fbfdff; border:none; cursor:pointer; padding:0.9rem 0.95rem; -webkit-tap-highlight-color:transparent; transition: background var(--transition); }
+    .subcat-group-head:hover { background:#f3fbff; }
     .subcat-group-head .subcat-group-label { padding:0; margin:0; flex:1; text-align:left; }
     .subcat-group-count { font-size:0.7rem; font-weight:600; color:var(--muted); background:rgba(0,0,0,0.05); border-radius:999px; padding:2px 9px; flex-shrink:0; }
     .subcat-chev { color:var(--muted); flex-shrink:0; transition:transform 0.2s; }
     .subcat-group.open .subcat-chev { transform:rotate(180deg); }
-    .subcat-group-body { display:none; padding-bottom:0.4rem; }
+    .subcat-group-body { display:none; padding:0.2rem 0.55rem 0.55rem; }
     .subcat-group.open > .subcat-group-body { display:block; }
     #item-list-wrap.searching .subcat-group-body { display:block; }
 
@@ -459,11 +461,13 @@
 
     }
 
+    .subcat-group-note { display: block; margin-top: 0.2rem; color: var(--muted); font-size: 0.72rem; font-weight: 500; letter-spacing: 0; text-transform: none; line-height: 1.35; }
+
     .subcat-item {
 
       display: flex; align-items: center; justify-content: space-between;
 
-      padding: 0.68rem 0.75rem; cursor: pointer; gap: 0.75rem; border-radius: var(--radius-md);
+      padding: 0.72rem 0.75rem; cursor: pointer; gap: 0.75rem; border-radius: var(--radius-md);
 
       transition: background var(--transition);
 
@@ -471,7 +475,7 @@
 
     .subcat-item:hover { background: #f6fbfd; }
 
-    .subcat-item.selected { background: #eefbff; }
+    .subcat-item.selected { background: #eefbff; box-shadow: inset 0 0 0 1px rgba(0,191,255,0.16); }
 
     .subcat-item-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
 
@@ -717,6 +721,14 @@
     .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
     .quote-helper { margin-top: 0.75rem; padding: 0.8rem 0.95rem; border: 1px solid rgba(0,191,255,0.26); border-radius: var(--radius-md); background: #f6fcff; color: var(--ink-soft); font-size: 0.82rem; line-height: 1.55; }
     .quote-helper strong { color: var(--ink); }
+    .booking-stage-divider { display: flex; align-items: center; gap: 0.65rem; margin: 1.05rem 0 1.15rem; padding: 0.65rem; border: 1px solid rgba(148,163,184,0.22); border-radius: 16px; background: #f8fbfd; }
+    .booking-stage-pill { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 34px; padding: 0.42rem 0.72rem; border-radius: 999px; color: var(--muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; }
+    .booking-stage-number { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #e5eef5; color: var(--ink-soft); font-size: 0.68rem; font-weight: 900; }
+    .booking-stage-pill.is-active { background: #fff; color: var(--ink); box-shadow: 0 8px 20px rgba(15,23,42,0.06); }
+    .booking-stage-pill.is-active .booking-stage-number { background: var(--teal); color: #fff; }
+    .booking-stage-pill.is-complete { color: #0f766e; }
+    .booking-stage-pill.is-complete .booking-stage-number { background: #ccfbf1; color: #0f766e; }
+    .booking-stage-line { flex: 1; height: 1px; min-width: 24px; background: linear-gradient(90deg, rgba(0,191,255,0.45), rgba(148,163,184,0.18)); }
 
     /* -- Item picker (Screen B) -- */
     .item-screen-nav { margin-bottom: 1.1rem; }
@@ -725,6 +737,20 @@
     .item-back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
     .item-screen-heading { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; color: var(--ink); line-height: 1.05; }
     .item-screen-from { font-size: 0.82rem; color: var(--muted); margin-top: 0.35rem; margin-bottom: 1rem; }
+    .item-personality-card { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 0.85rem; align-items: start; margin: 0.15rem 0 1rem; padding: 0.95rem 1rem; border: 1px solid rgba(0,191,255,0.22); border-radius: 16px; background: linear-gradient(135deg, #f7fdff 0%, #eefbff 58%, #fff 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.75); }
+    .item-personality-icon { width: 46px; height: 46px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: #fff; color: var(--teal); border: 1px solid rgba(0,191,255,0.18); box-shadow: 0 8px 20px rgba(0,191,255,0.1); }
+    .item-personality-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .item-personality-title { font-size: 0.88rem; font-weight: 800; color: var(--ink); line-height: 1.25; margin-bottom: 0.2rem; }
+    .item-personality-copy { font-size: 0.8rem; color: var(--ink-soft); line-height: 1.55; margin: 0; }
+    .item-personality-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.65rem; }
+    .item-personality-chip { display: inline-flex; align-items: center; min-height: 26px; padding: 0.25rem 0.55rem; border-radius: 999px; background: #fff; border: 1px solid rgba(0,191,255,0.18); color: var(--teal); font-size: 0.69rem; font-weight: 800; letter-spacing: 0.02em; }
+    .item-picker-divider { display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; margin: 1.05rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid rgba(148,163,184,0.22); }
+    .item-picker-label { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
+    .item-picker-title { font-size: 1rem; font-weight: 850; color: var(--ink); margin-top: 0.18rem; }
+    .item-picker-copy { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
+    .item-picker-badge { flex-shrink: 0; padding: 0.42rem 0.62rem; border-radius: 999px; background: #eefbff; color: var(--teal); font-size: 0.68rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+    @media(max-width: 640px) { .booking-stage-divider { align-items: stretch; gap: 0.45rem; } .booking-stage-pill { flex: 1; justify-content: center; padding-inline: 0.5rem; white-space: normal; text-align: center; } .booking-stage-line { flex: 0 0 18px; align-self: center; } .item-picker-divider { align-items: flex-start; } }
+    @media(max-width: 520px) { .item-personality-card { grid-template-columns: 1fr; } .item-personality-icon { width: 40px; height: 40px; } .item-picker-divider { flex-direction: column; } }
 
     .tile-feedback { display: none; }
 
@@ -804,6 +830,12 @@
     .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
 
     .sidebar-empty { font-size: 0.875rem; color: var(--muted); padding: 0.5rem 0; line-height: 1.55; }
+    .sidebar-empty-card { padding: 0.85rem; border: 1px dashed rgba(0,191,255,0.32); border-radius: 14px; background: #f7fdff; }
+    .sidebar-empty-card strong { display: block; color: var(--ink); font-size: 0.92rem; margin-bottom: 0.25rem; }
+    .sidebar-empty-card span { display: block; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+    .sidebar-empty-list { display: grid; gap: 0.4rem; margin-top: 0.75rem; }
+    .sidebar-empty-list div { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 0.45rem; align-items: start; font-size: 0.76rem; color: var(--ink-soft); line-height: 1.35; }
+    .sidebar-empty-list b { width: 18px; height: 18px; border-radius: 50%; background: #eafaff; color: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 0.64rem; }
 
     .sidebar-highlight {
       background: linear-gradient(180deg, #003140 0%, #062332 100%);
@@ -1287,6 +1319,12 @@
 
         <p class="step-sub">Choose a service to see options and pricing.</p>
 
+        <div class="booking-stage-divider" aria-label="Booking item setup steps">
+          <div class="booking-stage-pill is-active"><span class="booking-stage-number">1</span><span>Book a service</span></div>
+          <div class="booking-stage-line" aria-hidden="true"></div>
+          <div class="booking-stage-pill"><span class="booking-stage-number">2</span><span>Pick what you need</span></div>
+        </div>
+
         <div class="svc-list">
 
           <button class="svc-row" data-service="Furniture Assembly" onclick="showItemScreen(this.dataset.service)">
@@ -1376,8 +1414,24 @@
             </button>
           </div>
 
+          <div class="booking-stage-divider" aria-label="Booking item setup steps">
+            <div class="booking-stage-pill is-complete"><span class="booking-stage-number">1</span><span>Book a service</span></div>
+            <div class="booking-stage-line" aria-hidden="true"></div>
+            <div class="booking-stage-pill is-active"><span class="booking-stage-number">2</span><span>Pick what you need</span></div>
+          </div>
+
           <div class="item-screen-heading" id="item-screen-heading"></div>
           <div class="item-screen-from" id="item-screen-from"></div>
+          <div class="item-personality-card" id="item-personality-card"></div>
+
+          <div class="item-picker-divider">
+            <div>
+              <div class="item-picker-label">Pick what you need</div>
+              <div class="item-picker-title">Tell us exactly what is getting handled.</div>
+              <p class="item-picker-copy">Search or open a category. Your booking total updates as you add items.</p>
+            </div>
+            <div class="item-picker-badge">Item details</div>
+          </div>
 
           <div class="subcat-search-wrap">
             <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1902,7 +1956,7 @@
 
         <div class="sidebar-title">Your booking</div>
 
-        <div id="order-lines"><div class="sidebar-empty">Select services &amp; items to see pricing</div></div>
+        <div id="order-lines"><div class="sidebar-empty sidebar-empty-card"><strong>Build your setup plan</strong><span>Pick the exact items in the room and your estimate updates here.</span><div class="sidebar-empty-list"><div><b>1</b><span>Choose the service</span></div><div><b>2</b><span>Select the item count</span></div><div><b>3</b><span>Add notes for access, floors, or brand details</span></div></div></div></div>
 
         <div class="order-total" id="order-total" style="display:none">
 
@@ -1928,11 +1982,11 @@
 
         <div class="sidebar-title">Austin same-day slots</div>
 
-        <p style="font-size:0.95rem;line-height:1.6;margin:0">Choose the job, pick the details, and we follow up quickly to confirm the appointment.</p>
+        <p style="font-size:0.95rem;line-height:1.6;margin:0">Tell us what is in the room. We price the common pieces now and review anything unusual before confirming.</p>
 
         <div class="sidebar-stat">
           <div class="sidebar-stat-icon"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 16H5V10h14v10Zm0-12H5V6h14v2Z"/></svg></div>
-          <div><strong>Same-day and next-day</strong><span>Openings across Austin and nearby areas.</span></div>
+          <div><strong>Real confirmation</strong><span>A person reviews the details before the appointment is locked in.</span></div>
         </div>
 
       </div>
@@ -2327,6 +2381,62 @@ var SVC_FROM = {
   'Other':               'Custom quote'
 };
 
+var SVC_DETAILS = {
+  'Furniture Assembly': {
+    title: 'Tell us what is still in the box.',
+    copy: 'Beds, dressers, shelves, sofas, and multi-room move-in lists all price better when you pick the exact pieces.',
+    chips: ['Bedrooms', 'Dressers', 'Move-in setup'],
+    placeholder: 'Brand/model, room, floor level, stairs/elevator, or anything heavy.'
+  },
+  'Mounting & Hanging': {
+    title: 'Wall details matter here.',
+    copy: 'TV size, wall type, height, cord plan, and bracket style help us keep the install clean and level.',
+    chips: ['TVs', 'Shelves', 'Curtains'],
+    placeholder: 'TV size, mount type, wall type, cord plans, height, or photo notes.'
+  },
+  'Smart Home': {
+    title: 'Make the device work before you need it.',
+    copy: 'Locks, cameras, doorbells, thermostats, and hubs depend on Wi-Fi, account access, and placement.',
+    chips: ['Locks', 'Cameras', 'Thermostats'],
+    placeholder: 'Device brand, Wi-Fi access, account/login notes, placement, or existing wiring.'
+  },
+  'Fitness Equipment': {
+    title: 'Heavy equipment needs a clear path.',
+    copy: 'Treadmills, bikes, racks, benches, and gyms go smoother when we know room location and access.',
+    chips: ['Treadmills', 'Bikes', 'Home gyms'],
+    placeholder: 'Brand/model, room, floor level, stairs/elevator, box location, or clearance notes.'
+  },
+  'Outdoor & Playsets': {
+    title: 'Outdoor installs need the whole picture.',
+    copy: 'Playsets, gazebos, patio furniture, and storage pieces depend on ground surface, space, and kit size.',
+    chips: ['Playsets', 'Gazebos', 'Patio setup'],
+    placeholder: 'Kit size, yard access, surface type, shade, box location, or photos you can send.'
+  },
+  'Office Assembly': {
+    title: 'Workspace setup should feel ready to use.',
+    copy: 'Desks, chairs, storage, conference tables, and multi-station offices work best when grouped by room.',
+    chips: ['Desks', 'Chairs', 'Storage'],
+    placeholder: 'Number of desks/chairs, rooms, delivery timing, access, or business-site notes.'
+  },
+  'Other': {
+    title: 'Not a standard item? We can still review it.',
+    copy: 'Use a custom quote for large, unusual, multi-room, or unclear projects. We review it before scheduling.',
+    chips: ['Large projects', 'Unusual items', 'Multi-room work'],
+    placeholder: 'Describe the project, item brand/model, room count, photos you can send, access notes, or anything unusual.'
+  }
+};
+
+var SUBCAT_NOTES = {
+  'Seating & Sofas': 'Start with the biggest seating pieces so the room plan is clear.',
+  'Bedroom': 'Beds, frames, dressers, and wardrobes usually drive the time estimate.',
+  'Home Office Furniture': 'Pick each desk, chair, and storage item that needs assembly.',
+  'Dining & Kitchen': 'Tables, chairs, carts, and islands are easiest to price together.',
+  'Living Room': 'Entertainment centers, coffee tables, and bookcases can be bundled.',
+  'Storage & Entryway': 'Shelving and entry pieces may need wall space or anchoring notes.',
+  'Outdoor & Patio': 'Outdoor kits depend on size, access, and where the boxes are located.',
+  'Add-ons': 'Add-ons are for the same visit after a main item is selected.'
+};
+
 function startCustomQuoteFlow() {
   var quoteItemName = 'Describe your project in the notes below (custom quote)';
   BOOK.selectedServices = ['Other'];
@@ -2352,6 +2462,22 @@ function startCustomQuoteFlow() {
   updateOrderSummary();
 }
 
+function renderServicePersonality(svc) {
+  var el = document.getElementById('item-personality-card');
+  if (!el) return;
+
+  var detail = SVC_DETAILS[svc] || SVC_DETAILS.Other;
+  var chips = (detail.chips || []).map(function(chip) {
+    return '<span class="item-personality-chip">' + esc(chip) + '</span>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="item-personality-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h9"/><path d="M4 4h16v16H4z"/></svg></div>' +
+    '<div><div class="item-personality-title">' + esc(detail.title) + '</div>' +
+    '<p class="item-personality-copy">' + esc(detail.copy) + '</p>' +
+    '<div class="item-personality-chips">' + chips + '</div></div>';
+}
+
 function showItemScreen(svc) {
 
   if (svc !== 'Other' && BOOK.selectedServices.indexOf('Other') !== -1 && BOOK.wantsQuote) {
@@ -2371,9 +2497,13 @@ function showItemScreen(svc) {
 
   document.getElementById('item-screen-heading').textContent = svc === 'Other' ? 'Custom Quote' : svc;
   document.getElementById('item-screen-from').textContent = SVC_FROM[svc] || '';
+  renderServicePersonality(svc);
 
   var details = document.getElementById('s1-details');
-  if (details && svc !== 'Other') details.placeholder = 'Any extra details: brand, model, floor, access info...';
+  if (details) {
+    var detail = SVC_DETAILS[svc] || SVC_DETAILS.Other;
+    details.placeholder = detail.placeholder || 'Any extra details: brand, model, floor, access info...';
+  }
 
   renderItemScreen(svc);
 
@@ -2443,7 +2573,8 @@ function renderItemScreen(svc) {
 
   groups.forEach(function(g, gi) {
 
-    html += '<div class="subcat-group' + (gi===0?' open':'') + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '</span><span class="subcat-group-count">' + g.items.length + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
+    var groupNote = SUBCAT_NOTES[g.group] || 'Choose the items that match your job so the estimate stays clear.';
+    html += '<div class="subcat-group' + (gi===0?' open':'') + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + g.items.length + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
 
     g.items.forEach(function(item) { html += itemRowHtml(svc, item); }); html += '</div>';
 
@@ -2702,7 +2833,7 @@ function updateOrderSummary() {
 
   if (BOOK.selectedServices.length === 0) {
 
-    linesEl.innerHTML = '<div class="sidebar-empty">Select services &amp; items to see pricing</div>';
+    linesEl.innerHTML = '<div class="sidebar-empty sidebar-empty-card"><strong>Build your setup plan</strong><span>Pick the exact items in the room and your estimate updates here.</span><div class="sidebar-empty-list"><div><b>1</b><span>Choose the service</span></div><div><b>2</b><span>Select the item count</span></div><div><b>3</b><span>Add notes for access, floors, or brand details</span></div></div></div>';
 
     totalEl.style.display = 'none'; noteEl.style.display = 'none';
 

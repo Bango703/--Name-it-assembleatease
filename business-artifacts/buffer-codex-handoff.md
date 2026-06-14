@@ -1,6 +1,29 @@
-# Buffer / Content Engine Handoff
+# Buffer / Content Engine Handoff For Next Codex Chat
 
 Use this note to let another Codex chat continue the Buffer setup without re-discovering context.
+
+## Strict Instructions From User
+
+The user is preparing AssembleAtEase for real launch and is very concerned about accidental breakage.
+
+Follow these rules exactly:
+
+- Do not add emojis anywhere in the platform.
+- Do not add playful copy, casual filler, or gimmicky language.
+- Do not make random visual/design changes.
+- Do not change unrelated files.
+- Do not remove existing working features.
+- Do not push unless the user explicitly says `push`.
+- Do not deploy unless the user explicitly approves.
+- Do not touch live data unless the user explicitly approves.
+- Do not turn on automatic publishing until a manual Buffer test succeeds.
+- Do not add independent Facebook/Instagram/LinkedIn/Google APIs. Use Buffer as the hub.
+- Do not make the site cluttered.
+- Keep customer-facing language professional, welcoming, clear, and not scary.
+- If auditing, audit first and recommend before fixing.
+- If coding, make the smallest safe change and test it.
+
+The user specifically does not want another chat adding emojis or ignoring strict instructions.
 
 ## Current Goal
 

@@ -1068,12 +1068,12 @@ function intelQuick(msg) {
 <div class="modal-overlay" id="content-kit-modal">
   <div class="modal" style="max-width:680px;max-height:88vh;overflow-y:auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
-      <h3 style="margin:0">Social Content Kit</h3>
+      <h3 style="margin:0">Blog Content Pipeline</h3>
       <button onclick="document.getElementById('content-kit-modal').classList.remove('open')" style="background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:#999">&times;</button>
     </div>
-    <p style="font-size:0.8rem;color:#666;margin:0 0 0.75rem">Pick a guide, generate the social kit, then send it to your connected Buffer channels. Copy buttons stay as a backup, not the main workflow.</p>
+    <p style="font-size:0.8rem;color:#666;margin:0 0 0.75rem">Pick a blog, choose a hook, generate posts and hashtags, test the Buffer payloads, then queue approved content. Copy buttons stay as a backup.</p>
     <div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.4fr);gap:0.5rem;margin-bottom:0.6rem">
-      <input id="ck-filter" placeholder="Search guides..." oninput="window.ckRenderArticleOptions&&window.ckRenderArticleOptions()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit" />
+      <input id="ck-filter" placeholder="Search blogs..." oninput="window.ckRenderArticleOptions&&window.ckRenderArticleOptions()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit" />
       <select id="ck-article" onchange="window.ckArticleChanged&&window.ckArticleChanged()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:inherit"><option>Loading…</option></select>
     </div>
     <div style="display:grid;grid-template-columns:minmax(160px,0.9fr) minmax(240px,1.4fr);gap:0.5rem;margin-bottom:0.6rem">
@@ -1081,7 +1081,7 @@ function intelQuick(msg) {
         <option value="security">Security angle</option>
         <option value="cost">Cost angle</option>
         <option value="mistake">DIY mistake angle</option>
-        <option value="local">Austin local angle</option>
+        <option value="local">Local angle</option>
         <option value="proof">Proof / trust angle</option>
         <option value="direct-offer">Direct offer angle</option>
       </select>
@@ -1384,7 +1384,7 @@ function intelQuick(msg) {
     return Object.assign({ 'Content-Type': 'application/json', 'x-owner-password': password }, extra || {});
   }
 
-  // ── Content Kit (one Guide -> ready-to-paste social posts) ──────────────
+  // ── Content Kit (one Blog -> ready-to-paste social posts) ──────────────
   let _ckLoaded = false;
   let _ckLast = null;
   let _ckArticles = [];
@@ -1422,7 +1422,7 @@ function intelQuick(msg) {
           var mark = last ? (' [' + last + ']') : '';
           return '<option value="' + esc(a.slug) + '">' + esc(a.title + mark) + '</option>';
         }).join('')
-      : '<option value="">No matching guides</option>';
+      : '<option value="">No matching blogs</option>';
     if (current && filtered.some(function(a){ return a.slug === current; })) sel.value = current;
   };
   window.ckArticleChanged = function() {
@@ -1453,7 +1453,7 @@ function intelQuick(msg) {
       var d = await r.json();
       if (!r.ok || !d.kit) throw new Error(d.error || 'Generation failed');
       _ckLast = { slug: slug, kit: d.kit };
-      status.textContent = (email && d.emailed) ? ('✓ Emailed to ' + d.emailed) : ('✓ Ready. ' + ckAutomationLine(d.socialAutomation));
+      status.textContent = (email && d.emailed) ? ('Emailed to ' + d.emailed) : ('Ready. ' + ckAutomationLine(d.socialAutomation));
       results.innerHTML = ckRender(d.kit);
       ckRemember(slug, { action: email ? 'emailed' : 'generated', title: d.title || ckArticleTitle(slug), note: (email && d.emailed ? ('Emailed to ' + d.emailed) : 'Generated fresh copy') + ' - ' + ckHookLabel(hook) });
     } catch (e) {
@@ -1513,8 +1513,8 @@ function intelQuick(msg) {
     var queued = keys.filter(function(k){ return publish[k] && publish[k].status === 'queued'; }).length;
     var tested = keys.filter(function(k){ return publish[k] && publish[k].status === 'dry_run'; }).length;
     var errors = keys.filter(function(k){ return publish[k] && publish[k].status === 'error'; }).length;
-    if (dryRun && tested) return { ok: true, text: '✓ Test complete. No Buffer posts were created.', toast: 'Social publish test complete' };
-    if (!dryRun && queued) return { ok: true, text: '✓ Queued ' + queued + ' Buffer post' + (queued === 1 ? '.' : 's.'), toast: 'Queued in Buffer' };
+    if (dryRun && tested) return { ok: true, text: 'Test complete. No Buffer posts were created.', toast: 'Social publish test complete' };
+    if (!dryRun && queued) return { ok: true, text: 'Queued ' + queued + ' Buffer post' + (queued === 1 ? '.' : 's.'), toast: 'Queued in Buffer' };
     if (errors) return { ok: false, text: 'Buffer did not queue a post. See errors below.', toast: 'Buffer publish failed' };
     return { ok: false, text: 'Buffer did not queue a post. See publish results below.', toast: 'No Buffer posts queued' };
   }
@@ -1557,11 +1557,11 @@ function intelQuick(msg) {
     var rows = (ckHistory()[slug] || []).slice(0, 4);
     if (!slug) { box.innerHTML = ''; return; }
     if (!rows.length) {
-      box.innerHTML = '<div style="border:1px solid #e5e7eb;background:#fafafa;border-radius:8px;padding:8px 10px">No action history for this guide yet.</div>';
+      box.innerHTML = '<div style="border:1px solid #e5e7eb;background:#fafafa;border-radius:8px;padding:8px 10px">No action history for this blog yet.</div>';
       return;
     }
     box.innerHTML = '<div style="border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;padding:8px 10px">'
-      + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;margin-bottom:5px">This guide history</div>'
+      + '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1d4ed8;margin-bottom:5px">This blog history</div>'
       + rows.map(function(row) {
           var when = new Date(row.at).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
           var channels = ckHistoryChannels(row.publish);
@@ -1583,7 +1583,7 @@ function intelQuick(msg) {
       security: 'security angle',
       cost: 'cost angle',
       mistake: 'DIY mistake angle',
-      local: 'Austin local angle',
+      local: 'local angle',
       proof: 'proof / trust angle',
       'direct-offer': 'direct offer angle'
     };
@@ -1594,14 +1594,14 @@ function intelQuick(msg) {
       security: 'Smart locks, cameras, porch visibility, and before-you-need-it urgency without fake crime claims.',
       cost: 'What gets expensive when furniture, mounts, or smart devices are installed wrong.',
       mistake: 'A common DIY mistake, what to check first, and what not to assume.',
-      local: 'Austin move-ins, apartments, heat, rentals, tight schedules, and local home setups.',
+      local: 'City move-ins, apartments, weather, rentals, tight schedules, and local home setups. Use Austin only when the blog is Austin-local.',
       proof: 'Careful work, clean finish, verified pro, and job-done-right trust.',
       'direct-offer': 'Short service offer with one practical booking benefit.'
     };
     return desc[value] || desc.security;
   }
   function ckRender(kit) {
-    var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
+    var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Hashtags', kit.hashtags], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
     return sections.map(function(s, i){
       var id = 'ck-box-' + i;
       return '<div style="border:1px solid #e4e4e7;border-radius:8px;margin-bottom:10px;overflow:hidden">'

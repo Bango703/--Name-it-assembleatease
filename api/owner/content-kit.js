@@ -9,7 +9,7 @@ const SITE = 'https://www.assembleatease.com';
 /**
  * GET /api/owner/content-kit  (owner only)
  *
- *   ?list=1              -> list every Guide article ({ slug, title })
+ *   ?list=1              -> list every Blog article ({ slug, title })
  *   ?slug=<slug>         -> generate a social kit for that article
  *   ?slug=<slug>&email=1 -> also email the kit to the owner
  *
@@ -144,7 +144,7 @@ function extractTitle(filePath) {
   const t = html.match(/<title>([^<]+)<\/title>/i);
   let raw = (h1?.[1] || t?.[1] || '').replace(/<[^>]+>/g, '');
   raw = raw.replace(/\s*[|\u2014\u2013]\s*AssembleAtEase.*$/i, '').replace(/&amp;/g, '&').trim();
-  return raw || 'AssembleAtEase Guide';
+    return raw || 'AssembleAtEase Blog';
 }
 
 function extractImageUrl(filePath, article = {}) {

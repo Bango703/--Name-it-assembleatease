@@ -195,7 +195,7 @@ export default async function handler(req, res) {
 
   const systemPrompt = `You are an SEO content writer for AssembleAtEase, a professional furniture assembly and handyman service in Austin, TX.
 
-Write a short, booking-focused guide as complete HTML content (article body only - no <html>, <head>, or <body> tags).
+Write a short, booking-focused blog as complete HTML content (article body only - no <html>, <head>, or <body> tags).
 
 Rules:
 - Target audience: Austin homeowners
@@ -211,7 +211,7 @@ Rules:
 
 Output ONLY the HTML article content - nothing else.`;
 
-  const userPrompt = `Write a short booking-focused guide about: "${topic}"
+  const userPrompt = `Write a short booking-focused blog about: "${topic}"
 
 The article title should be an SEO-friendly question or statement about this topic in Austin TX.
 Make it genuinely useful with practical booking advice. Keep it to two paragraphs.`;
@@ -311,8 +311,8 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
       const safeTitle = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const safeExcerpt = excerpt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const newCard = `\n      <a href="/blog/${slug}" class="guide-card">
-        <span class="guide-thumb"><img src="${image}" alt="${tag} guide in Austin" loading="lazy" width="300" height="300"></span>
-        <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read guide</span></span>
+        <span class="guide-thumb"><img src="${image}" alt="${tag} blog topic in Austin" loading="lazy" width="300" height="300"></span>
+        <span><span class="guide-meta">${tag}</span><span class="guide-title">${safeTitle}</span><span class="guide-copy">${safeExcerpt}</span><span class="guide-link">Read blog</span></span>
       </a>\n`;
 
       // Insert after the opening <div class="guides-grid">
@@ -515,18 +515,18 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </head>
 <body>
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
-<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="nav-logo-text">Assemble<span>AtEase</span></div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Guides</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/book" class="btn btn-cyan">Book Now</a></div></nav>
+<nav class="nav"><div class="nav-inner"><a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="nav-logo-text">Assemble<span>AtEase</span></div></a><ul class="nav-links"><li><a href="/#services">Services</a></li><li><a href="/blog/">Blogs</a></li><li><a href="/about">About Us</a></li><li><a href="/contact">Contact</a></li></ul><a href="/book" class="btn btn-cyan">Book Now</a></div></nav>
 
-<section class="page-hero" id="main-content"><div class="page-hero-inner"><a href="/blog/" class="page-back">&larr; Back to Guides</a><h1 class="page-title">${escaped}</h1><p class="page-desc">${displayDate} &bull; ${readTime} min read</p></div></section>
+<section class="page-hero" id="main-content"><div class="page-hero-inner"><a href="/blog/" class="page-back">&larr; Back to Blogs</a><h1 class="page-title">${escaped}</h1><p class="page-desc">${displayDate} &bull; ${readTime} min read</p></div></section>
 
 <article class="article">
 ${body}
 </article>
 
-<section class="article-share-kit" aria-label="Share this guide">
+<section class="article-share-kit" aria-label="Share this blog">
   <div class="article-share-inner">
     <div class="article-share-copy">
-      <strong>Share this Austin setup guide.</strong>
+      <strong>Share this setup blog.</strong>
       <span>Send it to someone planning a move-in, mount, assembly, or smart home visit.</span>
     </div>
     <div class="article-share-actions">
@@ -574,7 +574,7 @@ ${body}
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog/">Guides</a></li>
+        <li><a href="/blog/">Blogs</a></li>
         <li><a href="/#faq">FAQ</a></li>
         <li><a href="/track">Track My Booking</a></li>
         <li><a href="/contact">Contact</a></li>
@@ -583,14 +583,14 @@ ${body}
       </ul>
     </div>
     <div style="grid-column:1 / -1">
-      <div class="footer-col-title">Home Setup Guides</div>
+      <div class="footer-col-title">Home Setup Blogs</div>
       <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
         <li><a href="/blog/ikea-assembly-cost-austin">IKEA Assembly Cost Austin</a></li>
         <li><a href="/blog/tv-mounting-costs-austin">TV Mounting Costs Austin</a></li>
         <li><a href="/blog/best-furniture-assembly-austin">Best Assembly Service Austin</a></li>
         <li><a href="/blog/new-home-setup-checklist-austin">New Home Setup Checklist</a></li>
         <li><a href="/blog/smart-home-installation-austin">Smart Home Install Austin</a></li>
-        <li><a href="/blog/">All Guides &rarr;</a></li>
+        <li><a href="/blog/">All Blogs &rarr;</a></li>
       </ul>
     </div>
   </div>

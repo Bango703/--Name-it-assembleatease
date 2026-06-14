@@ -66,7 +66,7 @@ if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
   throw new Error('Favicon must use the logo mark, not plain AE text');
 }
 
-const benefitsSection = homepage.match(/<section class="benefits-section" id="why-us">([\s\S]*?)<\/section>/)?.[1];
+const benefitsSection = homepage.match(/<section class="[^"]*\bbenefits-section\b[^"]*"[^>]*id="why-us"[^>]*>([\s\S]*?)<\/section>/)?.[1];
 if (!benefitsSection) throw new Error('Homepage benefits section not found');
 
 const benefitLabels = [...benefitsSection.matchAll(/<div class="benefit-label">([^<]+)<\/div>/g)].map((match) => match[1]);

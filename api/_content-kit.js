@@ -1,14 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-// Turn one published Guide into ready-to-review social posts for each channel.
+// Turn one published Blog into ready-to-review social posts for each channel.
 // Owner-side only; never shown directly to customers.
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
 /**
- * Generate a social content kit for one article.
+ * Generate a social content kit for one blog article.
  * @param {{title:string, url:string, tag?:string, hookStyle?:string}} article
- * @returns {Promise<object|null>} { facebook, instagram, linkedin, googleBusiness, videoScript, apartmentOutreach } or null on failure
+ * @returns {Promise<object|null>} { facebook, instagram, linkedin, googleBusiness, videoScript, apartmentOutreach, hashtags } or null on failure
  */
 export async function generateContentKit({ title, url, tag, hookStyle: requestedHookStyle } = {}) {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -17,15 +17,16 @@ export async function generateContentKit({ title, url, tag, hookStyle: requested
   const anthropic = new Anthropic({ apiKey: key });
   const hookStyle = normalizeHookStyle(requestedHookStyle) || pickHookStyle(title || tag || url || '');
 
-  const system = `You are the social-media manager for AssembleAtEase, a professional furniture assembly, TV mounting, smart-home, and home-setup service in Austin, TX.
+  const system = `You are the social-media manager for AssembleAtEase, a professional furniture assembly, TV mounting, smart-home, and home-setup service. Austin is the launch market, but the brand must be able to expand into other cities later.
 Voice: warm, helpful, professional, local, confident, and alive. Honest - NEVER overpromise (no "guaranteed same-day", no fake urgency, no fake crime claims, no scare tactics). A little useful opinion is good; fake drama is not.
-Turn ONE blog article into native, ready-to-review posts for each channel. Each must sound natural on its platform, mention Austin, and point people toward booking or following.
+Turn ONE blog article into native, ready-to-review posts for each channel. Each must sound natural on its platform and point people toward reading the blog, booking the matching service, or following.
+Mention Austin when the article, URL, or hook is Austin-local. For broader service-first blogs, lead with the service and customer problem first so the copy can work beyond Austin.
 
 Use the assigned hook style to avoid boring recap posts:
 - security: smart locks, cameras, porch visibility, "before you need it" urgency, without claiming a specific crime happened or implying a recent break-in.
 - cost: what gets expensive when the job is done wrong or delayed.
 - mistake: common DIY mistake, what to check first, what not to assume.
-- local: Austin move-ins, apartments, heat, rentals, tight schedules, local homes.
+- local: city move-ins, apartments, weather, rentals, tight schedules, local homes. Use Austin when the article is Austin-local.
 - proof: careful work, clean finish, verified pro, job done right.
 - direct-offer: short, clear service offer with one practical benefit.
 
@@ -33,7 +34,8 @@ Hard content rules:
 - No emojis or emoji-style symbols on any platform.
 - No fake crime claims, fake urgency, or scare tactics.
 - No generic "Ready to..." opener unless it is the direct-offer style.
-- Keep each post direct, useful, and easy to approve.`;
+- Keep each post direct, useful, and easy to approve.
+- Hashtags must be clean, specific, and platform-appropriate. Do not use unrelated viral tags.`;
 
   const user = `Article title: "${title}"
 Article URL: ${url || ''}
@@ -42,12 +44,13 @@ Assigned hook style: ${hookStyle}
 
 Return ONLY valid minified JSON (no markdown, no code fences) with EXACTLY these string keys:
 {
-"facebook":"A scroll-stopping Facebook Page post. Lead with the assigned hook style, then 2-3 useful sentences, then the article URL on its own line, then 1-2 local hashtags",
-"instagram":"a punchy caption (Instagram links don't click, so end with a 'link in bio' nudge), then a new line with 6-10 relevant local hashtags",
-"linkedin":"a slightly more professional post angled at Austin property managers, Airbnb hosts, realtors and offices, ending with the article URL",
-"googleBusiness":"a short Google Business Profile update under 300 characters. Make it service-specific, local, and useful. End with a clear action like 'Book online' or 'Schedule setup'",
+"facebook":"A scroll-stopping Facebook Page post. Lead with the assigned hook style, then 2-3 useful sentences, then the article URL on its own line, then 1-3 specific hashtags",
+"instagram":"a punchy caption (Instagram links don't click, so end with a 'link in bio' nudge), then a new line with 6-10 relevant hashtags",
+"linkedin":"a slightly more professional post angled at property managers, Airbnb hosts, realtors and offices, ending with the article URL and 0-3 professional hashtags",
+"googleBusiness":"a short Google Business Profile update under 300 characters. Make it service-specific, local when appropriate, and useful. End with a clear action like 'Book online' or 'Schedule setup'",
 "videoScript":"a 20-30 second short-video script for Reels/TikTok/Shorts, with [HOOK], [VALUE] and [CTA] labels on separate lines",
-"apartmentOutreach":"one short, friendly outreach message to a property manager or apartment complex offering move-in furniture assembly + TV mounting for their residents"
+"apartmentOutreach":"one short, friendly outreach message to a property manager or apartment complex offering move-in furniture assembly + TV mounting for their residents",
+"hashtags":"separate owner-review hashtag recommendations grouped by platform, like Facebook: ... Instagram: ... LinkedIn: ... Google Business: ..."
 }
 Plain text only (no HTML). Keep it genuine, specific to the topic, and different from the last service-summary post.`;
 
@@ -64,7 +67,7 @@ Plain text only (no HTML). Keep it genuine, specific to the topic, and different
     const end = text.lastIndexOf('}');
     if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
     const kit = JSON.parse(text);
-    const need = ['facebook', 'instagram', 'linkedin', 'googleBusiness', 'videoScript', 'apartmentOutreach'];
+    const need = ['facebook', 'instagram', 'linkedin', 'googleBusiness', 'videoScript', 'apartmentOutreach', 'hashtags'];
     for (const k of need) if (typeof kit[k] !== 'string') kit[k] = '';
     return kit;
   } catch (e) {
@@ -98,6 +101,7 @@ export function renderContentKitEmailHtml({ title, url, kit }) {
     ['Instagram', kit.instagram],
     ['LinkedIn', kit.linkedin],
     ['Google Business Profile', kit.googleBusiness],
+    ['Hashtags', kit.hashtags],
     ['Short video script (Reel / TikTok / Short)', kit.videoScript],
     ['Apartment / property-manager outreach', kit.apartmentOutreach],
   ];
