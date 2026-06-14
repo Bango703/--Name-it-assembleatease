@@ -1225,15 +1225,7 @@
 
     </a>
 
-    <div class="book-trust-line">
-
-      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Secure checkout</span>
-
-      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg> Total shown upfront</span>
-
-      <span><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal);flex-shrink:0"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg> Payment after completion</span>
-
-    </div>
+    
 
     <a href="/" class="book-nav-back">&#8592; Back to home</a>
 
@@ -2030,6 +2022,7 @@
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
 
 <script src="/assets/js/booking-source-of-truth.js"></script>
+<script src="/assets/js/aae-location.js"></script>
 
 <script>
 
@@ -2321,7 +2314,7 @@ function checkServiceZip(val) {
 
     errEl.style.display = 'none';
 
-    if (inEl) inEl.style.borderColor = '#22c55e';
+    if (inEl) inEl.style.borderColor = '#22c55e'; if (window.AAELocation) { window.AAELocation.set(zip); }
 
   } else if (valid && !active) {
 
