@@ -2925,9 +2925,13 @@ function intelQuick(msg) {
       try {
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: aIdDel, action: 'delete' }) });
         var data = await r.json();
-        if (data.error) { toast(data.error, 'error'); return; }
+        if (data.error) {
+          toast(data.error, 'error');
+          if (data.activeJobs) alert('Active jobs:\n' + data.activeJobs.map(function(j) { return '  ' + j.ref + ' — ' + j.service; }).join('\n'));
+          return;
+        }
         toast(delName + ' removed', 'success');
-        loadAssemblerList();
+        loadAssemblerList(); loadAssemblers();
       } catch { toast('Failed to remove Easer', 'error'); }
       return;
     }

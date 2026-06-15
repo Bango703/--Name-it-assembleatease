@@ -290,8 +290,20 @@ export default async function handler(req, res) {
 
   // ── DELETE ───────────────────────────────────────────────────────────────
   if (action === 'delete') {
+    // An active Easer can be removed directly, but only when they have no live
+    // jobs — same safety guard as suspend, so a booking is never stranded.
     if (profile.status === 'active') {
-      return res.status(400).json({ error: 'Cannot delete an active Easer. Suspend first.' });
+      const { data: liveJobs } = await sb
+        .from('bookings')
+        .select('id, ref, service, date')
+        .eq('assembler_id', assemblerId)
+        .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
+      if (liveJobs?.length) {
+        return res.status(409).json({
+          error: `Cannot remove — this Easer has ${liveJobs.length} active job(s). Reassign or complete them first.`,
+          activeJobs: liveJobs.map(b => ({ ref: b.ref, service: b.service, date: b.date })),
+        });
+      }
     }
 
     sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
