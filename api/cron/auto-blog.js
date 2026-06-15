@@ -7,7 +7,7 @@ const REPO_OWNER = 'Bango703';
 const REPO_NAME  = '--Name-it-assembleatease';
 const SITE       = 'https://www.assembleatease.com';
 
-// Topics pool — AI picks the best untouched one each run
+// Topics pool ï¿½ AI picks the best untouched one each run
 const TOPIC_POOL = [
   // -- FURNITURE ASSEMBLY -------------------------------------------
   'how to hang a tv on a brick wall in austin',
@@ -285,7 +285,7 @@ Make it genuinely useful with practical booking advice. Keep it to two paragraph
 
   console.log(`Auto-blog published: ${filePath}`);
 
-  // -- 5. Update blog/index.html — prepend new card ----------------
+  // -- 5. Update blog/index.html ï¿½ prepend new card ----------------
   try {
     // Fetch current index
     const idxRes = await fetch(
@@ -449,7 +449,7 @@ function buildBlogPage({ title, canonicalUrl, today, readTime, body, image }) {
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${escaped}"/>
 <meta name="twitter:image" content="${SITE}${image}"/>
-<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/png" href="/images/logo.png"/><link rel="apple-touch-icon" href="/images/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
@@ -550,11 +550,11 @@ ${body}
   <div class="footer-inner">
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services in Austin, Texas.</p>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
       <div class="footer-contact">
         <a href="tel:+17372906129">(737) 290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
-        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow Austin project updates</a>
+        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow our project updates</a>
       </div>
     </div>
     <div>
@@ -595,7 +595,7 @@ ${body}
     </div>
   </div>
   <div class="footer-bottom">
-    <div class="footer-copy">&copy; ${new Date().getFullYear()} AssembleAtEase. All rights reserved. Austin, TX.</div>
+    <div class="footer-copy">&copy; ${new Date().getFullYear()} AssembleAtEase. All rights reserved.</div>
     <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>
