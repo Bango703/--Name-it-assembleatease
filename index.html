@@ -154,7 +154,7 @@
 /* desktop-only sections hidden by default */
 section#services-hdr{display:none}
 section#how-it-works{display:none}
-section#service-area{display:none}
+section#service-area{display:block}
 .cta-section{display:none}
 
 /* -----------------------------------------------------
@@ -991,17 +991,116 @@ section#service-area{display:block}
 })();
 </script>
 
-<!-- DESKTOP: SERVICE AREA (shown =1024px) -->
+<!-- SERVICE AREA: live availability checker (all screens) -->
 <section class="section section-alt" id="service-area">
+  <style>
+    .zipcheck{max-width:540px;margin:0 auto}
+    .zipcheck-form{display:flex;gap:0.5rem}
+    .zipcheck-form input{flex:1;min-width:0;padding:0.85rem 1rem;border:1.5px solid var(--border);border-radius:12px;font-family:var(--font-body);font-size:1rem;color:var(--ink);background:var(--white);outline:none;transition:border-color 0.15s}
+    .zipcheck-form input:focus{border-color:var(--cyan)}
+    .zipcheck-form>.btn{flex-shrink:0;padding:0.85rem 1.6rem}
+    .zipcheck-result{margin-top:1rem;padding:1rem 1.15rem;border-radius:12px;font-size:0.94rem;line-height:1.6;display:none}
+    .zipcheck-result.show{display:block}
+    .zipcheck-result.ok{background:var(--cyan-light);border:1.5px solid var(--cyan-mid);color:var(--ink)}
+    .zipcheck-result.notice{background:#fff8ec;border:1.5px solid #f3d28a;color:#7a5a1e}
+    .zipcheck-result .zc-cta{margin-top:0.75rem}
+    .waitlist-form{margin-top:1rem;display:none;grid-template-columns:1fr 1fr;gap:0.7rem;text-align:left}
+    .waitlist-form.show{display:grid}
+    .waitlist-form .wl-full{grid-column:1 / -1}
+    .waitlist-form input,.waitlist-form select{width:100%;padding:0.75rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.92rem;color:var(--ink);background:var(--white);outline:none}
+    .waitlist-form input:focus,.waitlist-form select:focus{border-color:var(--cyan)}
+    .waitlist-msg{grid-column:1 / -1;font-size:0.85rem;color:var(--muted);text-align:center;min-height:1.1em;margin:0}
+    @media(max-width:560px){.zipcheck-form{flex-direction:column}.zipcheck-form>.btn{width:100%}.waitlist-form{grid-template-columns:1fr}}
+  </style>
   <div class="section-inner">
     <div class="section-header">
-      <div class="section-label">Where we work</div>
-      <h2 class="section-title">Service Area</h2>
-      <p class="section-desc">We serve the greater Austin metro area.</p>
+      <div class="section-label">Coverage</div>
+      <h2 class="section-title">Check availability in your area</h2>
+      <p class="section-desc">Enter your ZIP and we&rsquo;ll tell you right away. Not in your area yet? Get on the list and we&rsquo;ll reach out the moment we launch near you &mdash; no payment, no obligation.</p>
     </div>
-    <div class="area-pills"><span class="area-pill">Austin</span><span class="area-pill">Round Rock</span><span class="area-pill">Cedar Park</span><span class="area-pill">Pflugerville</span><span class="area-pill">Georgetown</span><span class="area-pill">Kyle</span><span class="area-pill">Buda</span><span class="area-pill">Lakeway</span><span class="area-pill">Bee Cave</span><span class="area-pill">Manor</span><span class="area-pill">Leander</span><span class="area-pill">Hutto</span></div>
-    <p style="text-align:center;margin-top:1.5rem;font-size:0.875rem;color:var(--muted)">Don&rsquo;t see your city <a href="/contact" style="color:var(--cyan-dark);font-weight:600;text-decoration:none">Contact us &rarr;</a></p>
+    <div class="zipcheck">
+      <form class="zipcheck-form" id="zipcheck-form" novalidate>
+        <input type="text" id="zip-input" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="Enter your ZIP code" aria-label="ZIP code" autocomplete="postal-code"/>
+        <button type="submit" class="btn btn-cyan">Check</button>
+      </form>
+      <div class="zipcheck-result" id="zip-result" role="status" aria-live="polite"></div>
+      <form class="waitlist-form" id="waitlist-form" novalidate aria-label="Request service in your area">
+        <input class="wl-full" type="text" id="wl-name" placeholder="Full name" autocomplete="name" aria-label="Full name"/>
+        <input type="email" id="wl-email" placeholder="Email" autocomplete="email" aria-label="Email"/>
+        <input type="tel" id="wl-phone" placeholder="Phone" autocomplete="tel" aria-label="Phone"/>
+        <input type="text" id="wl-city" placeholder="City" autocomplete="address-level2" aria-label="City"/>
+        <input type="text" id="wl-state" placeholder="State (e.g. TX)" maxlength="2" autocomplete="address-level1" aria-label="State"/>
+        <select class="wl-full" id="wl-service" aria-label="Service needed">
+          <option value="">What do you need? (optional)</option>
+          <option>Furniture Assembly</option>
+          <option>TV Mounting</option>
+          <option>Smart Home Setup</option>
+          <option>Fitness Equipment</option>
+          <option>Outdoor &amp; Playsets</option>
+          <option>Office Assembly</option>
+          <option value="General home setup">Not sure yet</option>
+        </select>
+        <button type="submit" class="btn btn-cyan wl-full">Get on the list</button>
+        <p class="waitlist-msg" id="wl-msg"></p>
+      </form>
+    </div>
   </div>
+  <script>
+  (function(){
+    var form=document.getElementById('zipcheck-form');
+    if(!form) return;
+    var zipInput=document.getElementById('zip-input');
+    var result=document.getElementById('zip-result');
+    var wlForm=document.getElementById('waitlist-form');
+    var wlMsg=document.getElementById('wl-msg');
+    var EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    // Served metros — keep in sync with assets/js/booking-source-of-truth.js serviceArea
+    // and assets/js/aae-location.js when a new market goes live.
+    function servedCity(zip){
+      var p=zip.slice(0,3);
+      if(p==='786'||p==='787'||p==='788') return 'Austin';
+      return null;
+    }
+    function val(id){var el=document.getElementById(id);return el?String(el.value||'').trim():'';}
+    function msg(t){wlMsg.textContent=t;}
+    form.addEventListener('submit',function(e){
+      e.preventDefault();
+      var zip=(zipInput.value||'').replace(/\D/g,'').slice(0,5);
+      result.className='zipcheck-result';
+      if(zip.length!==5){result.textContent='Please enter a 5-digit ZIP code.';result.classList.add('show','notice');wlForm.classList.remove('show');return;}
+      var city=servedCity(zip);
+      if(city){
+        if(window.AAELocation){window.AAELocation.set(zip);}
+        result.innerHTML='Good news — we serve '+city+'. <a class="zc-cta btn btn-cyan" href="/book?zip='+zip+'">Book now →</a>';
+        result.classList.add('show','ok');
+        wlForm.classList.remove('show');
+      }else{
+        result.textContent='We’re not booking '+zip+' yet — tell us where you need us and you’ll be first to know when we launch.';
+        result.classList.add('show','notice');
+        wlForm.dataset.zip=zip;
+        wlForm.classList.add('show');
+      }
+    });
+    wlForm.addEventListener('submit',function(e){
+      e.preventDefault();
+      var name=val('wl-name'),email=val('wl-email'),phone=val('wl-phone'),city=val('wl-city'),state=val('wl-state').toUpperCase(),service=val('wl-service');
+      if(!name){return msg('Please enter your name.');}
+      if(!EMAIL.test(email)){return msg('Please enter a valid email.');}
+      if(!phone){return msg('Please enter a phone number.');}
+      if(!city){return msg('Please enter your city.');}
+      if(state.length!==2){return msg('Please enter your 2-letter state.');}
+      var btn=wlForm.querySelector('button[type=submit]');btn.disabled=true;msg('Sending…');
+      fetch('/api/market-demand',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        name:name,email:email,phone:phone,city:city,state:state,zip:wlForm.dataset.zip||'',
+        service:service||'General home setup',source:'homepage_zip_checker'
+      })}).then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});}).then(function(o){
+        if(o.ok&&o.d&&o.d.success){
+          wlForm.innerHTML='<p class="waitlist-msg" style="color:var(--ink);font-size:0.95rem;line-height:1.6">You’re on the list. We’ll reach out before we launch near you — no payment, no obligation.</p>';
+        }else{btn.disabled=false;msg((o.d&&o.d.error)||'Something went wrong. Please try again.');}
+      }).catch(function(){btn.disabled=false;msg('Network error. Please try again.');});
+    });
+  })();
+  </script>
 </section>
 
 <!-- FAQ (all sizes) -->
@@ -1019,7 +1118,7 @@ section#service-area{display:block}
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>Do I need to provide tools or parts</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Nope &mdash; your pro brings all the tools. Just have the item, its hardware and parts, and any instructions handy so they can get right to work. Lost the manual? No problem &mdash; most pros know these builds by heart.</div></div>
     </div>
     <div id="faq-more" style="display:none">
-      <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What areas do you serve</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We serve Austin, TX and nearby areas including Round Rock, Cedar Park, Pflugerville, Georgetown, Kyle, Buda, Lakeway, Bee Cave, Manor, Leander, and Hutto. Not sure Just <a href="/contact" style="color:var(--cyan-dark)">ask us</a>.</div></div>
+      <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What areas do you serve</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We currently serve the Austin metro and are expanding to new areas. Enter your ZIP in the availability checker above to see if we are booking your area yet &mdash; if not, you can get on the list and we will reach out the moment we launch near you.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>What if something gets damaged</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">We treat your home and belongings with care. In the unlikely event of damage, contact us within 48 hours and we will review it and work with you to make it right.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>Can you assemble any brand</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Yes &mdash; IKEA, Wayfair, Amazon, Ashley, Target, Costco, Walmart and more. If it came in a box, we can build it.</div></div>
       <div class="faq-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFaq(this)}"><div class="faq-q"><span>Are your pros verified</span><svg class="faq-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div><div class="faq-a">Yes &mdash; every pro completes identity verification and is personally reviewed by our team before their first job. We only work with people we&rsquo;d trust in our own home.</div></div>
