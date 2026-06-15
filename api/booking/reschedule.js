@@ -14,7 +14,7 @@ import { appointmentTimestampMs } from './_appt-date.js';
  *  - Reschedulable only while pending/confirmed (not once en route or later).
  *  - Free to reschedule, up to MAX_RESCHEDULES times (counted via activity_logs).
  *  - Rescheduling FORFEITS free cancellation: once rescheduled, any later
- *    cancellation incurs the 50% fee regardless of the 24h window. guest-cancel.js
+ *    cancellation incurs a fee regardless of the 24h window (10%, or 15% if a pro is en route). guest-cancel.js
  *    enforces this by detecting a prior 'rescheduled' activity event.
  *  - Assigned Pro is kept; owner + Pro are notified of the new date.
  *  - No Stripe action: the existing manual-capture auth carries; the reauth cron
@@ -150,7 +150,7 @@ export default async function handler(req, res) {
         bodyHtml: `
           <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> appointment is now set for <strong>${esc(date)}</strong> at <strong>${esc(time)}</strong>.</p>
           <p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">
-            Please note: because this booking has been rescheduled, cancelling it now incurs a 50% fee regardless of timing. ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule — contact us for any further changes.'}
+            Please note: because this booking has been rescheduled, cancelling it now incurs a cancellation fee even with 24+ hours notice (10% of the service subtotal, or 15% once a pro is on the way — never tax, never the full amount). ${remaining > 0 ? `You can reschedule ${remaining} more time if needed.` : 'This was your final self-service reschedule — contact us for any further changes.'}
           </p>
           <p style="margin:0;font-size:14px;color:#52525b">Need anything else? Reply to this email or call (737) 290-6129.</p>`,
       }),

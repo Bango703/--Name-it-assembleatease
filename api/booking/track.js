@@ -65,7 +65,7 @@ export default async function handler(req, res) {
   const customerStatus = getCustomerLabel(booking);
 
   // Has this booking been rescheduled? If so, free cancellation is forfeited —
-  // the cancel UI must warn about the 50% fee regardless of the 24h window.
+  // the cancel UI must warn about the cancellation fee regardless of the 24h window.
   let wasRescheduled = false;
   try {
     const { count } = await sb

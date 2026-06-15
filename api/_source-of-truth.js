@@ -104,6 +104,44 @@ export function computeBookingSplit(totalInclusiveCents, isMember, { taxCents = 
   };
 }
 
+// ─── Cancellation policy ─────────────────────────────────────────────────────
+// Tiered cancellation fee as a % of the PRE-TAX SERVICE SUBTOTAL (labor only —
+// NEVER tax, never the service-call fee). Free with reasonable notice; a fair,
+// capped fee for late cancels; a higher fee once a pro is committed or for a
+// no-show — but NEVER 100% (no work was performed). Server is the source of
+// truth; never trust a client-sent fee.
+export const CANCELLATION_POLICY = Object.freeze({
+  freeWindowHours: 24,     // 24h+ before the appointment → free
+  imminentWindowHours: 2,  // under 2h before, pro en route/arrived/in-progress, or no-show
+  lateFeePct: 10,          // within 24h, pro not yet en route
+  imminentFeePct: 15,      // imminent / en route / no-show
+});
+
+/**
+ * Compute the cancellation fee on the pre-tax service subtotal.
+ * Derive serviceSubtotalCents as total_price - tax_amount - service_call_fee.
+ * @param {{ serviceSubtotalCents?:number, hoursUntilAppointment?:(number|null), status?:(string|null), isNoShow?:boolean, forfeitFreeWindow?:boolean }} args
+ * @returns {{ tier:('free'|'late'|'imminent'), feePct:number, feeCents:number, proTripCut:boolean }}
+ */
+export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilAppointment = null, status = null, isNoShow = false, forfeitFreeWindow = false } = {}) {
+  const sub = Math.max(0, Math.round(Number(serviceSubtotalCents) || 0));
+  const h = (typeof hoursUntilAppointment === 'number' && isFinite(hoursUntilAppointment)) ? hoursUntilAppointment : null;
+  const proCommitted = status === BOOKING_STATUS.EN_ROUTE || status === BOOKING_STATUS.ARRIVED || status === BOOKING_STATUS.IN_PROGRESS;
+
+  let tier, feePct;
+  if (isNoShow || proCommitted || (h != null && h < CANCELLATION_POLICY.imminentWindowHours)) {
+    tier = 'imminent'; feePct = CANCELLATION_POLICY.imminentFeePct;
+  } else if (h != null && h < CANCELLATION_POLICY.freeWindowHours) {
+    tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct;
+  } else {
+    tier = 'free'; feePct = 0;
+  }
+  // A rescheduled booking forfeits its free window — at minimum the late tier applies.
+  if (forfeitFreeWindow && tier === 'free') { tier = 'late'; feePct = CANCELLATION_POLICY.lateFeePct; }
+
+  return { tier, feePct, feeCents: Math.round(sub * feePct / 100), proTripCut: tier === 'imminent' };
+}
+
 /**
  * Estimated Stripe processing fee (2.9% + $0.30). This is an ESTIMATE for
  * projections only — the authoritative fee comes from the Stripe balance

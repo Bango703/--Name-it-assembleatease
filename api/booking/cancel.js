@@ -4,7 +4,7 @@ import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_e
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { adjustActiveJobs } from './_active-jobs.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
 
@@ -26,20 +26,30 @@ export default async function handler(req, res) {
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
 
-  // ── Determine if within 24hr cancellation window ─────────────────────────
+  // ── Tiered cancellation fee (% of pre-tax service subtotal, never tax) ────
   const waiveFee = req.body.waiveFee === true;
-  let withinCancellationWindow = false;
+  const noShow = req.body.noShow === true;   // owner flags a customer no-show → imminent tier
+  let hoursAway = null;
   try {
     const apptMs = appointmentTimestampMs(booking.date, booking.time);
-    const hoursAway = apptMs != null ? (apptMs - Date.now()) / 3600000 : -1;
-    withinCancellationWindow = hoursAway >= 0 && hoursAway < 24;
+    if (apptMs != null) hoursAway = (apptMs - Date.now()) / 3600000;
   } catch (dateErr) {
     console.error('Cancellation window date parse error:', dateErr);
   }
+  const serviceSubtotalCents = Math.max(0,
+    (booking.total_price || 0) - (booking.tax_amount || 0) - (booking.service_call_fee || 0));
+  const policy = computeCancellationFee({
+    serviceSubtotalCents,
+    hoursUntilAppointment: hoursAway,
+    status: booking.status,
+    isNoShow: noShow,
+  });
+  const withinCancellationWindow = policy.tier !== 'free';
 
   // ── Stripe: charge fee or release hold ────────────────────────────────────
   let refundAmount = 0;
   let feeCaptured = 0;
+  let proTripCutCents = 0;
   if (process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -65,13 +75,12 @@ export default async function handler(req, res) {
           metadata: { reason: 'owner_cancelled_post_capture', refundAmount },
         });
       } else if (booking.payment_status === 'authorized') {
-        if (!waiveFee && withinCancellationWindow && (booking.total_price || 0) > 0) {
-          // Within 24hr window — capture 50% as cancellation fee.
-          // Use the actual PI authorized amount (not total_price which may have been edited)
-          // to guarantee the capture never exceeds what Stripe holds.
+        if (!waiveFee && policy.feeCents > 0) {
+          // Capture the tiered cancellation fee. Clamp to the actual authorized
+          // amount (not total_price, which may have been edited) so a capture can
+          // never exceed what Stripe holds.
           const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-          const authorizedCents = pi.amount;
-          const feeCents = Math.round(authorizedCents * 0.5);
+          const feeCents = Math.min(policy.feeCents, pi.amount);
           const idempotencyKey = `owner-cancel-fee-${booking.id}-${feeCents}`;
           await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, {
             amount_to_capture: feeCents,
@@ -84,7 +93,7 @@ export default async function handler(req, res) {
             paymentIntentId: booking.stripe_payment_intent_id,
             idempotencyKey,
             status: 'processed',
-            metadata: { reason: 'owner_cancel_fee', feeCaptured },
+            metadata: { reason: noShow ? 'owner_no_show_fee' : 'owner_cancel_fee', feeCaptured, tier: policy.tier, feePct: policy.feePct },
           });
         } else {
           // Outside window or fee waived — release hold entirely
@@ -137,6 +146,14 @@ export default async function handler(req, res) {
     }
   }
 
+  // Pro trip cut for no-show / en-route cancellations — recorded for manual payout.
+  if (feeCaptured > 0 && policy.proTripCut && booking.assembler_id) {
+    try {
+      const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
+      proTripCutCents = computeBookingSplit(feeCaptured, easerProf?.has_membership === true, { taxCents: 0 }).assemblerDueCents;
+    } catch (e) { console.error('pro trip-cut calc error:', e); }
+  }
+
   // Try full update first; fall back to just status if optional columns don't exist yet
   let updateErr;
   ({ error: updateErr } = await sb.from('bookings')
@@ -186,7 +203,7 @@ export default async function handler(req, res) {
 
     const feeHtml = feeCaptured > 0
       ? `<p style="margin:0 0 20px;font-size:14px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;">
-           A cancellation fee of <strong>$${(feeCaptured / 100).toFixed(2)}</strong> (50% of booking total) was charged per our late-cancellation policy (within 24 hours of appointment).
+           A cancellation fee of <strong>$${(feeCaptured / 100).toFixed(2)}</strong> (${policy.feePct}% of the service subtotal &mdash; no tax) was charged per our cancellation policy. The remainder of your hold has been released.
          </p>`
       : '';
 
@@ -216,7 +233,7 @@ export default async function handler(req, res) {
     console.error('Cancel email error:', emailErr);
   }
 
-  logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount } });
+  logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ', ' + policy.feePct + '% ' + policy.tier + ')' : ''}${proTripCutCents ? ' (pro trip cut owed: $' + (proTripCutCents/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount, tier: policy.tier, feePct: policy.feePct, proTripCutCents } });
 
-  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CANCELLED }, refundAmount, feeCaptured, withinCancellationWindow });
+  return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CANCELLED }, refundAmount, feeCaptured, withinCancellationWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents });
 }

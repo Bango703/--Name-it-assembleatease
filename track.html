@@ -263,7 +263,7 @@
 
       <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
-        <strong>⚠️ Cancellation fee applies</strong>
+        <strong>Cancellation fee applies</strong>
         <span id="cancelFeeMsg"></span>
       </div>
 
@@ -320,7 +320,7 @@
     <div id="rescheduleModalContent">
       <h2 class="cancel-modal-title">Reschedule your appointment</h2>
       <div class="cancel-modal-fee" style="display:block;background:#f0f9ff;border-color:#bae6fd;color:#0c4a6e">
-        Rescheduling is free (up to 2 times). Note: once you reschedule, this booking is no longer eligible for free cancellation &mdash; a 50% fee applies to any cancellation.
+        Rescheduling is free (up to 2 times). Note: once you reschedule, this booking is no longer eligible for free cancellation &mdash; a cancellation fee then applies (10% of the service subtotal, or 15% once a pro is on the way). Never the full amount, and never on tax.
       </div>
       <div style="margin-bottom:1rem">
         <label for="rsDate" style="display:block;font-size:0.75rem;font-weight:700;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">New date</label>
@@ -566,14 +566,9 @@ function renderBooking(b) {
     }
   } else {
     cancelBtn.style.display = '';
-    // Fee applies if within 24h OR the booking was rescheduled (free cancel forfeited).
-    const withinWindow = isWithin24hrs(b.date, b.time);
-    const feeApplies = (withinWindow || b.was_rescheduled) && b.total_price;
-    if (feeApplies) {
-      const fee = '$' + ((b.total_price * 0.5) / 100).toFixed(2);
-      document.getElementById('cancelFeeMsg').textContent = b.was_rescheduled && !withinWindow
-        ? 'Because this booking was rescheduled, cancelling now will charge a 50% fee of ' + fee + '.'
-        : 'Your appointment is within 24 hours. Cancelling now will charge a 50% fee of ' + fee + '.';
+    const p = cancelFeeClient(b);
+    if (p.pct > 0) {
+      document.getElementById('cancelFeeMsg').textContent = p.msg + ' Estimated fee: ' + p.feeText + '.';
       feeWarn.style.display = 'block';
     } else {
       feeWarn.style.display = 'none';
@@ -589,18 +584,14 @@ function renderBooking(b) {
 // ── Cancel modal ───────────────────────────────────────────
 function openCancelModal() {
   if (!currentBooking) return;
-  const withinWindow = isWithin24hrs(currentBooking.date, currentBooking.time);
   const feeEl  = document.getElementById('cancelModalFee');
   const descEl = document.getElementById('cancelModalDesc');
 
-  const feeApplies = (withinWindow || currentBooking.was_rescheduled) && currentBooking.total_price;
-  if (feeApplies) {
-    const fee = '$' + ((currentBooking.total_price * 0.5) / 100).toFixed(2);
-    feeEl.innerHTML = currentBooking.was_rescheduled && !withinWindow
-      ? '<strong>⚠️ Cancellation fee: ' + fee + '</strong> Because this booking was rescheduled, it is no longer eligible for free cancellation — cancelling will charge 50% of your booking total.'
-      : '<strong>⚠️ Late-cancellation fee: ' + fee + '</strong> Since your appointment is within 24 hours, cancelling will charge 50% of your booking total.';
+  const p = cancelFeeClient(currentBooking);
+  if (p.pct > 0) {
+    feeEl.innerHTML = '<strong>Cancellation fee: ' + p.feeText + '</strong> ' + p.msg;
     feeEl.style.display = 'block';
-    descEl.textContent  = 'Are you sure you want to cancel This action cannot be undone.';
+    descEl.textContent  = 'Are you sure you want to cancel? This cannot be undone.';
   } else {
     feeEl.style.display = 'none';
     descEl.textContent  = 'Your appointment is more than 24 hours away — cancellation is free. Your card hold will be fully released.';
@@ -790,6 +781,38 @@ function isWithin24hrs(dateStr, timeStr) {
     const hoursAway = (apptDate.getTime() - Date.now()) / 3600000;
     return hoursAway >= 0 && hoursAway < 24;
   } catch { return false; }
+}
+
+// Hours until the appointment (negative if past), or null if unknown.
+function apptHoursAway(dateStr, timeStr) {
+  try {
+    const apptDate = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+    const slotStart = (timeStr || '').split('-')[0].trim();
+    const m = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (m) { let h = parseInt(m[1], 10); const mn = parseInt(m[2], 10); const mer = m[3].toUpperCase(); if (mer === 'PM' && h !== 12) h += 12; if (mer === 'AM' && h === 12) h = 0; apptDate.setHours(h, mn, 0, 0); }
+    return (apptDate.getTime() - Date.now()) / 3600000;
+  } catch { return null; }
+}
+
+// Client estimate that mirrors the server cancellation policy
+// (api/_source-of-truth.js → computeCancellationFee). Server is the source of truth.
+function cancelFeeClient(b) {
+  const sub = Math.max(0, (b.total_price || 0) - (b.tax_amount || 0) - (b.service_call_fee || 0));
+  const h = apptHoursAway(b.date, b.time);
+  const st = String(b.status || '').toLowerCase();
+  const committed = st === 'en_route' || st === 'arrived' || st === 'in_progress';
+  let pct = 0, msg = '';
+  if (committed || (h != null && h < 2)) {
+    pct = 15;
+    msg = 'A pro is on the way or your appointment is within 2 hours, so a 15% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
+  } else if ((h != null && h < 24) || b.was_rescheduled) {
+    pct = 10;
+    msg = (b.was_rescheduled && !(h != null && h < 24))
+      ? 'Because this booking was rescheduled, a 10% fee applies (on the service subtotal, no tax).'
+      : 'Your appointment is within 24 hours, so a 10% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
+  }
+  const feeCents = Math.round(sub * pct / 100);
+  return { pct, feeCents, feeText: '$' + (feeCents / 100).toFixed(2), msg };
 }
 
 // Pre-fill from URL params.

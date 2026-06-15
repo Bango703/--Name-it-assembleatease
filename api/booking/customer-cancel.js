@@ -6,7 +6,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
 import { buildRequestId, getDeploymentMetadata, hashIdentifier, insertOperationalEventFailOpen } from '../_observability.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
 
@@ -15,8 +15,8 @@ import { appointmentTimestampMs } from './_appt-date.js';
  * Customer self-service booking cancellation.
  * Requires Bearer JWT (customer session).
  * Body: { bookingId }
- * - Free if cancelled 24+ hrs before appointment
- * - 50% fee if cancelled within 24 hrs of appointment
+ * Tiered fee on the PRE-TAX service subtotal (see computeCancellationFee):
+ * - Free 24h+ before · 10% within 24h · 15% if a pro is en route / no-show (never 100%)
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -79,16 +79,25 @@ export default async function handler(req, res) {
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
 
-  // Determine if within 24hr cancellation window of appointment
-  let withinWindow = false;
+  // Timing → tiered cancellation fee (% of pre-tax service subtotal, never tax).
+  let hoursAway = null;
   try {
     const apptMs = appointmentTimestampMs(booking.date, booking.time);
-    const hoursAway = apptMs != null ? (apptMs - Date.now()) / 3600000 : -1;
-    withinWindow = hoursAway >= 0 && hoursAway < 24;
+    if (apptMs != null) hoursAway = (apptMs - Date.now()) / 3600000;
   } catch (e) { console.error('Date parse error:', e); }
 
-  // Stripe: release hold or charge cancellation fee
+  const serviceSubtotalCents = Math.max(0,
+    (booking.total_price || 0) - (booking.tax_amount || 0) - (booking.service_call_fee || 0));
+  const policy = computeCancellationFee({
+    serviceSubtotalCents,
+    hoursUntilAppointment: hoursAway,
+    status: booking.status,
+  });
+  const withinWindow = policy.tier !== 'free';
+
+  // Stripe: release hold or capture the tiered cancellation fee
   let feeCaptured = 0;
+  let proTripCutCents = 0;
   const stripeMutationRequired = booking.payment_status === 'authorized';
   if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please contact support.' });
@@ -100,8 +109,8 @@ export default async function handler(req, res) {
   if (stripeMutationRequired) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      if (withinWindow && (booking.total_price || 0) > 0) {
-        const feeCents = Math.round((booking.total_price || 0) * 0.5);
+      if (policy.feeCents > 0) {
+        const feeCents = policy.feeCents;
         const idempotencyKey = `customer-cancel-fee-${booking.id}-${feeCents}`;
         await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
         feeCaptured = feeCents;
@@ -112,7 +121,7 @@ export default async function handler(req, res) {
           paymentIntentId: booking.stripe_payment_intent_id,
           idempotencyKey,
           status: 'processed',
-          metadata: { reason: 'customer_cancel_fee', feeCaptured },
+          metadata: { reason: 'customer_cancel_fee', feeCaptured, tier: policy.tier, feePct: policy.feePct },
         });
       } else {
         const idempotencyKey = `customer-cancel-release-${booking.id}`;
@@ -124,7 +133,7 @@ export default async function handler(req, res) {
           paymentIntentId: booking.stripe_payment_intent_id,
           idempotencyKey,
           status: 'processed',
-          metadata: { reason: 'customer_cancel_release' },
+          metadata: { reason: 'customer_cancel_release', tier: policy.tier },
         });
       }
     } catch (e) {
@@ -135,11 +144,21 @@ export default async function handler(req, res) {
         bookingId: booking.id,
         paymentIntentId: booking.stripe_payment_intent_id,
         status: 'failed',
-        metadata: { paymentStatus: booking.payment_status, withinWindow },
+        metadata: { paymentStatus: booking.payment_status, tier: policy.tier },
         error: e?.message || 'Customer cancellation Stripe mutation failed',
       });
       return res.status(502).json({ error: 'We could not complete the payment portion of this cancellation. Your booking is unchanged. Please try again or contact support.' });
     }
+  }
+
+  // Pro trip cut: if a pro was committed (en route / no-show tier) and a fee was
+  // captured, the pro earns their normal split of the fee — recorded for the
+  // owner to pay out (launch is manual-payout mode).
+  if (feeCaptured > 0 && policy.proTripCut && booking.assembler_id) {
+    try {
+      const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
+      proTripCutCents = computeBookingSplit(feeCaptured, easerProf?.has_membership === true, { taxCents: 0 }).assemblerDueCents;
+    } catch (e) { console.error('pro trip-cut calc error:', e); }
   }
 
   const { error: updateErr } = await sb.from('bookings').update({
@@ -178,18 +197,24 @@ export default async function handler(req, res) {
     metadata: {
       feeCaptured,
       withinWindow,
+      tier: policy.tier,
+      feePct: policy.feePct,
+      proTripCutCents,
       reason: 'Cancelled by customer',
     },
   });
 
   // Email customer
   try {
+    const feeReason = policy.tier === 'imminent'
+      ? 'because the appointment was within 2 hours or a pro was already on the way'
+      : 'because this was within 24 hours of your appointment';
     const feeHtml = feeCaptured > 0
       ? `<p style="margin:0 0 16px;font-size:14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:12px 16px;color:#92400e">
-           A late-cancellation fee of <strong>$${(feeCaptured/100).toFixed(2)}</strong> (50% of total) was charged as this cancellation was within 24 hours of your appointment.
+           A cancellation fee of <strong>$${(feeCaptured/100).toFixed(2)}</strong> (${policy.feePct}% of the service subtotal — no tax) was charged ${feeReason}. The remainder of your hold has been released.
          </p>`
       : `<p style="margin:0 0 16px;font-size:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:12px 16px;color:#166534">
-           No charge — your card hold has been released.
+           No charge — your card hold has been released in full.
          </p>`;
 
     await sendEmail({
@@ -219,10 +244,11 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer Cancelled — ${booking.ref}`,
       html: `<p>Customer <strong>${esc(booking.customer_name)}</strong> cancelled booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>
-<p>Job date: ${esc(booking.date)} at ${esc(booking.time)}${feeCaptured > 0 ? ' — Cancellation fee of $' + (feeCaptured/100).toFixed(2) + ' charged.' : ' — No fee charged (>24hr notice).'}</p>`,
+<p>Job date: ${esc(booking.date)} at ${esc(booking.time)}${feeCaptured > 0 ? ' — Cancellation fee of $' + (feeCaptured/100).toFixed(2) + ' (' + policy.feePct + '% ' + policy.tier + ' tier) charged.' : ' — No fee charged (24h+ notice).'}</p>
+${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;color:#1e3a8a"><strong>Pro trip cut owed:</strong> $' + (proTripCutCents/100).toFixed(2) + ' — a pro was committed/en route. Record a manual payout.</p>' : ''}`,
     });
   } catch (e) { console.error('Owner cancel notify error:', e); }
 
   console.log(JSON.stringify({ audit: true, action: 'booking_cancel', actor: 'customer', customerId: user.id, bookingId: booking.id, ref: booking.ref, feeCaptured, withinWindow, timestamp: new Date().toISOString() }));
-  return res.status(200).json({ success: true, feeCaptured, withinWindow });
+  return res.status(200).json({ success: true, feeCaptured, withinWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents });
 }
