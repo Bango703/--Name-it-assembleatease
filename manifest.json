@@ -1,6 +1,6 @@
 ﻿{
   "name": "AssembleAtEase — Easer",
-  "short_name": "AE Easer",
+  "short_name": "Easer",
   "description": "Your AssembleAtEase job dashboard",
   "start_url": "/assembler/",
   "scope": "/assembler/",

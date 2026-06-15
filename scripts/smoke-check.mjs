@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
 const files = [
   'api/booking.js',
@@ -66,29 +66,111 @@ if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
   throw new Error('Favicon must use the logo mark, not plain AE text');
 }
 
-const benefitsSection = homepage.match(/<section class="[^"]*\bbenefits-section\b[^"]*"[^>]*id="why-us"[^>]*>([\s\S]*?)<\/section>/)?.[1];
-if (!benefitsSection) throw new Error('Homepage benefits section not found');
+const trustStrip = homepage.match(/<div class="trust-strip">([\s\S]*?)<\/div>\s*<\/div>/)?.[1];
+if (!trustStrip) throw new Error('Homepage mobile trust strip not found');
 
-const benefitLabels = [...benefitsSection.matchAll(/<div class="benefit-label">([^<]+)<\/div>/g)].map((match) => match[1]);
-if (benefitLabels.length % 2 !== 0) {
-  throw new Error(`Homepage benefits carousel must have matching duplicate sets; found ${benefitLabels.length} cards`);
+const trustItemCount = (trustStrip.match(/class="trust-item"/g) || []).length;
+if (trustItemCount !== 4) {
+  throw new Error(`Homepage mobile trust strip should use 4 even trust items; found ${trustItemCount}`);
 }
 
-const benefitSetSize = benefitLabels.length / 2;
-if (benefitSetSize < 6 || benefitSetSize % 2 !== 0) {
-  throw new Error(`Homepage benefits must use an even visible set of at least 6 cards; found ${benefitSetSize}`);
+if (!homepageGuides.includes('class="guides-scroll-dots"')) {
+  throw new Error('Homepage blog carousel must include mobile swipe cue dots');
 }
 
-const benefitFirstSet = benefitLabels.slice(0, benefitSetSize).join('|');
-const benefitSecondSet = benefitLabels.slice(benefitSetSize).join('|');
-if (benefitFirstSet !== benefitSecondSet) {
-  throw new Error('Homepage benefits duplicate set must match the first set for smooth mobile scrolling');
+const desktopServiceCardCount = (homepage.match(/class="svc5-card"/g) || []).length;
+if (desktopServiceCardCount < 6 || desktopServiceCardCount % 2 !== 0) {
+  throw new Error(`Homepage desktop services must use an even count of at least 6 cards; found ${desktopServiceCardCount}`);
+}
+
+if (!homepage.includes('href="/assembler/apply"')) {
+  throw new Error('Homepage must include Become an Easer entry point');
+}
+
+const bookingPage = readFileSync('book.html', 'utf8');
+const pricingPage = readFileSync('pricing.html', 'utf8');
+const sitemap = readFileSync('sitemap.xml', 'utf8');
+const robots = readFileSync('robots.txt', 'utf8');
+
+const serviceFromBlock = bookingPage.match(/var SVC_FROM = \{([\s\S]*?)\};/)?.[1] || '';
+const serviceStartPrices = Object.fromEntries(
+  [...serviceFromBlock.matchAll(/'([^']+)'\s*:\s*'From \$(\d+)/g)].map((match) => [match[1], Number(match[2])]),
+);
+if (Object.keys(serviceStartPrices).length !== 6) {
+  throw new Error(`Booking page should expose 6 service start prices; found ${Object.keys(serviceStartPrices).length}`);
+}
+
+const pricingTitleToService = {
+  'Furniture Assembly': 'Furniture Assembly',
+  'TV &amp; Mounting': 'Mounting & Hanging',
+  'Smart Home': 'Smart Home',
+  'Fitness Equipment': 'Fitness Equipment',
+  'Outdoor &amp; Playsets': 'Outdoor & Playsets',
+  'Office Assembly': 'Office Assembly',
+};
+const displayedPricingStarts = new Map();
+for (const match of pricingPage.matchAll(/<article class="price-card">([\s\S]*?)<\/article>/g)) {
+  const card = match[1];
+  const title = card.match(/<div class="price-title">([^<]+)<\/div>/)?.[1];
+  const price = Number(card.match(/<div class="price-from"><span>From<\/span><strong>\$(\d+)<\/strong><\/div>/)?.[1]);
+  if (title && price) displayedPricingStarts.set(pricingTitleToService[title] || title, price);
+}
+for (const [service, startPrice] of Object.entries(serviceStartPrices)) {
+  const displayedPrice = displayedPricingStarts.get(service);
+  if (displayedPrice !== startPrice) {
+    throw new Error(`Pricing page mismatch for ${service}: displayed ${displayedPrice}, booking starts at ${startPrice}`);
+  }
+}
+
+const pricingJsonBlocks = [...pricingPage.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((match) => JSON.parse(match[1]));
+const pricingWebPageSchema = pricingJsonBlocks.find((block) => block['@type'] === 'WebPage');
+if (!pricingWebPageSchema) throw new Error('Pricing page WebPage JSON-LD schema missing');
+for (const serviceSchema of pricingWebPageSchema.mainEntity || []) {
+  const serviceName =
+    serviceSchema.name === 'Outdoor and Playset Assembly'
+      ? 'Outdoor & Playsets'
+      : serviceSchema.name === 'Smart Home Installation'
+        ? 'Smart Home'
+        : serviceSchema.name;
+  if (!serviceStartPrices[serviceName]) continue;
+  const schemaPrice = Number(serviceSchema.offers?.price);
+  if (schemaPrice !== serviceStartPrices[serviceName]) {
+    throw new Error(`Pricing JSON-LD mismatch for ${serviceName}: schema ${schemaPrice}, booking starts at ${serviceStartPrices[serviceName]}`);
+  }
+}
+if (!pricingPage.includes('"priceRange":"$$"')) {
+  throw new Error('Pricing LocalBusiness priceRange should be $$');
+}
+
+const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/www\.assembleatease\.com\/(.*?)<\/loc>/g)].map((match) => match[1] || '');
+const routeToFile = (route) => {
+  if (route === '') return 'index.html';
+  const candidates = [
+    route.endsWith('.html') ? route : `${route}.html`,
+    `${route}/index.html`,
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) || candidates[0];
+};
+const sitemapFiles = sitemapUrls.map(routeToFile);
+for (let index = 0; index < sitemapUrls.length; index += 1) {
+  if (!existsSync(sitemapFiles[index])) {
+    throw new Error(`Sitemap URL missing local file: /${sitemapUrls[index]} -> ${sitemapFiles[index]}`);
+  }
+  const page = readFileSync(sitemapFiles[index], 'utf8');
+  if (/name="robots"[^>]+noindex/i.test(page)) {
+    throw new Error(`Sitemap should not submit noindex page: ${sitemapFiles[index]}`);
+  }
+}
+if (!robots.includes('Allow: /assembler/apply') || !robots.includes('Disallow: /assembler/')) {
+  throw new Error('robots.txt should allow /assembler/apply while blocking private /assembler/ routes');
 }
 
 const publicHtmlFiles = [
   ...readdirSync('.').filter((name) => name.endsWith('.html')),
   ...readdirSync('blog').filter((name) => name.endsWith('.html')).map((name) => `blog/${name}`),
+  ...sitemapFiles,
 ];
+const uniquePublicHtmlFiles = [...new Set(publicHtmlFiles)];
 
 const requiredPublicFooterLinks = [
   'href="tel:+17372906129"',
@@ -106,8 +188,29 @@ const requiredPublicFooterLinks = [
   'href="/terms"',
 ];
 
-for (const file of publicHtmlFiles) {
+for (const file of uniquePublicHtmlFiles) {
   const html = readFileSync(file, 'utf8');
+  if (!html.includes('<meta name="description"')) {
+    throw new Error(`Public page missing meta description: ${file}`);
+  }
+  if (!html.includes('<link rel="canonical"')) {
+    throw new Error(`Public page missing canonical: ${file}`);
+  }
+  if (!html.includes('<meta property="og:title"')) {
+    throw new Error(`Public page missing og:title: ${file}`);
+  }
+  if (/visit minimum/i.test(html)) {
+    throw new Error(`Public page still mentions visit minimum: ${file}`);
+  }
+  if (/priceRange"\s*:\s*"104"/.test(html)) {
+    throw new Error(`Public page has malformed priceRange 104: ${file}`);
+  }
+  if (/<text\b/i.test(html) || />\s*AE\s*</i.test(html)) {
+    throw new Error(`Public page should not use plain AE text mark: ${file}`);
+  }
+  if (html.includes('mobileNav') && !html.includes('href="/assembler/apply"')) {
+    throw new Error(`Mobile nav missing Become an Easer: ${file}`);
+  }
   if (!html.includes('<footer class="footer">')) continue;
   const footer = html.match(/<footer class="footer">([\s\S]*?)<\/footer>/)?.[0] || '';
   if (!footer) throw new Error(`Public footer missing in ${file}`);

@@ -252,7 +252,7 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Transparent Pricing</div>
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">{h1.replace(' in Austin, TX','')} Pricing in Austin</h2>
-      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront item pricing. Service-call fees and visit minimums are shown before checkout.</p>
+      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront item pricing. Service-call fee and taxes are shown before checkout.</p>
     </div>
     <div class="pricing-grid">{price_cards_html}</div>
     <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:3rem 2rem;text-align:center">

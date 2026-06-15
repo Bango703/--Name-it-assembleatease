@@ -3,13 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <title>Apply to Become an Easer | AssembleAtEase</title>
-  <meta name="robots" content="noindex, nofollow" />
+  <meta name="robots" content="index, follow" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Apply to join AssembleAtEase as an Easer in Austin, TX. Approved Easers can receive local furniture assembly, mounting, smart home, fitness, outdoor, and office assembly jobs." />
+  <link rel="canonical" href="https://www.assembleatease.com/assembler/apply" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Apply to Become an Easer | AssembleAtEase" />
+  <meta property="og:description" content="Apply to receive local assembly, mounting, smart home, fitness, outdoor, and office jobs after approval." />
+  <meta property="og:url" content="https://www.assembleatease.com/assembler/apply" />
+  <meta property="og:site_name" content="AssembleAtEase" />
+  <meta property="og:image" content="https://www.assembleatease.com/images/easer-apply-crew.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Apply to Become an Easer | AssembleAtEase" />
+  <meta name="twitter:description" content="Apply to receive local home-service jobs after approval." />
+  <meta name="twitter:image" content="https://www.assembleatease.com/images/easer-apply-crew.jpg" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="AE Easer" />
+  <meta name="apple-mobile-web-app-title" content="Easer App" />
   <meta name="theme-color" content="#00BFFF" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -217,12 +228,14 @@
       width: 38px;
       height: 38px;
       border-radius: 10px;
-      background: #e6f8fd;
-      color: var(--apply-cyan-dark);
+      background: #fff;
       display: grid;
       place-items: center;
-      font-weight: 900;
+      overflow: hidden;
+      border: 1px solid rgba(0,191,255,0.18);
+      padding: 3px;
     }
+    .photo-note-icon img { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 7px; }
     .photo-note strong { display: block; font-size: 0.92rem; }
     .photo-note span { display: block; font-size: 0.78rem; color: var(--apply-muted); margin-top: 2px; }
 
@@ -813,7 +826,7 @@
     <figure class="hero-photo" aria-label="Two home-service professionals preparing for local jobs">
       <img src="../images/easer-apply-crew.jpg" alt="Two home service professionals preparing tools beside a service vehicle before local appointments" width="1536" height="768" fetchpriority="high" />
       <figcaption class="photo-note">
-        <div class="photo-note-icon">AE</div>
+        <div class="photo-note-icon"><img src="../images/logo.jpg" alt="" /></div>
         <div>
           <strong>Built for careful pros</strong>
           <span>Approved Easers get job details, customer info, and dispatch updates in the app.</span>

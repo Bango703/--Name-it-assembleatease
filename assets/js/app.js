@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var steps = kind === 'ios'
       ? '<li style="margin-bottom:10px">Tap the <strong>Share</strong> button ' + shareIcon + ' in Safari\'s toolbar.</li>'
         + '<li style="margin-bottom:10px">Scroll down and tap <strong>Add to Home Screen</strong> ' + plusIcon + '.</li>'
-        + '<li>Tap <strong>Add</strong>, then open <strong>AE Easer</strong> from your home screen.</li>'
+        + '<li>Tap <strong>Add</strong>, then open <strong>Easer App</strong> from your home screen.</li>'
       : '<li style="margin-bottom:10px">Open your browser menu (<strong>&#8942;</strong> or <strong>&#8230;</strong>).</li>'
         + '<li style="margin-bottom:10px">Choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>'
         + '<li>Confirm, then launch it from your home screen.</li>';
