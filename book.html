@@ -23,6 +23,9 @@
   <meta name="twitter:title" content="Book a Service &mdash; AssembleAtEase" />
   <meta name="twitter:description" content="Choose your service, see item pricing and required fees, then reserve online with secure checkout." />
   <meta name="twitter:image" content="https://www.assembleatease.com/images/booking-service-furniture-assembly.jpg" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="icon" type="image/png" href="/images/logo.png" />
+  <link rel="apple-touch-icon" href="/images/logo.png" />
 
   <link rel="stylesheet" href="/assets/css/style.css" />
 
@@ -1310,7 +1313,7 @@
         <!-- â”€â”€ SCREEN A: Service Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <div id="svc-screen">
 
-        <div class="step-kicker">Austin-first service</div>
+        <div class="step-kicker">Clear pricing first</div>
 
         <div class="step-heading">What do you need help with</div>
 
@@ -1629,7 +1632,8 @@
 
                 <label class="form-label" for="s3-city">City <span style="color:var(--teal)">*</span></label>
 
-                <input type="text" class="form-input" id="s3-city" name="address-level2" placeholder="Austin" value="Austin" autocomplete="address-level2" />
+                <input type="text" class="form-input" id="s3-city" name="address-level2" placeholder="City" autocomplete="address-level2" />
+                <div class="field-error" id="s3-city-err">Required.</div>
 
               </div>
 
@@ -1976,7 +1980,7 @@
 
       <div class="sidebar-card sidebar-highlight">
 
-        <div class="sidebar-title">Austin same-day slots</div>
+        <div class="sidebar-title">Flexible appointment windows</div>
 
         <p style="font-size:0.95rem;line-height:1.6;margin:0">Tell us what is in the room. We price the common pieces now and review anything unusual before confirming.</p>
 
@@ -2014,12 +2018,12 @@
 
   <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);line-height:1.8">
 
-    &copy; <span id="book-year"></span> AssembleAtEase • Austin, TX • 
+    &copy; <span id="book-year"></span> AssembleAtEase • 
 
     <a href="tel:+17372906129" style="color:rgba(255,255,255,0.6);text-decoration:none">(737) 290-6129</a> •
 
     <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.6);text-decoration:none">service@assembleatease.com</a><br>
-    <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none">Follow Austin project updates</a><br>
+    <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none">Follow our project updates</a><br>
 
     <a href="/terms" style="color:rgba(255,255,255,0.45);text-decoration:none" target="_blank">Terms &amp; Conditions</a> &nbsp;•&nbsp;
 
@@ -2326,7 +2330,12 @@ function checkServiceZip(val) {
 
     errEl.style.display = 'none';
 
-    if (inEl) inEl.style.borderColor = '#22c55e'; if (window.AAELocation) { window.AAELocation.set(zip); }
+    if (inEl) inEl.style.borderColor = '#22c55e';
+    if (window.AAELocation) {
+      var resolved = window.AAELocation.set(zip);
+      var cityEl = document.getElementById('s3-city');
+      if (resolved && cityEl && !cityEl.value.trim()) cityEl.value = resolved;
+    }
 
   } else if (valid && !active) {
 
@@ -3161,9 +3170,17 @@ function goToStep4Contact() {
 
   }
 
+  var cityEl = document.getElementById('s3-city');
+  var resolvedCity = city;
+  if (!resolvedCity && zipInArea && window.AAELocation) {
+    resolvedCity = window.AAELocation.set(zip) || window.AAELocation.get() || '';
+    if (resolvedCity && cityEl) cityEl.value = resolvedCity;
+  }
+  if (!resolvedCity) { fieldErr('s3-city', 's3-city-err', true); ok = false; } else fieldErr('s3-city', 's3-city-err', false);
+
   if (!ok) return;
 
-  BOOK.city = city || 'Austin';
+  BOOK.city = resolvedCity;
 
   BOOK.state = (state || 'TX').toUpperCase();
 
@@ -4635,4 +4652,5 @@ function showConfirmation(ref, isQuote) {
 </body>
 
 </html>
+
 

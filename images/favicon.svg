@@ -1,15 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AssembleAtEase logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AssembleAtEase brand mark">
   <defs>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0d1117" flood-opacity="0.22"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f4fbfe"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00bfff"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.16"/>
     </filter>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#f8fbfc"/>
-  <circle cx="32" cy="32" r="27" fill="#ffffff" filter="url(#softShadow)"/>
-  <g fill="none" stroke="#12c6ea" stroke-linecap="square" stroke-linejoin="miter">
-    <path d="M10 48 22 16 34 48" stroke-width="5.8"/>
-    <path d="M21 48 33 16 45 48" stroke-width="5.8"/>
-    <path d="M27 37h14" stroke-width="5.8"/>
-    <path d="M43 17h12M43 32h11M43 47h12M43 17v30" stroke-width="5.4"/>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect x="20" y="20" width="472" height="472" rx="76" fill="none" stroke="#b9ebf6" stroke-width="10"/>
+  <circle cx="396" cy="118" r="54" fill="#dff7fc"/>
+  <circle cx="396" cy="118" r="24" fill="url(#accent)" opacity="0.9"/>
+
+  <g filter="url(#cardShadow)">
+    <rect x="88" y="80" width="336" height="352" rx="52" fill="#ffffff"/>
   </g>
+
+  <g transform="translate(128 116)">
+    <path d="M58 90 128 54l70 36v92l-70 36-70-36Z" fill="#ecfbff" stroke="#0f172a" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M58 90 128 126l70-36" fill="none" stroke="#0f172a" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M128 126v92" fill="none" stroke="#0f172a" stroke-width="14" stroke-linecap="round"/>
+    <path d="m102 84 22 22 38-44" fill="none" stroke="url(#accent)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <rect x="138" y="348" width="236" height="8" rx="4" fill="#b9ebf6"/>
+  <text x="256" y="396" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" letter-spacing="5" fill="#0f172a">ASSEMBLE</text>
+  <text x="256" y="438" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="800" letter-spacing="3" fill="#00aeea">AT EASE</text>
 </svg>

@@ -62,8 +62,8 @@ if (!displayedReviewCount || displayedReviewCount !== customerReviewCount) {
 }
 
 const faviconSvg = readFileSync('images/favicon.svg', 'utf8');
-if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
-  throw new Error('Favicon must use the logo mark, not plain AE text');
+if (/>\s*AE\s*</i.test(faviconSvg) || !/ASSEMBLE/i.test(faviconSvg) || !/AT EASE/i.test(faviconSvg)) {
+  throw new Error('Favicon must use the full AssembleAtEase logo mark, not the old AE monogram');
 }
 
 const trustStrip = homepage.match(/<div class="trust-strip">([\s\S]*?)<\/div>\s*<\/div>/)?.[1];
@@ -205,8 +205,8 @@ for (const file of uniquePublicHtmlFiles) {
   if (/priceRange"\s*:\s*"104"/.test(html)) {
     throw new Error(`Public page has malformed priceRange 104: ${file}`);
   }
-  if (/<text\b/i.test(html) || />\s*AE\s*</i.test(html)) {
-    throw new Error(`Public page should not use plain AE text mark: ${file}`);
+  if (/>\s*AE\s*</i.test(html)) {
+    throw new Error(`Public page should not use the old AE monogram text mark: ${file}`);
   }
   if (html.includes('mobileNav') && !html.includes('href="/assembler/apply"')) {
     throw new Error(`Mobile nav missing Become an Easer: ${file}`);
