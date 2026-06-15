@@ -449,7 +449,7 @@ function buildBlogPage({ title, canonicalUrl, today, readTime, body, image }) {
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${escaped}"/>
 <meta name="twitter:image" content="${SITE}${image}"/>
-<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/png" href="/images/logo.png"/><link rel="apple-touch-icon" href="/images/logo.png"/>
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
