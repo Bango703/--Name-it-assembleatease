@@ -4623,9 +4623,9 @@ function intelQuick(msg) {
     }
 
     // ALWAYS available
-    actionBtns += '<button class="btn" onclick="sendResetPassword(\'' + esc(a.email) + '\')" style="font-size:0.75rem">Reset Password</button>';
+    actionBtns += '<button class="btn" onclick="sendResetPassword(\'' + esc(a.email) + '\')">Reset Password</button>';
     if (a.status !== 'rejected') {
-      actionBtns += ' <button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')" style="margin-left:auto;font-size:0.78rem">Remove Easer</button>';
+      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')">Remove Easer</button>';
     }
 
     // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
