@@ -4722,6 +4722,18 @@ function intelQuick(msg) {
 
   // Universal Easer action handler
   window.asmAction = async function(id, action, tier) {
+    // Confirmation guard — these fire immediately and have real consequences
+    // (activation, emails, tier changes). Server still validates state too.
+    var tierLabel = tier ? (tier.charAt(0).toUpperCase() + tier.slice(1)) : '';
+    var confirmMsgs = {
+      approve: 'Approve this Easer? They will be activated immediately and emailed a welcome message with a password-setup link.',
+      promote: 'Promote this Easer to ' + tierLabel + '? They will be notified by email.',
+      demote: 'Demote this Easer to ' + tierLabel + '?',
+      mark_id_verified: 'Mark this Easer’s identity as verified? This allows them to be approved.',
+      suspend: 'Suspend this Easer? They will lose dispatch eligibility immediately.',
+      reinstate: 'Reinstate this Easer?'
+    };
+    if (confirmMsgs[action] && !window.confirm(confirmMsgs[action])) return;
     document.getElementById('asm-detail-modal').classList.remove('open');
     var labels = { approve:'Approving…', reject:'Rejecting…', suspend:'Suspending…', reinstate:'Reinstating…', promote:'Promoting…', demote:'Demoting…', mark_id_verified:'Verifying…' };
     var body = { assemblerId: id, action };
