@@ -1114,16 +1114,32 @@
       window.location.href='/auth/login.html';
     });
 
+    function deriveEffectiveEaserStatus(profile){
+      var tier=String(profile&&profile.tier||'').trim().toLowerCase();
+      if(tier==='verified') tier='professional';
+      if(!tier) tier='';
+      var status=String(profile&&profile.status||'').trim().toLowerCase();
+      var appStatus=String(profile&&profile.application_status||'').trim().toLowerCase();
+      if(status==='rejected'||appStatus==='rejected'||tier==='rejected') return 'rejected';
+      if(status==='suspended'||tier==='suspended') return 'suspended';
+      if(status==='pending'||appStatus==='pending') return 'pending';
+      if(status==='active') return 'active';
+      if(['starter','professional','elite'].includes(tier)) return 'active';
+      return 'pending';
+    }
+
+    var effectiveStatus=deriveEffectiveEaserStatus(profile);
+
     // Status banners
     var tsBanner=document.getElementById('tier-status-banner');
-    if(profile.status==='pending'){
+    if(effectiveStatus==='pending'){
       tsBanner.classList.remove('hidden');
       document.getElementById('tier-status-title').textContent='Your application is under review';
       document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
     }
 
     // Onboarding checklist — show for active Easers until all dispatch requirements are met
-    if(profile.status==='active'){
+    if(effectiveStatus==='active'){
       var onbSteps=[
         {
           key:'identity',
@@ -1206,7 +1222,7 @@
     }
 
     // Verification gate
-    if(profile.status==='pending'||profile.status==='suspended'||profile.identity_verified!==true){
+    if(effectiveStatus==='pending'||effectiveStatus==='suspended'||profile.identity_verified!==true){
       document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a){
         a.style.opacity='0.4';a.style.pointerEvents='none';
       });

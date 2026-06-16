@@ -595,7 +595,7 @@ ${body}
     </div>
   </div>
   <div class="footer-bottom">
-    <div class="footer-copy">&copy; ${new Date().getFullYear()} AssembleAtEase. All rights reserved.</div>
+    <div class="footer-copy">&copy; ${new Date().getFullYear()} AssembleAtEase LLC. All rights reserved.</div>
     <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>

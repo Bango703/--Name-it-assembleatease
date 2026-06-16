@@ -2866,6 +2866,7 @@ function intelQuick(msg) {
     if (pendingAction.type === 'reject-assembler') {
       $reasonModal.classList.remove('open');
       var aIdRej = pendingAction.assemblerId;
+      var reopenRejectDetail = !!pendingAction.reopenDetail;
       pendingAction = null;
       try {
         var body = { assemblerId: aIdRej, action: 'reject' };
@@ -2874,7 +2875,7 @@ function intelQuick(msg) {
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
         toast('Easer rejected and notified', 'success');
-        loadAssemblerList();
+        await reloadAssemblersAndMaybeRefreshDetail(aIdRej, reopenRejectDetail);
       } catch { toast('Failed to reject Easer', 'error'); }
       return;
     }
@@ -2882,6 +2883,7 @@ function intelQuick(msg) {
     if (pendingAction.type === 'suspend-assembler') {
       var suspNotes = reason;
       var aIdSus = pendingAction.assemblerId;
+      var reopenSuspendDetail = !!pendingAction.reopenDetail;
       $reasonModal.classList.remove('open');
       $reasonText.style.display = '';
       pendingAction = null;
@@ -2896,13 +2898,14 @@ function intelQuick(msg) {
           return;
         }
         toast('Easer suspended (tier preserved for reinstatement)', 'success');
-        loadAssemblerList(); loadAssemblers();
+        await reloadAssemblersAndMaybeRefreshDetail(aIdSus, reopenSuspendDetail);
       } catch { toast('Action failed — check connection', 'error'); }
       return;
     }
 
     if (pendingAction.type === 'reinstate-assembler') {
       var aIdRei = pendingAction.assemblerId;
+      var reopenReinstateDetail = !!pendingAction.reopenDetail;
       $reasonModal.classList.remove('open');
       $reasonText.style.display = '';
       pendingAction = null;
@@ -2911,7 +2914,7 @@ function intelQuick(msg) {
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
         toast('Easer reinstated — dispatch eligibility restored', 'success');
-        loadAssemblerList(); loadAssemblers();
+        await reloadAssemblersAndMaybeRefreshDetail(aIdRei, reopenReinstateDetail);
       } catch { toast('Action failed — check connection', 'error'); }
       return;
     }
@@ -2919,6 +2922,7 @@ function intelQuick(msg) {
     if (pendingAction.type === 'delete-assembler') {
       var aIdDel = pendingAction.assemblerId;
       var delName = pendingAction.name;
+      var reopenDeleteDetail = !!pendingAction.reopenDetail;
       $reasonModal.classList.remove('open');
       $reasonText.style.display = '';
       pendingAction = null;
@@ -2931,7 +2935,7 @@ function intelQuick(msg) {
           return;
         }
         toast(delName + ' removed', 'success');
-        loadAssemblerList(); loadAssemblers();
+        await reloadAssemblersAndMaybeRefreshDetail(aIdDel, reopenDeleteDetail);
       } catch { toast('Failed to remove Easer', 'error'); }
       return;
     }
@@ -4319,11 +4323,43 @@ function intelQuick(msg) {
   var allAssemblerProfiles = [];
   var currentTierFilter = 'all';
   var asmConnectRequired = false;
+  var currentAssemblerDetailId = null;
 
   // ─── EASER MANAGEMENT — CLEAN STATUS/TIER/ID ARCHITECTURE ──────────────────
   // status: pending | active | suspended | rejected  (platform access)
   // tier:   starter | professional | elite           (quality/priority)
   // id_verification_status: pending | verified | failed
+
+  function normalizeAssemblerRecord(a) {
+    if (!a || typeof a !== 'object') return a;
+    var tier = String(a.tier || '').trim().toLowerCase();
+    if (tier === 'verified') tier = 'professional';
+    if (!tier) tier = null;
+    var status = String(a.status || '').trim().toLowerCase();
+    var applicationStatus = String(a.application_status || '').trim().toLowerCase();
+
+    if (status === 'rejected' || applicationStatus === 'rejected' || tier === 'rejected') status = 'rejected';
+    else if (status === 'suspended' || tier === 'suspended') status = 'suspended';
+    else if (status === 'pending' || applicationStatus === 'pending') status = 'pending';
+    else if (status === 'active') status = 'active';
+    else if (['starter', 'professional', 'elite'].includes(tier)) status = 'active';
+    else if (tier === 'pending' || !tier) status = 'pending';
+    else status = status || 'pending';
+
+    return Object.assign({}, a, { tier: tier, status: status });
+  }
+
+  async function reloadAssemblersAndMaybeRefreshDetail(assemblerId, reopenDetail) {
+    await Promise.all([loadAssemblerList(), loadAssemblers()]);
+    if (!reopenDetail) return;
+    var updated = allAssemblerProfiles.find(function(x) { return x.id === assemblerId; });
+    if (updated) {
+      showAssemblerDetail(updated);
+      return;
+    }
+    currentAssemblerDetailId = null;
+    document.getElementById('asm-detail-modal').classList.remove('open');
+  }
 
   async function loadAssemblerList() {
     document.getElementById('asm-tbody').innerHTML = '<tr><td colspan="8" style="padding:2rem;text-align:center;color:var(--muted)">Loading Easers...</td></tr>';
@@ -4331,7 +4367,7 @@ function intelQuick(msg) {
       var r = await fetch('/api/assembler/list', { headers: headers() });
       if (!r.ok) throw new Error('Failed');
       var data = await r.json();
-      allAssemblerProfiles = data.assemblers || [];
+      allAssemblerProfiles = (data.assemblers || []).map(normalizeAssemblerRecord);
       var stats = data.stats || {};
       asmConnectRequired = !!stats.connectRequired;
       document.getElementById('asm-total').textContent = stats.total || 0;
@@ -4589,6 +4625,8 @@ function intelQuick(msg) {
   }
 
   function showAssemblerDetail(a) {
+    a = normalizeAssemblerRecord(a);
+    currentAssemblerDetailId = a.id;
     document.getElementById('asm-detail-name').textContent = a.full_name;
 
     // Status is now the authority — build buttons based on status + tier cleanly
@@ -4760,7 +4798,7 @@ function intelQuick(msg) {
         mark_id_verified: 'ID marked verified — you can now approve',
       };
       toast(successMsgs[action] || 'Updated', 'success');
-      loadAssemblerList(); loadAssemblers();
+      await reloadAssemblersAndMaybeRefreshDetail(id, true);
     } catch { toast('Action failed — check connection', 'error'); }
   };
 
@@ -4768,7 +4806,7 @@ function intelQuick(msg) {
 
   window.rejectFromDetail = function(id) {
     document.getElementById('asm-detail-modal').classList.remove('open');
-    pendingAction = { type:'reject-assembler', assemblerId:id };
+    pendingAction = { type:'reject-assembler', assemblerId:id, reopenDetail:true };
     document.getElementById('reason-modal-title').textContent = 'Reject Application';
     document.getElementById('reason-modal-desc').textContent = 'Optionally explain why. The Easer will receive an email.';
     document.getElementById('reason-confirm').textContent = 'Reject Application';
@@ -4779,7 +4817,7 @@ function intelQuick(msg) {
 
   window.suspendFromDetail = function(id, name) {
     document.getElementById('asm-detail-modal').classList.remove('open');
-    pendingAction = { type: 'suspend-assembler', assemblerId: id };
+    pendingAction = { type: 'suspend-assembler', assemblerId: id, reopenDetail:true };
     document.getElementById('reason-modal-title').textContent = 'Suspend Easer — ' + name;
     document.getElementById('reason-modal-desc').textContent = name + ' will lose dispatch eligibility immediately. Reassign any active jobs before confirming. This note is internal only.';
     document.getElementById('reason-confirm').textContent = 'Suspend Easer';
@@ -4792,7 +4830,7 @@ function intelQuick(msg) {
 
   window.reinstateFromDetail = function(id, name, prevTier) {
     document.getElementById('asm-detail-modal').classList.remove('open');
-    pendingAction = { type: 'reinstate-assembler', assemblerId: id };
+    pendingAction = { type: 'reinstate-assembler', assemblerId: id, reopenDetail:true };
     document.getElementById('reason-modal-title').textContent = 'Reinstate Easer — ' + name;
     document.getElementById('reason-modal-desc').textContent = name + ' will be reinstated as a ' + prevTier + ' Easer and will receive a notification email.';
     document.getElementById('reason-confirm').textContent = 'Reinstate';
@@ -4815,7 +4853,7 @@ function intelQuick(msg) {
 
   window.deleteEaser = function(id, name) {
     document.getElementById('asm-detail-modal').classList.remove('open');
-    pendingAction = { type: 'delete-assembler', assemblerId: id, name: name };
+    pendingAction = { type: 'delete-assembler', assemblerId: id, name: name, reopenDetail:false };
     document.getElementById('reason-modal-title').textContent = 'Remove Easer — ' + name;
     document.getElementById('reason-modal-desc').textContent = 'This permanently removes ' + name + '\'s account. Completed job history is preserved but they will lose all access. This cannot be undone.';
     document.getElementById('reason-confirm').textContent = 'Permanently Remove';
@@ -4869,8 +4907,16 @@ function intelQuick(msg) {
   // ─── Owner Notes ───
   // renderOwnerNotes removed — replaced by Notes tab (api/booking/notes.js + loadNotes())
 
-  document.getElementById('asm-detail-close').addEventListener('click', function() { document.getElementById('asm-detail-modal').classList.remove('open'); });
-  document.getElementById('asm-detail-modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+  document.getElementById('asm-detail-close').addEventListener('click', function() {
+    currentAssemblerDetailId = null;
+    document.getElementById('asm-detail-modal').classList.remove('open');
+  });
+  document.getElementById('asm-detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      currentAssemblerDetailId = null;
+      this.classList.remove('open');
+    }
+  });
 
   // ─── Add Easer (Fee Waived) ───
   document.getElementById('check-phones-btn').addEventListener('click', async function() {
