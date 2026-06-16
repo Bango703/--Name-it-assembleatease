@@ -43,15 +43,24 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 /* Content */
 .privacy-section{padding:4rem 2rem}
 .privacy-inner{max-width:800px;margin:0 auto}
-.privacy-inner h2{font-family:var(--font-display);font-size:1.5rem;color:var(--ink);margin:2.5rem 0 0.75rem}
+.privacy-inner h2{font-family:var(--font-display);font-size:1.5rem;color:var(--ink);margin:2.75rem 0 0.75rem;scroll-margin-top:72px}
 .privacy-inner h2:first-child{margin-top:0}
+.privacy-inner h3{font-family:var(--font-body);font-size:1.05rem;font-weight:600;color:var(--ink-soft);margin:1.5rem 0 0.5rem}
 .privacy-inner p{font-size:0.95rem;color:var(--muted);line-height:1.85;margin-bottom:1rem}
 .privacy-inner ul{margin:0 0 1rem 1.5rem;color:var(--muted);font-size:0.95rem;line-height:1.85}
 .privacy-inner ul li{margin-bottom:0.35rem}
 .privacy-inner a{color:var(--cyan-dark);text-decoration:underline}
 .privacy-inner a:hover{color:var(--cyan)}
 .privacy-inner strong{color:var(--ink-soft)}
-.privacy-updated{font-size:0.82rem;color:var(--muted);margin-bottom:2rem;font-style:italic}
+.privacy-updated{font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;font-style:italic}
+.privacy-intro{font-size:0.95rem;color:var(--muted);line-height:1.85;margin-bottom:2rem}
+.legal-toc{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.75rem;margin-bottom:2.75rem}
+.legal-toc-title{font-family:var(--font-body);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--muted);margin-bottom:0.9rem}
+.legal-toc ol{margin:0;padding-left:1.3rem;columns:2;column-gap:2.5rem;font-size:0.9rem;line-height:1.65}
+.legal-toc li{margin-bottom:0.32rem;break-inside:avoid}
+.legal-toc a{color:var(--ink-soft);text-decoration:none}
+.legal-toc a:hover{color:var(--cyan-dark);text-decoration:underline}
+@media(max-width:640px){.legal-toc ol{columns:1}}
 /* Btn */
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
 .btn-cyan{background:var(--cyan);color:#fff}
@@ -113,14 +122,34 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
 </section>
 
-<section class="privacy-section">
+<section class="privacy-section" id="main-content">
   <div class="privacy-inner">
-    <p class="privacy-updated">Last updated: April 19, 2026</p>
+    <p class="privacy-updated">Last updated: June 16, 2026</p>
+    <p class="privacy-intro">This Privacy Policy explains what personal information AssembleAtEase LLC collects, how we use and share it, and the choices and rights you have. It applies to our website, booking platform, and customer and assembler portals. By using the platform, you agree to the practices described here.</p>
 
-    <h2>1. Introduction</h2>
-    <p>AssembleAtEase LLC ("we," "us," or "our") operates <a href="https://www.assembleatease.com">www.assembleatease.com</a> and provides furniture assembly and handyman marketplace services in Austin, Texas. This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you visit our website, create an account, or book services through our platform.</p>
+    <nav class="legal-toc" aria-label="Table of contents">
+      <div class="legal-toc-title">Contents</div>
+      <ol>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#info-we-collect">Information We Collect</a></li>
+        <li><a href="#how-we-use">How We Use Your Information</a></li>
+        <li><a href="#how-we-share">How We Share Your Information</a></li>
+        <li><a href="#security">Data Security</a></li>
+        <li><a href="#cookies">Cookies &amp; Tracking</a></li>
+        <li><a href="#retention">Data Retention</a></li>
+        <li><a href="#your-rights">Your Privacy Rights</a></li>
+        <li><a href="#ccpa">California Residents &mdash; CCPA</a></li>
+        <li><a href="#children">Children's Privacy</a></li>
+        <li><a href="#third-party-links">Third-Party Links</a></li>
+        <li><a href="#changes">Changes to This Policy</a></li>
+        <li><a href="#contact">Contact Us</a></li>
+      </ol>
+    </nav>
 
-    <h2>2. Information We Collect</h2>
+    <h2 id="introduction">1. Introduction</h2>
+    <p>AssembleAtEase LLC ("we," "us," or "our") operates <a href="https://www.assembleatease.com">www.assembleatease.com</a> and provides furniture assembly and home setup marketplace services in Austin, Texas. This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you visit our website, create an account, or book services through our platform.</p>
+
+    <h2 id="info-we-collect">2. Information We Collect</h2>
     <p><strong>From Customers:</strong></p>
     <ul>
       <li>Name, email address, phone number, and service address provided when booking</li>
@@ -144,7 +173,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li>Cookies and local storage (see Section 6 below)</li>
     </ul>
 
-    <h2>3. How We Use Your Information</h2>
+    <h2 id="how-we-use">3. How We Use Your Information</h2>
     <ul>
       <li>To process bookings, manage payments, and deliver purchased services</li>
       <li>To verify assembler identity before platform approval</li>
@@ -155,7 +184,9 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li>To comply with legal obligations, prevent fraud, and enforce our Terms of Service</li>
     </ul>
 
-    <h2>4. Third-Party Service Providers</h2>
+    <h2 id="how-we-share">4. How We Share Your Information</h2>
+    <p>We do not sell your personal information. We share it only as described below.</p>
+    <h3>Service Providers</h3>
     <p>We share data with the following third-party providers that power our platform. Each provider's use of your data is governed by their own privacy policy:</p>
     <ul>
       <li><strong>Stripe, Inc.</strong> &mdash; Payment processing, card-on-file storage, identity verification, and Stripe Connect payouts when enabled. Stripe stores payment data on PCI-DSS Level 1 certified infrastructure. <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a></li>
@@ -164,23 +195,28 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><strong>Resend</strong> &mdash; Transactional email delivery. Booking confirmations, receipts, and status update emails are delivered via Resend. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend Privacy Policy</a></li>
       <li><strong>Google Analytics (GA4)</strong> &mdash; Website analytics. We use Google Analytics 4 to understand how visitors interact with our site. GA4 is loaded only after you accept cookies (see Section 6). Data may include anonymized IP address, session duration, and pages visited. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
     </ul>
-    <p>We also share limited data with assigned assemblers (your first name, service address, and appointment details) so they can complete your booking. We do not sell your personal information to any third party for advertising purposes.</p>
+    <h3>Assigned Assemblers</h3>
+    <p>We share limited data with assigned assemblers (your first name, service address, and appointment details) so they can complete your booking. We do not sell your personal information to any third party for advertising purposes.</p>
+    <h3>Legal &amp; Safety Disclosures</h3>
+    <p>We may disclose information when we believe in good faith it is necessary to comply with the law, a subpoena, or a government request; to enforce our Terms; to detect, prevent, or address fraud or security issues; or to protect the rights, property, or safety of AssembleAtEase, our users, or the public.</p>
+    <h3>Business Transfers</h3>
+    <p>If AssembleAtEase is involved in a merger, acquisition, financing, reorganization, or sale of assets, your information may be transferred as part of that transaction. We will notify you of any change in ownership or use of your personal information, and of any choices you may have.</p>
 
-    <h2>5. Data Security</h2>
+    <h2 id="security">5. Data Security</h2>
     <p>We implement industry-standard security measures including HTTPS encryption in transit, row-level security in Supabase, Stripe's PCI-compliant card vault, and JWT-based authentication for portal access. However, no system is 100% secure and we cannot guarantee absolute security of your data.</p>
 
-    <h2>6. Cookies &amp; Tracking</h2>
+    <h2 id="cookies">6. Cookies &amp; Tracking</h2>
     <p>We use cookies and browser local storage for:</p>
     <ul>
       <li><strong>Essential cookies:</strong> Session tokens and authentication state (always active)</li>
       <li><strong>Analytics cookies:</strong> Google Analytics 4 &mdash; loaded only after you click "Accept" on our cookie banner. If you decline, GA4 is not loaded and no analytics data is collected for your session.</li>
     </ul>
-    <p>You can withdraw consent at any time by clearing your browser's local storage or adjusting settings in your browser.</p>
+    <p>You can withdraw consent at any time by clearing your browser's local storage or adjusting settings in your browser. Where supported, we honor browser-based opt-out signals such as Global Privacy Control (GPC).</p>
 
-    <h2>7. Data Retention</h2>
+    <h2 id="retention">7. Data Retention</h2>
     <p>We retain customer booking records for 3 years for accounting and legal compliance. Assembler identity documents (government ID, selfie) are retained for 2 years post-approval or upon account closure, whichever is later, then deleted. If we conduct background checks, related consent records are retained as required by the Fair Credit Reporting Act (FCRA).</p>
 
-    <h2>8. Your Privacy Rights</h2>
+    <h2 id="your-rights">8. Your Privacy Rights</h2>
     <p>Depending on your location, you have the following rights:</p>
     <ul>
       <li><strong>Right to Access:</strong> Request a copy of the personal information we hold about you</li>
@@ -190,7 +226,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li><strong>Right to Opt Out of Marketing:</strong> Click "Unsubscribe" in any marketing email, or email us at any time</li>
     </ul>
 
-    <h2>9. California Residents &mdash; CCPA</h2>
+    <h2 id="ccpa">9. California Residents &mdash; CCPA</h2>
     <p>If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA) / CPRA:</p>
     <ul>
       <li>The right to know what personal information we collect, use, disclose, and sell</li>
@@ -200,19 +236,19 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     </ul>
     <p><strong>We do not sell your personal information.</strong> We do not share your personal information with third parties for cross-context behavioral advertising. To exercise your CCPA rights, email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a> with subject line "CCPA Privacy Request."</p>
 
-    <h2>10. Children's Privacy</h2>
+    <h2 id="children">10. Children's Privacy</h2>
     <p>Our platform is not directed to individuals under age 18. We do not knowingly collect personal information from minors. If you believe we have collected information from a child under 18, contact us immediately and we will delete it promptly.</p>
 
-    <h2>11. Third-Party Links</h2>
+    <h2 id="third-party-links">11. Third-Party Links</h2>
     <p>Our website may link to third-party sites. We are not responsible for the privacy practices of those sites and encourage you to review their policies.</p>
 
-    <h2>12. Changes to This Policy</h2>
+    <h2 id="changes">12. Changes to This Policy</h2>
     <p>We may update this Privacy Policy periodically. Material changes will be communicated by updating the "Last updated" date at the top of this page. Continued use of our platform constitutes acceptance of the revised policy.</p>
 
-    <h2>13. Contact Us</h2>
+    <h2 id="contact">13. Contact Us</h2>
     <p>For privacy questions, requests, or concerns:</p>
     <p>
-      <strong>AssembleAtEase</strong><br/>
+      <strong>AssembleAtEase LLC</strong><br/>
       Austin, TX<br/>
       Email: <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
     </p>

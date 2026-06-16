@@ -62,14 +62,23 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 
 .terms-section{padding:4rem 2rem}
 .terms-inner{max-width:800px;margin:0 auto}
-.terms-inner h2{font-family:var(--font-display);font-size:1.5rem;color:var(--ink);margin:2.5rem 0 0.75rem}
+.terms-inner h2{font-family:var(--font-display);font-size:1.5rem;color:var(--ink);margin:2.75rem 0 0.75rem;scroll-margin-top:72px}
 .terms-inner h2:first-child{margin-top:0}
+.terms-inner h3{font-family:var(--font-body);font-size:1.05rem;font-weight:600;color:var(--ink-soft);margin:1.5rem 0 0.5rem}
 .terms-inner p{font-size:0.95rem;color:var(--muted);line-height:1.85;margin-bottom:1rem}
 .terms-inner ul{margin:0 0 1rem 1.5rem;color:var(--muted);font-size:0.95rem;line-height:1.85}
 .terms-inner ul li{margin-bottom:0.35rem}
 .terms-inner a{color:var(--cyan-dark);text-decoration:underline}
 .terms-inner a:hover{color:var(--cyan)}
-.terms-updated{font-size:0.82rem;color:var(--muted);margin-bottom:2rem;font-style:italic}
+.terms-updated{font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;font-style:italic}
+.terms-intro{font-size:0.95rem;color:var(--muted);line-height:1.85;margin-bottom:2rem}
+.legal-toc{background:var(--off-white);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.75rem;margin-bottom:2.75rem}
+.legal-toc-title{font-family:var(--font-body);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--muted);margin-bottom:0.9rem}
+.legal-toc ol{margin:0;padding-left:1.3rem;columns:2;column-gap:2.5rem;font-size:0.9rem;line-height:1.65}
+.legal-toc li{margin-bottom:0.32rem;break-inside:avoid}
+.legal-toc a{color:var(--ink-soft);text-decoration:none}
+.legal-toc a:hover{color:var(--cyan-dark);text-decoration:underline}
+@media(max-width:640px){.legal-toc ol{columns:1}.terms-section{padding:2.5rem 1.25rem}}
 
 .footer{background:#0a1628;padding:3rem 2rem 2rem}
 .footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
@@ -145,17 +154,59 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
 </section>
 
-<section class="terms-section">
+<section class="terms-section" id="main-content">
   <div class="terms-inner">
-    <p class="terms-updated">Last updated: April 19, 2026</p>
+    <p class="terms-updated">Last updated: June 16, 2026</p>
+    <p class="terms-intro">These Terms &amp; Conditions ("Terms") are a binding agreement between you and AssembleAtEase LLC. They govern your access to and use of our website, booking platform, and services. Please read them carefully. If you have questions, contact us at <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>
 
-    <h2>1. Acceptance of Terms</h2>
-    <p>By accessing <a href="https://www.assembleatease.com">www.assembleatease.com</a> or booking services through our platform, you agree to these Terms &amp; Conditions. If you do not agree, do not use our platform. These Terms apply to both customers who book services and assemblers who provide services through AssembleAtEase.</p>
+    <nav class="legal-toc" aria-label="Table of contents">
+      <div class="legal-toc-title">Contents</div>
+      <ol>
+        <li><a href="#acceptance">Acceptance of Terms</a></li>
+        <li><a href="#definitions">Definitions</a></li>
+        <li><a href="#eligibility">Eligibility</a></li>
+        <li><a href="#platform">Our Platform &amp; Our Role</a></li>
+        <li><a href="#customer-terms">Customer Terms: Booking, Payment &amp; Cancellation</a></li>
+        <li><a href="#customer-disputes">Customer Satisfaction &amp; Dispute Resolution</a></li>
+        <li><a href="#assembler-terms">Assembler Terms</a></li>
+        <li><a href="#acceptable-use">Acceptable Use &amp; Prohibited Conduct</a></li>
+        <li><a href="#guarantee">Workmanship Guarantee</a></li>
+        <li><a href="#disclaimers">Disclaimers</a></li>
+        <li><a href="#liability">Limitation of Liability</a></li>
+        <li><a href="#indemnification">Indemnification</a></li>
+        <li><a href="#property-access">Property Access &amp; Safety</a></li>
+        <li><a href="#ip">Intellectual Property</a></li>
+        <li><a href="#accounts">Accounts, Suspension &amp; Termination</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+        <li><a href="#governing-law">Governing Law &amp; Jurisdiction</a></li>
+        <li><a href="#changes">Changes to These Terms</a></li>
+        <li><a href="#general">General Provisions</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ol>
+    </nav>
 
-    <h2>2. Platform Overview</h2>
-    <p>AssembleAtEase LLC ("AssembleAtEase") operates a marketplace connecting customers in the Austin, Texas area with independent service professionals ("Assemblers") for furniture assembly, TV mounting, smart home installation, and related assembly and setup services. AssembleAtEase facilitates bookings, handles all payments, and ensures quality through our vetting process, but Assemblers are not employees of AssembleAtEase.</p>
+    <h2 id="acceptance">1. Acceptance of Terms</h2>
+    <p>By accessing <a href="https://www.assembleatease.com">www.assembleatease.com</a>, creating an account, or booking services through our platform, you agree to these Terms and to our <a href="/privacy">Privacy Policy</a>, which is incorporated by reference. If you do not agree, do not use the platform. These Terms apply to both customers who book services and assemblers who provide services through AssembleAtEase. If you accept these Terms on behalf of a business or another person, you represent that you are authorized to bind that party.</p>
 
-    <h2>3. Booking &amp; Payment &mdash; Customers</h2>
+    <h2 id="definitions">2. Definitions</h2>
+    <ul>
+      <li><strong>"AssembleAtEase," "Company," "we," "us," "our"</strong> means AssembleAtEase LLC, a Texas limited liability company.</li>
+      <li><strong>"Platform"</strong> means our website, booking system, customer and assembler portals, communications, and related online services.</li>
+      <li><strong>"Customer," "you"</strong> means a person or entity that books or seeks to book Services through the Platform.</li>
+      <li><strong>"Assembler"</strong> (also "Easer") means an independent service professional who provides Services through the Platform.</li>
+      <li><strong>"Services"</strong> means furniture assembly, TV mounting, smart home setup, fitness equipment assembly, outdoor and playset assembly, office assembly, and related assembly and setup work booked through the Platform.</li>
+      <li><strong>"Booking"</strong> means a confirmed request for Services placed through the Platform.</li>
+      <li><strong>"Contractor Agreement"</strong> means the Independent Contractor Agreement an Assembler accepts during onboarding.</li>
+    </ul>
+
+    <h2 id="eligibility">3. Eligibility</h2>
+    <p>You must be at least 18 years old and able to form a legally binding contract to use the Platform. By using the Platform you represent that you meet these requirements, that the information you provide is accurate, and that your use complies with all applicable laws. Services are available only at addresses within our published service area and may not be available where prohibited by law.</p>
+
+    <h2 id="platform">4. Our Platform &amp; Our Role</h2>
+    <p>AssembleAtEase LLC ("AssembleAtEase") operates a marketplace connecting customers with independent service professionals ("Assemblers") for furniture assembly, TV mounting, smart home installation, and related assembly and setup services. AssembleAtEase facilitates bookings, handles all payments, and supports quality through our vetting process, but Assemblers are not employees of AssembleAtEase.</p>
+    <p>AssembleAtEase is a technology platform and intermediary. We do not ourselves perform the Services &mdash; the Services are performed by independent Assemblers. Except as expressly stated in these Terms (including our Workmanship Guarantee in Section 9), we are not responsible for the acts, omissions, or conduct of any Assembler or Customer.</p>
+
+    <h2 id="customer-terms">5. Customer Terms: Booking, Payment &amp; Cancellation</h2>
     <h3>Card on File &amp; Charge Timing</h3>
     <p>To confirm a booking, you authorize AssembleAtEase to place your payment method on file with our payment processor, Stripe. <strong>Your card is not charged at booking time.</strong> A payment hold (authorization) is placed on your card at booking. Your card is charged only after the assigned Assembler marks the job complete &mdash; or in cases of no-show or cancellation per the policy below.</p>
     <h3>Cancellation &amp; Refund Policy</h3>
@@ -167,15 +218,15 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <p>Cancellation fees help compensate the assigned Assembler for reserved time and travel. A rescheduled booking forfeits the free-cancellation window. All fees are calculated by AssembleAtEase on the server at the time of cancellation.</p>
     <p>To cancel, contact us at <a href="mailto:service@assembleatease.com">service@assembleatease.com</a> or through your customer portal. Cancellations are time-stamped at receipt.</p>
     <h3>Pricing</h3>
-    <p>Quoted prices are estimates. Final pricing is confirmed before work begins. Additional charges may apply for extra materials, complexity beyond original scope, or labor time exceeding the estimate. You will be notified of any upcharge before it is applied.</p>
+    <p>Quoted prices are estimates. Final pricing is confirmed before work begins. Additional charges may apply for extra materials, complexity beyond original scope, or labor time exceeding the estimate. You will be notified of any upcharge before it is applied. Prices are exclusive of applicable sales tax, which is added at checkout where required.</p>
 
-    <h2>4. Dispute Resolution &mdash; Customers</h2>
+    <h2 id="customer-disputes">6. Customer Satisfaction &amp; Dispute Resolution</h2>
     <p>If you are dissatisfied with completed work, contact us within 7 days at <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>. We will investigate and, at our discretion, may offer a re-do, partial refund, or full refund. Disputes not resolved through our support process may be escalated to binding arbitration under the American Arbitration Association (AAA) Commercial Arbitration Rules in Travis County, Texas. You waive the right to participate in a class action lawsuit or class-wide arbitration.</p>
     <p>Initiating a credit card chargeback before contacting our support team will be treated as a breach of these Terms and may result in account suspension.</p>
 
-    <h2>5. Assembler Terms</h2>
+    <h2 id="assembler-terms">7. Assembler Terms</h2>
     <h3>Independent Contractor Status</h3>
-    <p>Assemblers on the AssembleAtEase platform are independent contractors, not employees. Assemblers set their own availability, choose which jobs to accept, and use their own tools and equipment. AssembleAtEase does not withhold taxes on behalf of Assemblers. Assemblers are solely responsible for their own tax obligations.</p>
+    <p>Assemblers on the AssembleAtEase platform are independent contractors, not employees. Assemblers set their own availability, choose which jobs to accept, and use their own tools and equipment. AssembleAtEase does not withhold taxes on behalf of Assemblers. Assemblers are solely responsible for their own tax obligations. The Contractor Agreement accepted during onboarding governs the relationship between AssembleAtEase and each Assembler and controls in the event of any conflict with this Section.</p>
     <h3>Application Fee</h3>
     <p>AssembleAtEase may charge a one-time application fee of up to <strong>$30</strong> to cover identity verification processing, application review, and platform onboarding. During launch programs, including the Founding Easer program, this fee may be waived, deferred, or credited at AssembleAtEase's discretion. If an application fee is charged, the fee and refund terms displayed at the time of submission control.</p>
     <h3>Commission</h3>
@@ -193,13 +244,34 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <h3>Suspension &amp; Termination</h3>
     <p>AssembleAtEase may suspend or permanently remove an Assembler from the platform at our sole discretion for: repeated late cancellations, customer complaints, violation of the Code of Conduct, fraudulent activity, or any behavior that harms customers or the platform's reputation. Earnings for completed jobs will still be disbursed after investigation, unless fraud is involved.</p>
 
-    <h2>6. Warranty &amp; Satisfaction Guarantee</h2>
+    <h2 id="acceptable-use">8. Acceptable Use &amp; Prohibited Conduct</h2>
+    <p>When using the Platform, you agree not to:</p>
+    <ul>
+      <li>Use the Platform for any unlawful, fraudulent, or unauthorized purpose</li>
+      <li>Provide false, misleading, or incomplete information, or impersonate any person or entity</li>
+      <li>Solicit or arrange payment or work outside the Platform with an Assembler or Customer you were introduced to through AssembleAtEase</li>
+      <li>Harass, threaten, defame, or discriminate against any Customer, Assembler, or member of our staff</li>
+      <li>Attempt to access accounts, data, or systems that are not your own</li>
+      <li>Scrape, copy, reverse-engineer, overload, or otherwise interfere with the Platform or its security</li>
+      <li>Infringe the intellectual property or privacy rights of others</li>
+      <li>Submit fraudulent bookings, payments, or chargebacks</li>
+    </ul>
+    <p>We may investigate suspected violations and may suspend or terminate access, remove content, or take other action we consider appropriate.</p>
+
+    <h2 id="guarantee">9. Workmanship Guarantee</h2>
     <p>AssembleAtEase guarantees the quality of all work completed through our platform for 7 days from the completion date. This covers workmanship defects (e.g., incorrectly assembled furniture, improperly mounted hardware). It does not cover pre-existing conditions, manufacturer defects, or damage caused by customer misuse after assembly.</p>
 
-    <h2>7. Limitation of Liability</h2>
+    <h2 id="disclaimers">10. Disclaimers</h2>
+    <p>Except for the limited Workmanship Guarantee in Section 9 and any warranty that cannot be excluded under applicable law, the Platform and the Services are provided <strong>"as is" and "as available"</strong> without warranties of any kind, whether express or implied. To the maximum extent permitted by law, we disclaim all implied warranties, including merchantability, fitness for a particular purpose, and non-infringement.</p>
+    <p>We do not warrant that the Platform will be uninterrupted, error-free, or secure. While we vet Assemblers and conduct identity verification, and may conduct background checks at our discretion (not all Assemblers are background-checked at this time), we do not guarantee any particular result beyond the Workmanship Guarantee, and we are not responsible for the independent acts or omissions of Assemblers or Customers.</p>
+
+    <h2 id="liability">11. Limitation of Liability</h2>
     <p>To the maximum extent permitted by applicable law, AssembleAtEase's total liability for any claim arising from use of our platform shall not exceed the amount paid for the specific booking giving rise to the claim. We are not liable for indirect, incidental, consequential, or punitive damages of any kind. Assemblers are individually responsible for damage caused by negligence during service delivery.</p>
 
-    <h2>8. Property Access &amp; Safety</h2>
+    <h2 id="indemnification">12. Indemnification</h2>
+    <p>You agree to indemnify, defend, and hold harmless AssembleAtEase LLC and its members, officers, employees, and agents from and against any claims, demands, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising out of or related to: (a) your use of the Platform; (b) your breach of these Terms; (c) your violation of any law or the rights of a third party; and (d) for Assemblers, the performance of any Services. This obligation survives termination of these Terms.</p>
+
+    <h2 id="property-access">13. Property Access &amp; Safety</h2>
     <ul>
       <li>Customers must provide safe and reasonable access to the work area</li>
       <li>Remove fragile, valuable, or hazardous items from the immediate work area before service</li>
@@ -207,25 +279,35 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
       <li>AssembleAtEase and Assemblers are not liable for damage caused by undisclosed pre-existing conditions</li>
     </ul>
 
-    <h2>9. Intellectual Property</h2>
+    <h2 id="ip">14. Intellectual Property</h2>
     <p>All content on the AssembleAtEase platform &mdash; including text, logos, images, and software &mdash; is the property of AssembleAtEase and protected by applicable IP laws. You may not reproduce, distribute, or create derivative works without written permission.</p>
 
-    <h2>10. User Accounts</h2>
-    <p>You are responsible for maintaining confidentiality of your account credentials and for all activity under your account. Notify us immediately of any unauthorized access at <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>
+    <h2 id="accounts">15. Accounts, Suspension &amp; Termination</h2>
+    <p>You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. Notify us immediately of any unauthorized access at <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>
+    <p>You may stop using the Platform at any time. We may suspend or terminate your access, with or without notice, for violation of these Terms, suspected fraud, or any risk to the Platform or its users. Provisions that by their nature should survive termination &mdash; including payment obligations, Disclaimers, Limitation of Liability, Indemnification, Dispute Resolution, and General Provisions &mdash; will survive.</p>
 
-    <h2>11. Privacy</h2>
+    <h2 id="privacy">16. Privacy</h2>
     <p>Your use of our platform is governed by our <a href="/privacy">Privacy Policy</a>, which explains how we collect and use your personal information, including payment data handled by Stripe and analytics data collected via Google Analytics.</p>
 
-    <h2>12. Governing Law &amp; Jurisdiction</h2>
+    <h2 id="governing-law">17. Governing Law &amp; Jurisdiction</h2>
     <p>These Terms are governed by the laws of the State of Texas, without regard to conflict-of-law principles. Any legal action not subject to arbitration shall be filed in the state or federal courts located in Travis County, Texas, and you consent to the personal jurisdiction of those courts.</p>
 
-    <h2>13. Changes to Terms</h2>
+    <h2 id="changes">18. Changes to These Terms</h2>
     <p>We may update these Terms at any time. Material changes will be communicated by email and by updating the "Last updated" date above. Continued use of the platform after changes are posted constitutes acceptance of the revised Terms.</p>
 
-    <h2>14. Contact</h2>
-    <p>Questions about these Terms</p>
+    <h2 id="general">19. General Provisions</h2>
+    <p><strong>Entire Agreement.</strong> These Terms, together with the Privacy Policy and (for Assemblers) the Contractor Agreement, are the entire agreement between you and AssembleAtEase regarding the Platform and supersede any prior agreements on that subject.</p>
+    <p><strong>Severability.</strong> If any provision of these Terms is found unenforceable, that provision will be limited or severed to the minimum extent necessary, and the remaining provisions will remain in full force and effect.</p>
+    <p><strong>Assignment.</strong> You may not assign or transfer these Terms without our prior written consent. We may assign these Terms in connection with a merger, acquisition, reorganization, or sale of assets.</p>
+    <p><strong>Waiver.</strong> Our failure to enforce any provision is not a waiver of our right to enforce it later.</p>
+    <p><strong>Force Majeure.</strong> We are not liable for any delay or failure to perform caused by events beyond our reasonable control, including acts of God, severe weather, utility or network failures, labor disputes, or government action.</p>
+    <p><strong>Electronic Communications.</strong> You consent to receive communications, agreements, and notices from us electronically, and you agree that electronic communications satisfy any legal requirement that such communications be in writing.</p>
+    <p><strong>Headings.</strong> Section headings are for convenience only and do not affect interpretation.</p>
+
+    <h2 id="contact">20. Contact</h2>
+    <p>Questions about these Terms? Reach us at:</p>
     <p>
-      <strong>AssembleAtEase</strong><br/>
+      <strong>AssembleAtEase LLC</strong><br/>
       Austin, TX<br/>
       Email: <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
     </p>
