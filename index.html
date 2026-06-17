@@ -60,8 +60,9 @@
 .hv2-photo-badge{position:absolute;top:1.4rem;left:1.4rem;z-index:2;display:inline-flex;align-items:center;gap:0.55rem;padding:0.68rem 0.95rem;border-radius:999px;background:rgba(8,20,28,0.74);border:1px solid rgba(255,255,255,0.18);backdrop-filter:blur(10px);font-size:0.76rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#f8fafc}
 .hv2-photo-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#5eead4;box-shadow:0 0 0 5px rgba(94,234,212,0.18)}
 .hv2-review-card{position:absolute;left:1.4rem;right:1.4rem;bottom:1.4rem;z-index:2;display:block;padding:1.15rem 1.4rem;border-radius:26px;background:rgba(255,255,255,0.94);border:1px solid rgba(255,255,255,0.82);backdrop-filter:blur(14px);box-shadow:0 22px 46px rgba(2,22,31,0.18)}
-.hv2-review-copy strong{display:block;font-size:1rem;color:#101828;margin-bottom:0.35rem}
-.hv2-review-copy p{margin:0;font-size:0.84rem;line-height:1.58;color:#5b6676}
+.hv2-review-copy .hv2-stars{display:block;color:#f59e0b;font-size:0.95rem;letter-spacing:2px;margin-bottom:0.4rem}
+.hv2-review-copy strong{display:block;font-size:0.96rem;line-height:1.42;color:#101828;margin-bottom:0.4rem;font-weight:700}
+.hv2-review-copy p{margin:0;font-size:0.8rem;line-height:1.5;color:#5b6676}
 .hv2-service-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem}
 .hv2-service-pill{display:flex;align-items:center;gap:0.42rem;padding:0.62rem 0.72rem;border-radius:999px;background:#f7fbfc;border:1px solid rgba(0,191,255,0.16);font-size:0.77rem;font-weight:800;color:#0f172a}
 .hv2-service-pill::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px rgba(0,191,255,0.12)}
@@ -106,20 +107,18 @@
 ----------------------------------------------------- */
 .svc5-section{display:none;background:#f8f9fa;padding:1.25rem 2rem 4.75rem}
 .svc5-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.35rem;max-width:1120px;margin:0 auto}
-.svc5-card{position:relative;background:#fff;border:1.5px solid #dde8ec;border-radius:18px;padding:1rem 1rem 1.35rem;text-align:left;text-decoration:none;display:flex;flex-direction:column;min-height:365px;overflow:hidden;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:0 8px 26px rgba(2,32,43,0.055)}
-.svc5-card::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--cyan);opacity:0;transition:opacity 0.18s}
+.svc5-card{position:relative;background:#fff;border:1.5px solid #dde8ec;border-radius:18px;padding:0.85rem 0.95rem 1rem;text-align:left;text-decoration:none;display:flex;flex-direction:column;overflow:hidden;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:0 8px 26px rgba(2,32,43,0.055)}
+.svc5-card::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--cyan);opacity:0;transition:opacity 0.18s;z-index:3}
 .svc5-card:hover{box-shadow:0 18px 44px rgba(0,191,255,0.14),0 8px 18px rgba(2,32,43,0.08);border-color:var(--cyan-mid);transform:translateY(-4px)}
 .svc5-card:hover::before{opacity:1}
-.svc5-photo{height:145px;border-radius:14px;overflow:hidden;background:#dfe8ec;margin-bottom:1rem}
-.svc5-photo img{width:100%;height:100%;object-fit:contain;object-position:center center;background:#eef8fb;display:block;filter:saturate(1.03) contrast(1.02);transition:transform 0.55s cubic-bezier(0.23,1,0.32,1)}
-.svc5-card:hover .svc5-photo img{transform:scale(1.045)}
-.svc5-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
-.svc5-icon{width:54px;height:54px;border-radius:14px;background:rgba(0,191,255,0.08);border:1.5px solid rgba(0,191,255,0.22);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.svc5-icon svg{width:30px;height:30px;stroke:var(--cyan-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.svc5-tag{display:inline-flex;align-items:center;border-radius:999px;background:#e6f7fb;color:var(--cyan-dark);padding:0.25rem 0.6rem;font-size:0.66rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
-.svc5-name{font-size:1.08rem;font-weight:800;color:var(--ink);margin-bottom:0.55rem}
-.svc5-desc{font-size:0.9rem;color:#5f6b7a;line-height:1.62;margin-bottom:1rem}
-.svc5-price{font-size:0.92rem;font-weight:800;color:var(--cyan-dark);margin-top:auto;margin-bottom:0.85rem}
+.svc5-photo{position:relative;height:172px;border-radius:13px;overflow:hidden;background:#dfe8ec;margin-bottom:0.9rem}
+.svc5-photo img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block;filter:saturate(1.03) contrast(1.02);transition:transform 0.55s cubic-bezier(0.23,1,0.32,1)}
+.svc5-card:hover .svc5-photo img{transform:scale(1.05)}
+.svc5-tag{position:absolute;top:0.7rem;left:0.7rem;z-index:2;display:inline-flex;align-items:center;border-radius:999px;background:rgba(8,20,28,0.82);color:#fff;padding:0.32rem 0.72rem;font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.svc5-name{font-size:1.1rem;font-weight:800;color:var(--ink);margin-bottom:0.28rem}
+.svc5-desc{font-size:0.88rem;color:#5f6b7a;line-height:1.5;margin-bottom:0.9rem}
+.svc5-cardfoot{display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-top:auto;padding-top:0.7rem;border-top:1px solid #eef3f5}
+.svc5-price{font-size:1.05rem;font-weight:800;color:var(--ink)}
 .svc5-link{font-size:0.82rem;font-weight:800;color:var(--cyan-dark);display:inline-flex;align-items:center;gap:4px}
 .svc5-foot{max-width:1120px;margin:1.35rem auto 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;background:#fff;border:1px solid #dde8ec;border-radius:14px;box-shadow:0 8px 24px rgba(2,32,43,0.04)}
 .svc5-foot-text{font-size:0.9rem;color:#4b5563}
@@ -612,32 +611,23 @@ section#service-area{display:block}
     <div class="hv2-left">
       <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in an Austin home" width="1536" height="1024" fetchpriority="high" decoding="sync"/>
       <div class="hv2-photo-badge">Inside real homes every week</div>
-      <div class="hv2-review-card" aria-label="Desktop hero service summary">
+      <div class="hv2-review-card" aria-label="Customer review">
         <div class="hv2-review-copy">
-          <strong>Common first bookings</strong>
-          <p>Most customers start with one room, one wall, or one priority project, then add more once they trust the experience.</p>
+          <span class="hv2-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          <strong>&ldquo;Mounted a 75-inch TV and assembled a bed. Great job, very efficient!&rdquo;</strong>
+          <p>Erin B. &middot; Verified Google review</p>
         </div>
       </div>
     </div>
     <div class="hv2-right" id="hv2Right">
       <div class="hv2-eyebrow">Assembly, mounting, and setup</div>
       <h1 class="hv2-h1">Home setup done without the headache<span data-loc-in></span>.</h1>
-      <p class="hv2-desc">Furniture, TVs, smart devices, fitness gear, and office pieces handled by reviewed pros with clear pricing before checkout.</p>
+      <p class="hv2-desc">Furniture, TVs, smart devices, and more &mdash; set up by reviewed local pros, priced before you book.</p>
       <div class="hv2-proof-grid" aria-label="AssembleAtEase trust highlights">
-        <div class="hv2-proof-card">
-          <strong>Clear</strong>
-          <span>Upfront pricing before you commit.</span>
-        </div>
-        <div class="hv2-proof-card">
-          <strong>Direct</strong>
-          <span>Independent service, not a faceless lead marketplace.</span>
-        </div>
-        <div class="hv2-proof-card">
-          <strong>Vetted</strong>
-          <span>Reviewed pros for in-home work.</span>
-        </div>
+        <div class="hv2-proof-card"><strong>5.0 <span style="color:#f59e0b">&#9733;</span></strong><span>11 Google reviews</span></div>
+        <div class="hv2-proof-card"><strong>Upfront</strong><span>Price before checkout</span></div>
+        <div class="hv2-proof-card"><strong>Vetted</strong><span>Reviewed local pros</span></div>
       </div>
-      <p class="hv2-subnote">Secure online booking and local support before, during, and after the visit.</p>
       <div class="hv2-actions">
         <a href="/book" class="hv2-btn-book">Book Now &rarr;</a>
         <a href="/pricing" class="hv2-btn-secondary">See Pricing</a>
@@ -779,7 +769,7 @@ section#service-area{display:block}
   <div class="section-inner">
     <div class="section-header">
       <div class="section-label">Our Services</div>
-      <h2 class="section-title">What we put together</h2>
+      <h2 class="section-title">Pick what you need</h2>
     </div>
   </div>
 </section>
@@ -788,56 +778,44 @@ section#service-area{display:block}
 <section class="svc5-section">
   <div class="svc5-grid">
     <a class="svc5-card" href="/book?service=Furniture+Assembly">
-      <div class="svc5-photo"><img src="/images/service-furniture-assembly.jpg?v=service-photos-1" alt="Professional assembling furniture in a living room" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><span class="svc5-tag">Most booked</span></div>
+      <div class="svc5-photo"><img src="/images/service-furniture-assembly.jpg?v=service-photos-1" alt="Professional assembling furniture in a living room" loading="eager" width="1536" height="1024"><span class="svc5-tag">Most booked</span></div>
       <div class="svc5-name">Furniture Assembly</div>
-      <div class="svc5-desc">IKEA, Wayfair, Amazon &amp; more. Any brand, any piece.</div>
-      <div class="svc5-price">Upfront pricing</div>
-      <span class="svc5-link">Book now &rarr;</span>
+      <div class="svc5-desc">IKEA, Wayfair, Amazon &amp; more</div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $69</div><span class="svc5-link">Book now &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Mounting+%26+Hanging">
-      <div class="svc5-photo"><img src="/images/service-tv-mounting.jpg?v=service-photos-1" alt="Professional measuring a TV wall bracket in a living room" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div><span class="svc5-tag">Same-day</span></div>
+      <div class="svc5-photo"><img src="/images/service-tv-mounting.jpg?v=service-photos-1" alt="Professional measuring a TV wall bracket in a living room" loading="eager" width="1536" height="1024"><span class="svc5-tag">Same-day</span></div>
       <div class="svc5-name">TV Mounting</div>
-      <div class="svc5-desc">Any TV, any wall. Cord concealment included.</div>
-      <div class="svc5-price">Add-ons from $25</div>
-      <span class="svc5-link">Book now &rarr;</span>
+      <div class="svc5-desc">Any TV, any wall &mdash; cords hidden</div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $79</div><span class="svc5-link">Book now &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Fitness+Equipment">
       <div class="svc5-photo"><img src="/images/service-fitness-equipment.jpg?v=service-photos-1" alt="Professional assembling fitness equipment in a home garage" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M6 4v16"/><path d="M18 4v16"/><path d="M3 8h4"/><path d="M17 8h4"/><path d="M3 16h4"/><path d="M17 16h4"/></svg></div></div>
       <div class="svc5-name">Fitness Equipment</div>
-      <div class="svc5-desc">Treadmills, bikes, racks, benches, and home gym builds.</div>
-      <div class="svc5-price">Heavy equipment</div>
-      <span class="svc5-link">Book now &rarr;</span>
+      <div class="svc5-desc">Treadmills, bikes, racks &amp; more</div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $119</div><span class="svc5-link">Book now &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Outdoor+%26+Playsets">
       <div class="svc5-photo"><img src="/images/service-outdoor-playsets.jpg?v=service-photos-1" alt="Professional assembling an outdoor playset in a backyard" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div></div>
       <div class="svc5-name">Outdoor / Playsets</div>
-      <div class="svc5-desc">Playsets, patio builds, outdoor furniture, and installs.</div>
-      <div class="svc5-price">Custom scope</div>
-      <span class="svc5-link">Book now &rarr;</span>
+      <div class="svc5-desc">Playsets, patios &amp; outdoor builds</div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $89</div><span class="svc5-link">Book now &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Office+Assembly">
       <div class="svc5-photo"><img src="/images/service-office-assembly.jpg?v=service-photos-1" alt="Professional assembling office furniture in a home office" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/><path d="M7 8h10"/></svg></div></div>
       <div class="svc5-name">Office Assembly</div>
-      <div class="svc5-desc">Desks, chairs, cubicles, shelving, and workspace setup.</div>
-      <div class="svc5-price">Workspace-ready</div>
-      <span class="svc5-link">Book now &rarr;</span>
+      <div class="svc5-desc">Desks, chairs &amp; full workspaces</div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $89</div><span class="svc5-link">Book now &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Smart+Home">
-      <div class="svc5-photo"><img src="/images/service-smart-home.jpg?v=service-photos-1" alt="Professional installing a smart home device near an entryway" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-card-head"><div class="svc5-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="svc5-tag">Popular</span></div>
+      <div class="svc5-photo"><img src="/images/service-smart-home.jpg?v=service-photos-1" alt="Professional installing a smart home device near an entryway" loading="eager" width="1536" height="1024"><span class="svc5-tag">Popular</span></div>
       <div class="svc5-name">Smart Home Setup</div>
-      <div class="svc5-desc">Nest, Ring, Ecobee, smart locks &amp; cameras.</div>
-      <div class="svc5-price">Device setup</div>
-      <span class="svc5-link">Book now &rarr;</span>
+      <div class="svc5-desc">Cameras, locks &amp; thermostats</div>
+      <div class="svc5-cardfoot"><div class="svc5-price">From $69</div><span class="svc5-link">Book now &rarr;</span></div>
     </a>
   </div>
   <div class="svc5-foot">
-    <div class="svc5-foot-text"><strong>Large or unusual project</strong> Whole-room, whole-home, and multi-day jobs can be quoted same-day.</div>
+    <div class="svc5-foot-text"><strong>Bigger or unusual project?</strong> Whole-home and multi-day jobs quoted same-day.</div>
     <div class="svc5-foot-actions">
       <a href="/book?service=Other" class="svc5-foot-primary">Get custom quote &rarr;</a>
       <a href="/pricing" class="svc5-foot-secondary">See pricing</a>
@@ -854,7 +832,7 @@ section#service-area{display:block}
     <div class="people-copy">
       <div class="section-label">Calm, respectful service</div>
       <h2 class="people-title" id="people-band-title">A home service visit should feel easy</h2>
-      <p class="people-desc">The platform is built around clear communication, respectful pros, and a steady booking flow so customers and service providers both know what to expect.</p>
+      <p class="people-desc">Clear communication, respectful pros, and a steady booking flow &mdash; so everyone knows what to expect.</p>
       <div class="people-points">
         <div class="people-point">Friendly communication</div>
         <div class="people-point">Respectful in-home work</div>
@@ -986,17 +964,17 @@ section#service-area{display:block}
   var G='<svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>';
   var COLORS=["#00BFFF","#0099CC","#006a7e","#4dd0e1","#0077a8","#003b47"];
   var DATA=[
-    {b:"Excellent",n:"Krispercs Focus",d:"Verified review"},
     {b:"Had my bed and dressers assembled. Very professional, fast and the price was right. Will definitely use this company again. I highly recommend AssembleAtEase.",n:"Brenda Mitchell",d:"Verified review"},
-    {b:"AssembleAtEase was prompt and on point. Mounted a 75-inch TV and assembled a bed. Great job, very efficient!",n:"Erin B.",d:"Verified review"},
     {b:"He put together 9 beds and 9 dressers at amazing speed and they all look great! Five stars hands down.",n:"Omotola A.",d:"Verified review"},
     {b:"Travis has come out to our place several times and each time the job was WELL DONE. Thanks Travis!",n:"Mika H.",d:"Verified review"},
-    {b:"Mounted TV, great experience. I would recommend.",n:"Austin P.",d:"Verified review"},
-    {b:"Fast and friendly service. Will definitely use again when needed.",n:"Rochelle L.",d:"Verified review"},
+    {b:"AssembleAtEase was prompt and on point. Mounted a 75-inch TV and assembled a bed. Great job, very efficient!",n:"Erin B.",d:"Verified review"},
     {b:"Very flexible, professional, and can put together anything for a reasonable price. Would recommend to anyone.",n:"Shelby M.",d:"Verified review"},
+    {b:"Fast and friendly service. Will definitely use again when needed.",n:"Rochelle L.",d:"Verified review"},
+    {b:"Mounted TV, great experience. I would recommend.",n:"Austin P.",d:"Verified review"},
     {b:"Super handy and gets the job done fast!",n:"Emmanuel",d:"Verified review"},
     {b:"Fantastic customer service! I highly recommend!",n:"Sue S.",d:"Verified review"},
-    {b:"This company does an amazing job. If you want a well done job, this is the guy!",n:"Lashantae H.",d:"Verified review"}
+    {b:"This company does an amazing job. If you want a well done job, this is the guy!",n:"Lashantae H.",d:"Verified review"},
+    {b:"Excellent",n:"Krispercs Focus",d:"Verified review"}
   ];
   function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
   function ini(n){return(n||"?").split(" ").map(function(w){return w[0]||"";}).join("").slice(0,2).toUpperCase();}
@@ -1166,18 +1144,18 @@ section#service-area{display:block}
 
 <!-- BECOME AN EASER &mdash; split CTA (all viewports) -->
 <section style="background:#001f2b;padding:4rem 1.5rem">
-  <div style="max-width:960px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:2.5rem;align-items:center">
+  <div style="max-width:680px;margin:0 auto;text-align:center">
     <div>
       <div style="display:inline-block;background:rgba(0,191,255,0.12);border:1px solid rgba(0,191,255,0.25);border-radius:999px;padding:0.3rem 1rem;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#4dd0e1;margin-bottom:1.1rem">Earn with AssembleAtEase</div>
       <h2 style="font-family:'DM Serif Display',serif;font-size:clamp(1.9rem,4vw,2.75rem);color:#fff;line-height:1.1;margin-bottom:1rem">Earn money doing what you&rsquo;re good at.</h2>
-      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.75;margin-bottom:1.75rem;max-width:480px">Join our network of skilled Easers<span data-loc-in></span>. Set your schedule, accept jobs that fit, and get paid after completed service.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem 1.5rem;margin-bottom:2rem">
+      <p style="font-size:1rem;color:rgba(255,255,255,0.75);line-height:1.7;margin:0 auto 1.75rem;max-width:480px">Join skilled Easers<span data-loc-in></span> &mdash; set your schedule, accept jobs that fit, and get paid after completed service.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem 1.5rem;margin:0 auto 2rem;max-width:460px;text-align:left">
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Flexible schedule</div>
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Fast, reliable payouts</div>
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Jobs sent directly to you</div>
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;color:rgba(255,255,255,0.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4dd0e1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Get paid to your bank</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center">
+      <div style="display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center;justify-content:center">
         <a href="/assembler/apply" style="display:inline-flex;align-items:center;gap:8px;background:#00BFFF;color:#001f2b;padding:0.9rem 2rem;border-radius:6px;font-size:0.95rem;font-weight:700;text-decoration:none;transition:all 0.18s">Become an Easer &rarr;</a>
       </div>
     </div>
@@ -1192,9 +1170,9 @@ section#service-area{display:block}
 <!-- DESKTOP: CTA (shown =1024px) -->
 <section class="cta-section">
   <div style="max-width:640px;margin:0 auto">
-    <h2 class="cta-title">Ready to get started</h2>
-    <p class="cta-desc">Browse our services, pick what you need, and book your time.</p>
-    <a href="/book" class="btn btn-white btn-lg">Browse Services &rarr;</a>
+    <h2 class="cta-title">Ready to get started?</h2>
+    <p class="cta-desc">Pick your service, see the price, and book your time.</p>
+    <a href="/book" class="btn btn-white btn-lg">Book Now &rarr;</a>
   </div>
 </section>
 
