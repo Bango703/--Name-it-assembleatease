@@ -1432,21 +1432,14 @@
             <div class="item-picker-badge">Item details</div>
           </div>
 
-          <div class="subcat-search-wrap">
-            <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="search" id="item-search" class="subcat-search" placeholder="Search items&hellip; e.g. queen bed, treadmill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            <button type="button" class="subcat-search-clear" id="item-search-clear" aria-label="Clear search">&times;</button>
-          </div>
-          <div id="item-no-results" class="subcat-no-results" style="display:none">No items match &ldquo;<span></span>&rdquo;</div>
-
-          <div id="item-list-wrap"></div>
-
           <style>
-            .reco-shelf{margin-top:1.1rem;border:1px solid #e2edf1;border-radius:12px;padding:0.9rem 0.95rem;background:#f7fbfc;display:flex;flex-direction:column;gap:0.9rem}
+            .reco-shelf{margin:0 0 1rem;border:1px solid #d9ebf1;border-radius:14px;padding:0.95rem 1rem;background:linear-gradient(180deg,#f8fdff 0%,#f5fbfd 100%);display:flex;flex-direction:column;gap:0.9rem}
+            .reco-shelf-title{font-size:1rem;font-weight:800;color:#0d1117;line-height:1.2}
             .reco-shelf-block{display:flex;flex-direction:column;gap:0.5rem}
             .reco-shelf-head{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#5f6b7a}
-            .reco-shelf-note{font-size:0.76rem;color:#5f6b7a;line-height:1.4}
+            .reco-shelf-note{font-size:0.8rem;color:#5f6b7a;line-height:1.45}
             .reco-shelf-row{display:flex;flex-direction:column;gap:0.5rem}
+            .reco-shelf-empty{display:flex;flex-direction:column;gap:0.35rem}
             .reco-chip{display:flex;align-items:center;gap:0.7rem;width:100%;text-align:left;background:#fff;border:1.5px solid #e2edf1;border-radius:10px;padding:0.65rem 0.7rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;font-family:inherit}
             .reco-chip:hover{border-color:#00BFFF;box-shadow:0 4px 14px rgba(0,191,255,0.12)}
             .reco-chip-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -1458,6 +1451,15 @@
             @media (min-width:720px){.reco-shelf-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}}
           </style>
           <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
+
+          <div class="subcat-search-wrap">
+            <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" id="item-search" class="subcat-search" placeholder="Search items&hellip; e.g. queen bed, treadmill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="subcat-search-clear" id="item-search-clear" aria-label="Clear search">&times;</button>
+          </div>
+          <div id="item-no-results" class="subcat-no-results" style="display:none">No items match &ldquo;<span></span>&rdquo;</div>
+
+          <div id="item-list-wrap"></div>
 
 
 
@@ -2929,10 +2931,28 @@ function renderRecoBundleSection(entries) {
 function renderRecoShelf(svc) {
   var shelf = document.getElementById("reco-shelf");
   if (!shelf) return;
+  if (!svc || svc === "Other") {
+    shelf.style.display = "none";
+    shelf.innerHTML = "";
+    return;
+  }
+  if (!hasSelectedBaseItems(svc)) {
+    shelf.innerHTML = ""
+      + "<div class=\"reco-shelf-empty\">"
+      + "<div class=\"reco-shelf-title\">Want to add anything else to this visit?</div>"
+      + "<div class=\"reco-shelf-note\">Pick one main item first. Then we will ask about the best add-ons, upgrades, and same-visit bundle options for this job.</div>"
+      + "</div>";
+    shelf.style.display = "flex";
+    return;
+  }
   var itemSections = recommendItems(svc);
   var bundles = recommendBundleServices(svc);
   var html = ""
-    + renderRecoItemSection("Helpful add-ons", itemSections.addOns)
+    + "<div class=\"reco-shelf-block\">"
+    + "<div class=\"reco-shelf-title\">Want to add anything else while we are already there?</div>"
+    + "<div class=\"reco-shelf-note\">These are the most common add-ons, finish upgrades, and same-visit bundle ideas for this setup.</div>"
+    + "</div>"
+    + renderRecoItemSection("Add to this visit", itemSections.addOns)
     + renderRecoItemSection("Upgrade the finish", itemSections.upgrades)
     + renderRecoBundleSection(bundles);
   if (!html) {
