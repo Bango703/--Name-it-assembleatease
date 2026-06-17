@@ -862,6 +862,23 @@
           </div>
         </div>
 
+        <!-- Clawbacks to recover (refunds issued after the Easer was paid) -->
+        <div class="detail-panel open" id="clawback-panel" style="margin-top:1.5rem;display:none;border-color:#fecaca">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">
+            <div>
+              <div class="detail-section-title" style="margin:0;color:#dc2626">Clawbacks to Recover</div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Refunds issued after the Easer was already paid. Recover from the Easer or net against their next payout.</div>
+            </div>
+            <div id="clawback-summary" style="font-size:0.82rem;color:#dc2626;font-weight:700;white-space:nowrap"></div>
+          </div>
+          <div class="finance-scroll">
+            <table class="pro-table finance-table" id="clawback-table">
+              <thead><tr><th>Booking</th><th>Easer</th><th style="text-align:right">Refund</th><th style="text-align:right">Owed Back</th><th style="text-align:right">When</th></tr></thead>
+              <tbody id="clawback-body"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
           <div class="detail-panel open" style="grid-column:1/-1">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Financial Formula</div>
@@ -3843,6 +3860,7 @@ function intelQuick(msg) {
       renderFinancialLedger(d.ledger || []);
       renderFinancialBreakdowns(d);
       renderContractorTax(d.contractorTax || {});
+      renderClawbacks(d.clawbacks || {});
     } catch (e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Failed to load financial dashboard</td></tr>';
       setText('fin-gross-per-job', '—');
@@ -3850,6 +3868,24 @@ function intelQuick(msg) {
     }
 
     loadPayoutLedger();
+  }
+
+  function renderClawbacks(cb) {
+    var panel = document.getElementById('clawback-panel');
+    var body = document.getElementById('clawback-body');
+    if (!panel || !body) return;
+    var items = (cb && cb.items) || [];
+    if (!items.length) { panel.style.display = 'none'; body.innerHTML = ''; setText('clawback-summary', ''); return; }
+    panel.style.display = '';
+    body.innerHTML = items.map(function(i) {
+      var esc = function(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+      var when = i.at ? new Date(i.at).toLocaleDateString() : '—';
+      return '<tr><td>' + esc(i.bookingRef || '—') + '</td><td>' + esc(i.assemblerName || 'Easer') + '</td>'
+        + '<td style="text-align:right">' + fmt$(i.refundAmountCents || 0) + '</td>'
+        + '<td style="text-align:right;font-weight:700;color:#dc2626">' + fmt$(i.clawbackOwedCents || 0) + '</td>'
+        + '<td style="text-align:right;color:var(--muted)">' + when + '</td></tr>';
+    }).join('');
+    setText('clawback-summary', fmt$(cb.totalOwedCents || 0) + ' across ' + cb.count + ' job' + (cb.count === 1 ? '' : 's'));
   }
 
   function renderContractorTax(ct) {

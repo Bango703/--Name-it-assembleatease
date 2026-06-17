@@ -39,6 +39,7 @@ export default async function handler(req, res) {
   const issueBookingIds = await loadIssueBookingIds(sb, bookingIds);
   const itemMetrics = await loadBookingItemMetrics(sb, bookingIds);
   const contractorTax = await loadContractorTaxYear(sb);
+  const clawbacks = await loadOpenClawbacks(sb);
   const completedJobs = rows.length;
   const grossCustomerRevenue = sum(rows, row => row.charged);
   const refunds = sum(rows, row => row.refund);
@@ -190,6 +191,7 @@ export default async function handler(req, res) {
     },
     serviceProfitability,
     contractorTax,
+    clawbacks,
     addOnMetrics: {
       tableAvailable: itemMetrics.tableAvailable,
       persistedRows: itemMetrics.persistedRows,
@@ -448,6 +450,45 @@ async function loadBookingItemMetrics(sb, bookingIds) {
   } catch (error) {
     console.warn('Financial dashboard booking_items skipped:', error?.message || error);
     return empty;
+  }
+}
+
+// Open clawbacks = refunds issued after the Easer was already paid (recorded by
+// refund.js as financial_event_audit 'clawback_required'). Money owed back to the
+// platform. Read-only here; degrades gracefully if the audit table is missing.
+async function loadOpenClawbacks(sb) {
+  try {
+    const { data, error } = await sb
+      .from('financial_event_audit')
+      .select('booking_id, refund_id, metadata, processed_at, status')
+      .eq('event_type', 'clawback_required')
+      .order('processed_at', { ascending: false })
+      .limit(100);
+    if (error) {
+      console.warn('Clawbacks load unavailable:', error.message || error);
+      return { available: false, items: [], totalOwedCents: 0, count: 0 };
+    }
+    const items = (data || [])
+      .filter(r => (r.status || 'open') !== 'resolved')
+      .map(r => {
+        const m = r.metadata || {};
+        return {
+          bookingRef: m.ref || null,
+          assemblerName: m.assemblerName || 'Easer',
+          clawbackOwedCents: Number(m.clawbackOwedCents || 0),
+          refundAmountCents: Number(m.refundAmountCents || 0),
+          at: r.processed_at,
+        };
+      });
+    return {
+      available: true,
+      items,
+      totalOwedCents: items.reduce((s, i) => s + i.clawbackOwedCents, 0),
+      count: items.length,
+    };
+  } catch (error) {
+    console.warn('Clawbacks load skipped:', error?.message || error);
+    return { available: false, items: [], totalOwedCents: 0, count: 0 };
   }
 }
 

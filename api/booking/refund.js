@@ -138,6 +138,27 @@ export default async function handler(req, res) {
 
   const payoutReviewRequired = booking.payout_status === 'paid';
   if (payoutReviewRequired) {
+    // Durable clawback record — money owed back by the Easer after a post-payout
+    // refund. Persisted (not just emailed) so it surfaces in the owner dashboard
+    // until recovered. Recovery/set-off stays manual until Stripe Connect.
+    const clawbackOwedCents = Math.min(stripeRefund.amount, booking.payout_amount || booking.assembler_due || 0);
+    await writeFinancialAudit(sb, {
+      eventType: 'clawback_required',
+      eventSource: 'booking_refund_owner',
+      bookingId: booking.id,
+      paymentIntentId: booking.stripe_payment_intent_id,
+      refundId: stripeRefund.id,
+      status: 'open',
+      metadata: {
+        ref: booking.ref,
+        assemblerId: booking.assembler_id || null,
+        assemblerName: booking.assembler_name || null,
+        refundAmountCents: stripeRefund.amount,
+        assemblerDueCents: booking.assembler_due || 0,
+        payoutAmountCents: booking.payout_amount || 0,
+        clawbackOwedCents,
+      },
+    });
     try {
       const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
       await sendEmail({
