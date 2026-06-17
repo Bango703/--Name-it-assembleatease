@@ -361,6 +361,41 @@
     return p[0] + (p.length > 1 ? ' ' + p[p.length-1][0].toUpperCase() + '.' : '');
   }
 
+  function renderScopeSection(scopeGroups) {
+    if (!Array.isArray(scopeGroups) || !scopeGroups.length) return '';
+
+    var groupsHtml = scopeGroups.map(function(group) {
+      var items = Array.isArray(group.items) ? group.items : [];
+      if (!items.length) return '';
+
+      var itemsHtml = items.map(function(item) {
+        var qty = Number(item.quantity) > 1 ? ' ×' + Number(item.quantity) : '';
+        var subgroup = item.subgroup ? '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">' + esc(item.subgroup) + '</div>' : '';
+        var addon = item.isAddOn ? '<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#eefbff;color:var(--pro-teal);font-size:0.67rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;white-space:nowrap">Add-on</span>' : '';
+
+        return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;padding:0.55rem 0;border-top:1px solid rgba(226,232,240,0.9)">'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:0.86rem;font-weight:600;color:var(--pro-text);line-height:1.4">' + esc(item.name + qty) + '</div>'
+          + subgroup
+          + '</div>'
+          + addon
+          + '</div>';
+      }).join('');
+
+      return '<div style="border:1px solid var(--pro-border);border-radius:12px;background:#fff;padding:0.8rem 0.9rem">'
+        + '<div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.2rem">' + esc(group.label || 'Selected items') + '</div>'
+        + itemsHtml
+        + '</div>';
+    }).filter(Boolean).join('');
+
+    if (!groupsHtml) return '';
+
+    return '<div style="margin-bottom:1rem">'
+      + '<div style="font-size:0.8rem;font-weight:800;color:var(--pro-text);margin-bottom:0.55rem">What the customer booked</div>'
+      + '<div style="display:grid;gap:0.65rem">' + groupsHtml + '</div>'
+      + '</div>';
+  }
+
     function cardHtml(b) {
       const isPendingOffer = b._is_pending_offer || (!b.assembler_accepted_at && (b._offer_token || b.assignment_token));
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
@@ -945,6 +980,7 @@
     const isPendingOffer = b._is_pending_offer;
     const isCompleted = b.status === 'completed';
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
+    const scopeHtml = renderScopeSection(b._booking_items || []);
     const payEst = (b.status === 'completed')
       ? (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null)
       : (b._pay_estimate_lo
@@ -970,10 +1006,15 @@
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
         b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
         b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
+        accepted && b.customer_name ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="color:var(--pro-text)">' + esc(b.customer_name) + '</span></div>' : '',
         accepted && !isCompleted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(fmtPhone(b.customer_phone)) + '</a></div>' : '',
-        b.details ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + esc(b.details) + '</span></div>' : '',
+        accepted && !isCompleted && b.customer_email ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/></svg><a href="mailto:' + esc(b.customer_email) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none;overflow-wrap:anywhere">' + esc(b.customer_email) + '</a></div>' : '',
         b.ref ? '<div style="font-size:0.72rem;color:var(--pro-muted)">Ref: ' + esc(b.ref) + '</div>' : '',
       '</div>',
+
+      scopeHtml,
+
+      b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
 
       // Offer expiry countdown
       isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'

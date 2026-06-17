@@ -168,6 +168,52 @@ export default async function handler(req, res) {
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
 
+  const bookingIds = allBookings.map(b => b.id).filter(Boolean);
+  if (bookingIds.length) {
+    try {
+      const { data: bookingItems, error: bookingItemsError } = await sb
+        .from('booking_items')
+        .select('booking_id, service_category, service_name, item_name, quantity, is_add_on')
+        .in('booking_id', bookingIds);
+      if (bookingItemsError) throw bookingItemsError;
+
+      const scopeByBookingId = new Map();
+      (bookingItems || []).forEach(row => {
+        const bookingId = row.booking_id;
+        const category = String(row.service_category || row.service_name || 'Other').trim() || 'Other';
+        const subgroup = String(row.service_name || '').trim();
+        const itemName = String(row.item_name || '').trim();
+        const quantity = Number(row.quantity) > 0 ? Number(row.quantity) : 1;
+
+        if (!itemName) return;
+        if (!scopeByBookingId.has(bookingId)) scopeByBookingId.set(bookingId, new Map());
+
+        const categoryMap = scopeByBookingId.get(bookingId);
+        if (!categoryMap.has(category)) categoryMap.set(category, []);
+
+        categoryMap.get(category).push({
+          name: itemName,
+          quantity,
+          isAddOn: row.is_add_on === true,
+          subgroup: subgroup && subgroup !== category ? subgroup : null,
+        });
+      });
+
+      allBookings.forEach(booking => {
+        const categoryMap = scopeByBookingId.get(booking.id);
+        booking._booking_items = categoryMap
+          ? Array.from(categoryMap.entries()).map(([label, items]) => ({ label, items }))
+          : [];
+      });
+    } catch (bookingItemsLookupError) {
+      console.error('My assignments booking-items warning:', bookingItemsLookupError);
+      pushWarning('booking_scope_partial_failure', 'The exact item scope could not be loaded for some jobs.');
+      allBookings.forEach(booking => {
+        if (!Array.isArray(booking._booking_items)) booking._booking_items = [];
+      });
+    }
+  }
+
   allBookings.forEach(b => {
     if (b.status === 'completed') return;
     const price = Number(b.amount_charged || b.total_price) || 0;
