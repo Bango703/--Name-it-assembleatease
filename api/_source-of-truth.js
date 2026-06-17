@@ -152,12 +152,12 @@ export function estimateStripeFeeCents(chargeCents) {
   return c > 0 ? Math.round(c * 0.029) + 30 : 0;
 }
 
-// Service call fee by ZIP zone — covers Easer dispatch, travel, and appointment setup.
-// Zone is determined by 3-digit ZIP prefix. Server always recalculates; never trust the client value.
+// Service-call fee — FLAT $25 across all served zones (covers Easer dispatch, travel, setup).
+// Zone is still detected by 3-digit ZIP prefix for service-area validation. Server always recalculates.
 export const SERVICE_CALL_ZONES = Object.freeze({
-  austin_core:  { label: 'Austin core',    fee: 3500 },  // 787xx — Austin proper, Bee Cave, Lakeway
-  near_suburb:  { label: 'Near suburbs',   fee: 5000 },  // 786xx — Round Rock, Cedar Park, Georgetown, Pflugerville, Kyle, Buda, Leander, Manor, Hutto
-  far_suburb:   { label: 'Far suburbs',    fee: 6500 },  // 788xx — Bastrop, Lockhart
+  austin_core:  { label: 'Austin core',    fee: 2500 },  // 787xx — Austin proper, Bee Cave, Lakeway
+  near_suburb:  { label: 'Near suburbs',   fee: 2500 },  // 786xx — Round Rock, Cedar Park, Georgetown, Pflugerville, Kyle, Buda, Leander, Manor, Hutto
+  far_suburb:   { label: 'Far suburbs',    fee: 2500 },  // 788xx — Bastrop, Lockhart
 });
 
 // Launch profit guardrails. These are pre-tax service-revenue floors, so sales
