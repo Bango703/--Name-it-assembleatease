@@ -1441,6 +1441,20 @@
 
           <div id="item-list-wrap"></div>
 
+          <style>
+            .reco-shelf{margin-top:1.1rem;border:1px solid #e2edf1;border-radius:12px;padding:0.85rem 0.95rem;background:#f7fbfc}
+            .reco-shelf-head{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#5f6b7a;margin-bottom:0.6rem}
+            .reco-shelf-row{display:flex;flex-direction:column;gap:0.5rem}
+            .reco-chip{display:flex;align-items:center;gap:0.7rem;width:100%;text-align:left;background:#fff;border:1.5px solid #e2edf1;border-radius:10px;padding:0.6rem 0.7rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;font-family:inherit}
+            .reco-chip:hover{border-color:#00BFFF;box-shadow:0 4px 14px rgba(0,191,255,0.12)}
+            .reco-chip-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+            .reco-chip-name{font-size:0.9rem;font-weight:700;color:#0d1117;line-height:1.2}
+            .reco-chip-why{font-size:0.76rem;color:#5f6b7a;line-height:1.3}
+            .reco-chip-price{font-size:0.86rem;font-weight:800;color:#0d1117;white-space:nowrap}
+            .reco-chip-add{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#e6f7fb;color:#0099CC;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+          </style>
+          <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
+
 
 
           <div class="form-fields" style="margin-top:1.5rem">
@@ -2552,6 +2566,8 @@ function renderItemScreen(svc) {
 
   wrap.innerHTML = html;
 
+  try { renderRecoShelf(svc); } catch(e) {}
+
   var inp = document.getElementById('item-search');
   if (inp) inp.value = '';
 
@@ -2767,6 +2783,77 @@ function toggleItem(svc, name, price, priceMax, isAddon, isCustomQuote) {
 
 }
 
+
+
+// ----------------------------------------------------------------------------
+// RECOMMENDATION SHELF (Phase 0 - catalog-driven: safety + convenience add-ons)
+// Pure UX layer. Adds existing catalog items via toggleItem; server prices/validates.
+// ----------------------------------------------------------------------------
+function recommendItems(svc) {
+  if (!svc || svc === "Other") return [];
+  var groups = SUBCATS[svc] || [];
+  var selected = BOOK.selectedItems[svc] || [];
+  var hasBase = selected.some(function(i){ return !i.addon && !i.customQuote; });
+  if (!hasBase) return [];
+  var selNames = selected.map(function(i){ return String(i.name||"").toLowerCase(); });
+  function applies(list){
+    if (!list || !list.length) return true;
+    return selNames.some(function(n){ return list.some(function(k){ return n.indexOf(String(k).toLowerCase()) !== -1; }); });
+  }
+  function chosen(name){ return selected.some(function(i){ return i.name === name; }); }
+  var out = [];
+  groups.forEach(function(g){
+    (g.items||[]).forEach(function(it){
+      if (it.customQuote || chosen(it.name)) return;
+      var tags = it.tags || [];
+      var pri = tags.indexOf("safety") !== -1 ? 1 : (tags.indexOf("convenience") !== -1 ? 2 : 0);
+      if (!pri) return;
+      if (!applies(it.appliesTo)) return;
+      out.push({ it: it, priority: pri });
+    });
+  });
+  out.sort(function(a,b){ return a.priority - b.priority; });
+  return out.slice(0, 3);
+}
+
+function renderRecoShelf(svc) {
+  var shelf = document.getElementById("reco-shelf");
+  if (!shelf) return;
+  var recs = recommendItems(svc);
+  if (!recs.length) { shelf.style.display = "none"; shelf.innerHTML = ""; return; }
+  var html = "<div class=\"reco-shelf-head\">Frequently added</div><div class=\"reco-shelf-row\">";
+  recs.forEach(function(r){
+    var it = r.it;
+    var label = esc(it.recoLabel || it.name);
+    var why = esc(it.recoWhy || "");
+    var price = it.customQuote ? "Quote" : ("+$" + it.price);
+    html += "<button type=\"button\" class=\"reco-chip\""
+      + " data-name=\"" + esc(it.name) + "\""
+      + " data-price=\"" + (it.price||0) + "\""
+      + " data-pricemax=\"" + (it.priceMax||0) + "\""
+      + " data-addon=\"" + (it.addon ? "true":"false") + "\""
+      + " onclick=\"recoAdd(this)\">"
+      + "<span class=\"reco-chip-text\"><span class=\"reco-chip-name\">" + label + "</span>"
+      + (why ? "<span class=\"reco-chip-why\">" + why + "</span>" : "")
+      + "</span>"
+      + "<span class=\"reco-chip-price\">" + price + "</span>"
+      + "<span class=\"reco-chip-add\" aria-hidden=\"true\">+</span>"
+      + "</button>";
+  });
+  html += "</div>";
+  shelf.innerHTML = html;
+  shelf.style.display = "block";
+}
+
+function recoAdd(btn) {
+  var svc = BOOK.currentSvc;
+  if (!svc) return;
+  toggleItem(svc, btn.getAttribute("data-name"),
+    parseFloat(btn.getAttribute("data-price")) || 0,
+    parseFloat(btn.getAttribute("data-pricemax")) || 0,
+    btn.getAttribute("data-addon") === "true",
+    false);
+}
 
 
 function changeQty(svc, name, delta) {
