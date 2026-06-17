@@ -1049,9 +1049,9 @@
 
       /* Full-screen step panels, edge-to-edge */
 
-      .book-main { padding: 0; gap: 0; width: 100vw; max-width: 100vw; overflow-x: hidden; }
+      .book-main { padding: 0; gap: 0; width: 100%; max-width: 100%; overflow-x: hidden; }
 
-      .book-form-col { width: 100vw; max-width: 100vw; min-width: 0; }
+      .book-form-col { width: 100%; max-width: 100%; min-width: 0; }
 
       .book-sidebar { display: none; }
 
@@ -1060,7 +1060,7 @@
         border-radius: 0; border-left: none; border-right: none;
 
         border-top: none; padding: 1.25rem 1rem 100px;
-        width: 100vw; max-width: 100vw; min-width: 0; overflow-x: hidden;
+        width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden;
 
       }
 
@@ -1164,6 +1164,10 @@
         padding: 0.38rem 0.52rem;
         font-size: 0.66rem;
         gap: 0.35rem;
+      }
+
+      .booking-stage-pill span:last-child {
+        min-width: 0;
       }
 
       .booking-stage-number { width: 18px; height: 18px; font-size: 0.62rem; }
@@ -1297,6 +1301,30 @@
 
       .book-nav-back { display: flex; }
 
+    }
+
+    @media (max-width: 430px) {
+      .booking-stage-divider {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+      }
+
+      .booking-stage-line {
+        display: none;
+      }
+
+      .booking-stage-pill {
+        justify-content: center;
+        padding: 0.42rem 0.4rem;
+        font-size: 0.62rem;
+        line-height: 1.15;
+        text-align: center;
+      }
+
+      .booking-stage-pill span:last-child {
+        max-width: 5.8rem;
+      }
     }
 
   </style>
