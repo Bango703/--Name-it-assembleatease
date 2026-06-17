@@ -91,7 +91,7 @@ export default async function handler(req, res) {
     .sort((a, b) => String(b.completedAt || b.date || '').localeCompare(String(a.completedAt || a.date || '')))
     .slice(0, 100)
     .map(row => {
-      const processingFee = estimateProcessingFee(row.charged);
+      const processingFee = Number(row.stripeFee || 0); // actual fee (migration 011) or canonical estimate — same source as the aggregate
       const easerPayout = payoutForProfit(row);
       const netCustomerRevenue = Number(row.netCharged || 0);
       const salesTax = Number(row.taxCollected || 0); // pass-through liability — excluded from profit
@@ -575,7 +575,7 @@ function buildServiceProfitability(rows, itemMetrics = {}) {
     const count = services.length || 1;
     const chargedShare = Math.round(Number(row.charged || 0) / count);
     const revenueShare = Math.round(Number(row.netCharged || 0) / count);
-    const processingShare = Math.round(estimateProcessingFee(row.charged) / count);
+    const processingShare = Math.round(Number(row.stripeFee || 0) / count);
     const payoutShare = Math.round(payoutForProfit(row) / count);
     const refundShare = Math.round(Number(row.refund || 0) / count);
     const taxShare = Math.round(Number(row.taxCollected || 0) / count);
@@ -670,7 +670,7 @@ function addBookingItemServiceAllocations(byService, row, bookingItems) {
     const ratio = totalLineRevenue > 0 ? group.lineTotal / totalLineRevenue : fallbackShare;
     const chargedShare = Math.round(Number(row.charged || 0) * ratio);
     const revenueShare = Math.round(Number(row.netCharged || 0) * ratio);
-    const processingShare = Math.round(estimateProcessingFee(row.charged) * ratio);
+    const processingShare = Math.round(Number(row.stripeFee || 0) * ratio);
     const payoutShare = Math.round(payoutForProfit(row) * ratio);
     const refundShare = Math.round(Number(row.refund || 0) * ratio);
     const taxShare = Math.round(Number(row.taxCollected || 0) * ratio);
