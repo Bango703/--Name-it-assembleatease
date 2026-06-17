@@ -885,10 +885,11 @@
             <div>
               <div class="detail-section-title" style="margin:0">Sales Tax Liability <span style="color:var(--muted);font-weight:400">(Texas &mdash; 8.25%)</span></div>
               <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Pass-through liability owed to the Texas Comptroller &mdash; never platform revenue. Collected on capture; refunds reduce it.</div>
+              <div id="tax-next-due" style="font-size:0.78rem;font-weight:700;color:var(--teal,#0099CC);margin-top:0.35rem"></div>
             </div>
             <div style="display:flex;gap:0.4rem">
-              <button class="tab active" data-tax-gran="month" type="button">Monthly</button>
-              <button class="tab" data-tax-gran="quarter" type="button">Quarterly</button>
+              <button class="tab" data-tax-gran="month" type="button">Monthly</button>
+              <button class="tab active" data-tax-gran="quarter" type="button">Quarterly</button>
             </div>
           </div>
           <div id="tax-outstanding-banner" style="display:none;margin:0.4rem 0 0.9rem;padding:0.7rem 0.9rem;background:#fff8ec;border:1px solid #f3d28a;border-radius:8px;font-size:0.85rem;color:#7a5a1e;font-weight:600"></div>
@@ -3848,7 +3849,7 @@ function intelQuick(msg) {
   var financialPeriod = localStorage.getItem('aae-owner-financial-period') || 'year';
   var financialCacDollars = localStorage.getItem('aae-owner-cac-dollars') || '';
   var financialOpexMonthly = localStorage.getItem('aae-owner-opex-monthly') || '';
-  var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'month';
+  var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'quarter';
   function stripeFee(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
   function fmt$(cents) { return '$'+(Number(cents || 0)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtSigned$(cents) {
@@ -3939,9 +3940,35 @@ function intelQuick(msg) {
     loadTaxReport();
   }
 
+  function nextQuarterlyDue(now) {
+    now = now || new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var y = now.getFullYear();
+    var cands = [
+      { due: new Date(y, 0, 20), q: 4, qy: y - 1 },
+      { due: new Date(y, 3, 20), q: 1, qy: y },
+      { due: new Date(y, 6, 20), q: 2, qy: y },
+      { due: new Date(y, 9, 20), q: 3, qy: y },
+      { due: new Date(y + 1, 0, 20), q: 4, qy: y },
+    ];
+    var pick = cands[cands.length - 1];
+    for (var i = 0; i < cands.length; i++) { if (cands[i].due >= today) { pick = cands[i]; break; } }
+    return {
+      due: pick.due,
+      periodKey: pick.qy + '-Q' + pick.q,
+      dueLabel: pick.due.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    };
+  }
+
   async function loadTaxReport() {
     var body = document.getElementById('tax-body');
     if (!body) return;
+    var nextDueEl = document.getElementById('tax-next-due');
+    if (nextDueEl) {
+      var nd = nextQuarterlyDue(new Date());
+      var days = Math.max(0, Math.round((nd.due - new Date()) / 86400000));
+      nextDueEl.textContent = 'Next return: ' + nd.periodKey + ' — due ' + nd.dueLabel + ' (' + days + ' day' + (days === 1 ? '' : 's') + ')';
+    }
     var banner = document.getElementById('tax-outstanding-banner');
     var msg = document.getElementById('tax-remittance-msg');
     var histBody = document.getElementById('tax-rem-body');
