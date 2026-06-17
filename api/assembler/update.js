@@ -1,6 +1,12 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import {
+  ACTIVE_EASER_TIERS,
+  getPreservedTier,
+  getRestorableTier,
+  normalizeAssemblerProfile,
+} from '../_assembler-state.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -35,22 +41,15 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
 
-  const { data: profile, error: lookupErr } = await sb
+  const { data: rawProfile, error: lookupErr } = await sb
     .from('profiles')
     .select('*')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
 
-  if (lookupErr || !profile) return res.status(404).json({ error: 'Easer not found' });
-
-  // Normalise: derive status from tier if DB column doesn't exist yet
-  if (!profile.status) {
-    if (profile.application_status === 'rejected' || profile.tier === 'rejected') profile.status = 'rejected';
-    else if (profile.tier === 'suspended') profile.status = 'suspended';
-    else if (profile.tier === 'pending' || !profile.tier) profile.status = 'pending';
-    else profile.status = 'active';
-  }
+  if (lookupErr || !rawProfile) return res.status(404).json({ error: 'Easer not found' });
+  const profile = normalizeAssemblerProfile(rawProfile);
 
   // ── APPROVE ──────────────────────────────────────────────────────────────
   if (action === 'approve') {
@@ -61,15 +60,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Easer is already active.' });
     }
 
-    // Tier and core status — both columns are known-good
-    await sb.from('profiles').update({ tier: 'starter' }).eq('id', assemblerId);
-    await sb.from('profiles').update({
+    const { error: approveErr } = await sb.from('profiles').update({
+      tier: 'starter',
       status: 'active',
       application_status: 'approved',
       approved_at: new Date().toISOString(),
       is_available: false,
       completed_jobs: 0,
     }).eq('id', assemblerId);
+    if (approveErr) {
+      console.error('approve update error:', approveErr);
+      return res.status(500).json({ error: 'Failed to approve Easer' });
+    }
 
     sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
 
@@ -125,13 +127,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Cannot reject an active Easer. Use suspend instead.' });
     }
 
-    await sb.from('profiles').update({
+    const { error: rejectErr } = await sb.from('profiles').update({
       status: 'rejected',
       tier: null,
+      previous_tier: null,
+      is_available: false,
       application_status: 'rejected',
       rejected_at: new Date().toISOString(),
       rejection_reason: rejectionReason?.trim() || null,
     }).eq('id', assemblerId);
+    if (rejectErr) {
+      console.error('reject update error:', rejectErr);
+      return res.status(500).json({ error: 'Failed to reject Easer' });
+    }
 
     sb.from('assembler_waitlist').update({ status: 'rejected' }).eq('email', profile.email.toLowerCase()).then(() => {});
 
@@ -187,15 +195,19 @@ export default async function handler(req, res) {
     const { suspensionNotes } = req.body;
     if (suspensionNotes?.trim()) console.log(`[suspend] ${profile.full_name} (${assemblerId}): ${suspensionNotes.trim()}`);
 
-    // tier column definitely exists — use it as fallback suspended marker
-    await sb.from('profiles').update({ tier: 'suspended' }).eq('id', assemblerId);
-    await sb.from('profiles').update({
+    const preservedTier = getPreservedTier(profile);
+    const { error: suspendErr } = await sb.from('profiles').update({
+      tier: 'suspended',
       status: 'suspended',
-      previous_tier: profile.tier,
+      previous_tier: preservedTier,
       is_available: false,   // force offline — suspended Easers must not appear available
     }).eq('id', assemblerId);
+    if (suspendErr) {
+      console.error('suspend update error:', suspendErr);
+      return res.status(500).json({ error: 'Failed to suspend Easer' });
+    }
 
-    return res.status(200).json({ ok: true, action: 'suspended', previous_tier: profile.tier });
+    return res.status(200).json({ ok: true, action: 'suspended', previous_tier: preservedTier });
   }
 
   // ── REINSTATE ────────────────────────────────────────────────────────────
@@ -204,12 +216,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Easer is not suspended.' });
     }
 
-    const restoredTier = profile.previous_tier || 'starter';
-    await sb.from('profiles').update({ tier: restoredTier }).eq('id', assemblerId);
-    await sb.from('profiles').update({
+    const restoredTier = getRestorableTier(profile);
+    const { error: reinstateErr } = await sb.from('profiles').update({
+      tier: restoredTier,
       status: 'active',
       previous_tier: null,
     }).eq('id', assemblerId);
+    if (reinstateErr) {
+      console.error('reinstate update error:', reinstateErr);
+      return res.status(500).json({ error: 'Failed to reinstate Easer' });
+    }
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
     const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[restoredTier] || restoredTier;
@@ -230,7 +246,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Only active Easers can have their tier changed.' });
     }
 
-    const validTiers = ['starter', 'professional', 'elite'];
+    const validTiers = ACTIVE_EASER_TIERS;
     if (!tier || !validTiers.includes(tier)) {
       return res.status(400).json({ error: 'tier must be one of: starter, professional, elite' });
     }

@@ -7,6 +7,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
+import { ACTIVE_EASER_TIERS, deriveAssemblerStatus, normalizeAssemblerTier } from '../_assembler-state.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -407,17 +408,8 @@ function getEaserEligibility(profile) {
     return { ok: false, error: 'Easer profile not found' };
   }
 
-  const tier = String(profile.tier || '').toLowerCase();
-  const applicationStatus = String(profile.application_status || '').toLowerCase();
-  let status = String(profile.status || '').toLowerCase();
-
-  // Backwards-compatible status derivation in case status is unset on legacy rows.
-  if (!status) {
-    if (applicationStatus === 'rejected' || tier === 'rejected') status = 'rejected';
-    else if (tier === 'suspended') status = 'suspended';
-    else if (tier === 'pending' || !tier) status = 'pending';
-    else status = 'active';
-  }
+  const tier = normalizeAssemblerTier(profile.tier);
+  const status = deriveAssemblerStatus(profile);
 
   if (status !== 'active') {
     return { ok: false, error: 'Your Easer account is not eligible to accept jobs right now.' };
@@ -427,7 +419,7 @@ function getEaserEligibility(profile) {
     return { ok: false, error: 'Identity verification is required before accepting jobs.' };
   }
 
-  if (!['starter', 'professional', 'elite'].includes(tier)) {
+  if (!ACTIVE_EASER_TIERS.includes(tier)) {
     return { ok: false, error: 'Your Easer tier is not eligible for job acceptance.' };
   }
 

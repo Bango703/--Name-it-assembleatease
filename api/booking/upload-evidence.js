@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
+import { deriveAssemblerStatus } from '../_assembler-state.js';
 
 // Raise body-parser limit: base64 of a 5 MB image is ~6.7 MB JSON
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can upload evidence' });
-  if (profile.status !== 'active') return res.status(403).json({ error: 'Account is not active' });
+  if (deriveAssemblerStatus(profile) !== 'active') return res.status(403).json({ error: 'Account is not active' });
 
   // ── Validate input ────────────────────────────────────────────────────────
   const payload = req.body && typeof req.body === 'object' ? req.body : {};

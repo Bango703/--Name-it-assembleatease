@@ -1,9 +1,10 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { ACTIVE_EASER_TIERS, normalizeAssemblerProfile } from '../_assembler-state.js';
 
 /**
  * GET /api/booking/assemblers
- * Returns eligible assemblers (tier starter/professional/elite + identity_verified).
+ * Returns eligible assemblers (active status + tier starter/professional/elite + identity_verified).
  * Owner-only endpoint.
  */
 export default async function handler(req, res) {
@@ -14,10 +15,9 @@ export default async function handler(req, res) {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, full_name, email, city, tier, rating, completed_jobs, is_available, identity_verified')
+    .select('id, full_name, email, city, status, tier, rating, completed_jobs, is_available, identity_verified')
     .eq('role', 'assembler')
     .eq('identity_verified', true)
-    .in('tier', ['starter', 'professional', 'elite'])
     .order('tier', { ascending: false })
     .order('rating', { ascending: false, nullsFirst: false });
 
@@ -26,5 +26,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load assemblers' });
   }
 
-  return res.status(200).json({ assemblers: data || [] });
+  const assemblers = (data || [])
+    .map(normalizeAssemblerProfile)
+    .filter(function(assembler) {
+      return assembler.status === 'active' && ACTIVE_EASER_TIERS.includes(assembler.tier);
+    });
+
+  return res.status(200).json({ assemblers });
 }

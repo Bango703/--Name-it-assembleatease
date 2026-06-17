@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { deriveAssemblerStatus } from '../_assembler-state.js';
 
 function taxReadinessFromAccount(account, dueCount) {
   if (!account) {
@@ -76,7 +77,8 @@ export default async function handler(req, res) {
   const contractorAgreementAccepted = !!profile.contractor_agreement_signed_at;
   const agreementVersion = profile.contractor_agreement_version || profile.agreement_version || null;
   const identityVerified = profile.identity_verified === true;
-  const ownerApproved = String(profile.status || '').toLowerCase() === 'active' || String(profile.application_status || '').toLowerCase() === 'approved';
+  const effectiveStatus = deriveAssemblerStatus(profile);
+  const ownerApproved = effectiveStatus === 'active';
   const connectStarted = !!profile.stripe_connect_account_id;
   const connectComplete = !!profile.stripe_connect_onboarding_complete;
   const payoutsEnabled = !!profile.stripe_connect_payouts_enabled;

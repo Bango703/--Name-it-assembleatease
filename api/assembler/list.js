@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { ACTIVE_EASER_TIERS, normalizeAssemblerProfile } from '../_assembler-state.js';
 
 /**
  * GET /api/assembler/list
@@ -31,20 +32,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch assemblers: ' + error.message });
   }
 
-  const assemblers = data || [];
+  const assemblers = (data || []).map(normalizeAssemblerProfile);
   const requireConnect = isStripeConnectEnabled();
-
-  // Normalise: if DB hasn't been migrated yet (no status column), derive status from tier
-  assemblers.forEach(a => {
-    if (!a.status) {
-      if (a.application_status === 'rejected' || a.tier === 'rejected') a.status = 'rejected';
-      else if (a.tier === 'suspended') a.status = 'suspended';
-      else if (a.tier === 'pending' || !a.tier) a.status = 'pending';
-      else a.status = 'active';
-    }
-    // Map old 'verified' tier label to 'professional'
-    if (a.tier === 'verified') a.tier = 'professional';
-  });
 
   const stats = {
     total:         assemblers.length,
@@ -56,7 +45,7 @@ export default async function handler(req, res) {
     professional:  assemblers.filter(a => a.status === 'active' && a.tier === 'professional').length,
     elite:         assemblers.filter(a => a.status === 'active' && a.tier === 'elite').length,
     dispatchEligible: assemblers.filter(a => {
-      if (!(a.status === 'active' && a.identity_verified && ['starter', 'professional', 'elite'].includes(a.tier))) {
+      if (!(a.status === 'active' && a.identity_verified && ACTIVE_EASER_TIERS.includes(a.tier))) {
         return false;
       }
       if (!requireConnect) return true;

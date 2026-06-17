@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { deriveAssemblerStatus } from '../_assembler-state.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -32,7 +33,7 @@ export default async function handler(req, res) {
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can use this endpoint' });
-  if (profile.status !== 'active') {
+  if (deriveAssemblerStatus(profile) !== 'active') {
     return res.status(403).json({ error: 'Your account must be approved before setting up payouts.' });
   }
   if (!profile.identity_verified) {

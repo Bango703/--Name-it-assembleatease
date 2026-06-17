@@ -4,6 +4,7 @@ import { sendPushToUser } from '../_push.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { ACTIVE_EASER_TIERS, deriveAssemblerStatus, normalizeAssemblerTier } from '../_assembler-state.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -42,10 +43,12 @@ export default async function handler(req, res) {
     .single();
 
   if (aErr || !assembler) return res.status(404).json({ error: 'Easer not found' });
-  if (assembler.status !== 'active') {
-    return res.status(400).json({ error: `Easer account is ${assembler.status || 'not active'}. Only active Easers can be assigned.` });
+  const assemblerStatus = deriveAssemblerStatus(assembler);
+  const assemblerTier = normalizeAssemblerTier(assembler.tier);
+  if (assemblerStatus !== 'active') {
+    return res.status(400).json({ error: `Easer account is ${assemblerStatus || 'not active'}. Only active Easers can be assigned.` });
   }
-  if (!['starter', 'professional', 'elite'].includes(assembler.tier)) {
+  if (!ACTIVE_EASER_TIERS.includes(assemblerTier)) {
     return res.status(400).json({ error: 'Easer must have a valid tier (Starter, Professional, or Elite).' });
   }
   if (!assembler.identity_verified) {
@@ -65,7 +68,7 @@ export default async function handler(req, res) {
   const updateQuery = sb.from('bookings').update({
     assembler_id: assemblerId,
     assembler_name: assembler.full_name,
-    assembler_tier: assembler.tier,
+    assembler_tier: assemblerTier,
     assigned_at: new Date().toISOString(),
     assignment_token: token,
     assembler_accepted_at: null,
@@ -152,7 +155,7 @@ export default async function handler(req, res) {
       newAssemblerName: assembler.full_name,
       previousAssemblerId: prevEaserId || null,
       previousAssemblerName: booking.assembler_name || null,
-      tier: assembler.tier,
+      tier: assemblerTier,
     },
   });
 

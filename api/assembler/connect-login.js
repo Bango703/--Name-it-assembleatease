@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { deriveAssemblerStatus } from '../_assembler-state.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can use this endpoint' });
-  if (profile.status !== 'active') return res.status(403).json({ error: 'Your account must be active to manage payouts.' });
+  if (deriveAssemblerStatus(profile) !== 'active') return res.status(403).json({ error: 'Your account must be active to manage payouts.' });
   if (!profile.stripe_connect_account_id) {
     return res.status(400).json({ error: 'Stripe payout account is not set up yet.' });
   }
