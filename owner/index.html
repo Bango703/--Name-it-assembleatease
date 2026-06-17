@@ -829,6 +829,22 @@
           </div>
         </div>
 
+        <!-- Money that isn't yours — reserve rollup -->
+        <div class="detail-panel open" style="margin-bottom:1rem;border-color:#f3d28a;background:#fffdf7">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem">
+            <div>
+              <div class="detail-section-title" style="margin:0">Money that isn&rsquo;t yours &mdash; set it aside</div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Dollars already in your balance that are owed out. Don&rsquo;t spend them.</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-end">
+              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Sales tax owed</div><div id="reserve-tax" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
+              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Pending Easer payouts</div><div id="reserve-payouts" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
+              <div style="border-left:1px solid var(--border);padding-left:1.4rem"><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#b45309;font-weight:800">Set aside (don&rsquo;t spend)</div><div id="reserve-total" style="font-size:1.3rem;font-weight:800;color:#b45309">&mdash;</div></div>
+              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Clawbacks to recover</div><div id="reserve-clawbacks" style="font-size:1.05rem;font-weight:800;color:#dc2626">&mdash;</div><div style="font-size:0.6rem;color:var(--muted)">owed back to you</div></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Executive Overview -->
         <div class="detail-section-title" style="margin:0 0 0.75rem">Executive Overview</div>
         <div class="stats-row" id="analytics-stats-row" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
@@ -3850,6 +3866,7 @@ function intelQuick(msg) {
   var financialCacDollars = localStorage.getItem('aae-owner-cac-dollars') || '';
   var financialOpexMonthly = localStorage.getItem('aae-owner-opex-monthly') || '';
   var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'quarter';
+  var reserveParts = { tax: 0, payouts: 0, clawbacks: 0 };
   function stripeFee(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
   function fmt$(cents) { return '$'+(Number(cents || 0)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtSigned$(cents) {
@@ -4007,6 +4024,7 @@ function intelQuick(msg) {
         });
       }
       var totalOut = (d.totals && d.totals.outstandingCents) || 0;
+      reserveParts.tax = totalOut; renderReserveRollup();
       if (banner) {
         if (totalOut > 0) { banner.style.display = ''; banner.textContent = 'Outstanding sales tax to remit: ' + fmt$(totalOut) + ' — set this aside for the Texas Comptroller.'; }
         else { banner.style.display = 'none'; }
@@ -4052,7 +4070,17 @@ function intelQuick(msg) {
     }
   }
 
+  function renderReserveRollup() {
+    var tax = Number(reserveParts.tax || 0);
+    var payouts = Number(reserveParts.payouts || 0);
+    setText('reserve-tax', fmt$(tax));
+    setText('reserve-payouts', fmt$(payouts));
+    setText('reserve-total', fmt$(tax + payouts));
+    setText('reserve-clawbacks', fmt$(Number(reserveParts.clawbacks || 0)));
+  }
+
   function renderClawbacks(cb) {
+    reserveParts.clawbacks = (cb && cb.totalOwedCents) || 0; renderReserveRollup();
     var panel = document.getElementById('clawback-panel');
     var body = document.getElementById('clawback-body');
     if (!panel || !body) return;
@@ -4325,6 +4353,7 @@ function intelQuick(msg) {
       var d = await r.json();
       var easers = d.easers || [];
       var totals = d.totals || {};
+      reserveParts.payouts = Number(totals.total_pending || 0); renderReserveRollup();
 
       if (totalsEl && totals.total_pending !== undefined) {
         var pendingDollars = (totals.total_pending / 100).toFixed(2);
