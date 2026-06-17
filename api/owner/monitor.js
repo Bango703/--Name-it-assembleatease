@@ -57,10 +57,8 @@ export default async function handler(req, res) {
   const gross = financeTotals.totalCharged;
   const pendingPayouts = financeTotals.pendingPayouts;
   const netRevenue = financeTotals.totalPlatformRevenue;
-  const stripeFees = completed.reduce((s, b) => {
-    const c = Number(b.amount_charged || b.total_price) || 0;
-    return s + (c > 0 ? Math.round(c * 0.029) + 30 : 0);
-  }, 0);
+  // Same fee source already netted into netRevenue, so gross - fees - payouts - tax reconciles.
+  const stripeFees = financeTotals.totalStripeFees;
 
   // Booking velocity — last 7 days vs prev 7 days
   const d7  = new Date(now - 7  * 86400000).toISOString();

@@ -14,7 +14,7 @@ import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-led
  *   completedJobs        — total completed bookings in range
  *   totalCharged         — total collected from customers (cents)
  *   totalPaidOut         — total paid to assemblers (cents)
- *   totalPlatformRevenue — company keeps: totalCharged - totalPaidOut (cents)
+ *   totalPlatformRevenue — platform gross profit the company keeps: revenue (net of refunds) - Easer payouts - sales tax (pass-through) - Stripe fees (cents)
  *   pendingPayouts       — assembler_due sum for completed-but-not-yet-paid jobs (cents)
  *   paidOutJobs          — count of jobs with payout recorded
  *   pendingJobs          — count of completed jobs awaiting payout

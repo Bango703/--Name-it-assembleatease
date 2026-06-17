@@ -73,6 +73,9 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
     // Sales tax is a pass-through liability owed to the state — NOT platform revenue.
     // Exclude it from platform revenue so the books reconcile to true operating profit.
     const taxCollected = Math.min(Math.max(0, Number(b.tax_amount || 0)), netCharged);
+    // Actual Stripe fee when captured (migration 011); else the canonical estimate.
+    const stripeFee = (b.stripe_fee != null ? Number(b.stripe_fee) : estimateStripeFeeCents(netCharged));
+    const payoutForRevenue = paidOut ? payoutAmount : (isRefunded ? 0 : owed);
 
     return {
       bookingId: b.id,
@@ -96,10 +99,11 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       payoutAmount,
       owed,
       taxCollected,
-      // Actual Stripe fee when captured (migration 011); else the canonical estimate.
-      stripeFee: (b.stripe_fee != null ? Number(b.stripe_fee) : estimateStripeFeeCents(netCharged)),
+      stripeFee,
       stripeFeeIsActual: b.stripe_fee != null,
-      platformRevenue: netCharged - (paidOut ? payoutAmount : (isRefunded ? 0 : owed)) - taxCollected,
+      // Platform gross profit — ONE definition shared across all finance surfaces:
+      // revenue (net of refunds) MINUS Easer payout, sales tax (pass-through), and Stripe fee.
+      platformRevenue: netCharged - payoutForRevenue - taxCollected - stripeFee,
       isRefunded,
       hasLedger: !!ledger,
       legacyDerived,
