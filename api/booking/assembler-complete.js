@@ -407,7 +407,7 @@ export default async function handler(req, res) {
       </table>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:14px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
-      Your payout releases to your bank <strong>about 48 hours after completion</strong>, once the job is confirmed and clear of any dispute. You'll see it move from <em>Pending</em> to <em>Paid</em> on your Payouts page.
+      ${isStripeConnectEnabled() ? "Your payout releases to your bank <strong>about 48 hours after completion</strong>, once the job is confirmed and clear of any dispute. You'll see it move from <em>Pending</em> to <em>Paid</em> on your Payouts page." : "Your payout for this job is now <strong>pending</strong>. AssembleAtEase sends Easer payouts by bank transfer (ACH) once the job is confirmed and clear of any dispute &mdash; typically within a few business days. You'll see it move from <em>Pending</em> to <em>Paid</em> on your Payouts page, and you'll get a payout confirmation email when it's sent."}
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a>.</p>
   </td></tr></table>
