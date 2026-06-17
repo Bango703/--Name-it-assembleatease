@@ -1442,16 +1442,20 @@
           <div id="item-list-wrap"></div>
 
           <style>
-            .reco-shelf{margin-top:1.1rem;border:1px solid #e2edf1;border-radius:12px;padding:0.85rem 0.95rem;background:#f7fbfc}
-            .reco-shelf-head{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#5f6b7a;margin-bottom:0.6rem}
+            .reco-shelf{margin-top:1.1rem;border:1px solid #e2edf1;border-radius:12px;padding:0.9rem 0.95rem;background:#f7fbfc;display:flex;flex-direction:column;gap:0.9rem}
+            .reco-shelf-block{display:flex;flex-direction:column;gap:0.5rem}
+            .reco-shelf-head{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#5f6b7a}
+            .reco-shelf-note{font-size:0.76rem;color:#5f6b7a;line-height:1.4}
             .reco-shelf-row{display:flex;flex-direction:column;gap:0.5rem}
-            .reco-chip{display:flex;align-items:center;gap:0.7rem;width:100%;text-align:left;background:#fff;border:1.5px solid #e2edf1;border-radius:10px;padding:0.6rem 0.7rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;font-family:inherit}
+            .reco-chip{display:flex;align-items:center;gap:0.7rem;width:100%;text-align:left;background:#fff;border:1.5px solid #e2edf1;border-radius:10px;padding:0.65rem 0.7rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;font-family:inherit}
             .reco-chip:hover{border-color:#00BFFF;box-shadow:0 4px 14px rgba(0,191,255,0.12)}
             .reco-chip-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
             .reco-chip-name{font-size:0.9rem;font-weight:700;color:#0d1117;line-height:1.2}
             .reco-chip-why{font-size:0.76rem;color:#5f6b7a;line-height:1.3}
             .reco-chip-price{font-size:0.86rem;font-weight:800;color:#0d1117;white-space:nowrap}
+            .reco-chip-price.action{color:#0099CC}
             .reco-chip-add{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#e6f7fb;color:#0099CC;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+            @media (min-width:720px){.reco-shelf-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}}
           </style>
           <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
 
@@ -2436,6 +2440,31 @@ var SUBCAT_NOTES = {
   'Add-ons': 'Add-ons are for the same visit after a main item is selected.'
 };
 
+var BUNDLE_SERVICE_RULES = {
+  'Furniture Assembly': [
+    { service: 'Smart Home', label: 'Add smart home setup', why: 'Locks, doorbells, cameras, and thermostats can be handled in one stop.' },
+    { service: 'Mounting & Hanging', label: 'Add TV mounting', why: 'A common same-visit combo for media consoles, shelving, and move-ins.', whenAny: ['tv stand', 'media console', 'entertainment'] }
+  ],
+  'Mounting & Hanging': [
+    { service: 'Furniture Assembly', label: 'Add furniture assembly', why: 'Pair the mount with a console, TV stand, desk, or shelf assembly.' },
+    { service: 'Smart Home', label: 'Add smart home setup', why: 'Doorbells, cameras, and streaming gear are easy same-visit adds.' }
+  ],
+  'Smart Home': [
+    { service: 'Mounting & Hanging', label: 'Add wall mounting', why: 'TVs, shelves, and mirrors pair well with device installs.' },
+    { service: 'Furniture Assembly', label: 'Add furniture assembly', why: 'Desks, media consoles, and bedroom pieces can be handled the same visit.' }
+  ],
+  'Office Assembly': [
+    { service: 'Mounting & Hanging', label: 'Add wall mounting', why: 'Whiteboards, shelves, and displays are easy to bundle with office installs.' },
+    { service: 'Smart Home', label: 'Add Wi-Fi or hub setup', why: 'Mesh Wi-Fi and device setup pair well with office setups.' }
+  ],
+  'Fitness Equipment': [
+    { service: 'Furniture Assembly', label: 'Add storage assembly', why: 'Shelving, benches, and storage pieces can be finished on the same visit.' }
+  ],
+  'Outdoor & Playsets': [
+    { service: 'Furniture Assembly', label: 'Add patio furniture assembly', why: 'Outdoor seating, storage, and patio pieces can ride on the same visit.' }
+  ]
+};
+
 function startCustomQuoteFlow() {
   var quoteItemName = 'Describe your project in the notes below (custom quote)';
   BOOK.selectedServices = ['Other'];
@@ -2488,6 +2517,7 @@ function showItemScreen(svc) {
   }
 
   renderItemScreen(svc);
+  updateOrderSummary();
 
   document.getElementById('svc-screen').style.display = 'none';
   document.getElementById('item-screen').style.display = '';
@@ -2786,52 +2816,85 @@ function toggleItem(svc, name, price, priceMax, isAddon, isCustomQuote) {
 
 
 // ----------------------------------------------------------------------------
-// RECOMMENDATION SHELF (Phase 0 - catalog-driven: safety + convenience add-ons)
-// Pure UX layer. Adds existing catalog items via toggleItem; server prices/validates.
+// RECOMMENDATION SHELF
+// Pure UX layer. Adds existing catalog items or opens another catalog-backed service.
+// Server remains the source of truth for prices, taxes, and validation.
 // ----------------------------------------------------------------------------
-function recommendItems(svc) {
-  if (!svc || svc === "Other") return [];
-  var groups = SUBCATS[svc] || [];
-  var selected = BOOK.selectedItems[svc] || [];
-  var hasBase = selected.some(function(i){ return !i.addon && !i.customQuote; });
-  if (!hasBase) return [];
-  var selNames = selected.map(function(i){ return String(i.name||"").toLowerCase(); });
-  function applies(list){
-    if (!list || !list.length) return true;
-    return selNames.some(function(n){ return list.some(function(k){ return n.indexOf(String(k).toLowerCase()) !== -1; }); });
-  }
-  function chosen(name){ return selected.some(function(i){ return i.name === name; }); }
-  var out = [];
-  groups.forEach(function(g){
-    (g.items||[]).forEach(function(it){
-      if (it.customQuote || chosen(it.name)) return;
-      var tags = it.tags || [];
-      var pri = tags.indexOf("safety") !== -1 ? 1 : (tags.indexOf("convenience") !== -1 ? 2 : 0);
-      if (!pri) return;
-      if (!applies(it.appliesTo)) return;
-      out.push({ it: it, priority: pri });
-    });
-  });
-  out.sort(function(a,b){ return a.priority - b.priority; });
-  return out.slice(0, 3);
+function hasSelectedBaseItems(svc) {
+  return (BOOK.selectedItems[svc] || []).some(function(i) { return !i.addon && !i.customQuote; });
 }
 
-function renderRecoShelf(svc) {
-  var shelf = document.getElementById("reco-shelf");
-  if (!shelf) return;
-  var recs = recommendItems(svc);
-  if (!recs.length) { shelf.style.display = "none"; shelf.innerHTML = ""; return; }
-  var html = "<div class=\"reco-shelf-head\">Frequently added</div><div class=\"reco-shelf-row\">";
-  recs.forEach(function(r){
-    var it = r.it;
-    var label = esc(it.recoLabel || it.name);
-    var why = esc(it.recoWhy || "");
-    var price = it.customQuote ? "Quote" : ("+$" + it.price);
+function getSelectedItemNamesLower(svc) {
+  return (BOOK.selectedItems[svc] || []).map(function(i) { return String(i.name || "").toLowerCase(); });
+}
+
+function appliesToSelection(list, selectedNames) {
+  if (!list || !list.length) return true;
+  return selectedNames.some(function(name) {
+    return list.some(function(keyword) {
+      return name.indexOf(String(keyword).toLowerCase()) !== -1;
+    });
+  });
+}
+
+function collectRecoCandidates(svc) {
+  if (!svc || svc === "Other" || !hasSelectedBaseItems(svc)) return [];
+  var groups = SUBCATS[svc] || [];
+  var selected = BOOK.selectedItems[svc] || [];
+  var selectedNames = getSelectedItemNamesLower(svc);
+  function chosen(name) {
+    return selected.some(function(i) { return i.name === name; });
+  }
+  var out = [];
+  groups.forEach(function(group) {
+    (group.items || []).forEach(function(item) {
+      if (item.customQuote || chosen(item.name)) return;
+      var tags = item.tags || [];
+      if (!tags.length) return;
+      if (!appliesToSelection(item.appliesTo, selectedNames)) return;
+      out.push({
+        item: item,
+        priority: tags.indexOf("safety") !== -1 ? 1 : (tags.indexOf("convenience") !== -1 ? 2 : (tags.indexOf("upgrade") !== -1 ? 3 : 0))
+      });
+    });
+  });
+  return out;
+}
+
+function recommendItems(svc) {
+  var candidates = collectRecoCandidates(svc);
+  var addOns = candidates.filter(function(entry) { return entry.priority === 1 || entry.priority === 2; });
+  var upgrades = candidates.filter(function(entry) { return entry.priority === 3; });
+  addOns.sort(function(a, b) { return a.priority - b.priority; });
+  return {
+    addOns: addOns.slice(0, 3),
+    upgrades: upgrades.slice(0, 2)
+  };
+}
+
+function recommendBundleServices(svc) {
+  if (!svc || svc === "Other" || !hasSelectedBaseItems(svc)) return [];
+  var selectedNames = getSelectedItemNamesLower(svc);
+  return (BUNDLE_SERVICE_RULES[svc] || []).filter(function(rule) {
+    if (!rule || !rule.service || rule.service === svc) return false;
+    if (rule.whenAny && !appliesToSelection(rule.whenAny, selectedNames)) return false;
+    return true;
+  }).slice(0, 2);
+}
+
+function renderRecoItemSection(title, entries) {
+  if (!entries.length) return "";
+  var html = "<div class=\"reco-shelf-block\"><div class=\"reco-shelf-head\">" + esc(title) + "</div><div class=\"reco-shelf-row\">";
+  entries.forEach(function(entry) {
+    var item = entry.item;
+    var label = esc(item.recoLabel || item.name);
+    var why = esc(item.recoWhy || "");
+    var price = item.customQuote ? "Quote" : ("+$" + item.price);
     html += "<button type=\"button\" class=\"reco-chip\""
-      + " data-name=\"" + esc(it.name) + "\""
-      + " data-price=\"" + (it.price||0) + "\""
-      + " data-pricemax=\"" + (it.priceMax||0) + "\""
-      + " data-addon=\"" + (it.addon ? "true":"false") + "\""
+      + " data-name=\"" + escAttr(item.name) + "\""
+      + " data-price=\"" + (item.price || 0) + "\""
+      + " data-pricemax=\"" + (item.priceMax || 0) + "\""
+      + " data-addon=\"" + (item.addon ? "true" : "false") + "\""
       + " onclick=\"recoAdd(this)\">"
       + "<span class=\"reco-chip-text\"><span class=\"reco-chip-name\">" + label + "</span>"
       + (why ? "<span class=\"reco-chip-why\">" + why + "</span>" : "")
@@ -2840,9 +2903,45 @@ function renderRecoShelf(svc) {
       + "<span class=\"reco-chip-add\" aria-hidden=\"true\">+</span>"
       + "</button>";
   });
-  html += "</div>";
+  return html + "</div></div>";
+}
+
+function renderRecoBundleSection(entries) {
+  if (!entries.length) return "";
+  var html = "<div class=\"reco-shelf-block\">"
+    + "<div class=\"reco-shelf-head\">Same-visit bundles</div>"
+    + "<div class=\"reco-shelf-note\">Bundle savings start at 3+ priced items across 2 services.</div>"
+    + "<div class=\"reco-shelf-row\">";
+  entries.forEach(function(entry) {
+    var alreadySelected = BOOK.selectedServices.indexOf(entry.service) !== -1;
+    html += "<button type=\"button\" class=\"reco-chip\""
+      + " data-service=\"" + escAttr(entry.service) + "\""
+      + " onclick=\"recoBundle(this)\">"
+      + "<span class=\"reco-chip-text\"><span class=\"reco-chip-name\">" + esc(entry.label || entry.service) + "</span>"
+      + "<span class=\"reco-chip-why\">" + esc(entry.why || "") + "</span></span>"
+      + "<span class=\"reco-chip-price action\">" + (alreadySelected ? "Open" : "Browse") + "</span>"
+      + "<span class=\"reco-chip-add\" aria-hidden=\"true\">&rarr;</span>"
+      + "</button>";
+  });
+  return html + "</div></div>";
+}
+
+function renderRecoShelf(svc) {
+  var shelf = document.getElementById("reco-shelf");
+  if (!shelf) return;
+  var itemSections = recommendItems(svc);
+  var bundles = recommendBundleServices(svc);
+  var html = ""
+    + renderRecoItemSection("Helpful add-ons", itemSections.addOns)
+    + renderRecoItemSection("Upgrade the finish", itemSections.upgrades)
+    + renderRecoBundleSection(bundles);
+  if (!html) {
+    shelf.style.display = "none";
+    shelf.innerHTML = "";
+    return;
+  }
   shelf.innerHTML = html;
-  shelf.style.display = "block";
+  shelf.style.display = "flex";
 }
 
 function recoAdd(btn) {
@@ -2853,6 +2952,12 @@ function recoAdd(btn) {
     parseFloat(btn.getAttribute("data-pricemax")) || 0,
     btn.getAttribute("data-addon") === "true",
     false);
+}
+
+function recoBundle(btn) {
+  var svc = btn && btn.getAttribute("data-service");
+  if (!svc) return;
+  showItemScreen(svc);
 }
 
 

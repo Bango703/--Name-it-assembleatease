@@ -1,5 +1,5 @@
 // Booking catalog — source of truth for service subcategories, pricing, and ZIP range.
-// Prices reflect realistic Austin market rates. Booking totals add the zone-based
+// Prices reflect realistic Austin market rates. Booking totals add the flat
 // service call fee, tax, and launch minimum guardrails in the booking/pricing flow.
 
 window.AAE_BOOKING_SOURCE = {
@@ -93,7 +93,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'TV 66"–75" (standard wall)', price: 179 },
         { name: 'TV 76"–85" (standard wall)', price: 209 },
         { name: 'TV 86"+ / commercial display', price: 249, priceMax: 329 },
-        { name: 'Second TV (same visit)', price: 69, addon: true }
+        { name: 'Second TV (same visit)', price: 69, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Add a second TV', recoWhy: 'Cheaper than booking another trip' }
       ]},
       { group: 'Wall Type Upgrades', items: [
         { name: 'Brick or concrete wall', price: 75, addon: true },
@@ -102,10 +102,10 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Above fireplace mount', price: 85, addon: true }
       ]},
       { group: 'Cable & Cord Management', items: [
-        { name: 'Surface cord cover (raceway, up to 6 ft)', price: 89 },
-        { name: 'In-wall cord concealment', price: 189, popular: true },
-        { name: 'In-wall cord concealment (brick / concrete)', price: 249 },
-        { name: 'Cable management box / hub install', price: 79 }
+        { name: 'Surface cord cover (raceway, up to 6 ft)', price: 89, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'Hide the cords', recoWhy: 'Cleaner finish without opening drywall' },
+        { name: 'In-wall cord concealment', price: 189, popular: true, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'In-wall cord concealment', recoWhy: 'Premium clean look for mounted TVs' },
+        { name: 'In-wall cord concealment (brick / concrete)', price: 249, tags: ['upgrade'], appliesTo: ['tv','brick','concrete'], recoLabel: 'In-wall concealment for masonry', recoWhy: 'Premium finish for brick or concrete walls' },
+        { name: 'Cable management box / hub install', price: 79, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Tidy the media box', recoWhy: 'Keeps components and wires organized' }
       ]},
       { group: 'Shelves & Wall Items', items: [
         { name: 'Floating shelf — single (up to 36")', price: 89 },
@@ -141,7 +141,7 @@ window.AAE_BOOKING_SOURCE = {
       ]},
       { group: 'Mounting Add-ons', items: [
         { name: 'TV mount hardware (if not provided)', price: 39, addon: true },
-        { name: 'HDMI / cable routing to components', price: 35, addon: true },
+        { name: 'HDMI / cable routing to components', price: 35, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Route cables to components', recoWhy: 'Cleaner hookup to consoles and soundbars' },
         { name: 'Soundbar mount (below/above TV)', price: 55, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Mount a soundbar', recoWhy: 'Clean look under the TV' },
         { name: 'Patch drywall after unmount (small)', price: 65, addon: true }
       ]}
@@ -195,8 +195,8 @@ window.AAE_BOOKING_SOURCE = {
       ]},
       { group: 'Add-ons', items: [
         { name: 'App setup + walkthrough (per platform)', price: 29, addon: true, tags: ['convenience'], recoLabel: 'App setup & walkthrough', recoWhy: 'Ready to use before we leave' },
-        { name: 'Voice assistant integration (Alexa / Google)', price: 35, addon: true },
-        { name: 'Automation / routine programming (per device)', price: 25, addon: true },
+        { name: 'Voice assistant integration (Alexa / Google)', price: 35, addon: true, tags: ['upgrade'], recoLabel: 'Voice assistant integration', recoWhy: 'Control devices hands-free before we leave' },
+        { name: 'Automation / routine programming (per device)', price: 25, addon: true, tags: ['upgrade'], recoLabel: 'Set up automations', recoWhy: 'Schedules and routines ready to go' },
         { name: 'Device migration (old to new system)', price: 49, addon: true }
       ]}
     ],
@@ -254,8 +254,8 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Office partition / divider install', price: 189 }
       ]},
       { group: 'Add-ons', items: [
-        { name: 'Cable management / cord routing', price: 39, addon: true },
-        { name: 'Monitor arm install (desk clamp)', price: 39, addon: true },
+        { name: 'Cable management / cord routing', price: 39, addon: true, tags: ['convenience'], recoLabel: 'Desk cable cleanup', recoWhy: 'Cleaner workstation finish before we go' },
+        { name: 'Monitor arm install (desk clamp)', price: 39, addon: true, tags: ['upgrade'], recoLabel: 'Add a monitor arm', recoWhy: 'Better ergonomics and more desk space' },
         { name: 'Wall anchoring / anti-tip hardware', price: 45, addon: true, tags: ['safety'], appliesTo: ['bookcase','shelving','file cabinet','storage','credenza','wall-mounted','cabinet'], recoLabel: 'Anti-tip anchoring', recoWhy: 'Secures tall units to the wall' },
         { name: 'Box breakdown / packaging cleanup', price: 35, addon: true, tags: ['convenience'], recoLabel: 'Box & packaging cleanup', recoWhy: 'No mess left behind' },
         { name: 'Rush / same-day office assembly', price: 75, addon: true },
@@ -282,7 +282,7 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Add-ons', items: [
         { name: 'Disassembly before move or storage', price: 65, addon: true },
         { name: 'Equipment move within home (same floor)', price: 55, addon: true },
-        { name: 'Floor leveling / placement support', price: 45, addon: true },
+        { name: 'Floor leveling / placement support', price: 45, addon: true, tags: ['safety'], recoLabel: 'Level and place it', recoWhy: 'Better stability before first use' },
         { name: 'Safety anchoring / wall securing', price: 55, addon: true, tags: ['safety'], appliesTo: ['rack','squat','home gym','cable machine','multi-station'], recoLabel: 'Safety anchoring', recoWhy: 'Secures heavy equipment safely' },
         { name: 'Same-day / rush fitness assembly', price: 85, addon: true }
       ]}
