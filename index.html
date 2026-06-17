@@ -509,7 +509,17 @@ section#service-area{display:block}
    hero to the services list on load — so the first visible word was "Mounting"
    instead of the headline. Horizontal carousels keep their own x-axis snap.) */
 
+/* -----------------------------------------------------
+   HOMEPAGE BLOGS — single-row auto-advancing carousel (=820px)
+----------------------------------------------------- */
+@media(min-width:820px){
+  #guides .guides-grid{display:flex;gap:1rem;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:0 0 0.5rem;scrollbar-width:none}
+  #guides .guides-grid::-webkit-scrollbar{display:none}
+  #guides .guide-card{flex:0 0 340px;scroll-snap-align:start}
+}
+
 @media(prefers-reduced-motion:reduce){
+  #guides .guides-grid{scroll-behavior:auto}
   .hv2-eyebrow,.hv2-h1,.hv2-desc,.qbb-form,.qbb-or,.hv2-actions,.hv2-trust-row,.hv2-left img,.hv2-photo-badge,.hv2-review-card,.hv2-chip,.m-hero-kicker::before,.m-hero-photo img,.m-float-card,.svc-item,.how-num{animation:none!important}
   .reviews-marquee-track{animation:none}
   .svc-card,.svc-item,.faq-item,.m-large-project-btn{transition:none}
@@ -928,6 +938,34 @@ section#service-area{display:block}
 </section>
 
 
+
+<script>
+/* Homepage Blogs: gentle auto-advance left (~4.5s), pause on hover/touch */
+(function(){
+  var grid=document.querySelector('#guides .guides-grid');
+  if(!grid) return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var cards=grid.querySelectorAll('.guide-card');
+  if(cards.length<2) return;
+  var paused=false, resumeTimer;
+  function step(){
+    if(paused) return;
+    var max=grid.scrollWidth-grid.clientWidth-4;
+    if(grid.scrollLeft>=max){
+      grid.scrollTo({left:0,behavior:'smooth'});
+    }else{
+      var w=cards[0].getBoundingClientRect().width;
+      grid.scrollBy({left:w+16,behavior:'smooth'});
+    }
+  }
+  setInterval(step,4500);
+  function pause(ms){paused=true;clearTimeout(resumeTimer);if(ms){resumeTimer=setTimeout(function(){paused=false;},ms);}}
+  grid.addEventListener('pointerenter',function(){pause(0);});
+  grid.addEventListener('pointerleave',function(){pause(900);});
+  grid.addEventListener('touchstart',function(){pause(0);},{passive:true});
+  grid.addEventListener('touchend',function(){pause(6000);},{passive:true});
+})();
+</script>
 
 <!-- CUSTOMER REVIEWS -->
 <section class="section section-alt" id="reviews">
