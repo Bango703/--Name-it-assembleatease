@@ -819,7 +819,10 @@
               <button class="tab" data-fin-period="week" type="button">Week</button>
               <button class="tab" data-fin-period="today" type="button">Today</button>
               <button class="tab" data-fin-period="all" type="button">All</button>
-              <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">CAC $
+              <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Opex/mo $
+                <input id="fin-opex-input" type="number" min="0" step="1" placeholder="0" style="width:86px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
+              </label>
+              <label style="font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">CAC $
                 <input id="fin-cac-input" type="number" min="0" step="1" placeholder="0" style="width:86px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
               </label>
             </div>
@@ -3755,6 +3758,7 @@ function intelQuick(msg) {
   // ─── ANALYTICS / FINANCIALS VIEW ───
   var financialPeriod = localStorage.getItem('aae-owner-financial-period') || 'year';
   var financialCacDollars = localStorage.getItem('aae-owner-cac-dollars') || '';
+  var financialOpexMonthly = localStorage.getItem('aae-owner-opex-monthly') || '';
   function stripeFee(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
   function fmt$(cents) { return '$'+(Number(cents || 0)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtSigned$(cents) {
@@ -3786,6 +3790,15 @@ function intelQuick(msg) {
       renderAnalytics();
     });
   }
+  var opexInput = document.getElementById('fin-opex-input');
+  if (opexInput) {
+    opexInput.value = financialOpexMonthly;
+    opexInput.addEventListener('change', function() {
+      financialOpexMonthly = this.value || '';
+      localStorage.setItem('aae-owner-opex-monthly', financialOpexMonthly);
+      renderAnalytics();
+    });
+  }
   document.querySelectorAll('[data-fin-period]').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.finPeriod === financialPeriod);
     btn.addEventListener('click', function() {
@@ -3803,6 +3816,7 @@ function intelQuick(msg) {
     try {
       var params = new URLSearchParams({ period: financialPeriod });
       if (financialCacDollars) params.set('cacDollars', financialCacDollars);
+      if (financialOpexMonthly) params.set('opexMonthlyDollars', financialOpexMonthly);
       var r = await fetch('/api/owner/financial-dashboard?' + params.toString(), { headers: headers() });
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to load financial dashboard');

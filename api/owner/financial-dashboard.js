@@ -23,6 +23,8 @@ export default async function handler(req, res) {
   const period = normalizePeriod(req.query.period);
   const range = getPeriodRange(period);
   const cacCents = dollarsToCents(req.query.cacDollars ?? req.query.cac);
+  const opexMonthlyCents = dollarsToCents(req.query.opexMonthlyDollars ?? req.query.opexMonthly);
+  const annualOpexCents = opexMonthlyCents > 0 ? opexMonthlyCents * 12 : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
 
   let finance;
   try {
@@ -49,7 +51,7 @@ export default async function handler(req, res) {
   const easerPayouts = sum(rows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
-  const operatingExpenses = periodOperatingExpenses(period);
+  const operatingExpenses = periodOperatingExpenses(period, annualOpexCents);
   const estimatedNetOperatingProfit = platformGrossProfit - reworkRefundReserve - operatingExpenses - cacCents;
 
   let activeEasers = 0;
@@ -117,7 +119,10 @@ export default async function handler(req, res) {
       ...DEFAULT_ASSUMPTIONS,
       cacCents,
       processingFeeLabel: 'Estimated at 2.9% + $0.30 per captured transaction',
-      operatingExpenseLabel: '$3,500/year allocated to selected period',
+      annualOperatingExpensesCents: annualOpexCents,
+      operatingExpenseLabel: opexMonthlyCents > 0
+        ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo (owner-entered) allocated to selected period`
+        : 'Default $3,500/yr — enter your real monthly opex for an accurate net',
       launchMinimums: MIN_PRETAX_BOOKING_BY_ZONE,
     },
     labels: {
@@ -224,8 +229,10 @@ function getPeriodRange(period) {
   return { from: start.toISOString(), to: now.toISOString().slice(0, 10) };
 }
 
-function periodOperatingExpenses(period) {
-  const annual = DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
+function periodOperatingExpenses(period, annualOverrideCents) {
+  const annual = (Number.isFinite(annualOverrideCents) && annualOverrideCents > 0)
+    ? annualOverrideCents
+    : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
   if (period === 'today') return Math.round(annual / 365);
   if (period === 'week') return Math.round(annual / 52);
   if (period === 'month') return Math.round(annual / 12);
