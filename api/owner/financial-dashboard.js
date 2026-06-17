@@ -38,6 +38,7 @@ export default async function handler(req, res) {
   const bookingIds = rows.map(row => row.bookingId).filter(Boolean);
   const issueBookingIds = await loadIssueBookingIds(sb, bookingIds);
   const itemMetrics = await loadBookingItemMetrics(sb, bookingIds);
+  const contractorTax = await loadContractorTaxYear(sb);
   const completedJobs = rows.length;
   const grossCustomerRevenue = sum(rows, row => row.charged);
   const refunds = sum(rows, row => row.refund);
@@ -188,6 +189,7 @@ export default async function handler(req, res) {
       activeEasers,
     },
     serviceProfitability,
+    contractorTax,
     addOnMetrics: {
       tableAvailable: itemMetrics.tableAvailable,
       persistedRows: itemMetrics.persistedRows,
@@ -446,6 +448,47 @@ async function loadBookingItemMetrics(sb, bookingIds) {
   } catch (error) {
     console.warn('Financial dashboard booking_items skipped:', error?.message || error);
     return empty;
+  }
+}
+
+// Calendar-year payouts per Easer from the immutable ledger — drives 1099-NEC
+// tracking ($600 IRS threshold). Read-only; stores no TIN/SSN. Graceful if the
+// ledger table is unavailable.
+async function loadContractorTaxYear(sb) {
+  const year = new Date().getFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1)).toISOString();
+  const THRESHOLD_CENTS = 60000; // $600 1099-NEC reporting threshold
+  try {
+    const { data, error } = await sb
+      .from('payout_ledger')
+      .select('assembler_id, assembler_name, payout_amount, recorded_at')
+      .gte('recorded_at', yearStart);
+    if (error) {
+      console.warn('Contractor tax payout_ledger unavailable:', error.message || error);
+      return { year, thresholdCents: THRESHOLD_CENTS, available: false, easers: [], countNeeding1099: 0 };
+    }
+    const byEaser = new Map();
+    for (const row of data || []) {
+      const id = row.assembler_id;
+      if (!id) continue;
+      if (!byEaser.has(id)) byEaser.set(id, { assemblerId: id, name: row.assembler_name || 'Easer', ytdPaidCents: 0, payoutCount: 0 });
+      const e = byEaser.get(id);
+      e.ytdPaidCents += Number(row.payout_amount || 0);
+      e.payoutCount += 1;
+    }
+    const easers = Array.from(byEaser.values())
+      .map(e => ({ ...e, needs1099: e.ytdPaidCents >= THRESHOLD_CENTS }))
+      .sort((a, b) => b.ytdPaidCents - a.ytdPaidCents);
+    return {
+      year,
+      thresholdCents: THRESHOLD_CENTS,
+      available: true,
+      easers,
+      countNeeding1099: easers.filter(e => e.needs1099).length,
+    };
+  } catch (error) {
+    console.warn('Contractor tax year load skipped:', error?.message || error);
+    return { year, thresholdCents: THRESHOLD_CENTS, available: false, easers: [], countNeeding1099: 0 };
   }
 }
 

@@ -845,6 +845,23 @@
           <div class="stat neutral"><div class="stat-value" id="an-active-easers">—</div><div class="stat-label">Active Easers</div></div>
         </div>
 
+        <!-- Contractor Tax / 1099 (calendar year, from payout_ledger) -->
+        <div class="detail-panel open" style="margin-top:1.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">
+            <div>
+              <div class="detail-section-title" style="margin:0">Contractor Tax &mdash; 1099 Tracking <span id="ct-year" style="color:var(--muted);font-weight:400"></span></div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">YTD paid per Easer from the payout ledger. A 1099-NEC + W-9 is required for anyone paid $600+ in a calendar year.</div>
+            </div>
+            <div id="ct-summary" style="font-size:0.82rem;color:var(--muted);white-space:nowrap"></div>
+          </div>
+          <div class="finance-scroll">
+            <table class="pro-table finance-table" id="ct-table">
+              <thead><tr><th>Easer</th><th style="text-align:right">YTD Paid</th><th style="text-align:right">Payouts</th><th style="text-align:right">1099 Required</th></tr></thead>
+              <tbody id="ct-body"><tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Loading&hellip;</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
           <div class="detail-panel open" style="grid-column:1/-1">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Financial Formula</div>
@@ -3825,6 +3842,7 @@ function intelQuick(msg) {
       renderExpansionReadiness(d.expansionReadiness || {});
       renderFinancialLedger(d.ledger || []);
       renderFinancialBreakdowns(d);
+      renderContractorTax(d.contractorTax || {});
     } catch (e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Failed to load financial dashboard</td></tr>';
       setText('fin-gross-per-job', '—');
@@ -3832,6 +3850,35 @@ function intelQuick(msg) {
     }
 
     loadPayoutLedger();
+  }
+
+  function renderContractorTax(ct) {
+    var body = document.getElementById('ct-body');
+    if (!body) return;
+    setText('ct-year', ct.year ? '(' + ct.year + ')' : '');
+    var easers = ct.easers || [];
+    if (ct.available === false) {
+      body.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Payout ledger unavailable.</td></tr>';
+      setText('ct-summary', '');
+      return;
+    }
+    if (!easers.length) {
+      body.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">No payouts recorded this year yet.</td></tr>';
+      setText('ct-summary', '');
+      return;
+    }
+    body.innerHTML = easers.map(function(e) {
+      var nm = String(e.name || 'Easer').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      var flag = e.needs1099
+        ? '<span style="color:#dc2626;font-weight:700">Yes</span>'
+        : '<span style="color:var(--muted)">Not yet</span>';
+      return '<tr><td>' + nm + '</td>'
+        + '<td style="text-align:right;font-weight:700">' + fmt$(e.ytdPaidCents || 0) + '</td>'
+        + '<td style="text-align:right">' + (e.payoutCount || 0) + '</td>'
+        + '<td style="text-align:right">' + flag + '</td></tr>';
+    }).join('');
+    var n = ct.countNeeding1099 || 0;
+    setText('ct-summary', n + ' Easer' + (n === 1 ? '' : 's') + ' need a 1099-NEC');
   }
 
   function renderFinancialSummary(d) {
