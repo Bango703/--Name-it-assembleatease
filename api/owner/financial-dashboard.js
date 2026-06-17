@@ -94,6 +94,7 @@ export default async function handler(req, res) {
       const processingFee = estimateProcessingFee(row.charged);
       const easerPayout = payoutForProfit(row);
       const netCustomerRevenue = Number(row.netCharged || 0);
+      const salesTax = Number(row.taxCollected || 0); // pass-through liability — excluded from profit
       return {
         bookingId: row.bookingId,
         ref: row.ref,
@@ -106,9 +107,10 @@ export default async function handler(req, res) {
         charged: row.charged,
         refund: row.refund,
         customerRevenue: netCustomerRevenue,
+        salesTax,
         processingFee,
         easerPayout,
-        platformGrossProfit: netCustomerRevenue - processingFee - easerPayout,
+        platformGrossProfit: netCustomerRevenue - salesTax - processingFee - easerPayout,
         payoutStatus: row.payoutStatus || (row.paidOut ? 'paid' : 'pending'),
         dataSource: row.hasLedger ? 'ledger' : 'booking',
       };
@@ -149,6 +151,7 @@ export default async function handler(req, res) {
       refunds,
       refundedJobs,
       customerRevenue,
+      salesTaxCollected,
       processingFees,
       easerPayouts,
       platformGrossProfit,
@@ -575,6 +578,7 @@ function buildServiceProfitability(rows, itemMetrics = {}) {
     const processingShare = Math.round(estimateProcessingFee(row.charged) / count);
     const payoutShare = Math.round(payoutForProfit(row) / count);
     const refundShare = Math.round(Number(row.refund || 0) / count);
+    const taxShare = Math.round(Number(row.taxCollected || 0) / count);
 
     for (const serviceName of services) {
       if (!byService.has(serviceName)) {
@@ -583,6 +587,7 @@ function buildServiceProfitability(rows, itemMetrics = {}) {
           completedJobs: 0,
           charged: 0,
           revenue: 0,
+          salesTax: 0,
           baseServiceRevenue: 0,
           addOnRevenue: 0,
           jobsWithAddOns: 0,
@@ -595,6 +600,7 @@ function buildServiceProfitability(rows, itemMetrics = {}) {
       item.completedJobs += 1;
       item.charged += chargedShare;
       item.revenue += revenueShare;
+      item.salesTax += taxShare;
       item.baseServiceRevenue += revenueShare;
       item.processingFees += processingShare;
       item.easerPayouts += payoutShare;
@@ -604,7 +610,7 @@ function buildServiceProfitability(rows, itemMetrics = {}) {
 
   return Array.from(byService.values())
     .map(item => {
-      const platformGrossProfit = item.revenue - item.processingFees - item.easerPayouts;
+      const platformGrossProfit = item.revenue - (item.salesTax || 0) - item.processingFees - item.easerPayouts;
       const reworkRefundReserve = Math.round(item.revenue * DEFAULT_ASSUMPTIONS.reserveRate);
       const netContributionEstimate = platformGrossProfit - reworkRefundReserve;
       const averageTicket = item.completedJobs ? Math.round(item.revenue / item.completedJobs) : 0;
@@ -667,6 +673,7 @@ function addBookingItemServiceAllocations(byService, row, bookingItems) {
     const processingShare = Math.round(estimateProcessingFee(row.charged) * ratio);
     const payoutShare = Math.round(payoutForProfit(row) * ratio);
     const refundShare = Math.round(Number(row.refund || 0) * ratio);
+    const taxShare = Math.round(Number(row.taxCollected || 0) * ratio);
 
     if (!byService.has(group.serviceName)) {
       byService.set(group.serviceName, {
@@ -674,6 +681,7 @@ function addBookingItemServiceAllocations(byService, row, bookingItems) {
         completedJobs: 0,
         charged: 0,
         revenue: 0,
+        salesTax: 0,
         baseServiceRevenue: 0,
         addOnRevenue: 0,
         jobsWithAddOns: 0,
@@ -686,6 +694,7 @@ function addBookingItemServiceAllocations(byService, row, bookingItems) {
     item.completedJobs += 1;
     item.charged += chargedShare;
     item.revenue += revenueShare;
+    item.salesTax += taxShare;
     item.baseServiceRevenue += group.baseServiceRevenue;
     item.addOnRevenue += group.addOnRevenue;
     item.jobsWithAddOns += group.hasAddOn ? 1 : 0;

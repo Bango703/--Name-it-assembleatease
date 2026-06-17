@@ -803,7 +803,7 @@
             <div class="detail-section-title" style="color:rgba(255,255,255,0.62);margin-bottom:0.55rem">Financial North Star</div>
             <div style="font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.25rem);line-height:1;color:#fff" id="fin-gross-per-job">—</div>
             <div style="margin-top:0.35rem;color:rgba(255,255,255,0.78);font-size:0.9rem">Platform Gross Profit Per Completed Job</div>
-            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Main formula: Customer Revenue - Processing Fees - Easer Payouts = Platform Gross Profit.</div>
+            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Main formula: Customer Revenue - Sales Tax - Processing Fees - Easer Payouts = Platform Gross Profit. Sales tax is a pass-through liability, never revenue.</div>
           </div>
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
@@ -4102,6 +4102,7 @@ function intelQuick(msg) {
     if (formula) {
       formula.innerHTML =
         metricBox('Customer Revenue', fmt$(s.customerRevenue), 'plus') +
+        metricBox('- Sales Tax (to state)', '-' + fmt$(s.salesTaxCollected || 0), 'minus') +
         metricBox('- Processing Fees', '-' + fmt$(s.processingFees), 'minus') +
         metricBox('- Easer Payouts', '-' + fmt$(s.easerPayouts), 'minus') +
         metricBox('= Platform Gross', fmtSigned$(s.platformGrossProfit), 'equals') +
