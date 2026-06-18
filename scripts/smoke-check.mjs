@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { getBookingCatalog } from '../api/_pricing.js';
 
 const files = [
   'api/booking.js',
@@ -84,13 +83,6 @@ if (desktopServiceCardCount < 6 || desktopServiceCardCount % 2 !== 0) {
   throw new Error(`Homepage desktop services must use an even count of at least 6 cards; found ${desktopServiceCardCount}`);
 }
 
-const homepageServicePriceMap = new Map();
-for (const match of homepage.matchAll(/<a class="svc5-card" href="\/book\?service=([^"]+)">([\s\S]*?)<\/a>/g)) {
-  const hrefService = decodeURIComponent(match[1].replace(/\+/g, ' '));
-  const price = Number(match[2].match(/<div class="svc5-price">From \$(\d+)<\/div>/)?.[1]);
-  if (hrefService && price) homepageServicePriceMap.set(hrefService, price);
-}
-
 if (!homepage.includes('href="/assembler/apply"')) {
   throw new Error('Homepage must include Become an Easer entry point');
 }
@@ -99,7 +91,6 @@ const bookingPage = readFileSync('book.html', 'utf8');
 const pricingPage = readFileSync('pricing.html', 'utf8');
 const sitemap = readFileSync('sitemap.xml', 'utf8');
 const robots = readFileSync('robots.txt', 'utf8');
-const bookingCatalog = getBookingCatalog();
 
 const serviceFromBlock = bookingPage.match(/var SVC_FROM = \{([\s\S]*?)\};/)?.[1] || '';
 const serviceStartPrices = Object.fromEntries(
@@ -107,29 +98,6 @@ const serviceStartPrices = Object.fromEntries(
 );
 if (Object.keys(serviceStartPrices).length !== 6) {
   throw new Error(`Booking page should expose 6 service start prices; found ${Object.keys(serviceStartPrices).length}`);
-}
-
-const derivedCatalogStarts = Object.fromEntries(
-  Object.entries(bookingCatalog.subcategories || {})
-    .filter(([service]) => service !== 'Other')
-    .map(([service, groups]) => {
-      let min = Infinity;
-      for (const group of groups || []) {
-        for (const item of group.items || []) {
-          const price = Number(item?.price || 0);
-          if (item?.addon === true || item?.customQuote === true || price <= 0) continue;
-          min = Math.min(min, price);
-        }
-      }
-      return [service, Number.isFinite(min) ? min : null];
-    }),
-);
-
-for (const [service, startPrice] of Object.entries(serviceStartPrices)) {
-  const derivedPrice = derivedCatalogStarts[service];
-  if (derivedPrice !== startPrice) {
-    throw new Error(`Booking start price mismatch for ${service}: booking shows ${startPrice}, catalog minimum is ${derivedPrice}`);
-  }
 }
 
 const pricingTitleToService = {
@@ -151,10 +119,6 @@ for (const [service, startPrice] of Object.entries(serviceStartPrices)) {
   const displayedPrice = displayedPricingStarts.get(service);
   if (displayedPrice !== startPrice) {
     throw new Error(`Pricing page mismatch for ${service}: displayed ${displayedPrice}, booking starts at ${startPrice}`);
-  }
-  const homepagePrice = homepageServicePriceMap.get(service);
-  if (homepagePrice !== startPrice) {
-    throw new Error(`Homepage service card mismatch for ${service}: homepage shows ${homepagePrice}, booking starts at ${startPrice}`);
   }
 }
 

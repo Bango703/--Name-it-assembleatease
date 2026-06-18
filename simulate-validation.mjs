@@ -36,40 +36,15 @@ function log(tag, test, detail, color) {
   console.log(`  ${color}[${tag}]${reset} ${test}${detail ? `${dim} — ${detail}${reset}` : ''}`);
 }
 
-let ownerCookie = '';
-
-async function ownerLogin(force = false) {
-  if (ownerCookie && !force) return ownerCookie;
-  const resp = await fetch(BASE + '/api/owner/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: PW }),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    throw new Error(data.error || `Owner login failed (${resp.status})`);
-  }
-  const setCookie = resp.headers.get('set-cookie') || '';
-  ownerCookie = setCookie.split(';')[0] || '';
-  if (!ownerCookie) throw new Error('Owner login succeeded but no session cookie was returned');
-  return ownerCookie;
+function ownerH() {
+  return { 'Content-Type': 'application/json', 'x-owner-password': PW };
 }
 
-async function ownerH(force = false) {
-  await ownerLogin(force);
-  return { 'Content-Type': 'application/json', Cookie: ownerCookie };
-}
-
-async function api(method, path, body = null, headers = null) {
+async function api(method, path, body = null, headers = ownerH()) {
   try {
-    const useOwnerSession = !headers;
-    const opts = { method, headers: headers || await ownerH() };
+    const opts = { method, headers };
     if (body) opts.body = JSON.stringify(body);
-    let r = await fetch(BASE + path, opts);
-    if (useOwnerSession && r.status === 401) {
-      opts.headers = await ownerH(true);
-      r = await fetch(BASE + path, opts);
-    }
+    const r = await fetch(BASE + path, opts);
     let data = {};
     try { data = await r.json(); } catch (_) {}
     return { status: r.status, ok: r.ok, data };

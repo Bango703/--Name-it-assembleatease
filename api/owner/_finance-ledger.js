@@ -67,7 +67,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       ? Number(ledger.payout_amount || 0)
       : Number(b.assembler_due || 0);
 
-    const isRefunded = ['refunded', 'partially_refunded'].includes(b.payment_status) || refund > 0;
+    const isRefunded = b.payment_status === 'refunded' || refund > 0;
     const legacyDerived = !ledger;
 
     // Sales tax is a pass-through liability owed to the state — NOT platform revenue.

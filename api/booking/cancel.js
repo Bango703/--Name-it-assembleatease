@@ -45,14 +45,6 @@ export default async function handler(req, res) {
     isNoShow: noShow,
   });
   const withinCancellationWindow = policy.tier !== 'free';
-  const stripeMutationRequired = ['authorized', 'captured', 'deposit_paid'].includes(String(booking.payment_status || '').toLowerCase());
-
-  if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
-    return res.status(503).json({
-      error: 'Stripe cancellation handling is unavailable. Booking was not changed.',
-      code: 'CANCELLATION_CONFIGURATION_UNAVAILABLE',
-    });
-  }
 
   // ── Stripe: charge fee or release hold ────────────────────────────────────
   let refundAmount = 0;
@@ -150,10 +142,7 @@ export default async function handler(req, res) {
         metadata: { reason: reason || null, paymentStatus: booking.payment_status },
         error: stripeErr?.message || 'Owner cancellation Stripe mutation failed',
       });
-      return res.status(502).json({
-        error: 'We could not complete the Stripe portion of this cancellation. Booking was not changed.',
-        code: 'CANCELLATION_STRIPE_FAILED',
-      });
+      // Log but do not block cancellation — owner can handle payment manually
     }
   }
 
@@ -165,34 +154,18 @@ export default async function handler(req, res) {
     } catch (e) { console.error('pro trip-cut calc error:', e); }
   }
 
-  const cancelledAt = new Date().toISOString();
-  const updates = {
-    status: BOOKING_STATUS.CANCELLED,
-    cancelled_at: cancelledAt,
-    cancel_reason: reason || null,
-    cancellation_fee: feeCaptured || null,
-  };
+  // Try full update first; fall back to just status if optional columns don't exist yet
+  let updateErr;
+  ({ error: updateErr } = await sb.from('bookings')
+    .update({ status: BOOKING_STATUS.CANCELLED, cancelled_at: new Date().toISOString(), cancel_reason: reason || null, cancellation_fee: feeCaptured || null })
+    .eq('id', booking.id));
 
-  if (booking.payment_status === 'authorized') {
-    if (feeCaptured > 0) {
-      updates.payment_status = 'cancellation_fee_captured';
-      updates.payment_captured_at = cancelledAt;
-      updates.amount_charged = feeCaptured;
-      updates.tax_amount = 0;
-    } else {
-      updates.payment_status = 'released';
-      updates.amount_charged = 0;
-      updates.tax_amount = 0;
-    }
-  } else if (refundAmount > 0) {
-    updates.payment_status = 'refunded';
-    updates.refund_amount = refundAmount;
-    updates.refunded_at = cancelledAt;
+  if (updateErr) {
+    console.warn('Cancel full update failed, trying status-only:', updateErr.message);
+    ({ error: updateErr } = await sb.from('bookings')
+      .update({ status: BOOKING_STATUS.CANCELLED })
+      .eq('id', booking.id));
   }
-
-  const { error: updateErr } = await sb.from('bookings')
-    .update(updates)
-    .eq('id', booking.id);
 
   if (updateErr) {
     console.error('Cancel update error:', updateErr);

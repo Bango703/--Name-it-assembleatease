@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -1409,7 +1409,7 @@ function intelQuick(msg) {
     <select id="nb-service">
       <option value="">Select a service...</option>
       <option value="Furniture Assembly">Furniture Assembly</option>
-      <option value="Mounting & Hanging">TV Mounting</option>
+      <option value="Mounting & Hanging">Mounting &amp; Hanging</option>
       <option value="Smart Home">Smart Home</option>
       <option value="Other">Other / Custom</option>
     </select>
@@ -1451,7 +1451,10 @@ function intelQuick(msg) {
 <script>
 (function(){
   const API = '/api/booking';
-  let ownerSessionActive = false;
+  let _ownerSession = null;
+  try { _ownerSession = JSON.parse(sessionStorage.getItem('owner_pw') || 'null'); } catch(e) { sessionStorage.removeItem('owner_pw'); }
+  let password = (_ownerSession && _ownerSession.expires > Date.now()) ? _ownerSession.password : '';
+  if (_ownerSession && _ownerSession.expires <= Date.now()) sessionStorage.removeItem('owner_pw');
   let allBookings = [];
   let selectedId = null;
   let _msgTarget = 'customer';
@@ -1490,7 +1493,7 @@ function intelQuick(msg) {
   }
 
   function headers(extra) {
-    return Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+    return Object.assign({ 'Content-Type': 'application/json', 'x-owner-password': password }, extra || {});
   }
 
   // ── Content Kit (one Blog -> ready-to-paste social posts) ──────────────
@@ -1741,7 +1744,6 @@ function intelQuick(msg) {
 
   // ─── Login / Logout ───
   function showDashboard() {
-    ownerSessionActive = true;
     $gate.style.display = 'none';
     $layout.classList.remove('hidden');
     loadBookings();
@@ -1795,27 +1797,11 @@ function intelQuick(msg) {
 
   async function tryLogin() {
     if (checkLockout()) return;
-    var password = $loginPw.value.trim();
+    password = $loginPw.value.trim();
     if (!password) return;
     $loginBtn.disabled = true;
     try {
-      const r = await fetch('/api/owner/login', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ password: password }),
-      });
-      const data = await r.json().catch(function(){ return {}; });
-      if (r.status === 429) {
-        var retrySeconds = data.retryAfterSeconds || 300;
-        _lockoutUntil = Date.now() + (retrySeconds * 1000);
-        sessionStorage.setItem('owner_lockout_until', String(_lockoutUntil));
-        sessionStorage.setItem('owner_login_attempts', '0');
-        _loginAttempts = 0;
-        $loginErr.textContent = 'Too many failed attempts. Locked out for ' + Math.ceil(retrySeconds / 60) + ' minute(s).';
-        $loginErr.style.display = 'block';
-        $loginBtn.disabled = false;
-        return;
-      }
+      const r = await fetch(API + '/list', { headers: headers() });
       if (r.status === 401) {
         _loginAttempts++;
         sessionStorage.setItem('owner_login_attempts', String(_loginAttempts));
@@ -1829,12 +1815,7 @@ function intelQuick(msg) {
           $loginErr.textContent = 'Invalid password (' + (3 - _loginAttempts) + ' attempt' + (3 - _loginAttempts !== 1 ? 's' : '') + ' remaining)';
         }
         $loginErr.style.display = 'block';
-        $loginBtn.disabled = false;
-        return;
-      }
-      if (!r.ok) {
-        $loginErr.textContent = data.error || 'Login failed';
-        $loginErr.style.display = 'block';
+        password = '';
         $loginBtn.disabled = false;
         return;
       }
@@ -1842,6 +1823,7 @@ function intelQuick(msg) {
       sessionStorage.removeItem('owner_login_attempts');
       sessionStorage.removeItem('owner_lockout_until');
       _loginAttempts = 0; _lockoutUntil = 0;
+      sessionStorage.setItem('owner_pw', JSON.stringify({ password, expires: Date.now() + 86400000 }));
       showDashboard();
     } catch {
       $loginErr.textContent = 'Connection error — please try again';
@@ -1850,38 +1832,22 @@ function intelQuick(msg) {
     }
   }
 
-  async function logout(expired) {
-    ownerSessionActive = false;
+  function logout(expired) {
+    password = '';
+    sessionStorage.removeItem('owner_pw');
     if (_bookingsTimer) { clearInterval(_bookingsTimer); _bookingsTimer = null; }
-    try {
-      await fetch('/api/owner/logout', { method: 'POST', headers: headers() });
-    } catch(_) {}
     if (expired) toast('Session expired — please log in again', 'error');
     setTimeout(function() {
       $layout.classList.add('hidden');
       $gate.style.display = 'flex';
       $loginPw.value = '';
-      $loginBtn.disabled = false;
       $loginErr.style.display = 'none';
     }, expired ? 1800 : 0);
   }
 
-  async function restoreOwnerSession() {
-    $loginBtn.disabled = true;
-    try {
-      const r = await fetch('/api/owner/session', { headers: headers() });
-      if (r.ok) {
-        showDashboard();
-        return;
-      }
-    } catch(_) {}
-    $loginBtn.disabled = false;
-    checkLockout();
-  }
-
   $loginBtn.addEventListener('click', tryLogin);
   $loginPw.addEventListener('keydown', function(e) { if (e.key === 'Enter') tryLogin(); });
-  document.getElementById('logout-btn').addEventListener('click', function() { logout(false); });
+  document.getElementById('logout-btn').addEventListener('click', logout);
   document.getElementById('refresh-btn').addEventListener('click', async function() {
     var btn = this;
     if (btn.disabled) return;
@@ -1962,7 +1928,7 @@ function intelQuick(msg) {
     }
   }
 
-  restoreOwnerSession();
+  if (password) showDashboard();
 
   // ─── Search ───
   document.getElementById('booking-search').addEventListener('input', function() {
@@ -2753,7 +2719,6 @@ function intelQuick(msg) {
 
   function renderActions(b) {
     var btns = [];
-    var refundableCents = Math.max(0, Number(b.amount_charged || 0) - Number(b.refund_amount || 0));
     if (b.status === 'pending') {
       // Custom quote requests (total_price=0) need price before confirming
       if (!b.total_price || b.total_price === 0) {
@@ -2792,19 +2757,14 @@ function intelQuick(msg) {
       } else if (b.evidence_requested_at) {
         btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Evidence Requested</button>');
       }
-      if (['captured', 'partially_refunded'].includes(b.payment_status) && refundableCents > 0) {
-        btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
-      }
       if (b.payment_status === 'captured') {
+        btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Customer</button>');
         if (b.assembler_id && b.payout_status !== 'paid') {
           btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">Record Payout</button>');
         }
       }
     }
     if (b.status === 'cancelled' || b.status === 'declined') {
-      if (['captured', 'deposit_paid', 'cancellation_fee_captured', 'partially_refunded'].includes(b.payment_status) && refundableCents > 0) {
-        btns.push('<button class="btn btn-red" data-action="refund" data-id="' + b.id + '">Refund Charge</button>');
-      }
       btns.push('<button class="btn btn-red" data-action="delete-booking" data-id="' + b.id + '" title="Permanently delete this booking">Delete</button>');
     }
     // Always show password reset for customer on any booking
@@ -3375,11 +3335,8 @@ function intelQuick(msg) {
       not_required: ['py-not-required', 'Not Required'],
       card_saved:   ['py-authorized',   'Card on File'],
       authorized:   ['py-authorized',   'Authorized'],
-      released:     ['py-not-required', 'Released'],
       deposit_paid: ['py-deposit-paid', 'Deposit Paid'],
       captured:     ['py-captured',     'Paid'],
-      cancellation_fee_captured: ['py-captured', 'Cancel Fee Paid'],
-      partially_refunded: ['py-refunded', 'Partially Refunded'],
       refunded:     ['py-refunded',     'Refunded'],
       failed:       ['py-failed',       'Failed'],
     };
@@ -3435,6 +3392,8 @@ function intelQuick(msg) {
       eligibleAssemblers = data.assemblers || [];
     } catch(e) { console.error('Failed to load assemblers:', e); }
   }
+
+  if (password) loadAssemblers();
 
   function renderAssignSection(b) {
     var section  = document.getElementById('assign-section');
@@ -4656,6 +4615,18 @@ function intelQuick(msg) {
       } catch { toast('Failed to delete', 'error'); }
     }
   });
+
+  if (password) (async function() {
+    try {
+      var r = await fetch('/api/owner/waitlist?status=pending', { headers: headers() });
+      if (r.ok) {
+        var d = await r.json();
+        var pending = (d.stats || {}).pending || 0;
+        var $navWl = document.getElementById('nav-waitlist');
+        if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
+      }
+    } catch(e) {}
+  })();
 
   // ─── Assembler management ───
   var allAssemblerProfiles = [];

@@ -27,29 +27,20 @@ export default async function handler(req, res) {
   if (!booking.stripe_payment_intent_id) {
     return res.status(400).json({ error: 'No Stripe payment found for this booking' });
   }
-  const amountChargedCents = Number(booking.amount_charged || 0);
-  const existingRefundAmountCents = Math.max(0, Number(booking.refund_amount || 0));
-  const remainingRefundableCents = Math.max(0, amountChargedCents - existingRefundAmountCents);
-
-  if (booking.payment_status === 'refunded' || remainingRefundableCents <= 0) {
+  if (booking.payment_status === 'refunded') {
     return res.status(400).json({ error: 'Booking has already been refunded' });
   }
   if (booking.payment_status === 'authorized') {
     return res.status(400).json({ error: 'This payment has not been captured yet — the card hold has not been charged. Cancel the booking instead to release the hold on the customer\'s card.' });
   }
 
-  const refundAmountCents = amount ? parseInt(amount, 10) : remainingRefundableCents;
+  const refundAmountCents = amount ? parseInt(amount, 10) : (booking.amount_charged || null);
   if (!refundAmountCents || refundAmountCents <= 0) {
     return res.status(400).json({ error: 'Invalid refund amount' });
   }
-  if (refundAmountCents > remainingRefundableCents) {
-    return res.status(400).json({
-      error: `Refund exceeds remaining captured amount. Remaining refundable amount is $${(remainingRefundableCents / 100).toFixed(2)}.`,
-    });
-  }
 
   let stripeRefund;
-  const idempotencyKey = `booking-refund-${booking.id}-${existingRefundAmountCents}-${refundAmountCents}`;
+  const idempotencyKey = `booking-refund-${booking.id}-${refundAmountCents}`;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     await writeFinancialAudit(sb, {
@@ -95,15 +86,13 @@ export default async function handler(req, res) {
   }
 
   // Update booking record
-  const totalRefundedCents = existingRefundAmountCents + stripeRefund.amount;
-  const nextPaymentStatus = totalRefundedCents >= amountChargedCents ? 'refunded' : 'partially_refunded';
   const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
-    payment_status: nextPaymentStatus,
+    payment_status: 'refunded',
     refund_id: stripeRefund.id,
-    refund_amount: totalRefundedCents,
+    refund_amount: stripeRefund.amount,
     refunded_at: new Date().toISOString(),
     refund_reason: reason?.trim() || null,
-  }).eq('id', booking.id).select('id');
+  }).eq('id', booking.id).neq('payment_status', 'refunded').select('id');
 
   if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
     await writeFinancialAudit(sb, {
@@ -137,11 +126,10 @@ export default async function handler(req, res) {
       eventType: 'refunded',
       actorType: 'owner',
       actorName: 'Owner',
-      description: `${nextPaymentStatus === 'refunded' ? 'Refund' : 'Partial refund'} processed: $${(stripeRefund.amount / 100).toFixed(2)}${reason ? ` — ${reason}` : ''}`,
+      description: `Refund processed: $${(stripeRefund.amount / 100).toFixed(2)}${reason ? ` — ${reason}` : ''}`,
       metadata: {
         refundId: stripeRefund.id,
         refundAmount: stripeRefund.amount,
-        cumulativeRefundAmount: totalRefundedCents,
         refundStatus: stripeRefund.status,
         reason: reason?.trim() || null,
       },
@@ -192,8 +180,8 @@ export default async function handler(req, res) {
   // #7 — Send customer refund email
   try {
     const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
-    const totalDisplay = amountChargedCents ? `$${(amountChargedCents / 100).toFixed(2)}` : null;
-    const isPartial = totalRefundedCents < amountChargedCents;
+    const totalDisplay = booking.amount_charged ? `$${(booking.amount_charged / 100).toFixed(2)}` : null;
+    const isPartial = booking.amount_charged && stripeRefund.amount < booking.amount_charged;
 
     const html = buildStatusEmail({
       customerName: booking.customer_name,
@@ -234,9 +222,7 @@ export default async function handler(req, res) {
     success: true,
     refundId: stripeRefund.id,
     amount: stripeRefund.amount,
-    totalRefunded: totalRefundedCents,
     status: stripeRefund.status,
-    paymentStatus: nextPaymentStatus,
     payoutReviewRequired,
   });
 }
