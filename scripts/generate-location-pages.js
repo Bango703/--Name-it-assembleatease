@@ -239,7 +239,7 @@ const SERVICES = [
     bookingParam: 'Outdoor+%26+Playsets',
     tagline: 'Professional outdoor playset, trampoline, and structure assembly.',
     intro: 'We assemble swing sets, playsets, trampolines, pergolas, gazebos, storage sheds, and outdoor structures — fully built, safely leveled, and ready for your family to enjoy.',
-    fromPrice: '$169',
+    fromPrice: '$89',
     pricingHighlights: [
       { name: 'Sandbox / Outdoor Playhouse', price: '$169', popular: false },
       { name: 'Trampoline Assembly', price: '$199', popular: true },

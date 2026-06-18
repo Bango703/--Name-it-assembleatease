@@ -459,7 +459,7 @@ const SERVICES = [
   {
     slug: 'playset-assembly-austin-tx', prefix: 'playset-assembly', linkLabel: 'Playset Assembly',
     eyebrow: 'Outdoor & Playset Assembly', faqNoun: 'playset & outdoor assembly', bookingParam: 'Outdoor+%26+Playsets',
-    fromPrice: '$169', fromLabel: 'sandboxes &amp; playhouses &mdash; playsets from $299', ctaVerb: 'Book outdoor assembly',
+    fromPrice: '$89', fromLabel: 'outdoor assembly &mdash; playsets from $299', ctaVerb: 'Book outdoor assembly',
     heroTitle: 'Out of the box.<br><em>Into the backyard.</em>',
     heroSub: 'Playsets, swing sets, trampolines, gazebos and patio sets &mdash; built to spec, anchored safe, and checked over before anyone climbs on. Tools and cleanup included.',
     heroPhoto: 'real-outdoor-gazebo.png', heroAlt: 'Assembled cedar gazebo with a swing in a backyard',
