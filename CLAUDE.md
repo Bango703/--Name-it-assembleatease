@@ -243,3 +243,99 @@ States (from `_source-of-truth.js`): `pending → confirmed → en_route → arr
 Key tables: `bookings`, `profiles` (Easers + customers), `dispatch_offers`, `payout_ledger`, `financial_event_audit`, `notification_log`, `operational_events`, `booking_messages`, `booking_notes`, `booking_timeline`, `cron_log`.
 
 Always use `getSupabase()` from `api/_supabase.js` — it returns the singleton service-role client. Never create a new `createClient()` call in a handler unless you need to verify a user JWT (then use `userClient.auth.getUser(token)`).
+
+---
+
+## CRITICAL AI FAILURE RULES — DO NOT IGNORE
+
+AI must stop treating every problem as an "add more" problem. Before adding anything, first ask:
+
+1. Does this already exist?
+2. Is the existing version incomplete?
+3. Would improving the existing version be better?
+4. Does this create duplicate content?
+5. Does this create customer confusion?
+6. Does this help bookings, trust, profit, or operations?
+
+If not, do not add it.
+
+### Completion before expansion
+
+Do not create new pages, city pages, sections, blogs, cards, galleries, or layouts while existing core pages are unfinished. Priority order:
+
+1. Fix broken pages
+2. Complete incomplete pages
+3. Improve weak pages
+4. Standardize layouts
+5. Then expand
+
+**Expansion never comes before completion.**
+
+### Anti-duplication
+
+Never create duplicate pages with the same intent. A page is **NOT** unique just because: the city name changed, the headline changed slightly, the same photos were reused, the same service copy was rearranged, or the SEO target changed. Every page must have a unique purpose, audience, content, service angle, or conversion value. **"SEO" alone is not enough reason to create a page.**
+
+### Business intent before task execution
+
+Never execute requests literally without understanding the business reason. "Add photos" does not mean add random photos everywhere — it means determine which real AssembleAtEase photos to use, where they improve trust, where they improve conversion, whether they belong on that page, and whether they are duplicated elsewhere. Every change must have a business reason. **"Looks better" is not enough.**
+
+### Real assets
+
+Use real AssembleAtEase assets before generic or decorative ones: real job photos, real customer reviews, real service examples, real operating rules, real pricing, real business documents, real company branding. Do not replace authentic proof with generic filler.
+
+### Subtraction first
+
+Before adding pages, sections, cards, buttons, icons, photos, copy, animations, dashboards, or features, ask whether something should be removed, merged, simplified, or clarified instead. The best solution is often less UI, fewer words, fewer pages, and fewer decisions.
+
+### Premium positioning
+
+AssembleAtEase is not a cheap handyman site. Do **not** position the brand as cheapest, budget, discount, bargain, generic, or desperate. Position it as professional, reliable, organized, premium-but-fair, easy to book, and trustworthy inside the home.
+
+### Visual authority
+
+The site must not look like a basic founder-built MVP. Avoid giant empty cards, repeated sections, oversized blocks, random spacing, weak hierarchy, template-looking layouts, duplicate visual elements, city stuffing, unnecessary badges, and clutter. Every page should feel intentional, finished, and professional.
+
+### Pricing psychology
+
+Customers compare perceived value and total cost, not internal formulas. Evaluate sticker shock, fee presentation, fairness, simplicity, premium perception, and conversion impact. Do not blindly lower prices. Do not blindly add fees. Protect margin while making pricing feel clear and fair.
+
+### Location copy
+
+Do not stuff "Austin" or any city everywhere. City name belongs only in: title/meta, JSON-LD, hero eyebrow, service-area section, FAQ, nearby-city links. Generic value copy stays location-neutral so the platform can expand.
+
+### No double-talk
+
+Never show the same thing multiple ways under different labels. Bad double-talk: customer total shown as Easer earnings; a "booking confirmed" email while the dashboard says awaiting acceptance; "READY FOR JOBS" while another field says missing required item; platform revenue including tax. **One source of truth must lead every view.**
+
+### Financial display
+
+- **Customer sees:** service subtotal, tax, total charged.
+- **Easer sees:** estimated earnings, final earnings, payout status.
+- **Owner sees:** customer total, tax, platform fee, Easer earnings, Stripe fee, platform gross, payout status.
+
+**Never show the customer gross total as Easer pay.**
+
+### First 25 jobs
+
+AssembleAtEase is in validation stage. Do not build for 1,000 jobs before proving 25 successful jobs. Prefer completed bookings, customer trust, Easer clarity, owner visibility, clean operations, and profit protection over more pages, features, automations, dashboards, or complexity.
+
+### Final rule
+
+Do not just make the website bigger. **Make the business clearer, stronger, more trustworthy, more profitable, and easier to operate.**
+
+---
+
+## ADDITIONAL FULL-PLATFORM AUDIT AREAS
+
+When auditing AssembleAtEase, also check:
+
+1. **Customer drop-off points** — where would a customer hesitate, leave, or compare competitors? Check homepage → service page → booking → checkout → confirmation.
+2. **Owner action required** — every workflow must answer "what does Travis need to do next?" If the owner dashboard doesn't make the next action obvious, flag it.
+3. **Failed-state audit** — check every failure case: payment declined, email fails, Easer doesn't accept, Easer cancels, customer cancels, Stripe capture fails, refund fails, photo upload fails, payout not recorded, tax report not filed.
+4. **Empty-state audit** — every page must look professional with no data: no jobs, no reviews, no payout history, no Easers, no bookings, no tax remittances.
+5. **Mobile owner / Easer audit** — not just customer mobile; owner and Easer dashboards must be usable on mobile because jobs happen in the field.
+6. **Legal / tax / insurance consistency** — website, emails, contracts, Stripe, tax registration, insurance wording, and dashboards must all match: AssembleAtEase LLC, manual payout mode, sales tax collected, independent-contractor model, no hardware claims unless true.
+7. **Real data vs assumption** — flag every estimated metric (CAC, add-on rate, repeat rate, rework reserve, opex, labor time, service profitability). The dashboard must clearly mark estimated vs actual.
+8. **Post-job audit** — after job completion verify: payment captured, tax liability recorded, Easer earnings recorded, payout owed visible, customer receipt sent, review request sent, owner sees no loose ends.
+9. **Duplicate / incomplete page audit** — find duplicate pages, city-swapped pages, unfinished pages, stale prices, reused photos, and pages that exist only for SEO but do not help customers.
+10. **Launch survival audit** — assume the first 25 jobs: what can break? what will customers complain about? what will Easers complain about? what will cost money? what will Travis forget?
