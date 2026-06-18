@@ -337,7 +337,7 @@ const SERVICES = [
     eyebrow: 'TV Mounting & Hanging', faqNoun: 'TV mounting', bookingParam: 'Mounting+%26+Hanging',
     fromPrice: '$79', fromLabel: 'pictures &amp; mirrors &mdash; TVs from $99', ctaVerb: 'Book TV mounting',
     heroTitle: 'On the wall.<br><em>Wires gone.</em>',
-    heroSub: 'TVs, soundbars, mirrors and art &mdash; mounted level, anchored to studs, cables hidden. We bring the mounts, hardware and tools; you get a clean wall.',
+    heroSub: 'TVs, soundbars, mirrors and art &mdash; mounted level, anchored to studs, cables hidden. You supply the mount and hardware; we bring the tools and the steady hands for a clean, level wall.',
     heroPhoto: 'real-tv-mount-console.jpg', heroAlt: 'Large flat-screen TV wall-mounted above a media console',
     workHeadline: 'Mounted level. Wires gone.',
     noteStrong: 'Hundreds of TVs on the wall and counting.', noteSpan: 'Bedrooms, great rooms, offices and patios &mdash; mounts, soundbars and cable concealment, cleaned up and leveled.',
@@ -346,7 +346,7 @@ const SERVICES = [
       { src: 'real-tv-setup-console.jpg', alt: 'Flat TV flush-mounted over a black media console', cap: 'Flush mount over a console', sub: 'Tilt set, cords concealed, ready to watch' },
     ],
     trust: [
-      { icon: 'wrench', text: 'Mounts &amp; hardware available' },
+      { icon: 'wrench', text: 'Pro brings the tools' },
       { icon: 'clock', text: 'Most mounts 60&ndash;90 min' },
       { icon: 'shield', text: 'Pay after it&rsquo;s done' },
       { icon: 'check', text: 'Cables hidden, wall clean' },
@@ -361,7 +361,7 @@ const SERVICES = [
     brands: ['Samsung', 'LG', 'Sony', 'TCL', 'Vizio', 'Sonos', 'Sanus', 'Echogear'],
     faqs: [
       { q: 'How long does TV mounting take?', a: 'Most standard wall mounts take 60&ndash;90 minutes. Cord concealment, brick or stone, and above-fireplace jobs take a little longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },
-      { q: 'Do you bring the mount and hardware?', a: 'We arrive with a stud finder, level and tools. We can supply a quality mount for most TVs, or use one you already have &mdash; just tell us your TV size and wall type when you book.' },
+      { q: 'Do you provide the TV mount?', a: 'No &mdash; please have your wall mount and any hardware ready before the visit. Our pros bring the tools and do the install. Not sure which mount fits your TV and wall? Message your pro after booking and they&rsquo;ll point you to the right one.' },
       { q: 'Can you hide the cables in the wall?', a: 'Yes &mdash; in-wall cord concealment runs the cables behind the drywall for a clean look on standard walls. On brick, stone or surfaces where in-wall isn&rsquo;t possible, we use a paintable cable raceway.' },
       { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.' },
     ],
@@ -435,7 +435,7 @@ const SERVICES = [
     eyebrow: 'Office Furniture Assembly', faqNoun: 'office furniture assembly', bookingParam: 'Office+Assembly',
     fromPrice: '$89', fromLabel: 'per piece &mdash; built square &amp; leveled', ctaVerb: 'Book office assembly',
     heroTitle: 'Desks built.<br><em>Back to work.</em>',
-    heroSub: 'Desks, chairs, cabinets and full workstations &mdash; built square, leveled, and ready to use. Tools, hardware and cleanup included, whether it&rsquo;s one desk or a whole floor.',
+    heroSub: 'Desks, chairs, cabinets and full workstations &mdash; built square, leveled, and ready to use. Tools and cleanup included, whether it&rsquo;s one desk or a whole floor.',
     heroPhoto: 'real-office-home-ldesk.jpg', heroAlt: 'Assembled wooden L-shaped desk and storage in a home office',
     workHeadline: 'Built square. Ready to work.',
     noteStrong: 'Home offices to full floors.', noteSpan: 'Desks, standing desks, chairs, cabinets, bookcases and multi-seat workstations &mdash; built square, leveled and cleaned up.',
@@ -444,7 +444,7 @@ const SERVICES = [
       { src: 'real-office-cabinets.jpg', alt: 'Pair of assembled glass-door storage cabinets', cap: 'Storage cabinets', sub: 'Built, leveled and anchored where needed' },
     ],
     trust: [
-      { icon: 'wrench', text: 'Tools &amp; hardware included' },
+      { icon: 'wrench', text: 'Pro brings the tools' },
       { icon: 'clock', text: 'Most desks 45&ndash;90 min' },
       { icon: 'shield', text: 'Pay after it&rsquo;s done' },
       { icon: 'check', text: 'Built square &amp; leveled' },
@@ -478,7 +478,7 @@ const SERVICES = [
       { src: 'real-outdoor-sectional.png', alt: 'Assembled outdoor wicker sectional in a backyard', cap: 'Outdoor sectional', sub: 'Modular sectional, squared up and leveled' },
     ],
     trust: [
-      { icon: 'wrench', text: 'Tools &amp; anchoring included' },
+      { icon: 'wrench', text: 'Pro brings the tools' },
       { icon: 'clock', text: 'Most builds 2&ndash;5 hrs' },
       { icon: 'shield', text: 'Pay after it&rsquo;s done' },
       { icon: 'check', text: 'Safety-checked before play' },

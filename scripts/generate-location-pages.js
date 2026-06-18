@@ -181,7 +181,7 @@ const SERVICES = [
       { name: 'In-wall cord concealment', price: '$189', popular: false },
     ],
     faqs: [
-      { q: 'Do you supply the TV mount?', a: 'We can supply TV mount hardware for $39, or we\'ll use yours — your choice at booking.' },
+      { q: 'Do you supply the TV mount?', a: 'No — you provide the TV mount and hardware; our pros bring the tools and do the install. Not sure what fits your TV and wall? Coordinate with your pro after booking.' },
       { q: 'Can you mount a TV above a fireplace?', a: 'Yes. Above-fireplace mounts include an $85 add-on for the extra height, reach, and precise tilt-angle work required.' },
       { q: 'What wall types do you work with?', a: 'Drywall, brick, concrete, tile, and steel-stud framing. Brick/concrete is a $75 add-on, tile is $65, and steel stud framing is $55.' },
     ],
@@ -247,7 +247,7 @@ const SERVICES = [
       { name: 'Pergola / Gazebo Kit', price: '$399–$599', popular: false },
     ],
     faqs: [
-      { q: 'Do you anchor the playset to the ground?', a: 'Yes — anchoring, leveling, and safety hardware can be added during booking when the kit or ground conditions require it.' },
+      { q: 'Do you anchor the playset to the ground?', a: 'Yes — we anchor and level to the manufacturer\'s spec and check stability before play. If your kit or ground needs extra anchoring, coordinate with your pro.' },
       { q: 'How long does playset assembly take?', a: 'Small outdoor items may take a couple of hours. Large modular playsets, gazebos, and sheds often take longer and may need a custom quote.' },
       { q: 'Do you work on concrete pads or grass?', a: 'Both. Grass, concrete, paver, and deck installs are supported. Tell us your surface type when booking.' },
     ],
