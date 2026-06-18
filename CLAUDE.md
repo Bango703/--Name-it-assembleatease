@@ -178,7 +178,7 @@ All handlers export `default async function handler(req, res)`. No framework rou
 
 - **Customers:** No account system. Track bookings via ref + email on `track.html`.
 - **Easers:** Supabase Auth (email/password). JWT sent as `Authorization: Bearer <token>` on API calls. `assets/js/app.js` handles session via `APP.getAuth()` — includes 800ms retry for session restore race condition.
-- **Owner:** Simple password auth via `x-owner-password` header, verified server-side by `verifyOwner(req)` in `_email.js` against `OWNER_PASSWORD` env var. No JWT.
+- **Owner:** Password login at `/api/owner/login` sets an HttpOnly signed session cookie (`aae_owner_session`). Owner APIs verify that cookie server-side via `verifyOwner(req)` in `_email.js`. No JWT.
 
 ### Payment Flow
 

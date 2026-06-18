@@ -210,30 +210,47 @@ export default async function handler(req, res) {
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;
   let connectPayout = { status: 'disabled' };
+  const completedAt = new Date().toISOString();
 
   // Atomic guard: only update if not already completed or captured.
   // If another request beat us here (double-click, retry, race with assembler-complete),
   // 0 rows will be updated and we return 400 instead of overwriting.
-  const { error: updateErr, data: updatedRows } = await sb
+  const completionUpdate = {
+    status: BOOKING_STATUS.COMPLETED,
+    completed_at: completedAt,
+    payment_status: 'captured',
+    payment_captured_at: completedAt,
+    amount_charged: finalAmountCharged,
+    platform_fee_pct: PLATFORM_FEE_PCT,
+    platform_fee: platformFee,
+    assembler_due: assemblerDue,
+  };
+  let updateErr;
+  let updatedRows;
+  ({ error: updateErr, data: updatedRows } = await sb
     .from('bookings')
-    .update({
-      status: BOOKING_STATUS.COMPLETED,
-      completed_at: new Date().toISOString(),
-      payment_status: 'captured',
-      payment_captured_at: new Date().toISOString(),
-      amount_charged: finalAmountCharged,
-      platform_fee_pct: PLATFORM_FEE_PCT,
-      platform_fee: platformFee,
-      assembler_due: assemblerDue,
-    })
+    .update(completionUpdate)
     .eq('id', booking.id)
     .neq('status', BOOKING_STATUS.COMPLETED)
     .neq('payment_status', 'captured')
-    .select('id');
+    .select('id'));
 
   if (updateErr) {
     console.error('Complete update error:', updateErr);
-    return res.status(500).json({ error: 'Failed to update booking' });
+    const fallback = await sb.from('bookings').update(completionUpdate)
+      .eq('id', booking.id)
+      .neq('status', BOOKING_STATUS.COMPLETED)
+      .neq('payment_status', 'captured')
+      .select('id');
+
+    if (fallback.error) {
+      return res.status(500).json({
+        error: 'Payment was captured, but we could not finish booking reconciliation. Review this booking before retrying.',
+        code: 'COMPLETION_RECONCILIATION_FAILED',
+      });
+    }
+
+    updatedRows = fallback.data || [];
   }
   if (!updatedRows || updatedRows.length === 0) {
     const { data: current } = await sb

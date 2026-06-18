@@ -242,29 +242,46 @@ export default async function handler(req, res) {
   const taxCents         = split.taxCents;
   const revenueBaseCents = split.revenueBaseCents;
   let connectPayout = { status: 'disabled' };
+  const completedAt = new Date().toISOString();
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
-  const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
+  const completionUpdate = {
     status: BOOKING_STATUS.COMPLETED,
-    completed_at: new Date().toISOString(),
+    completed_at: completedAt,
     assembler_accepted_at: booking.assembler_accepted_at || new Date().toISOString(),
     payment_status: 'captured',
-    payment_captured_at: new Date().toISOString(),
+    payment_captured_at: completedAt,
     amount_charged: finalAmount,
     platform_fee_pct: PLATFORM_FEE_PCT,
     platform_fee: platformFee,
     assembler_due: assemblerDue,
     completed_by: 'assembler',
     payout_status: 'pending',
-  })
-  .eq('id', booking.id)
-  .neq('status', BOOKING_STATUS.COMPLETED)
-  .neq('payment_status', 'captured')
-  .select('id');
+  };
+  let updateErr;
+  let updatedRows;
+  ({ error: updateErr, data: updatedRows } = await sb.from('bookings').update(completionUpdate)
+    .eq('id', booking.id)
+    .neq('status', BOOKING_STATUS.COMPLETED)
+    .neq('payment_status', 'captured')
+    .select('id'));
 
   if (updateErr) {
     console.error('Assembler-complete update error:', updateErr);
-    return res.status(500).json({ error: 'Failed to update booking' });
+    const fallback = await sb.from('bookings').update(completionUpdate)
+      .eq('id', booking.id)
+      .neq('status', BOOKING_STATUS.COMPLETED)
+      .neq('payment_status', 'captured')
+      .select('id');
+
+    if (fallback.error) {
+      return res.status(500).json({
+        error: 'Payment was captured, but we could not finish booking reconciliation. Contact AssembleAtEase.',
+        code: 'COMPLETION_RECONCILIATION_FAILED',
+      });
+    }
+
+    updatedRows = fallback.data || [];
   }
   if (!updatedRows || updatedRows.length === 0) {
     const { data: current } = await sb

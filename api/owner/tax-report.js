@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await sb
       .from('bookings')
-      .select('id, ref, tax_amount, amount_charged, total_price, payment_status, payment_captured_at, refunded_at, refund_amount')
+      .select('id, ref, status, tax_amount, amount_charged, total_price, payment_status, payment_captured_at, refunded_at, refund_amount')
       .not('payment_captured_at', 'is', null)
       .limit(5000);
     if (error) throw error;
@@ -57,7 +57,9 @@ export default async function handler(req, res) {
     if (ck) {
       const row = bucket(ck);
       row.taxCollectedCents += tax;
-      row.taxableSalesCents += Math.max(0, charged - tax);
+      if (String(b.payment_status || '').toLowerCase() !== 'cancellation_fee_captured') {
+        row.taxableSalesCents += Math.max(0, charged - tax);
+      }
     }
     const refundAmt = Number(b.refund_amount || 0);
     if (b.refunded_at && refundAmt > 0 && charged > 0) {

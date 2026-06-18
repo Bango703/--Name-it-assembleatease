@@ -421,7 +421,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = paymentIntentId;
 
         const { data: booking } = await sb.from('bookings')
-          .select('id, ref, payment_status')
+          .select('id, ref, payment_status, amount_charged, refund_amount')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle();
 
@@ -432,19 +432,24 @@ export default async function handler(req, res) {
         }
 
         webhookBookingId = booking.id;
+        const totalRefunded = Math.max(0, Number(charge.amount_refunded || 0));
+        const amountCharged = Math.max(0, Number(booking.amount_charged || 0));
+        const nextPaymentStatus = amountCharged > 0 && totalRefunded < amountCharged
+          ? 'partially_refunded'
+          : 'refunded';
 
         let { error: refundSyncErr } = await sb.from('bookings').update({
-          payment_status: 'refunded',
-          refund_amount: charge.amount_refunded || 0,
+          payment_status: nextPaymentStatus,
+          refund_amount: totalRefunded,
           refunded_at: new Date().toISOString(),
-        }).eq('id', booking.id).neq('payment_status', 'refunded');
+        }).eq('id', booking.id);
 
         if (refundSyncErr) {
           // Some environments may not have refund columns yet. Preserve core truth by
           // falling back to payment_status-only sync instead of dropping the webhook update.
           const fallback = await sb.from('bookings').update({
-            payment_status: 'refunded',
-          }).eq('id', booking.id).neq('payment_status', 'refunded');
+            payment_status: nextPaymentStatus,
+          }).eq('id', booking.id);
           refundSyncErr = fallback.error || null;
         }
 
@@ -460,8 +465,8 @@ export default async function handler(req, res) {
           eventType: 'refunded',
           actorType: 'system',
           actorName: 'stripe_webhook',
-          description: `Stripe webhook refund sync: $${((charge.amount_refunded || 0) / 100).toFixed(2)}`,
-          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: charge.amount_refunded || 0 },
+          description: `Stripe webhook ${nextPaymentStatus === 'refunded' ? 'refund' : 'partial refund'} sync: $${(totalRefunded / 100).toFixed(2)}`,
+          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: totalRefunded, paymentStatus: nextPaymentStatus },
         });
 
         await writeFinancialAudit(sb, {
@@ -472,7 +477,7 @@ export default async function handler(req, res) {
           paymentIntentId,
           status: 'processed',
           eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
-          metadata: { amountRefunded: charge.amount_refunded || 0, chargeId: charge.id || null },
+          metadata: { amountRefunded: totalRefunded, chargeId: charge.id || null, paymentStatus: nextPaymentStatus },
         });
 
         break;

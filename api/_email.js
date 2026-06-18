@@ -1,4 +1,4 @@
-﻿import { timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { getSupabase } from './_supabase.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -215,6 +215,8 @@ export function ownerEmail() {
 const OWNER_AUTH_WINDOW_MS = 10 * 60 * 1000;
 const OWNER_AUTH_LOCK_MS = 15 * 60 * 1000;
 const OWNER_AUTH_MAX_FAILS = 5;
+const OWNER_SESSION_COOKIE = 'aae_owner_session';
+const OWNER_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const ownerAuthAttempts = new Map();
 
 function getClientIp(req) {
@@ -243,6 +245,14 @@ function ownerAuthLocked(req) {
   return false;
 }
 
+function getOwnerAuthLockRemainingMs(req) {
+  const key = getOwnerAuthKey(req);
+  const now = Date.now();
+  const state = ownerAuthAttempts.get(key);
+  if (!state?.lockUntil || state.lockUntil <= now) return 0;
+  return state.lockUntil - now;
+}
+
 function recordOwnerAuthFailure(req) {
   const key = getOwnerAuthKey(req);
   const now = Date.now();
@@ -267,43 +277,131 @@ function recordOwnerAuthSuccess(req) {
   ownerAuthAttempts.delete(key);
 }
 
-/**
- * Verify owner authorization via password header.
- * Returns true if authorized.
- */
-export function verifyOwner(req) {
-  if (ownerAuthLocked(req)) return false;
+function parseCookies(req) {
+  const raw = String(req?.headers?.cookie || '');
+  return raw.split(';').reduce((acc, pair) => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return acc;
+    const key = pair.slice(0, idx).trim();
+    const value = pair.slice(idx + 1).trim();
+    if (!key) return acc;
+    acc[key] = decodeURIComponent(value);
+    return acc;
+  }, {});
+}
 
-  const pw = process.env.OWNER_PASSWORD;
-  if (!pw) {
-    recordOwnerAuthFailure(req);
-    return false;
+function isSecureRequest(req) {
+  const forwardedProto = String(req?.headers?.['x-forwarded-proto'] || '').toLowerCase();
+  if (forwardedProto === 'https') return true;
+
+  const host = String(req?.headers?.host || '').toLowerCase();
+  if (!host) return false;
+  return !host.startsWith('localhost') && !host.startsWith('127.0.0.1');
+}
+
+function getOwnerSessionSecret() {
+  return process.env.OWNER_SESSION_SECRET || process.env.OWNER_PASSWORD || '';
+}
+
+function signOwnerSessionPayload(payload) {
+  const secret = getOwnerSessionSecret();
+  if (!secret) return '';
+  return createHmac('sha256', String(secret)).update(payload).digest('base64url');
+}
+
+function createOwnerSessionValue() {
+  const payload = Buffer.from(JSON.stringify({
+    role: 'owner',
+    exp: Date.now() + OWNER_SESSION_TTL_MS,
+  })).toString('base64url');
+  const signature = signOwnerSessionPayload(payload);
+  return signature ? `${payload}.${signature}` : '';
+}
+
+function readOwnerSession(req) {
+  const token = parseCookies(req)[OWNER_SESSION_COOKIE];
+  if (!token) return null;
+
+  const [payload, signature] = String(token).split('.');
+  if (!payload || !signature) return null;
+
+  try {
+    const expected = signOwnerSessionPayload(payload);
+    if (!expected) return null;
+
+    const a = Buffer.from(expected);
+    const b = Buffer.from(signature);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (decoded?.role !== 'owner') return null;
+    if (!decoded?.exp || Number(decoded.exp) <= Date.now()) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function buildOwnerSessionCookie(req, value, maxAgeSeconds) {
+  const parts = [
+    `${OWNER_SESSION_COOKIE}=${encodeURIComponent(value)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=${Math.max(0, Math.floor(maxAgeSeconds || 0))}`,
+  ];
+  if (isSecureRequest(req)) parts.push('Secure');
+  return parts.join('; ');
+}
+
+export function setOwnerSessionCookie(req, res) {
+  const value = createOwnerSessionValue();
+  if (!value) return false;
+  res.setHeader('Set-Cookie', buildOwnerSessionCookie(req, value, OWNER_SESSION_TTL_MS / 1000));
+  return true;
+}
+
+export function clearOwnerSessionCookie(req, res) {
+  res.setHeader('Set-Cookie', buildOwnerSessionCookie(req, '', 0));
+}
+
+export function checkOwnerPassword(req, providedPassword) {
+  if (ownerAuthLocked(req)) {
+    return {
+      ok: false,
+      locked: true,
+      retryAfterMs: getOwnerAuthLockRemainingMs(req),
+    };
   }
 
-  const provided = req.headers['x-owner-password'] || req.body?.ownerPassword;
-  if (!provided) {
+  const pw = process.env.OWNER_PASSWORD;
+  if (!pw || !providedPassword) {
     recordOwnerAuthFailure(req);
-    return false;
+    return { ok: false, locked: false };
   }
 
   try {
     const a = Buffer.from(String(pw));
-    const b = Buffer.from(String(provided));
-    if (a.length !== b.length) {
+    const b = Buffer.from(String(providedPassword));
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
       recordOwnerAuthFailure(req);
-      return false;
+      return { ok: false, locked: false };
     }
-    const ok = timingSafeEqual(a, b);
-    if (!ok) {
-      recordOwnerAuthFailure(req);
-      return false;
-    }
+
     recordOwnerAuthSuccess(req);
-    return true;
+    return { ok: true, locked: false };
   } catch {
     recordOwnerAuthFailure(req);
-    return false;
+    return { ok: false, locked: false };
   }
+}
+
+/**
+ * Verify owner authorization via signed session cookie.
+ * Returns true if authorized.
+ */
+export function verifyOwner(req) {
+  return !!readOwnerSession(req);
 }
 
 /**

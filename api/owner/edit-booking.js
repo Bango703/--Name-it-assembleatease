@@ -16,13 +16,22 @@ export default async function handler(req, res) {
   if (['completed', 'cancelled', 'declined'].includes(booking.status)) {
     return res.status(400).json({ error: 'Cannot edit a ' + booking.status + ' booking' });
   }
+  const nextTotalPrice = typeof totalPrice === 'number' && totalPrice >= 0 ? totalPrice : null;
+  const wantsPriceChange = nextTotalPrice != null && nextTotalPrice !== Number(booking.total_price || 0);
+  const lockedPaymentStatuses = ['authorized', 'deposit_paid', 'captured', 'partially_refunded', 'refunded', 'cancellation_fee_captured'];
+
+  if (wantsPriceChange && lockedPaymentStatuses.includes(String(booking.payment_status || '').toLowerCase())) {
+    return res.status(409).json({
+      error: 'Price cannot be changed after payment has been authorized or captured. Cancel and rebook, or issue a refund/manual adjustment instead.',
+    });
+  }
 
   const updates = {};
   if (date)    updates.date    = date;
   if (time)    updates.time    = time;
   if (address) updates.address = address;
   if (service) updates.service = service;
-  if (typeof totalPrice === 'number' && totalPrice >= 0) updates.total_price = totalPrice;
+  if (nextTotalPrice != null) updates.total_price = nextTotalPrice;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
 

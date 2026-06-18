@@ -1153,17 +1153,18 @@
       .item-screen-nav { margin-bottom: 0.7rem; }
 
       .booking-stage-divider {
-        margin: 0.7rem 0 0.85rem;
-        padding: 0.55rem;
+        margin: 0.45rem 0 0.65rem;
+        padding: 0.45rem;
         border-radius: 14px;
-        gap: 0.4rem;
+        gap: 0.35rem;
       }
 
       .booking-stage-pill {
         min-height: 0;
-        padding: 0.38rem 0.52rem;
-        font-size: 0.66rem;
-        gap: 0.35rem;
+        padding: 0.34rem 0.5rem;
+        font-size: 0.62rem;
+        gap: 0.28rem;
+        line-height: 1.05;
       }
 
       .booking-stage-pill span:last-child {
@@ -1307,7 +1308,7 @@
       .booking-stage-divider {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.45rem;
+        gap: 0.35rem;
       }
 
       .booking-stage-line {
@@ -1316,14 +1317,14 @@
 
       .booking-stage-pill {
         justify-content: center;
-        padding: 0.42rem 0.4rem;
-        font-size: 0.62rem;
-        line-height: 1.15;
+        padding: 0.38rem 0.35rem;
+        font-size: 0.6rem;
+        line-height: 1.05;
         text-align: center;
       }
 
       .booking-stage-pill span:last-child {
-        max-width: 5.8rem;
+        max-width: none;
       }
     }
 
@@ -1428,11 +1429,11 @@
 
         <p class="step-sub">Choose a service to see options and pricing.</p>
 
-        <div class="booking-stage-divider" aria-label="Booking item setup steps">
-          <div class="booking-stage-pill is-active"><span class="booking-stage-number">1</span><span>Book a service</span></div>
-          <div class="booking-stage-line" aria-hidden="true"></div>
-          <div class="booking-stage-pill"><span class="booking-stage-number">2</span><span>Pick what you need</span></div>
-        </div>
+          <div class="booking-stage-divider" aria-label="Booking item setup steps">
+            <div class="booking-stage-pill is-active"><span class="booking-stage-number">1</span><span>Service</span></div>
+            <div class="booking-stage-line" aria-hidden="true"></div>
+            <div class="booking-stage-pill"><span class="booking-stage-number">2</span><span>Items</span></div>
+          </div>
 
         <div class="svc-list">
 
@@ -1527,9 +1528,9 @@
           <div class="item-screen-from" id="item-screen-from"></div>
 
           <div class="booking-stage-divider" aria-label="Booking item setup steps">
-            <div class="booking-stage-pill is-complete"><span class="booking-stage-number">1</span><span>Book a service</span></div>
+            <div class="booking-stage-pill is-complete"><span class="booking-stage-number">1</span><span>Service</span></div>
             <div class="booking-stage-line" aria-hidden="true"></div>
-            <div class="booking-stage-pill is-active"><span class="booking-stage-number">2</span><span>Pick what you need</span></div>
+            <div class="booking-stage-pill is-active"><span class="booking-stage-number">2</span><span>Items</span></div>
           </div>
 
           <div class="item-picker-divider">
@@ -3150,12 +3151,8 @@ function renderRecoShelf(svc) {
     return;
   }
   if (!hasSelectedBaseItems(svc)) {
-    shelf.innerHTML = ""
-      + "<div class=\"reco-shelf-empty\">"
-      + "<div class=\"reco-shelf-title\">Want to add anything else to this visit?</div>"
-      + "<div class=\"reco-shelf-note\">Pick one main item first. Then we will ask about the best add-ons, upgrades, and same-visit bundle options for this job.</div>"
-      + "</div>";
-    shelf.style.display = "flex";
+    shelf.style.display = "none";
+    shelf.innerHTML = "";
     return;
   }
   var itemSections = recommendItems(svc);

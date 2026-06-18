@@ -73,11 +73,19 @@ export default async function handler(req, res) {
     forfeitFreeWindow: wasRescheduled,
   });
   const withinWindow = policy.tier !== 'free';
+  const paymentStatus = String(booking.payment_status || '').toLowerCase();
+
+  if (['captured', 'deposit_paid', 'partially_refunded'].includes(paymentStatus)) {
+    return res.status(409).json({
+      error: 'This booking has already been charged. Please call us at (737) 290-6129 so we can review cancellation and refund options.',
+      code: 'MANUAL_REFUND_REVIEW_REQUIRED',
+    });
+  }
 
   // Stripe: release hold or capture the tiered cancellation fee
   let feeCaptured = 0;
   let proTripCutCents = 0;
-  const stripeMutationRequired = booking.payment_status === 'authorized';
+  const stripeMutationRequired = paymentStatus === 'authorized';
   if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please call us at (737) 290-6129.' });
   }
@@ -138,12 +146,28 @@ export default async function handler(req, res) {
     } catch (e) { console.error('pro trip-cut calc error:', e); }
   }
 
-  const { error: updateErr } = await sb.from('bookings').update({
+  const cancelledAt = new Date().toISOString();
+  const updates = {
     status: BOOKING_STATUS.CANCELLED,
-    cancelled_at: new Date().toISOString(),
+    cancelled_at: cancelledAt,
     cancel_reason: 'Cancelled by customer (guest)',
     cancellation_fee: feeCaptured || null,
-  }).eq('id', booking.id);
+  };
+
+  if (paymentStatus === 'authorized') {
+    if (feeCaptured > 0) {
+      updates.payment_status = 'cancellation_fee_captured';
+      updates.payment_captured_at = cancelledAt;
+      updates.amount_charged = feeCaptured;
+      updates.tax_amount = 0;
+    } else {
+      updates.payment_status = 'released';
+      updates.amount_charged = 0;
+      updates.tax_amount = 0;
+    }
+  }
+
+  const { error: updateErr } = await sb.from('bookings').update(updates).eq('id', booking.id);
 
   if (updateErr) {
     console.error('Guest cancel update failed:', updateErr);
