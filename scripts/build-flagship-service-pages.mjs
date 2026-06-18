@@ -83,6 +83,9 @@ const FA_STYLE = `<style>
 .fa-links-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:1rem}
 .fa-links a{color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500;display:block;margin-bottom:0.65rem}
 .fa-links a:hover{text-decoration:underline}
+.fa-citylinks{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center}
+.fa-citylinks a{display:inline-flex;align-items:center;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.55rem 1.15rem;font-size:0.875rem;font-weight:600;color:var(--cyan-dark);text-decoration:none;transition:all .15s}
+.fa-citylinks a:hover{background:var(--cyan-light);border-color:var(--cyan)}
 @media(max-width:900px){
   .fa-hero-grid{grid-template-columns:1fr;gap:2.2rem;padding:3rem 1.5rem 3.25rem}
   .fa-hero-media{order:-1;max-width:540px;margin:0 auto;width:100%}
@@ -170,9 +173,7 @@ function buildBody(cfg) {
     </div>`).join('\n');
   const brands = cfg.brands.map((b) => `      <span class="fa-chip">${b}</span>`).join('\n');
   const areaChips = AREA_CHIPS.map((c) => `      <span class="fa-chip">${c}</span>`).join('\n');
-  const nearby = NEAR_CITIES.map((c) => `        <a href="/${cfg.prefix}-${c.slug}-tx">${cfg.linkLabel} in ${c.name}</a>`).join('\n');
-  const others = ALL_SERVICES.filter((s) => s.austin !== `/${cfg.slug}`).slice(0, 4)
-    .map((s) => `        <a href="${s.austin}">${s.label} in ${CITY}</a>`).join('\n');
+  const nearby = NEAR_CITIES.map((c) => `      <a href="/${cfg.prefix}-${c.slug}-tx">${c.name}</a>`).join('\n');
 
   return `<!-- HERO -->
 <section class="fa-hero">
@@ -295,26 +296,17 @@ ${faqs}
   </div>
 </section>
 
-<!-- INTERNAL LINKS -->
+<!-- NEARBY CITIES -->
 <section class="fa-section" style="background:var(--off-white);border-bottom:1px solid var(--border)">
-  <div class="fa-wrap">
-    <div class="fa-head fa-head--center" style="margin-bottom:2rem">
-      <div class="fa-kicker">Explore more</div>
-      <h2 class="fa-h2">${cfg.linkLabel} &amp; more near ${CITY}</h2>
+  <div class="fa-wrap" style="max-width:760px;text-align:center">
+    <div class="fa-head fa-head--center" style="margin-bottom:1.6rem">
+      <div class="fa-kicker">Also serving</div>
+      <h2 class="fa-h2">${cfg.linkLabel} across the ${CITY} metro</h2>
     </div>
-    <div class="fa-links">
-      <div>
-        <div class="fa-links-col-title">${cfg.linkLabel} in nearby cities</div>
+    <div class="fa-citylinks">
 ${nearby}
-      </div>
-      <div>
-        <div class="fa-links-col-title">Other services in ${CITY}</div>
-${others}
-      </div>
     </div>
-    <div style="margin-top:1.75rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center">
-      <a href="/book" style="color:var(--cyan-dark);font-size:0.875rem;font-weight:600;text-decoration:none">View all services &rarr;</a>
-    </div>
+    <div style="margin-top:1.7rem"><a href="/pricing" style="color:var(--cyan-dark);font-size:0.875rem;font-weight:600;text-decoration:none">See full pricing &rarr;</a></div>
   </div>
 </section>
 
