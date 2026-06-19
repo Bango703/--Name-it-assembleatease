@@ -9,6 +9,7 @@ const files = [
   'api/booking/payout.js',
   'api/booking/refund.js',
   'api/assembler/apply.js',
+  'api/chat.js',
   'api/assembler/stripe-webhook.js',
   'api/cron/auto-blog.js',
 ];
@@ -85,6 +86,17 @@ if (desktopServiceCardCount < 6 || desktopServiceCardCount % 2 !== 0) {
 
 if (!homepage.includes('href="/assembler/apply"')) {
   throw new Error('Homepage must include Become an Easer entry point');
+}
+
+const soraWidgetCount = (homepage.match(/<!-- AAE Help Chat/g) || []).length;
+if (soraWidgetCount !== 1) {
+  throw new Error(`Homepage should include exactly one Sora chat widget; found ${soraWidgetCount}`);
+}
+if (!homepage.includes('/api/chat')) {
+  throw new Error('Homepage Sora widget must call /api/chat');
+}
+if (!homepage.includes('>Sora<')) {
+  throw new Error('Homepage Sora widget should display the Sora assistant name');
 }
 
 const bookingPage = readFileSync('book.html', 'utf8');

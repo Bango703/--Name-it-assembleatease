@@ -12,6 +12,11 @@ const limiters = {
     limiter: Ratelimit.slidingWindow(10, '60 s'),
     prefix: 'rl:default',
   }),
+  chat: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(12, '60 s'),
+    prefix: 'rl:chat',
+  }),
   booking: new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(5, '60 s'),
@@ -43,4 +48,3 @@ export async function rateLimitKey(key, type = 'default') {
 export async function rateLimit(ip, type = 'default') {
   return rateLimitKey(ip, type);
 }
-
