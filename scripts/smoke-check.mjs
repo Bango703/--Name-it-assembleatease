@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { normalizeChatRoute, sanitizeReplyLinks } from '../api/chat.js';
 
 const files = [
   'api/booking.js',
@@ -16,6 +17,21 @@ const files = [
 
 for (const file of files) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' });
+}
+
+const normalizedBookingRoute = normalizeChatRoute('/book?service=Furniture+Assembly');
+if (normalizedBookingRoute !== '/book') {
+  throw new Error(`Chat should normalize booking query links to /book; got ${normalizedBookingRoute}`);
+}
+
+const normalizedBlogRoute = normalizeChatRoute('https://www.assembleatease.com/blog/ikea-assembly-cost-austin');
+if (normalizedBlogRoute !== '/blog/ikea-assembly-cost-austin') {
+  throw new Error(`Chat should preserve real blog links; got ${normalizedBlogRoute}`);
+}
+
+const sanitizedFallbackReply = sanitizeReplyLinks('Start here: /services/tv-mounting and pricing lives at https://www.assembleatease.com/pricing.');
+if (!sanitizedFallbackReply.includes('/book') || !sanitizedFallbackReply.includes('/pricing')) {
+  throw new Error(`Chat should rewrite unknown internal links to real routes; got ${sanitizedFallbackReply}`);
 }
 
 const staleCopyChecks = [

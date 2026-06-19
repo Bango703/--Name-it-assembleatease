@@ -1,4 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { rateLimit } from './_ratelimit.js';
 import { getBookingCatalog } from './_pricing.js';
 import { getServiceCallFeeCents } from './_source-of-truth.js';
@@ -32,6 +35,95 @@ const PRICING_LINE = [
   `Outdoor and playsets from $${STARTS['Outdoor & Playsets'] || 89}`,
 ].join(', ');
 
+const ROOT_ROUTES = Object.freeze({
+  book: '/book',
+  pricing: '/pricing',
+  blogs: '/blog',
+  about: '/about',
+  contact: '/contact',
+  track: '/track',
+});
+
+function loadBlogRoutes() {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const blogDir = join(here, '..', 'blog');
+    return new Set(
+      readdirSync(blogDir)
+        .filter((name) => name.endsWith('.html') && name !== 'index.html')
+        .map((name) => `${ROOT_ROUTES.blogs}/${name.slice(0, -5)}`),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+const BLOG_ROUTES = loadBlogRoutes();
+const TOP_LEVEL_ROUTE_SET = new Set(Object.values(ROOT_ROUTES));
+const BLOG_ROUTE_LINE = BLOG_ROUTES.size
+  ? `Available blog links: ${[...BLOG_ROUTES].sort().join(', ')}.`
+  : 'If you mention a blog, use /blog.';
+
+function trimRouteNoise(route) {
+  return String(route || '')
+    .trim()
+    .replace(/^https?:\/\/(?:www\.)?assembleatease\.com/i, '')
+    .replace(/^[("'`]+/, '')
+    .replace(/[)"'`]+$/, '')
+    .replace(/[.,!?;:]+$/, '');
+}
+
+export function normalizeChatRoute(rawRoute) {
+  const cleaned = trimRouteNoise(rawRoute);
+  if (!cleaned || !cleaned.startsWith('/')) return null;
+
+  const noHash = cleaned.split('#')[0] || cleaned;
+  const pathOnly = (noHash.split('?')[0] || '').replace(/\/+$/, '') || '/';
+
+  if (pathOnly === '/') return '/';
+  if (pathOnly === ROOT_ROUTES.book || pathOnly.startsWith(`${ROOT_ROUTES.book}/`)) return ROOT_ROUTES.book;
+  if (pathOnly === ROOT_ROUTES.pricing || pathOnly.startsWith(`${ROOT_ROUTES.pricing}/`)) return ROOT_ROUTES.pricing;
+  if (pathOnly === ROOT_ROUTES.about || pathOnly.startsWith(`${ROOT_ROUTES.about}/`)) return ROOT_ROUTES.about;
+  if (pathOnly === ROOT_ROUTES.contact || pathOnly.startsWith(`${ROOT_ROUTES.contact}/`)) return ROOT_ROUTES.contact;
+  if (pathOnly === ROOT_ROUTES.track || pathOnly.startsWith(`${ROOT_ROUTES.track}/`)) return ROOT_ROUTES.track;
+  if (pathOnly === ROOT_ROUTES.blogs) return ROOT_ROUTES.blogs;
+  if (pathOnly.startsWith(`${ROOT_ROUTES.blogs}/`)) {
+    return BLOG_ROUTES.has(pathOnly) ? pathOnly : ROOT_ROUTES.blogs;
+  }
+
+  return TOP_LEVEL_ROUTE_SET.has(pathOnly) ? pathOnly : null;
+}
+
+function fallbackRouteFor(rawRoute) {
+  const lower = String(rawRoute || '').toLowerCase();
+  if (lower.includes('/blog')) return ROOT_ROUTES.blogs;
+  if (lower.includes('/pricing') || lower.includes('price')) return ROOT_ROUTES.pricing;
+  if (lower.includes('/contact') || lower.includes('support') || lower.includes('refund')) return ROOT_ROUTES.contact;
+  if (lower.includes('/track') || lower.includes('status')) return ROOT_ROUTES.track;
+  if (lower.includes('/about')) return ROOT_ROUTES.about;
+  return ROOT_ROUTES.book;
+}
+
+export function sanitizeReplyLinks(reply) {
+  let text = String(reply || '');
+
+  text = text.replace(/\[([^\]]+)\]\(((?:https?:\/\/(?:www\.)?assembleatease\.com)?\/[^\s)]+)\)/gi, (_, label, href) => {
+    const route = normalizeChatRoute(href) || fallbackRouteFor(href);
+    return `${label}: ${route}`;
+  });
+
+  text = text.replace(/https?:\/\/(?:www\.)?assembleatease\.com(\/[^\s<>()\]]*)/gi, (_, href) => {
+    return normalizeChatRoute(href) || fallbackRouteFor(href);
+  });
+
+  text = text.replace(/(^|[\s(])((?:\/[A-Za-z0-9][^\s<>()\]]*))/g, (_, lead, href) => {
+    const route = normalizeChatRoute(href) || fallbackRouteFor(href);
+    return `${lead}${route}`;
+  });
+
+  return text.replace(/\s{2,}/g, ' ').trim();
+}
+
 // Public customer-facing assistant ("Sora"). Q&A + booking guidance only —
 // it NEVER takes payment or creates bookings (it hands off to /book).
 const SYSTEM = `You are Sora, the friendly assistant for AssembleAtEase — a professional home-assembly marketplace serving Austin, TX and the surrounding metro. You help website visitors with questions and getting booked.
@@ -51,12 +143,13 @@ TOOLS AND HARDWARE: Our pros bring all the TOOLS. The customer provides the item
 PROS AND TRUST: Every pro is identity-verified and personally reviewed before their first job. We share the pro's photo, rating and job count before arrival.
 
 BOOKING: To book, point them to /book (booking takes under 2 minutes). For pricing details, point them to /pricing.
+REAL LINKS: Only use exact AssembleAtEase routes that already exist. Core routes: /book, /pricing, /blog, /about, /contact, /track. ${BLOG_ROUTE_LINE} If you are not completely sure of a deeper page, use /book, /pricing, or /blog instead of inventing a URL.
 
 HOW TO RESPOND:
 - Be warm and concise: 1 to 4 short sentences. Plain text only — no markdown, no bullet symbols, no emojis.
 - Personality: sound calm, capable, and human. A little conversational is good. A little dry wit is okay when it feels natural. Never sound pushy, cheesy, or fake.
 - Only discuss AssembleAtEase: its services, pricing, area, booking and policies. Politely decline anything off-topic and steer back.
-- When helpful, include a plain link like /book or /pricing.
+- When helpful, include a plain link like /book or /pricing. Never make up a route, slug, or URL.
 - For complaints, existing-booking issues, refunds, or anything you are unsure about, hand off to service@assembleatease.com or (737) 290-6129.
 - Do not guarantee same-day; say it is "often available."
 - Never make up facts, prices, or promises beyond what is stated here.`;
@@ -64,7 +157,7 @@ HOW TO RESPOND:
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_2;
   if (!key) {
     return res.status(503).json({ reply: 'Chat is unavailable right now — please email service@assembleatease.com or call (737) 290-6129, or book at /book.' });
   }
@@ -94,7 +187,7 @@ export default async function handler(req, res) {
       system: SYSTEM,
       messages: clean,
     });
-    const reply = msg.content?.[0]?.text?.trim()
+    const reply = sanitizeReplyLinks(msg.content?.[0]?.text?.trim())
       || "Sorry, I didn't catch that — could you rephrase? You can also email service@assembleatease.com.";
     return res.status(200).json({ reply });
   } catch (e) {
