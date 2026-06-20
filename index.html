@@ -1414,14 +1414,23 @@ window.addEventListener("DOMContentLoaded",function(){
 </script>
 <!-- AAE Help Chat — Sora (live AI) -->
 <style>
-#aae-chat-btn{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));z-index:9990;width:58px;height:58px;border-radius:50%;background:#00BFFF;border:none;cursor:pointer;box-shadow:0 8px 24px rgba(0,191,255,0.42);display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s}
+#aae-chat-btn{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));z-index:9990;width:58px;height:58px;border-radius:50%;background:#00BFFF;border:none;cursor:pointer;box-shadow:0 8px 24px rgba(0,191,255,0.42);display:flex;align-items:center;justify-content:center;transition:transform .18s,background .18s,box-shadow .18s}
 #aae-chat-btn.aae-chat-hidden{display:none}
-#aae-chat-btn:hover{transform:scale(1.06);background:#0099CC}
+#aae-chat-btn:hover{transform:scale(1.06);background:#0099CC;box-shadow:0 12px 28px rgba(0,153,204,0.34)}
 #aae-chat-btn svg{width:27px;height:27px;stroke:#fff;fill:none}
+#aae-chat-btn.aae-chat-pulse{animation:aaeChatPulse 2.4s ease-in-out 2}
+@keyframes aaeChatPulse{0%,100%{transform:scale(1)}30%{transform:scale(1.08)}60%{transform:scale(1)}}
+#aae-chat-teaser{position:fixed;right:88px;bottom:calc(18px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));z-index:9989;max-width:min(290px,calc(100vw - 108px));background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 18px 44px rgba(2,32,43,0.18);padding:13px 42px 13px 14px;cursor:pointer;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(10px) scale(.98);transition:opacity .2s,transform .2s,visibility .2s}
+#aae-chat-teaser.show{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1)}
+#aae-chat-teaser:after{content:"";position:absolute;right:-6px;bottom:18px;width:12px;height:12px;background:#fff;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;transform:rotate(-45deg)}
+.aae-chat-teaser-title{display:block;font-size:.9rem;font-weight:700;color:#0d1117;line-height:1.3;margin-bottom:3px}
+.aae-chat-teaser-copy{display:block;font-size:.8rem;line-height:1.5;color:#6b7280}
+.aae-chat-teaser-x{position:absolute;top:8px;right:8px;width:24px;height:24px;border:none;background:none;color:#9ca3af;font-size:1rem;line-height:1;cursor:pointer;border-radius:999px}
+.aae-chat-teaser-x:hover{background:#f3f4f6;color:#374151}
 #aae-chat-overlay{position:fixed;inset:0;z-index:9989;background:rgba(2,32,43,0.32);opacity:0;pointer-events:none;transition:opacity .18s}
 #aae-chat-overlay.open{opacity:1;pointer-events:auto}
-#aae-chat-panel{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));z-index:9991;width:min(372px,calc(100vw - 24px));height:min(560px,calc(var(--aae-chat-vvh,100svh) - 130px));max-height:calc(var(--aae-chat-vvh,100svh) - 130px);background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 22px 54px rgba(2,32,43,0.28);display:none;flex-direction:column;overflow:hidden;font-family:'DM Sans',-apple-system,system-ui,sans-serif;overscroll-behavior:contain;transform:translateZ(0)}
-#aae-chat-panel.open{display:flex}
+#aae-chat-panel{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));z-index:9991;width:min(372px,calc(100vw - 24px));height:min(560px,calc(var(--aae-chat-vvh,100svh) - 130px));max-height:calc(var(--aae-chat-vvh,100svh) - 130px);background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 22px 54px rgba(2,32,43,0.28);display:flex;flex-direction:column;overflow:hidden;font-family:'DM Sans',-apple-system,system-ui,sans-serif;overscroll-behavior:contain;transform:translateY(14px) scale(.985);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,transform .2s,visibility .2s}
+#aae-chat-panel.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1)}
 html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
 .aae-chat-head{background:linear-gradient(135deg,#00BFFF,#0099CC);color:#fff;padding:13px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
 .aae-chat-head img{width:34px;height:34px;border-radius:50%;object-fit:cover}
@@ -1447,18 +1456,31 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
 .aae-chat-foot button:disabled{opacity:.5;cursor:default}
 .aae-chat-note{font-size:0.62rem;color:#9ca3af;text-align:center;padding:0 8px 7px;background:#fff;flex-shrink:0}
 #cookie-banner:not(.hidden) ~ #aae-chat-btn{bottom:calc(104px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px))}
+#cookie-banner:not(.hidden) ~ #aae-chat-teaser{bottom:calc(104px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px))}
 #cookie-banner:not(.hidden) ~ #aae-chat-panel{bottom:calc(174px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));max-height:calc(var(--aae-chat-vvh,100svh) - 216px)}
 @media(max-width:560px){
   #aae-chat-btn{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  #aae-chat-teaser{left:12px;right:12px;bottom:calc(82px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));max-width:none;padding:12px 40px 12px 14px}
+  #aae-chat-teaser:after{display:none}
   #aae-chat-overlay{background:rgba(2,32,43,0.4)}
   #aae-chat-panel{left:0;right:0;bottom:var(--aae-chat-keyboard-offset,0px);width:auto;height:min(520px,calc(var(--aae-chat-vvh,100svh) - 8px));max-height:calc(var(--aae-chat-vvh,100svh) - 8px);border-radius:20px 20px 0 0;border-bottom:none}
   #cookie-banner:not(.hidden) ~ #aae-chat-btn{bottom:calc(116px + env(safe-area-inset-bottom,0px))}
+  #cookie-banner:not(.hidden) ~ #aae-chat-teaser{bottom:calc(186px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px))}
   #cookie-banner:not(.hidden) ~ #aae-chat-panel{bottom:var(--aae-chat-keyboard-offset,0px);max-height:calc(var(--aae-chat-vvh,100svh) - 8px)}
+}
+@media(prefers-reduced-motion:reduce){
+  #aae-chat-btn,#aae-chat-teaser,#aae-chat-panel,#aae-chat-overlay{transition:none}
+  #aae-chat-btn.aae-chat-pulse{animation:none}
 }
 </style>
 <button id="aae-chat-btn" aria-label="Chat with Sora" onclick="aaeChatToggle()">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
 </button>
+<div id="aae-chat-teaser" aria-live="polite">
+  <button type="button" class="aae-chat-teaser-x" aria-label="Dismiss chat prompt">&times;</button>
+  <strong class="aae-chat-teaser-title">Questions before you book?</strong>
+  <span class="aae-chat-teaser-copy">Sora can help with pricing, what service fits, or what to choose.</span>
+</div>
 <div id="aae-chat-overlay" aria-hidden="true" onclick="aaeChatToggle(false)"></div>
 <div id="aae-chat-panel" role="dialog" aria-label="Chat with Sora">
   <div class="aae-chat-head">
@@ -1469,7 +1491,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
   <div class="aae-chat-body" id="aae-chat-body"></div>
   <div class="aae-chips" id="aae-chips"></div>
   <form class="aae-chat-foot" onsubmit="aaeChatSend(event)">
-    <input id="aae-chat-input" type="text" placeholder="Ask Sora about pricing, area, booking&hellip;" autocomplete="off" maxlength="500"/>
+    <input id="aae-chat-input" type="text" placeholder="Ask about pricing, service fit, or what to book&hellip;" autocomplete="off" maxlength="500"/>
     <button id="aae-chat-go" type="submit" aria-label="Send">&#8594;</button>
   </form>
   <div class="aae-chat-note">Sora is an AI assistant and can make mistakes. Prices are confirmed at checkout.</div>
@@ -1479,13 +1501,33 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
   var CHIPS=['What do you charge?','Do you serve my area?','How does payment work?','What should I book?'];
   var bodyEl=document.getElementById('aae-chat-body'),
       btnEl=document.getElementById('aae-chat-btn'),
+      teaserEl=document.getElementById('aae-chat-teaser'),
       chipsEl=document.getElementById('aae-chips'),
       inputEl=document.getElementById('aae-chat-input'),
       goEl=document.getElementById('aae-chat-go'),
       overlayEl=document.getElementById('aae-chat-overlay'),
       panelEl=document.getElementById('aae-chat-panel'),
-      hist=[], greeted=false, busy=false, lockY=0;
+      hist=[], greeted=false, busy=false, lockY=0, teaserTimer=0;
+  function teaserDismissed(){try{return sessionStorage.getItem('aae-chat-teaser-hidden')==='1';}catch(_){return false;}}
+  function setTeaserDismissed(){try{sessionStorage.setItem('aae-chat-teaser-hidden','1');}catch(_){}}
   function shouldAutoFocus(){return window.innerWidth > 700 && window.matchMedia('(pointer:fine)').matches;}
+  function showTeaser(){
+    if(!teaserEl || teaserDismissed() || panelEl.classList.contains('open')) return;
+    teaserEl.classList.add('show');
+    btnEl.classList.add('aae-chat-pulse');
+  }
+  function hideTeaser(remember){
+    if(!teaserEl) return;
+    teaserEl.classList.remove('show');
+    btnEl.classList.remove('aae-chat-pulse');
+    if(remember) setTeaserDismissed();
+    if(teaserTimer){clearTimeout(teaserTimer);teaserTimer=0;}
+  }
+  function scheduleTeaser(){
+    if(!teaserEl || teaserDismissed() || panelEl.classList.contains('open')) return;
+    if(teaserTimer) clearTimeout(teaserTimer);
+    teaserTimer=setTimeout(showTeaser, window.innerWidth <= 560 ? 2800 : 2200);
+  }
   function syncViewportVars(){
     var vh=window.innerHeight, kb=0, vv=window.visualViewport;
     if(vv){
@@ -1516,6 +1558,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
     window.scrollTo(0,lockY||0);
   }
   function openPanel(){
+    hideTeaser(true);
     panelEl.classList.add('open');
     overlayEl.classList.add('open');
     btnEl.classList.add('aae-chat-hidden');
@@ -1573,15 +1616,28 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
     var willOpen = typeof forceOpen === 'boolean' ? forceOpen : !panelEl.classList.contains('open');
     if(willOpen){
       openPanel();
-      if(!greeted){greeted=true;bot("Hi, I'm Sora. I can help with pricing, service fit, booking, and the usual before-you-book questions. What are you trying to get handled?");renderChips();}
+      if(!greeted){greeted=true;bot("Hi, I'm Sora. I can help with pricing, what service fits, or anything you're unsure about before you book. What are you trying to get handled?");renderChips();}
       if(shouldAutoFocus()) inputEl.focus({preventScroll:true});
       return;
     }
     closePanel();
   };
   window.aaeChatSend=function(e){e.preventDefault();var v=inputEl.value;inputEl.value='';send(v);};
+  if(teaserEl){
+    teaserEl.addEventListener('click',function(){window.aaeChatToggle(true);});
+    var teaserClose=teaserEl.querySelector('.aae-chat-teaser-x');
+    if(teaserClose){
+      teaserClose.addEventListener('click',function(e){e.stopPropagation();hideTeaser(true);});
+    }
+  }
   syncViewportVars();
+  scheduleTeaser();
   window.addEventListener('resize',syncViewportVars,{passive:true});
+  window.addEventListener('resize',function(){
+    if(panelEl.classList.contains('open')) return;
+    hideTeaser(false);
+    scheduleTeaser();
+  },{passive:true});
   window.addEventListener('orientationchange',syncViewportVars,{passive:true});
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',syncViewportVars);
