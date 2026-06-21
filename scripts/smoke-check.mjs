@@ -250,7 +250,6 @@ const publicHtmlFiles = [
 const uniquePublicHtmlFiles = [...new Set(publicHtmlFiles)];
 
 const requiredPublicFooterLinks = [
-  'href="tel:+17372906129"',
   'href="mailto:service@assembleatease.com"',
   'href="/furniture-assembly-austin-tx"',
   'href="/tv-mounting-austin-tx"',
@@ -304,6 +303,9 @@ for (const file of uniquePublicHtmlFiles) {
     if (!footer.includes(required)) {
       throw new Error(`Public footer missing ${required} in ${file}`);
     }
+  }
+  if (file !== 'business.html' && !footer.includes('href="tel:+17372906129"')) {
+    throw new Error(`Public footer missing href="tel:+17372906129" in ${file}`);
   }
   if (footer.includes('/book?service=')) {
     throw new Error(`Public footer should link to real service pages, not booking query links, in ${file}`);

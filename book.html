@@ -326,14 +326,17 @@
 
     .tile-name, .tile-from { overflow-wrap: anywhere; }
 
-    .selected-service-strip {
+    .selected-service-strip,
+    .item-summary-strip {
       display: none; align-items: center; justify-content: space-between;
-      gap: 0.8rem; margin: -0.25rem 0 1rem; padding: 0.85rem 0.95rem;
-      border: 1px solid rgba(0,191,255,0.24); border-radius: var(--radius-md);
-      background: linear-gradient(180deg, #f3fcff 0%, #effbff 100%);
+      gap: 0.8rem; margin: 0 0 0.95rem; padding: 0.9rem 1rem;
+      border: 1px solid rgba(0,191,255,0.24); border-radius: 18px;
+      background: linear-gradient(180deg, #f8fdff 0%, #eef9ff 100%);
+      box-shadow: 0 10px 24px rgba(0,191,255,0.08);
     }
 
-    .selected-service-strip.show { display: flex; }
+    .selected-service-strip.show,
+    .item-summary-strip.show { display: flex; }
 
     .selected-service-copy { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.45; }
 
@@ -345,13 +348,119 @@
       display: inline-flex; align-items: center; gap: 0.35rem;
       border: 1px solid rgba(0,191,255,0.26); background: #fff;
       color: var(--teal); border-radius: var(--radius-full);
-      padding: 0.3rem 0.55rem; font-size: 0.72rem; font-weight: 800;
-      white-space: nowrap;
+      padding: 0.34rem 0.62rem; font-size: 0.72rem; font-weight: 800;
+      white-space: nowrap; cursor: pointer; font-family: var(--font-body); appearance: none;
+      box-shadow: 0 4px 12px rgba(15,23,42,0.05);
     }
+
+    .selected-service-chip.is-active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(0,191,255,0.18);
+    }
+
+    .selected-service-chip-count {
+      font-size: 0.66rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .selected-service-chip.is-active .selected-service-chip-count { color: rgba(255,255,255,0.84); }
 
     .selected-service-chip button {
       border: none; background: none; color: var(--muted); cursor: pointer;
       font: inherit; line-height: 1; padding: 0 0 0 0.1rem;
+    }
+
+    .service-screen-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .service-hero-card {
+      background: linear-gradient(135deg, #062b38 0%, #0a4255 58%, #0f6b86 100%);
+      color: #fff;
+      border-radius: 22px;
+      padding: 1.3rem 1.35rem;
+      position: relative;
+      overflow: hidden;
+      min-height: 170px;
+      box-shadow: 0 22px 46px rgba(6, 43, 56, 0.22);
+    }
+
+    .service-hero-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(6,43,56,0.9) 0%, rgba(6,43,56,0.74) 42%, rgba(6,43,56,0.15) 100%),
+        url('/images/people-service-calm.jpg') center right / cover no-repeat;
+      opacity: 0.42;
+      pointer-events: none;
+    }
+
+    .service-hero-content { position: relative; z-index: 1; max-width: 460px; }
+    .service-hero-card .step-kicker { color: rgba(255,255,255,0.72); margin-bottom: 0.45rem; }
+    .service-hero-card .step-heading { color: #fff; margin-bottom: 0.45rem; }
+    .service-hero-card .step-sub { color: rgba(255,255,255,0.82); margin-bottom: 0; max-width: 36rem; }
+
+    .service-hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.95rem;
+    }
+
+    .service-hero-pills span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0.4rem 0.72rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 0.74rem;
+      font-weight: 700;
+      backdrop-filter: blur(6px);
+    }
+
+    .quick-start-bar {
+      border: 1px solid rgba(0,191,255,0.18);
+      border-radius: 20px;
+      background: #fff;
+      padding: 1rem 1rem 0.9rem;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+    }
+
+    .quick-start-head {
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 0.3rem;
+    }
+
+    .quick-start-copy {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 0.75rem;
+    }
+
+    .booking-screen-note {
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 0 0 0.85rem;
+    }
+
+    @media (max-width: 980px) {
+      .service-screen-hero { grid-template-columns: 1fr; }
     }
 
     .custom-tile { min-height: 0; grid-column: span 3; display: flex; align-items: center; justify-content: space-between; padding: 1rem; }
@@ -717,23 +826,162 @@
     .slot-rec { display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); margin-top: 2px; }
 
     /* -- Service list (Screen A) -- */
-    .svc-list { display: flex; flex-direction: column; gap: 0.55rem; margin: 1.25rem 0 0; }
-    .svc-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.9rem 1rem; border: 1.5px solid rgba(148,163,184,0.34); border-radius: 14px; background: var(--white); cursor: pointer; text-align: left; width: 100%; outline: none; transition: border-color var(--transition), box-shadow var(--transition), background var(--transition); }
-    .svc-row:hover, .svc-row:focus-visible { border-color: var(--teal); box-shadow: 0 4px 16px rgba(0,191,255,0.1); }
-    .svc-row.has-items { border-color: var(--teal); background: #f6fcff; }
-    .svc-row-icon { width: 42px; height: 42px; flex-shrink: 0; background: #eefbff; color: var(--teal); border-radius: 13px; display: flex; align-items: center; justify-content: center; transition: background var(--transition), color var(--transition); }
+    .svc-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.85rem; margin: 0; }
+    .svc-row {
+      display: grid;
+      grid-template-columns: 118px 42px minmax(0, 1fr) auto;
+      align-items: stretch;
+      gap: 0.9rem;
+      padding: 0;
+      border: 1.5px solid rgba(148,163,184,0.34);
+      border-radius: 18px;
+      background: var(--white);
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      outline: none;
+      overflow: hidden;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition), transform var(--transition);
+      box-shadow: 0 12px 28px rgba(15,23,42,0.05);
+      min-height: 124px;
+    }
+    .svc-row::before {
+      content: '';
+      display: block;
+      align-self: stretch;
+      min-height: 124px;
+      background-size: cover;
+      background-position: center;
+      border-right: 1px solid rgba(148,163,184,0.16);
+    }
+    .svc-row[data-service="Furniture Assembly"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-furniture-assembly.jpg'); }
+    .svc-row[data-service="Mounting & Hanging"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-tv-mounting.jpg'); }
+    .svc-row[data-service="Smart Home"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-smart-home.jpg'); }
+    .svc-row[data-service="Fitness Equipment"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-fitness-equipment.jpg'); }
+    .svc-row[data-service="Outdoor & Playsets"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-outdoor-playsets.jpg'); }
+    .svc-row[data-service="Office Assembly"]::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/booking-service-office-assembly.jpg'); }
+    .svc-row.quote-row::before { background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(13,17,23,0.18)), url('/images/people-service-calm.jpg'); }
+    .svc-row:hover, .svc-row:focus-visible {
+      border-color: var(--teal);
+      box-shadow: 0 16px 34px rgba(0,191,255,0.14), 0 10px 24px rgba(15,23,42,0.06);
+      transform: translateY(-2px);
+    }
+    .svc-row.has-items {
+      border-color: var(--teal);
+      background: linear-gradient(180deg, #fbfeff 0%, #f2fbff 100%);
+      box-shadow: 0 0 0 3px rgba(0,191,255,0.1), 0 18px 34px rgba(0,191,255,0.12);
+    }
+    .svc-row-icon {
+      width: 42px; height: 42px; flex-shrink: 0; background: #eefbff; color: var(--teal); border-radius: 13px;
+      display: flex; align-items: center; justify-content: center; transition: background var(--transition), color var(--transition);
+      align-self: center;
+    }
     .svc-row.has-items .svc-row-icon { background: var(--teal); color: #fff; }
     .svc-row-icon svg { width: 21px; height: 21px; }
-    .svc-row-info { flex: 1; min-width: 0; }
-    .svc-row-name { font-size: 0.93rem; font-weight: 700; color: var(--ink); line-height: 1.25; }
-    .svc-row-meta { font-size: 0.76rem; color: var(--muted); margin-top: 0.18rem; }
-    .svc-row-badge { display: none; margin-top: 0.28rem; font-size: 0.69rem; font-weight: 700; color: var(--teal); }
+    .svc-row-info {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0.95rem 0 0.95rem 0;
+    }
+    .svc-row-name { font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.2; }
+    .svc-row-meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.22rem; line-height: 1.38; }
+    .svc-row-badge { display: none; margin-top: 0.42rem; font-size: 0.7rem; font-weight: 800; color: var(--teal); }
     .svc-row.has-items .svc-row-badge { display: block; }
-    .svc-row-chevron { color: rgba(148,163,184,0.6); flex-shrink: 0; transition: color var(--transition); }
+    .svc-row-chevron {
+      color: rgba(148,163,184,0.7);
+      flex-shrink: 0;
+      transition: color var(--transition);
+      align-self: center;
+      margin-right: 1rem;
+    }
     .svc-row:hover .svc-row-chevron, .svc-row.has-items .svc-row-chevron { color: var(--teal); }
-    .svc-row.quote-row { margin-top: 0.35rem; border-color: rgba(0,191,255,0.34); background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); }
+    .svc-row.quote-row { border-color: rgba(0,191,255,0.34); background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); }
     .svc-row.quote-row .svc-row-icon { background: var(--teal); color: #fff; }
     .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
+
+    .item-intro-line {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 0 0 0.8rem;
+    }
+
+    .booking-extra-drawer {
+      margin-top: 1.1rem;
+      border: 1px solid rgba(148,163,184,0.24);
+      border-radius: 18px;
+      background: #fbfdff;
+      overflow: hidden;
+    }
+
+    .booking-extra-drawer[open] {
+      border-color: rgba(0,191,255,0.26);
+      box-shadow: 0 12px 24px rgba(0,191,255,0.08);
+    }
+
+    .booking-extra-summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 0.95rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .booking-extra-summary::-webkit-details-marker { display: none; }
+
+    .booking-extra-summary span {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-top: 0.18rem;
+      line-height: 1.4;
+    }
+
+    .booking-extra-summary::after {
+      content: '+';
+      font-size: 1.1rem;
+      color: var(--teal);
+      flex-shrink: 0;
+    }
+
+    .booking-extra-drawer[open] .booking-extra-summary::after { content: '−'; }
+
+    .booking-extra-body {
+      padding: 0 1rem 1rem;
+      border-top: 1px solid rgba(148,163,184,0.16);
+    }
+
+    .booking-extra-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0.85rem 0 0.95rem;
+    }
+
+    .mobile-step-summary {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 14px;
+      background: #f2fbff;
+      border: 1px solid rgba(0,191,255,0.2);
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      line-height: 1.35;
+    }
+
+    .mobile-step-summary strong { color: var(--ink); }
+    .mobile-step-summary span { color: var(--muted); }
     .quote-helper { margin-top: 0.75rem; padding: 0.8rem 0.95rem; border: 1px solid rgba(0,191,255,0.26); border-radius: var(--radius-md); background: #f6fcff; color: var(--ink-soft); font-size: 0.82rem; line-height: 1.55; }
     .quote-helper strong { color: var(--ink); }
     .booking-stage-divider { display: flex; align-items: center; gap: 0.65rem; margin: 1.05rem 0 1.15rem; padding: 0.65rem; border: 1px solid rgba(148,163,184,0.22); border-radius: 16px; background: #f8fbfd; }
@@ -928,6 +1176,7 @@
     .qp-chip {
 
       display: inline-flex; align-items: center; gap: 0.4rem;
+      flex: 0 0 auto;
 
       padding: 0.5rem 0.85rem; border-radius: var(--radius-full);
 
@@ -1157,6 +1406,8 @@
         border-top: 1px solid var(--border); margin: 0;
 
         box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+        flex-direction: column;
+        align-items: stretch;
 
       }
 
@@ -1189,6 +1440,48 @@
 
       .item-screen-nav { margin-bottom: 0.7rem; }
 
+      .service-screen-hero {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+        margin-bottom: 0.9rem;
+      }
+
+      .service-hero-card {
+        min-height: 0;
+        padding: 1rem;
+        border-radius: 18px;
+      }
+
+      .service-hero-card .step-heading { font-size: 1.62rem; }
+
+      .service-hero-card .step-sub {
+        max-width: none;
+        font-size: 0.9rem;
+      }
+
+      .quick-start-bar {
+        padding: 0.9rem;
+        border-radius: 18px;
+      }
+
+      .booking-screen-note {
+        font-size: 0.79rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .svc-list {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+      }
+
+      .svc-row {
+        grid-template-columns: 100px 40px minmax(0, 1fr) auto;
+        gap: 0.7rem;
+        min-height: 110px;
+      }
+
+      .svc-row::before { min-height: 110px; }
+
       .booking-stage-divider {
         margin: 0.7rem 0 0.85rem;
         padding: 0.55rem;
@@ -1212,6 +1505,29 @@
       .item-screen-heading { font-size: 1.28rem; line-height: 1.08; }
 
       .item-screen-from { margin-top: 0.28rem; margin-bottom: 0.65rem; }
+
+      .item-intro-line {
+        font-size: 0.79rem;
+        margin-bottom: 0.7rem;
+      }
+
+      .mobile-step-summary { display: flex; }
+
+      .quick-start-bar .qp-chips,
+      #item-popular-picks .qp-chips,
+      #item-group-jumps .qp-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin-right: -0.1rem;
+        padding-bottom: 0.2rem;
+        scrollbar-width: thin;
+      }
+
+      .quick-start-bar .qp-chip,
+      #item-popular-picks .qp-chip,
+      #item-group-jumps .qp-chip {
+        white-space: nowrap;
+      }
 
       .item-picker-divider {
         margin: 0.65rem 0 0.7rem;
@@ -1293,6 +1609,7 @@
         .tile-body { padding: 0.85rem; }
         .tile-status { font-size: 0.66rem; }
         .selected-service-strip { align-items: flex-start; flex-direction: column; width: 100%; max-width: calc(100vw - 2rem); min-width: 0; }
+        .item-summary-strip { align-items: flex-start; flex-direction: column; }
         .selected-service-copy { width: 100%; max-width: calc(100vw - 3.9rem); min-width: 0; overflow-wrap: break-word; }
         .selected-service-chips { justify-content: flex-start; }
         .custom-tile {
@@ -1300,6 +1617,29 @@
           display: flex;
           min-height: 86px;
         }
+        .service-hero-pills span { font-size: 0.7rem; min-height: 30px; }
+        .quick-start-copy { font-size: 0.78rem; }
+        .svc-row {
+          grid-template-columns: 92px 36px minmax(0, 1fr);
+          gap: 0.6rem;
+          min-height: 102px;
+        }
+        .svc-row::before {
+          min-height: 102px;
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-color: #edf4f8;
+        }
+        .svc-row-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 11px;
+        }
+        .svc-row-icon svg { width: 18px; height: 18px; }
+        .svc-row-info { padding: 0.8rem 0.8rem 0.8rem 0; }
+        .svc-row-name { font-size: 0.92rem; }
+        .svc-row-meta { font-size: 0.73rem; }
+        .svc-row-chevron { display: none; }
       }
 
 
@@ -1459,17 +1799,36 @@
         <!-- â”€â”€ SCREEN A: Service Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <div id="svc-screen">
 
-        <div class="step-kicker">Clear pricing first</div>
-
-        <div class="step-heading">What do you need help with</div>
-
-        <p class="step-sub">Choose a service to see options and pricing.</p>
-
-        <div class="booking-stage-divider" aria-label="Booking item setup steps">
-          <div class="booking-stage-pill is-active"><span class="booking-stage-number">1</span><span>Book a service</span></div>
-          <div class="booking-stage-line" aria-hidden="true"></div>
-          <div class="booking-stage-pill"><span class="booking-stage-number">2</span><span>Pick what you need</span></div>
+        <div class="service-screen-hero">
+          <div class="service-hero-card">
+            <div class="service-hero-content">
+              <div class="step-kicker">Start your booking</div>
+              <div class="step-heading">Pick the kind of help you need.</div>
+              <p class="step-sub">Open the service that fits the room, mount, setup, or project. You can combine multiple services into one visit without losing your place.</p>
+              <div class="service-hero-pills">
+                <span>Clear item pricing</span>
+                <span>Switch services anytime</span>
+                <span>One visit, multiple jobs</span>
+              </div>
+            </div>
+          </div>
+          <div class="quick-start-bar">
+            <div class="quick-start-head">Quick start</div>
+            <div class="quick-start-copy">Jump straight into the most-booked jobs and edit the details from there.</div>
+            <div class="qp-chips">
+              <button type="button" class="qp-chip" onclick="openQuickPick('Furniture Assembly', 'Bed frame — queen')">Queen bed<span class="qp-chip-price">$119</span></button>
+              <button type="button" class="qp-chip" onclick="openQuickPick('Mounting &amp; Hanging', 'TV 41&quot;–55&quot; (standard wall)')">55&quot; TV mount<span class="qp-chip-price">$119</span></button>
+              <button type="button" class="qp-chip" onclick="openQuickPick('Smart Home', 'Smart doorbell — wireless / battery-powered')">Doorbell setup<span class="qp-chip-price">$89</span></button>
+              <button type="button" class="qp-chip" onclick="openQuickPick('Office Assembly', 'Desk (L-shape / executive)')">Executive desk<span class="qp-chip-price">$179</span></button>
+              <button type="button" class="qp-chip" onclick="openQuickPick('Fitness Equipment', 'Treadmill assembly')">Treadmill<span class="qp-chip-price">$189</span></button>
+              <button type="button" class="qp-chip" onclick="openQuickPick('Outdoor &amp; Playsets', 'Swing set / backyard playset assembly')">Playset<span class="qp-chip-price">$299+</span></button>
+            </div>
+          </div>
         </div>
+
+        <div class="selected-service-strip" id="selected-service-strip"></div>
+
+        <p class="booking-screen-note">Choose a service to open the exact item menu. If the job spans more than one room or type of work, you can add another service on the same booking.</p>
 
         <div class="svc-list">
 
@@ -1563,20 +1922,11 @@
           <div class="item-screen-heading" id="item-screen-heading"></div>
           <div class="item-screen-from" id="item-screen-from"></div>
 
-          <div class="booking-stage-divider" aria-label="Booking item setup steps">
-            <div class="booking-stage-pill is-complete"><span class="booking-stage-number">1</span><span>Book a service</span></div>
-            <div class="booking-stage-line" aria-hidden="true"></div>
-            <div class="booking-stage-pill is-active"><span class="booking-stage-number">2</span><span>Pick what you need</span></div>
-          </div>
+          <div class="item-summary-strip" id="item-summary-strip"></div>
+          <p class="item-intro-line">Start with the main piece, then add matching items or same-visit extras. Your estimate keeps pace as you go.</p>
 
-          <div class="item-picker-divider">
-            <div>
-              <div class="item-picker-label">Pick what you need</div>
-              <div class="item-picker-title">Tell us exactly what is getting handled.</div>
-              <p class="item-picker-copy">Search or open a category. Your booking total updates as you add items.</p>
-            </div>
-            <div class="item-picker-badge">Item details</div>
-          </div>
+          <div class="qp-wrap" id="item-popular-picks" style="display:none"></div>
+          <div class="qp-wrap" id="item-group-jumps" style="display:none"></div>
 
           <style>
             .reco-shelf{margin:0 0 1rem;border:1px solid #d9ebf1;border-radius:14px;padding:0.95rem 1rem;background:linear-gradient(180deg,#f8fdff 0%,#f5fbfd 100%);display:flex;flex-direction:column;gap:0.9rem}
@@ -1596,8 +1946,6 @@
             .reco-chip-add{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#e6f7fb;color:#0099CC;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
             @media (min-width:720px){.reco-shelf-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}}
           </style>
-          <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
-
           <div class="subcat-search-wrap">
             <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="search" id="item-search" class="subcat-search" placeholder="Search items&hellip; e.g. queen bed" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -1606,36 +1954,38 @@
           <div id="item-no-results" class="subcat-no-results" style="display:none">No items match &ldquo;<span></span>&rdquo;</div>
 
           <div id="item-list-wrap"></div>
+          <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
 
+          <details class="booking-extra-drawer" id="booking-extra-drawer">
+            <summary class="booking-extra-summary">
+              <div>
+                Add notes or request a custom quote
+                <span>Use this for brand details, access notes, unusual projects, or anything not covered by the standard list.</span>
+              </div>
+            </summary>
+            <div class="booking-extra-body">
+              <p class="booking-extra-note">The listed menu handles most jobs fast. Open this section when you need to explain the setup or want us to review something outside the normal item catalog.</p>
+              <div class="form-fields">
+                <div class="form-group">
+                  <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+                  <textarea class="form-textarea" id="s1-details" rows="2"
+                    placeholder="Any extra details: brand, model, floor, access info..."></textarea>
+                </div>
 
-
-          <div class="form-fields" style="margin-top:1.5rem">
-
-            <div class="form-group">
-
-              <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-
-              <textarea class="form-textarea" id="s1-details" rows="2"
-
-                placeholder="Any extra details: brand, model, floor, access info..."></textarea>
-
+                <div class="form-group">
+                  <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> Request a custom quote instead of instant pricing</label>
+                  <div class="quote-helper"><strong>Use this when the listed items do not fit.</strong> We review the details, send the final price, and only schedule once the quote is approved.</div>
+                </div>
+              </div>
             </div>
-
-            <div class="form-group">
-
-              <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> Request a custom quote instead of instant pricing</label>
-              <div class="quote-helper"><strong>Use this when the listed items do not fit.</strong> We review the notes, send a final price, and only schedule once the quote is approved.</div>
-
-            </div>
-
-          </div>
+          </details>
 
 
 
           <div class="step-err" id="s1-err">Please select at least one service.</div>
 
           <div class="step-actions">
-
+            <div class="mobile-step-summary" id="mobile-step-summary"></div>
             <button class="btn-next" id="s1-next" onclick="goToStep2Account()">Continue <span>&#8594;</span></button>
 
           </div>
@@ -2166,21 +2516,6 @@
 
       </div>
 
-
-
-      <div class="sidebar-card">
-
-        <div class="sidebar-title">What happens next</div>
-
-        <div class="next-list">
-          <div class="next-item"><div class="next-num">1</div><div><strong>Choose exact items</strong><span>Common services show quick prices so the estimate makes sense.</span></div></div>
-          <div class="next-item"><div class="next-num">2</div><div><strong>Pick your time</strong><span>Choose the appointment window that works best.</span></div></div>
-          <div class="next-item"><div class="next-num">3</div><div><strong>We confirm fast</strong><span>A real person reviews the job details and follows up quickly.</span></div></div>
-          <div class="next-item"><div class="next-num">4</div><div><strong>Final receipt</strong><span>We send your receipt after the job is complete.</span></div></div>
-        </div>
-
-      </div>
-
     </aside>
 
   </div><!-- /book-main -->
@@ -2262,6 +2597,7 @@ var BOOK = {
 
   selectedItems: {},   // { ServiceName: [{name, price, priceMax, addon, customQuote, qty}] }
   currentSvc: null,
+  currentGroup: '',
 
   details: '',
 
@@ -2857,6 +3193,7 @@ function startCustomQuoteFlow() {
     'Other': [{ name: quoteItemName, price: 0, priceMax: 0, addon: false, customQuote: true, qty: 1 }]
   };
   BOOK.wantsQuote = true;
+  BOOK.currentGroup = 'Custom Project';
   showItemScreen('Other');
 
   var quoteBox = document.getElementById('s1-quote');
@@ -2871,11 +3208,15 @@ function startCustomQuoteFlow() {
   var details = document.getElementById('s1-details');
   if (details) details.placeholder = 'Describe the project, item brand/model, room count, photos you can send, access notes, or anything unusual.';
 
+  var drawer = document.getElementById('booking-extra-drawer');
+  if (drawer) drawer.open = true;
+
   updateSvcRows();
   updateOrderSummary();
 }
 
 function showItemScreen(svc) {
+  var switchingService = BOOK.currentSvc !== svc;
 
   if (svc !== 'Other' && BOOK.selectedServices.indexOf('Other') !== -1 && BOOK.wantsQuote) {
     BOOK.selectedServices = BOOK.selectedServices.filter(function(name) { return name !== 'Other'; });
@@ -2886,6 +3227,7 @@ function showItemScreen(svc) {
   }
 
   BOOK.currentSvc = svc;
+  if (switchingService) BOOK.currentGroup = '';
 
   if (BOOK.selectedServices.indexOf(svc) === -1) {
     BOOK.selectedServices.push(svc);
@@ -2900,6 +3242,9 @@ function showItemScreen(svc) {
     var detail = SVC_DETAILS[svc] || SVC_DETAILS.Other;
     details.placeholder = detail.placeholder || 'Any extra details: brand, model, floor, access info...';
   }
+
+  var drawer = document.getElementById('booking-extra-drawer');
+  if (drawer && svc !== 'Other' && !BOOK.wantsQuote) drawer.open = false;
 
   renderItemScreen(svc);
   updateOrderSummary();
@@ -2924,6 +3269,7 @@ function showSvcScreen() {
   }
 
   BOOK.currentSvc = null;
+  BOOK.currentGroup = '';
 
   document.getElementById('item-screen').style.display = 'none';
   document.getElementById('svc-screen').style.display = '';
@@ -2939,15 +3285,247 @@ function showSvcScreen() {
 function updateSvcRows() {
   document.querySelectorAll('.svc-row').forEach(function(row) {
     var svc = row.dataset.service;
-    var items = BOOK.selectedItems[svc] || [];
-    row.classList.toggle('has-items', items.length > 0);
+    var itemCount = getSelectedItemCountForService(svc);
+    row.classList.toggle('has-items', itemCount > 0);
     var badge = row.querySelector('.svc-row-badge');
     if (badge) {
-      badge.textContent = items.length > 0
-        ? (items.length === 1 ? '1 item selected' : items.length + ' items selected')
+      badge.textContent = itemCount > 0
+        ? (itemCount === 1 ? '1 item selected' : itemCount + ' items selected')
         : '';
     }
   });
+}
+
+function normalizeItemLabel(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[\u2018\u2019']/g, '')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findCatalogItem(svc, itemName) {
+  var groups = SUBCATS[svc] || [];
+  var target = normalizeItemLabel(itemName);
+
+  for (var i = 0; i < groups.length; i++) {
+    var items = groups[i].items || [];
+    for (var j = 0; j < items.length; j++) {
+      var item = items[j];
+      if (item.name === itemName || normalizeItemLabel(item.name) === target) return item;
+    }
+  }
+
+  return null;
+}
+
+function getSelectedItemCountForService(svc) {
+  return (BOOK.selectedItems[svc] || []).reduce(function(total, item) {
+    return total + Math.max(1, parseInt(item.qty, 10) || 1);
+  }, 0);
+}
+
+function getSelectedLineCountForService(svc) {
+  return (BOOK.selectedItems[svc] || []).length;
+}
+
+function getTotalSelectedItemCount() {
+  return BOOK.selectedServices.reduce(function(total, svc) {
+    return total + getSelectedItemCountForService(svc);
+  }, 0);
+}
+
+function buildServiceChipHtml(svc, active) {
+  var count = getSelectedItemCountForService(svc);
+  var displayName = getDisplayServiceName(svc);
+  var countLabel = count > 0 ? (count === 1 ? '1 item' : count + ' items') : 'Open';
+  return '<button type="button" class="selected-service-chip' + (active ? ' is-active' : '') + '"'
+    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service)">'
+    + '<span>' + esc(displayName) + '</span>'
+    + '<span class="selected-service-chip-count">' + esc(countLabel) + '</span>'
+    + '</button>';
+}
+
+function renderSelectedServiceStrip() {
+  var strip = document.getElementById('selected-service-strip');
+  if (!strip) return;
+
+  if (!BOOK.selectedServices.length) {
+    strip.classList.remove('show');
+    strip.innerHTML = '';
+    return;
+  }
+
+  var copy = BOOK.selectedServices.length === 1
+    ? 'You already started <strong>' + esc(getDisplayServiceName(BOOK.selectedServices[0])) + '</strong>. Open it again or add another service before continuing.'
+    : 'You have <strong>' + BOOK.selectedServices.length + ' services</strong> in this visit. Tap one to keep editing without starting over.';
+
+  strip.innerHTML = '<div class="selected-service-copy">' + copy + '</div>'
+    + '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
+      return buildServiceChipHtml(svc, false);
+    }).join('') + '</div>';
+  strip.classList.add('show');
+}
+
+function renderItemSummaryStrip() {
+  var strip = document.getElementById('item-summary-strip');
+  if (!strip) return;
+
+  if (!BOOK.currentSvc) {
+    strip.classList.remove('show');
+    strip.innerHTML = '';
+    return;
+  }
+
+  var currentSvc = BOOK.currentSvc;
+  var lineCount = getSelectedLineCountForService(currentSvc);
+  var itemCount = getSelectedItemCountForService(currentSvc);
+  var copy = lineCount > 0
+    ? '<strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong> has ' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + ' in this visit.'
+    : 'Pick the main item for <strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong>, then add more only if they belong on the same visit.';
+
+  var chips = BOOK.selectedServices.length > 1
+    ? '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
+        return buildServiceChipHtml(svc, svc === currentSvc);
+      }).join('') + '</div>'
+    : '';
+
+  strip.innerHTML = '<div class="selected-service-copy">' + copy + '</div>' + chips;
+  strip.classList.add('show');
+}
+
+function updateMobileStepSummary() {
+  var summary = document.getElementById('mobile-step-summary');
+  if (!summary) return;
+
+  if (!BOOK.currentSvc) {
+    summary.style.display = 'none';
+    summary.innerHTML = '';
+    return;
+  }
+
+  var currentCount = getSelectedItemCountForService(BOOK.currentSvc);
+  var totalServices = BOOK.selectedServices.length;
+  summary.innerHTML = '<strong>' + esc(getDisplayServiceName(BOOK.currentSvc)) + '</strong>'
+    + '<span>' + (currentCount > 0 ? (currentCount + ' item' + (currentCount === 1 ? '' : 's') + ' selected') : 'Choose your first item')
+    + (totalServices > 1 ? ' • ' + totalServices + ' services in visit' : '') + '</span>';
+  summary.style.display = '';
+}
+
+function renderPopularPicks(svc) {
+  var wrap = document.getElementById('item-popular-picks');
+  if (!wrap) return;
+
+  var picks = [];
+  (SUBCATS[svc] || []).forEach(function(group) {
+    (group.items || []).forEach(function(item) {
+      if (item.popular && !item.customQuote) picks.push({ group: group.group, item: item });
+    });
+  });
+
+  if (!picks.length) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  wrap.innerHTML = '<div class="qp-heading">Most booked for this service</div>'
+    + '<div class="qp-chips">' + picks.slice(0, 6).map(function(entry) {
+      var item = entry.item;
+      var selected = isItemSelected(svc, item.name);
+      return '<button type="button" class="qp-chip' + (selected ? ' selected' : '') + '"'
+        + ' data-svc="' + escAttr(svc) + '"'
+        + ' data-group="' + escAttr(entry.group) + '"'
+        + ' data-name="' + escAttr(item.name) + '"'
+        + ' onclick="togglePopularPick(this)">'
+        + '<span>' + esc(item.name) + '</span>'
+        + '<span class="qp-chip-price">' + esc(fmtPrice(item)) + '</span>'
+        + '</button>';
+    }).join('') + '</div>';
+  wrap.style.display = '';
+}
+
+function renderGroupJumps(svc) {
+  var wrap = document.getElementById('item-group-jumps');
+  if (!wrap) return;
+
+  var groups = SUBCATS[svc] || [];
+  if (groups.length <= 1) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  wrap.innerHTML = '<div class="qp-heading">Browse by section</div>'
+    + '<div class="qp-chips">' + groups.map(function(group, index) {
+      var active = (BOOK.currentGroup && BOOK.currentGroup === group.group) || (!BOOK.currentGroup && index === 0);
+      return '<button type="button" class="qp-chip' + (active ? ' selected' : '') + '"'
+        + ' data-group="' + escAttr(group.group) + '" onclick="jumpToGroup(this.dataset.group)">'
+        + '<span>' + esc(group.group) + '</span>'
+        + '<span class="qp-chip-price">' + group.items.length + ' items</span>'
+        + '</button>';
+    }).join('') + '</div>';
+  wrap.style.display = '';
+}
+
+function syncGroupJumpState(groupName) {
+  var wrap = document.getElementById('item-group-jumps');
+  if (!wrap) return;
+  wrap.querySelectorAll('.qp-chip[data-group]').forEach(function(btn) {
+    btn.classList.toggle('selected', btn.dataset.group === groupName);
+  });
+}
+
+function jumpToGroup(groupName, skipScroll) {
+  var wrap = document.getElementById('item-list-wrap');
+  if (!wrap) return;
+
+  var target = null;
+  wrap.querySelectorAll('.subcat-group').forEach(function(group) {
+    if (!target && group.dataset.group === groupName) target = group;
+  });
+  if (!target) return;
+
+  BOOK.currentGroup = groupName;
+
+  if (!wrap.classList.contains('searching')) {
+    wrap.querySelectorAll('.subcat-group.open').forEach(function(group) {
+      if (group !== target) group.classList.remove('open');
+    });
+  }
+
+  target.classList.add('open');
+  syncGroupJumpState(groupName);
+
+  if (!skipScroll) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function togglePopularPick(btn) {
+  var svc = btn.getAttribute('data-svc');
+  var name = btn.getAttribute('data-name');
+  var item = findCatalogItem(svc, name);
+  if (!svc || !name || !item) return;
+
+  BOOK.currentGroup = btn.getAttribute('data-group') || findItemGroup(svc, name);
+  toggleItem(svc, item.name, item.price, item.priceMax, !!item.addon, !!item.customQuote);
+}
+
+function openQuickPick(svc, itemName) {
+  showItemScreen(svc);
+
+  if (!itemName) return;
+
+  var item = findCatalogItem(svc, itemName);
+  if (!item) return;
+
+  BOOK.currentGroup = findItemGroup(svc, item.name);
+
+  if (!isItemSelected(svc, item.name)) {
+    toggleItem(svc, item.name, item.price, item.priceMax, !!item.addon, !!item.customQuote);
+  } else {
+    jumpToGroup(BOOK.currentGroup);
+  }
 }
 
 
@@ -2958,20 +3536,48 @@ function updateSvcRows() {
 
 // ----------------------------------------------------------------------------
 
-function toggleSubcat(btn){ var g = btn.closest('.subcat-group'); if (g) g.classList.toggle('open'); }
+function toggleSubcat(btn) {
+  var group = btn.closest('.subcat-group');
+  if (!group) return;
+
+  var wrap = document.getElementById('item-list-wrap');
+  var willOpen = !group.classList.contains('open');
+
+  if (willOpen && wrap && !wrap.classList.contains('searching')) {
+    wrap.querySelectorAll('.subcat-group.open').forEach(function(other) {
+      if (other !== group) other.classList.remove('open');
+    });
+  }
+
+  group.classList.toggle('open');
+
+  if (group.classList.contains('open')) {
+    BOOK.currentGroup = group.dataset.group || '';
+    syncGroupJumpState(BOOK.currentGroup);
+  }
+}
 
 function renderItemScreen(svc) {
 
   var groups = SUBCATS[svc] || [];
 
   var wrap = document.getElementById('item-list-wrap');
+  var inp = document.getElementById('item-search');
+  var prevQuery = inp ? inp.value.trim().toLowerCase() : '';
+  var clearBtn = document.getElementById('item-search-clear');
+  var noRes = document.getElementById('item-no-results');
+  var activeGroup = BOOK.currentGroup;
+  var hasActiveGroup = groups.some(function(group) { return group.group === activeGroup; });
+
+  if (!hasActiveGroup) activeGroup = groups[0] ? groups[0].group : '';
+  BOOK.currentGroup = activeGroup;
 
   var html = '';
 
-  groups.forEach(function(g, gi) {
+  groups.forEach(function(g) {
 
     var groupNote = SUBCAT_NOTES[g.group] || 'Choose the items that match your job so the estimate stays clear.';
-    html += '<div class="subcat-group' + (gi===0?' open':'') + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + g.items.length + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
+    html += '<div class="subcat-group' + (g.group === activeGroup ? ' open' : '') + '" data-group="' + escAttr(g.group) + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + g.items.length + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
 
     g.items.forEach(function(item) { html += itemRowHtml(svc, item); }); html += '</div>';
 
@@ -2981,16 +3587,20 @@ function renderItemScreen(svc) {
 
   wrap.innerHTML = html;
 
+  renderPopularPicks(svc);
+  renderGroupJumps(svc);
+  renderItemSummaryStrip();
+  updateMobileStepSummary();
   try { renderRecoShelf(svc); } catch(e) {}
+  syncGroupJumpState(activeGroup);
 
-  var inp = document.getElementById('item-search');
-  if (inp) inp.value = '';
-
-  var clearBtn = document.getElementById('item-search-clear');
-  if (clearBtn) clearBtn.classList.remove('vis');
-
-  var noRes = document.getElementById('item-no-results');
-  if (noRes) noRes.style.display = 'none';
+  if (inp) inp.value = prevQuery;
+  if (prevQuery) {
+    filterItemList(prevQuery);
+  } else {
+    if (clearBtn) clearBtn.classList.remove('vis');
+    if (noRes) noRes.style.display = 'none';
+  }
 
 }
 
@@ -3047,6 +3657,8 @@ function filterItemList(q) {
     if (sp) sp.textContent = q;
 
   }
+
+  if (!q && BOOK.currentGroup) syncGroupJumpState(BOOK.currentGroup);
 
 }
 
@@ -3128,7 +3740,10 @@ function deselectService(svc) {
 
   delete BOOK.selectedItems[svc];
 
-  if (BOOK.currentSvc === svc) BOOK.currentSvc = null;
+  if (BOOK.currentSvc === svc) {
+    BOOK.currentSvc = null;
+    BOOK.currentGroup = '';
+  }
 
   updateSvcRows();
 
@@ -3281,6 +3896,7 @@ function findItemGroup(svc, itemName) {
 function toggleItem(svc, name, price, priceMax, isAddon, isCustomQuote) {
 
   if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
+  BOOK.currentGroup = findItemGroup(svc, name);
 
   var items = BOOK.selectedItems[svc];
 
@@ -3424,12 +4040,8 @@ function renderRecoShelf(svc) {
     return;
   }
   if (!hasSelectedBaseItems(svc)) {
-    shelf.innerHTML = ""
-      + "<div class=\"reco-shelf-empty\">"
-      + "<div class=\"reco-shelf-title\">Want to add anything else to this visit?</div>"
-      + "<div class=\"reco-shelf-note\">Pick one main item first. Then we will ask about the best add-ons, upgrades, and same-visit bundle options for this job.</div>"
-      + "</div>";
-    shelf.style.display = "flex";
+    shelf.style.display = "none";
+    shelf.innerHTML = "";
     return;
   }
   var itemSections = recommendItems(svc);
@@ -3472,7 +4084,12 @@ function changeQty(svc, name, delta) {
 
   var found = (BOOK.selectedItems[svc] || []).find(function(i) { return i.name === name; });
 
-  if (found) { found.qty = Math.max(1, found.qty + delta); renderItemScreen(BOOK.currentSvc); updateOrderSummary(); }
+  if (found) {
+    BOOK.currentGroup = findItemGroup(svc, name);
+    found.qty = Math.max(1, found.qty + delta);
+    renderItemScreen(BOOK.currentSvc);
+    updateOrderSummary();
+  }
 
 }
 
@@ -3505,6 +4122,9 @@ function updateOrderSummary() {
     totalEl.style.display = 'none'; noteEl.style.display = 'none';
 
     changeBtn.style.display = 'none';
+    renderSelectedServiceStrip();
+    renderItemSummaryStrip();
+    updateMobileStepSummary();
 
     return;
 
@@ -3590,6 +4210,9 @@ function updateOrderSummary() {
   totalEl.style.display = 'flex';
 
   noteEl.style.display = 'block';
+  renderSelectedServiceStrip();
+  renderItemSummaryStrip();
+  updateMobileStepSummary();
 
 }
 
@@ -3792,7 +4415,7 @@ function goToStep2Account() {
 
   if (missingItems.length > 0 && !document.getElementById('s1-quote').checked) {
 
-    showErr('s1-err', 'Please select at least one item under: ' + missingItems.join(', ') + '. Or check "I\'d prefer a custom quote".');
+    showErr('s1-err', 'Please select at least one item under: ' + missingItems.join(', ') + '. Or use the custom quote option.');
 
     return;
 
@@ -3801,7 +4424,7 @@ function goToStep2Account() {
   var selectedQuote = document.getElementById('s1-quote').checked;
   var selectionSnapshot = getPricingSnapshot('');
   if (!selectedQuote && selectionSnapshot.isAddonOnly) {
-    showErr('s1-err', 'Add-ons are for same-visit work. Please add a main service item, or check "I\'d prefer a custom quote" so we can review it manually.');
+    showErr('s1-err', 'Add-ons are for same-visit work. Please add a main service item, or use the custom quote option so we can review it manually.');
     return;
   }
 
