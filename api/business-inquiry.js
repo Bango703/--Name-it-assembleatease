@@ -8,7 +8,7 @@ import { rateLimit } from './_ratelimit.js';
  * distinct, urgent owner alert (scope broken out) and a partnership-grade
  * auto-response — not the generic contact-form treatment.
  *
- * Body: { name, company, email, phone, location, timeline, type, frequency, details }
+ * Body: { name, company, email, location, timeline, type, frequency, details, phone? }
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   } catch (rlErr) { /* fail open if Redis down */ }
 
   const { name, company, email, phone, location, timeline, type, frequency, details } = req.body || {};
-  if (!name || !company || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !phone || !type || !details) {
+  const cleanPhone = typeof phone === 'string' ? phone.trim() : '';
+  if (!name || !company || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !type || !details) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:18px">
       ${row('Contact', name)}
       ${row('Email', email).replace(esc(email), `<a href="mailto:${esc(email)}" style="color:#00BFFF;text-decoration:none">${esc(email)}</a>`)}
-      ${row('Phone', phone).replace(esc(phone), `<a href="tel:${esc(phone)}" style="color:#00BFFF;text-decoration:none">${esc(phone)}</a>`)}
+      ${cleanPhone ? row('Phone', cleanPhone).replace(esc(cleanPhone), `<a href="tel:${esc(cleanPhone)}" style="color:#00BFFF;text-decoration:none">${esc(cleanPhone)}</a>`) : ''}
       ${row('Location', location)}
       ${row('Type of work', type)}
       ${row('Frequency', frequency)}
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7;white-space:pre-line">${esc(details)}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px"><tr><td style="padding:14px 18px">
-      <p style="margin:0;font-size:13px;color:#065f46;line-height:1.6"><strong>Why this matters:</strong> business accounts are recurring, low-acquisition-cost revenue. Aim to reply within a few hours &mdash; speed wins these. Reply straight to this email or call ${esc(phone)}.</p>
+      <p style="margin:0;font-size:13px;color:#065f46;line-height:1.6"><strong>Why this matters:</strong> business accounts are recurring, low-acquisition-cost revenue. Aim to reply within a few hours. Reply straight to this email.</p>
     </td></tr></table>
   </td></tr></table>
 </div></body></html>`;
@@ -67,8 +68,8 @@ export default async function handler(req, res) {
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:23px;font-weight:700;color:#1a1a1a">Thanks, ${esc((name||'').split(' ')[0])} &mdash; we'd love to work with ${esc(company)}.</p>
-    <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">We regularly partner with property managers, apartment communities, realtors, and offices across Austin for assembly, mounting, and smart-home setup &mdash; from single move-ins to multi-unit turns.</p>
+    <p style="margin:0 0 8px;font-size:23px;font-weight:700;color:#1a1a1a">Thanks, ${esc((name||'').split(' ')[0])}. We received your request for ${esc(company)}.</p>
+    <p style="margin:0 0 18px;font-size:15px;color:#52525b;line-height:1.7">Our team will review the scope and reply by email with the next steps for assembly, mounting, or setup work.</p>
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What happens next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px">
       <tr><td style="width:26px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0099CC;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">A real person reviews your scope</strong> &mdash; usually within a few hours, and within 24 hours at the latest.</td></tr>
@@ -76,7 +77,7 @@ export default async function handler(req, res) {
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#0099CC;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We become your go-to</strong> &mdash; reliable, identity-verified pros and a partner who makes your residents and clients happy.</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
-      <strong style="color:#1a1a1a">Reference:</strong> ${ref}. Need us sooner? Reply to this email or call <a href="tel:+17372906129" style="color:#00BFFF">(737) 290-6129</a>.
+      <strong style="color:#1a1a1a">Reference:</strong> ${ref}. Need to add anything else? Reply to this email.
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
@@ -93,7 +94,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'AssembleAtEase Business <contact@assembleatease.com>',
         to: [TO],
-        subject: `🏢 New Business Lead — ${company}${recurring ? ' (recurring?)' : ''}`,
+        subject: `New Business Lead - ${company}${recurring ? ' (recurring?)' : ''}`,
         html: ownerHtml,
         reply_to: email,
       }),
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'AssembleAtEase <contact@assembleatease.com>',
         to: [email],
-        subject: `We'd love to work with ${company} — AssembleAtEase`,
+        subject: `We received your request - ${company}`,
         html: bizHtml,
         reply_to: TO,
       }),
@@ -117,10 +118,19 @@ export default async function handler(req, res) {
     // HubSpot — tag as a business lead with structured detail
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       try {
-        const contactId = await upsertContact({ email, name, phone, lifecycleStage: 'lead' });
+        const contactId = await upsertContact({ email, name, phone: cleanPhone || null, lifecycleStage: 'lead' });
         if (contactId) {
-          await addNote({ contactId, body:
-            `<strong>BUSINESS LEAD</strong> (${ref})<br>Company: ${esc(company)}<br>Type: ${esc(type)}<br>Frequency: ${esc(frequency || 'n/a')}<br>Timeline: ${esc(timeline || 'n/a')}<br>Location: ${esc(location || 'n/a')}<br>Phone: ${esc(phone)}<br><br>${esc(details)}` });
+          const noteLines = [
+            `<strong>BUSINESS LEAD</strong> (${ref})`,
+            `Company: ${esc(company)}`,
+            `Type: ${esc(type)}`,
+            `Frequency: ${esc(frequency || 'n/a')}`,
+            `Timeline: ${esc(timeline || 'n/a')}`,
+            `Location: ${esc(location || 'n/a')}`,
+          ];
+          if (cleanPhone) noteLines.push(`Phone: ${esc(cleanPhone)}`);
+          noteLines.push('', esc(details));
+          await addNote({ contactId, body: noteLines.join('<br>') });
         }
       } catch (err) { console.error('HubSpot business lead error:', err); }
     }
@@ -131,3 +141,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed' });
   }
 }
+
