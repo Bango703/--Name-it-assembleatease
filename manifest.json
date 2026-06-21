@@ -9,8 +9,8 @@
   "background_color": "#0d1117",
   "theme_color": "#00BFFF",
   "icons": [
-    { "src": "/images/logo.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any maskable" },
-    { "src": "/images/logo.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" }
+    { "src": "/images/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/images/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ],
   "categories": ["business", "productivity"],
   "screenshots": [],

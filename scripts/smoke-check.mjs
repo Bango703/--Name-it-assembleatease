@@ -97,6 +97,20 @@ if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
   throw new Error('Favicon must use the logo mark, not plain AE text');
 }
 
+// Favicons must be valid, correctly-formatted files. The old /favicon.ico was a
+// JPEG renamed .ico, which Google rejects (generic globe in search results).
+// Regenerate with: python scripts/make-favicons.py
+const faviconIco = readFileSync('favicon.ico');
+if (faviconIco.length < 4 || faviconIco.readUInt32LE(0) !== 0x00010000) {
+  throw new Error('favicon.ico must be a real ICO file (magic 00 00 01 00), not a renamed JPEG/PNG');
+}
+for (const iconPng of ['images/favicon-96.png', 'images/apple-touch-icon.png', 'images/icon-192.png', 'images/icon-512.png']) {
+  if (!existsSync(iconPng)) throw new Error(`Missing favicon asset (run scripts/make-favicons.py): ${iconPng}`);
+  if (readFileSync(iconPng).subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') {
+    throw new Error(`Favicon asset must be a real PNG: ${iconPng}`);
+  }
+}
+
 const trustStrip = homepage.match(/<div class="trust-strip">([\s\S]*?)<\/div>\s*<\/div>/)?.[1];
 if (!trustStrip) throw new Error('Homepage mobile trust strip not found');
 
@@ -261,6 +275,15 @@ for (const file of uniquePublicHtmlFiles) {
   }
   if (!html.includes('<meta property="og:title"')) {
     throw new Error(`Public page missing og:title: ${file}`);
+  }
+  if (!html.includes('/favicon.ico')) {
+    throw new Error(`Public page missing /favicon.ico link: ${file}`);
+  }
+  if (!html.includes('href="/images/favicon.svg"')) {
+    throw new Error(`Public page missing SVG favicon link: ${file}`);
+  }
+  if (/rel="(?:icon|apple-touch-icon)"[^>]*logo\.jpg/i.test(html)) {
+    throw new Error(`Public page links a JPEG as a favicon (use /favicon.ico + PNG): ${file}`);
   }
   if (/visit minimum/i.test(html)) {
     throw new Error(`Public page still mentions visit minimum: ${file}`);
