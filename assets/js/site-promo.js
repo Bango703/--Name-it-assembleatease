@@ -95,11 +95,73 @@
     existing.innerHTML = promoMarkup(promo);
   }
 
+  // ---- SEO snippet sync (homepage only) -------------------------------------
+  // When the owner turns the promo ON, lead the homepage title + description
+  // with the offer so Google's snippet shows it. When the promo is OFF, the
+  // original (clean) meta is restored. Source of truth is the owner panel label,
+  // so this auto-syncs with the on/off toggle — no stale "30% off" promises.
+  var ORIGINAL_SEO = null;
+
+  function isHomepage() {
+    var p = (window.location.pathname || '/').replace(/\/index\.html$/i, '/');
+    return p === '/' || p === '';
+  }
+
+  function metaEl(selector) {
+    return document.head ? document.head.querySelector(selector) : null;
+  }
+
+  function setMetaContent(selector, value) {
+    var el = metaEl(selector);
+    if (el && value != null) el.setAttribute('content', value);
+  }
+
+  function captureSeo() {
+    if (ORIGINAL_SEO) return;
+    var desc = metaEl('meta[name="description"]');
+    var ogDesc = metaEl('meta[property="og:description"]');
+    var ogTitle = metaEl('meta[property="og:title"]');
+    var twTitle = metaEl('meta[name="twitter:title"]');
+    var twDesc = metaEl('meta[name="twitter:description"]');
+    ORIGINAL_SEO = {
+      title: document.title,
+      desc: desc ? desc.getAttribute('content') : null,
+      ogDesc: ogDesc ? ogDesc.getAttribute('content') : null,
+      ogTitle: ogTitle ? ogTitle.getAttribute('content') : null,
+      twTitle: twTitle ? twTitle.getAttribute('content') : null,
+      twDesc: twDesc ? twDesc.getAttribute('content') : null,
+    };
+  }
+
+  function updateSeo(promo) {
+    if (!isHomepage()) return;
+    captureSeo();
+    var hook = promo && promo.label ? String(promo.label).trim() : '';
+    if (hook) {
+      var title = hook + ' | AssembleAtEase Home Setup & Assembly';
+      var desc = hook + '. Furniture assembly, TV mounting & smart home setup with upfront pricing, reviewed pros, and secure checkout.';
+      document.title = title;
+      setMetaContent('meta[name="description"]', desc);
+      setMetaContent('meta[property="og:description"]', desc);
+      setMetaContent('meta[property="og:title"]', title);
+      setMetaContent('meta[name="twitter:title"]', title);
+      setMetaContent('meta[name="twitter:description"]', desc);
+    } else if (ORIGINAL_SEO) {
+      document.title = ORIGINAL_SEO.title;
+      setMetaContent('meta[name="description"]', ORIGINAL_SEO.desc);
+      setMetaContent('meta[property="og:description"]', ORIGINAL_SEO.ogDesc);
+      setMetaContent('meta[property="og:title"]', ORIGINAL_SEO.ogTitle);
+      setMetaContent('meta[name="twitter:title"]', ORIGINAL_SEO.twTitle);
+      setMetaContent('meta[name="twitter:description"]', ORIGINAL_SEO.twDesc);
+    }
+  }
+
   function applyPromo(promo) {
     window.AAE_ACTIVE_PROMO = promo || null;
     ensureStyles();
     rewriteBookingLinks(promo && promo.code ? promo.code : '');
     if (!renderHomeBar(promo)) renderInlineBar(promo);
+    updateSeo(promo);
   }
 
   function loadPromo() {
