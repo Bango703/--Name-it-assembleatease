@@ -1513,9 +1513,40 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
       overlayEl=document.getElementById('aae-chat-overlay'),
       panelEl=document.getElementById('aae-chat-panel'),
       hist=[], greeted=false, busy=false, lockY=0, teaserTimer=0;
+  var CHAT_VISITOR_KEY='aae-chat-visitor-id-v1',
+      CHAT_CONVERSATION_KEY='aae-chat-conversation-id-v1',
+      CHAT_LAST_ACTIVE_KEY='aae-chat-last-active-v1',
+      CHAT_IDLE_MS=2*60*60*1000;
   function teaserDismissed(){try{return sessionStorage.getItem('aae-chat-teaser-hidden')==='1';}catch(_){return false;}}
   function setTeaserDismissed(){try{sessionStorage.setItem('aae-chat-teaser-hidden','1');}catch(_){}}
   function shouldAutoFocus(){return window.innerWidth > 700 && window.matchMedia('(pointer:fine)').matches;}
+  function randomChatId(prefix){
+    if(window.crypto&&typeof window.crypto.randomUUID==='function') return prefix+'-'+window.crypto.randomUUID();
+    return prefix+'-'+Math.random().toString(36).slice(2,10)+'-'+Date.now().toString(36);
+  }
+  function getStored(key){try{return localStorage.getItem(key)||'';}catch(_){return '';}}
+  function setStored(key,value){try{localStorage.setItem(key,value);}catch(_){}}
+  function getChatContext(){
+    var now=Date.now();
+    var visitorId=getStored(CHAT_VISITOR_KEY);
+    if(!visitorId){
+      visitorId=randomChatId('visitor');
+      setStored(CHAT_VISITOR_KEY,visitorId);
+    }
+    var conversationId=getStored(CHAT_CONVERSATION_KEY);
+    var lastActive=parseInt(getStored(CHAT_LAST_ACTIVE_KEY)||'0',10);
+    if(!conversationId||!lastActive||(now-lastActive)>CHAT_IDLE_MS){
+      conversationId=randomChatId('conv');
+      setStored(CHAT_CONVERSATION_KEY,conversationId);
+    }
+    setStored(CHAT_LAST_ACTIVE_KEY,String(now));
+    return {
+      visitorId:visitorId,
+      conversationId:conversationId,
+      pagePath:window.location.pathname||'/',
+      pageTitle:document.title||''
+    };
+  }
   function showTeaser(){
     if(!teaserEl || teaserDismissed() || panelEl.classList.contains('open')) return;
     teaserEl.classList.add('show');
@@ -1600,7 +1631,8 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
     if(hist.length>12)hist=hist.slice(-12);
     setBusy(true);
     var t=typing();
-    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:hist})})
+    var chatContext=getChatContext();
+    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:hist,conversationId:chatContext.conversationId,visitorId:chatContext.visitorId,pagePath:chatContext.pagePath,pageTitle:chatContext.pageTitle})})
       .then(function(r){return r.json().catch(function(){return {};});})
       .then(function(data){
         t.remove();

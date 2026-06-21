@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { createHash } from 'node:crypto';
 import { readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rateLimit } from './_ratelimit.js';
 import { getBookingCatalog } from './_pricing.js';
 import { getServiceCallFeeCents } from './_source-of-truth.js';
+import { getSupabase } from './_supabase.js';
 
 function getServiceStartPrices() {
   const catalog = getBookingCatalog();
@@ -43,6 +45,9 @@ const ROOT_ROUTES = Object.freeze({
   contact: '/contact',
   track: '/track',
 });
+
+const SITE_CHAT_EVENT_USER = 'website_chat_user';
+const SITE_CHAT_EVENT_AI = 'website_chat_ai';
 
 function loadBlogRoutes() {
   try {
@@ -104,6 +109,93 @@ function fallbackRouteFor(rawRoute) {
   return ROOT_ROUTES.book;
 }
 
+function safeText(value, max = 200) {
+  return String(value || '').trim().slice(0, max);
+}
+
+function getIp(req) {
+  return String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '')
+    .split(',')[0]
+    .trim() || 'unknown';
+}
+
+function shortHash(value) {
+  return createHash('sha256').update(String(value || '')).digest('hex').slice(0, 12);
+}
+
+function sanitizeChatId(value, fallback) {
+  const cleaned = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return cleaned || fallback;
+}
+
+function sanitizePagePath(value) {
+  const raw = safeText(value, 220);
+  if (!raw) return '/';
+  try {
+    if (/^https?:\/\//i.test(raw)) {
+      const parsed = new URL(raw);
+      return (parsed.pathname || '/').split('#')[0].split('?')[0] || '/';
+    }
+  } catch {}
+  if (!raw.startsWith('/')) return '/';
+  return raw.split('#')[0].split('?')[0] || '/';
+}
+
+function buildWebsiteChatContext(req) {
+  const body = req.body || {};
+  const ip = getIp(req);
+  const userAgent = safeText(req.headers['user-agent'], 180);
+  const fallbackVisitorId = `visitor-${shortHash(`${ip}|${userAgent}`)}`;
+  const fallbackConversationId = `conv-${shortHash(`${fallbackVisitorId}|${Math.floor(Date.now() / (2 * 60 * 60 * 1000))}`)}`;
+  const visitorId = sanitizeChatId(body.visitorId, fallbackVisitorId);
+  const conversationId = sanitizeChatId(body.conversationId, fallbackConversationId);
+
+  return {
+    visitorId,
+    conversationId,
+    pagePath: sanitizePagePath(body.pagePath),
+    pageTitle: safeText(body.pageTitle, 120),
+    userAgent,
+    visitorLabel: visitorId.slice(-6).toUpperCase(),
+  };
+}
+
+async function logWebsiteChatTurn({ role, content, context }) {
+  const text = safeText(content, 4000);
+  if (!text) return;
+  try {
+    const sb = getSupabase();
+    await sb.from('activity_logs').insert({
+      booking_id: null,
+      event_type: role === 'assistant' ? SITE_CHAT_EVENT_AI : SITE_CHAT_EVENT_USER,
+      actor_type: role === 'assistant' ? 'system' : 'customer',
+      actor_name: role === 'assistant' ? 'Sora' : `Visitor ${context.visitorLabel}`,
+      description: text,
+      metadata: {
+        source: 'website_chat',
+        role,
+        conversationId: context.conversationId,
+        visitorId: context.visitorId,
+        pagePath: context.pagePath,
+        pageTitle: context.pageTitle || null,
+        userAgent: context.userAgent || null,
+      },
+    });
+  } catch (err) {
+    console.error('Sora chat logging error:', err?.message || err);
+  }
+}
+
+async function respondWithLoggedReply(res, { status = 200, reply, context }) {
+  await logWebsiteChatTurn({ role: 'assistant', content: reply, context });
+  return res.status(status).json({ reply });
+}
+
 export function sanitizeReplyLinks(reply) {
   let text = String(reply || '');
 
@@ -124,9 +216,9 @@ export function sanitizeReplyLinks(reply) {
   return text.replace(/\s{2,}/g, ' ').trim();
 }
 
-// Public customer-facing assistant ("Sora"). Q&A + booking guidance only —
+// Public customer-facing assistant ("Sora"). Q&A + booking guidance only -
 // it NEVER takes payment or creates bookings (it hands off to /book).
-const SYSTEM = `You are Sora, the friendly assistant for AssembleAtEase — a professional home-assembly marketplace serving Austin, TX and the surrounding metro. You help website visitors with questions and getting booked.
+const SYSTEM = `You are Sora, the friendly assistant for AssembleAtEase - a professional home-assembly marketplace serving Austin, TX and the surrounding metro. You help website visitors with questions and getting booked.
 
 WHAT WE DO: Furniture assembly, TV mounting and wall hanging, smart home setup, fitness equipment assembly, office furniture assembly, and outdoor/playset assembly.
 
@@ -136,7 +228,7 @@ SERVICE AREA: Austin and the surrounding metro (Round Rock, Cedar Park, Pflugerv
 
 PAYMENT: The customer's card is securely verified and held when they book, and they are only charged AFTER the job is completed. Checkout is secured by Stripe. Never ask for or accept card numbers or payment details in chat.
 
-CANCELLATION: Free up to 24 hours before the appointment. Within 24 hours a small fee applies (10%, or 15% once a pro is on the way) — on the service price only, never tax, never the full amount.
+CANCELLATION: Free up to 24 hours before the appointment. Within 24 hours a small fee applies (10%, or 15% once a pro is on the way) - on the service price only, never tax, never the full amount.
 
 TOOLS AND HARDWARE: Our pros bring all the TOOLS. The customer provides the item, its hardware, and any wall mount. We do NOT supply mounts or hardware. If they're unsure what fits, they can coordinate with their pro after booking. Never say we provide mounts or hardware.
 
@@ -146,7 +238,7 @@ BOOKING: To book, point them to /book (booking takes under 2 minutes). For prici
 REAL LINKS: Only use exact AssembleAtEase routes that already exist. Core routes: /book, /pricing, /blog, /about, /contact, /track. ${BLOG_ROUTE_LINE} If you are not completely sure of a deeper page, use /book, /pricing, or /blog instead of inventing a URL.
 
 HOW TO RESPOND:
-- Be warm and concise: 1 to 4 short sentences. Plain text only — no markdown, no bullet symbols, no emojis.
+- Be warm and concise: 1 to 4 short sentences. Plain text only - no markdown, no bullet symbols, no emojis.
 - Personality: sound calm, capable, and human. A little conversational is good. A little dry wit is okay when it feels natural. Never sound pushy, cheesy, or fake.
 - Only discuss AssembleAtEase: its services, pricing, area, booking and policies. Politely decline anything off-topic and steer back.
 - When helpful, include a plain link like /book or /pricing. Never make up a route, slug, or URL.
@@ -157,17 +249,8 @@ HOW TO RESPOND:
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const key = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_2;
-  if (!key) {
-    return res.status(503).json({ reply: 'Chat is unavailable right now — please email service@assembleatease.com or call (737) 290-6129, or book at /book.' });
-  }
-
-  // Rate limit by IP (fail-open if the limiter itself errors).
-  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim() || 'unknown';
+  const ip = getIp(req);
   const allowed = await rateLimit(ip, 'chat').catch(() => true);
-  if (!allowed) {
-    return res.status(429).json({ reply: "You're sending messages quickly — give me a few seconds, then try again." });
-  }
 
   let { messages } = req.body || {};
   if (!Array.isArray(messages)) messages = [];
@@ -175,8 +258,34 @@ export default async function handler(req, res) {
     .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
     .map((m) => ({ role: m.role, content: m.content.slice(0, 1000) }))
     .slice(-12);
+
   if (!clean.length || clean[clean.length - 1].role !== 'user') {
     return res.status(400).json({ error: 'A user message is required.' });
+  }
+
+  const chatContext = buildWebsiteChatContext(req);
+
+  if (!allowed) {
+    return respondWithLoggedReply(res, {
+      status: 429,
+      reply: "You're sending messages quickly - give me a few seconds, then try again.",
+      context: chatContext,
+    });
+  }
+
+  await logWebsiteChatTurn({
+    role: 'user',
+    content: clean[clean.length - 1].content,
+    context: chatContext,
+  });
+
+  const key = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_2;
+  if (!key) {
+    return respondWithLoggedReply(res, {
+      status: 503,
+      reply: 'Chat is unavailable right now - please email service@assembleatease.com or call (737) 290-6129, or book at /book.',
+      context: chatContext,
+    });
   }
 
   try {
@@ -187,11 +296,17 @@ export default async function handler(req, res) {
       system: SYSTEM,
       messages: clean,
     });
+
     const reply = sanitizeReplyLinks(msg.content?.[0]?.text?.trim())
-      || "Sorry, I didn't catch that — could you rephrase? You can also email service@assembleatease.com.";
-    return res.status(200).json({ reply });
+      || "Sorry, I didn't catch that - could you rephrase? You can also email service@assembleatease.com.";
+
+    return respondWithLoggedReply(res, { status: 200, reply, context: chatContext });
   } catch (e) {
     console.error('Sora chat error:', e);
-    return res.status(500).json({ reply: "I'm having trouble right now. Please email service@assembleatease.com or call (737) 290-6129, or book directly at /book." });
+    return respondWithLoggedReply(res, {
+      status: 500,
+      reply: "I'm having trouble right now. Please email service@assembleatease.com or call (737) 290-6129, or book directly at /book.",
+      context: chatContext,
+    });
   }
 }

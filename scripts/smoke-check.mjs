@@ -11,6 +11,7 @@ const files = [
   'api/booking/refund.js',
   'api/assembler/apply.js',
   'api/chat.js',
+  'api/owner/site-chat.js',
   'api/assembler/stripe-webhook.js',
   'api/cron/auto-blog.js',
 ];
@@ -113,6 +114,14 @@ if (!homepage.includes('/api/chat')) {
 }
 if (!homepage.includes('>Sora<')) {
   throw new Error('Homepage Sora widget should display the Sora assistant name');
+}
+if (!homepage.includes('conversationId:chatContext.conversationId') || !homepage.includes("CHAT_CONVERSATION_KEY='aae-chat-conversation-id-v1'")) {
+  throw new Error('Homepage Sora widget must send a stable conversation ID for owner chat capture');
+}
+
+const ownerDashboard = readFileSync('owner/index.html', 'utf8');
+if (!ownerDashboard.includes('/api/owner/site-chat') || !ownerDashboard.includes('Website Chat Inbox')) {
+  throw new Error('Owner dashboard must expose the website chat inbox');
 }
 
 const bookingPage = readFileSync('book.html', 'utf8');

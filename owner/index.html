@@ -139,6 +139,28 @@
     .msg-input{flex:1;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:none;min-height:40px;max-height:100px}
     .msg-input:focus{border-color:var(--teal)}
 
+    /* -- Website chat inbox -- */
+    .site-chat-grid{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);gap:1rem}
+    .site-chat-list{display:flex;flex-direction:column;gap:0.65rem;max-height:430px;overflow-y:auto;padding-right:2px}
+    .site-chat-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.85rem 0.95rem;cursor:pointer;transition:border-color 0.15s,background 0.15s,box-shadow 0.15s}
+    .site-chat-row:hover{border-color:var(--border-md);background:#fbfcfe}
+    .site-chat-row.active{border-color:rgba(0,191,255,0.45);background:var(--teal-glow);box-shadow:0 8px 20px rgba(0,191,255,0.08)}
+    .site-chat-row-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.35rem}
+    .site-chat-row-title{font-size:0.84rem;font-weight:700;color:var(--text)}
+    .site-chat-row-time{font-size:0.7rem;color:var(--muted);white-space:nowrap}
+    .site-chat-row-meta{font-size:0.72rem;color:var(--muted);line-height:1.45;margin-bottom:0.4rem}
+    .site-chat-row-preview{font-size:0.8rem;color:var(--soft);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .site-chat-thread{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,#ffffff 0%,#f8fbfe 100%);min-height:430px;display:flex;flex-direction:column;overflow:hidden}
+    .site-chat-thread-head{padding:1rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
+    .site-chat-thread-title{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:0.2rem}
+    .site-chat-thread-meta{font-size:0.75rem;color:var(--muted);line-height:1.5}
+    .site-chat-thread-body{padding:1rem 1.1rem;display:flex;flex-direction:column;gap:0.75rem;overflow-y:auto;flex:1}
+    .site-chat-bubble{max-width:88%;padding:0.8rem 0.9rem;border-radius:14px;font-size:0.83rem;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .site-chat-bubble.user{align-self:flex-start;background:var(--surface);border:1px solid var(--border-md);color:var(--text)}
+    .site-chat-bubble.assistant{align-self:flex-end;background:var(--teal-glow);border:1px solid rgba(0,191,255,0.22);color:var(--text)}
+    .site-chat-bubble-label{font-size:0.69rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.35rem}
+    .site-chat-empty{display:flex;align-items:center;justify-content:center;min-height:220px;padding:1.25rem;text-align:center;color:var(--muted);font-size:0.84rem;line-height:1.6}
+
     /* ── Evidence grid ── */
     .evidence-grid{display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem}
     .evidence-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;flex:0 0 140px;background:var(--elevated);transition:border-color 0.15s}
@@ -170,7 +192,7 @@
     .toast.error{background:#7f1d1d;color:#fecaca;border:1px solid rgba(220,38,38,0.4)}
 
     /* ── Responsive ── */
-    @media(max-width:1100px){.content-grid{grid-template-columns:1fr !important}}
+    @media(max-width:1100px){.content-grid{grid-template-columns:1fr !important}.site-chat-grid{grid-template-columns:1fr}}
     @media(max-width:900px){
       .layout{grid-template-columns:1fr}
       .sidebar{
@@ -746,6 +768,24 @@
             <div style="display:flex;gap:0.4rem">
               <input id="intel-chat-input" type="text" placeholder="Ask anything about your business…" style="flex:1;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;padding:0.5rem 0.75rem;font-family:inherit;font-size:0.82rem;color:var(--text);outline:none" onkeydown="if(event.key==='Enter')sendIntelChat()"/>
               <button onclick="sendIntelChat()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0.5rem 0.9rem;cursor:pointer;font-size:0.82rem;font-weight:600">Send</button>
+            </div>
+          </div>
+
+          <div class="detail-panel open" style="grid-column:1/-1">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem">
+              <div>
+                <div class="detail-section-title" style="margin:0 0 0.35rem">Website Chat Inbox</div>
+                <div id="site-chat-summary" style="font-size:0.82rem;color:var(--muted);line-height:1.5">Loading recent Sora conversations from the last 48 hours...</div>
+              </div>
+              <button id="site-chat-refresh-btn" onclick="loadSiteChatInbox(true)" class="btn" style="font-size:0.78rem;padding:4px 14px">Refresh chats</button>
+            </div>
+            <div class="site-chat-grid">
+              <div id="site-chat-list" class="site-chat-list">
+                <div class="site-chat-empty">Loading website chats...</div>
+              </div>
+              <div id="site-chat-thread" class="site-chat-thread">
+                <div class="site-chat-empty">Choose a conversation to see the full customer question and Sora response thread.</div>
+              </div>
             </div>
           </div>
 
@@ -1461,6 +1501,8 @@ function intelQuick(msg) {
   let _messageSending = false;
   let currentStatus = 'all';
   let searchQuery = '';
+  let siteChatConversations = [];
+  let selectedSiteChatId = null;
   var _evidenceCache = {}; // { [bookingId]: { evidence, total, loading, error } }
 
   const $gate      = document.getElementById('login-gate');
@@ -1477,6 +1519,9 @@ function intelQuick(msg) {
   const $msgThread = document.getElementById('msg-thread');
   const $msgInput  = document.getElementById('msg-input');
   const $toast     = document.getElementById('toast');
+  const $siteChatList = document.getElementById('site-chat-list');
+  const $siteChatThread = document.getElementById('site-chat-thread');
+  const $siteChatSummary = document.getElementById('site-chat-summary');
   const $cleanupTestBtn = document.getElementById('cleanup-test-data-btn');
   const $reasonModal = document.getElementById('reason-modal');
   const $reasonText  = document.getElementById('reason-text');
@@ -1861,6 +1906,7 @@ function intelQuick(msg) {
       else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
       else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
       else if (currentView === 'analytics') { await renderAnalytics(); }
+      else if (currentView === 'intelligence') { await loadSiteChatInbox(true); }
       else await loadBookings();
     } finally {
       btn.disabled = false;
@@ -3375,6 +3421,118 @@ function intelQuick(msg) {
     } catch { return esc(d); }
   }
 
+  function siteChatPathLabel(path) {
+    if (!path || path === '/') return 'Home';
+    return path.replace(/^\//, '').replace(/-/g, ' ');
+  }
+
+  function siteChatDeviceLabel(userAgent) {
+    var ua = String(userAgent || '').toLowerCase();
+    if (!ua) return 'Unknown device';
+    if (ua.indexOf('ipad') !== -1 || (ua.indexOf('android') !== -1 && ua.indexOf('mobile') === -1)) return 'Tablet';
+    if (ua.indexOf('iphone') !== -1 || ua.indexOf('android') !== -1 || ua.indexOf('mobile') !== -1) return 'Mobile';
+    return 'Desktop';
+  }
+
+  function renderSiteChatThread() {
+    if (!$siteChatThread) return;
+    var conversation = siteChatConversations.find(function(c) { return c.conversationId === selectedSiteChatId; });
+    if (!conversation) {
+      $siteChatThread.innerHTML = '<div class="site-chat-empty">Choose a conversation to see the full customer question and Sora response thread.</div>';
+      return;
+    }
+    var pathLine = (conversation.paths && conversation.paths.length ? conversation.paths : [conversation.pagePath || '/'])
+      .filter(Boolean)
+      .map(siteChatPathLabel)
+      .join(' • ');
+    $siteChatThread.innerHTML = '<div class="site-chat-thread-head">'
+      +   '<div>'
+      +     '<div class="site-chat-thread-title">' + esc(conversation.visitorLabel || 'Visitor') + '</div>'
+      +     '<div class="site-chat-thread-meta">' + esc(siteChatDeviceLabel(conversation.userAgent)) + ' • ' + esc(pathLine || 'Home') + '<br>Started ' + esc(formatDateTime(conversation.startedAt)) + ' • Last message ' + esc(formatDateTime(conversation.lastAt)) + '</div>'
+      +   '</div>'
+      +   '<div class="site-chat-thread-meta">' + esc(String(conversation.userMessageCount || 0)) + ' customer • ' + esc(String(conversation.assistantMessageCount || 0)) + ' Sora</div>'
+      + '</div>'
+      + '<div class="site-chat-thread-body">'
+      +   (conversation.messages || []).map(function(message) {
+            var label = message.role === 'assistant' ? 'Sora' : 'Customer';
+            return '<div class="site-chat-bubble ' + (message.role === 'assistant' ? 'assistant' : 'user') + '">'
+              + '<div class="site-chat-bubble-label">' + label + ' • ' + esc(formatDateTime(message.createdAt)) + '</div>'
+              + esc(message.body || '')
+              + '</div>';
+          }).join('')
+      + '</div>';
+  }
+
+  function renderSiteChatList() {
+    if (!$siteChatList) return;
+    if (!siteChatConversations.length) {
+      $siteChatList.innerHTML = '<div class="site-chat-empty">No website chats in the last 48 hours.</div>';
+      if ($siteChatThread) $siteChatThread.innerHTML = '<div class="site-chat-empty">When customers ask Sora questions, the full conversation will show here for 48 hours.</div>';
+      return;
+    }
+    if (!selectedSiteChatId || !siteChatConversations.some(function(c) { return c.conversationId === selectedSiteChatId; })) {
+      selectedSiteChatId = siteChatConversations[0].conversationId;
+    }
+    $siteChatList.innerHTML = siteChatConversations.map(function(conversation) {
+      var active = conversation.conversationId === selectedSiteChatId;
+      var preview = conversation.preview || ((conversation.messages || []).find(function(m) { return m.role === 'user'; }) || {}).body || 'Conversation captured.';
+      var pathLine = (conversation.paths && conversation.paths.length ? conversation.paths : [conversation.pagePath || '/'])
+        .filter(Boolean)
+        .map(siteChatPathLabel)
+        .join(' • ');
+      return '<div class="site-chat-row' + (active ? ' active' : '') + '" data-site-chat-id="' + esc(conversation.conversationId) + '">'
+        + '<div class="site-chat-row-top">'
+        +   '<div class="site-chat-row-title">' + esc(conversation.visitorLabel || 'Visitor') + '</div>'
+        +   '<div class="site-chat-row-time">' + esc(formatDateTime(conversation.lastAt)) + '</div>'
+        + '</div>'
+        + '<div class="site-chat-row-meta">' + esc(siteChatDeviceLabel(conversation.userAgent)) + ' • ' + esc(pathLine || 'Home') + ' • ' + esc(String(conversation.messageCount || 0)) + ' msgs</div>'
+        + '<div class="site-chat-row-preview">' + esc(preview) + '</div>'
+        + '</div>';
+    }).join('');
+    Array.from($siteChatList.querySelectorAll('[data-site-chat-id]')).forEach(function(row) {
+      row.addEventListener('click', function() {
+        selectedSiteChatId = row.getAttribute('data-site-chat-id');
+        renderSiteChatList();
+        renderSiteChatThread();
+      });
+    });
+    renderSiteChatThread();
+  }
+
+  async function loadSiteChatInbox(forceRefresh) {
+    if (!$siteChatList || !$siteChatThread || !$siteChatSummary) return;
+    var btn = document.getElementById('site-chat-refresh-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = forceRefresh ? 'Refreshing...' : 'Loading...';
+    }
+    $siteChatList.innerHTML = '<div class="site-chat-empty">Loading website chats...</div>';
+    $siteChatThread.innerHTML = '<div class="site-chat-empty">Loading conversation...</div>';
+    try {
+      var r = await fetch('/api/owner/site-chat', { headers: headers() });
+      if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
+      var data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Failed to load site chats');
+      siteChatConversations = data.conversations || [];
+      selectedSiteChatId = siteChatConversations.length ? (siteChatConversations.some(function(c) { return c.conversationId === selectedSiteChatId; }) ? selectedSiteChatId : siteChatConversations[0].conversationId) : null;
+      var summary = data.summary || {};
+      $siteChatSummary.textContent = siteChatConversations.length
+        ? (summary.conversations || siteChatConversations.length) + ' conversation(s), ' + (summary.totalMessages || 0) + ' total messages, last ' + (data.hours || 48) + ' hours.'
+        : 'No Sora website chats in the last ' + (data.hours || 48) + ' hours.';
+      renderSiteChatList();
+    } catch (err) {
+      $siteChatSummary.textContent = 'Website chat history could not be loaded right now.';
+      $siteChatList.innerHTML = '<div class="site-chat-empty">Failed to load website chats.</div>';
+      $siteChatThread.innerHTML = '<div class="site-chat-empty">' + esc((err && err.message) || 'Failed to load website chats.') + '</div>';
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Refresh chats';
+      }
+    }
+  }
+  window.loadSiteChatInbox = loadSiteChatInbox;
+
   function toast(msg, type) {
     $toast.textContent = msg;
     $toast.className = 'toast ' + (type || 'success') + ' show';
@@ -3501,7 +3659,7 @@ function intelQuick(msg) {
       else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
       else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
       else if (view === 'analytics')     { $analyticsView.style.display='';     $topbarTitle.textContent='Financials'; renderAnalytics(); }
-      else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; }
+      else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; loadSiteChatInbox(); }
     });
   });
 
