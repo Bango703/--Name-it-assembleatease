@@ -19,6 +19,28 @@ function safeJson(obj) {
   return JSON.stringify(obj).replace(/<\//g, '<\\/');
 }
 
+function buildMetaDescription(serviceSlug, cityName) {
+  if (serviceSlug === 'furniture-assembly') {
+    return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Upfront pricing, service-call fee, and taxes are shown before checkout.`;
+  }
+  if (serviceSlug === 'tv-mounting') {
+    return `TV mounting in ${cityName}, TX for TVs, shelves, mirrors, and wall installs with upfront pricing shown before checkout.`;
+  }
+  if (serviceSlug === 'smart-home-installation') {
+    return `Smart home installation in ${cityName}, TX for locks, cameras, thermostats, and doorbells with upfront pricing before checkout.`;
+  }
+  if (serviceSlug === 'fitness-equipment-assembly') {
+    return `Fitness equipment assembly in ${cityName}, TX for treadmills, bikes, benches, and home gyms with upfront pricing before checkout.`;
+  }
+  if (serviceSlug === 'office-furniture-assembly') {
+    return `Office furniture assembly in ${cityName}, TX for desks, chairs, and workstations with upfront pricing before checkout.`;
+  }
+  if (serviceSlug === 'playset-assembly') {
+    return `Playset assembly in ${cityName}, TX for trampolines, swing sets, pergolas, and gazebos with upfront pricing before checkout.`;
+  }
+  return `Professional service in ${cityName}, TX with upfront pricing shown before checkout.`;
+}
+
 // ── CITY DATA ──────────────────────────────────────────────────────────────
 const CITIES = [
   {
@@ -284,7 +306,7 @@ function generatePage(city, service) {
   const pageSlug = `${service.slug}-${city.slug}-tx`;
   const url = `https://www.assembleatease.com/${pageSlug}`;
   const title = `${service.name} in ${city.name}, TX — From ${service.fromPrice} | AssembleAtEase`;
-  const metaDesc = `Professional ${service.name.toLowerCase()} in ${city.name}, TX. ${city.bio.split('.')[0]}. Same-day available — book online with secure payment.`;
+  const metaDesc = buildMetaDescription(service.slug, city.name);
 
   // JSON-LD schema
   const schema = safeJson({
@@ -384,6 +406,7 @@ function generatePage(city, service) {
 <meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="${esc(title)}"/>
+<meta name="twitter:description" content="${esc(metaDesc)}"/>
 <meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <script type="application/ld+json">${schema}</script>
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
@@ -393,6 +416,7 @@ function generatePage(city, service) {
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
 <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/></noscript>
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
+<script src="/assets/js/site-promo.js" defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--cyan:#00BFFF;--cyan-dark:#0099CC;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;--ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;--border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;--radius:12px;--radius-lg:18px;--radius-xl:24px;--font-display:'DM Serif Display',serif;--font-body:'DM Sans',sans-serif;--shadow:0 4px 20px rgba(0,0,0,0.08);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);}

@@ -995,6 +995,38 @@
 
     .s5-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); font-weight: 600; }
 
+    .promo-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 1rem 1.1rem; margin: 0 0 1.2rem; border-radius: var(--radius-lg); border: 1px solid rgba(0,191,255,0.18); background: linear-gradient(135deg, #f5fcff 0%, #ffffff 100%); }
+
+    .promo-copy { min-width: 0; }
+
+    .promo-kicker { display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); }
+
+    .promo-kicker::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px rgba(0,191,255,0.12); }
+
+    .promo-title { font-size: 0.98rem; font-weight: 700; color: var(--ink); line-height: 1.35; }
+
+    .promo-note { margin-top: 0.25rem; font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
+
+    .promo-entry { width: min(100%, 320px); }
+
+    .promo-row { display: flex; align-items: center; gap: 0.55rem; }
+
+    .promo-input { flex: 1; min-width: 0; min-height: 44px; border-radius: var(--radius-md); border: 1.5px solid rgba(0,191,255,0.25); background: #fff; padding: 0 0.85rem; font-family: var(--font-body); font-size: 0.92rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); outline: none; }
+
+    .promo-input:focus { border-color: var(--teal); box-shadow: 0 0 0 4px rgba(0,191,255,0.1); }
+
+    .promo-apply { min-width: 96px; min-height: 44px; border-radius: var(--radius-md); border: none; background: var(--cyan); color: #fff; font-size: 0.84rem; font-weight: 700; cursor: pointer; transition: transform var(--transition), box-shadow var(--transition), background var(--transition); }
+
+    .promo-apply:hover { background: var(--cyan-dark); box-shadow: 0 12px 24px rgba(0,191,255,0.22); transform: translateY(-1px); }
+
+    .promo-status { min-height: 1.2rem; margin-top: 0.55rem; font-size: 0.76rem; font-weight: 600; line-height: 1.45; color: var(--muted); }
+
+    .promo-status.success { color: #0f766e; }
+
+    .promo-status.warning { color: #92400e; }
+
+    .promo-status.error { color: #b91c1c; }
+
 
 
     /* -- Confirmation -- */
@@ -1036,6 +1068,10 @@
       .book-trust-line { display: none; }
 
       .step-assurance { grid-template-columns: 1fr; }
+
+      .promo-box { grid-template-columns: 1fr; }
+
+      .promo-entry { width: 100%; }
 
     }
 
@@ -1908,6 +1944,21 @@
 
         <div class="summary-rows" id="booking-summary"></div>
 
+        <div class="promo-box" id="s5-promo-box" style="display:none">
+          <div class="promo-copy">
+            <div class="promo-kicker" id="s5-promo-kicker">Special Offer</div>
+            <div class="promo-title" id="s5-promo-title">Promo available at checkout</div>
+            <div class="promo-note" id="s5-promo-note">We verify promo codes before you confirm so the total stays honest.</div>
+          </div>
+          <div class="promo-entry">
+            <div class="promo-row">
+              <input type="text" class="promo-input" id="s5-promo-code" placeholder="Promo code" aria-label="Promo code" maxlength="24" />
+              <button type="button" class="promo-apply" id="s5-promo-apply" onclick="applyPromoCode()">Apply</button>
+            </div>
+            <div class="promo-status" id="s5-promo-status"></div>
+          </div>
+        </div>
+
 
 
         <!-- Card payment (standard bookings) -->
@@ -2245,6 +2296,12 @@ var BOOK = {
 
   phone: '',
 
+  promoCode: '',
+
+  _promoPreview: null,
+
+  _promoApplied: false,
+
   _stripe: null,
 
   _cardEl: null
@@ -2359,6 +2416,168 @@ function dollars(value) {
   return '$' + n.toFixed(2).replace(/\.00$/, '');
 }
 
+var ACTIVE_PROMO_OFFER = null;
+
+function centsFromDollars(value) {
+  return Math.max(0, Math.round(Number(value || 0) * 100));
+}
+
+function getActivePromoCode() {
+  return String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.code || '').trim().toUpperCase();
+}
+
+function getActivePromoLabel() {
+  return String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.label || 'Promo discount');
+}
+
+function applyPromoUiState() {
+  var box = document.getElementById('s5-promo-box');
+  var kicker = document.getElementById('s5-promo-kicker');
+  var title = document.getElementById('s5-promo-title');
+  var note = document.getElementById('s5-promo-note');
+  var input = document.getElementById('s5-promo-code');
+  if (!box || !kicker || !title || !note || !input) return;
+
+  var activeCode = getActivePromoCode();
+  var shouldShow = !!activeCode || !!String(BOOK.promoCode || '').trim();
+  box.style.display = shouldShow ? '' : 'none';
+  if (!shouldShow) return;
+
+  kicker.textContent = String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.title || 'Special Offer');
+  title.textContent = String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.label || 'Promo available at checkout');
+  note.innerHTML = activeCode
+    ? 'Use <strong>' + esc(activeCode) + '</strong>. We verify it before you confirm so the total stays honest.'
+    : 'If you have a valid promo code, enter it here and we will verify it before you confirm.';
+  input.placeholder = activeCode || 'Promo code';
+}
+
+async function loadPromoConfig() {
+  try {
+    var resp = await fetch('/api/promo', { cache: 'no-store' });
+    var data = await resp.json();
+    ACTIVE_PROMO_OFFER = resp.ok && data && data.promo && data.promo.enabled ? data.promo : null;
+  } catch (_err) {
+    ACTIVE_PROMO_OFFER = null;
+  }
+  applyPromoUiState();
+  setPromoStatus(getPromoStatusMessage('', BOOK.promoCode), '');
+  if (BOOK.promoCode) refreshPromoPreview({ silentFailure: true });
+}
+
+function getEnteredPromoCode() {
+  var input = document.getElementById('s5-promo-code');
+  return String(input ? input.value : BOOK.promoCode || '').trim().toUpperCase();
+}
+
+function setPromoStatus(message, tone) {
+  var statusEl = document.getElementById('s5-promo-status');
+  if (!statusEl) return;
+  statusEl.textContent = message || '';
+  statusEl.className = 'promo-status' + (tone ? ' ' + tone : '');
+}
+
+function getPromoStatusMessage(reason, code) {
+  if (!code) return getActivePromoCode() ? 'Use ' + getActivePromoCode() + ' if this is your first booking.' : 'Add a code here if you have one.';
+  if (!reason) return 'Tap Apply to verify this offer before you confirm.';
+  if (reason === 'applied') return code + ' applied. Discount removed before tax.';
+  if (reason === 'invalid_code') return 'That code was not found. Double-check the spelling.';
+  if (reason === 'email_required') return 'Enter your email first so we can verify the offer.';
+  if (reason === 'quote_request_not_eligible') return 'This offer applies to instant-price bookings, not custom quotes.';
+  if (reason === 'no_eligible_items') return 'Add a standard priced item to use this offer.';
+  if (reason === 'not_first_booking') return 'This offer is only for a first booking with a new email.';
+  return 'This offer is not available for the current booking.';
+}
+
+function getLocalPricingPreview(snapshot) {
+  return {
+    itemSubtotalCents: centsFromDollars(snapshot.itemSubtotal),
+    bundleDiscountCents: centsFromDollars(snapshot.discountAmount),
+    serviceCallFeeCents: centsFromDollars(snapshot.serviceCallFee),
+    taxCents: centsFromDollars(snapshot.taxAmount),
+    totalCents: centsFromDollars(snapshot.grandTotal),
+    hasCustomQuote: !!snapshot.hasCustom,
+    isAddonOnly: !!snapshot.isAddonOnly
+  };
+}
+
+function buildStep5ItemLinesHtml() {
+  var hasCustom = false;
+  var html = '';
+
+  BOOK.selectedServices.forEach(function(svc) {
+    (BOOK.selectedItems[svc] || []).forEach(function(item) {
+      if (item.customQuote) {
+        hasCustom = true;
+        html += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span>Custom quote</span></div>';
+      } else if (item.price > 0) {
+        var lineTotal = item.price * item.qty;
+        html += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span>$' + lineTotal + '</span></div>';
+      }
+    });
+  });
+
+  return { html: html, hasCustom: hasCustom };
+}
+
+function renderStep5OrderTotal() {
+  var summaryEl = document.getElementById('booking-summary');
+  if (!summaryEl) return;
+
+  var snapshot = getPricingSnapshot(BOOK.zip);
+  var localPricing = getLocalPricingPreview(snapshot);
+  var promoState = BOOK._promoPreview && BOOK._promoPreview.pricing ? BOOK._promoPreview : null;
+  var promoApplied = !!(promoState && promoState.promo && promoState.promo.applied);
+  var promoDiscountCents = promoApplied ? Math.max(0, Number(promoState.promo.discountCents || 0)) : 0;
+  var pricing = promoApplied ? promoState.pricing : localPricing;
+  var itemsBlock = buildStep5ItemLinesHtml();
+
+  BOOK._discountPct = snapshot.bundle.pct;
+  BOOK._discountAmount = snapshot.discountAmount;
+  BOOK._promoApplied = promoApplied;
+  BOOK.promoCode = getEnteredPromoCode();
+  BOOK._promoCode = promoApplied ? (promoState.promo.appliedCode || BOOK.promoCode) : BOOK.promoCode;
+  BOOK._promoDiscountAmount = promoDiscountCents / 100;
+  BOOK._grandTotalCents = itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0 ? 0 : Math.max(0, Number(pricing.totalCents || 0));
+
+  var existing = document.getElementById('s5-order-total-row');
+  if (existing) existing.remove();
+
+  var discountLineHtml = snapshot.bundle.pct > 0 && snapshot.discountAmount > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0d9488;font-weight:600;margin-bottom:0.25rem"><span>Bundle discount (' + snapshot.bundle.pct + '% &mdash; ' + snapshot.bundle.count + ' items)</span><span>&minus;$' + snapshot.discountAmount.toFixed(2) + '</span></div>'
+    : '';
+  var promoLineHtml = promoDiscountCents > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0369a1;font-weight:700;margin-bottom:0.25rem"><span>' + esc((promoState && promoState.promo && promoState.promo.label) || getActivePromoLabel()) + '</span><span>&minus;' + dollars(promoDiscountCents / 100) + '</span></div>'
+    : '';
+  var callFeeLineHtml = pricing.serviceCallFeeCents > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>Service call fee</span><span>' + dollars(pricing.serviceCallFeeCents / 100) + '</span></div>'
+    : '';
+  var taxLineHtml = pricing.totalCents > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>Subtotal</span><span>' + dollars(pricing.itemSubtotalCents / 100) + '</span></div>'
+      + discountLineHtml
+      + promoLineHtml
+      + callFeeLineHtml
+      + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>Sales tax (8.25%)</span><span>' + dollars(pricing.taxCents / 100) + '</span></div>'
+    : '';
+  var totalDisplay = itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0
+    ? 'Custom quote'
+    : dollars((pricing.totalCents || 0) / 100) + (itemsBlock.hasCustom ? '+ (some items need a quote)' : '');
+  var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : (promoApplied ? 'Offer applied' : 'Secure checkout');
+
+  summaryEl.insertAdjacentHTML('beforeend',
+    '<div class="summary-row" id="s5-order-total-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
+      + '<span class="summary-row-icon"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></span>'
+      + '<div style="flex:1">'
+      + '<div class="summary-row-label" style="font-weight:600;color:var(--ink)">Order total</div>'
+      + (itemsBlock.html ? '<div style="margin-top:0.4rem">' + itemsBlock.html + '</div>' : '')
+      + (taxLineHtml ? '<div style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px dashed var(--border)">' + taxLineHtml + '</div>' : '')
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;padding-top:0.5rem;border-top:2px solid var(--border)">'
+      + '<span style="font-size:1.1rem;font-weight:700;color:var(--ink)">' + totalDisplay + '</span>'
+      + '<span style="font-size:0.75rem;color:var(--muted)">' + totalNote + '</span>'
+      + '</div>'
+      + '</div></div>'
+  );
+}
+
 function getPricingSnapshot(zip) {
   var itemSubtotal = 0;
   var baseSubtotal = 0;
@@ -2430,6 +2649,74 @@ function getOnlineBookingPolicyMessage() {
   }
 
   return '';
+}
+
+async function refreshPromoPreview(options) {
+  var opts = options || {};
+  var applyBtn = document.getElementById('s5-promo-apply');
+  var promoCode = getEnteredPromoCode();
+
+  BOOK.promoCode = promoCode;
+  BOOK._promoPreview = null;
+  renderStep5OrderTotal();
+
+  if (!promoCode) {
+    setPromoStatus(getPromoStatusMessage('', ''), '');
+    return;
+  }
+
+  if (!BOOK.email) {
+    setPromoStatus(getPromoStatusMessage('email_required', promoCode), 'warning');
+    return;
+  }
+
+  if (BOOK.isEmergingMarket || BOOK._isQuoteFlow) {
+    setPromoStatus(getPromoStatusMessage('quote_request_not_eligible', promoCode), 'warning');
+    return;
+  }
+
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'Checking...';
+  }
+
+  try {
+    var resp = await fetch('/api/booking/promo-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        services: BOOK.selectedServices,
+        items: buildItemsPayload(),
+        zip: BOOK.zip,
+        email: BOOK.email,
+        promoCode: promoCode,
+        isQuoteRequest: BOOK._isQuoteFlow || false
+      })
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Could not verify this offer right now.');
+
+    BOOK._promoPreview = data;
+    renderStep5OrderTotal();
+
+    var tone = data.promo && data.promo.applied
+      ? 'success'
+      : (data.promo && data.promo.reason === 'invalid_code' ? 'error' : 'warning');
+    setPromoStatus(getPromoStatusMessage(data.promo ? data.promo.reason : '', promoCode), tone);
+  } catch (e) {
+    BOOK._promoPreview = null;
+    renderStep5OrderTotal();
+    if (!opts.silentFailure) setPromoStatus(e.message || 'Could not verify this offer right now.', 'error');
+  } finally {
+    if (applyBtn) {
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Apply';
+    }
+  }
+}
+
+async function applyPromoCode() {
+  await refreshPromoPreview();
 }
 
 
@@ -3834,125 +4121,11 @@ async function goToStep5Payment() {
 
 
 
-  // Calculate and display order total with tax
-
-  (function() {
-
-    var TX_TAX_RATE = 0.0825; // 8.25%, Texas 6.25% + Austin 2%
-
-    var hasCustom = false, subtotal = 0;
-
-    var lineHtml = '';
-
-    BOOK.selectedServices.forEach(function(svc) {
-
-      (BOOK.selectedItems[svc] || []).forEach(function(item) {
-
-        if (item.customQuote) {
-
-          hasCustom = true;
-
-          lineHtml += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span>Custom quote</span></div>';
-
-        } else if (item.price > 0) {
-
-          var lineTotal = item.price * item.qty;
-
-          subtotal += lineTotal;
-
-          lineHtml += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>' + esc(item.qty > 1 ? item.name + ' \xD7' + item.qty : item.name) + '</span><span>$' + lineTotal + '</span></div>';
-
-        }
-
-      });
-
-    });
-
-    var bundle = getBundleDiscount();
-
-    var discountAmount = subtotal > 0 ? Math.round(subtotal * bundle.pct / 100 * 100) / 100 : 0;
-
-    var discountedSubtotal = subtotal - discountAmount;
-
-    var serviceCallFee = subtotal > 0 ? getServiceCallFee(BOOK.zip) : 0;
-
-    var taxableSubtotal = discountedSubtotal + serviceCallFee;
-
-    BOOK._discountPct = bundle.pct;
-
-    BOOK._discountAmount = discountAmount;
-
-    var taxAmount = Math.round(taxableSubtotal * TX_TAX_RATE * 100) / 100;
-
-    var grandTotal = Math.round((taxableSubtotal + taxAmount) * 100) / 100;
-
-    BOOK._grandTotalCents = hasCustom && subtotal === 0 ? 0 : Math.round(grandTotal * 100);
-
-
-
-    var discountLineHtml = bundle.pct > 0 && discountAmount > 0
-
-      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0d9488;font-weight:600;margin-bottom:0.25rem">'
-
-        + '<span>Bundle discount (' + bundle.pct + '% &mdash; ' + bundle.count + ' items)</span>'
-
-        + '<span>&minus;$' + discountAmount.toFixed(2) + '</span></div>'
-
-      : '';
-
-    var callFeeLineHtml = serviceCallFee > 0
-
-      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
-
-        + '<span>Service call fee</span><span>$' + serviceCallFee.toFixed(2) + '</span></div>'
-
-      : '';
-
-    var taxLineHtml = taxableSubtotal > 0
-
-      ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
-
-        + '<span>Subtotal</span><span>$' + subtotal.toFixed(2) + '</span></div>'
-
-        + discountLineHtml
-
-        + callFeeLineHtml
-
-        + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem">'
-
-        + '<span>Sales tax (8.25%)</span><span>$' + taxAmount.toFixed(2) + '</span></div>'
-
-      : '';
-
-    var totalDisplay = hasCustom && subtotal === 0 ? 'Custom quote' : ('$' + grandTotal.toFixed(2) + (hasCustom ? '+ (some items need a quote)' : ''));
-
-    var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : 'Secure checkout';
-
-    var totalHtml = '<div class="summary-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
-
-      + '<span class="summary-row-icon"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:var(--teal)"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></span>'
-
-      + '<div style="flex:1">'
-
-      + '<div class="summary-row-label" style="font-weight:600;color:var(--ink)">Order total</div>'
-
-      + (lineHtml ? '<div style="margin-top:0.4rem">' + lineHtml + '</div>' : '')
-
-      + (taxLineHtml ? '<div style="margin-top:0.4rem;padding-top:0.4rem;border-top:1px dashed var(--border)">' + taxLineHtml + '</div>' : '')
-
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;padding-top:0.5rem;border-top:2px solid var(--border)">'
-
-      + '<span style="font-size:1.1rem;font-weight:700;color:var(--ink)">' + totalDisplay + '</span>'
-
-      + '<span style="font-size:0.75rem;color:var(--muted)">' + totalNote + '</span>'
-
-      + '</div>'
-
-      + '</div></div>';
-
-    document.getElementById('booking-summary').innerHTML += totalHtml;
-
-  })();
+  if (BOOK.promoCode) {
+    var promoField = document.getElementById('s5-promo-code');
+    if (promoField) promoField.value = BOOK.promoCode;
+  }
+  renderStep5OrderTotal();
 
 
 
@@ -3961,6 +4134,7 @@ async function goToStep5Payment() {
   if (BOOK.isEmergingMarket) {
 
     BOOK._isQuoteFlow = false;
+    BOOK._promoPreview = null;
 
     document.getElementById('s5-banner').textContent = 'Emerging market request';
 
@@ -3982,6 +4156,7 @@ async function goToStep5Payment() {
       '<span>No payment</span><span>Demand tracked by market</span><span>We contact you before scheduling</span>';
 
     document.getElementById('s5-submit').innerHTML = 'Submit Service Request <span>&#8594;</span>';
+    setPromoStatus('This offer applies to instant-price online bookings in active service areas.', 'warning');
 
     var emergingProg4Label = document.querySelector('#prog-4 .progress-label');
     if (emergingProg4Label) emergingProg4Label.textContent = 'Request';
@@ -4019,6 +4194,7 @@ async function goToStep5Payment() {
   var isQuoteFlow = (BOOK._grandTotalCents === 0) || BOOK.wantsQuote || BOOK._hasCustomQuoteItems;
 
   BOOK._isQuoteFlow = isQuoteFlow;
+  await refreshPromoPreview({ silentFailure: true });
 
 
 
@@ -4199,6 +4375,7 @@ function saveContactEdit() {
   });
 
   toggleS5Edit('contact');
+  refreshPromoPreview({ silentFailure: true });
 
 }
 
@@ -4388,6 +4565,7 @@ function saveContactEdit() {
   var params = new URLSearchParams(window.location.search);
 
   var svc = params.get('service') || params.get('s') || '';
+  BOOK.promoCode = String(params.get('promo') || '').trim().toUpperCase();
 
   if (!svc) return;
 
@@ -4410,6 +4588,34 @@ function saveContactEdit() {
 
   });
 
+})();
+
+(function initPromoField() {
+  var promoInput = document.getElementById('s5-promo-code');
+  applyPromoUiState();
+  if (!promoInput) {
+    loadPromoConfig();
+    return;
+  }
+
+  if (BOOK.promoCode) promoInput.value = BOOK.promoCode;
+
+  promoInput.addEventListener('input', function() {
+    this.value = this.value.toUpperCase().replace(/\s+/g, '');
+    BOOK.promoCode = this.value;
+    BOOK._promoPreview = null;
+    renderStep5OrderTotal();
+    setPromoStatus(getPromoStatusMessage('', BOOK.promoCode), '');
+  });
+
+  promoInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyPromoCode();
+    }
+  });
+
+  loadPromoConfig();
 })();
 
 
@@ -4787,6 +4993,12 @@ async function submitBooking() {
 
         discountAmount: BOOK._discountAmount || 0,
 
+        promoCode: BOOK.promoCode || '',
+
+        promoPreviewApplied: !!BOOK._promoApplied,
+
+        promoPreviewTotalCents: BOOK._grandTotalCents || 0,
+
         isQuoteRequest: BOOK._isQuoteFlow || false,
 
         paymentMethodId: savedPaymentMethodId || null,
@@ -4799,7 +5011,23 @@ async function submitBooking() {
 
     data = await resp.json();
 
-    if (!resp.ok) throw new Error(data.error || 'Server error. Please try again.');
+    if (!resp.ok) {
+      if (resp.status === 409 && data.code === 'PROMO_CHANGED' && data.promo && data.pricing) {
+        BOOK._promoPreview = {
+          promo: data.promo,
+          pricing: {
+            itemSubtotalCents: data.pricing.itemSubtotalCents || getLocalPricingPreview(getPricingSnapshot(BOOK.zip)).itemSubtotalCents,
+            bundleDiscountCents: data.pricing.bundleDiscountCents || 0,
+            serviceCallFeeCents: data.pricing.serviceCallFeeCents || 0,
+            taxCents: data.pricing.taxCents || 0,
+            totalCents: data.pricing.totalCents || 0
+          }
+        };
+        renderStep5OrderTotal();
+        setPromoStatus(getPromoStatusMessage(data.promo.reason, BOOK.promoCode || data.promo.enteredCode || ''), 'warning');
+      }
+      throw new Error(data.error || 'Server error. Please try again.');
+    }
 
   } catch(e) {
 

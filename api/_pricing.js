@@ -1,9 +1,9 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import vm from 'vm';
-import { getServiceCallFeeCents, getServiceCallZone } from './_source-of-truth.js';
+import { SALES_TAX_RATE, getServiceCallFeeCents, getServiceCallZone } from './_source-of-truth.js';
 
-export const TX_TAX_RATE = 0.0825;
+export const TX_TAX_RATE = SALES_TAX_RATE;
 
 let catalogCache = null;
 

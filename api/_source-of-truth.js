@@ -60,6 +60,13 @@ export const MEMBERSHIP_PLATFORM_FEE_PCT = Object.freeze({
   NON_MEMBER: 30,
 });
 
+export const NEW_CUSTOMER_OFFER = Object.freeze({
+  code: 'WELCOME25',
+  discountCents: 2500,
+  label: '$25 off your first booking',
+  title: 'New Customer Offer',
+});
+
 export function getPlatformFeePct(isMember) {
   return isMember ? MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER : MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER;
 }

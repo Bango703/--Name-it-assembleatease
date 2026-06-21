@@ -5,13 +5,37 @@ import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { calculateBookingPricing } from './_pricing.js';
 import { getMinimumPretaxBookingCents } from './_source-of-truth.js';
+import {
+  applyPromotionToPricing,
+  isMissingColumnError,
+  resolveBookingPromotion,
+} from './_promotions.js';
+import { logActivity } from './booking/_activity.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
-  const { services, items, service: serviceLegacy, name, phone, email, address, zip, date, time, details, isQuoteRequest, paymentMethodId, stripeCustomerId } = req.body;
+  const {
+    services,
+    items,
+    service: serviceLegacy,
+    name,
+    phone,
+    email,
+    address,
+    zip,
+    date,
+    time,
+    details,
+    isQuoteRequest,
+    paymentMethodId,
+    stripeCustomerId,
+    promoCode,
+    promoPreviewApplied,
+    promoPreviewTotalCents,
+  } = req.body;
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
@@ -47,6 +71,7 @@ export default async function handler(req, res) {
 
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
+  const quoteRequested = isQuoteRequest === true;
   const pricing = calculateBookingPricing({ services: serviceList, itemsByService: items, zip });
   if (pricing.invalidItems.length) {
     return res.status(400).json({
@@ -55,40 +80,75 @@ export default async function handler(req, res) {
     });
   }
 
-  const quoteRequested = isQuoteRequest === true;
-  const amount = pricing.totalCents;
-  const subtotalCents = pricing.itemSubtotalCents;
-  const discountCents = pricing.discountCents;
-  const taxableSubtotalCents = pricing.taxableSubtotalCents;
-  const taxCents = pricing.taxCents;
-  const serviceCallFeeCents = pricing.serviceCallFeeCents;
+  const promo = await resolveBookingPromotion({
+    promoCode,
+    email,
+    pricing,
+    isQuoteRequest: quoteRequested,
+    sb,
+  });
+  const pricingWithPromo = applyPromotionToPricing(pricing, promo);
+  const amount = pricingWithPromo.totalCents;
+  const subtotalCents = pricingWithPromo.itemSubtotalCents;
+  const discountCents = pricingWithPromo.discountCents;
+  const promoDiscountCents = pricingWithPromo.promoDiscountCents;
+  const taxableSubtotalCents = pricingWithPromo.taxableSubtotalCents;
+  const taxCents = pricingWithPromo.taxCents;
+  const serviceCallFeeCents = pricingWithPromo.serviceCallFeeCents;
   const shouldChargeNow = amount > 0 && !quoteRequested;
 
-  if (amount > 0 && !pricing.callZone) {
+  const previewApplied = promoPreviewApplied === true;
+  const previewTotal = Number.isFinite(Number(promoPreviewTotalCents)) ? Math.round(Number(promoPreviewTotalCents)) : null;
+  if (String(promoCode || '').trim()) {
+    const promoStateChanged = previewApplied !== !!promo.applied
+      || (previewTotal != null && previewTotal !== amount);
+    if (promoStateChanged) {
+      return res.status(409).json({
+        error: 'This offer changed while you were booking. Review the updated total and confirm again.',
+        code: 'PROMO_CHANGED',
+        promo: {
+          enteredCode: promo.enteredCode,
+          applied: promo.applied,
+          appliedCode: promo.appliedCode,
+          discountCents: promoDiscountCents,
+          reason: promo.reason,
+        },
+        pricing: {
+          totalCents: amount,
+          taxCents,
+          serviceCallFeeCents,
+          bundleDiscountCents: discountCents,
+          promoDiscountCents,
+        },
+      });
+    }
+  }
+
+  if (amount > 0 && !pricingWithPromo.callZone) {
     return res.status(400).json({
       error: 'This ZIP is outside the active online booking area. Please submit a service request or email service@assembleatease.com.',
       code: 'OUTSIDE_ACTIVE_BOOKING_AREA',
-      callZone: pricing.callZone,
+      callZone: pricingWithPromo.callZone,
     });
   }
 
-  if (amount > 0 && !quoteRequested && pricing.isAddonOnly) {
+  if (amount > 0 && !quoteRequested && pricingWithPromo.isAddonOnly) {
     return res.status(400).json({
       error: 'Add-ons can only be booked with a base service item. Please add a main service item or request a custom quote.',
       code: 'ADDON_ONLY_NOT_ALLOWED',
-      callZone: pricing.callZone,
+      callZone: pricingWithPromo.callZone,
     });
   }
 
   // No hard minimum BLOCK. The per-ZIP service-call fee already covers travel and
   // overhead on small jobs, so we take the booking instead of turning the customer
   // away over a few dollars. (minBookingCents kept as informational context only.)
-  const minBookingCents = getMinimumPretaxBookingCents(pricing.callZone);
+  const minBookingCents = getMinimumPretaxBookingCents(pricingWithPromo.callZone);
 
   const isDeposit = false;
   const depositAmountCents = null;
 
-  const { data: savedBooking, error: insertErr } = await sb.from('bookings').insert({
+  const bookingInsertPayload = {
     ref,
     service,
     customer_name: name,
@@ -103,10 +163,19 @@ export default async function handler(req, res) {
     total_price: amount,
     tax_amount: taxCents,
     service_call_fee: serviceCallFeeCents,
-    call_zone: pricing.callZone,
+    call_zone: pricingWithPromo.callZone,
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
-  }).select('id').single();
+    promo_code: promo.applied ? promo.appliedCode : null,
+    promo_discount_cents: promoDiscountCents,
+  };
+
+  let { data: savedBooking, error: insertErr } = await sb.from('bookings').insert(bookingInsertPayload).select('id').single();
+
+  if (insertErr && isMissingColumnError(insertErr) && /promo_/i.test(String(insertErr.message || ''))) {
+    const { promo_code, promo_discount_cents, ...legacyBookingInsertPayload } = bookingInsertPayload;
+    ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(legacyBookingInsertPayload).select('id').single());
+  }
 
   if (insertErr) {
     console.error('Booking insert error:', insertErr);
@@ -114,8 +183,21 @@ export default async function handler(req, res) {
   }
 
   const bookingId = savedBooking.id;
+  if (promo.applied && promoDiscountCents > 0) {
+    logActivity(sb, {
+      bookingId,
+      eventType: 'booking_created',
+      actorType: 'customer',
+      actorName: name,
+      description: `Promo applied — ${promo.appliedCode} (-$${(promoDiscountCents / 100).toFixed(2)}).`,
+      metadata: {
+        promoCode: promo.appliedCode,
+        promoDiscountCents,
+      },
+    });
+  }
 
-  const bookingItemRows = buildBookingItemRows({ bookingId, itemsByService: pricing.normalizedItems });
+  const bookingItemRows = buildBookingItemRows({ bookingId, itemsByService: pricingWithPromo.normalizedItems });
   if (bookingItemRows.length) {
     const { error: itemInsertErr } = await sb.from('booking_items').insert(bookingItemRows);
     if (itemInsertErr) {
@@ -178,6 +260,8 @@ export default async function handler(req, res) {
           type: 'customer_booking',
           isDeposit: 'false',
           depositAmountCents: '0',
+          promoCode: promo.applied ? promo.appliedCode : '',
+          promoDiscountCents: String(promoDiscountCents || 0),
         },
       });
 
@@ -240,6 +324,7 @@ export default async function handler(req, res) {
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Details</td><td style="padding:10px 0;line-height:1.6">${sDetails || 'None provided'}</td></tr>
       ${amount > 0 ? `<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Subtotal</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:600">$${(subtotalCents/100).toFixed(2)}</td></tr>
       ${discountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Bundle Discount</td><td style="padding:10px 0;font-weight:600;color:#0d9488">-$${(discountCents/100).toFixed(2)}</td></tr>` : ''}
+      ${promoDiscountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">${esc(promo.label)}</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-$${(promoDiscountCents/100).toFixed(2)}</td></tr>` : ''}
       ${serviceCallFeeCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Service Call</td><td style="padding:10px 0;font-weight:600">$${(serviceCallFeeCents/100).toFixed(2)}</td></tr>` : ''}
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Tax</td><td style="padding:10px 0;font-weight:600">$${(taxCents/100).toFixed(2)}</td></tr>
       <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}

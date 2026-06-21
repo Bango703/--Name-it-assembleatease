@@ -370,6 +370,7 @@
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews <span class="nav-count" id="nav-reviews" style="display:none">0</span></a></li>
+        <li><a data-view="marketing"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M9 14h6"/><path d="M12 14v6"/></svg></span> Marketing</a></li>
         <li><a data-view="analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Financials</a></li>
         <li><a data-view="intelligence"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span> AI Intelligence <span class="nav-count" id="nav-alerts" style="display:none">!</span></a></li>
         <li><a onclick="window.openContentKit&&window.openContentKit()" style="cursor:pointer"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span> Content Kit</a></li>
@@ -833,6 +834,77 @@
             </thead>
             <tbody id="cust-tbody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ─── MARKETING VIEW ─── -->
+      <div id="marketing-view" style="display:none">
+        <div class="stats-row" id="marketing-stats-row">
+          <div class="stat teal"><div class="stat-value" id="mk-status">—</div><div class="stat-label">Offer Status</div></div>
+          <div class="stat neutral"><div class="stat-value" id="mk-redemptions">—</div><div class="stat-label">Redemptions</div></div>
+          <div class="stat orange"><div class="stat-value" id="mk-discount-total">—</div><div class="stat-label">Discount Given</div></div>
+          <div class="stat neutral"><div class="stat-value" id="mk-revenue-touched">—</div><div class="stat-label">Revenue Touched</div></div>
+        </div>
+
+        <div class="detail-panel open">
+          <div class="view-header" style="margin-bottom:1rem">
+            <div class="view-header-left">
+              <h2>Promo Control</h2>
+              <p>One live promo source for homepage, service pages, and checkout.</p>
+            </div>
+          </div>
+
+          <div id="mk-setup-banner" style="display:none;margin-bottom:1rem;padding:0.8rem 0.95rem;border:1px solid #fde68a;border-radius:10px;background:#fffbeb;color:#92400e;font-size:0.82rem;line-height:1.55"></div>
+
+          <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,0.9fr);gap:1rem" class="content-grid">
+            <div style="padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+              <div class="detail-section-title" style="margin-bottom:0.85rem">Live Promo Settings</div>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.85rem">
+                <label style="display:flex;align-items:center;gap:0.55rem;font-size:0.84rem;color:var(--text);font-weight:600">
+                  <input id="mk-enabled" type="checkbox" />
+                  Offer is live
+                </label>
+                <label style="display:flex;align-items:center;gap:0.55rem;font-size:0.84rem;color:var(--text);font-weight:600">
+                  <input id="mk-first-booking-only" type="checkbox" checked />
+                  First booking only
+                </label>
+                <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
+                  Promo code
+                  <input id="mk-code" class="login-input" maxlength="24" placeholder="WELCOME25" style="margin:0;text-transform:uppercase" />
+                </label>
+                <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
+                  Discount
+                  <input id="mk-discount" class="login-input" type="number" min="0" step="1" placeholder="25" style="margin:0" />
+                </label>
+                <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);grid-column:1/-1">
+                  Promo title
+                  <input id="mk-title" class="login-input" maxlength="60" placeholder="New Customer Offer" style="margin:0" />
+                </label>
+                <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);grid-column:1/-1">
+                  Promo label
+                  <input id="mk-label" class="login-input" maxlength="90" placeholder="$25 off your first booking" style="margin:0" />
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-top:1rem">
+                <button id="mk-save" class="btn btn-teal" type="button">Save Promo</button>
+                <div id="mk-save-note" style="font-size:0.78rem;color:var(--muted)"></div>
+              </div>
+            </div>
+
+            <div style="padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+              <div class="detail-section-title" style="margin-bottom:0.85rem">Recent Redemptions</div>
+              <div style="overflow:auto">
+                <table class="pro-table">
+                  <thead>
+                    <tr><th>Ref</th><th>Customer</th><th style="text-align:right">Discount</th><th style="text-align:right">Total</th></tr>
+                  </thead>
+                  <tbody id="mk-recent-body">
+                    <tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1903,6 +1975,7 @@ function intelQuick(msg) {
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
+      else if (currentView === 'marketing') { await loadMarketing(); }
       else if (currentView === 'today') { await loadBookings(); renderTodayView(); }
       else if (currentView === 'customers') { await loadBookings(); renderCustomers(); }
       else if (currentView === 'analytics') { await renderAnalytics(); }
@@ -1964,6 +2037,7 @@ function intelQuick(msg) {
       selectedIds.clear();
       await loadBookings();
       if (currentView === 'reviews') await loadReviews();
+      if (currentView === 'marketing') await loadMarketing();
       if (currentView === 'analytics') await renderAnalytics();
       toast('Cleaned ' + result.deletedBookings + ' booking(s) and ' + result.deletedReviews + ' review(s). Barry B kept.', 'success');
     } catch(e) {
@@ -3620,13 +3694,14 @@ function intelQuick(msg) {
   var $todayView        = document.getElementById('today-view');
   var $reviewsView      = document.getElementById('reviews-view');
   var $customersView    = document.getElementById('customers-view');
+  var $marketingView    = document.getElementById('marketing-view');
   var $analyticsView    = document.getElementById('analytics-view');
   var $intelligenceView = document.getElementById('intelligence-view');
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
   var $cleanupTestBtn2 = document.getElementById('cleanup-test-data-btn');
-  var allViews = [$bookingsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoading = false;
@@ -3658,6 +3733,7 @@ function intelQuick(msg) {
       else if (view === 'today')       { $todayView.style.display='';       $topbarTitle.textContent='Today\'s Schedule'; renderTodayView(); }
       else if (view === 'reviews')     { $reviewsView.style.display='';     $topbarTitle.textContent='Customer Reviews'; loadReviews(); }
       else if (view === 'customers')   { $customersView.style.display='';   $topbarTitle.textContent='Customers'; renderCustomers(); }
+      else if (view === 'marketing')   { $marketingView.style.display='';   $topbarTitle.textContent='Marketing'; loadMarketing(); }
       else if (view === 'analytics')     { $analyticsView.style.display='';     $topbarTitle.textContent='Financials'; renderAnalytics(); }
       else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; loadSiteChatInbox(); }
     });
@@ -4018,6 +4094,127 @@ function intelQuick(msg) {
       +'</tr>';
     }).join('');
   }
+
+  // ─── MARKETING VIEW ───
+  async function loadMarketing() {
+    var recentBody = document.getElementById('mk-recent-body');
+    if (recentBody) {
+      recentBody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Loading...</td></tr>';
+    }
+    try {
+      var r = await fetch('/api/owner/promo', { headers: headers() });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to load promo settings');
+      renderMarketing(d);
+    } catch (e) {
+      if (recentBody) {
+        recentBody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--red)">Failed to load promo data.</td></tr>';
+      }
+      setText('mk-status', 'Error');
+      setText('mk-redemptions', '—');
+      setText('mk-discount-total', '—');
+      setText('mk-revenue-touched', '—');
+      var note = document.getElementById('mk-save-note');
+      if (note) note.textContent = e.message || 'Failed to load promo data.';
+    }
+  }
+
+  function renderMarketing(data) {
+    var settings = data.settings || {};
+    var perf = data.performance || {};
+    var publicPromo = data.publicPromo || null;
+
+    setText('mk-status', publicPromo ? 'Live' : 'Off');
+    setText('mk-redemptions', String(perf.redemptions || 0));
+    setText('mk-discount-total', fmt$(perf.totalDiscountCents || 0));
+    setText('mk-revenue-touched', fmt$(perf.totalRevenueCents || 0));
+
+    var enabled = document.getElementById('mk-enabled');
+    var firstOnly = document.getElementById('mk-first-booking-only');
+    var code = document.getElementById('mk-code');
+    var title = document.getElementById('mk-title');
+    var label = document.getElementById('mk-label');
+    var discount = document.getElementById('mk-discount');
+    var note = document.getElementById('mk-save-note');
+    var banner = document.getElementById('mk-setup-banner');
+
+    if (enabled) enabled.checked = settings.promoEnabled === true;
+    if (firstOnly) firstOnly.checked = settings.firstBookingOnly !== false;
+    if (code) code.value = settings.promoCode || '';
+    if (title) title.value = settings.promoTitle || '';
+    if (label) label.value = settings.promoLabel || '';
+    if (discount) discount.value = settings.promoDiscountDollars != null ? String(settings.promoDiscountDollars).replace(/\.00$/, '') : '';
+    if (note) {
+      note.textContent = publicPromo
+        ? 'Homepage, service pages, and checkout are using this live offer.'
+        : 'Promo is off. Save a new offer any time.';
+    }
+
+    if (banner) {
+      if (settings.setupNeeded) {
+        banner.style.display = '';
+        banner.textContent = 'Migration 023 is still needed for live owner-controlled promo saves and redemption tracking. Legacy WELCOME25 fallback remains visible until that migration runs.';
+      } else if (perf.available === false) {
+        banner.style.display = '';
+        banner.textContent = 'Promo settings are live, but redemption tracking is unavailable until booking promo columns exist in the database.';
+      } else {
+        banner.style.display = 'none';
+        banner.textContent = '';
+      }
+    }
+
+    var recentBody = document.getElementById('mk-recent-body');
+    if (!recentBody) return;
+    if (perf.available === false) {
+      recentBody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Tracking unlocks after migration 023 is applied.</td></tr>';
+      return;
+    }
+    if (!(perf.recentBookings || []).length) {
+      recentBody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">No redemptions yet.</td></tr>';
+      return;
+    }
+    recentBody.innerHTML = (perf.recentBookings || []).map(function(row) {
+      return '<tr>'
+        + '<td style="font-family:monospace;font-size:0.76rem">' + esc(row.ref || '—') + '</td>'
+        + '<td>' + esc(row.customerName || 'Customer') + '</td>'
+        + '<td style="text-align:right;color:#0369a1;font-weight:700">-' + fmt$(row.promoDiscountCents || 0) + '</td>'
+        + '<td style="text-align:right">' + fmt$(row.totalPrice || 0) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('mk-save').addEventListener('click', async function() {
+    var btn = this;
+    var body = {
+      promoEnabled: !!document.getElementById('mk-enabled').checked,
+      firstBookingOnly: !!document.getElementById('mk-first-booking-only').checked,
+      promoCode: document.getElementById('mk-code').value.trim().toUpperCase(),
+      promoTitle: document.getElementById('mk-title').value.trim(),
+      promoLabel: document.getElementById('mk-label').value.trim(),
+      promoDiscountDollars: document.getElementById('mk-discount').value.trim(),
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      var r = await fetch('/api/owner/promo', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(body),
+      });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to save promo');
+      renderMarketing(d);
+      toast(body.promoEnabled ? 'Promo updated' : 'Promo turned off', 'success');
+    } catch (e) {
+      toast(e.message || 'Failed to save promo', 'error');
+      var note = document.getElementById('mk-save-note');
+      if (note) note.textContent = e.message || 'Failed to save promo.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Promo';
+    }
+  });
 
   // ─── ANALYTICS / FINANCIALS VIEW ───
   var financialPeriod = localStorage.getItem('aae-owner-financial-period') || 'year';

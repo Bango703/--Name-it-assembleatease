@@ -1,9 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { normalizeChatRoute, sanitizeReplyLinks } from '../api/chat.js';
+import { applyPromotionToPricing, resolveBookingPromotion } from '../api/_promotions.js';
 
 const files = [
   'api/booking.js',
+  'api/booking/promo-preview.js',
+  'api/promo.js',
+  'api/owner/promo.js',
   'api/booking-confirmed.js',
   'api/booking/complete.js',
   'api/booking/assembler-complete.js',
@@ -56,6 +60,15 @@ for (const check of staleCopyChecks) {
 }
 
 const homepage = readFileSync('index.html', 'utf8');
+if (!homepage.includes('/assets/js/site-promo.js')) {
+  throw new Error('Homepage must load the shared promo script');
+}
+if (!homepage.includes('id="new-customer-offer"')) {
+  throw new Error('Homepage must expose the promo mount point');
+}
+if (homepage.includes('promo=WELCOME25')) {
+  throw new Error('Homepage should no longer hardcode a specific promo code in booking links');
+}
 const homepageGuides = homepage.match(/<section class="guides-section guides-section--alt" id="guides">([\s\S]*?)<\/section>/)?.[1];
 if (!homepageGuides) throw new Error('Homepage guides section not found');
 
@@ -123,9 +136,22 @@ const ownerDashboard = readFileSync('owner/index.html', 'utf8');
 if (!ownerDashboard.includes('/api/owner/site-chat') || !ownerDashboard.includes('Website Chat Inbox')) {
   throw new Error('Owner dashboard must expose the website chat inbox');
 }
+if (!ownerDashboard.includes('/api/owner/promo') || !ownerDashboard.includes('Promo Control')) {
+  throw new Error('Owner dashboard must expose live promo controls');
+}
 
 const bookingPage = readFileSync('book.html', 'utf8');
+if (!bookingPage.includes('id="s5-promo-code"') || !bookingPage.includes('/api/booking/promo-preview') || !bookingPage.includes('/api/promo')) {
+  throw new Error('Booking flow must expose promo code verification before confirmation');
+}
 const pricingPage = readFileSync('pricing.html', 'utf8');
+const furniturePflugervillePage = readFileSync('furniture-assembly-pflugerville-tx.html', 'utf8');
+if (!furniturePflugervillePage.includes('/assets/js/site-promo.js')) {
+  throw new Error('Service pages must load the shared promo script');
+}
+if (!furniturePflugervillePage.includes('beds, dressers, desks, tables, and IKEA builds')) {
+  throw new Error('Furniture assembly city pages must use the stronger local-intent SEO description');
+}
 const sitemap = readFileSync('sitemap.xml', 'utf8');
 const robots = readFileSync('robots.txt', 'utf8');
 
@@ -264,6 +290,72 @@ for (const file of uniquePublicHtmlFiles) {
   if (privacyLinkCount !== 1 || termsLinkCount !== 1) {
     throw new Error(`Public footer should include one legal link row only in ${file}`);
   }
+}
+
+const fakePricing = {
+  discountedItemSubtotalCents: 12900,
+  itemSubtotalCents: 12900,
+  discountCents: 0,
+  serviceCallFeeCents: 2500,
+  taxCents: 1271,
+  totalCents: 16671,
+  hasPricedBaseItem: true,
+};
+
+const fakeSb = {
+  from(table) {
+    if (table === 'site_marketing_settings') {
+      return {
+        select() {
+          return {
+            eq() {
+              return {
+                maybeSingle: async () => ({
+                  data: {
+                    id: 1,
+                    promo_enabled: true,
+                    promo_code: 'WELCOME25',
+                    promo_title: 'New Customer Offer',
+                    promo_label: '$25 off your first booking',
+                    promo_discount_cents: 2500,
+                    first_booking_only: true,
+                  },
+                  error: null,
+                }),
+              };
+            },
+          };
+        },
+      };
+    }
+    if (table === 'bookings') {
+      return {
+        select() {
+          return {
+            ilike: async () => ({ count: 0, error: null }),
+          };
+        },
+      };
+    }
+    throw new Error(`Unexpected fake table lookup: ${table}`);
+  },
+};
+
+const promo = await resolveBookingPromotion({
+  promoCode: 'WELCOME25',
+  email: 'new@example.com',
+  pricing: fakePricing,
+  isQuoteRequest: false,
+  sb: fakeSb,
+});
+
+if (!promo.applied || promo.discountCents !== 2500) {
+  throw new Error(`Expected WELCOME25 to apply for a first-time booking; got ${JSON.stringify(promo)}`);
+}
+
+const adjusted = applyPromotionToPricing(fakePricing, promo);
+if (adjusted.totalCents !== 13964 || adjusted.promoDiscountCents !== 2500) {
+  throw new Error(`Promo pricing mismatch; got ${JSON.stringify(adjusted)}`);
 }
 
 console.log('Smoke checks passed');
