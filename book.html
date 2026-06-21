@@ -1948,7 +1948,7 @@
           <div class="promo-copy">
             <div class="promo-kicker" id="s5-promo-kicker">Special Offer</div>
             <div class="promo-title" id="s5-promo-title">Promo available at checkout</div>
-            <div class="promo-note" id="s5-promo-note">We verify promo codes before you confirm so the total stays honest.</div>
+            <div class="promo-note" id="s5-promo-note">Enter your code below to apply your discount.</div>
           </div>
           <div class="promo-entry">
             <div class="promo-row">
@@ -2446,8 +2446,8 @@ function applyPromoUiState() {
   kicker.textContent = String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.title || 'Special Offer');
   title.textContent = String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.label || 'Promo available at checkout');
   note.innerHTML = activeCode
-    ? 'Use <strong>' + esc(activeCode) + '</strong>. We verify it before you confirm so the total stays honest.'
-    : 'If you have a valid promo code, enter it here and we will verify it before you confirm.';
+    ? 'Use code <strong>' + esc(activeCode) + '</strong> below.'
+    : 'Have a promo code? Enter it below.';
   input.placeholder = activeCode || 'Promo code';
 }
 
@@ -2477,11 +2477,11 @@ function setPromoStatus(message, tone) {
 }
 
 function getPromoStatusMessage(reason, code) {
-  if (!code) return getActivePromoCode() ? 'Use ' + getActivePromoCode() + ' if this is your first booking.' : 'Add a code here if you have one.';
-  if (!reason) return 'Tap Apply to verify this offer before you confirm.';
-  if (reason === 'applied') return code + ' applied. Discount removed before tax.';
+  if (!code) return getActivePromoCode() ? 'Enter ' + getActivePromoCode() + ' to apply your discount.' : 'Have a promo code? Add it here.';
+  if (!reason) return 'Tap Apply to add your discount.';
+  if (reason === 'applied') return code + ' applied!';
   if (reason === 'invalid_code') return 'That code was not found. Double-check the spelling.';
-  if (reason === 'email_required') return 'Enter your email first so we can verify the offer.';
+  if (reason === 'email_required') return 'Add your email first to apply this offer.';
   if (reason === 'quote_request_not_eligible') return 'This offer applies to instant-price bookings, not custom quotes.';
   if (reason === 'no_eligible_items') return 'Add a standard priced item to use this offer.';
   if (reason === 'not_first_booking') return 'This offer is only for a first booking with a new email.';
