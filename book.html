@@ -995,7 +995,8 @@
 
     .s5-time-btn.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); font-weight: 600; }
 
-    .promo-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 1rem 1.1rem; margin: 0 0 1.2rem; border-radius: var(--radius-lg); border: 1px solid rgba(0,191,255,0.18); background: linear-gradient(135deg, #f5fcff 0%, #ffffff 100%); }
+    .promo-box { padding: 1rem 1.1rem; margin: 0 0 1.2rem; border-radius: var(--radius-lg); border: 1px solid rgba(0,191,255,0.18); background: linear-gradient(135deg, #f5fcff 0%, #ffffff 100%); }
+    .promo-label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 0.5rem; }
 
     .promo-copy { min-width: 0; }
 
@@ -1945,18 +1946,12 @@
         <div class="summary-rows" id="booking-summary"></div>
 
         <div class="promo-box" id="s5-promo-box" style="display:none">
-          <div class="promo-copy">
-            <div class="promo-kicker" id="s5-promo-kicker">Special Offer</div>
-            <div class="promo-title" id="s5-promo-title">Promo available at checkout</div>
-            <div class="promo-note" id="s5-promo-note">Enter your code below to apply your discount.</div>
+          <label class="promo-label" for="s5-promo-code">Have a coupon?</label>
+          <div class="promo-row">
+            <input type="text" class="promo-input" id="s5-promo-code" placeholder="Coupon code" aria-label="Coupon code" maxlength="24" />
+            <button type="button" class="promo-apply" id="s5-promo-apply" onclick="applyPromoCode()">Apply</button>
           </div>
-          <div class="promo-entry">
-            <div class="promo-row">
-              <input type="text" class="promo-input" id="s5-promo-code" placeholder="Promo code" aria-label="Promo code" maxlength="24" />
-              <button type="button" class="promo-apply" id="s5-promo-apply" onclick="applyPromoCode()">Apply</button>
-            </div>
-            <div class="promo-status" id="s5-promo-status"></div>
-          </div>
+          <div class="promo-status" id="s5-promo-status"></div>
         </div>
 
 
@@ -2432,23 +2427,15 @@ function getActivePromoLabel() {
 
 function applyPromoUiState() {
   var box = document.getElementById('s5-promo-box');
-  var kicker = document.getElementById('s5-promo-kicker');
-  var title = document.getElementById('s5-promo-title');
-  var note = document.getElementById('s5-promo-note');
   var input = document.getElementById('s5-promo-code');
-  if (!box || !kicker || !title || !note || !input) return;
+  if (!box || !input) return;
 
   var activeCode = getActivePromoCode();
   var shouldShow = !!activeCode || !!String(BOOK.promoCode || '').trim();
   box.style.display = shouldShow ? '' : 'none';
   if (!shouldShow) return;
 
-  kicker.textContent = String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.title || 'Special Offer');
-  title.textContent = String(ACTIVE_PROMO_OFFER && ACTIVE_PROMO_OFFER.label || 'Promo available at checkout');
-  note.innerHTML = activeCode
-    ? 'Use code <strong>' + esc(activeCode) + '</strong> below.'
-    : 'Have a promo code? Enter it below.';
-  input.placeholder = activeCode || 'Promo code';
+  input.placeholder = activeCode || 'Coupon code';
 }
 
 async function loadPromoConfig() {
