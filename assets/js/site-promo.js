@@ -28,10 +28,10 @@
       '.site-promo-inline{background:#f7fcff;border-top:1px solid rgba(0,191,255,0.12);border-bottom:1px solid rgba(0,191,255,0.12)}',
       '.site-promo-inline .offer-bar-inner{padding:0.72rem 1.25rem}',
       '@media (max-width: 768px) {',
-      '  .offer-bar-inner{padding:0.75rem 1rem;align-items:flex-start}',
-      '  .offer-bar-copy{font-size:0.85rem}',
-      '  .offer-bar-code{width:100%;font-size:0.8rem}',
-      '  .offer-bar-cta{width:100%}',
+      '  .offer-bar-inner{padding:0.7rem 1rem}',
+      '  .offer-bar-copy{flex-direction:column;align-items:center;gap:0.2rem;font-size:0.85rem;text-align:center}',
+      '  .offer-pill{font-size:0.6rem}',
+      '  .offer-bar-code{font-size:0.8rem}',
       '}',
     ].join('');
     document.head.appendChild(style);
