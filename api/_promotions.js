@@ -8,6 +8,8 @@ function buildLegacyPromoSettings() {
     promoTitle: NEW_CUSTOMER_OFFER.title,
     promoLabel: NEW_CUSTOMER_OFFER.label,
     promoDiscountCents: NEW_CUSTOMER_OFFER.discountCents,
+    promoDiscountType: 'amount',
+    promoDiscountPct: 0,
     firstBookingOnly: true,
     setupNeeded: true,
     source: 'legacy_fallback',
@@ -21,6 +23,8 @@ function buildEmptyPromoSettings() {
     promoTitle: '',
     promoLabel: '',
     promoDiscountCents: 0,
+    promoDiscountType: 'amount',
+    promoDiscountPct: 0,
     firstBookingOnly: true,
     setupNeeded: false,
     source: 'database',
@@ -56,6 +60,8 @@ export function normalizePromoSettings(value) {
       0,
       Math.round(Number(value.promoDiscountCents ?? value.promo_discount_cents ?? 0) || 0),
     ),
+    promoDiscountType: String(value.promoDiscountType ?? value.promo_discount_type ?? 'amount') === 'percent' ? 'percent' : 'amount',
+    promoDiscountPct: Math.max(0, Math.min(100, Math.round(Number(value.promoDiscountPct ?? value.promo_discount_pct ?? 0) || 0))),
     firstBookingOnly: value.firstBookingOnly !== false && value.first_booking_only !== false,
     setupNeeded: value.setupNeeded === true,
     source: String(value.source || 'database'),
@@ -64,25 +70,38 @@ export function normalizePromoSettings(value) {
 
 export function getPublicPromotion(settings) {
   const normalized = normalizePromoSettings(settings);
-  if (!normalized.promoEnabled || !normalized.promoCode || normalized.promoDiscountCents <= 0) {
+  const isPercent = normalized.promoDiscountType === 'percent';
+  const hasDiscount = isPercent ? normalized.promoDiscountPct > 0 : normalized.promoDiscountCents > 0;
+  if (!normalized.promoEnabled || !normalized.promoCode || !hasDiscount) {
     return null;
   }
   return {
     code: normalized.promoCode,
     title: normalized.promoTitle || 'Special Offer',
     label: normalized.promoLabel || 'Promo discount',
+    discountType: normalized.promoDiscountType,
     discountCents: normalized.promoDiscountCents,
+    discountPct: normalized.promoDiscountPct,
     firstBookingOnly: normalized.firstBookingOnly !== false,
   };
 }
 
 export async function loadMarketingSettings(sb, { allowFallback = true } = {}) {
   if (!sb) throw new Error('Missing Supabase client for marketing settings');
-  const { data, error } = await sb
+  let { data, error } = await sb
     .from('site_marketing_settings')
-    .select('id, promo_enabled, promo_code, promo_title, promo_label, promo_discount_cents, first_booking_only, updated_at')
+    .select('id, promo_enabled, promo_code, promo_title, promo_label, promo_discount_cents, promo_discount_type, promo_discount_pct, first_booking_only, updated_at')
     .eq('id', 1)
     .maybeSingle();
+
+  // Graceful before migration 024 (type/pct columns absent): fall back to base columns.
+  if (error && isMissingColumnError(error)) {
+    ({ data, error } = await sb
+      .from('site_marketing_settings')
+      .select('id, promo_enabled, promo_code, promo_title, promo_label, promo_discount_cents, first_booking_only, updated_at')
+      .eq('id', 1)
+      .maybeSingle());
+  }
 
   if (error) {
     if (allowFallback && isMissingTableError(error)) return buildLegacyPromoSettings();
@@ -136,10 +155,11 @@ export async function resolveBookingPromotion({
     if ((count || 0) > 0) return { ...base, reason: 'not_first_booking' };
   }
 
-  const discountCents = Math.min(
-    activePromo.discountCents,
-    Math.max(0, Number(pricing.discountedItemSubtotalCents || 0)),
-  );
+  const eligibleSubtotalCents = Math.max(0, Number(pricing.discountedItemSubtotalCents || 0));
+  const rawDiscountCents = activePromo.discountType === 'percent'
+    ? Math.round(eligibleSubtotalCents * (Number(activePromo.discountPct) || 0) / 100)
+    : (Number(activePromo.discountCents) || 0);
+  const discountCents = Math.min(Math.max(0, rawDiscountCents), eligibleSubtotalCents);
   if (discountCents <= 0) return { ...base, reason: 'no_discount_available' };
 
   return {

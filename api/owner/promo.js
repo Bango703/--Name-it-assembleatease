@@ -84,6 +84,8 @@ async function respondWithPromoState(sb, res) {
       promoLabel: settings.promoLabel || '',
       promoDiscountCents: Math.max(0, Number(settings.promoDiscountCents || 0)),
       promoDiscountDollars: Math.max(0, Number(settings.promoDiscountCents || 0)) / 100,
+      promoDiscountType: settings.promoDiscountType === 'percent' ? 'percent' : 'amount',
+      promoDiscountPct: Math.max(0, Number(settings.promoDiscountPct || 0)),
       firstBookingOnly: settings.firstBookingOnly !== false,
       setupNeeded: settings.setupNeeded === true,
       source: settings.source || 'database',
@@ -118,11 +120,15 @@ export default async function handler(req, res) {
   const promoCode = normalizePromoCode(req.body?.promoCode);
   const promoTitle = sanitizeTitle(req.body?.promoTitle);
   const promoLabel = sanitizeLabel(req.body?.promoLabel);
-  const promoDiscountCents = dollarsToCents(
-    req.body?.promoDiscountDollars != null
-      ? req.body?.promoDiscountDollars
-      : req.body?.promoDiscountCents / 100,
-  );
+  const promoDiscountType = req.body?.promoDiscountType === 'percent' ? 'percent' : 'amount';
+  const promoDiscountPct = Math.max(0, Math.min(100, Math.round(Number(req.body?.promoDiscountPct || 0) || 0)));
+  const promoDiscountCents = promoDiscountType === 'percent'
+    ? 0
+    : dollarsToCents(
+        req.body?.promoDiscountDollars != null
+          ? req.body?.promoDiscountDollars
+          : req.body?.promoDiscountCents / 100,
+      );
   const firstBookingOnly = req.body?.firstBookingOnly !== false;
 
   if (promoEnabled) {
@@ -131,26 +137,55 @@ export default async function handler(req, res) {
     }
     if (!promoTitle) return res.status(400).json({ error: 'Promo title is required when the offer is active.' });
     if (!promoLabel) return res.status(400).json({ error: 'Promo label is required when the offer is active.' });
-    if (promoDiscountCents <= 0) return res.status(400).json({ error: 'Promo discount must be greater than $0.' });
+    if (promoDiscountType === 'percent') {
+      if (promoDiscountPct <= 0 || promoDiscountPct > 100) {
+        return res.status(400).json({ error: 'Percentage discount must be between 1 and 100.' });
+      }
+    } else if (promoDiscountCents <= 0) {
+      return res.status(400).json({ error: 'Promo discount must be greater than $0.' });
+    }
   }
 
-  try {
-    const { error } = await sb
-      .from('site_marketing_settings')
-      .upsert({
-        id: 1,
-        promo_enabled: promoEnabled,
-        promo_code: promoCode || null,
-        promo_title: promoTitle || null,
-        promo_label: promoLabel || null,
-        promo_discount_cents: promoDiscountCents,
-        first_booking_only: firstBookingOnly,
-        updated_at: new Date().toISOString(),
-      });
+  const basePayload = {
+    id: 1,
+    promo_enabled: promoEnabled,
+    promo_code: promoCode || null,
+    promo_title: promoTitle || null,
+    promo_label: promoLabel || null,
+    promo_discount_cents: promoDiscountCents,
+    first_booking_only: firstBookingOnly,
+    updated_at: new Date().toISOString(),
+  };
+  const fullPayload = { ...basePayload, promo_discount_type: promoDiscountType, promo_discount_pct: promoDiscountPct };
 
+  try {
+    const { error } = await sb.from('site_marketing_settings').upsert(fullPayload);
     if (error) throw error;
     return await respondWithPromoState(sb, res);
   } catch (error) {
+    if (isMissingColumnError(error)) {
+      // Migration 024 not applied yet: percentage needs it; amount can still save on base columns.
+      if (promoDiscountType === 'percent') {
+        return res.status(409).json({
+          error: 'Run migration 024 to enable percentage discounts.',
+          setupNeeded: true,
+        });
+      }
+      try {
+        const { error: baseErr } = await sb.from('site_marketing_settings').upsert(basePayload);
+        if (baseErr) throw baseErr;
+        return await respondWithPromoState(sb, res);
+      } catch (baseError) {
+        if (isMissingTableError(baseError)) {
+          return res.status(409).json({
+            error: 'Promo controls need migration 023 before the owner dashboard can save live offers.',
+            setupNeeded: true,
+          });
+        }
+        console.error('Owner promo save error:', baseError);
+        return res.status(500).json({ error: 'Failed to save promo settings' });
+      }
+    }
     if (isMissingTableError(error)) {
       return res.status(409).json({
         error: 'Promo controls need migration 023 before the owner dashboard can save live offers.',

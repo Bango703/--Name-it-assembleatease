@@ -873,7 +873,14 @@
                   <input id="mk-code" class="login-input" maxlength="24" placeholder="WELCOME25" style="margin:0;text-transform:uppercase" />
                 </label>
                 <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
-                  Discount
+                  Discount type
+                  <select id="mk-discount-type" class="login-input" style="margin:0">
+                    <option value="amount">Amount off ($)</option>
+                    <option value="percent">Percentage off (%)</option>
+                  </select>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);grid-column:1/-1">
+                  <span id="mk-discount-label">Amount off ($)</span>
                   <input id="mk-discount" class="login-input" type="number" min="0" step="1" placeholder="25" style="margin:0" />
                 </label>
                 <label style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);grid-column:1/-1">
@@ -4119,6 +4126,19 @@ function intelQuick(msg) {
     }
   }
 
+  function applyDiscountTypeUi() {
+    var dtype = document.getElementById('mk-discount-type');
+    if (!dtype) return;
+    var isPct = dtype.value === 'percent';
+    var lbl = document.getElementById('mk-discount-label');
+    var input = document.getElementById('mk-discount');
+    if (lbl) lbl.textContent = isPct ? 'Percentage off (%)' : 'Amount off ($)';
+    if (input) {
+      input.placeholder = isPct ? '10' : '25';
+      input.max = isPct ? '100' : '';
+    }
+  }
+
   function renderMarketing(data) {
     var settings = data.settings || {};
     var perf = data.performance || {};
@@ -4143,7 +4163,17 @@ function intelQuick(msg) {
     if (code) code.value = settings.promoCode || '';
     if (title) title.value = settings.promoTitle || '';
     if (label) label.value = settings.promoLabel || '';
-    if (discount) discount.value = settings.promoDiscountDollars != null ? String(settings.promoDiscountDollars).replace(/\.00$/, '') : '';
+    var dtype = document.getElementById('mk-discount-type');
+    var isPct = settings.promoDiscountType === 'percent';
+    if (dtype) dtype.value = isPct ? 'percent' : 'amount';
+    if (discount) {
+      if (isPct) {
+        discount.value = Number(settings.promoDiscountPct) > 0 ? String(Number(settings.promoDiscountPct)) : '';
+      } else {
+        discount.value = settings.promoDiscountDollars != null ? String(settings.promoDiscountDollars).replace(/\.00$/, '') : '';
+      }
+    }
+    applyDiscountTypeUi();
     if (note) {
       note.textContent = publicPromo
         ? 'Homepage, service pages, and checkout are using this live offer.'
@@ -4183,15 +4213,22 @@ function intelQuick(msg) {
     }).join('');
   }
 
+  (function(){ var dt = document.getElementById('mk-discount-type'); if (dt) dt.addEventListener('change', applyDiscountTypeUi); })();
+
   document.getElementById('mk-save').addEventListener('click', async function() {
     var btn = this;
+    var _dtypeEl = document.getElementById('mk-discount-type');
+    var _isPct = _dtypeEl && _dtypeEl.value === 'percent';
+    var _dval = document.getElementById('mk-discount').value.trim();
     var body = {
       promoEnabled: !!document.getElementById('mk-enabled').checked,
       firstBookingOnly: !!document.getElementById('mk-first-booking-only').checked,
       promoCode: document.getElementById('mk-code').value.trim().toUpperCase(),
       promoTitle: document.getElementById('mk-title').value.trim(),
       promoLabel: document.getElementById('mk-label').value.trim(),
-      promoDiscountDollars: document.getElementById('mk-discount').value.trim(),
+      promoDiscountType: _isPct ? 'percent' : 'amount',
+      promoDiscountDollars: _isPct ? '' : _dval,
+      promoDiscountPct: _isPct ? _dval : '',
     };
 
     btn.disabled = true;
