@@ -900,6 +900,46 @@
     .svc-row.quote-row { border-color: rgba(0,191,255,0.34); background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); }
     .svc-row.quote-row .svc-row-icon { background: var(--teal); color: #fff; }
     .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
+    /* === Screen A: minimal service tiles (Puls-style). #svc-screen scope wins over old breakpoint rules. === */
+    #svc-screen .svc-screen-head { margin-bottom: 1.25rem; }
+    #svc-screen .svc-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; }
+    #svc-screen .svc-row {
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      text-align: center; gap: 0.7rem; padding: 1.5rem 1rem 1.4rem; min-height: 0;
+      border: 1.5px solid rgba(148,163,184,0.30); border-radius: 16px; background: var(--white);
+      box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+    }
+    #svc-screen .svc-row::before { display: none; }
+    #svc-screen .svc-row:hover, #svc-screen .svc-row:focus-visible {
+      border-color: var(--teal); box-shadow: 0 12px 26px rgba(0,191,255,0.14); transform: translateY(-2px);
+    }
+    #svc-screen .svc-row.has-items {
+      border-color: var(--teal); background: linear-gradient(180deg, #fbfeff 0%, #f2fbff 100%);
+      box-shadow: 0 0 0 3px rgba(0,191,255,0.10), 0 10px 22px rgba(0,191,255,0.12);
+    }
+    #svc-screen .svc-row-icon { width: 54px; height: 54px; border-radius: 16px; background: #eafaff; color: var(--teal); }
+    #svc-screen .svc-row-icon svg { width: 26px; height: 26px; }
+    #svc-screen .svc-row.has-items .svc-row-icon { background: var(--teal); color: #fff; }
+    #svc-screen .svc-row-info { align-items: center; text-align: center; padding: 0; gap: 0.15rem; }
+    #svc-screen .svc-row-name { font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.2; }
+    #svc-screen .svc-row-meta { font-size: 0.85rem; font-weight: 700; color: var(--teal); margin-top: 0.25rem; }
+    #svc-screen .svc-row-badge { margin-top: 0.35rem; text-align: center; }
+    #svc-screen .svc-row-chevron { display: none; }
+    #svc-screen .svc-row.quote-row {
+      grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start;
+      text-align: left; gap: 1rem; padding: 1.1rem 1.25rem;
+      background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); border-color: rgba(0,191,255,0.34);
+    }
+    #svc-screen .svc-row.quote-row .svc-row-info { align-items: flex-start; text-align: left; }
+    #svc-screen .svc-row.quote-row .svc-row-meta { color: var(--muted); font-weight: 600; }
+    #svc-screen .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
+    @media (max-width: 768px) {
+      #svc-screen .svc-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
+      #svc-screen .svc-row { padding: 1.25rem 0.75rem; }
+    }
+    @media (max-width: 360px) {
+      #svc-screen .svc-list { grid-template-columns: 1fr; }
+    }
 
     .item-intro-line {
       font-size: 0.85rem;
@@ -1799,36 +1839,13 @@
         <!-- â”€â”€ SCREEN A: Service Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
         <div id="svc-screen">
 
-        <div class="service-screen-hero">
-          <div class="service-hero-card">
-            <div class="service-hero-content">
-              <div class="step-kicker">Start your booking</div>
-              <div class="step-heading">Pick the kind of help you need.</div>
-              <p class="step-sub">Open the service that fits the room, mount, setup, or project. You can combine multiple services into one visit without losing your place.</p>
-              <div class="service-hero-pills">
-                <span>Clear item pricing</span>
-                <span>Switch services anytime</span>
-                <span>One visit, multiple jobs</span>
-              </div>
-            </div>
-          </div>
-          <div class="quick-start-bar">
-            <div class="quick-start-head">Quick start</div>
-            <div class="quick-start-copy">Jump straight into the most-booked jobs and edit the details from there.</div>
-            <div class="qp-chips">
-              <button type="button" class="qp-chip" onclick="openQuickPick('Furniture Assembly', 'Bed frame — queen')">Queen bed<span class="qp-chip-price">$119</span></button>
-              <button type="button" class="qp-chip" onclick="openQuickPick('Mounting &amp; Hanging', 'TV 41&quot;–55&quot; (standard wall)')">55&quot; TV mount<span class="qp-chip-price">$119</span></button>
-              <button type="button" class="qp-chip" onclick="openQuickPick('Smart Home', 'Smart doorbell — wireless / battery-powered')">Doorbell setup<span class="qp-chip-price">$89</span></button>
-              <button type="button" class="qp-chip" onclick="openQuickPick('Office Assembly', 'Desk (L-shape / executive)')">Executive desk<span class="qp-chip-price">$179</span></button>
-              <button type="button" class="qp-chip" onclick="openQuickPick('Fitness Equipment', 'Treadmill assembly')">Treadmill<span class="qp-chip-price">$189</span></button>
-              <button type="button" class="qp-chip" onclick="openQuickPick('Outdoor &amp; Playsets', 'Swing set / backyard playset assembly')">Playset<span class="qp-chip-price">$299+</span></button>
-            </div>
-          </div>
+        <div class="svc-screen-head">
+          <div class="step-kicker">Start your booking</div>
+          <div class="step-heading">What do you need done?</div>
+          <p class="step-sub">Pick a service to see exact item pricing. Combine multiple services in one visit.</p>
         </div>
 
         <div class="selected-service-strip" id="selected-service-strip"></div>
-
-        <p class="booking-screen-note">Choose a service to open the exact item menu. If the job spans more than one room or type of work, you can add another service on the same booking.</p>
 
         <div class="svc-list">
 
@@ -1836,7 +1853,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 9V7c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v2c-1.1 0-2 .9-2 2v5h2v2h2v-2h10v2h2v-2h2v-5c0-1.1-.9-2-2-2zm-8 0H5V7h8v2zm6 0h-4V7h4v2z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Furniture Assembly</div>
-              <div class="svc-row-meta">From $69 • 30 min–3 hrs</div>
+              <div class="svc-row-meta">From $69</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1846,7 +1863,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Mounting &amp; Hanging</div>
-              <div class="svc-row-meta">From $79 • 30 min–2 hrs</div>
+              <div class="svc-row-meta">From $79</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1856,7 +1873,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Smart Home</div>
-              <div class="svc-row-meta">From $69 • 30 min–2 hrs</div>
+              <div class="svc-row-meta">From $69</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1866,7 +1883,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16m12-16v16M3 8h4m10 0h4M3 16h4m10 0h4"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Fitness Equipment</div>
-              <div class="svc-row-meta">From $119 • 1–3 hrs</div>
+              <div class="svc-row-meta">From $119</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1876,7 +1893,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V12.5L12 2l9 10.5V22"/><path d="M9 22v-7h6v7"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Outdoor &amp; Playsets</div>
-              <div class="svc-row-meta">From $89 • 1–5 hrs</div>
+              <div class="svc-row-meta">From $89</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1886,7 +1903,7 @@
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
             <div class="svc-row-info">
               <div class="svc-row-name">Office Assembly</div>
-              <div class="svc-row-meta">From $89 • 30 min–3 hrs</div>
+              <div class="svc-row-meta">From $89</div>
               <div class="svc-row-badge"></div>
             </div>
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
