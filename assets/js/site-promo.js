@@ -18,7 +18,7 @@
     style.textContent = [
       '.offer-bar{background:#f7fcff;border-bottom:1px solid rgba(0,191,255,0.18)}',
       '.offer-bar[hidden]{display:none !important}',
-      '.offer-bar-inner{max-width:1120px;margin:0 auto;padding:0.8rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}',
+      '.offer-bar-inner{max-width:1120px;margin:0 auto;padding:0.8rem 1.25rem;display:flex;align-items:center;justify-content:center;text-align:center;gap:0.7rem;flex-wrap:wrap}',
       '.offer-bar-copy{display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;color:#0f172a;font-size:0.92rem;line-height:1.5}',
       '.offer-pill{display:inline-flex;align-items:center;padding:0.22rem 0.55rem;border-radius:999px;background:#e0f7ff;color:#0369a1;font-size:0.68rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase}',
       '.offer-bar strong{font-weight:800;color:#0f172a}',
@@ -65,7 +65,6 @@
       +     '<strong>' + esc(promo.label || 'Promo discount') + '</strong>'
       +     '<span class="offer-bar-code">Use code: ' + esc(promo.code) + '</span>'
       +   '</div>'
-      +   '<a href="/book?promo=' + encodeURIComponent(promo.code) + '" class="offer-bar-cta">Book with offer &rarr;</a>'
       + '</div>';
   }
 
