@@ -538,12 +538,20 @@
     .subcat-body { padding: 0.5rem 0; }
 
     /* -- Subcat search -- */
-    .subcat-search-wrap { padding: 0 0 0.85rem; position: relative; }
+    .subcat-search-wrap {
+      padding: 0.8rem 0.8rem 0.9rem;
+      position: relative;
+      margin: 0 0 0.9rem;
+      border: 1px solid rgba(0,191,255,0.16);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #f8fcff 0%, #eef8ff 100%);
+      box-shadow: 0 10px 24px rgba(0,191,255,0.06);
+    }
     .subcat-search {
       width: 100%; box-sizing: border-box;
       padding: 0.7rem 2.2rem 0.7rem 2.1rem;
       border: 1.5px solid var(--border); border-radius: var(--radius-md);
-      font-size: 0.9rem; color: var(--ink); background: #fafcfe;
+      font-size: 0.9rem; color: var(--ink); background: #fff;
       outline: none; transition: border-color var(--transition), box-shadow var(--transition);
       -webkit-appearance: none; appearance: none;
     }
@@ -562,18 +570,42 @@
     .subcat-search-clear:hover { background: #f0f0f0; color: var(--ink); }
     .subcat-no-results { font-size: 0.85rem; color: var(--muted); padding: 0.25rem 0 0.5rem; display: none; }
 
-    .subcat-group { padding: 0; border: 1px solid rgba(148,163,184,0.24); border-radius: 14px; overflow: hidden; background: #fff; }
+    .subcat-group {
+      padding: 0;
+      border: 1px solid rgba(148,163,184,0.24);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.04);
+    }
     .subcat-group + .subcat-group { margin-top: 0.7rem; }
     .subcat-group:first-child { border-top: 1px solid rgba(148,163,184,0.24); }
-    .subcat-group-head { display:flex; align-items:center; gap:0.75rem; width:100%; background:#fbfdff; border:none; cursor:pointer; padding:0.9rem 0.95rem; -webkit-tap-highlight-color:transparent; transition: background var(--transition); }
+    .subcat-group-head { display:flex; align-items:center; gap:0.75rem; width:100%; background:#fbfdff; border:none; cursor:pointer; padding:1rem 1rem 0.95rem; -webkit-tap-highlight-color:transparent; transition: background var(--transition); }
     .subcat-group-head:hover { background:#f3fbff; }
     .subcat-group-head .subcat-group-label { padding:0; margin:0; flex:1; text-align:left; }
-    .subcat-group-count { font-size:0.7rem; font-weight:600; color:var(--muted); background:rgba(0,0,0,0.05); border-radius:999px; padding:2px 9px; flex-shrink:0; }
+    .subcat-group-count { font-size:0.7rem; font-weight:700; color:#46708d; background:rgba(0,191,255,0.12); border-radius:999px; padding:3px 10px; flex-shrink:0; }
     .subcat-chev { color:var(--muted); flex-shrink:0; transition:transform 0.2s; }
     .subcat-group.open .subcat-chev { transform:rotate(180deg); }
     .subcat-group-body { display:none; padding:0.2rem 0.55rem 0.55rem; }
     .subcat-group.open > .subcat-group-body { display:block; }
     #item-list-wrap.searching .subcat-group-body { display:block; }
+    #item-list-wrap.guided .subcat-group { display: none; }
+    #item-list-wrap.guided .subcat-group.open { display: block; }
+    #item-list-wrap.searching .subcat-group { display: block; }
+    .subcat-group.open {
+      border-color: rgba(0,191,255,0.34);
+      box-shadow: 0 18px 36px rgba(0,191,255,0.1);
+    }
+    .subcat-group.open .subcat-group-head {
+      background: linear-gradient(180deg, #f3fbff 0%, #ebf8ff 100%);
+      border-bottom: 1px solid rgba(0,191,255,0.14);
+    }
+    .subcat-group.open .subcat-group-count {
+      background: #fff;
+      color: var(--teal);
+      box-shadow: 0 4px 10px rgba(0,191,255,0.1);
+    }
+    .subcat-group.is-locked { opacity: 0.7; }
 
     .subcat-group-label {
 
@@ -592,14 +624,21 @@
       display: flex; align-items: center; justify-content: space-between;
 
       padding: 0.72rem 0.75rem; cursor: pointer; gap: 0.75rem; border-radius: var(--radius-md);
-
-      transition: background var(--transition);
+      border: 1px solid transparent;
+      transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
 
     }
 
-    .subcat-item:hover { background: #f6fbfd; }
+    .subcat-item:hover {
+      background: #f6fbff;
+      border-color: rgba(0,191,255,0.18);
+    }
 
-    .subcat-item.selected { background: #eefbff; box-shadow: inset 0 0 0 1px rgba(0,191,255,0.16); }
+    .subcat-item.selected {
+      background: linear-gradient(180deg, #f5fcff 0%, #eaf8ff 100%);
+      box-shadow: inset 0 0 0 1px rgba(0,191,255,0.2), 0 8px 18px rgba(0,191,255,0.08);
+      border-color: rgba(0,191,255,0.2);
+    }
 
     .subcat-item-left { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
 
@@ -952,7 +991,7 @@
       margin-top: 1.1rem;
       border: 1px solid rgba(148,163,184,0.24);
       border-radius: 18px;
-      background: #fbfdff;
+      background: linear-gradient(180deg, #fbfdff 0%, #f5fbff 100%);
       overflow: hidden;
     }
 
@@ -993,6 +1032,68 @@
     }
 
     .booking-extra-drawer[open] .booking-extra-summary::after { content: '−'; }
+
+    .item-workflow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin: 0 0 1rem;
+    }
+
+    .item-workflow-step {
+      border: 1px solid rgba(148,163,184,0.22);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fbfdff 0%, #f6fbff 100%);
+      padding: 0.9rem 1rem;
+      min-width: 0;
+      box-shadow: 0 10px 20px rgba(15,23,42,0.04);
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    }
+
+    .item-workflow-step.is-active {
+      border-color: rgba(0,191,255,0.34);
+      background: linear-gradient(180deg, #f3fbff 0%, #e8f8ff 100%);
+      box-shadow: 0 14px 28px rgba(0,191,255,0.1);
+    }
+
+    .item-workflow-step.is-done {
+      border-color: rgba(0,191,255,0.24);
+      background: linear-gradient(180deg, #f8fdff 0%, #eefaff 100%);
+    }
+
+    .item-workflow-kicker {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--teal);
+      font-size: 0.76rem;
+      font-weight: 900;
+      box-shadow: 0 4px 10px rgba(0,191,255,0.12);
+      margin-bottom: 0.5rem;
+    }
+
+    .item-workflow-step.is-active .item-workflow-kicker {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .item-workflow-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.2;
+      margin-bottom: 0.25rem;
+    }
+
+    .item-workflow-copy {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
 
     .booking-extra-body {
       padding: 0 1rem 1rem;
@@ -1209,7 +1310,7 @@
 
     .qp-wrap { margin-bottom: 0.85rem; }
 
-    .qp-heading { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--teal); margin-bottom: 0.5rem; }
+    .qp-heading { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--teal); margin-bottom: 0.55rem; }
 
     .qp-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.5rem; }
 
@@ -1220,23 +1321,40 @@
 
       padding: 0.5rem 0.85rem; border-radius: var(--radius-full);
 
-      border: 1.5px solid var(--border); background: var(--white);
+      border: 1.5px solid rgba(0,191,255,0.16); background: linear-gradient(180deg, #ffffff 0%, #f8fcff 100%);
 
-      cursor: pointer; font-size: 0.82rem; font-weight: 500; color: var(--ink);
+      cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--ink);
 
-      transition: border-color var(--transition), background var(--transition), color var(--transition);
+      transition: border-color var(--transition), background var(--transition), color var(--transition), box-shadow var(--transition);
 
       user-select: none;
 
     }
 
-    .qp-chip:hover { border-color: var(--teal); color: var(--teal); }
+    .qp-chip:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+      box-shadow: 0 8px 18px rgba(0,191,255,0.08);
+    }
 
-    .qp-chip.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
+    .qp-chip.selected {
+      border-color: var(--teal);
+      background: linear-gradient(180deg, #19bbf4 0%, #00a8e4 100%);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(0,191,255,0.16);
+    }
 
     .qp-chip-price { font-size: 0.72rem; color: var(--muted); }
 
-    .qp-chip.selected .qp-chip-price { color: var(--teal); }
+    .qp-chip.selected .qp-chip-price { color: rgba(255,255,255,0.88); }
+
+    .qp-chip.is-locked,
+    .qp-chip:disabled {
+      opacity: 0.56;
+      color: var(--muted);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
 
     .qp-more-toggle { background: none; border: none; font-size: 0.78rem; color: var(--teal); cursor: pointer; padding: 0; text-decoration: underline; margin-top: 0.25rem; }
 
@@ -1550,6 +1668,8 @@
         font-size: 0.79rem;
         margin-bottom: 0.7rem;
       }
+
+      .item-workflow { display: none; }
 
       .mobile-step-summary { display: flex; }
 
@@ -1940,7 +2060,8 @@
           <div class="item-screen-from" id="item-screen-from"></div>
 
           <div class="item-summary-strip" id="item-summary-strip"></div>
-          <p class="item-intro-line">Start with the main piece, then add matching items or same-visit extras. Your estimate keeps pace as you go.</p>
+          <p class="item-intro-line">Choose the main item first. Matching pieces, add-ons, and notes come next.</p>
+          <div class="item-workflow" id="item-workflow"></div>
 
           <div class="qp-wrap" id="item-popular-picks" style="display:none"></div>
           <div class="qp-wrap" id="item-group-jumps" style="display:none"></div>
@@ -3412,6 +3533,47 @@ function renderItemSummaryStrip() {
   strip.classList.add('show');
 }
 
+function renderItemWorkflow(svc) {
+  var flow = document.getElementById('item-workflow');
+  if (!flow) return;
+
+  if (!svc) {
+    flow.innerHTML = '';
+    return;
+  }
+
+  var hasBase = hasSelectedBaseItems(svc);
+  var hasNotes = !!String(BOOK.details || '').trim() || !!BOOK.wantsQuote;
+  var steps = [
+    {
+      title: 'Pick the main item',
+      copy: hasBase ? 'Main piece selected. You can still switch it if needed.' : 'Choose the main piece first so the visit price stays clear.'
+    },
+    {
+      title: 'Add same-visit extras',
+      copy: hasBase ? 'Now add matching pieces, same-room items, or add-ons.' : 'This unlocks after the first item so the list stays focused.'
+    },
+    {
+      title: 'Notes if needed',
+      copy: hasNotes ? 'Extra details are attached for review.' : 'Only use notes for access details, unusual jobs, or custom quote needs.'
+    }
+  ];
+
+  flow.innerHTML = steps.map(function(step, index) {
+    var cls = 'item-workflow-step';
+    if (index === 0 && !hasBase) cls += ' is-active';
+    if (index === 0 && hasBase) cls += ' is-done';
+    if (index === 1 && hasBase && !hasNotes) cls += ' is-active';
+    if (index === 1 && hasNotes) cls += ' is-done';
+    if (index === 2 && hasNotes) cls += ' is-active';
+    return '<div class="' + cls + '">'
+      + '<div class="item-workflow-kicker">' + (index + 1) + '</div>'
+      + '<div class="item-workflow-title">' + esc(step.title) + '</div>'
+      + '<div class="item-workflow-copy">' + esc(step.copy) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
 function updateMobileStepSummary() {
   var summary = document.getElementById('mobile-step-summary');
   if (!summary) return;
@@ -3468,6 +3630,7 @@ function renderGroupJumps(svc) {
   if (!wrap) return;
 
   var groups = SUBCATS[svc] || [];
+  var hasBase = hasSelectedBaseItems(svc);
   if (groups.length <= 1) {
     wrap.style.display = 'none';
     wrap.innerHTML = '';
@@ -3477,10 +3640,12 @@ function renderGroupJumps(svc) {
   wrap.innerHTML = '<div class="qp-heading">Browse by section</div>'
     + '<div class="qp-chips">' + groups.map(function(group, index) {
       var active = (BOOK.currentGroup && BOOK.currentGroup === group.group) || (!BOOK.currentGroup && index === 0);
-      return '<button type="button" class="qp-chip' + (active ? ' selected' : '') + '"'
-        + ' data-group="' + escAttr(group.group) + '" onclick="jumpToGroup(this.dataset.group)">'
+      var locked = group.group === 'Add-ons' && !hasBase;
+      return '<button type="button" class="qp-chip' + (active ? ' selected' : '') + (locked ? ' is-locked' : '') + '"'
+        + (locked ? ' disabled aria-disabled="true"' : ' data-group="' + escAttr(group.group) + '" onclick="jumpToGroup(this.dataset.group)"')
+        + (locked ? ' title="Pick a main item first to unlock add-ons"' : '')
         + '<span>' + esc(group.group) + '</span>'
-        + '<span class="qp-chip-price">' + group.items.length + ' items</span>'
+        + '<span class="qp-chip-price">' + (locked ? 'Later' : (group.items.length + ' items')) + '</span>'
         + '</button>';
     }).join('') + '</div>';
   wrap.style.display = '';
@@ -3556,6 +3721,7 @@ function openQuickPick(svc, itemName) {
 function toggleSubcat(btn) {
   var group = btn.closest('.subcat-group');
   if (!group) return;
+  if (group.classList.contains('is-locked')) return;
 
   var wrap = document.getElementById('item-list-wrap');
   var willOpen = !group.classList.contains('open');
@@ -3583,18 +3749,26 @@ function renderItemScreen(svc) {
   var prevQuery = inp ? inp.value.trim().toLowerCase() : '';
   var clearBtn = document.getElementById('item-search-clear');
   var noRes = document.getElementById('item-no-results');
+  var drawer = document.getElementById('booking-extra-drawer');
   var activeGroup = BOOK.currentGroup;
+  var hasBase = hasSelectedBaseItems(svc);
   var hasActiveGroup = groups.some(function(group) { return group.group === activeGroup; });
 
   if (!hasActiveGroup) activeGroup = groups[0] ? groups[0].group : '';
+  if (!hasBase && activeGroup === 'Add-ons') {
+    var firstPrimary = groups.find(function(group) { return group.group !== 'Add-ons'; });
+    activeGroup = firstPrimary ? firstPrimary.group : activeGroup;
+  }
   BOOK.currentGroup = activeGroup;
 
   var html = '';
 
   groups.forEach(function(g) {
-
-    var groupNote = SUBCAT_NOTES[g.group] || 'Choose the items that match your job so the estimate stays clear.';
-    html += '<div class="subcat-group' + (g.group === activeGroup ? ' open' : '') + '" data-group="' + escAttr(g.group) + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + g.items.length + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
+    var isLockedGroup = g.group === 'Add-ons' && !hasBase;
+    var groupNote = isLockedGroup
+      ? 'Pick one main item first. Add-ons unlock after that.'
+      : (SUBCAT_NOTES[g.group] || 'Choose the items that match your job so the estimate stays clear.');
+    html += '<div class="subcat-group' + (g.group === activeGroup ? ' open' : '') + (isLockedGroup ? ' is-locked' : '') + '" data-group="' + escAttr(g.group) + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + (isLockedGroup ? 'Later' : g.items.length) + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
 
     g.items.forEach(function(item) { html += itemRowHtml(svc, item); }); html += '</div>';
 
@@ -3603,10 +3777,18 @@ function renderItemScreen(svc) {
   });
 
   wrap.innerHTML = html;
+  wrap.classList.toggle('guided', !prevQuery);
+
+  if (drawer) {
+    var shouldShowDrawer = svc === 'Other' || hasBase || !!String(BOOK.details || '').trim() || !!BOOK.wantsQuote;
+    drawer.style.display = shouldShowDrawer ? '' : 'none';
+    if (!shouldShowDrawer) drawer.open = false;
+  }
 
   renderPopularPicks(svc);
   renderGroupJumps(svc);
   renderItemSummaryStrip();
+  renderItemWorkflow(svc);
   updateMobileStepSummary();
   try { renderRecoShelf(svc); } catch(e) {}
   syncGroupJumpState(activeGroup);
@@ -3636,6 +3818,7 @@ function filterItemList(q) {
   if (clearBtn) clearBtn.classList.toggle('vis', q.length > 0);
 
   wrap.classList.toggle('searching', q.length > 0);
+  wrap.classList.toggle('guided', q.length === 0);
 
   var groups = wrap.querySelectorAll('.subcat-group');
 
