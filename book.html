@@ -37,8 +37,10 @@
 
     .book-page {
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
       background:
-        linear-gradient(180deg, #f7fbfd 0%, #f4f8fb 38%, #f8fafc 100%);
+        linear-gradient(180deg, #f2fbff 0%, #ffffff 220px, #ffffff 100%);
     }
 
     .book-nav {
@@ -153,16 +155,21 @@
     /* -- Main content -- */
 
     .book-main {
-
-      max-width: 1180px; margin: 0 auto;
-
-      display: grid; grid-template-columns: minmax(0, 1fr) 360px;
-
-      gap: 1.75rem; padding: 2rem 1.5rem 3rem;
-
+      width: 100%;
+      max-width: 980px; margin: 0 auto;
+      display: grid; grid-template-columns: minmax(0, 1fr);
+      gap: 0; padding: 1.5rem 1.5rem 2.5rem;
       align-items: start;
 
     }
+
+    .book-form-col {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .book-sidebar { display: none; }
 
     @media (max-width: 820px) {
 
@@ -178,7 +185,7 @@
 
     .step-panel {
       background: var(--white); border: 1px solid rgba(148,163,184,0.32);
-      border-radius: var(--radius-xl); padding: 2rem;
+      border-radius: 24px; padding: 2rem 2.1rem 1.9rem;
       box-shadow: 0 18px 55px rgba(15,23,42,0.06);
     }
 
@@ -192,7 +199,7 @@
 
     .step-heading { font-family: var(--font-display); font-size: clamp(1.75rem, 2.4vw, 2.2rem); color: var(--ink); margin-bottom: 0.4rem; line-height: 1.05; }
 
-    .step-sub { font-size: 0.94rem; color: var(--muted); margin-bottom: 1.55rem; line-height: 1.65; max-width: 640px; }
+    .step-sub { font-size: 0.95rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.6; max-width: 38rem; }
 
     .step-assurance {
       display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -329,8 +336,8 @@
     .selected-service-strip,
     .item-summary-strip {
       display: none; align-items: center; justify-content: space-between;
-      gap: 0.8rem; margin: 0 0 0.95rem; padding: 0.9rem 1rem;
-      border: 1px solid rgba(0,191,255,0.24); border-radius: 18px;
+      gap: 0.8rem; margin: 0 0 0.8rem; padding: 0.8rem 0.95rem;
+      border: 1px solid rgba(0,191,255,0.24); border-radius: 16px;
       background: linear-gradient(180deg, #f8fdff 0%, #eef9ff 100%);
       box-shadow: 0 10px 24px rgba(0,191,255,0.08);
     }
@@ -946,9 +953,9 @@
     #svc-screen .svc-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; }
     #svc-screen .svc-row {
       display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-      text-align: center; gap: 0.7rem; padding: 1.5rem 1rem 1.4rem; min-height: 0;
-      border: 1.5px solid rgba(148,163,184,0.30); border-radius: 16px; background: var(--white);
-      box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+      text-align: center; gap: 0.75rem; padding: 1.55rem 1rem 1.45rem; min-height: 0;
+      border: 1.5px solid rgba(148,163,184,0.30); border-radius: 18px; background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      box-shadow: 0 10px 24px rgba(15,23,42,0.05);
     }
     #svc-screen .svc-row::before { display: none; }
     #svc-screen .svc-row:hover, #svc-screen .svc-row:focus-visible {
@@ -991,9 +998,43 @@
 
     .item-stage-rail {
       display: flex;
+      margin: 0 0 1rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid rgba(0,191,255,0.18);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fbfeff 0%, #f4fbff 100%);
+      box-shadow: 0 10px 24px rgba(0,191,255,0.06);
+    }
+
+    .item-stage-status {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.85rem;
+      width: 100%;
       flex-wrap: wrap;
-      gap: 0.55rem;
-      margin: 0 0 1.1rem;
+    }
+
+    .item-stage-status-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .item-stage-status-title span {
+      color: var(--teal);
+      margin-right: 0.45rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .item-stage-status-next {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+      white-space: nowrap;
     }
 
     .item-stage-pill {
@@ -1053,7 +1094,7 @@
     .item-stage-pane.is-active { display: block; }
 
     .item-pane-copy {
-      margin-bottom: 1rem;
+      margin-bottom: 0.8rem;
     }
 
     .item-pane-kicker {
@@ -1066,17 +1107,17 @@
     }
 
     .item-pane-title {
-      font-size: 1.02rem;
+      font-size: 1.04rem;
       font-weight: 850;
       color: var(--ink);
       line-height: 1.2;
     }
 
     .item-pane-copy-text {
-      margin: 0.25rem 0 0;
+      margin: 0.2rem 0 0;
       font-size: 0.82rem;
       color: var(--muted);
-      line-height: 1.5;
+      line-height: 1.45;
     }
 
     .item-group-grid {
@@ -1089,9 +1130,9 @@
       width: 100%;
       text-align: left;
       border: 1px solid rgba(148,163,184,0.2);
-      border-radius: 18px;
-      background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-      padding: 1rem 1.05rem;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      padding: 1.05rem 1.1rem;
       cursor: pointer;
       transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
       box-shadow: 0 10px 24px rgba(15,23,42,0.04);
@@ -1106,7 +1147,7 @@
 
     .item-group-card.is-selected {
       border-color: rgba(0,191,255,0.34);
-      background: linear-gradient(180deg, #f5fcff 0%, #edf9ff 100%);
+      background: linear-gradient(180deg, #ffffff 0%, #f1fbff 100%);
       box-shadow: 0 16px 32px rgba(0,191,255,0.1);
     }
 
@@ -1192,9 +1233,9 @@
 
     .booking-extra-card {
       border: 1px solid rgba(148,163,184,0.22);
-      border-radius: 18px;
-      background: linear-gradient(180deg, #fbfdff 0%, #f5fbff 100%);
-      padding: 1rem;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      padding: 1rem 1rem 0.95rem;
       box-shadow: 0 12px 28px rgba(15,23,42,0.04);
     }
 
@@ -1723,7 +1764,7 @@
 
       .book-main { padding: 1rem; }
 
-      .step-panel { padding: 1.25rem; }
+      .step-panel { padding: 1.2rem; }
 
       .book-trust-line { display: none; }
 
@@ -1755,7 +1796,7 @@
 
         border-radius: 0; border-left: none; border-right: none;
 
-        border-top: none; padding: 1.25rem 1rem 100px;
+        border-top: none; padding: 1.1rem 1rem 88px;
         width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden;
 
       }
@@ -1809,7 +1850,7 @@
 
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 290;
 
-        background: var(--white); padding: 0.75rem 1rem;
+        background: rgba(255,255,255,0.98); padding: 0.65rem 1rem;
 
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 
@@ -1863,6 +1904,21 @@
       }
 
       .service-hero-card .step-heading { font-size: 1.62rem; }
+
+      .item-stage-rail {
+        padding: 0.75rem 0.85rem;
+        border-radius: 16px;
+      }
+
+      .item-stage-status {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+
+      .item-stage-status-next {
+        white-space: normal;
+      }
 
       .service-hero-card .step-sub {
         max-width: none;
@@ -2082,14 +2138,29 @@
 
       .confirm-actions .btn-next { width: 100%; max-width: 360px; }
 
-
-
       /* Book nav */
 
       .book-nav { padding: 0 1rem; }
 
       .book-nav-back { display: flex; }
 
+    }
+
+    .book-page.is-confirm .book-progress,
+    .book-page.is-confirm .book-progress-hint {
+      display: none;
+    }
+
+    .book-footer {
+      display: none;
+      background: #0a1628;
+      padding: 1.25rem 2rem;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    .book-footer.is-visible {
+      display: block;
     }
 
     @media (max-width: 430px) {
@@ -2124,7 +2195,7 @@
 
 <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
 
-<div class="book-page">
+<div class="book-page" id="book-page">
 
 
 
@@ -2194,7 +2265,7 @@
 
   </div>
 
-  <div class="book-progress-hint" id="book-progress-hint">Step 1 of 4 &mdash; Takes less than 2 minutes</div>
+  <div class="book-progress-hint" id="book-progress-hint">Step 1 of 4 &mdash; Services</div>
 
 
 
@@ -2214,7 +2285,7 @@
         <div class="svc-screen-head">
           <div class="step-kicker">Start your booking</div>
           <div class="step-heading">What do you need done?</div>
-          <p class="step-sub">Pick a service to see exact item pricing. Combine multiple services in one visit.</p>
+          <p class="step-sub">Pick the kind of help you need, then choose the exact items in the next step.</p>
         </div>
 
         <div class="selected-service-strip" id="selected-service-strip"></div>
@@ -2317,8 +2388,8 @@
           <div class="item-stage-pane" id="item-stage-groups-pane">
             <div class="item-pane-copy">
               <div class="item-pane-kicker">Choose a section</div>
-              <div class="item-pane-title">What part of the job are we pricing first?</div>
-              <p class="item-pane-copy-text">Pick the section that matches the main piece or setup.</p>
+              <div class="item-pane-title">Start with the main item or room.</div>
+              <p class="item-pane-copy-text">Choose the section that fits first.</p>
             </div>
             <div class="item-group-grid" id="item-group-grid"></div>
           </div>
@@ -2365,7 +2436,7 @@
             <div class="item-pane-copy">
               <div class="item-pane-kicker">Anything else?</div>
               <div class="item-pane-title">Add notes only if they help us show up ready.</div>
-              <p class="item-pane-copy-text">Use this for access details, unusual setups, or a custom quote request.</p>
+              <p class="item-pane-copy-text">Use this for access details, unusual setups, or quote-only work.</p>
             </div>
 
             <div class="booking-extra-card" id="booking-extra-panel">
@@ -2467,7 +2538,7 @@
 
         <div class="step-heading">When &amp; where</div>
 
-        <p class="step-sub">Pick a date and time, then enter your service address.</p>
+        <p class="step-sub">Choose a date, time, and service address.</p>
 
 
 
@@ -2610,7 +2681,7 @@
 
         <div class="step-heading">Your contact info</div>
 
-        <p class="step-sub">We'll send confirmation details to your email. No account required.</p>
+        <p class="step-sub">We’ll use this to confirm the visit and send updates.</p>
 
 
 
@@ -2696,7 +2767,7 @@
 
         <div class="step-heading" id="s5-heading">Secure your booking</div>
 
-        <p class="step-sub" id="s5-sub">Enter your card to complete your booking securely.</p>
+        <p class="step-sub" id="s5-sub">Review the total, add your card, and confirm the visit.</p>
 
 
 
@@ -2906,7 +2977,7 @@
 
 
 
-<footer style="background:#0a1628;padding:1.25rem 2rem;text-align:center;margin-top:auto">
+<footer id="book-footer" class="book-footer">
 
   <p style="font-size:0.75rem;color:rgba(255,255,255,0.45);line-height:1.8">
 
@@ -3794,15 +3865,13 @@ function renderSelectedServiceStrip() {
   var strip = document.getElementById('selected-service-strip');
   if (!strip) return;
 
-  if (!BOOK.selectedServices.length) {
+  if (BOOK.selectedServices.length <= 1) {
     strip.classList.remove('show');
     strip.innerHTML = '';
     return;
   }
 
-  var copy = BOOK.selectedServices.length === 1
-    ? '1 service started.'
-    : BOOK.selectedServices.length + ' services in this visit.';
+  var copy = BOOK.selectedServices.length + ' services in this visit.';
 
   strip.innerHTML = '<div class="selected-service-copy">' + copy + '</div>'
     + '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
@@ -3815,7 +3884,7 @@ function renderItemSummaryStrip() {
   var strip = document.getElementById('item-summary-strip');
   if (!strip) return;
 
-  if (!BOOK.currentSvc) {
+  if (!BOOK.currentSvc || BOOK.selectedServices.length <= 1) {
     strip.classList.remove('show');
     strip.innerHTML = '';
     return;
@@ -3825,8 +3894,8 @@ function renderItemSummaryStrip() {
   var lineCount = getSelectedLineCountForService(currentSvc);
   var itemCount = getSelectedItemCountForService(currentSvc);
   var copy = lineCount > 0
-    ? '<strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong> has ' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + ' in this visit.'
-    : 'Building <strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong>.';
+    ? '<strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong> has ' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + ' selected.'
+    : 'Switch services in this visit.';
 
   var chips = BOOK.selectedServices.length > 1
     ? '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
@@ -3856,12 +3925,12 @@ function renderItemStageRail(svc) {
     notes: 'Notes'
   };
   var activeIndex = stages.indexOf(BOOK.itemStage);
-  rail.innerHTML = stages.map(function(stage, index) {
-    var cls = 'item-stage-pill';
-    if (index < activeIndex) cls += ' is-done';
-    else if (index === activeIndex) cls += ' is-active';
-    return '<div class="' + cls + '"><span class="item-stage-pill-num">' + (index + 1) + '</span><span>' + labels[stage] + '</span></div>';
-  }).join('');
+  var currentLabel = labels[BOOK.itemStage] || 'Service';
+  var nextStage = stages[activeIndex + 1];
+  rail.innerHTML = '<div class="item-stage-status">'
+    + '<div class="item-stage-status-title"><span>Inside service</span>' + (activeIndex + 1) + ' of ' + stages.length + ': ' + esc(currentLabel) + '</div>'
+    + (nextStage ? '<div class="item-stage-status-next">Next: ' + esc(labels[nextStage] || '') + '</div>' : '')
+    + '</div>';
   rail.style.display = '';
 }
 
@@ -3947,7 +4016,7 @@ function renderBrowserPane(svc, stage) {
     var group = getPrimaryGroups(svc).find(function(entry) { return entry.group === activeName; });
     kicker.textContent = 'Pick what you need';
     title.textContent = activeName || 'Choose items';
-    copy.textContent = (SUBCAT_NOTES[activeName] || 'Select the exact items in this section so the estimate stays clear.');
+    copy.textContent = (SUBCAT_NOTES[activeName] || 'Choose the exact items in this section.');
     wrap.innerHTML = group ? buildStaticGroupHtml(svc, group, group.items.length) : '';
     if (searchWrap) searchWrap.style.display = '';
     if (searchInput) searchInput.placeholder = 'Search items... e.g. queen bed';
@@ -3960,9 +4029,9 @@ function renderBrowserPane(svc, stage) {
 
   var extraGroups = getExtraGroups(svc);
   kicker.textContent = 'Same-visit extras';
-  title.textContent = 'Add-ons that belong with this visit';
+  title.textContent = 'Add extras if you need them';
   copy.textContent = hasSelectedBaseItems(svc)
-    ? 'Add only the extras that should happen on the same appointment.'
+    ? 'Optional same-visit add-ons only.'
     : 'Add-ons unlock after the main item is selected.';
 
   wrap.innerHTML = extraGroups.length
@@ -3997,8 +4066,8 @@ function updateItemStageActions(svc) {
   }
 
   if (stage === 'group') nextBtn.innerHTML = 'Continue to items <span>&#8594;</span>';
-  else if (stage === 'items') nextBtn.innerHTML = 'Continue <span>&#8594;</span>';
-  else if (stage === 'extras') nextBtn.innerHTML = 'Continue <span>&#8594;</span>';
+  else if (stage === 'items') nextBtn.innerHTML = (getExtraGroups(svc).length ? 'Continue to extras' : 'Continue to notes') + ' <span>&#8594;</span>';
+  else if (stage === 'extras') nextBtn.innerHTML = 'Continue to notes <span>&#8594;</span>';
   else nextBtn.innerHTML = 'Continue to schedule <span>&#8594;</span>';
 }
 
@@ -5012,12 +5081,20 @@ function setProgress(step) {
 
   if (hint) {
 
-    var hints = ['Step 1 of 4 &mdash; Takes less than 2 minutes','Step 1 of 4 &mdash; Takes less than 2 minutes','Step 2 of 4 &mdash; Almost halfway there','Step 3 of 4 &mdash; Almost done!','Step 4 of 4 &mdash; One last step!'];
+    var hints = ['Step 1 of 4 &mdash; Services','Step 1 of 4 &mdash; Services','Step 2 of 4 &mdash; Schedule','Step 3 of 4 &mdash; Your info','Step 4 of 4 &mdash; Payment'];
 
     hint.innerHTML = hints[step - 1] || '';
 
   }
 
+}
+
+function syncBookingChrome(isConfirm) {
+  var page = document.getElementById('book-page');
+  var footer = document.getElementById('book-footer');
+
+  if (page) page.classList.toggle('is-confirm', !!isConfirm);
+  if (footer) footer.classList.toggle('is-visible', !!isConfirm);
 }
 
 
@@ -5039,6 +5116,7 @@ function goToStep(n) {
 
   if (confirm) confirm.classList.add('hidden');
 
+  syncBookingChrome(false);
   setProgress(n);
 
   (function(){var panel=document.getElementById('step-'+n);if(!panel){window.scrollTo({top:0,behavior:'smooth'});return;}var y=panel.getBoundingClientRect().top+window.pageYOffset-12;window.scrollTo({top:Math.max(0,y),behavior:'smooth'});if(n===4){setTimeout(function(){var fld=panel.querySelector('input[type=text], input[type=email]');if(fld&&!fld.value){try{fld.focus({preventScroll:true});}catch(e){}}},380);}})();
@@ -5427,7 +5505,7 @@ async function goToStep5Payment() {
 
   document.getElementById('s5-heading').textContent = 'Secure your booking';
 
-  document.getElementById('s5-sub').textContent = 'Enter your card to complete your booking. The full total is shown before you confirm, and payment is processed after the job is complete.';
+  document.getElementById('s5-sub').textContent = 'Review the total, add your card, and confirm. Payment is only processed after the job is complete.';
 
   document.getElementById('s5-payment-section').style.display = 'block';
 
@@ -5462,7 +5540,7 @@ async function goToStep5Payment() {
 
     document.getElementById('s5-heading').textContent = 'Request custom quote';
 
-    document.getElementById('s5-sub').textContent = 'Save your card securely so we can confirm faster if you approve the quote. No appointment is confirmed yet.';
+    document.getElementById('s5-sub').textContent = 'Save your card securely so we can finalize the quote faster if you approve it. No appointment is confirmed yet.';
 
     document.getElementById('s5-payment-section').style.display = 'block';
 
@@ -6402,6 +6480,7 @@ function showMarketDemandConfirmation(ref) {
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
 
   document.getElementById('step-confirm').classList.remove('hidden');
+  syncBookingChrome(true);
 
   var title = document.querySelector('#step-confirm .confirm-title');
   if (title) title.textContent = 'Request received';
@@ -6411,7 +6490,7 @@ function showMarketDemandConfirmation(ref) {
 
   var svcEl = document.getElementById('confirm-services');
   if (svcEl) {
-    svcEl.textContent = isQuote && BOOK.selectedServices.indexOf('Other') !== -1
+    svcEl.textContent = BOOK.selectedServices.indexOf('Other') !== -1
       ? 'Custom Quote'
       : (BOOK.selectedServices.join(' / ') || 'Your services');
   }
@@ -6455,6 +6534,7 @@ function showConfirmation(ref, isQuote) {
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
 
   document.getElementById('step-confirm').classList.remove('hidden');
+  syncBookingChrome(true);
 
 
 
