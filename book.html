@@ -3036,8 +3036,6 @@ function itemRowHtml(svc, item) {
 
   var qty = getItemQty(svc, item.name);
 
-  var priceStr = fmtPrice(item);
-
   var badge = item.popular ? '<span class="subcat-item-badge">Popular</span>' : '';
 
   return '<div class="subcat-item' + (sel ? ' selected' : '') + '"'
@@ -3063,8 +3061,6 @@ function itemRowHtml(svc, item) {
     + badge
 
     + '</div>'
-
-    + '<span class="subcat-item-price' + (item.addon ? ' addon' : '') + '">' + priceStr + '</span>'
 
     + '<div class="subcat-qty">'
 
@@ -4133,7 +4129,6 @@ function renderPopularPicks(svc) {
         + ' data-name="' + escAttr(item.name) + '"'
         + ' onclick="togglePopularPick(this)">'
         + '<span>' + esc(item.name) + '</span>'
-        + '<span class="qp-chip-price">' + esc(fmtPrice(item)) + '</span>'
         + '</button>';
     }).join('') + '</div>';
   wrap.style.display = '';
@@ -4690,7 +4685,6 @@ function renderRecoItemSection(title, entries) {
     var item = entry.item;
     var label = esc(item.recoLabel || item.name);
     var why = esc(item.recoWhy || "");
-    var price = item.customQuote ? "Quote" : ("+$" + item.price);
     html += "<button type=\"button\" class=\"reco-chip\""
       + " data-name=\"" + escAttr(item.name) + "\""
       + " data-price=\"" + (item.price || 0) + "\""
@@ -4700,7 +4694,6 @@ function renderRecoItemSection(title, entries) {
       + "<span class=\"reco-chip-text\"><span class=\"reco-chip-name\">" + label + "</span>"
       + (why ? "<span class=\"reco-chip-why\">" + why + "</span>" : "")
       + "</span>"
-      + "<span class=\"reco-chip-price\">" + price + "</span>"
       + "<span class=\"reco-chip-add\" aria-hidden=\"true\">+</span>"
       + "</button>";
   });
