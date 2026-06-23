@@ -1559,32 +1559,6 @@
     .sidebar-empty-list div { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 0.45rem; align-items: start; font-size: 0.76rem; color: var(--ink-soft); line-height: 1.35; }
     .sidebar-empty-list b { width: 18px; height: 18px; border-radius: 50%; background: #eafaff; color: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 0.64rem; }
 
-    .sidebar-highlight {
-      background: linear-gradient(180deg, #003140 0%, #062332 100%);
-      color: #fff; border: none; overflow: hidden;
-    }
-
-    .sidebar-highlight .sidebar-title { color: rgba(255,255,255,0.68); }
-
-    .sidebar-highlight p { color: rgba(255,255,255,0.82); }
-
-    .sidebar-stat {
-      display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0.8rem; align-items: center;
-      padding: 0.75rem; border-radius: 14px; background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12); margin-top: 0.9rem;
-    }
-
-    .sidebar-stat strong { display: block; color: #fff; font-size: 0.88rem; line-height: 1.25; }
-
-    .sidebar-stat span { display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-top: 0.15rem; }
-
-    .sidebar-stat-icon {
-      width: 44px; height: 44px; border-radius: 14px; background: rgba(0,191,255,0.16);
-      color: var(--teal); display: flex; align-items: center; justify-content: center;
-    }
-
-    .sidebar-stat-icon svg { width: 21px; height: 21px; fill: currentColor; }
-
     .next-list { display: grid; gap: 0.85rem; }
 
     .next-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 0.75rem; align-items: start; }
@@ -2946,21 +2920,6 @@
 
           <button onclick="goToStep(1)" id="change-services-btn" style="display:none;background:none;border:none;color:var(--teal);font-size:0.75rem;cursor:pointer;padding:0;text-decoration:underline">Edit services &rarr;</button>
 
-        </div>
-
-      </div>
-
-
-
-      <div class="sidebar-card sidebar-highlight">
-
-        <div class="sidebar-title">Flexible appointment windows</div>
-
-        <p style="font-size:0.95rem;line-height:1.6;margin:0">Tell us what is in the room. We price the common pieces now and review anything unusual before confirming.</p>
-
-        <div class="sidebar-stat">
-          <div class="sidebar-stat-icon"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 16H5V10h14v10Zm0-12H5V6h14v2Z"/></svg></div>
-          <div><strong>Real confirmation</strong><span>A person reviews the details before the appointment is locked in.</span></div>
         </div>
 
       </div>
@@ -4809,14 +4768,29 @@ function renderRecoShelf(svc) {
   }
   var itemSections = recommendItems(svc);
   var bundles = recommendBundleServices(svc);
-  var html = ""
-    + "<div class=\"reco-shelf-block\">"
-    + "<div class=\"reco-shelf-title\">Add-ons for this visit</div>"
-    + "<div class=\"reco-shelf-note\">Pick any extras that belong on the same appointment.</div>"
-    + "</div>"
-    + renderRecoItemSection("Add to this visit", itemSections.addOns)
-    + renderRecoItemSection("Upgrade the finish", itemSections.upgrades)
-    + renderRecoBundleSection(bundles);
+  var isExtrasStage = BOOK.itemStage === "extras";
+  var html = "";
+
+  if (isExtrasStage) {
+    if (bundles.length) {
+      html = ""
+        + "<div class=\"reco-shelf-block\">"
+        + "<div class=\"reco-shelf-title\">Bundle another service</div>"
+        + "<div class=\"reco-shelf-note\">Only if you want us to handle another service on the same visit.</div>"
+        + "</div>"
+        + renderRecoBundleSection(bundles);
+    }
+  } else {
+    html = ""
+      + "<div class=\"reco-shelf-block\">"
+      + "<div class=\"reco-shelf-title\">Add-ons for this visit</div>"
+      + "<div class=\"reco-shelf-note\">Pick any extras that belong on the same appointment.</div>"
+      + "</div>"
+      + renderRecoItemSection("Add to this visit", itemSections.addOns)
+      + renderRecoItemSection("Upgrade the finish", itemSections.upgrades)
+      + renderRecoBundleSection(bundles);
+  }
+
   if (!html) {
     shelf.style.display = "none";
     shelf.innerHTML = "";
