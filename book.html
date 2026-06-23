@@ -1551,14 +1551,6 @@
 
     .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
 
-    .sidebar-empty { font-size: 0.875rem; color: var(--muted); padding: 0.5rem 0; line-height: 1.55; }
-    .sidebar-empty-card { padding: 0.85rem; border: 1px dashed rgba(0,191,255,0.32); border-radius: 14px; background: #f7fdff; }
-    .sidebar-empty-card strong { display: block; color: var(--ink); font-size: 0.92rem; margin-bottom: 0.25rem; }
-    .sidebar-empty-card span { display: block; color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
-    .sidebar-empty-list { display: grid; gap: 0.4rem; margin-top: 0.75rem; }
-    .sidebar-empty-list div { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 0.45rem; align-items: start; font-size: 0.76rem; color: var(--ink-soft); line-height: 1.35; }
-    .sidebar-empty-list b { width: 18px; height: 18px; border-radius: 50%; background: #eafaff; color: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 0.64rem; }
-
     .next-list { display: grid; gap: 0.85rem; }
 
     .next-item { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 0.75rem; align-items: start; }
@@ -2900,11 +2892,11 @@
 
     <aside class="book-sidebar">
 
-      <div class="sidebar-card" id="order-summary-card">
+      <div class="sidebar-card" id="order-summary-card" style="display:none">
 
         <div class="sidebar-title">Your booking</div>
 
-        <div id="order-lines"><div class="sidebar-empty sidebar-empty-card"><strong>Build your setup plan</strong><span>Pick the exact items in the room and your estimate updates here.</span><div class="sidebar-empty-list"><div><b>1</b><span>Choose the service</span></div><div><b>2</b><span>Select the item count</span></div><div><b>3</b><span>Add notes for access, floors, or brand details</span></div></div></div></div>
+        <div id="order-lines"></div>
 
         <div class="order-total" id="order-total" style="display:none">
 
@@ -4849,16 +4841,18 @@ function updateOrderSummary() {
   var noteEl    = document.getElementById('order-note');
 
   var changeBtn = document.getElementById('change-services-btn');
+  var summaryCard = document.getElementById('order-summary-card');
 
 
 
   if (BOOK.selectedServices.length === 0) {
 
-    linesEl.innerHTML = '<div class="sidebar-empty sidebar-empty-card"><strong>Build your setup plan</strong><span>Pick the exact items in the room and your estimate updates here.</span><div class="sidebar-empty-list"><div><b>1</b><span>Choose the service</span></div><div><b>2</b><span>Select the item count</span></div><div><b>3</b><span>Add notes for access, floors, or brand details</span></div></div></div>';
+    linesEl.innerHTML = '';
 
     totalEl.style.display = 'none'; noteEl.style.display = 'none';
 
     changeBtn.style.display = 'none';
+    if (summaryCard) summaryCard.style.display = 'none';
     renderSelectedServiceStrip();
     renderItemSummaryStrip();
     updateMobileStepSummary();
@@ -4870,6 +4864,7 @@ function updateOrderSummary() {
 
 
   changeBtn.style.display = 'inline';
+  if (summaryCard) summaryCard.style.display = '';
 
   var html = '';
 
