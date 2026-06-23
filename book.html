@@ -1510,8 +1510,6 @@
 
     .order-line-name { color: var(--ink); flex: 1; line-height: 1.4; }
 
-    .order-line-price { color: var(--teal); font-weight: 500; white-space: nowrap; }
-
     .order-line-right { display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.55rem; flex-wrap: wrap; }
 
     .order-line-remove,
@@ -1544,12 +1542,6 @@
     .order-group-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 
     .order-group-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; }
-
-    .order-total { display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; font-size: 0.95rem; font-weight: 500; }
-
-    .order-total-amount { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
-
-    .order-note { font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; line-height: 1.5; }
 
     .next-list { display: grid; gap: 0.85rem; }
 
@@ -2897,16 +2889,6 @@
         <div class="sidebar-title">Your booking</div>
 
         <div id="order-lines"></div>
-
-        <div class="order-total" id="order-total" style="display:none">
-
-          <span style="font-size:0.82rem;color:var(--muted)">Estimated total</span>
-
-          <span class="order-total-amount" id="order-total-amount"></span>
-
-        </div>
-
-        <p class="order-note" id="order-note" style="display:none">Final price confirmed after review. Your card is saved securely; any authorization happens only after you approve the quote.</p>
 
         <div style="margin-top:0.75rem">
 
@@ -4834,22 +4816,17 @@ function updateOrderSummary() {
 
   var linesEl   = document.getElementById('order-lines');
 
-  var totalEl   = document.getElementById('order-total');
-
-  var amtEl     = document.getElementById('order-total-amount');
-
-  var noteEl    = document.getElementById('order-note');
-
   var changeBtn = document.getElementById('change-services-btn');
   var summaryCard = document.getElementById('order-summary-card');
+  var servicesWithItems = BOOK.selectedServices.filter(function(svc) {
+    return (BOOK.selectedItems[svc] || []).length > 0;
+  });
 
 
 
-  if (BOOK.selectedServices.length === 0) {
+  if (servicesWithItems.length === 0) {
 
     linesEl.innerHTML = '';
-
-    totalEl.style.display = 'none'; noteEl.style.display = 'none';
 
     changeBtn.style.display = 'none';
     if (summaryCard) summaryCard.style.display = 'none';
@@ -4868,15 +4845,7 @@ function updateOrderSummary() {
 
   var html = '';
 
-  var runningTotal = 0;
-
-  var hasCustom = false;
-
-  var hasRange = false;
-
-
-
-  BOOK.selectedServices.forEach(function(svc) {
+  servicesWithItems.forEach(function(svc) {
 
     var items = BOOK.selectedItems[svc] || [];
 
@@ -4887,61 +4856,15 @@ function updateOrderSummary() {
       + '<button type="button" class="order-action-btn remove" data-summary-action="remove-service" data-summary-service="' + escAttr(svc) + '">Remove</button>'
       + '</div></div>';
 
-    if (items.length === 0) {
-
-      html += '<div class="order-line"><span class="order-line-name" style="color:var(--muted);font-style:italic">No items selected yet</span></div>';
-
-    } else {
-
-      items.forEach(function(item) {
-
-        var linePrice;
-
-        if (item.customQuote) { linePrice = 'Quote'; hasCustom = true; }
-
-        else { var p = item.price; if (item.priceMax) hasRange = true; linePrice = '$' + p + (item.priceMax ? '\u2013$' + item.priceMax : '') + (item.qty > 1 ? ' \xD7' + item.qty : ''); runningTotal += p * item.qty; }
-
-        html += '<div class="order-line"><span class="order-line-name">' + esc(getSelectedItemLabel(item)) + '</span><span class="order-line-right"><span class="order-line-price">' + linePrice + '</span><button type="button" class="order-line-remove" data-summary-action="remove-item" data-summary-service="' + escAttr(svc) + '" data-summary-item="' + escAttr(item.name) + '">Remove</button></span></div>';
-
-      });
-
-    }
+    items.forEach(function(item) {
+      html += '<div class="order-line"><span class="order-line-name">' + esc(getSelectedItemLabel(item)) + '</span><span class="order-line-right"><button type="button" class="order-line-remove" data-summary-action="remove-item" data-summary-service="' + escAttr(svc) + '" data-summary-item="' + escAttr(item.name) + '">Remove</button></span></div>';
+    });
 
     html += '</div>';
 
   });
 
-
-
-  var bundle = getBundleDiscount();
-
-  if (bundle.pct > 0 && runningTotal > 0) {
-
-    var saving = Math.round(runningTotal * bundle.pct / 100);
-
-    html += '<div class="order-line" style="color:#0d9488;font-weight:600;margin-top:0.25rem">'
-
-      + '<span class="order-line-name">Bundle ' + bundle.pct + '% off (' + bundle.count + ' items)</span>'
-
-      + '<span class="order-line-price" style="color:#0d9488">&minus;$' + saving + '</span></div>';
-
-  }
-
-
-
-  var discountedTotal = runningTotal > 0 ? Math.round(runningTotal * (1 - bundle.pct / 100)) : 0;
-
   linesEl.innerHTML = html;
-
-  var displayTotal = discountedTotal;
-
-  var prefix = (hasRange || hasCustom) ? 'From $' : '$';
-
-  amtEl.textContent = (displayTotal > 0 ? prefix + displayTotal : '') + (hasCustom ? (displayTotal > 0 ? ' + quote' : 'Custom quote') : '');
-
-  totalEl.style.display = 'flex';
-
-  noteEl.style.display = 'block';
   renderSelectedServiceStrip();
   renderItemSummaryStrip();
   updateMobileStepSummary();
