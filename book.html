@@ -582,6 +582,8 @@
     .subcat-group:first-child { border-top: 1px solid rgba(148,163,184,0.24); }
     .subcat-group-head { display:flex; align-items:center; gap:0.75rem; width:100%; background:#fbfdff; border:none; cursor:pointer; padding:1rem 1rem 0.95rem; -webkit-tap-highlight-color:transparent; transition: background var(--transition); }
     .subcat-group-head:hover { background:#f3fbff; }
+    .subcat-group-head.is-static { cursor:default; }
+    .subcat-group-head.is-static:hover { background:#fbfdff; }
     .subcat-group-head .subcat-group-label { padding:0; margin:0; flex:1; text-align:left; }
     .subcat-group-count { font-size:0.7rem; font-weight:700; color:#46708d; background:rgba(0,191,255,0.12); border-radius:999px; padding:3px 10px; flex-shrink:0; }
     .subcat-chev { color:var(--muted); flex-shrink:0; transition:transform 0.2s; }
@@ -987,6 +989,224 @@
       margin: 0 0 0.8rem;
     }
 
+    .item-stage-rail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin: 0 0 1.1rem;
+    }
+
+    .item-stage-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 36px;
+      padding: 0.5rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.22);
+      background: #fff;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .item-stage-pill.is-active {
+      border-color: rgba(0,191,255,0.28);
+      background: #edf9ff;
+      color: var(--ink);
+      box-shadow: 0 10px 24px rgba(0,191,255,0.08);
+    }
+
+    .item-stage-pill.is-done {
+      border-color: rgba(0,191,255,0.22);
+      background: #f6fcff;
+      color: #0f766e;
+    }
+
+    .item-stage-pill-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #e8eef5;
+      color: var(--ink-soft);
+      font-size: 0.7rem;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .item-stage-pill.is-active .item-stage-pill-num {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .item-stage-pill.is-done .item-stage-pill-num {
+      background: #ccfbf1;
+      color: #0f766e;
+    }
+
+    .item-stage-pane { display: none; }
+    .item-stage-pane.is-active { display: block; }
+
+    .item-pane-copy {
+      margin-bottom: 1rem;
+    }
+
+    .item-pane-kicker {
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 0.32rem;
+    }
+
+    .item-pane-title {
+      font-size: 1.02rem;
+      font-weight: 850;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    .item-pane-copy-text {
+      margin: 0.25rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .item-group-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .item-group-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      padding: 1rem 1.05rem;
+      cursor: pointer;
+      transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+      box-shadow: 0 10px 24px rgba(15,23,42,0.04);
+      font-family: var(--font-body);
+    }
+
+    .item-group-card:hover {
+      border-color: rgba(0,191,255,0.26);
+      box-shadow: 0 16px 32px rgba(0,191,255,0.08);
+      transform: translateY(-1px);
+    }
+
+    .item-group-card.is-selected {
+      border-color: rgba(0,191,255,0.34);
+      background: linear-gradient(180deg, #f5fcff 0%, #edf9ff 100%);
+      box-shadow: 0 16px 32px rgba(0,191,255,0.1);
+    }
+
+    .item-group-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .item-group-card-title {
+      font-size: 0.94rem;
+      font-weight: 850;
+      color: var(--ink);
+      line-height: 1.25;
+    }
+
+    .item-group-card-count {
+      flex-shrink: 0;
+      padding: 0.28rem 0.5rem;
+      border-radius: 999px;
+      background: #eef7fb;
+      color: var(--teal);
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .item-group-card-copy {
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .item-group-card-meta {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      font-size: 0.76rem;
+      color: var(--ink-soft);
+    }
+
+    .item-group-card-pick {
+      color: var(--teal);
+      font-weight: 800;
+    }
+
+    .item-section-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin: 0 0 0.9rem;
+    }
+
+    .item-section-btn {
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0.55rem 0.8rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    .item-section-btn:hover {
+      border-color: rgba(0,191,255,0.25);
+      box-shadow: 0 8px 18px rgba(0,191,255,0.07);
+    }
+
+    .item-section-btn.is-active {
+      background: #edf9ff;
+      color: var(--teal-dark);
+      border-color: rgba(0,191,255,0.32);
+    }
+
+    .booking-extra-card {
+      border: 1px solid rgba(148,163,184,0.22);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fbfdff 0%, #f5fbff 100%);
+      padding: 1rem;
+      box-shadow: 0 12px 28px rgba(15,23,42,0.04);
+    }
+
+    .quote-check {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
     .booking-extra-drawer {
       margin-top: 1.1rem;
       border: 1px solid rgba(148,163,184,0.24);
@@ -1176,6 +1396,21 @@
 
     .step-actions { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
 
+    .item-stage-actions {
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+    }
+
+    .item-stage-cta-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     @media (min-width: 641px) {
       .step-actions {
         position: sticky; bottom: 1.5rem; z-index: 10;
@@ -1190,6 +1425,32 @@
 
     .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
 
+    .btn-back-inline,
+    .btn-ghost-inline {
+      min-height: 48px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.24);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 0 1rem;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    .btn-back-inline:hover,
+    .btn-ghost-inline:hover {
+      border-color: rgba(0,191,255,0.24);
+      box-shadow: 0 10px 22px rgba(0,191,255,0.08);
+    }
+
+    .btn-back-inline[hidden],
+    .btn-ghost-inline[hidden] {
+      display: none !important;
+    }
+
     .btn-back-link { background: none; border: none; color: var(--muted); font-size: 0.82rem; cursor: pointer; text-decoration: underline; flex-shrink: 0; }
 
     .btn-back-link:hover { color: var(--ink); }
@@ -1197,6 +1458,39 @@
     .step-err { font-size: 0.875rem; color: var(--red); background: var(--red-light); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem; display: none; }
 
     .step-err.show { display: block; }
+
+    @media (max-width: 900px) {
+      .item-group-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .item-stage-pill {
+        flex: 1 1 calc(50% - 0.55rem);
+        justify-content: center;
+      }
+
+      .item-stage-actions {
+        align-items: stretch;
+      }
+
+      .item-stage-cta-wrap {
+        margin-left: 0;
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .item-stage-cta-wrap .btn-next,
+      .item-stage-cta-wrap .btn-ghost-inline,
+      .btn-back-inline {
+        width: 100%;
+      }
+
+      .btn-back-inline {
+        display: none;
+      }
+    }
 
 
 
@@ -2060,11 +2354,25 @@
           <div class="item-screen-from" id="item-screen-from"></div>
 
           <div class="item-summary-strip" id="item-summary-strip"></div>
-          <p class="item-intro-line">Choose the main item first. Matching pieces, add-ons, and notes come next.</p>
-          <div class="item-workflow" id="item-workflow"></div>
+          <div class="item-stage-rail" id="item-stage-rail"></div>
 
-          <div class="qp-wrap" id="item-popular-picks" style="display:none"></div>
-          <div class="qp-wrap" id="item-group-jumps" style="display:none"></div>
+          <div class="item-stage-pane" id="item-stage-groups-pane">
+            <div class="item-pane-copy">
+              <div class="item-pane-kicker">Choose a section</div>
+              <div class="item-pane-title">What part of the job are we pricing first?</div>
+              <p class="item-pane-copy-text">Pick the section that matches the main piece or setup.</p>
+            </div>
+            <div class="item-group-grid" id="item-group-grid"></div>
+          </div>
+
+          <div class="item-stage-pane" id="item-stage-browser-pane">
+            <div class="item-pane-copy">
+              <div class="item-pane-kicker" id="item-browser-kicker">Choose items</div>
+              <div class="item-pane-title" id="item-browser-title"></div>
+              <p class="item-pane-copy-text" id="item-browser-copy"></p>
+            </div>
+
+            <div class="item-section-switcher" id="item-section-switcher"></div>
 
           <style>
             .reco-shelf{margin:0 0 1rem;border:1px solid #d9ebf1;border-radius:14px;padding:0.95rem 1rem;background:linear-gradient(180deg,#f8fdff 0%,#f5fbfd 100%);display:flex;flex-direction:column;gap:0.9rem}
@@ -2084,48 +2392,51 @@
             .reco-chip-add{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#e6f7fb;color:#0099CC;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
             @media (min-width:720px){.reco-shelf-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}}
           </style>
-          <div class="subcat-search-wrap">
-            <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="search" id="item-search" class="subcat-search" placeholder="Search items&hellip; e.g. queen bed" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            <button type="button" class="subcat-search-clear" id="item-search-clear" aria-label="Clear search">&times;</button>
+            <div class="subcat-search-wrap" id="item-search-wrap">
+              <svg class="subcat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" id="item-search" class="subcat-search" placeholder="Search items&hellip; e.g. queen bed" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              <button type="button" class="subcat-search-clear" id="item-search-clear" aria-label="Clear search">&times;</button>
+            </div>
+            <div id="item-no-results" class="subcat-no-results" style="display:none">No items match &ldquo;<span></span>&rdquo;</div>
+
+            <div id="item-list-wrap"></div>
+            <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
           </div>
-          <div id="item-no-results" class="subcat-no-results" style="display:none">No items match &ldquo;<span></span>&rdquo;</div>
 
-          <div id="item-list-wrap"></div>
-          <div id="reco-shelf" class="reco-shelf" style="display:none"></div>
+          <div class="item-stage-pane" id="item-stage-notes-pane">
+            <div class="item-pane-copy">
+              <div class="item-pane-kicker">Anything else?</div>
+              <div class="item-pane-title">Add notes only if they help us show up ready.</div>
+              <p class="item-pane-copy-text">Use this for access details, unusual setups, or a custom quote request.</p>
+            </div>
 
-          <details class="booking-extra-drawer" id="booking-extra-drawer">
-            <summary class="booking-extra-summary">
-              <div>
-                Add notes or request a custom quote
-                <span>Use this for brand details, access notes, unusual projects, or anything not covered by the standard list.</span>
-              </div>
-            </summary>
-            <div class="booking-extra-body">
-              <p class="booking-extra-note">The listed menu handles most jobs fast. Open this section when you need to explain the setup or want us to review something outside the normal item catalog.</p>
+            <div class="booking-extra-card" id="booking-extra-panel">
               <div class="form-fields">
                 <div class="form-group">
                   <label class="form-label" for="s1-details">Additional notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-                  <textarea class="form-textarea" id="s1-details" rows="2"
+                  <textarea class="form-textarea" id="s1-details" rows="3"
                     placeholder="Any extra details: brand, model, floor, access info..."></textarea>
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:6px"> Request a custom quote instead of instant pricing</label>
-                  <div class="quote-helper"><strong>Use this when the listed items do not fit.</strong> We review the details, send the final price, and only schedule once the quote is approved.</div>
+                  <label class="quote-check"><input type="checkbox" id="s1-quote" style="accent-color:var(--teal);width:16px;height:16px;vertical-align:middle;margin-right:8px"> Request a custom quote instead of instant pricing</label>
+                  <div class="quote-helper"><strong>Use this only when the listed items do not fit.</strong> We review the request, send the final price, and schedule after approval.</div>
                 </div>
               </div>
             </div>
-          </details>
+          </div>
 
 
 
           <div class="step-err" id="s1-err">Please select at least one service.</div>
 
-          <div class="step-actions">
+          <div class="step-actions item-stage-actions">
+            <button type="button" class="btn-back-inline" id="item-stage-back-btn" onclick="goBackInServiceFlow()">Back</button>
             <div class="mobile-step-summary" id="mobile-step-summary"></div>
-            <button class="btn-next" id="s1-next" onclick="goToStep2Account()">Continue <span>&#8594;</span></button>
-
+            <div class="item-stage-cta-wrap">
+              <button type="button" class="btn-ghost-inline" id="item-stage-secondary-btn" onclick="handleServiceSecondaryAction()">Add another service</button>
+              <button class="btn-next" id="s1-next" onclick="handleServiceStageContinue()">Continue <span>&#8594;</span></button>
+            </div>
           </div>
 
         </div><!-- /item-screen -->
@@ -2736,6 +3047,7 @@ var BOOK = {
   selectedItems: {},   // { ServiceName: [{name, price, priceMax, addon, customQuote, qty}] }
   currentSvc: null,
   currentGroup: '',
+  itemStage: 'service',
 
   details: '',
 
@@ -3320,7 +3632,7 @@ var BUNDLE_SERVICE_RULES = {
     { service: 'Furniture Assembly', label: 'Add storage assembly', why: 'Shelving, benches, and storage pieces can be finished on the same visit.' }
   ],
   'Outdoor & Playsets': [
-    { service: 'Furniture Assembly', label: 'Add patio furniture assembly', why: 'Outdoor seating, storage, and patio pieces can ride on the same visit.' }
+    { service: 'Smart Home', label: 'Add outdoor camera or doorbell setup', why: 'Outdoor installs often pair with a doorbell, floodlight camera, or Wi-Fi device setup.' }
   ]
 };
 
@@ -3332,36 +3644,95 @@ function startCustomQuoteFlow() {
   };
   BOOK.wantsQuote = true;
   BOOK.currentGroup = 'Custom Project';
-  showItemScreen('Other');
+  BOOK.itemStage = 'notes';
+  showItemScreen('Other', 'notes');
 
   var quoteBox = document.getElementById('s1-quote');
   if (quoteBox) quoteBox.checked = true;
 
-  var heading = document.getElementById('item-screen-heading');
-  if (heading) heading.textContent = 'Custom Quote';
-
-  var from = document.getElementById('item-screen-from');
-  if (from) from.textContent = 'Tell us what you need. We review it before scheduling.';
-
   var details = document.getElementById('s1-details');
   if (details) details.placeholder = 'Describe the project, item brand/model, room count, photos you can send, access notes, or anything unusual.';
-
-  var drawer = document.getElementById('booking-extra-drawer');
-  if (drawer) drawer.open = true;
 
   updateSvcRows();
   updateOrderSummary();
 }
 
-function showItemScreen(svc) {
+function isAddonGroup(group) {
+  var items = (group && group.items) || [];
+  return !!items.length && items.every(function(item) { return !!item.addon; });
+}
+
+function getPrimaryGroups(svc) {
+  return (SUBCATS[svc] || []).filter(function(group) { return !isAddonGroup(group); });
+}
+
+function getExtraGroups(svc) {
+  return (SUBCATS[svc] || []).filter(function(group) { return isAddonGroup(group); });
+}
+
+function getGroupSelectionCount(svc, groupName) {
+  var names = ((SUBCATS[svc] || []).find(function(group) { return group.group === groupName; }) || { items: [] }).items
+    .map(function(item) { return item.name; });
+
+  return (BOOK.selectedItems[svc] || []).reduce(function(total, item) {
+    if (names.indexOf(item.name) === -1) return total;
+    return total + Math.max(1, parseInt(item.qty, 10) || 1);
+  }, 0);
+}
+
+function hasSelectedPrimaryItems(svc) {
+  return (BOOK.selectedItems[svc] || []).some(function(item) { return !item.addon; });
+}
+
+function serviceCanOfferExtras(svc) {
+  return getExtraGroups(svc).length > 0 || (BUNDLE_SERVICE_RULES[svc] || []).length > 0;
+}
+
+function getDefaultPrimaryGroup(svc) {
+  var groups = getPrimaryGroups(svc);
+  if (!groups.length) return '';
+
+  if (BOOK.currentGroup && groups.some(function(group) { return group.group === BOOK.currentGroup; })) {
+    return BOOK.currentGroup;
+  }
+
+  var selected = BOOK.selectedItems[svc] || [];
+  for (var i = 0; i < selected.length; i++) {
+    var groupName = findItemGroup(svc, selected[i].name);
+    if (groups.some(function(group) { return group.group === groupName; })) return groupName;
+  }
+
+  return groups[0].group;
+}
+
+function getItemStagePath(svc) {
+  if (!svc || svc === 'Other') return ['notes'];
+  var path = ['group', 'items'];
+  if (serviceCanOfferExtras(svc)) path.push('extras');
+  path.push('notes');
+  return path;
+}
+
+function ensureValidItemStage(svc) {
+  var path = getItemStagePath(svc);
+  if (path.indexOf(BOOK.itemStage) === -1) {
+    BOOK.itemStage = path[0];
+  }
+
+  if (BOOK.itemStage === 'items' || BOOK.itemStage === 'extras') {
+    BOOK.currentGroup = getDefaultPrimaryGroup(svc);
+  }
+}
+
+function showItemScreen(svc, desiredStage) {
   var switchingService = BOOK.currentSvc !== svc;
 
   if (svc !== 'Other' && BOOK.selectedServices.indexOf('Other') !== -1 && BOOK.wantsQuote) {
     BOOK.selectedServices = BOOK.selectedServices.filter(function(name) { return name !== 'Other'; });
     delete BOOK.selectedItems.Other;
     BOOK.wantsQuote = false;
-    var quoteBox = document.getElementById('s1-quote');
-    if (quoteBox) quoteBox.checked = false;
+    var staleQuoteBox = document.getElementById('s1-quote');
+    if (staleQuoteBox) staleQuoteBox.checked = false;
   }
 
   BOOK.currentSvc = svc;
@@ -3372,17 +3743,23 @@ function showItemScreen(svc) {
     if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
   }
 
+  BOOK.itemStage = desiredStage || (svc === 'Other' ? 'notes' : 'group');
+  ensureValidItemStage(svc);
+
   document.getElementById('item-screen-heading').textContent = svc === 'Other' ? 'Custom Quote' : svc;
-  document.getElementById('item-screen-from').textContent = SVC_FROM[svc] || '';
+  document.getElementById('item-screen-from').textContent = svc === 'Other'
+    ? 'Tell us what you need. We review it before scheduling.'
+    : (SVC_FROM[svc] || '');
 
   var details = document.getElementById('s1-details');
   if (details) {
+    details.value = BOOK.details || '';
     var detail = SVC_DETAILS[svc] || SVC_DETAILS.Other;
     details.placeholder = detail.placeholder || 'Any extra details: brand, model, floor, access info...';
   }
 
-  var drawer = document.getElementById('booking-extra-drawer');
-  if (drawer && svc !== 'Other' && !BOOK.wantsQuote) drawer.open = false;
+  var quoteBox = document.getElementById('s1-quote');
+  if (quoteBox) quoteBox.checked = !!BOOK.wantsQuote;
 
   renderItemScreen(svc);
   updateOrderSummary();
@@ -3392,14 +3769,13 @@ function showItemScreen(svc) {
 
   var panel = document.getElementById('step-1');
   if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
 }
 
 function showSvcScreen() {
 
   if (BOOK.currentSvc) {
     var items = BOOK.selectedItems[BOOK.currentSvc] || [];
-    if (items.length === 0) {
+    if (items.length === 0 && !BOOK.wantsQuote) {
       var idx = BOOK.selectedServices.indexOf(BOOK.currentSvc);
       if (idx !== -1) BOOK.selectedServices.splice(idx, 1);
       delete BOOK.selectedItems[BOOK.currentSvc];
@@ -3408,6 +3784,7 @@ function showSvcScreen() {
 
   BOOK.currentSvc = null;
   BOOK.currentGroup = '';
+  BOOK.itemStage = 'service';
 
   document.getElementById('item-screen').style.display = 'none';
   document.getElementById('svc-screen').style.display = '';
@@ -3417,7 +3794,6 @@ function showSvcScreen() {
 
   var panel = document.getElementById('step-1');
   if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
 }
 
 function updateSvcRows() {
@@ -3479,7 +3855,7 @@ function buildServiceChipHtml(svc, active) {
   var displayName = getDisplayServiceName(svc);
   var countLabel = count > 0 ? (count === 1 ? '1 item' : count + ' items') : 'Open';
   return '<button type="button" class="selected-service-chip' + (active ? ' is-active' : '') + '"'
-    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service)">'
+    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service, \'' + (count > 0 ? 'items' : 'group') + '\')">'
     + '<span>' + esc(displayName) + '</span>'
     + '<span class="selected-service-chip-count">' + esc(countLabel) + '</span>'
     + '</button>';
@@ -3496,8 +3872,8 @@ function renderSelectedServiceStrip() {
   }
 
   var copy = BOOK.selectedServices.length === 1
-    ? 'You already started <strong>' + esc(getDisplayServiceName(BOOK.selectedServices[0])) + '</strong>. Open it again or add another service before continuing.'
-    : 'You have <strong>' + BOOK.selectedServices.length + ' services</strong> in this visit. Tap one to keep editing without starting over.';
+    ? '1 service started.'
+    : BOOK.selectedServices.length + ' services in this visit.';
 
   strip.innerHTML = '<div class="selected-service-copy">' + copy + '</div>'
     + '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
@@ -3521,7 +3897,7 @@ function renderItemSummaryStrip() {
   var itemCount = getSelectedItemCountForService(currentSvc);
   var copy = lineCount > 0
     ? '<strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong> has ' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + ' in this visit.'
-    : 'Pick the main item for <strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong>, then add more only if they belong on the same visit.';
+    : 'Building <strong>' + esc(getDisplayServiceName(currentSvc)) + '</strong>.';
 
   var chips = BOOK.selectedServices.length > 1
     ? '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
@@ -3533,52 +3909,257 @@ function renderItemSummaryStrip() {
   strip.classList.add('show');
 }
 
-function renderItemWorkflow(svc) {
-  var flow = document.getElementById('item-workflow');
-  if (!flow) return;
+function renderItemStageRail(svc) {
+  var rail = document.getElementById('item-stage-rail');
+  if (!rail) return;
 
-  if (!svc) {
-    flow.innerHTML = '';
+  if (!svc || svc === 'Other') {
+    rail.innerHTML = '';
+    rail.style.display = 'none';
     return;
   }
 
-  var hasBase = hasSelectedBaseItems(svc);
-  var hasNotes = !!String(BOOK.details || '').trim() || !!BOOK.wantsQuote;
-  var steps = [
-    {
-      title: 'Pick the main item',
-      copy: hasBase ? 'Main piece selected. You can still switch it if needed.' : 'Choose the main piece first so the visit price stays clear.'
-    },
-    {
-      title: 'Add same-visit extras',
-      copy: hasBase ? 'Now add matching pieces, same-room items, or add-ons.' : 'This unlocks after the first item so the list stays focused.'
-    },
-    {
-      title: 'Notes if needed',
-      copy: hasNotes ? 'Extra details are attached for review.' : 'Only use notes for access details, unusual jobs, or custom quote needs.'
-    }
-  ];
-
-  flow.innerHTML = steps.map(function(step, index) {
-    var cls = 'item-workflow-step';
-    if (index === 0 && !hasBase) cls += ' is-active';
-    if (index === 0 && hasBase) cls += ' is-done';
-    if (index === 1 && hasBase && !hasNotes) cls += ' is-active';
-    if (index === 1 && hasNotes) cls += ' is-done';
-    if (index === 2 && hasNotes) cls += ' is-active';
-    return '<div class="' + cls + '">'
-      + '<div class="item-workflow-kicker">' + (index + 1) + '</div>'
-      + '<div class="item-workflow-title">' + esc(step.title) + '</div>'
-      + '<div class="item-workflow-copy">' + esc(step.copy) + '</div>'
-      + '</div>';
+  var stages = getItemStagePath(svc);
+  var labels = {
+    group: 'Section',
+    items: 'Items',
+    extras: 'Add-ons',
+    notes: 'Notes'
+  };
+  var activeIndex = stages.indexOf(BOOK.itemStage);
+  rail.innerHTML = stages.map(function(stage, index) {
+    var cls = 'item-stage-pill';
+    if (index < activeIndex) cls += ' is-done';
+    else if (index === activeIndex) cls += ' is-active';
+    return '<div class="' + cls + '"><span class="item-stage-pill-num">' + (index + 1) + '</span><span>' + labels[stage] + '</span></div>';
   }).join('');
+  rail.style.display = '';
+}
+
+function renderGroupCards(svc) {
+  var grid = document.getElementById('item-group-grid');
+  if (!grid) return;
+
+  var groups = getPrimaryGroups(svc).filter(function(group) { return group.group !== 'Custom Project'; });
+  if (!groups.length) {
+    grid.innerHTML = '';
+    return;
+  }
+
+  grid.innerHTML = groups.map(function(group) {
+    var selectedCount = getGroupSelectionCount(svc, group.group);
+    var note = SUBCAT_NOTES[group.group] || 'Pick the section that best matches the main item.';
+    return '<button type="button" class="item-group-card' + (BOOK.currentGroup === group.group ? ' is-selected' : '') + '"'
+      + ' data-group="' + escAttr(group.group) + '" onclick="openServiceGroup(this.dataset.group)">'
+      + '<div class="item-group-card-head">'
+      + '<div class="item-group-card-title">' + esc(group.group) + '</div>'
+      + '<div class="item-group-card-count">' + group.items.length + ' items</div>'
+      + '</div>'
+      + '<p class="item-group-card-copy">' + esc(note) + '</p>'
+      + '<div class="item-group-card-meta">'
+      + '<span>' + (selectedCount > 0 ? (selectedCount + ' selected') : 'Start here') + '</span>'
+      + '<span class="item-group-card-pick">Open</span>'
+      + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+function renderSectionSwitcher(svc, stage) {
+  var wrap = document.getElementById('item-section-switcher');
+  if (!wrap) return;
+
+  if (stage !== 'items') {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  var groups = getPrimaryGroups(svc).filter(function(group) { return group.group !== 'Custom Project'; });
+  if (groups.length <= 1) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  wrap.innerHTML = groups.map(function(group) {
+    var count = getGroupSelectionCount(svc, group.group);
+    return '<button type="button" class="item-section-btn' + (group.group === BOOK.currentGroup ? ' is-active' : '') + '"'
+      + ' data-group="' + escAttr(group.group) + '" onclick="switchServiceGroup(this.dataset.group)">'
+      + esc(group.group) + (count > 0 ? ' (' + count + ')' : '')
+      + '</button>';
+  }).join('');
+  wrap.style.display = '';
+}
+
+function buildStaticGroupHtml(svc, group, badgeText) {
+  var groupNote = SUBCAT_NOTES[group.group] || 'Choose the items that match your job so the estimate stays clear.';
+  var countLabel = badgeText || group.items.length;
+  var rows = (group.items || []).map(function(item) { return itemRowHtml(svc, item); }).join('');
+  return '<div class="subcat-group open" data-group="' + escAttr(group.group) + '">'
+    + '<div class="subcat-group-head is-static"><span class="subcat-group-label">' + esc(group.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + esc(String(countLabel)) + '</span></div>'
+    + '<div class="subcat-group-body">' + rows + '</div>'
+    + '</div>';
+}
+
+function renderBrowserPane(svc, stage) {
+  var wrap = document.getElementById('item-list-wrap');
+  var searchWrap = document.getElementById('item-search-wrap');
+  var searchInput = document.getElementById('item-search');
+  var clearBtn = document.getElementById('item-search-clear');
+  var noRes = document.getElementById('item-no-results');
+  var kicker = document.getElementById('item-browser-kicker');
+  var title = document.getElementById('item-browser-title');
+  var copy = document.getElementById('item-browser-copy');
+  if (!wrap) return;
+
+  if (stage === 'items') {
+    var activeName = getDefaultPrimaryGroup(svc);
+    BOOK.currentGroup = activeName;
+    var group = getPrimaryGroups(svc).find(function(entry) { return entry.group === activeName; });
+    kicker.textContent = 'Pick what you need';
+    title.textContent = activeName || 'Choose items';
+    copy.textContent = (SUBCAT_NOTES[activeName] || 'Select the exact items in this section so the estimate stays clear.');
+    wrap.innerHTML = group ? buildStaticGroupHtml(svc, group, group.items.length) : '';
+    if (searchWrap) searchWrap.style.display = '';
+    if (searchInput) searchInput.placeholder = 'Search items... e.g. queen bed';
+    if (clearBtn) clearBtn.classList.toggle('vis', !!(searchInput && searchInput.value));
+    if (searchInput && searchInput.value) filterItemList(searchInput.value.trim().toLowerCase());
+    else if (noRes) noRes.style.display = 'none';
+    try { renderRecoShelf(''); } catch(e) {}
+    return;
+  }
+
+  var extraGroups = getExtraGroups(svc);
+  kicker.textContent = 'Same-visit extras';
+  title.textContent = 'Add-ons that belong with this visit';
+  copy.textContent = hasSelectedBaseItems(svc)
+    ? 'Add only the extras that should happen on the same appointment.'
+    : 'Add-ons unlock after the main item is selected.';
+
+  wrap.innerHTML = extraGroups.length
+    ? extraGroups.map(function(group) { return buildStaticGroupHtml(svc, group, group.items.length); }).join('')
+    : '<div class="quote-helper" style="margin-top:0">No extra add-ons are listed for this service.</div>';
+
+  if (searchWrap) searchWrap.style.display = 'none';
+  if (searchInput) searchInput.value = '';
+  if (clearBtn) clearBtn.classList.remove('vis');
+  if (noRes) noRes.style.display = 'none';
+  try { renderRecoShelf(svc); } catch(e) {}
+}
+
+function updateItemStageActions(svc) {
+  var backBtn = document.getElementById('item-stage-back-btn');
+  var secondaryBtn = document.getElementById('item-stage-secondary-btn');
+  var nextBtn = document.getElementById('s1-next');
+  if (!nextBtn) return;
+
+  if (!svc) {
+    if (backBtn) backBtn.hidden = true;
+    if (secondaryBtn) secondaryBtn.hidden = true;
+    return;
+  }
+
+  var stage = BOOK.itemStage;
+  if (backBtn) backBtn.hidden = false;
+
+  if (secondaryBtn) {
+    secondaryBtn.hidden = stage !== 'notes';
+    secondaryBtn.textContent = 'Add another service';
+  }
+
+  if (stage === 'group') nextBtn.innerHTML = 'Continue to items <span>&#8594;</span>';
+  else if (stage === 'items') nextBtn.innerHTML = 'Continue <span>&#8594;</span>';
+  else if (stage === 'extras') nextBtn.innerHTML = 'Continue <span>&#8594;</span>';
+  else nextBtn.innerHTML = 'Continue to schedule <span>&#8594;</span>';
+}
+
+function openServiceGroup(groupName) {
+  if (!BOOK.currentSvc) return;
+  BOOK.currentGroup = groupName;
+  BOOK.itemStage = 'items';
+  renderItemScreen(BOOK.currentSvc);
+}
+
+function switchServiceGroup(groupName) {
+  if (!BOOK.currentSvc) return;
+  BOOK.currentGroup = groupName;
+  renderItemScreen(BOOK.currentSvc);
+}
+
+function goBackInServiceFlow() {
+  if (!BOOK.currentSvc) {
+    showSvcScreen();
+    return;
+  }
+
+  var path = getItemStagePath(BOOK.currentSvc);
+  var idx = path.indexOf(BOOK.itemStage);
+  if (idx <= 0) {
+    showSvcScreen();
+    return;
+  }
+
+  BOOK.itemStage = path[idx - 1];
+  renderItemScreen(BOOK.currentSvc);
+}
+
+function handleServiceSecondaryAction() {
+  BOOK.details = (document.getElementById('s1-details') || {}).value || BOOK.details;
+  BOOK.wantsQuote = !!((document.getElementById('s1-quote') || {}).checked);
+  showSvcScreen();
+}
+
+function handleServiceStageContinue() {
+  if (!BOOK.currentSvc) {
+    showErr('s1-err', 'Please select at least one service.');
+    return;
+  }
+
+  BOOK.details = (document.getElementById('s1-details') || {}).value || BOOK.details;
+  BOOK.wantsQuote = !!((document.getElementById('s1-quote') || {}).checked);
+  hideErr('s1-err');
+
+  if (BOOK.currentSvc === 'Other') {
+    goToStep2Account();
+    return;
+  }
+
+  if (BOOK.itemStage === 'group') {
+    BOOK.currentGroup = getDefaultPrimaryGroup(BOOK.currentSvc);
+    BOOK.itemStage = 'items';
+    renderItemScreen(BOOK.currentSvc);
+    return;
+  }
+
+  if (BOOK.itemStage === 'items') {
+    if (!hasSelectedPrimaryItems(BOOK.currentSvc)) {
+      showErr('s1-err', 'Pick the main item first so we can price the visit correctly.');
+      return;
+    }
+
+    if (serviceCanOfferExtras(BOOK.currentSvc) && hasSelectedBaseItems(BOOK.currentSvc)) {
+      BOOK.itemStage = 'extras';
+    } else {
+      BOOK.itemStage = 'notes';
+    }
+    renderItemScreen(BOOK.currentSvc);
+    return;
+  }
+
+  if (BOOK.itemStage === 'extras') {
+    BOOK.itemStage = 'notes';
+    renderItemScreen(BOOK.currentSvc);
+    return;
+  }
+
+  goToStep2Account();
 }
 
 function updateMobileStepSummary() {
   var summary = document.getElementById('mobile-step-summary');
   if (!summary) return;
 
-  if (!BOOK.currentSvc) {
+  if (!BOOK.currentSvc || BOOK.itemStage === 'group') {
     summary.style.display = 'none';
     summary.innerHTML = '';
     return;
@@ -3694,7 +4275,7 @@ function togglePopularPick(btn) {
 }
 
 function openQuickPick(svc, itemName) {
-  showItemScreen(svc);
+  showItemScreen(svc, 'items');
 
   if (!itemName) return;
 
@@ -3741,66 +4322,39 @@ function toggleSubcat(btn) {
 }
 
 function renderItemScreen(svc) {
+  ensureValidItemStage(svc);
 
-  var groups = SUBCATS[svc] || [];
-
-  var wrap = document.getElementById('item-list-wrap');
-  var inp = document.getElementById('item-search');
-  var prevQuery = inp ? inp.value.trim().toLowerCase() : '';
-  var clearBtn = document.getElementById('item-search-clear');
+  var stage = BOOK.itemStage;
+  var groupsPane = document.getElementById('item-stage-groups-pane');
+  var browserPane = document.getElementById('item-stage-browser-pane');
+  var notesPane = document.getElementById('item-stage-notes-pane');
+  var details = document.getElementById('s1-details');
+  var quoteBox = document.getElementById('s1-quote');
   var noRes = document.getElementById('item-no-results');
-  var drawer = document.getElementById('booking-extra-drawer');
-  var activeGroup = BOOK.currentGroup;
-  var hasBase = hasSelectedBaseItems(svc);
-  var hasActiveGroup = groups.some(function(group) { return group.group === activeGroup; });
 
-  if (!hasActiveGroup) activeGroup = groups[0] ? groups[0].group : '';
-  if (!hasBase && activeGroup === 'Add-ons') {
-    var firstPrimary = groups.find(function(group) { return group.group !== 'Add-ons'; });
-    activeGroup = firstPrimary ? firstPrimary.group : activeGroup;
-  }
-  BOOK.currentGroup = activeGroup;
+  if (details) details.value = BOOK.details || '';
+  if (quoteBox) quoteBox.checked = !!BOOK.wantsQuote;
 
-  var html = '';
-
-  groups.forEach(function(g) {
-    var isLockedGroup = g.group === 'Add-ons' && !hasBase;
-    var groupNote = isLockedGroup
-      ? 'Pick one main item first. Add-ons unlock after that.'
-      : (SUBCAT_NOTES[g.group] || 'Choose the items that match your job so the estimate stays clear.');
-    html += '<div class="subcat-group' + (g.group === activeGroup ? ' open' : '') + (isLockedGroup ? ' is-locked' : '') + '" data-group="' + escAttr(g.group) + '"><button type="button" class="subcat-group-head" onclick="toggleSubcat(this)"><span class="subcat-group-label">' + esc(g.group) + '<span class="subcat-group-note">' + esc(groupNote) + '</span></span><span class="subcat-group-count">' + (isLockedGroup ? 'Later' : g.items.length) + '</span><svg class="subcat-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><div class="subcat-group-body">';
-
-    g.items.forEach(function(item) { html += itemRowHtml(svc, item); }); html += '</div>';
-
-    html += '</div>';
-
-  });
-
-  wrap.innerHTML = html;
-  wrap.classList.toggle('guided', !prevQuery);
-
-  if (drawer) {
-    var shouldShowDrawer = svc === 'Other' || hasBase || !!String(BOOK.details || '').trim() || !!BOOK.wantsQuote;
-    drawer.style.display = shouldShowDrawer ? '' : 'none';
-    if (!shouldShowDrawer) drawer.open = false;
-  }
-
-  renderPopularPicks(svc);
-  renderGroupJumps(svc);
   renderItemSummaryStrip();
-  renderItemWorkflow(svc);
-  updateMobileStepSummary();
-  try { renderRecoShelf(svc); } catch(e) {}
-  syncGroupJumpState(activeGroup);
+  renderItemStageRail(svc);
+  renderGroupCards(svc);
+  renderSectionSwitcher(svc, stage);
 
-  if (inp) inp.value = prevQuery;
-  if (prevQuery) {
-    filterItemList(prevQuery);
+  if (groupsPane) groupsPane.classList.toggle('is-active', stage === 'group');
+  if (browserPane) browserPane.classList.toggle('is-active', stage === 'items' || stage === 'extras');
+  if (notesPane) notesPane.classList.toggle('is-active', stage === 'notes');
+
+  if (stage === 'items' || stage === 'extras') {
+    renderBrowserPane(svc, stage);
   } else {
-    if (clearBtn) clearBtn.classList.remove('vis');
+    try { renderRecoShelf(''); } catch(e) {}
+    var wrap = document.getElementById('item-list-wrap');
+    if (wrap) wrap.innerHTML = '';
     if (noRes) noRes.style.display = 'none';
   }
 
+  updateMobileStepSummary();
+  updateItemStageActions(svc);
 }
 
 
@@ -3922,6 +4476,15 @@ document.getElementById('item-search-clear').addEventListener('click', function(
 
 });
 
+document.getElementById('s1-details').addEventListener('input', function() {
+  BOOK.details = this.value;
+});
+
+document.getElementById('s1-quote').addEventListener('change', function() {
+  BOOK.wantsQuote = !!this.checked;
+  updateOrderSummary();
+});
+
 // Hide fixed CTA when keyboard opens on mobile (prevents overlap with search)
 document.getElementById('item-search').addEventListener('focus', function() {
   document.querySelector('.step-actions') && document.querySelector('.step-actions').classList.add('kb-hidden');
@@ -3983,7 +4546,7 @@ function editServiceFromSummary(svc) {
 
   goToStep(1);
 
-  showItemScreen(svc);
+  showItemScreen(svc, 'items');
 
 }
 
@@ -4248,8 +4811,8 @@ function renderRecoShelf(svc) {
   var bundles = recommendBundleServices(svc);
   var html = ""
     + "<div class=\"reco-shelf-block\">"
-    + "<div class=\"reco-shelf-title\">Want to add anything else while we are already there?</div>"
-    + "<div class=\"reco-shelf-note\">These are the most common add-ons, finish upgrades, and same-visit bundle ideas for this setup.</div>"
+    + "<div class=\"reco-shelf-title\">Add-ons for this visit</div>"
+    + "<div class=\"reco-shelf-note\">Pick any extras that belong on the same appointment.</div>"
     + "</div>"
     + renderRecoItemSection("Add to this visit", itemSections.addOns)
     + renderRecoItemSection("Upgrade the finish", itemSections.upgrades)
@@ -4276,7 +4839,7 @@ function recoAdd(btn) {
 function recoBundle(btn) {
   var svc = btn && btn.getAttribute("data-service");
   if (!svc) return;
-  showItemScreen(svc);
+  showItemScreen(svc, 'items');
 }
 
 

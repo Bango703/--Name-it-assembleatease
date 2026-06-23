@@ -71,13 +71,6 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Bathroom cabinet / over-toilet storage', price: 89 },
         { name: 'Toy storage / cube organizer', price: 79 }
       ]},
-      { group: 'Outdoor & Patio', items: [
-        { name: 'Outdoor dining set (table + 4 chairs)', price: 149 },
-        { name: 'Outdoor dining set (table + 6+ chairs)', price: 179 },
-        { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 169 },
-        { name: 'Adirondack chairs (per 2)', price: 99 },
-        { name: 'Patio umbrella + base', price: 89 }
-      ]},
       { group: 'Add-ons', items: [
         { name: 'Furniture disposal (per piece)', price: 49, addon: true, tags: ['convenience'], recoLabel: 'Haul away old furniture', recoWhy: 'We take the old piece' },
         { name: 'Move to another room (per piece)', price: 35, addon: true, tags: ['convenience'], recoLabel: 'Move it to another room', recoWhy: 'Placed exactly where you want' },
@@ -223,6 +216,13 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Patio heater assembly', price: 109 },
         { name: 'Deck box / outdoor storage bench', price: 89 },
         { name: 'Outdoor storage cabinet', price: 119 }
+      ]},
+      { group: 'Outdoor & Patio', items: [
+        { name: 'Outdoor dining set (table + 4 chairs)', price: 149 },
+        { name: 'Outdoor dining set (table + 6+ chairs)', price: 179 },
+        { name: 'Outdoor lounge set (sofa + 2 chairs)', price: 169 },
+        { name: 'Adirondack chairs (per 2)', price: 99 },
+        { name: 'Patio umbrella + base', price: 89 }
       ]},
       { group: 'Add-ons', items: [
         { name: 'Anchoring / leveling / safety hardware', price: 99, addon: true, tags: ['safety'], appliesTo: ['playset','swing','trampoline','basketball','hoop','climbing','monkey','pergola','gazebo','shed','sandbox','playhouse'], recoLabel: 'Anchoring & leveling', recoWhy: 'Stable, level, safe install' },
