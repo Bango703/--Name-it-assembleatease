@@ -436,10 +436,7 @@ section#service-area{display:block}
 /* -----------------------------------------------------
    MOBILE BOOK BAR / BOTTOM NAV
 ----------------------------------------------------- */
-.nav-book-pill,.footer-back-top,#m-book-bar{display:none}
-#m-book-bar{position:fixed;left:0;right:0;bottom:0;z-index:290;background:rgba(255,255,255,0.96);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
-#m-book-bar.hide{display:none!important}
-#m-book-bar .m-book-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;border-radius:999px;background:var(--cyan);color:#fff;font-size:0.9rem;font-weight:700;text-decoration:none}
+.nav-book-pill,.footer-back-top{display:none}
 
 /* -----------------------------------------------------
    RESPONSIVE &mdash; tablet
@@ -486,7 +483,6 @@ section#service-area{display:block}
   .reviews-marquee-wrap{max-width:100vw;overflow-x:auto}
   .reviews-marquee-track{width:max-content;max-width:none}
   /* Homepage mobile already has a primary CTA in the hero */
-  #m-book-bar{display:none !important}
   .m-large-project{display:block !important}
   .footer{padding-bottom:2rem}
 }
@@ -1295,10 +1291,6 @@ section#service-area{display:block}
 </footer>
 <script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
 
-<div id="m-book-bar">
-  <a href="/book" class="m-book-btn">Book Now &rarr;</a>
-</div>
-
 <div class="cart-bar" id="cart-bar">
   <span class="cart-count" id="cart-count">0</span>
   <div><span class="cart-bar-text">Services selected</span><div class="cart-bar-services" id="cart-bar-services"></div></div>
@@ -1354,7 +1346,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var overlay = document.getElementById('booking-modal');
   if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) AAE.closeBooking(); });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
-  (function(){ var cb = document.getElementById('cart-bar'), mb = document.getElementById('m-book-bar'); if (!cb||!mb) return; new MutationObserver(function(){ mb.classList.toggle('hide', cb.classList.contains('show')); }).observe(cb, {attributes:true, attributeFilter:['class']}); })();
   // Benefits cards: readable auto-advance with touch/hover pause.
   (function(){
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1433,7 +1424,6 @@ function declineCookies(){document.getElementById("cookie-banner").classList.add
 window.addEventListener("DOMContentLoaded",function(){
   if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}
   if(window.location.hash==="#booking"){AAE.openBooking();}
-  (function(){var cb=document.getElementById('cart-bar'),mb=document.getElementById('m-book-bar');if(!cb||!mb)return;new MutationObserver(function(){mb.classList.toggle('hide',cb.classList.contains('show'));}).observe(cb,{attributes:true,attributeFilter:['class']});})();
 });
 </script>
 <!-- AAE Help Chat — Sora (live AI) -->
