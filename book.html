@@ -562,7 +562,10 @@
 
     /* -- Subcat search -- */
     .subcat-search-wrap {
-      padding: 0.8rem 0.8rem 0.9rem;
+      --search-wrap-pad-y: 0.8rem;
+      --search-wrap-pad-x: 0.8rem;
+      --search-control-h: 48px;
+      padding: var(--search-wrap-pad-y) var(--search-wrap-pad-x) 0.9rem;
       position: relative;
       margin: 0 0 0.9rem;
       border: 1px solid rgba(0,191,255,0.16);
@@ -572,7 +575,8 @@
     }
     .subcat-search {
       width: 100%; box-sizing: border-box;
-      padding: 0.7rem 2.2rem 0.7rem 2.1rem;
+      min-height: var(--search-control-h);
+      padding: 0.7rem 2.5rem 0.7rem 2.7rem;
       border: 1.5px solid var(--border); border-radius: var(--radius-md);
       font-size: 0.9rem; color: var(--ink); background: #fff;
       outline: none; transition: border-color var(--transition), box-shadow var(--transition);
@@ -580,11 +584,11 @@
     }
     .subcat-search:focus { border-color: var(--teal); background: #fff; box-shadow: 0 0 0 3px rgba(0,191,255,0.12); }
     .subcat-search-icon {
-      position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%);
+      position: absolute; left: calc(var(--search-wrap-pad-x) + 0.9rem); top: calc(var(--search-wrap-pad-y) + (var(--search-control-h) / 2)); transform: translate(-50%, -50%);
       color: var(--muted); pointer-events: none; line-height: 0;
     }
     .subcat-search-clear {
-      position: absolute; right: 0.45rem; top: 50%; transform: translateY(-50%);
+      position: absolute; right: calc(var(--search-wrap-pad-x) + 0.35rem); top: calc(var(--search-wrap-pad-y) + (var(--search-control-h) / 2)); transform: translateY(-50%);
       background: none; border: none; cursor: pointer; color: var(--muted);
       font-size: 1rem; padding: 0.3rem 0.4rem; display: none; line-height: 1;
       border-radius: 50%; transition: background var(--transition), color var(--transition);

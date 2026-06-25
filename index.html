@@ -856,35 +856,111 @@ section#service-area{display:block}
 
 <!-- ROOM-READY BUNDLES (rendered from booking-source-of-truth.js — one source of truth) -->
 <style>
-#rr-section{background:#f6fafb;padding:3.25rem 1.25rem}
-.rr-inner{max-width:1100px;margin:0 auto}
-.rr-head{text-align:center;margin-bottom:1.9rem}
-.rr-label{font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan-dark,#0094c6)}
-.rr-title{font-family:'DM Serif Display',Georgia,serif;font-size:1.9rem;line-height:1.15;margin:0.4rem 0 0.5rem;color:var(--ink,#0d2430)}
-.rr-sub{font-size:0.95rem;color:var(--muted,#5b6b73);max-width:640px;margin:0 auto;line-height:1.5}
-.rr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
-.rr-card{display:flex;flex-direction:column;gap:0.45rem;background:#fff;border:1px solid #e5edf0;border-radius:16px;padding:1.25rem 1.3rem;text-decoration:none;transition:transform .15s,box-shadow .15s,border-color .15s}
-.rr-card:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,40,60,0.10);border-color:var(--cyan,#00BFFF)}
-.rr-name{font-weight:700;font-size:1.12rem;color:var(--ink,#0d2430)}
-.rr-outcome{font-size:0.9rem;line-height:1.45;color:var(--muted,#5b6b73)}
-.rr-incl{font-size:0.78rem;color:#73828a;margin-top:0.15rem;line-height:1.4}
-.rr-incl span{font-weight:700;text-transform:uppercase;letter-spacing:0.05em;font-size:0.68rem;color:var(--cyan-dark,#0094c6);margin-right:4px}
-.rr-cta{margin-top:auto;padding-top:0.7rem;font-weight:700;font-size:0.9rem;color:var(--cyan-dark,#0094c6)}
-@media(max-width:600px){#rr-section{padding:2.5rem 1rem}.rr-title{font-size:1.55rem}}
+#rr-section{position:relative;overflow:hidden;background:linear-gradient(180deg,#f6fafb 0%,#edf6f8 100%);padding:3.6rem 1.25rem}
+#rr-section::before{content:'';position:absolute;top:-90px;right:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(0,191,255,0.14) 0%,rgba(0,191,255,0) 72%);pointer-events:none}
+.rr-inner{position:relative;z-index:1;max-width:1140px;margin:0 auto}
+.rr-head{text-align:center;margin-bottom:1.4rem}
+.rr-label{font-size:0.72rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--cyan-dark,#0094c6)}
+.rr-title{font-family:'DM Serif Display',Georgia,serif;font-size:2.15rem;line-height:1.08;letter-spacing:-0.02em;margin:0.45rem 0 0.65rem;color:var(--ink,#0d2430)}
+.rr-sub{font-size:1rem;color:var(--muted,#5b6b73);max-width:720px;margin:0 auto;line-height:1.65}
+.rr-highlight{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,0.8fr);gap:1rem;align-items:stretch;margin:0 auto 1.6rem}
+.rr-proof,.rr-rewards{background:rgba(255,255,255,0.86);backdrop-filter:blur(10px);border:1px solid rgba(201,220,228,0.9);border-radius:24px;box-shadow:0 18px 38px rgba(15,23,42,0.06)}
+.rr-proof{padding:1.35rem 1.4rem}
+.rr-proof-title{font-size:1.06rem;font-weight:800;color:var(--ink,#0d2430);margin-bottom:0.4rem}
+.rr-proof-copy{font-size:0.9rem;line-height:1.6;color:#5b6b73;margin-bottom:0.9rem}
+.rr-proof-points{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.65rem}
+.rr-proof-point{display:flex;align-items:flex-start;gap:0.55rem;padding:0.72rem 0.8rem;border-radius:16px;background:#fff;border:1px solid rgba(220,232,237,0.95);font-size:0.82rem;line-height:1.45;color:#334155}
+.rr-proof-point::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--cyan,#00BFFF);box-shadow:0 0 0 5px rgba(0,191,255,0.11);margin-top:0.26rem;flex-shrink:0}
+.rr-rewards{padding:1.3rem 1.35rem;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,#081c24 0%,#10303d 100%);border-color:rgba(18,58,74,0.5);color:#f8fafc}
+.rr-rewards-kicker{font-size:0.7rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#8fe8ff;margin-bottom:0.5rem}
+.rr-rewards-title{font-size:1.24rem;font-weight:800;line-height:1.2;margin-bottom:0.45rem}
+.rr-rewards-copy{font-size:0.88rem;line-height:1.6;color:rgba(248,250,252,0.82);margin-bottom:0.95rem}
+.rr-rewards-chiprow{display:flex;flex-wrap:wrap;gap:0.55rem;margin-bottom:1rem}
+.rr-rewards-chip{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0.38rem 0.7rem;border-radius:999px;background:rgba(143,232,255,0.12);border:1px solid rgba(143,232,255,0.22);font-size:0.73rem;font-weight:800;color:#d8f7ff}
+.rr-rewards-cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0.8rem 1rem;border-radius:999px;background:#fff;color:#0b4254;font-size:0.86rem;font-weight:800;text-decoration:none}
+.rr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:1rem}
+.rr-card{display:flex;flex-direction:column;gap:0.7rem;background:rgba(255,255,255,0.96);border:1px solid rgba(214,228,234,0.95);border-radius:22px;padding:1.25rem 1.2rem 1.15rem;text-decoration:none;transition:transform .18s,box-shadow .18s,border-color .18s;box-shadow:0 12px 28px rgba(15,23,42,0.05)}
+.rr-card:hover{transform:translateY(-4px);box-shadow:0 22px 42px rgba(0,40,60,0.11);border-color:rgba(0,191,255,0.35)}
+.rr-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem}
+.rr-name{font-weight:800;font-size:1.14rem;line-height:1.2;color:var(--ink,#0d2430)}
+.rr-badge{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:0.34rem 0.62rem;border-radius:999px;background:#eefbff;color:var(--cyan-dark,#0094c6);font-size:0.68rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase}
+.rr-outcome{font-size:0.9rem;line-height:1.55;color:#586776}
+.rr-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.7rem}
+.rr-metric{padding:0.82rem 0.85rem;border-radius:16px;background:#f8fbfc;border:1px solid rgba(220,232,237,0.95)}
+.rr-metric-label{display:block;font-size:0.68rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#6c8191;margin-bottom:0.28rem}
+.rr-metric strong{display:block;font-size:1rem;line-height:1.1;color:#111827}
+.rr-metric span{display:block;margin-top:0.22rem;font-size:0.76rem;line-height:1.45;color:#6b7280}
+.rr-incl{font-size:0.79rem;color:#60717f;line-height:1.55;padding-top:0.1rem}
+.rr-incl span{font-weight:800;text-transform:uppercase;letter-spacing:0.06em;font-size:0.68rem;color:var(--cyan-dark,#0094c6);margin-right:4px}
+.rr-cta-row{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:0.9rem;padding-top:0.8rem;border-top:1px solid rgba(229,237,240,0.95)}
+.rr-cta-copy{font-size:0.76rem;line-height:1.45;color:#5f6b7a;max-width:15ch}
+.rr-cta{font-weight:800;font-size:0.9rem;color:var(--cyan-dark,#0094c6)}
+.rr-footer{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1.35rem;padding:1rem 1.1rem;border-radius:20px;background:rgba(255,255,255,0.88);border:1px solid rgba(214,228,234,0.95)}
+.rr-footer-copy{font-size:0.88rem;line-height:1.6;color:#52606d}
+.rr-footer-copy strong{color:#0f172a}
+.rr-footer-actions{display:flex;gap:0.65rem;flex-wrap:wrap}
+.rr-footer-btn,.rr-footer-link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0.72rem 1rem;border-radius:999px;font-size:0.84rem;font-weight:800;text-decoration:none}
+.rr-footer-btn{background:#081c24;color:#fff}
+.rr-footer-link{background:#fff;color:#0f5e72;border:1px solid rgba(0,191,255,0.2)}
+@media(max-width:860px){.rr-highlight{grid-template-columns:1fr}.rr-proof-points{grid-template-columns:1fr}}
+@media(max-width:600px){#rr-section{padding:2.75rem 1rem}.rr-title{font-size:1.7rem}.rr-meta{grid-template-columns:1fr}.rr-footer{align-items:flex-start}.rr-footer-actions{width:100%}.rr-footer-btn,.rr-footer-link{flex:1}}
 </style>
 <section id="rr-section" aria-labelledby="rr-title" style="display:none">
   <div class="rr-inner">
     <div class="rr-head">
       <div class="rr-label">Room-Ready Bundles</div>
-      <h2 class="rr-title" id="rr-title">Get the whole room handled in one visit</h2>
-      <p class="rr-sub">Pick a finished outcome and we set up everything in it &mdash; priced upfront, with no charge until the job is done. Adjust anything before you book.</p>
+      <h2 class="rr-title" id="rr-title">Book a finished room, not a pile of separate tasks</h2>
+      <p class="rr-sub">Choose the room outcome you want, see the live starting price, adjust anything before checkout, and earn AssembleCash after the job is done.</p>
+    </div>
+    <div class="rr-highlight">
+      <div class="rr-proof">
+        <div class="rr-proof-title">Why customers book bundles</div>
+        <div class="rr-proof-copy">Bundles work best when the goal is simple: get the room done in one trip without guessing which services to stack together.</div>
+        <div class="rr-proof-points">
+          <div class="rr-proof-point">One visit for the whole room instead of piecing together multiple bookings.</div>
+          <div class="rr-proof-point">Live item pricing from the real booking catalog, not a made-up package number.</div>
+          <div class="rr-proof-point">Edit the included items before you confirm, so it still fits your exact setup.</div>
+          <div class="rr-proof-point">No charge until the work is done, with one cleaner checkout path.</div>
+        </div>
+      </div>
+      <div class="rr-rewards">
+        <div>
+          <div class="rr-rewards-kicker">AssembleCash + easy booking</div>
+          <div class="rr-rewards-title">Bundle now, earn 5% back for the next setup.</div>
+          <div class="rr-rewards-copy">Every completed bundle earns rewards you can apply on a future booking. Good for the next TV, office setup, or add-on visit.</div>
+          <div class="rr-rewards-chiprow">
+            <span class="rr-rewards-chip">5% back after completion</span>
+            <span class="rr-rewards-chip">Flat pricing shown upfront</span>
+            <span class="rr-rewards-chip">Adjust before booking</span>
+          </div>
+        </div>
+        <a class="rr-rewards-cta" href="/assemblecash">See how AssembleCash works &rarr;</a>
+      </div>
     </div>
     <div class="rr-grid" id="rr-bundle-grid"></div>
+    <div class="rr-footer">
+      <div class="rr-footer-copy"><strong>Not an exact fit?</strong> Start with a bundle for the closest room setup, then remove or add items before you book.</div>
+      <div class="rr-footer-actions">
+        <a href="/bundles" class="rr-footer-link">See all bundle details</a>
+        <a href="/book" class="rr-footer-btn">Build my setup &rarr;</a>
+      </div>
+    </div>
   </div>
 </section>
 <script>
 (function(){
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function findPrice(source, ref){
+    var groups=(source&&source.subcategories&&source.subcategories[ref.service])||[];
+    for(var i=0;i<groups.length;i++){
+      var items=groups[i].items||[];
+      for(var j=0;j<items.length;j++){
+        if(items[j].name===ref.name) return Number(items[j].price)||0;
+      }
+    }
+    return 0;
+  }
+  function money(n){return '$'+Number(n||0).toFixed(0);}
   function renderBundles(){
     var grid=document.getElementById('rr-bundle-grid');
     var sec=document.getElementById('rr-section');
@@ -895,11 +971,18 @@ section#service-area{display:block}
     list.sort(function(a,b){return (a.displayOrder||99)-(b.displayOrder||99);});
     grid.innerHTML=list.map(function(b){
       var incl=(b.included||[]).map(function(i){return esc(i.name);}).join(' &middot; ');
+      var subtotal=(b.included||[]).reduce(function(sum, ref){ return sum + findPrice(src, ref); }, 0);
+      var reward=Math.round(subtotal * 5) / 100;
+      var itemCount=(b.included||[]).length;
       return '<a class="rr-card" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
-        +'<div class="rr-name">'+esc(b.name)+'</div>'
+        +'<div class="rr-card-top"><div class="rr-name">'+esc(b.name)+'</div><span class="rr-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>'
         +'<div class="rr-outcome">'+esc(b.outcome||'')+'</div>'
+        +'<div class="rr-meta">'
+          +'<div class="rr-metric"><span class="rr-metric-label">Starts at</span><strong>'+money(subtotal)+'</strong><span>Before service fee and tax</span></div>'
+          +'<div class="rr-metric"><span class="rr-metric-label">Earn back</span><strong>'+money(reward)+'</strong><span>In AssembleCash after completion</span></div>'
+        +'</div>'
         +(incl?'<div class="rr-incl"><span>Includes</span>'+incl+'</div>':'')
-        +'<div class="rr-cta">Set up my '+esc(b.name)+' &rarr;</div>'
+        +'<div class="rr-cta-row"><div class="rr-cta-copy">Open this setup with the core items already selected.</div><div class="rr-cta">Book this room &rarr;</div></div>'
         +'</a>';
     }).join('');
     sec.style.display='';
