@@ -365,6 +365,72 @@
 
     .selected-service-copy strong { color: var(--ink); }
 
+    .bundle-welcome {
+      display: none; margin: 0 0 1rem; padding: 1rem 1.05rem;
+      border: 1px solid rgba(0,191,255,0.22); border-radius: 18px;
+      background: linear-gradient(135deg, #081c24 0%, #10303d 100%);
+      color: #f8fafc; box-shadow: 0 18px 36px rgba(2,32,43,0.12);
+    }
+
+    .bundle-welcome.show { display: block; }
+
+    .bundle-welcome-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 0.9rem; margin-bottom: 0.8rem;
+    }
+
+    .bundle-welcome-kicker {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #8fe8ff; margin-bottom: 0.35rem;
+    }
+
+    .bundle-welcome-title { font-size: 1.04rem; font-weight: 800; line-height: 1.2; color: #fff; }
+
+    .bundle-welcome-copy { margin-top: 0.3rem; font-size: 0.84rem; line-height: 1.6; color: rgba(248,250,252,0.84); max-width: 48rem; }
+
+    .bundle-welcome-metrics {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem; margin-bottom: 0.8rem;
+    }
+
+    .bundle-welcome-metric {
+      padding: 0.78rem 0.82rem; border-radius: 14px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(143,232,255,0.14);
+    }
+
+    .bundle-welcome-metric-label {
+      display: block; font-size: 0.66rem; font-weight: 800;
+      letter-spacing: 0.08em; text-transform: uppercase; color: #b6f2ff;
+      margin-bottom: 0.24rem;
+    }
+
+    .bundle-welcome-metric strong { display: block; font-size: 0.98rem; line-height: 1.15; color: #fff; }
+
+    .bundle-welcome-metric span { display: block; margin-top: 0.18rem; font-size: 0.75rem; line-height: 1.45; color: rgba(248,250,252,0.74); }
+
+    .bundle-welcome-includes { font-size: 0.78rem; line-height: 1.55; color: rgba(248,250,252,0.84); }
+
+    .bundle-welcome-includes span { font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #8fe8ff; margin-right: 4px; }
+
+    .bundle-welcome-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 0.95rem; }
+
+    .bundle-welcome-btn,
+    .bundle-welcome-link {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 40px; padding: 0.72rem 0.95rem; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 800; text-decoration: none;
+      font-family: var(--font-body);
+    }
+
+    .bundle-welcome-btn {
+      border: none; cursor: pointer; background: #fff; color: #0b4254;
+    }
+
+    .bundle-welcome-link {
+      border: 1px solid rgba(143,232,255,0.22); color: #d8f7ff; background: rgba(255,255,255,0.08);
+    }
+
     .selected-service-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
 
     .selected-service-chip {
@@ -2051,6 +2117,13 @@
         margin-bottom: 0.7rem;
       }
 
+      .bundle-welcome-metrics { grid-template-columns: 1fr; }
+
+      .bundle-welcome-actions { flex-direction: column; }
+
+      .bundle-welcome-btn,
+      .bundle-welcome-link { width: 100%; }
+
       .item-workflow { display: none; }
 
       .mobile-step-summary { display: flex; }
@@ -2368,6 +2441,7 @@
           <p class="step-sub">Pick the kind of help you need, then choose the exact items in the next step.</p>
         </div>
 
+        <div class="bundle-welcome" id="bundle-welcome-services"></div>
         <div class="selected-service-strip" id="selected-service-strip"></div>
 
         <div class="svc-list">
@@ -2462,6 +2536,7 @@
           <div class="item-screen-heading" id="item-screen-heading"></div>
           <div class="item-screen-from" id="item-screen-from"></div>
 
+          <div class="bundle-welcome" id="bundle-welcome-items"></div>
           <div class="item-summary-strip" id="item-summary-strip"></div>
           <div class="item-stage-rail" id="item-stage-rail"></div>
 
@@ -2782,6 +2857,8 @@
               </div>
 
             </div>
+
+          </div>
 
           </div>
 
@@ -4029,6 +4106,107 @@ function getTotalSelectedItemCount() {
   }, 0);
 }
 
+function moneyWhole(amount) {
+  return '$' + Number(amount || 0).toFixed(0);
+}
+
+function getActiveBundle() {
+  if (!BOOK.bundleSlug || !window.AAE_BOOKING_SOURCE || !AAE_BOOKING_SOURCE.bundles) return null;
+  return AAE_BOOKING_SOURCE.bundles.find(function(bundle) {
+    return bundle.slug === BOOK.bundleSlug && bundle.active !== false;
+  }) || null;
+}
+
+function getBundleIncludedSubtotal(bundle) {
+  if (!bundle) return 0;
+  return (bundle.included || []).reduce(function(total, ref) {
+    var item = findCatalogItem(ref.service, ref.name);
+    return total + (item ? (Number(item.price) || 0) : 0);
+  }, 0);
+}
+
+function getBundleLeadService(bundle) {
+  if (!bundle) return '';
+  var first = (bundle.included || []).find(function(ref) {
+    return ref && ref.service;
+  });
+  return first ? first.service : '';
+}
+
+function openBundleLeadService() {
+  var bundle = getActiveBundle();
+  if (!bundle) return;
+  var leadService = getBundleLeadService(bundle) || BOOK.currentSvc || BOOK.selectedServices[0];
+  if (!leadService) return;
+  showItemScreen(leadService, 'items');
+}
+
+function renderBundleWelcome() {
+  var serviceBanner = document.getElementById('bundle-welcome-services');
+  var itemBanner = document.getElementById('bundle-welcome-items');
+  var bundle = getActiveBundle();
+  var banners = [serviceBanner, itemBanner];
+
+  if (!bundle) {
+    banners.forEach(function(node) {
+      if (!node) return;
+      node.classList.remove('show');
+      node.innerHTML = '';
+    });
+    return;
+  }
+
+  var included = (bundle.included || []).map(function(ref) { return esc(ref.name); }).join(' &middot; ');
+  var itemCount = (bundle.included || []).length;
+  var serviceCount = bundle.included
+    ? bundle.included.reduce(function(total, ref, index, arr) {
+        return total + (arr.findIndex(function(other) { return other.service === ref.service; }) === index ? 1 : 0);
+      }, 0)
+    : 0;
+  var subtotal = getBundleIncludedSubtotal(bundle);
+  var reward = Math.round(subtotal * 5) / 100;
+  var leadService = getBundleLeadService(bundle);
+
+  if (serviceBanner) {
+    serviceBanner.innerHTML =
+      '<div class="bundle-welcome-top">'
+        + '<div>'
+          + '<div class="bundle-welcome-kicker">Room-ready bundle loaded</div>'
+          + '<div class="bundle-welcome-title">' + esc(bundle.name) + ' is already set up for this booking.</div>'
+          + '<div class="bundle-welcome-copy">We preselected the core items so you can review the setup instead of building the room from scratch. You can still add or remove anything before checkout.</div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="bundle-welcome-metrics">'
+        + '<div class="bundle-welcome-metric"><span class="bundle-welcome-metric-label">Included items</span><strong>' + itemCount + '</strong><span>Across ' + serviceCount + ' service' + (serviceCount === 1 ? '' : 's') + '</span></div>'
+        + '<div class="bundle-welcome-metric"><span class="bundle-welcome-metric-label">Starts at</span><strong>' + moneyWhole(subtotal) + '</strong><span>Before service fee and tax</span></div>'
+        + '<div class="bundle-welcome-metric"><span class="bundle-welcome-metric-label">Earn back</span><strong>' + moneyWhole(reward) + '</strong><span>In AssembleCash after completion</span></div>'
+      + '</div>'
+      + (included ? '<div class="bundle-welcome-includes"><span>Included</span>' + included + '</div>' : '')
+      + '<div class="bundle-welcome-actions">'
+        + '<button type="button" class="bundle-welcome-btn" onclick="openBundleLeadService()">' + (leadService ? ('Review ' + esc(getDisplayServiceName(leadService))) : 'Review loaded items') + ' &rarr;</button>'
+        + '<a class="bundle-welcome-link" href="/bundles">See bundle details</a>'
+      + '</div>';
+    serviceBanner.classList.add('show');
+  }
+
+  if (itemBanner) {
+    itemBanner.innerHTML =
+      '<div class="bundle-welcome-top">'
+        + '<div>'
+          + '<div class="bundle-welcome-kicker">Bundle booking</div>'
+          + '<div class="bundle-welcome-title">' + esc(bundle.name) + ' loaded for this visit.</div>'
+          + '<div class="bundle-welcome-copy">The included items are already selected. Keep them as-is, remove anything that does not fit, or add more before you continue.</div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="bundle-welcome-metrics">'
+        + '<div class="bundle-welcome-metric"><span class="bundle-welcome-metric-label">This room</span><strong>' + itemCount + ' core item' + (itemCount === 1 ? '' : 's') + '</strong><span>Ready to review and edit</span></div>'
+        + '<div class="bundle-welcome-metric"><span class="bundle-welcome-metric-label">Starts at</span><strong>' + moneyWhole(subtotal) + '</strong><span>Based on the loaded bundle items</span></div>'
+        + '<div class="bundle-welcome-metric"><span class="bundle-welcome-metric-label">Rewards</span><strong>' + moneyWhole(reward) + '</strong><span>Estimated AssembleCash on completion</span></div>'
+      + '</div>';
+    itemBanner.classList.add('show');
+  }
+}
+
 function buildServiceChipHtml(svc, active) {
   var count = getSelectedItemCountForService(svc);
   var displayName = getDisplayServiceName(svc);
@@ -5071,6 +5249,7 @@ function updateOrderSummary() {
 
     changeBtn.style.display = 'none';
     if (summaryCard) summaryCard.style.display = 'none';
+    renderBundleWelcome();
     renderSelectedServiceStrip();
     renderItemSummaryStrip();
     updateMobileStepSummary();
@@ -5106,6 +5285,7 @@ function updateOrderSummary() {
   });
 
   linesEl.innerHTML = html;
+  renderBundleWelcome();
   renderSelectedServiceStrip();
   renderItemSummaryStrip();
   updateMobileStepSummary();
@@ -6092,16 +6272,6 @@ function saveContactEdit() {
     if (bundle) {
       BOOK.bundleSlug = bundle.slug;
       if (!BOOK.selectedServices) BOOK.selectedServices = [];
-      var findCatalogItem = function(service, name) {
-        var groups = SUBCATS[service] || [];
-        for (var gi = 0; gi < groups.length; gi++) {
-          var its = groups[gi].items || [];
-          for (var ii = 0; ii < its.length; ii++) {
-            if (its[ii].name === name) return its[ii];
-          }
-        }
-        return null;
-      };
       var bundleAdded = false;
       (bundle.included || []).forEach(function(ref) {
         var item = findCatalogItem(ref.service, ref.name);
@@ -6114,7 +6284,15 @@ function saveContactEdit() {
           bundleAdded = true;
         }
       });
-      if (bundleAdded) { showSvcScreen(); return; }
+      if (bundleAdded) {
+        var leadService = getBundleLeadService(bundle) || BOOK.selectedServices[0];
+        if (leadService) {
+          showItemScreen(leadService, 'items');
+          return;
+        }
+        showSvcScreen();
+        return;
+      }
     }
   }
 
