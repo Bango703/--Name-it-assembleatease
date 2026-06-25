@@ -7,6 +7,7 @@ import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeB
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
+import { releasePendingRedemption } from '../_assemblecash.js';
 
 /**
  * POST /api/booking/guest-cancel
@@ -148,6 +149,15 @@ export default async function handler(req, res) {
   if (updateErr) {
     console.error('Guest cancel update failed:', updateErr);
     return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
+  }
+
+  if (feeCaptured === 0 && booking.payment_status !== 'captured') {
+    await releasePendingRedemption(sb, {
+      bookingId: booking.id,
+      bookingRef: booking.ref,
+      customerEmail: booking.customer_email,
+      reason: 'reverse:guest_cancelled_before_completion',
+    });
   }
 
   // Cancel all open dispatch offers so an Easer cannot accept a cancelled booking

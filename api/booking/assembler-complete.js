@@ -9,6 +9,7 @@ import { writeFinancialAudit } from '../_financial-audit.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
+import { earnForBooking as earnAssembleCashForBooking } from '../_assemblecash.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -301,6 +302,23 @@ export default async function handler(req, res) {
       const { error: feeErr } = await sb.from('bookings').update({ stripe_fee: actualStripeFee }).eq('id', booking.id);
       if (feeErr) console.warn('stripe_fee store skipped (run migration 011):', feeErr.message || feeErr);
     } catch (e) { console.warn('stripe_fee store error:', e && (e.message || e)); }
+  }
+
+  // ── AssembleCash: credit the customer 5% after a successful capture ──────────
+  // Idempotent (unique earn index per booking) and best-effort — a missing table
+  // (migration 025 not applied) or any error must never block completion.
+  if (captureRequired && amountCharged > 0 && booking.customer_email) {
+    try {
+      const earned = await earnAssembleCashForBooking(sb, {
+        bookingId: booking.id,
+        bookingRef: booking.ref,
+        customerEmail: booking.customer_email,
+        amountChargedCents: finalAmount,
+      });
+      if (earned > 0) {
+        await sb.from('bookings').update({ assemblecash_earned_cents: earned }).eq('id', booking.id);
+      }
+    } catch (e) { console.warn('AssembleCash earn skipped:', e && (e.message || e)); }
   }
 
   // Payout is HELD, not sent now. A 'release-payouts' cron transfers it via Stripe

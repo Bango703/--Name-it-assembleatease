@@ -28,6 +28,21 @@
       "permanent": true
     },
     {
+      "source": "/room-ready-bundles",
+      "destination": "/bundles",
+      "permanent": true
+    },
+    {
+      "source": "/rewards",
+      "destination": "/assemblecash",
+      "permanent": true
+    },
+    {
+      "source": "/setupclub",
+      "destination": "/setup-club",
+      "permanent": true
+    },
+    {
       "source": "/assembler/earn",
       "destination": "/assembler/apply",
       "permanent": true
@@ -99,6 +114,10 @@
     {
       "path": "/api/cron/release-payouts",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/expire-assemblecash",
+      "schedule": "0 8 * * *"
     }
   ],
   "headers": [

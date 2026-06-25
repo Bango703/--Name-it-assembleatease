@@ -6,7 +6,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   // Some environments may not have refund columns yet.
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee')
+    .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents')
     .eq('status', 'completed');
   if (from) bookingsQuery = bookingsQuery.gte('completed_at', from);
   if (to) bookingsQuery = bookingsQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -17,7 +17,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   } else {
     let fallbackQuery = sb
       .from('bookings')
-      .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, tax_amount')
+      .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, tax_amount, bundle_slug')
       .eq('status', 'completed');
     if (from) fallbackQuery = fallbackQuery.gte('completed_at', from);
     if (to) fallbackQuery = fallbackQuery.lte('completed_at', to + 'T23:59:59Z');
@@ -92,6 +92,9 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       assemblerTier: b.assembler_tier,
       paymentStatus: b.payment_status,
       payoutStatus: b.payout_status,
+      bundleSlug: b.bundle_slug || null,
+      assemblecashEarnedCents: Number(b.assemblecash_earned_cents || 0),
+      assemblecashRedeemedCents: Number(b.assemblecash_redeemed_cents || 0),
       charged,
       refund,
       netCharged,

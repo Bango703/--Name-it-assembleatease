@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
+import { reverseForBooking as reverseAssembleCashForBooking } from '../_assemblecash.js';
 
 /**
  * POST /api/booking/refund
@@ -93,6 +94,12 @@ export default async function handler(req, res) {
     refunded_at: new Date().toISOString(),
     refund_reason: reason?.trim() || null,
   }).eq('id', booking.id).neq('payment_status', 'refunded').select('id');
+
+  // Reverse any still-available AssembleCash earned from this booking. Idempotent
+  // (only touches 'available' earn rows); credit already spent is never clawed back.
+  if (!updateErr && updatedRows && updatedRows.length > 0) {
+    reverseAssembleCashForBooking(sb, booking.id, 'reverse:refund').catch(() => {});
+  }
 
   if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
     await writeFinancialAudit(sb, {

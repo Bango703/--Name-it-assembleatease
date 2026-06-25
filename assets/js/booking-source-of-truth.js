@@ -9,6 +9,99 @@ window.AAE_BOOKING_SOURCE = {
     zipPrefixMin: 786,
     zipPrefixMax: 788,
   },
+  // Room-Ready bundles — curated OUTCOMES built from existing catalog items.
+  // Each `included`/`optionalAddons` entry references a real {service, name} in
+  // `subcategories` below, so a bundle is priced exactly like hand-picked items —
+  // no separate bundle pricing and no duplicate money truth. `/book?bundle=<slug>`
+  // pre-selects the included items via toggleItem(); optional add-ons are suggested,
+  // never auto-added. Copy is benefit-led and location-neutral (brand-level).
+  bundles: [
+    {
+      id: 'bedroom-ready', slug: 'bedroom-ready', name: 'Bedroom Ready',
+      outcome: 'Bed built, dresser assembled, nightstand placed — the bedroom handled in one visit.',
+      active: true, displayOrder: 1,
+      included: [
+        { service: 'Furniture Assembly', name: 'Bed frame — queen' },
+        { service: 'Furniture Assembly', name: 'Dresser (up to 6 drawers)' },
+        { service: 'Furniture Assembly', name: 'Nightstand (single)' },
+      ],
+      optionalAddons: [
+        { service: 'Office Assembly', name: 'Wall anchoring / anti-tip hardware' },
+      ],
+      seoTitle: 'Bedroom Ready Setup: Bed, Dresser and Nightstand Assembly | AssembleAtEase',
+      seoDescription: 'Get the whole bedroom set up in one visit — bed frame, dresser, and nightstand assembled with flat, upfront pricing. No charge until the job is done.',
+    },
+    {
+      id: 'living-room-ready', slug: 'living-room-ready', name: 'Living Room Ready',
+      outcome: 'TV mounted, media console built, cords tidied — a living room that looks finished.',
+      active: true, displayOrder: 2,
+      included: [
+        { service: 'Mounting & Hanging', name: 'TV 41"–55" (standard wall)' },
+        { service: 'Furniture Assembly', name: 'TV stand / media console' },
+      ],
+      optionalAddons: [
+        { service: 'Mounting & Hanging', name: 'In-wall cord concealment' },
+      ],
+      seoTitle: 'Living Room Ready: TV Mounting and Media Console Setup | AssembleAtEase',
+      seoDescription: 'TV mounted, entertainment console assembled, and cords cleaned up in one visit. Flat, upfront pricing and no charge until the job is done.',
+    },
+    {
+      id: 'home-office-ready', slug: 'home-office-ready', name: 'Home Office Ready',
+      outcome: 'Desk and chair built, cables managed — sit down and get to work.',
+      active: true, displayOrder: 3,
+      included: [
+        { service: 'Office Assembly', name: 'Desk (simple flat-pack)' },
+        { service: 'Office Assembly', name: 'Office chair (standard)' },
+      ],
+      optionalAddons: [
+        { service: 'Office Assembly', name: 'Monitor arm install (desk clamp)' },
+        { service: 'Office Assembly', name: 'Cable management / cord routing' },
+      ],
+      seoTitle: 'Home Office Ready: Desk, Chair and Cable Setup | AssembleAtEase',
+      seoDescription: 'Desk assembled, chair built, monitor arm and cables handled — your home office ready to work in one visit. Flat pricing, no charge until done.',
+    },
+    {
+      id: 'move-in-ready', slug: 'move-in-ready', name: 'Move-In Setup',
+      outcome: 'New place, handled — bed, sofa, and TV set up so you can settle in. Add anything else you need.',
+      active: true, displayOrder: 4,
+      included: [
+        { service: 'Furniture Assembly', name: 'Bed frame — queen' },
+        { service: 'Furniture Assembly', name: 'Sofa (2–3 seat, standard)' },
+        { service: 'Mounting & Hanging', name: 'TV 41"–55" (standard wall)' },
+      ],
+      optionalAddons: [],
+      seoTitle: 'Move-In Setup: Furniture, TV and Home Setup After Moving | AssembleAtEase',
+      seoDescription: 'Just moved? Get furniture assembled, your TV mounted, and your new place set up in one visit. Add as much as you need with flat, upfront pricing.',
+    },
+    {
+      id: 'smart-entry-setup', slug: 'smart-entry-setup', name: 'Smart Entry Setup',
+      outcome: 'Video doorbell, smart lock, and a camera installed and set up on your phone.',
+      active: true, displayOrder: 5,
+      included: [
+        { service: 'Smart Home', name: 'Smart doorbell — wireless / battery-powered' },
+        { service: 'Smart Home', name: 'Smart lock — deadbolt replacement' },
+        { service: 'Smart Home', name: 'Indoor security camera (plug-in)' },
+      ],
+      optionalAddons: [],
+      seoTitle: 'Smart Entry Setup: Video Doorbell, Smart Lock and Camera | AssembleAtEase',
+      seoDescription: 'Video doorbell, smart lock, and security camera installed and configured on your phone in one visit. Flat pricing, no charge until the job is done.',
+    },
+    {
+      id: 'nursery-setup', slug: 'nursery-setup', name: 'Nursery Setup',
+      outcome: 'Crib, dresser, and storage built and anchored — the nursery ready for baby.',
+      active: true, displayOrder: 6,
+      included: [
+        { service: 'Furniture Assembly', name: 'Crib / toddler bed' },
+        { service: 'Furniture Assembly', name: 'Dresser (up to 6 drawers)' },
+        { service: 'Furniture Assembly', name: 'Toy storage / cube organizer' },
+      ],
+      optionalAddons: [
+        { service: 'Office Assembly', name: 'Wall anchoring / anti-tip hardware' },
+      ],
+      seoTitle: 'Nursery Setup: Crib, Dresser and Storage Assembly | AssembleAtEase',
+      seoDescription: 'Crib, dresser, and nursery storage assembled and safely anchored in one visit. Flat, upfront pricing and no charge until the job is done.',
+    },
+  ],
   subcategories: {
     'Furniture Assembly': [
       { group: 'Seating & Sofas', items: [

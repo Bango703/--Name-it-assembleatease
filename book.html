@@ -184,22 +184,38 @@
     /* -- Step cards -- */
 
     .step-panel {
-      background: var(--white); border: 1px solid rgba(148,163,184,0.32);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      border: 1px solid rgba(148,163,184,0.28);
       border-radius: 24px; padding: 2rem 2.1rem 1.9rem;
-      box-shadow: 0 18px 55px rgba(15,23,42,0.06);
+      box-shadow: 0 22px 60px rgba(15,23,42,0.08);
     }
 
     .step-panel.hidden { display: none; }
 
     .step-kicker {
       display: inline-flex; align-items: center; gap: 0.45rem;
-      color: var(--teal); font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.55rem;
+      color: #0aa7df; font-size: 0.72rem; font-weight: 800;
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.55rem;
     }
 
-    .step-heading { font-family: var(--font-display); font-size: clamp(1.75rem, 2.4vw, 2.2rem); color: var(--ink); margin-bottom: 0.4rem; line-height: 1.05; }
+    .step-heading {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 2.4vw, 2.2rem);
+      color: #08111d;
+      margin-bottom: 0.45rem;
+      line-height: 1.02;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+    }
 
-    .step-sub { font-size: 0.95rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.6; max-width: 38rem; }
+    .step-sub {
+      font-size: 0.98rem;
+      color: #526277;
+      margin-bottom: 1.2rem;
+      line-height: 1.6;
+      max-width: 38rem;
+      font-weight: 500;
+    }
 
     .step-assurance {
       display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -954,32 +970,58 @@
     #svc-screen .svc-row {
       display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
       text-align: center; gap: 0.75rem; padding: 1.55rem 1rem 1.45rem; min-height: 0;
-      border: 1.5px solid rgba(148,163,184,0.30); border-radius: 18px; background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-      box-shadow: 0 10px 24px rgba(15,23,42,0.05);
+      border: 1.5px solid rgba(174, 192, 214, 0.48);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff 0%, #f9fcff 58%, #f4faff 100%);
+      box-shadow: 0 14px 32px rgba(15,23,42,0.06);
     }
     #svc-screen .svc-row::before { display: none; }
     #svc-screen .svc-row:hover, #svc-screen .svc-row:focus-visible {
-      border-color: var(--teal); box-shadow: 0 12px 26px rgba(0,191,255,0.14); transform: translateY(-2px);
+      border-color: #18aee2;
+      box-shadow: 0 18px 36px rgba(0,191,255,0.16), 0 8px 22px rgba(15,23,42,0.07);
+      transform: translateY(-2px);
     }
     #svc-screen .svc-row.has-items {
-      border-color: var(--teal); background: linear-gradient(180deg, #fbfeff 0%, #f2fbff 100%);
-      box-shadow: 0 0 0 3px rgba(0,191,255,0.10), 0 10px 22px rgba(0,191,255,0.12);
+      border-color: #18aee2;
+      background: linear-gradient(180deg, #ffffff 0%, #f3fbff 100%);
+      box-shadow: 0 0 0 3px rgba(0,191,255,0.11), 0 16px 30px rgba(0,191,255,0.13);
     }
-    #svc-screen .svc-row-icon { width: 54px; height: 54px; border-radius: 16px; background: #eafaff; color: var(--teal); }
+    #svc-screen .svc-row-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 17px;
+      background: linear-gradient(180deg, #eefdff 0%, #def6ff 100%);
+      color: #0aa7df;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+    }
     #svc-screen .svc-row-icon svg { width: 26px; height: 26px; }
     #svc-screen .svc-row.has-items .svc-row-icon { background: var(--teal); color: #fff; }
     #svc-screen .svc-row-info { align-items: center; text-align: center; padding: 0; gap: 0.15rem; }
-    #svc-screen .svc-row-name { font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.2; }
-    #svc-screen .svc-row-meta { font-size: 0.85rem; font-weight: 700; color: var(--teal); margin-top: 0.25rem; }
+    #svc-screen .svc-row-name {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #08111d;
+      line-height: 1.18;
+      letter-spacing: -0.018em;
+    }
+    #svc-screen .svc-row-meta {
+      font-size: 0.87rem;
+      font-weight: 800;
+      color: #07a6e3;
+      margin-top: 0.3rem;
+      letter-spacing: -0.01em;
+    }
     #svc-screen .svc-row-badge { margin-top: 0.35rem; text-align: center; }
     #svc-screen .svc-row-chevron { display: none; }
     #svc-screen .svc-row.quote-row {
       grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start;
       text-align: left; gap: 1rem; padding: 1.1rem 1.25rem;
-      background: linear-gradient(180deg,#f8fdff 0%,#eefbff 100%); border-color: rgba(0,191,255,0.34);
+      background: linear-gradient(180deg, #fbfeff 0%, #eef9ff 100%);
+      border-color: rgba(24,174,226,0.5);
+      box-shadow: 0 16px 34px rgba(0,191,255,0.09);
     }
     #svc-screen .svc-row.quote-row .svc-row-info { align-items: flex-start; text-align: left; }
-    #svc-screen .svc-row.quote-row .svc-row-meta { color: var(--muted); font-weight: 600; }
+    #svc-screen .svc-row.quote-row .svc-row-meta { color: #5f6f83; font-weight: 600; }
     #svc-screen .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
     @media (max-width: 768px) {
       #svc-screen .svc-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
@@ -2782,6 +2824,52 @@
           <div class="promo-status" id="s5-promo-status"></div>
         </div>
 
+        <div class="promo-box" id="s5-ac-box" style="margin-top:0.6rem">
+          <label class="promo-label">Have AssembleCash?</label>
+          <div id="s5-ac-step1">
+            <p style="font-size:0.82rem;color:#5b6b73;margin:0 0 0.5rem;line-height:1.45">Apply credit you earned on past jobs. We&rsquo;ll email a one-time code to confirm it&rsquo;s you.</p>
+            <button type="button" class="promo-apply" id="s5-ac-reqbtn" onclick="acCheckoutRequest()" style="width:100%">Email me a code</button>
+          </div>
+          <div id="s5-ac-step2" style="display:none">
+            <div class="promo-row">
+              <input type="text" class="promo-input" id="s5-ac-code" inputmode="numeric" maxlength="6" placeholder="6-digit code" oninput="this.value=this.value.replace(/\D/g,'')" />
+              <button type="button" class="promo-apply" id="s5-ac-applybtn" onclick="acCheckoutVerify()">Apply</button>
+            </div>
+          </div>
+          <div class="promo-status" id="s5-ac-status"></div>
+        </div>
+        <script>
+        window.acCheckoutRequest = async function(){
+          var st=document.getElementById('s5-ac-status'); st.textContent=''; st.style.color='';
+          var email=(window.BOOK&&BOOK.email)||'';
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ st.style.color='#b91c1c'; st.textContent='Add your email in the previous step first.'; return; }
+          var b=document.getElementById('s5-ac-reqbtn'); b.disabled=true; var o=b.textContent; b.textContent='Sending…';
+          try{
+            var r=await fetch('/api/assemblecash/request-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+            if(r.status===429){ st.style.color='#b91c1c'; st.textContent='Too many requests. Please wait a few minutes.'; }
+            else{ document.getElementById('s5-ac-step1').style.display='none'; document.getElementById('s5-ac-step2').style.display=''; st.style.color='#5b6b73'; st.textContent='Code sent to '+email+'.'; document.getElementById('s5-ac-code').focus(); }
+          }catch(e){ st.style.color='#b91c1c'; st.textContent='Could not send a code. Please try again.'; }
+          b.disabled=false; b.textContent=o;
+        };
+        window.acCheckoutVerify = async function(){
+          var st=document.getElementById('s5-ac-status'); st.textContent=''; st.style.color='';
+          var email=(window.BOOK&&BOOK.email)||''; var code=(document.getElementById('s5-ac-code').value||'').trim();
+          if(!/^\d{6}$/.test(code)){ st.style.color='#b91c1c'; st.textContent='Enter the 6-digit code from your email.'; return; }
+          var b=document.getElementById('s5-ac-applybtn'); b.disabled=true; var o=b.textContent; b.textContent='…';
+          try{
+            var r=await fetch('/api/assemblecash/verify-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,code:code})});
+            var d=await r.json().catch(function(){return {};});
+            if(!r.ok){ st.style.color='#b91c1c'; st.textContent=(d&&d.error)||'That code is invalid or expired.'; }
+            else{
+              var cents=(d&&d.balanceCents)||0;
+              if(cents<=0){ st.style.color='#5b6b73'; st.textContent='No AssembleCash yet — you’ll earn 5% back on this job.'; if(window.BOOK) BOOK.assemblecashToken=''; }
+              else{ if(window.BOOK) BOOK.assemblecashToken=(d&&d.token)||''; var applied=Math.min(cents,2000); st.style.color='#067647'; st.textContent='Balance $'+(cents/100).toFixed(2)+' — up to $'+(applied/100).toFixed(2)+' applied at checkout.'; document.getElementById('s5-ac-step2').style.display='none'; }
+            }
+          }catch(e){ st.style.color='#b91c1c'; st.textContent='Could not verify right now. Please try again.'; }
+          b.disabled=false; b.textContent=o;
+        };
+        </script>
+
 
 
         <!-- Card payment (standard bookings) -->
@@ -3301,7 +3389,8 @@ function renderStep5OrderTotal() {
   var promoState = BOOK._promoPreview && BOOK._promoPreview.pricing ? BOOK._promoPreview : null;
   var promoApplied = !!(promoState && promoState.promo && promoState.promo.applied);
   var promoDiscountCents = promoApplied ? Math.max(0, Number(promoState.promo.discountCents || 0)) : 0;
-  var pricing = promoApplied ? promoState.pricing : localPricing;
+  var assemblecashAppliedCents = promoState && promoState.assemblecash ? Math.max(0, Number(promoState.assemblecash.appliedCents || 0)) : 0;
+  var pricing = promoState ? promoState.pricing : localPricing;
   var itemsBlock = buildStep5ItemLinesHtml();
 
   BOOK._discountPct = snapshot.bundle.pct;
@@ -3321,6 +3410,9 @@ function renderStep5OrderTotal() {
   var promoLineHtml = promoDiscountCents > 0
     ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0369a1;font-weight:700;margin-bottom:0.25rem"><span>' + esc((promoState && promoState.promo && promoState.promo.label) || getActivePromoLabel()) + '</span><span>&minus;' + dollars(promoDiscountCents / 100) + '</span></div>'
     : '';
+  var assemblecashLineHtml = assemblecashAppliedCents > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#0369a1;font-weight:700;margin-bottom:0.25rem"><span>AssembleCash applied</span><span>&minus;' + dollars(assemblecashAppliedCents / 100) + '</span></div>'
+    : '';
   var callFeeLineHtml = pricing.serviceCallFeeCents > 0
     ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>Service call fee</span><span>' + dollars(pricing.serviceCallFeeCents / 100) + '</span></div>'
     : '';
@@ -3328,13 +3420,14 @@ function renderStep5OrderTotal() {
     ? '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>Subtotal</span><span>' + dollars(pricing.itemSubtotalCents / 100) + '</span></div>'
       + discountLineHtml
       + promoLineHtml
+      + assemblecashLineHtml
       + callFeeLineHtml
       + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:0.25rem"><span>Sales tax (8.25%)</span><span>' + dollars(pricing.taxCents / 100) + '</span></div>'
     : '';
   var totalDisplay = itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0
     ? 'Custom quote'
     : dollars((pricing.totalCents || 0) / 100) + (itemsBlock.hasCustom ? '+ (some items need a quote)' : '');
-  var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : (promoApplied ? 'Offer applied' : 'Secure checkout');
+  var totalNote = BOOK.isEmergingMarket ? 'No payment collected' : (assemblecashAppliedCents > 0 ? 'Rewards applied' : (promoApplied ? 'Offer applied' : 'Secure checkout'));
 
   summaryEl.insertAdjacentHTML('beforeend',
     '<div class="summary-row" id="s5-order-total-row" style="border-top:2px solid var(--border);margin-top:0.25rem;padding-top:1rem">'
@@ -5903,6 +5996,42 @@ function saveContactEdit() {
   var svc = params.get('service') || params.get('s') || '';
   BOOK.promoCode = String(params.get('promo') || '').trim().toUpperCase();
 
+  // Room-Ready bundle deep-link (/book?bundle=<slug>): pre-add the bundle's
+  // catalog items across services. Prices/flags come straight from the catalog,
+  // so the existing engine totals it exactly like hand-picked items.
+  var bundleSlug = String(params.get('bundle') || '').trim().toLowerCase();
+  if (bundleSlug) {
+    var bundleList = AAE_BOOKING_SOURCE.bundles || [];
+    var bundle = bundleList.find(function(b) { return b.slug === bundleSlug && b.active !== false; });
+    if (bundle) {
+      BOOK.bundleSlug = bundle.slug;
+      if (!BOOK.selectedServices) BOOK.selectedServices = [];
+      var findCatalogItem = function(service, name) {
+        var groups = SUBCATS[service] || [];
+        for (var gi = 0; gi < groups.length; gi++) {
+          var its = groups[gi].items || [];
+          for (var ii = 0; ii < its.length; ii++) {
+            if (its[ii].name === name) return its[ii];
+          }
+        }
+        return null;
+      };
+      var bundleAdded = false;
+      (bundle.included || []).forEach(function(ref) {
+        var item = findCatalogItem(ref.service, ref.name);
+        if (!item) return;
+        if (BOOK.selectedServices.indexOf(ref.service) === -1) BOOK.selectedServices.push(ref.service);
+        if (!BOOK.selectedItems[ref.service]) BOOK.selectedItems[ref.service] = [];
+        var exists = BOOK.selectedItems[ref.service].some(function(i) { return i.name === ref.name; });
+        if (!exists) {
+          BOOK.selectedItems[ref.service].push({ name: item.name, price: item.price, priceMax: item.priceMax, addon: !!item.addon, customQuote: !!item.customQuote, qty: 1 });
+          bundleAdded = true;
+        }
+      });
+      if (bundleAdded) { showSvcScreen(); return; }
+    }
+  }
+
   if (!svc) return;
 
   var svcClean = svc.toLowerCase().replace(/[^a-z]/g,'');
@@ -6335,6 +6464,10 @@ async function submitBooking() {
 
         promoPreviewTotalCents: BOOK._grandTotalCents || 0,
 
+        assemblecashToken: BOOK.assemblecashToken || '',
+
+        bundleSlug: BOOK.bundleSlug || '',
+
         isQuoteRequest: BOOK._isQuoteFlow || false,
 
         paymentMethodId: savedPaymentMethodId || null,
@@ -6361,6 +6494,29 @@ async function submitBooking() {
         };
         renderStep5OrderTotal();
         setPromoStatus(getPromoStatusMessage(data.promo.reason, BOOK.promoCode || data.promo.enteredCode || ''), 'warning');
+      }
+      if (resp.status === 409 && data.code === 'ASSEMBLECASH_CHANGED' && data.pricing) {
+        BOOK._promoPreview = {
+          promo: data.promo || null,
+          assemblecash: data.assemblecash || null,
+          pricing: {
+            itemSubtotalCents: data.pricing.itemSubtotalCents || getLocalPricingPreview(getPricingSnapshot(BOOK.zip)).itemSubtotalCents,
+            bundleDiscountCents: data.pricing.bundleDiscountCents || 0,
+            promoDiscountCents: data.pricing.promoDiscountCents || 0,
+            serviceCallFeeCents: data.pricing.serviceCallFeeCents || 0,
+            taxCents: data.pricing.taxCents || 0,
+            totalCents: data.pricing.totalCents || 0
+          }
+        };
+        renderStep5OrderTotal();
+        var acMsg = document.getElementById('s5-ac-status');
+        if (acMsg) {
+          var applied = Math.max(0, Number((data.assemblecash && data.assemblecash.appliedCents) || 0));
+          acMsg.style.color = applied > 0 ? '#92400e' : '#b91c1c';
+          acMsg.textContent = applied > 0
+            ? 'Your available AssembleCash changed. We refreshed the total with up to $' + (applied / 100).toFixed(2) + ' applied.'
+            : 'Your AssembleCash balance changed and is no longer available for this booking.';
+        }
       }
       throw new Error(data.error || 'Server error. Please try again.');
     }

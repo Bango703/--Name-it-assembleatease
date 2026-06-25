@@ -958,6 +958,7 @@
             <div style="display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-end">
               <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Sales tax owed</div><div id="reserve-tax" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
               <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Pending Easer payouts</div><div id="reserve-payouts" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
+              <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">AssembleCash liability</div><div id="reserve-rewards" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
               <div style="border-left:1px solid var(--border);padding-left:1.4rem"><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#b45309;font-weight:800">Set aside (don&rsquo;t spend)</div><div id="reserve-total" style="font-size:1.3rem;font-weight:800;color:#b45309">&mdash;</div></div>
               <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Clawbacks to recover</div><div id="reserve-clawbacks" style="font-size:1.05rem;font-weight:800;color:#dc2626">&mdash;</div><div style="font-size:0.6rem;color:var(--muted)">owed back to you</div></div>
             </div>
@@ -975,6 +976,8 @@
           <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. Net Operating Profit</div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
+          <div class="stat amber"><div class="stat-value" id="an-ac-liability">—</div><div class="stat-label">AssembleCash Liability</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-repeat-rate">—</div><div class="stat-label">Repeat Customer Rate</div></div>
           <div class="stat orange"><div class="stat-value" id="an-refund-rework-rate">—</div><div class="stat-label">Refund/Rework Rate</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-active-easers">—</div><div class="stat-label">Active Easers</div></div>
@@ -4258,7 +4261,7 @@ function intelQuick(msg) {
   var financialCacDollars = localStorage.getItem('aae-owner-cac-dollars') || '';
   var financialOpexMonthly = localStorage.getItem('aae-owner-opex-monthly') || '';
   var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'quarter';
-  var reserveParts = { tax: 0, payouts: 0, clawbacks: 0 };
+  var reserveParts = { tax: 0, payouts: 0, rewards: 0, clawbacks: 0 };
   function stripeFee(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
   function fmt$(cents) { return '$'+(Number(cents || 0)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtSigned$(cents) {
@@ -4465,9 +4468,11 @@ function intelQuick(msg) {
   function renderReserveRollup() {
     var tax = Number(reserveParts.tax || 0);
     var payouts = Number(reserveParts.payouts || 0);
+    var rewards = Number(reserveParts.rewards || 0);
     setText('reserve-tax', fmt$(tax));
     setText('reserve-payouts', fmt$(payouts));
-    setText('reserve-total', fmt$(tax + payouts));
+    setText('reserve-rewards', fmt$(rewards));
+    setText('reserve-total', fmt$(tax + payouts + rewards));
     setText('reserve-clawbacks', fmt$(Number(reserveParts.clawbacks || 0)));
   }
 
@@ -4538,12 +4543,17 @@ function intelQuick(msg) {
     setText('an-addon-rate', fmtPct(exec.addOnAttachmentRate));
     setText('an-addon-source', exec.addOnAttachmentRateSource === 'actual_booking_items' ? '(Actual)' : '(Est.)');
     setText('an-addon-value', exec.averageAddOnValue ? fmt$(exec.averageAddOnValue) : '—');
+    setText('an-bundle-rate', fmtPct(exec.bundleAttachRate));
+    setText('an-ac-liability', exec.assemblecashLiabilityCents ? fmt$(exec.assemblecashLiabilityCents) : '$0.00');
     setText('an-repeat-rate', fmtPct(exec.repeatCustomerRate));
     setText('an-refund-rework-rate', fmtPct(exec.refundReworkRate));
     setText('an-active-easers', String(exec.activeEasers || 0));
+    reserveParts.rewards = Number(exec.assemblecashLiabilityCents || 0); renderReserveRollup();
     setStatTone('an-gross-per-job', Number(exec.platformGrossProfitPerCompletedJob || 0) >= 3500 ? 'teal' : 'orange');
     setStatTone('an-profit', Number(exec.platformGrossProfit || 0) >= 0 ? 'teal' : 'red');
     setStatTone('an-net-profit', Number(exec.estimatedNetOperatingProfit || 0) >= 0 ? 'teal' : 'red');
+    setStatTone('an-bundle-rate', Number(exec.bundleAttachRate || 0) >= 0.25 ? 'teal' : 'neutral');
+    setStatTone('an-ac-liability', Number(exec.assemblecashLiabilityCents || 0) > 0 ? 'amber' : 'neutral');
 
     var formula = document.getElementById('fin-formula');
     if (formula) {

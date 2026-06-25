@@ -3,7 +3,7 @@ import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
-import { calculateBookingPricing } from './_pricing.js';
+import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
 import { getMinimumPretaxBookingCents } from './_source-of-truth.js';
 import {
   applyPromotionToPricing,
@@ -11,6 +11,14 @@ import {
   resolveBookingPromotion,
 } from './_promotions.js';
 import { logActivity } from './booking/_activity.js';
+import {
+  verifyRedemptionToken,
+  getAvailableBalanceCents,
+  maxRedeemableCents,
+  reserveRedemption,
+  attachRedemptionToBooking,
+  releasePendingRedemption,
+} from './_assemblecash.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -35,6 +43,8 @@ export default async function handler(req, res) {
     promoCode,
     promoPreviewApplied,
     promoPreviewTotalCents,
+    assemblecashToken,
+    bundleSlug,
   } = req.body;
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
@@ -88,12 +98,12 @@ export default async function handler(req, res) {
     sb,
   });
   const pricingWithPromo = applyPromotionToPricing(pricing, promo);
-  const amount = pricingWithPromo.totalCents;
+  let amount = pricingWithPromo.totalCents;
   const subtotalCents = pricingWithPromo.itemSubtotalCents;
   const discountCents = pricingWithPromo.discountCents;
   const promoDiscountCents = pricingWithPromo.promoDiscountCents;
-  const taxableSubtotalCents = pricingWithPromo.taxableSubtotalCents;
-  const taxCents = pricingWithPromo.taxCents;
+  let taxableSubtotalCents = pricingWithPromo.taxableSubtotalCents;
+  let taxCents = pricingWithPromo.taxCents;
   const serviceCallFeeCents = pricingWithPromo.serviceCallFeeCents;
   const shouldChargeNow = amount > 0 && !quoteRequested;
 
@@ -145,6 +155,81 @@ export default async function handler(req, res) {
   // away over a few dollars. (minBookingCents kept as informational context only.)
   const minBookingCents = getMinimumPretaxBookingCents(pricingWithPromo.callZone);
 
+  // ── AssembleCash redemption (server-authoritative; never trust a client amount) ──
+  // Applied AFTER promo, like a discount on the pre-tax service base. Capped at $20,
+  // bounded by the live balance, and never pushes the base below the margin floor.
+  // Requires a valid redemption token (proves the customer verified this email).
+  // We atomically reserve the credit before saving the booking / creating Stripe
+  // state so two overlapping checkouts cannot spend the same reward balance.
+  let assemblecashRedeemedCents = 0;
+  if (assemblecashToken && shouldChargeNow && verifyRedemptionToken(assemblecashToken, email)) {
+    try {
+      const acBalance = await getAvailableBalanceCents(sb, email);
+      const requestedRedeem = maxRedeemableCents({
+        balanceCents: acBalance,
+        pretaxBaseCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
+        marginFloorCents: minBookingCents || 0,
+      });
+      if (requestedRedeem > 0) {
+        const reservedRedeem = await reserveRedemption(sb, {
+          customerEmail: email,
+          requestedAmountCents: requestedRedeem,
+          bookingRef: ref,
+        });
+        if (reservedRedeem !== requestedRedeem) {
+          const refreshedBalance = await getAvailableBalanceCents(sb, email);
+          const refreshedRedeem = maxRedeemableCents({
+            balanceCents: refreshedBalance,
+            pretaxBaseCents: pricingWithPromo.promoAdjustedItemSubtotalCents,
+            marginFloorCents: minBookingCents || 0,
+          });
+          const refreshedAdjustedSubtotal = Math.max(0, pricingWithPromo.promoAdjustedItemSubtotalCents - refreshedRedeem);
+          const refreshedTaxableSubtotal = refreshedAdjustedSubtotal + serviceCallFeeCents;
+          const refreshedTax = Math.round(refreshedTaxableSubtotal * TX_TAX_RATE);
+          const refreshedTotal = refreshedTaxableSubtotal + refreshedTax;
+          return res.status(409).json({
+            error: 'Your AssembleCash balance changed while this booking was being prepared. We refreshed the total.',
+            code: 'ASSEMBLECASH_CHANGED',
+            promo: {
+              applied: promo.applied,
+              appliedCode: promo.appliedCode || '',
+              label: promo.label || 'Promo',
+              discountCents: promoDiscountCents,
+              reason: 'assemblecash_changed',
+              enteredCode: promoCode || '',
+            },
+            assemblecash: {
+              requestedCents: requestedRedeem,
+              appliedCents: refreshedRedeem,
+              remainingBalanceCents: refreshedBalance,
+            },
+            pricing: {
+              itemSubtotalCents: pricingWithPromo.itemSubtotalCents,
+              bundleDiscountCents: pricingWithPromo.discountCents,
+              promoDiscountCents,
+              serviceCallFeeCents,
+              taxCents: refreshedTax,
+              totalCents: refreshedTotal,
+            },
+          });
+        }
+        const acAdjustedSubtotal = Math.max(0, pricingWithPromo.promoAdjustedItemSubtotalCents - reservedRedeem);
+        taxableSubtotalCents = acAdjustedSubtotal + serviceCallFeeCents;
+        taxCents = Math.round(taxableSubtotalCents * TX_TAX_RATE);
+        amount = taxableSubtotalCents + taxCents;
+        assemblecashRedeemedCents = reservedRedeem;
+      }
+    } catch (e) {
+      if (e?.code === 'AC_REDEMPTION_RPC_MISSING') {
+        return res.status(503).json({
+          error: 'AssembleCash is temporarily unavailable while rewards are being updated. Please book without it or finish the rewards migration first.',
+          code: 'ASSEMBLECASH_UNAVAILABLE',
+        });
+      }
+      console.warn('AssembleCash redemption skipped:', e && (e.message || e));
+    }
+  }
+
   const isDeposit = false;
   const depositAmountCents = null;
 
@@ -168,21 +253,30 @@ export default async function handler(req, res) {
     deposit_amount: depositAmountCents,
     promo_code: promo.applied ? promo.appliedCode : null,
     promo_discount_cents: promoDiscountCents,
+    assemblecash_redeemed_cents: assemblecashRedeemedCents,
+    bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
   };
 
   let { data: savedBooking, error: insertErr } = await sb.from('bookings').insert(bookingInsertPayload).select('id').single();
 
-  if (insertErr && isMissingColumnError(insertErr) && /promo_/i.test(String(insertErr.message || ''))) {
-    const { promo_code, promo_discount_cents, ...legacyBookingInsertPayload } = bookingInsertPayload;
+  if (insertErr && isMissingColumnError(insertErr) && /promo_|assemblecash|bundle_slug/i.test(String(insertErr.message || ''))) {
+    const { promo_code, promo_discount_cents, assemblecash_redeemed_cents, bundle_slug, ...legacyBookingInsertPayload } = bookingInsertPayload;
     ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(legacyBookingInsertPayload).select('id').single());
   }
 
   if (insertErr) {
+    if (assemblecashRedeemedCents > 0) {
+      await releasePendingRedemption(sb, { bookingRef: ref, customerEmail: email, reason: 'reverse:booking_insert_failed' });
+    }
     console.error('Booking insert error:', insertErr);
     return res.status(500).json({ error: 'Failed to save booking. Please try again.' });
   }
 
   const bookingId = savedBooking.id;
+  if (assemblecashRedeemedCents > 0) {
+    await attachRedemptionToBooking(sb, { bookingId, bookingRef: ref, customerEmail: email });
+  }
+
   if (promo.applied && promoDiscountCents > 0) {
     logActivity(sb, {
       bookingId,
@@ -260,8 +354,10 @@ export default async function handler(req, res) {
           type: 'customer_booking',
           isDeposit: 'false',
           depositAmountCents: '0',
+          bundleSlug: String(bundleSlug || ''),
           promoCode: promo.applied ? promo.appliedCode : '',
           promoDiscountCents: String(promoDiscountCents || 0),
+          assemblecashRedeemedCents: String(assemblecashRedeemedCents || 0),
         },
       });
 
@@ -274,6 +370,9 @@ export default async function handler(req, res) {
       clientSecret = pi.client_secret;
     } catch (stripeErr) {
       console.error('Stripe setup error:', stripeErr);
+      if (assemblecashRedeemedCents > 0) {
+        await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:stripe_setup_failed' });
+      }
       // Delete the booking row we just created — do not leave an unpayable ghost booking.
       await sb.from('bookings').delete().eq('id', bookingId).catch(delErr =>
         console.error('Failed to clean up ghost booking after Stripe error:', delErr)
@@ -325,6 +424,7 @@ export default async function handler(req, res) {
       ${amount > 0 ? `<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Subtotal</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:600">$${(subtotalCents/100).toFixed(2)}</td></tr>
       ${discountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Bundle Discount</td><td style="padding:10px 0;font-weight:600;color:#0d9488">-$${(discountCents/100).toFixed(2)}</td></tr>` : ''}
       ${promoDiscountCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">${esc(promo.label)}</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-$${(promoDiscountCents/100).toFixed(2)}</td></tr>` : ''}
+      ${assemblecashRedeemedCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">AssembleCash applied</td><td style="padding:10px 0;font-weight:600;color:#0369a1">-$${(assemblecashRedeemedCents/100).toFixed(2)}</td></tr>` : ''}
       ${serviceCallFeeCents > 0 ? `<tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Service Call</td><td style="padding:10px 0;font-weight:600">$${(serviceCallFeeCents/100).toFixed(2)}</td></tr>` : ''}
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Tax</td><td style="padding:10px 0;font-weight:600">$${(taxCents/100).toFixed(2)}</td></tr>
       <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}
@@ -533,7 +633,3 @@ function clampInt(value, min, max, fallback) {
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
 }
-
-
-
-

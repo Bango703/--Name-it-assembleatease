@@ -40,6 +40,7 @@ export default async function handler(req, res) {
   const itemMetrics = await loadBookingItemMetrics(sb, bookingIds);
   const contractorTax = await loadContractorTaxYear(sb);
   const clawbacks = await loadOpenClawbacks(sb);
+  const assemblecashMetrics = await loadAssembleCashMetrics(sb, range);
   const completedJobs = rows.length;
   const grossCustomerRevenue = sum(rows, row => row.charged);
   const refunds = sum(rows, row => row.refund);
@@ -82,6 +83,11 @@ export default async function handler(req, res) {
   const averageAddOnValue = itemMetrics.completedJobsWithAddOns > 0
     ? Math.round(itemMetrics.totalAddOnRevenue / itemMetrics.completedJobsWithAddOns)
     : 0;
+  const bundledJobs = rows.filter(row => !!row.bundleSlug).length;
+  const bundleAttachRate = completedJobs > 0 ? bundledJobs / completedJobs : 0;
+  const bundleAverageOrderValue = bundledJobs > 0
+    ? Math.round(sum(rows.filter(row => !!row.bundleSlug), row => row.netCharged) / bundledJobs)
+    : 0;
   const serviceProfitability = buildServiceProfitability(rows, itemMetrics);
   const expansionRows = period === 'all' ? rows : await loadExpansionRows(sb);
   const expansionReadiness = await buildExpansionReadiness(sb, expansionRows, activeEasers);
@@ -110,6 +116,8 @@ export default async function handler(req, res) {
         salesTax,
         processingFee,
         easerPayout,
+        bundleSlug: row.bundleSlug || null,
+        assemblecashRedeemedCents: Number(row.assemblecashRedeemedCents || 0),
         platformGrossProfit: netCustomerRevenue - salesTax - processingFee - easerPayout,
         payoutStatus: row.payoutStatus || (row.paidOut ? 'paid' : 'pending'),
         dataSource: row.hasLedger ? 'ledger' : 'booking',
@@ -136,8 +144,10 @@ export default async function handler(req, res) {
       repeatCustomerRate: repeatCustomerStats.source,
       addOnAttachmentRate: hasRealAddOnData ? 'actual_booking_items' : 'assumption_until_booking_items_exist',
       averageAddOnValue: hasRealAddOnData ? 'actual_booking_items' : 'missing_data',
+      bundleAttachRate: 'actual_completed_bookings_with_bundle_slug',
       refundReworkRate: 'actual_refunds_plus_damage_claims_when_evidence_exists',
       easerPayouts: 'actual_or_pending_due',
+      assemblecashLiability: assemblecashMetrics.available ? 'actual_rewards_ledger' : 'missing_data',
       processingFees: 'estimated',
       platformGrossProfit: 'estimated',
       reworkRefundReserve: 'estimated',
@@ -172,8 +182,12 @@ export default async function handler(req, res) {
       completedJobsWithAddOns: itemMetrics.completedJobsWithAddOns,
       totalAddOnRevenue: itemMetrics.totalAddOnRevenue,
       averageAddOnValue,
+      bundledJobs,
+      bundleAttachRate,
+      bundleAverageOrderValue,
       refundReworkJobs: issueBookingIds.size,
       refundReworkRate,
+      assemblecashLiabilityCents: assemblecashMetrics.liabilityCents,
     },
     executiveOverview: {
       platformGrossProfitPerCompletedJob: grossProfitPerJob,
@@ -186,15 +200,20 @@ export default async function handler(req, res) {
       addOnAttachmentRateSource: hasRealAddOnData ? 'actual_booking_items' : 'assumption',
       totalAddOnRevenue: itemMetrics.totalAddOnRevenue,
       averageAddOnValue,
+      bundledJobs,
+      bundleAttachRate,
+      bundleAverageOrderValue,
       repeatCustomerRate: repeatCustomerStats.rate,
       repeatCustomerRateSource: repeatCustomerStats.source,
       refundReworkRate,
       refundReworkRateSource: 'refunds_and_damage_claim_evidence',
       activeEasers,
+      assemblecashLiabilityCents: assemblecashMetrics.liabilityCents,
     },
     serviceProfitability,
     contractorTax,
     clawbacks,
+    assemblecash: assemblecashMetrics,
     addOnMetrics: {
       tableAvailable: itemMetrics.tableAvailable,
       persistedRows: itemMetrics.persistedRows,
@@ -210,6 +229,73 @@ export default async function handler(req, res) {
     ledger,
     reconciliation: finance.reconciliation,
   });
+}
+
+async function loadAssembleCashMetrics(sb, range = {}) {
+  const empty = {
+    available: false,
+    liabilityCents: 0,
+    earnedCentsInPeriod: 0,
+    redeemedCentsInPeriod: 0,
+    activeCustomers: 0,
+  };
+  try {
+    const { data, error } = await sb
+      .from('assemblecash_ledger')
+      .select('customer_email, amount_earned_cents, amount_redeemed_cents, status, expires_at, created_at');
+    if (error) {
+      console.warn('AssembleCash metrics unavailable:', error.message || error);
+      return empty;
+    }
+    const now = Date.now();
+    const fromMs = range.from ? Date.parse(range.from) : null;
+    const toMs = range.to ? Date.parse(range.to + 'T23:59:59Z') : null;
+    const byEmail = new Map();
+    let earnedCentsInPeriod = 0;
+    let redeemedCentsInPeriod = 0;
+
+    for (const row of data || []) {
+      const email = String(row.customer_email || '').trim().toLowerCase();
+      if (!email) continue;
+      if (!byEmail.has(email)) byEmail.set(email, 0);
+
+      const createdMs = Date.parse(row.created_at || '');
+      const inRange = (!fromMs || createdMs >= fromMs) && (!toMs || createdMs <= toMs);
+      const earned = Math.max(0, Number(row.amount_earned_cents || 0));
+      const redeemed = Math.max(0, Number(row.amount_redeemed_cents || 0));
+
+      if (row.status === 'available' && earned > 0) {
+        const expiryMs = row.expires_at ? Date.parse(row.expires_at) : null;
+        if (!expiryMs || expiryMs > now) {
+          byEmail.set(email, byEmail.get(email) + earned);
+        }
+      }
+      if (row.status === 'redeemed' && redeemed > 0) {
+        byEmail.set(email, byEmail.get(email) - redeemed);
+      }
+      if (inRange && earned > 0) earnedCentsInPeriod += earned;
+      if (inRange && redeemed > 0) redeemedCentsInPeriod += redeemed;
+    }
+
+    let liabilityCents = 0;
+    let activeCustomers = 0;
+    for (const value of byEmail.values()) {
+      const balance = Math.max(0, Math.round(Number(value) || 0));
+      liabilityCents += balance;
+      if (balance > 0) activeCustomers += 1;
+    }
+
+    return {
+      available: true,
+      liabilityCents,
+      earnedCentsInPeriod,
+      redeemedCentsInPeriod,
+      activeCustomers,
+    };
+  } catch (error) {
+    console.warn('AssembleCash metrics skipped:', error?.message || error);
+    return empty;
+  }
 }
 
 function normalizePeriod(value) {

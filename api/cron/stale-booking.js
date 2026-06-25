@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
+import { releasePendingRedemption } from '../_assemblecash.js';
 
 const STALE_DAYS = 7;       // auto-decline bookings still pending after 7 days
 const ACCEPT_HOURS = 24;    // auto-cancel assigned bookings not accepted within 24 hours
@@ -105,6 +106,12 @@ export default async function handler(req, res) {
           decline_reason: 'Auto-declined after ' + STALE_DAYS + ' days without response',
         })
         .eq('id', b.id);
+      await releasePendingRedemption(sb, {
+        bookingId: b.id,
+        bookingRef: b.ref,
+        customerEmail: b.customer_email,
+        reason: 'reverse:stale_pending_declined',
+      });
 
       // Notify customer
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">

@@ -7,6 +7,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
+import { releasePendingRedemption } from '../_assemblecash.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -170,6 +171,15 @@ export default async function handler(req, res) {
   if (updateErr) {
     console.error('Cancel update error:', updateErr);
     return res.status(500).json({ error: 'Failed to cancel booking: ' + updateErr.message });
+  }
+
+  if (feeCaptured === 0 && booking.payment_status !== 'captured') {
+    await releasePendingRedemption(sb, {
+      bookingId: booking.id,
+      bookingRef: booking.ref,
+      customerEmail: booking.customer_email,
+      reason: 'reverse:owner_cancelled_before_completion',
+    });
   }
 
   // Cancel all open dispatch offers so Easers cannot accept a cancelled booking

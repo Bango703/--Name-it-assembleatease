@@ -4,6 +4,7 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
+import { releasePendingRedemption } from '../_assemblecash.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -372,6 +373,12 @@ export default async function handler(req, res) {
           }
 
           await sb.from('bookings').update({ payment_status: 'failed' }).eq('id', bookingId);
+          await releasePendingRedemption(sb, {
+            bookingId,
+            bookingRef: currentBooking.ref,
+            customerEmail: currentBooking.customer_email,
+            reason: 'reverse:payment_failed',
+          });
 
           logActivity(sb, {
             bookingId,

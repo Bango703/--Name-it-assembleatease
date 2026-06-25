@@ -291,6 +291,71 @@
   </div>
 </section>
 
+<!-- ASSEMBLECASH BALANCE -->
+<section style="padding:0 2rem 5rem;background:var(--off-white)">
+  <div style="max-width:640px;margin:0 auto">
+    <div class="booking-card">
+      <div style="margin-bottom:1.1rem">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan-dark)">AssembleCash</div>
+        <h2 style="font-size:1.35rem;margin:0.3rem 0 0.4rem;color:var(--ink)">Check your AssembleCash balance</h2>
+        <p style="font-size:0.9rem;color:var(--muted);line-height:1.55;margin:0">Earn 5% back on completed bookings to put toward your next setup. Enter your email and we&rsquo;ll send a one-time code.</p>
+      </div>
+      <div id="acStepEmail">
+        <input type="email" id="ac-email" class="form-control" placeholder="you@example.com" autocomplete="email"/>
+        <button class="btn btn-cyan btn-full" id="acReqBtn" style="margin-top:0.85rem" onclick="acRequestCode()">Email me a code</button>
+      </div>
+      <div id="acStepCode" style="display:none">
+        <input type="text" id="ac-code" class="form-control" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" oninput="this.value=this.value.replace(/\D/g,'')"/>
+        <button class="btn btn-cyan btn-full" id="acVerBtn" style="margin-top:0.85rem" onclick="acVerifyCode()">View balance</button>
+        <button class="new-lookup-btn" type="button" onclick="acReset()" style="margin-top:0.6rem">Use a different email</button>
+      </div>
+      <div id="acResult" style="display:none"></div>
+      <div class="form-err" id="acErr" style="margin-top:0.85rem"></div>
+      <p style="font-size:0.78rem;color:var(--muted);margin:1rem 0 0;line-height:1.5">AssembleCash is future-booking credit. It has no cash value and cannot be withdrawn.</p>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  function el(id){ return document.getElementById(id); }
+  window.acReset = function(){
+    el('acStepCode').style.display='none'; el('acResult').style.display='none';
+    el('acStepEmail').style.display=''; el('acErr').textContent=''; el('ac-code').value='';
+  };
+  window.acRequestCode = async function(){
+    var email=(el('ac-email').value||'').trim(); var err=el('acErr'); err.textContent='';
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ err.textContent='Enter a valid email address.'; return; }
+    var btn=el('acReqBtn'); btn.disabled=true; var old=btn.textContent; btn.textContent='Sending…';
+    try{
+      var r=await fetch('/api/assemblecash/request-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+      if(r.status===429){ err.textContent='Too many requests. Please wait a few minutes and try again.'; }
+      else { el('acStepEmail').style.display='none'; el('acStepCode').style.display=''; el('ac-code').focus(); }
+    }catch(e){ err.textContent='Could not send a code right now. Please try again.'; }
+    btn.disabled=false; btn.textContent=old;
+  };
+  window.acVerifyCode = async function(){
+    var email=(el('ac-email').value||'').trim(); var code=(el('ac-code').value||'').trim(); var err=el('acErr'); err.textContent='';
+    if(!/^\d{6}$/.test(code)){ err.textContent='Enter the 6-digit code from your email.'; return; }
+    var btn=el('acVerBtn'); btn.disabled=true; var old=btn.textContent; btn.textContent='Checking…';
+    try{
+      var r=await fetch('/api/assemblecash/verify-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,code:code})});
+      var d=await r.json().catch(function(){return {};});
+      if(!r.ok){ err.textContent=(d&&d.error)||'That code is invalid or expired. Request a new one.'; }
+      else {
+        var cents=(d&&d.balanceCents)||0; var dollars=(cents/100).toFixed(2);
+        el('acStepCode').style.display='none'; var res=el('acResult'); res.style.display='';
+        res.innerHTML='<div style="text-align:center;padding:0.6rem 0">'
+          +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan-dark)">Your AssembleCash</div>'
+          +'<div style="font-size:2.4rem;font-weight:800;color:var(--ink);margin:0.2rem 0">$'+dollars+'</div>'
+          +'<div style="font-size:0.88rem;color:var(--muted);line-height:1.5">'+(cents>0?'Apply it at checkout on your next eligible booking.':'Complete a booking to start earning 5% back.')+'</div>'
+          +'<a href="/book" class="btn btn-cyan" style="margin-top:0.9rem;display:inline-block">Book a setup &rarr;</a></div>';
+      }
+    }catch(e){ err.textContent='Could not verify right now. Please try again shortly.'; }
+    btn.disabled=false; btn.textContent=old;
+  };
+})();
+</script>
+
 </main>
 
 <!-- CANCEL CONFIRMATION MODAL -->
