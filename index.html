@@ -83,11 +83,13 @@
 .hv2-right::after{content:'';position:absolute;left:-70px;bottom:-110px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(0,45,56,0.1) 0%,rgba(0,45,56,0) 74%);pointer-events:none}
 .hv2-eyebrow{display:inline-flex;align-items:center;gap:0.55rem;width:max-content;padding:0.5rem 0.86rem;border-radius:999px;background:#ecfbff;border:1px solid rgba(0,191,255,0.18);font-size:0.74rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#0f5e72;margin-bottom:1rem;position:relative;z-index:1}
 .hv2-eyebrow::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan)}
-.hv2-reward-callout{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin:-0.1rem 0 1rem;padding:0.95rem 1rem;border-radius:20px;background:linear-gradient(135deg,#071c24,#0f3040);border:1px solid rgba(0,191,255,0.2);box-shadow:0 18px 34px rgba(2,22,31,0.16);position:relative;z-index:1}
-.hv2-reward-copy strong{display:block;font-size:1rem;line-height:1.2;color:#fff;margin-bottom:0.28rem}
-.hv2-reward-copy span{display:block;font-size:0.8rem;line-height:1.55;color:rgba(226,247,255,0.78);max-width:32ch}
-.hv2-reward-badge{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0.45rem 0.72rem;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(143,232,255,0.25);font-size:0.74rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#8fe8ff;white-space:nowrap}
-.hv2-reward-link{display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.55rem;font-size:0.78rem;font-weight:800;color:#8fe8ff;text-decoration:none}
+.hv2-reward-callout{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:0 0 1rem;padding:0.82rem 0.95rem;border-radius:18px;background:linear-gradient(135deg,#f4fbff,#e6f7ff);border:1px solid rgba(0,191,255,0.22);box-shadow:0 12px 26px rgba(0,191,255,0.08);position:relative;z-index:1}
+.hv2-reward-callout::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 8px rgba(0,191,255,0.12);flex-shrink:0}
+.hv2-reward-copy{display:flex;flex-wrap:wrap;align-items:center;gap:0.45rem 0.7rem;min-width:0}
+.hv2-reward-copy strong{display:inline;font-size:0.95rem;line-height:1.2;color:#0f172a}
+.hv2-reward-copy span{display:inline;font-size:0.8rem;line-height:1.55;color:#52606d}
+.hv2-reward-badge{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0.42rem 0.68rem;border-radius:999px;background:#0b2a35;color:#8fe8ff;font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.hv2-reward-link{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.78rem;font-weight:800;color:#0f5e72;text-decoration:none}
 .hv2-h1{font-family:var(--font-display);font-size:clamp(2.15rem,2.7vw,3.05rem);color:#0f172a;line-height:1.03;letter-spacing:-0.02em;margin-bottom:0.85rem;max-width:12ch;position:relative;z-index:1}
 .hv2-desc{font-size:0.99rem;color:#475467;line-height:1.72;margin-bottom:1.25rem;max-width:46ch;position:relative;z-index:1}
 .hv2-proof-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.8rem;margin:0 0 1.55rem;position:relative;z-index:1}
@@ -244,11 +246,11 @@ section#service-area{display:block}
 .m-hero-kicker::before{content:'';width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,0.16);animation:mLivePulse 2.4s ease-in-out infinite}
 .m-hero-refresh .m-hero-title{font-size:clamp(2rem,9.2vw,2.45rem);line-height:1.03;max-width:100%;margin-bottom:10px}
 .m-hero-copy{font-size:0.95rem;color:#4b5563;line-height:1.5;max-width:30ch;margin:0 0 12px}
-.m-reward-callout{display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;margin:0 0 12px;padding:0.9rem 0.95rem;border-radius:16px;background:linear-gradient(135deg,#071c24,#0f3040);border:1px solid rgba(0,191,255,0.2);box-shadow:0 14px 28px rgba(2,22,31,0.14)}
-.m-reward-copy strong{display:block;font-size:0.92rem;line-height:1.2;color:#fff;margin-bottom:0.22rem}
-.m-reward-copy span{display:block;font-size:0.76rem;line-height:1.5;color:rgba(226,247,255,0.78)}
-.m-reward-pill{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0.4rem 0.65rem;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(143,232,255,0.25);font-size:0.68rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#8fe8ff;white-space:nowrap}
-.m-reward-link{display:inline-flex;align-items:center;margin-top:0.45rem;font-size:0.74rem;font-weight:800;color:#8fe8ff;text-decoration:none}
+.m-reward-callout{display:flex;align-items:flex-start;justify-content:space-between;gap:0.7rem;margin:0 0 12px;padding:0.82rem 0.88rem;border-radius:15px;background:linear-gradient(135deg,#f4fbff,#e6f7ff);border:1px solid rgba(0,191,255,0.22);box-shadow:0 10px 24px rgba(0,191,255,0.08)}
+.m-reward-copy strong{display:block;font-size:0.9rem;line-height:1.2;color:#0f172a;margin-bottom:0.18rem}
+.m-reward-copy span{display:block;font-size:0.75rem;line-height:1.48;color:#52606d}
+.m-reward-pill{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:0.38rem 0.6rem;border-radius:999px;background:#0b2a35;color:#8fe8ff;font-size:0.66rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap}
+.m-reward-link{display:inline-flex;align-items:center;margin-top:0.42rem;font-size:0.74rem;font-weight:800;color:#0f5e72;text-decoration:none}
 .m-hero-actions{display:grid;grid-template-columns:1fr;gap:9px;margin:14px 0 14px}
 .m-primary-cta,.m-secondary-cta,.m-call-cta{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:800;border-radius:999px;min-height:48px}
 .m-primary-cta{background:var(--cyan);color:#001f2b;padding:0 1rem;box-shadow:0 10px 24px rgba(0,191,255,0.28)}
@@ -517,6 +519,9 @@ section#service-area{display:block}
   .m-hero-title{font-size:clamp(1.5rem,8.6vw,1.9rem);line-height:1.14;margin-bottom:9px}
   .m-hero-refresh .m-hero-title{font-size:clamp(1.9rem,9.2vw,2.28rem);line-height:1.03;max-width:100%;margin-bottom:10px}
   .m-hero-copy{font-size:0.91rem}
+  .m-reward-callout{flex-direction:column;align-items:flex-start;padding:0.82rem 0.82rem 0.86rem}
+  .m-reward-pill{align-self:flex-start}
+  .m-reward-copy span{max-width:none}
   .m-hero-photo,.m-hero-photo img{min-height:205px}
   .m-proof-row{gap:6px}
   .m-proof{padding:7px 6px}
@@ -677,7 +682,7 @@ section#service-area{display:block}
       <div class="hv2-reward-callout" aria-label="AssembleCash rewards">
         <div class="hv2-reward-copy">
           <strong>Earn 5% back with AssembleCash</strong>
-          <span>Completed bookings earn future-booking credit you can use toward the next TV setup, office build, or room refresh.</span>
+          <span>Use future-booking credit on your next setup after a completed booking.</span>
           <a class="hv2-reward-link" href="/assemblecash">See how AssembleCash works &rarr;</a>
         </div>
         <div class="hv2-reward-badge">5% back</div>
@@ -956,7 +961,7 @@ section#service-area{display:block}
 .rr-footer-btn{background:#081c24;color:#fff}
 .rr-footer-link{background:#fff;color:#0f5e72;border:1px solid rgba(0,191,255,0.2)}
 @media(max-width:980px){.rr-benefits,.rr-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){#rr-section{padding:2.75rem 1rem}.rr-title{font-size:1.7rem}.rr-benefits,.rr-preview-grid{grid-template-columns:1fr}.rr-note{align-items:flex-start}.rr-footer{align-items:flex-start}.rr-footer-actions{width:100%}.rr-footer-btn,.rr-footer-link,.rr-note-link{width:100%}}
+@media(max-width:560px){#rr-section{padding:2.75rem 1rem}.rr-title{font-size:1.7rem}.rr-benefits,.rr-preview-grid{grid-template-columns:1fr}.rr-note{align-items:flex-start}.rr-preview-photo{aspect-ratio:16/9}.rr-preview-body{padding:0.95rem 0.95rem 1rem}.rr-preview-top,.rr-preview-meta{flex-direction:column;align-items:flex-start}.rr-footer{align-items:flex-start}.rr-footer-actions{width:100%}.rr-footer-btn,.rr-footer-link,.rr-note-link{width:100%}}
 </style>
 <section id="rr-section" aria-labelledby="rr-title" style="display:none">
   <div class="rr-inner">
