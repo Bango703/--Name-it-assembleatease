@@ -85,6 +85,24 @@
 .new-lookup-btn{display:block;text-align:center;margin-top:2rem;background:none;border:none;font-family:var(--font-body);font-size:0.85rem;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:underline;width:100%}
 .new-lookup-btn:hover{color:var(--ink)}
 .form-info{display:none;margin-top:1rem;background:#ecfdf5;border:1.5px solid #86efac;color:#166534;border-radius:10px;padding:0.75rem 0.9rem;font-size:0.82rem;line-height:1.5}
+.track-tools{padding:3rem 2rem 5rem;background:var(--off-white)}
+.track-tools-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,0.95fr) minmax(320px,0.85fr);gap:1.25rem;align-items:start}
+.track-tool-card{background:#fff;border:1.5px solid var(--border);border-radius:22px;padding:2rem;box-shadow:0 12px 34px rgba(15,23,42,0.07)}
+.track-tool-kicker{display:inline-flex;align-items:center;font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
+.track-tool-title{font-family:var(--font-display);font-size:1.42rem;line-height:1.15;color:var(--ink);margin:0.35rem 0 0.45rem}
+.track-tool-copy{font-size:0.89rem;color:var(--muted);line-height:1.65;margin:0 0 1.25rem}
+.track-tool-note{font-size:0.78rem;color:var(--muted);margin:1rem 0 0;line-height:1.55}
+.track-form-shell .form-group:last-of-type{margin-bottom:0}
+.ac-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#ffffff 0%,#f9fcff 100%)}
+.ac-card::before{content:'';position:absolute;top:-70px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(0,191,255,0.14) 0%,rgba(0,191,255,0) 72%);pointer-events:none}
+.ac-card > *{position:relative;z-index:1}
+.ac-perks{display:flex;flex-wrap:wrap;gap:0.5rem;margin:-0.1rem 0 1rem}
+.ac-perk{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:0.34rem 0.68rem;border-radius:999px;background:#eefbff;border:1px solid rgba(0,191,255,0.16);font-size:0.72rem;font-weight:800;color:var(--cyan-dark)}
+.ac-action{margin-top:0.85rem}
+.ac-secondary{margin-top:0.6rem}
+.track-side-link{text-align:left;margin-top:1rem;font-size:0.83rem;color:var(--muted)}
+.track-side-link a{color:var(--cyan-dark);font-weight:700;text-decoration:none}
+.track-side-link a:hover{text-decoration:underline}
 
 /* ── CONFIRM CANCEL MODAL ───────────────────────────────── */
 .cancel-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
@@ -117,7 +135,10 @@
   .nav-book-pill{display:none!important}
   .page-hero{padding:3rem 1.25rem 2.5rem}
   .track-result{padding:2rem 1rem 4rem}
+  .track-tools{padding:2.2rem 1rem 4rem}
+  .track-tools-inner{grid-template-columns:1fr}
   .booking-card-top,.booking-card-details,.booking-card-price,.booking-card-actions{padding-left:1.25rem;padding-right:1.25rem}
+  .track-tool-card{padding:1.3rem 1.1rem}
 }
 </style>
 </head>
@@ -172,17 +193,18 @@
   </div>
 </section>
 
-<section style="padding:3rem 2rem 5rem;background:var(--off-white)">
-  <div style="max-width:520px;margin:0 auto">
-    <div style="background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:2rem;box-shadow:var(--shadow)">
-      <h2 style="font-family:var(--font-display);font-size:1.35rem;color:var(--ink);margin-bottom:0.4rem">Look up your booking</h2>
-      <p style="font-size:0.875rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.6">Enter the email and reference from your confirmation email.</p>
+<section class="track-tools">
+  <div class="track-tools-inner">
+    <div class="track-tool-card track-form-shell">
+      <div class="track-tool-kicker">Booking lookup</div>
+      <h2 class="track-tool-title">Look up your booking</h2>
+      <p class="track-tool-copy">Enter the email and reference from your confirmation email to view appointment status, details, or cancellation options.</p>
       <form id="trackForm" onsubmit="lookupBooking(event)">
         <div class="form-group">
           <label for="t-email">Email address</label>
           <input type="email" id="t-email" class="form-control" placeholder="you@example.com" autocomplete="email" required/>
         </div>
-        <div class="form-group" style="margin-bottom:0">
+        <div class="form-group">
           <label for="t-ref">Booking reference</label>
           <input type="text" id="t-ref" class="form-control" placeholder="e.g. AAE-K9XABCD" autocomplete="off" required oninput="this.value=this.value.toUpperCase()"/>
           <p style="font-size:0.75rem;color:var(--muted);margin-top:5px">Found in the subject line of your confirmation email</p>
@@ -194,8 +216,31 @@
           Look Up My Booking
         </button>
       </form>
+      <p style="text-align:left;margin-top:1.15rem;font-size:0.83rem;color:var(--muted)">Need help <a href="/contact" style="color:var(--cyan-dark);font-weight:600">Contact us &rarr;</a></p>
     </div>
-    <p style="text-align:center;margin-top:1.25rem;font-size:0.83rem;color:var(--muted)">Need help <a href="/contact" style="color:var(--cyan-dark);font-weight:600">Contact us &rarr;</a></p>
+    <div class="track-tool-card ac-card">
+      <div class="track-tool-kicker">AssembleCash</div>
+      <h2 class="track-tool-title">Check your AssembleCash balance</h2>
+      <p class="track-tool-copy">Earn 5% back on completed bookings to use toward your next setup. Enter your email and we&rsquo;ll send a one-time code.</p>
+      <div class="ac-perks">
+        <span class="ac-perk">5% back after completed jobs</span>
+        <span class="ac-perk">No account required</span>
+        <span class="ac-perk">Use on future bookings</span>
+      </div>
+      <div id="acStepEmail">
+        <input type="email" id="ac-email" class="form-control" placeholder="you@example.com" autocomplete="email"/>
+        <button class="btn btn-cyan btn-full ac-action" id="acReqBtn" onclick="acRequestCode()">Email me a code</button>
+      </div>
+      <div id="acStepCode" style="display:none">
+        <input type="text" id="ac-code" class="form-control" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" oninput="this.value=this.value.replace(/\D/g,'')"/>
+        <button class="btn btn-cyan btn-full ac-action" id="acVerBtn" onclick="acVerifyCode()">View balance</button>
+        <button class="new-lookup-btn ac-secondary" type="button" onclick="acReset()">Use a different email</button>
+      </div>
+      <div id="acResult" style="display:none"></div>
+      <div class="form-err" id="acErr" style="margin-top:0.85rem"></div>
+      <p class="track-tool-note">AssembleCash is future-booking credit. It has no cash value and cannot be withdrawn.</p>
+      <p class="track-side-link"><a href="/assemblecash">Learn more about AssembleCash &rarr;</a></p>
+    </div>
   </div>
 </section>
 
@@ -291,30 +336,6 @@
   </div>
 </section>
 
-<!-- ASSEMBLECASH BALANCE -->
-<section style="padding:0 2rem 5rem;background:var(--off-white)">
-  <div style="max-width:640px;margin:0 auto">
-    <div class="booking-card">
-      <div style="margin-bottom:1.1rem">
-        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan-dark)">AssembleCash</div>
-        <h2 style="font-size:1.35rem;margin:0.3rem 0 0.4rem;color:var(--ink)">Check your AssembleCash balance</h2>
-        <p style="font-size:0.9rem;color:var(--muted);line-height:1.55;margin:0">Earn 5% back on completed bookings to put toward your next setup. Enter your email and we&rsquo;ll send a one-time code.</p>
-      </div>
-      <div id="acStepEmail">
-        <input type="email" id="ac-email" class="form-control" placeholder="you@example.com" autocomplete="email"/>
-        <button class="btn btn-cyan btn-full" id="acReqBtn" style="margin-top:0.85rem" onclick="acRequestCode()">Email me a code</button>
-      </div>
-      <div id="acStepCode" style="display:none">
-        <input type="text" id="ac-code" class="form-control" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" oninput="this.value=this.value.replace(/\D/g,'')"/>
-        <button class="btn btn-cyan btn-full" id="acVerBtn" style="margin-top:0.85rem" onclick="acVerifyCode()">View balance</button>
-        <button class="new-lookup-btn" type="button" onclick="acReset()" style="margin-top:0.6rem">Use a different email</button>
-      </div>
-      <div id="acResult" style="display:none"></div>
-      <div class="form-err" id="acErr" style="margin-top:0.85rem"></div>
-      <p style="font-size:0.78rem;color:var(--muted);margin:1rem 0 0;line-height:1.5">AssembleCash is future-booking credit. It has no cash value and cannot be withdrawn.</p>
-    </div>
-  </div>
-</section>
 <script>
 (function(){
   function el(id){ return document.getElementById(id); }

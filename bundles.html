@@ -18,32 +18,66 @@
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <script src="/assets/js/booking-source-of-truth.js" defer></script>
 <style>
-.bn-hero{background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#fff 100%);padding:3.5rem 1.25rem 2.5rem;text-align:center;border-bottom:1px solid var(--border)}
-.bn-eyebrow{font-size:0.74rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--cyan-dark,#0094c6)}
-.bn-h1{font-family:'DM Serif Display',Georgia,serif;font-size:2.3rem;line-height:1.12;margin:0.5rem 0 0.6rem;color:var(--ink,#0d2430)}
-.bn-sub{max-width:620px;margin:0 auto;font-size:1rem;color:var(--muted,#5b6b73);line-height:1.6}
-.bn-wrap{max-width:1080px;margin:0 auto;padding:2.5rem 1.25rem}
-.bn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.1rem}
-.bn-card{display:flex;flex-direction:column;gap:0.5rem;background:#fff;border:1px solid #e5edf0;border-radius:16px;padding:1.4rem 1.45rem;text-decoration:none;transition:transform .15s,box-shadow .15s,border-color .15s}
-.bn-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,40,60,0.10);border-color:var(--cyan,#00BFFF)}
-.bn-name{font-weight:700;font-size:1.18rem;color:var(--ink,#0d2430)}
-.bn-outcome{font-size:0.92rem;line-height:1.5;color:var(--muted,#5b6b73)}
-.bn-incl{font-size:0.8rem;color:#73828a;line-height:1.45;margin-top:0.1rem}
-.bn-incl span{font-weight:700;text-transform:uppercase;letter-spacing:0.05em;font-size:0.68rem;color:var(--cyan-dark,#0094c6);margin-right:5px}
-.bn-cta{margin-top:auto;padding-top:0.7rem;font-weight:700;font-size:0.92rem;color:var(--cyan-dark,#0094c6)}
-.bn-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-top:1.5rem}
-.bn-step{background:#f6fafb;border:1px solid #e5edf0;border-radius:12px;padding:1.1rem}
+.bn-hero{position:relative;overflow:hidden;background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#fff 100%);padding:3.4rem 1.25rem 2.8rem;border-bottom:1px solid var(--border)}
+.bn-hero::before{content:'';position:absolute;top:-120px;right:-80px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(0,191,255,0.14) 0%,rgba(0,191,255,0) 72%);pointer-events:none}
+.bn-hero-shell{max-width:1140px;margin:0 auto;display:grid;grid-template-columns:minmax(0,0.92fr) minmax(360px,0.98fr);gap:1.4rem;align-items:center}
+.bn-hero-copy{position:relative;z-index:1}
+.bn-eyebrow{font-size:0.74rem;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:var(--cyan-dark,#0094c6)}
+.bn-h1{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(2.2rem,4vw,3.4rem);line-height:1.03;letter-spacing:-0.02em;margin:0.55rem 0 0.75rem;color:var(--ink,#0d2430);max-width:11ch}
+.bn-sub{max-width:590px;font-size:1rem;color:var(--muted,#5b6b73);line-height:1.7;margin:0 0 1.15rem}
+.bn-hero-points{display:flex;flex-wrap:wrap;gap:0.55rem;margin-bottom:1.15rem}
+.bn-hero-point{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0.42rem 0.78rem;border-radius:999px;background:rgba(255,255,255,0.78);border:1px solid rgba(0,191,255,0.14);font-size:0.76rem;font-weight:800;color:#0f4c5c}
+.bn-hero-actions{display:flex;gap:0.7rem;flex-wrap:wrap}
+.bn-hero-primary,.bn-hero-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0.82rem 1.05rem;border-radius:999px;font-size:0.84rem;font-weight:800;text-decoration:none}
+.bn-hero-primary{background:#081c24;color:#fff}
+.bn-hero-secondary{background:#fff;color:#0f5e72;border:1px solid rgba(0,191,255,0.18)}
+.bn-hero-visual{position:relative;z-index:1}
+.bn-hero-photo{position:relative;min-height:430px;border-radius:30px;overflow:hidden;background:#d9e7ec;box-shadow:0 26px 64px rgba(15,23,42,0.14)}
+.bn-hero-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.bn-hero-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,28,36,0.02) 0%,rgba(8,28,36,0.18) 100%)}
+.bn-hero-card{position:absolute;left:1.2rem;right:1.2rem;bottom:1.2rem;padding:1rem 1.05rem;border-radius:22px;background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.72);box-shadow:0 18px 34px rgba(2,22,31,0.12)}
+.bn-hero-card strong{display:block;font-size:1rem;line-height:1.2;color:#0f172a;margin-bottom:0.25rem}
+.bn-hero-card span{display:block;font-size:0.82rem;line-height:1.55;color:#5b6b73}
+.bn-wrap{max-width:1120px;margin:0 auto;padding:2.8rem 1.25rem}
+.bn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.15rem}
+.bn-card{--bundle-tone:#0094c6;--bundle-soft:#eefbff;--bundle-wash:#f8fcfe;position:relative;display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,var(--bundle-wash) 100%);border:1px solid #e5edf0;border-radius:24px;overflow:hidden;text-decoration:none;transition:transform .16s,box-shadow .16s,border-color .16s;box-shadow:0 12px 30px rgba(15,23,42,0.05)}
+.bn-card::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--bundle-tone);opacity:0.92;z-index:2}
+.bn-card:hover{transform:translateY(-4px);box-shadow:0 24px 48px rgba(0,40,60,0.12);border-color:rgba(0,191,255,0.3)}
+.bn-photo{position:relative;aspect-ratio:16/10;background:#dbe8ed;overflow:hidden}
+.bn-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.23,1,.32,1)}
+.bn-photo::after{content:'';position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(180deg,rgba(8,28,36,0) 0%,rgba(8,28,36,0.2) 100%);pointer-events:none}
+.bn-card:hover .bn-photo img{transform:scale(1.04)}
+.bn-badge{position:absolute;left:1rem;top:1rem;display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:0.34rem 0.68rem;border-radius:999px;background:rgba(8,28,36,0.78);color:#fff;font-size:0.66rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;backdrop-filter:blur(8px)}
+.bn-card-body{display:flex;flex-direction:column;gap:0.75rem;padding:1.25rem 1.25rem 1.15rem}
+.bn-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem}
+.bn-name{font-weight:800;font-size:1.22rem;line-height:1.18;color:var(--ink,#0d2430)}
+.bn-badge-lite{display:inline-flex;align-items:center;justify-content:center;padding:0.34rem 0.62rem;border-radius:999px;background:var(--bundle-soft);color:var(--bundle-tone);font-size:0.67rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+.bn-outcome{font-size:0.93rem;line-height:1.58;color:var(--muted,#5b6b73)}
+.bn-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.7rem}
+.bn-metric{padding:0.82rem 0.85rem;border-radius:16px;background:var(--bundle-wash);border:1px solid rgba(220,232,237,0.95)}
+.bn-metric-label{display:block;font-size:0.67rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#6c8191;margin-bottom:0.26rem}
+.bn-metric strong{display:block;font-size:1rem;line-height:1.1;color:#0f172a}
+.bn-metric span{display:block;margin-top:0.18rem;font-size:0.76rem;line-height:1.45;color:#6b7280}
+.bn-incl{font-size:0.8rem;color:#73828a;line-height:1.55}
+.bn-incl span{font-weight:800;text-transform:uppercase;letter-spacing:0.05em;font-size:0.68rem;color:var(--bundle-tone);margin-right:5px}
+.bn-cta-row{display:flex;align-items:center;justify-content:space-between;gap:0.8rem;margin-top:auto;padding-top:0.85rem;border-top:1px solid #eef3f5}
+.bn-cta-copy{font-size:0.77rem;line-height:1.45;color:#5f6b7a;max-width:16ch}
+.bn-cta{font-weight:800;font-size:0.92rem;color:var(--bundle-tone)}
+.bn-section-lead{max-width:720px;color:var(--muted,#5b6b73);line-height:1.65;font-size:0.95rem}
+.bn-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-top:1.35rem}
+.bn-step{background:#f6fafb;border:1px solid #e5edf0;border-radius:16px;padding:1.1rem}
 .bn-step b{display:block;color:var(--ink,#0d2430);font-size:0.95rem;margin-bottom:0.25rem}
 .bn-step p{margin:0;font-size:0.85rem;color:var(--muted,#5b6b73);line-height:1.5}
-.bn-sec-title{font-family:'DM Serif Display',Georgia,serif;font-size:1.6rem;color:var(--ink,#0d2430);margin:0 0 0.3rem}
+.bn-sec-title{font-family:'DM Serif Display',Georgia,serif;font-size:1.7rem;color:var(--ink,#0d2430);margin:0 0 0.35rem}
 .bn-faq{margin-top:1.2rem}
-.bn-faq details{border-bottom:1px solid #e5edf0;padding:0.9rem 0}
-.bn-faq summary{font-weight:600;color:var(--ink,#0d2430);cursor:pointer;font-size:0.98rem}
+.bn-faq details{border-bottom:1px solid #e5edf0;padding:0.95rem 0}
+.bn-faq summary{font-weight:700;color:var(--ink,#0d2430);cursor:pointer;font-size:0.98rem}
 .bn-faq p{margin:0.5rem 0 0;color:var(--muted,#5b6b73);font-size:0.9rem;line-height:1.6}
-.bn-final{text-align:center;background:#001f2b;color:#fff;padding:3rem 1.25rem;margin-top:2.5rem}
-.bn-final h2{font-family:'DM Serif Display',Georgia,serif;font-size:1.8rem;margin:0 0 0.5rem}
+.bn-final{text-align:center;background:#001f2b;color:#fff;padding:3rem 1.25rem;margin-top:2.8rem}
+.bn-final h2{font-family:'DM Serif Display',Georgia,serif;font-size:1.95rem;margin:0 0 0.5rem}
 .bn-final p{color:rgba(255,255,255,0.7);margin:0 0 1.2rem}
-@media(max-width:600px){.bn-h1{font-size:1.8rem}}
+@media(max-width:920px){.bn-hero-shell{grid-template-columns:1fr}.bn-h1{max-width:none}.bn-hero-photo{min-height:360px}}
+@media(max-width:600px){.bn-h1{font-size:2rem}.bn-wrap{padding:2.2rem 1rem}.bn-meta{grid-template-columns:1fr}.bn-hero-actions{flex-direction:column}.bn-hero-primary,.bn-hero-secondary{width:100%}}
 </style>
 </head><body>
 <nav class="nav">
@@ -70,9 +104,33 @@
 <script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
 
 <section class="bn-hero">
-  <div class="bn-eyebrow">Room-Ready Bundles</div>
-  <h1 class="bn-h1">Get the whole room handled in one visit.</h1>
-  <p class="bn-sub">Pick a finished outcome instead of piecing it together. We set up everything in the room at a flat, upfront price &mdash; and you&rsquo;re not charged until the job is done.</p>
+  <div class="bn-hero-shell">
+    <div class="bn-hero-copy">
+      <div class="bn-eyebrow">Room-Ready Bundles</div>
+      <h1 class="bn-h1">Set up the room, not five separate tasks.</h1>
+      <p class="bn-sub">Bundles give you a cleaner booking path when a room needs multiple things handled together. Start with the finished outcome, keep live item pricing, and stay in control before checkout.</p>
+      <div class="bn-hero-points">
+        <span class="bn-hero-point">One room, one booking path</span>
+        <span class="bn-hero-point">Live item pricing</span>
+        <span class="bn-hero-point">Adjust before checkout</span>
+        <span class="bn-hero-point">Track the visit</span>
+        <span class="bn-hero-point">5% back in AssembleCash</span>
+      </div>
+      <div class="bn-hero-actions">
+        <a href="/book" class="bn-hero-primary">Start a room setup &rarr;</a>
+        <a href="/assemblecash" class="bn-hero-secondary">See rewards &rarr;</a>
+      </div>
+    </div>
+    <div class="bn-hero-visual">
+      <div class="bn-hero-photo">
+        <img src="/images/bundle-move-in-setup.png" alt="Finished move-in bundle setup with living room and bedroom professionally assembled" loading="eager" width="1536" height="960"/>
+        <div class="bn-hero-card">
+          <strong>Popular for move-ins and room refreshes</strong>
+          <span>Start with the outcome you want, then keep, remove, or add items before you book.</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <div class="bn-wrap">
@@ -80,6 +138,7 @@
 
   <div style="margin-top:2.75rem">
     <h2 class="bn-sec-title">How it works</h2>
+    <p class="bn-section-lead">Bundles are not made-up package pricing. They open the normal booking flow with the usual room items already selected, so you start closer to the finished result without losing control of the details.</p>
     <div class="bn-steps">
       <div class="bn-step"><b>1. Pick a bundle</b><p>Choose the room or project you want handled.</p></div>
       <div class="bn-step"><b>2. See your total</b><p>Flat pricing, shown before you book. Adjust anything.</p></div>
@@ -91,7 +150,7 @@
 
   <div style="margin-top:2.75rem">
     <h2 class="bn-sec-title">Why a bundle?</h2>
-    <p style="color:var(--muted,#5b6b73);max-width:680px;line-height:1.65;font-size:0.96rem">A bundle isn&rsquo;t a discount gimmick &mdash; it&rsquo;s one trip that handles a whole room. One visit, one reviewed pro, one upfront price, everything set up and cleaned up together. You skip the back-and-forth of booking pieces separately and the room is simply done.</p>
+    <p class="bn-section-lead">A bundle isn&rsquo;t a discount gimmick. It&rsquo;s a simpler way to book a room that needs multiple pieces done in one trip. You skip the back-and-forth of building the whole job from scratch and still keep full control before checkout.</p>
   </div>
 
   <div style="margin-top:2.5rem">
@@ -164,6 +223,33 @@
 <script>
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 (function(){
+  function findPrice(source, ref){
+    var groups=(source&&source.subcategories&&source.subcategories[ref.service])||[];
+    for(var i=0;i<groups.length;i++){
+      var items=groups[i].items||[];
+      for(var j=0;j<items.length;j++){
+        if(items[j].name===ref.name) return Number(items[j].price)||0;
+      }
+    }
+    return 0;
+  }
+  function money(n){return '$'+Number(n||0).toFixed(0);}
+  var bundleImages={
+    'bedroom-ready':'/images/real-furniture-bed-paneled.png',
+    'living-room-ready':'/images/real-tv-setup-console.jpg',
+    'home-office-ready':'/images/real-office-home-ldesk.jpg',
+    'move-in-ready':'/images/bundle-move-in-setup.png',
+    'smart-entry-setup':'/images/real-smarthome-doorbell-vivint.png',
+    'nursery-setup':'/images/bundle-nursery-setup.png'
+  };
+  var bundleThemes={
+    'bedroom-ready':{tone:'#8c5b52',soft:'#f6ece8',wash:'#fcf7f4'},
+    'living-room-ready':{tone:'#8a6236',soft:'#f7efe2',wash:'#fdf8f2'},
+    'home-office-ready':{tone:'#43617f',soft:'#eaf1f7',wash:'#f7fafc'},
+    'move-in-ready':{tone:'#91613f',soft:'#f4ede5',wash:'#fcf8f4'},
+    'smart-entry-setup':{tone:'#0f6676',soft:'#e8f6f8',wash:'#f5fbfc'},
+    'nursery-setup':{tone:'#6e8b58',soft:'#eef6e6',wash:'#fafcf7'}
+  };
   function render(){
     var grid=document.getElementById('bn-grid'); if(!grid)return;
     var src=window.AAE_BOOKING_SOURCE; var list=(src&&src.bundles)?src.bundles.filter(function(b){return b.active!==false;}):[];
@@ -171,11 +257,24 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return
     if(!list.length){ grid.innerHTML='<p style="color:#5b6b73">Our setup bundles are loading. <a href="/book">Start a booking &rarr;</a></p>'; return; }
     grid.innerHTML=list.map(function(b){
       var incl=(b.included||[]).map(function(i){return esc(i.name);}).join(' &middot; ');
-      return '<a class="bn-card" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
-        +'<div class="bn-name">'+esc(b.name)+'</div>'
-        +'<div class="bn-outcome">'+esc(b.outcome||'')+'</div>'
-        +(incl?'<div class="bn-incl"><span>Includes</span>'+incl+'</div>':'')
-        +'<div class="bn-cta">Set up my '+esc(b.name)+' &rarr;</div></a>';
+      var subtotal=(b.included||[]).reduce(function(sum, ref){ return sum + findPrice(src, ref); }, 0);
+      var reward=Math.round(subtotal * 5) / 100;
+      var itemCount=(b.included||[]).length;
+      var img=bundleImages[b.slug] || '/images/bundle-move-in-setup.png';
+      var theme=bundleThemes[b.slug] || bundleThemes['move-in-ready'];
+      var style='--bundle-tone:'+theme.tone+';--bundle-soft:'+theme.soft+';--bundle-wash:'+theme.wash;
+      return '<a class="bn-card" style="'+style+'" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
+        +'<div class="bn-photo"><img src="'+esc(img)+'" alt="'+esc(b.name)+' room-ready bundle example" loading="lazy" width="1536" height="960"/><span class="bn-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>'
+        +'<div class="bn-card-body">'
+          +'<div class="bn-card-top"><div class="bn-name">'+esc(b.name)+'</div><span class="bn-badge-lite">Bundle</span></div>'
+          +'<div class="bn-outcome">'+esc(b.outcome||'')+'</div>'
+          +'<div class="bn-meta">'
+            +'<div class="bn-metric"><span class="bn-metric-label">Starts at</span><strong>'+money(subtotal)+'</strong><span>Before service fee and tax</span></div>'
+            +'<div class="bn-metric"><span class="bn-metric-label">Earn back</span><strong>'+money(reward)+'</strong><span>In AssembleCash after completion</span></div>'
+          +'</div>'
+          +(incl?'<div class="bn-incl"><span>Includes</span>'+incl+'</div>':'')
+          +'<div class="bn-cta-row"><div class="bn-cta-copy">Open this setup with the core items already selected.</div><div class="bn-cta">Book this room &rarr;</div></div>'
+        +'</div></a>';
     }).join('');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render); else render();

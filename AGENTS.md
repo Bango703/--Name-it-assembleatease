@@ -20,6 +20,9 @@ AssembleAtEase is preparing to launch real customers in Austin, Texas. Treat thi
 - Keep the website clean, layered, professional, and not cluttered.
 - Keep customer-facing language welcoming, clear, simple, and trust-building.
 - Avoid scary, overcomplicated, or legally heavy language in customer flow unless legally required.
+- For AI-generated imagery, avoid generic stock-photo sameness and avoid fake-looking staging.
+- Bundle/service imagery should vary meaningfully in palette, room mood, camera angle, composition, and styling so pages do not look repetitive.
+- Prefer believable lived-in realism over overly polished AI interiors: subtle imperfection, distinct room character, and clearer differentiation between bundles.
 - If auditing, audit first and recommend before fixing.
 - If coding, make the smallest safe change and test it.
 
