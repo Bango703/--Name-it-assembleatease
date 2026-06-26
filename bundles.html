@@ -39,7 +39,7 @@
 .bn-hero-card strong{display:block;font-size:1rem;line-height:1.2;color:#0f172a;margin-bottom:0.25rem}
 .bn-hero-card span{display:block;font-size:0.82rem;line-height:1.55;color:#5b6b73}
 .bn-wrap{max-width:1120px;margin:0 auto;padding:2.8rem 1.25rem}
-.bn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.15rem}
+.bn-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
 .bn-card{--bundle-tone:#0094c6;--bundle-soft:#eefbff;--bundle-wash:#f8fcfe;position:relative;display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,var(--bundle-wash) 100%);border:1px solid #e5edf0;border-radius:24px;overflow:hidden;text-decoration:none;transition:transform .16s,box-shadow .16s,border-color .16s;box-shadow:0 12px 30px rgba(15,23,42,0.05)}
 .bn-card::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--bundle-tone);opacity:0.92;z-index:2}
 .bn-card:hover{transform:translateY(-4px);box-shadow:0 24px 48px rgba(0,40,60,0.12);border-color:rgba(0,191,255,0.3)}
@@ -76,8 +76,8 @@
 .bn-final{text-align:center;background:#001f2b;color:#fff;padding:3rem 1.25rem;margin-top:2.8rem}
 .bn-final h2{font-family:'DM Serif Display',Georgia,serif;font-size:1.95rem;margin:0 0 0.5rem}
 .bn-final p{color:rgba(255,255,255,0.7);margin:0 0 1.2rem}
-@media(max-width:920px){.bn-hero-shell{grid-template-columns:1fr}.bn-h1{max-width:none}.bn-hero-photo{min-height:360px}}
-@media(max-width:600px){.bn-h1{font-size:2rem}.bn-wrap{padding:2.2rem 1rem}.bn-meta{grid-template-columns:1fr}.bn-hero-actions{flex-direction:column}.bn-hero-primary,.bn-hero-secondary{width:100%}}
+@media(max-width:920px){.bn-hero-shell{grid-template-columns:1fr}.bn-h1{max-width:none}.bn-hero-photo{min-height:360px}.bn-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.bn-h1{font-size:2rem}.bn-wrap{padding:2.2rem 1rem}.bn-meta{grid-template-columns:1fr}.bn-grid{grid-template-columns:1fr}.bn-hero-actions{flex-direction:column}.bn-hero-primary,.bn-hero-secondary{width:100%}}
 </style>
 </head><body>
 <nav class="nav">
@@ -273,7 +273,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return
             +'<div class="bn-metric"><span class="bn-metric-label">Earn back</span><strong>'+money(reward)+'</strong><span>In AssembleCash after completion</span></div>'
           +'</div>'
           +(incl?'<div class="bn-incl"><span>Includes</span>'+incl+'</div>':'')
-          +'<div class="bn-cta-row"><div class="bn-cta-copy">Open this setup with the core items already selected.</div><div class="bn-cta">Book this room &rarr;</div></div>'
+          +'<div class="bn-cta-row"><div class="bn-cta">Book this room &rarr;</div></div>'
         +'</div></a>';
     }).join('');
   }
