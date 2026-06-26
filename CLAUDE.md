@@ -118,6 +118,12 @@ Apply this to pricing, service design, dashboards, marketing copy, business plan
 
 **Services offered (current niche):** Furniture Assembly, TV Mounting, Smart Home Setup, Fitness Equipment, Outdoor & Playsets, Office Assembly. Home Repairs, Junk Removal, and Moving Help were removed — do not re-add them.
 
+**Home Setup features (shipped 2026-06):**
+- **Room-Ready Bundles** — curated multi-item setups (Bedroom/Living Room/Home Office/Move-In/Smart Entry/Nursery) defined in `assets/js/booking-source-of-truth.js` (`bundles[]`). `/book?bundle=<slug>` pre-fills the cart; priced by the existing engine (no package markup). Page: `/bundles`.
+- **AssembleCash** — future-booking credit (NOT cash, no withdrawal). Earn 5% after completed+captured job; redeem up to $20/booking via email one-time code; 180-day expiry; reverses on refund. Code: `api/_assemblecash.js` (atomic `reserveRedemption` → `assemblecash_try_redeem` RPC), `api/assemblecash/*`, migrations 025/026/028. Balance on `/track`; page `/assemblecash`.
+- **Setup Club + Move-In Pass** — customer membership (`customer_memberships`, migration 027). Page `/setup-club`. NOT purchasable yet — Stripe billing (price IDs + webhook) is pending. Distinct from the Easer `isMember` fee tier; never feed it into `getPlatformFeePct()`.
+- The customer chatbot prompt (`api/chat.js` `SYSTEM`) documents all of the above — keep it in sync when these change.
+
 ---
 
 ## Development & Deployment
