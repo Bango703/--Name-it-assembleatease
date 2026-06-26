@@ -4,6 +4,13 @@ These instructions apply to the whole `Handyman-marketplace` repository.
 
 AssembleAtEase is preparing to launch real customers in Austin, Texas. Treat this platform like real money, real customers, real contractors, real payments, and real legal risk are involved.
 
+## Shipped features (2026-06) — know these before editing
+
+- **Room-Ready Bundles** — curated multi-item setups in `assets/js/booking-source-of-truth.js` (`bundles[]`); `/book?bundle=<slug>` pre-fills the cart, priced by the existing engine (no package markup). Page `/bundles`.
+- **AssembleCash** — future-booking credit (NOT cash, no withdrawal). Earn 5% after a completed+captured job; redeem up to $20/booking via a one-time email code; 180-day expiry; reverses on refund. `api/_assemblecash.js` (atomic `reserveRedemption` → `assemblecash_try_redeem` RPC), `api/assemblecash/*`, migrations 025/026/028. Balance on `/track`; page `/assemblecash`.
+- **Setup Club + Move-In Pass** — customer membership (`customer_memberships`, migration 027). Page `/setup-club`. NOT purchasable yet (Stripe billing pending). Distinct from the Easer `isMember` fee tier — never feed it into `getPlatformFeePct()`.
+- The customer chatbot prompt (`api/chat.js` `SYSTEM`) documents all of the above — keep it in sync.
+
 ## Core Rules
 
 - Do not add emojis anywhere in the platform.
