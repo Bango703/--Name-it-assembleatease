@@ -19,8 +19,16 @@
 <style>
 .ac-hero{background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#fff 100%);padding:3.5rem 1.25rem 2.5rem;text-align:center;border-bottom:1px solid var(--border)}
 .ac-eyebrow{font-size:0.74rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--cyan-dark,#0094c6)}
-.ac-h1{font-family:'DM Serif Display',Georgia,serif;font-size:2.3rem;line-height:1.12;margin:0.5rem 0 0.6rem;color:var(--ink,#0d2430)}
-.ac-sub{max-width:600px;margin:0 auto;font-size:1rem;color:var(--muted,#5b6b73);line-height:1.6}
+.ac-h1{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(2rem,4.4vw,2.85rem);line-height:1.08;letter-spacing:-0.01em;margin:0.4rem 0 0.6rem;color:var(--ink,#0d2430)}
+.ac-sub{max-width:560px;margin:0 auto 1.3rem;font-size:1.02rem;color:var(--muted,#5b6b73);line-height:1.65}
+.ac-rating{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:700;color:#334155;margin:0.55rem 0 0.15rem}
+.ac-stars{color:#f59e0b;letter-spacing:0.1em}
+.ac-actions{display:flex;gap:0.7rem;justify-content:center;flex-wrap:wrap;margin-top:0.3rem}
+.ac-btn-primary,.ac-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:50px;padding:0.85rem 1.4rem;border-radius:999px;font-weight:800;font-size:0.9rem;text-decoration:none;transition:all .18s}
+.ac-btn-primary{background:#081c24;color:#fff;box-shadow:0 12px 30px rgba(2,22,31,0.2)}
+.ac-btn-primary:hover{background:#0f2d38;transform:translateY(-1px)}
+.ac-btn-secondary{background:#fff;color:#0f5e72;border:1px solid rgba(0,191,255,0.2)}
+.ac-btn-secondary:hover{background:#f8feff}
 .ac-wrap{max-width:920px;margin:0 auto;padding:2.5rem 1.25rem}
 .ac-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
 .ac-step{background:#fff;border:1px solid #e5edf0;border-radius:14px;padding:1.3rem}
@@ -33,7 +41,7 @@
 .ac-final{text-align:center;background:#001f2b;color:#fff;padding:3rem 1.25rem;margin-top:2.5rem}
 .ac-final h2{font-family:'DM Serif Display',Georgia,serif;font-size:1.8rem;margin:0 0 0.5rem}
 .ac-final p{color:rgba(255,255,255,0.7);margin:0 0 1.2rem}
-@media(max-width:600px){.ac-h1{font-size:1.8rem}}
+@media(max-width:600px){.ac-actions{flex-direction:column}.ac-btn-primary,.ac-btn-secondary{width:100%}}
 </style>
 </head><body>
 <nav class="nav">
@@ -61,8 +69,13 @@
 
 <section class="ac-hero">
   <div class="ac-eyebrow">AssembleCash Rewards</div>
+  <div class="ac-rating"><span class="ac-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google &middot; 11 verified reviews</div>
   <h1 class="ac-h1">Earn 5% back on every job.</h1>
-  <p class="ac-sub">After each completed booking you earn AssembleCash to put toward your next home setup. It&rsquo;s our way of saying thanks for coming back.</p>
+  <p class="ac-sub">After each completed booking you earn AssembleCash to put toward your next home setup &mdash; no charge until the work is done.</p>
+  <div class="ac-actions">
+    <a href="/book" class="ac-btn-primary">Book a setup &rarr;</a>
+    <a href="/track" class="ac-btn-secondary">Check my balance</a>
+  </div>
 </section>
 
 <div class="ac-wrap">

@@ -20,8 +20,16 @@
 .sc-hero{background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#fff 100%);padding:3.5rem 1.25rem 2.5rem;text-align:center;border-bottom:1px solid var(--border)}
 .sc-eyebrow{font-size:0.74rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--cyan-dark,#0094c6)}
 .sc-badge{display:inline-block;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92600a;background:#fff3d6;border:1px solid #f4d488;border-radius:999px;padding:3px 10px;margin-bottom:0.7rem}
-.sc-h1{font-family:'DM Serif Display',Georgia,serif;font-size:2.3rem;line-height:1.12;margin:0.3rem 0 0.6rem;color:var(--ink,#0d2430)}
-.sc-sub{max-width:620px;margin:0 auto;font-size:1rem;color:var(--muted,#5b6b73);line-height:1.6}
+.sc-h1{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(2rem,4.4vw,2.85rem);line-height:1.08;letter-spacing:-0.01em;margin:0.3rem 0 0.6rem;color:var(--ink,#0d2430)}
+.sc-sub{max-width:600px;margin:0 auto 1.3rem;font-size:1.02rem;color:var(--muted,#5b6b73);line-height:1.65}
+.sc-rating{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:700;color:#334155;margin:0.55rem 0 0.15rem}
+.sc-stars{color:#f59e0b;letter-spacing:0.1em}
+.sc-actions{display:flex;gap:0.7rem;justify-content:center;flex-wrap:wrap;margin-top:0.3rem}
+.sc-btn-primary,.sc-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:50px;padding:0.85rem 1.4rem;border-radius:999px;font-weight:800;font-size:0.9rem;text-decoration:none;transition:all .18s}
+.sc-btn-primary{background:#081c24;color:#fff;box-shadow:0 12px 30px rgba(2,22,31,0.2)}
+.sc-btn-primary:hover{background:#0f2d38;transform:translateY(-1px)}
+.sc-btn-secondary{background:#fff;color:#0f5e72;border:1px solid rgba(0,191,255,0.2)}
+.sc-btn-secondary:hover{background:#f8feff}
 .sc-wrap{max-width:1000px;margin:0 auto;padding:2.5rem 1.25rem}
 .sc-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.1rem}
 .sc-plan{background:#fff;border:1px solid #e5edf0;border-radius:16px;padding:1.5rem 1.4rem}
@@ -35,7 +43,7 @@
 .sc-final{text-align:center;background:#001f2b;color:#fff;padding:3rem 1.25rem;margin-top:2.5rem}
 .sc-final h2{font-family:'DM Serif Display',Georgia,serif;font-size:1.8rem;margin:0 0 0.5rem}
 .sc-final p{color:rgba(255,255,255,0.7);margin:0 0 1.2rem}
-@media(max-width:600px){.sc-h1{font-size:1.8rem}}
+@media(max-width:600px){.sc-actions{flex-direction:column}.sc-btn-primary,.sc-btn-secondary{width:100%}}
 </style>
 </head><body>
 <nav class="nav">
@@ -64,8 +72,13 @@
 <section class="sc-hero">
   <div class="sc-eyebrow">Setup Club</div>
   <div class="sc-badge">Launching soon</div>
+  <div class="sc-rating"><span class="sc-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google &middot; 11 verified reviews</div>
   <h1 class="sc-h1">Priority service and rewards for your home.</h1>
   <p class="sc-sub">For people who set up their space often &mdash; new movers, growing families, and frequent upgraders. Setup Club adds priority, rewards, and confidence on top of our flat pricing. It does <em>not</em> include free labor.</p>
+  <div class="sc-actions">
+    <a href="/book" class="sc-btn-primary">Book a setup &rarr;</a>
+    <a href="/assemblecash" class="sc-btn-secondary">How AssembleCash works</a>
+  </div>
 </section>
 
 <div class="sc-wrap">
