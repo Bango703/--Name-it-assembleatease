@@ -251,9 +251,9 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 .cookie-accept{background:#00BFFF;color:#fff}
 .cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}
 @media(max-width:680px){
-  #cookie-banner{left:0.75rem;right:0.75rem;bottom:0.75rem;border-radius:14px;padding:0.85rem;display:block;font-size:0.78rem;line-height:1.45}
-  .cookie-btns{display:flex;gap:0.5rem;margin-top:0.75rem}
-  .cookie-btn{flex:1;min-height:44px;padding:0.55rem 0.8rem}
+  #cookie-banner{left:0.75rem;right:0.75rem;bottom:0.75rem;border-radius:14px;padding:0.7rem;display:block;font-size:0.74rem;line-height:1.35}
+  .cookie-btns{display:flex;gap:0.5rem;margin-top:0.55rem}
+  #cookie-banner .cookie-btn{flex:1;min-height:40px;padding:0.45rem 0.8rem!important}
 }
 #stripe-card-element{border:1.5px solid var(--border);border-radius:var(--radius);padding:0.85rem 1rem;background:var(--white);transition:border-color 0.15s}
 .StripeElement--focus{border-color:var(--cyan) !important}
