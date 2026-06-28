@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   // sitting in confirmed/en_route — never marked arrived/in_progress/completed.
   const { data: candidates, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, customer_phone, address, date, time, status, assembler_id, assembler_name, assembler_phone, assembler_accepted_at')
+    .select('id, ref, service, customer_name, customer_email, customer_phone, address, date, time, status, assembler_id, assembler_name, assembler_accepted_at')
     .in('status', ['confirmed', 'en_route'])
     .not('assembler_accepted_at', 'is', null)
     .gte('date', lookbackDate)
@@ -42,6 +42,24 @@ export default async function handler(req, res) {
     console.error('no-show-check query error:', error);
     await logCron('no-show-check', { status: 'error', error: error.message, duration: Date.now() - t });
     return res.status(500).json({ error: 'Query failed' });
+  }
+
+  const assemblerIds = Array.from(new Set((candidates || []).map(b => b.assembler_id).filter(Boolean)));
+  let assemblerPhonesById = {};
+  if (assemblerIds.length) {
+    try {
+      const { data: profiles, error: profileErr } = await sb
+        .from('profiles')
+        .select('id, phone')
+        .in('id', assemblerIds);
+      if (profileErr) {
+        console.error('no-show-check profile phone query error:', profileErr);
+      } else {
+        assemblerPhonesById = Object.fromEntries((profiles || []).map(p => [p.id, p.phone || null]));
+      }
+    } catch (profileEx) {
+      console.error('no-show-check profile phone lookup exception:', profileEx);
+    }
   }
 
   let flagged = 0;
@@ -68,7 +86,7 @@ export default async function handler(req, res) {
 
     const minsLate = Math.round((now - apptMs) / 60000);
     const easer = esc(b.assembler_name || 'the assigned Easer');
-    const easerPhone = b.assembler_phone ? esc(b.assembler_phone) : null;
+    const easerPhone = assemblerPhonesById[b.assembler_id] ? esc(assemblerPhonesById[b.assembler_id]) : null;
 
     try {
       await sendEmail({
