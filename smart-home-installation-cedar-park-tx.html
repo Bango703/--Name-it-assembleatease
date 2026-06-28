@@ -118,7 +118,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div class="nav-easer-link">
       <a href="/assembler/apply" style="font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none">Become an Easer</a>
     </div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -136,7 +136,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <a href="/assembler/apply">Become an Easer</a>
   <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
 </div>
-<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
+<script src="/assets/js/mobile-nav.js" defer></script>
 
 <!-- HERO -->
 <section style="background:linear-gradient(135deg,#f0fdff 0%,#e0f7fa 50%,#f9fafb 100%);padding:4.5rem 2rem 3.5rem;border-bottom:1px solid var(--border)">

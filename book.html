@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/assets/css/style.css" />
 
   <script src="https://js.stripe.com/v3/" crossorigin="anonymous"></script>
+  <script src="/assets/js/mobile-nav.js" defer></script>
 
   <style>
 
@@ -4528,6 +4529,33 @@ function updateMobileStepSummary() {
   summary.style.display = '';
 }
 
+function isMobileKeyboardViewport() {
+  return !!(window.matchMedia && window.matchMedia('(max-width: 640px)').matches);
+}
+
+function setMobileStepActionsHidden(hidden) {
+  if (!isMobileKeyboardViewport()) return;
+  document.querySelectorAll('.step-actions').forEach(function(el) {
+    el.classList.toggle('kb-hidden', !!hidden);
+  });
+}
+
+function activeElementNeedsKeyboardRoom() {
+  var el = document.activeElement;
+  if (!el) return false;
+  if (el.tagName === 'IFRAME') return true;
+  if (el.matches && el.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="hidden"]), textarea, select')) {
+    return true;
+  }
+  return !!(el.closest && el.closest('#stripe-card-wrap'));
+}
+
+function syncMobileStepActionsForKeyboard() {
+  var viewport = window.visualViewport;
+  var keyboardLikelyOpen = !!(viewport && viewport.height < (window.innerHeight - 120));
+  setMobileStepActionsHidden(keyboardLikelyOpen && activeElementNeedsKeyboardRoom());
+}
+
 function renderPopularPicks(svc) {
   var wrap = document.getElementById('item-popular-picks');
   if (!wrap) return;
@@ -4839,13 +4867,17 @@ document.getElementById('s1-quote').addEventListener('change', function() {
   updateOrderSummary();
 });
 
-// Hide fixed CTA when keyboard opens on mobile (prevents overlap with search)
-document.getElementById('item-search').addEventListener('focus', function() {
-  document.querySelector('.step-actions') && document.querySelector('.step-actions').classList.add('kb-hidden');
+// Hide fixed CTA when the mobile keyboard is open so it never covers inputs or card entry.
+document.addEventListener('focusin', function() {
+  syncMobileStepActionsForKeyboard();
 });
-document.getElementById('item-search').addEventListener('blur', function() {
-  document.querySelector('.step-actions') && document.querySelector('.step-actions').classList.remove('kb-hidden');
+document.addEventListener('focusout', function() {
+  window.setTimeout(syncMobileStepActionsForKeyboard, 60);
 });
+window.addEventListener('resize', syncMobileStepActionsForKeyboard);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', syncMobileStepActionsForKeyboard);
+}
 
 
 
@@ -6549,9 +6581,15 @@ async function initStripe() {
 
     BOOK._cardEl.mount('#stripe-card-element');
 
-    BOOK._cardEl.on('focus', function() { document.getElementById('stripe-card-wrap').classList.add('focused'); });
+    BOOK._cardEl.on('focus', function() {
+      document.getElementById('stripe-card-wrap').classList.add('focused');
+      setMobileStepActionsHidden(true);
+    });
 
-    BOOK._cardEl.on('blur',  function() { document.getElementById('stripe-card-wrap').classList.remove('focused'); });
+    BOOK._cardEl.on('blur',  function() {
+      document.getElementById('stripe-card-wrap').classList.remove('focused');
+      window.setTimeout(syncMobileStepActionsForKeyboard, 60);
+    });
 
     BOOK._cardEl.on('change', function(evt) {
 

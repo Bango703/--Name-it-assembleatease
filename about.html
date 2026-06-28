@@ -137,7 +137,7 @@ body.about-page .nav{position:relative}
       <li><a href="/about">About Us</a></li>
     </ul>
     <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
-        <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
+        <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -152,7 +152,7 @@ body.about-page .nav{position:relative}
   <a href="/assembler/apply">Become an Easer</a>
   <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
 </div>
-<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
+<script src="/assets/js/mobile-nav.js" defer></script>
 <main id="main-content">
 <section class="page-hero" aria-label="About AssembleAtEase">
   <div class="page-hero-inner">

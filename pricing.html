@@ -252,7 +252,7 @@ body.pricing-page{background:#f6fbfd}
     </ul>
     <a href="/book" class="btn btn-cyan">Book Now &rarr;</a>
     <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation">
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -268,6 +268,7 @@ body.pricing-page{background:#f6fbfd}
   <a href="/assembler/apply">Become an Easer</a>
   <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
 </div>
+<script src="/assets/js/mobile-nav.js" defer></script>
 
 <!-- HERO -->
 <main id="main-content">
@@ -596,18 +597,6 @@ body.pricing-page{background:#f6fbfd}
     item.addEventListener('click', toggleFaq);
     item.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFaq(); }
-    });
-  });
-
-  // Mobile nav
-  document.getElementById('hamburger').addEventListener('click', function() {
-    this.classList.toggle('open');
-    document.getElementById('mobileNav').classList.toggle('open');
-  });
-  document.querySelectorAll('.nav-mobile a').forEach(function(el) {
-    el.addEventListener('click', function() {
-      document.getElementById('mobileNav').classList.remove('open');
-      document.getElementById('hamburger').classList.remove('open');
     });
   });
 

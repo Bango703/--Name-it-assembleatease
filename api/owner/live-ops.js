@@ -13,8 +13,9 @@ export default async function handler(req, res) {
   const todayStr = now.toISOString().slice(0, 10);
   const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
+  const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
-  const [bookingsRes, easersRes, activeOffersRes] = await Promise.all([
+  const [bookingsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes] = await Promise.all([
     sb.from('bookings')
       .select('id, ref, service, status, pipeline_stage, customer_name, customer_phone, date, time, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, needs_manual_dispatch, total_price')
       .not('status', 'in', '("cancelled","declined","completed")')
@@ -29,12 +30,54 @@ export default async function handler(req, res) {
       .select('booking_id')
       .eq('offer_status', 'sent')
       .gt('expires_at', now.toISOString()),
+    sb.from('operational_events')
+      .select('id, route, reason_detail, stage, created_at')
+      .eq('event_type', 'runtime_error')
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(8),
+    sb.from('notification_log')
+      .select('id, channel, notification_type, recipient_type, subject, error_text, sent_at')
+      .eq('status', 'failed')
+      .gte('sent_at', twentyFourHoursAgo)
+      .order('sent_at', { ascending: false })
+      .limit(8),
+    sb.from('cron_log')
+      .select('id, cron_name, status, error_text, ran_at')
+      .neq('status', 'ok')
+      .gte('ran_at', twentyFourHoursAgo)
+      .order('ran_at', { ascending: false })
+      .limit(8),
   ]);
 
   const bookings = bookingsRes.data || [];
   const easers = easersRes.data || [];
   const now_ts = now.getTime();
   const activeOfferBookingIds = new Set((activeOffersRes.data || []).map(o => o.booking_id));
+  const runtimeErrors = (runtimeErrorsRes.data || []).map(row => ({
+    kind: 'runtime',
+    title: 'Customer-side page error',
+    detail: row.reason_detail || 'Unknown browser error',
+    meta: [row.route, row.stage].filter(Boolean).join(' • '),
+    when: row.created_at,
+    severity: 'high',
+  }));
+  const failedNotifications = (failedNotificationsRes.data || []).map(row => ({
+    kind: 'notification',
+    title: (row.channel || 'notification') + ' failed',
+    detail: row.error_text || row.subject || 'Notification delivery failed',
+    meta: [row.notification_type, row.recipient_type].filter(Boolean).join(' • '),
+    when: row.sent_at,
+    severity: 'medium',
+  }));
+  const cronErrors = (cronErrorsRes.data || []).map(row => ({
+    kind: 'cron',
+    title: (row.cron_name || 'cron') + ' ' + (row.status || 'error'),
+    detail: row.error_text || 'Cron run failed',
+    meta: 'Background job',
+    when: row.ran_at,
+    severity: row.status === 'error' ? 'high' : 'medium',
+  }));
 
   // ── Categorize bookings ─────────────────────────────────────────
   // unassigned: never dispatched, no active offers, not flagged manual
@@ -169,6 +212,15 @@ export default async function handler(req, res) {
   }));
 
   // ── Easer availability ──────────────────────────────────────────
+  runtimeErrors.slice(0, 3).forEach(err => alerts.push({
+    type: 'runtime_error',
+    severity: err.severity,
+    ref: '',
+    bookingId: '',
+    message: err.detail,
+    action: null,
+  }));
+
   const assignedIds = new Set(bookings.filter(b => b.assembler_id).map(b => b.assembler_id));
   // Map assembler_id → their active booking's pipeline stage (en_route, arrived, in_progress, confirmed)
   const assemblerStageMap = {};
@@ -200,6 +252,9 @@ export default async function handler(req, res) {
       inProgress: inProgress.length,
       alertCount: alerts.length,
       criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
+      runtimeErrors: runtimeErrors.length,
+      failedNotifications: failedNotifications.length,
+      cronErrors: cronErrors.length,
       onlineEasers: onlineEasers.length,
       freeEasers: freeEasers.length,
       todayJobs: todayAll.length,
@@ -224,5 +279,8 @@ export default async function handler(req, res) {
       booking_stage: assemblerStageMap[e.id] || null,
     })),
     offlineCount: offlineEasers.length,
+    recentFailures: runtimeErrors.concat(failedNotifications, cronErrors)
+      .sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime())
+      .slice(0, 12),
   });
 }

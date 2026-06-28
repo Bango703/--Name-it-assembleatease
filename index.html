@@ -144,14 +144,14 @@
 
 .people-band{background:linear-gradient(180deg,#f4fbfd 0%,#edf6f8 100%);padding:4rem 2rem;border-top:1px solid rgba(199,214,223,0.48);border-bottom:1px solid rgba(199,214,223,0.44)}
 .people-band-inner{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:0.78fr 1.22fr;gap:2rem;align-items:center}
-.people-copy{max-width:470px}
+.people-copy{max-width:470px;position:relative;z-index:2}
 .people-title{font-family:var(--font-display);font-size:clamp(2rem,3vw,2.65rem);line-height:1.08;color:var(--ink);margin:0.45rem 0 1rem}
 .people-desc{font-size:0.98rem;line-height:1.75;color:#5f6b7a;margin:0 0 1.35rem}
 .people-actions{display:flex;gap:0.7rem;flex-wrap:wrap;margin-top:1.25rem}
 .people-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0.72rem 1rem;border-radius:999px;font-size:0.82rem;font-weight:800;text-decoration:none}
 .people-action-primary{background:#081c24;color:#fff}
 .people-action-secondary{background:#fff;color:#0f5e72;border:1px solid rgba(0,191,255,0.18)}
-.people-benefits{display:grid;gap:0.9rem}
+.people-benefits{display:grid;gap:0.9rem;position:relative;z-index:1}
 .people-reward-card{position:relative;display:block;min-height:190px;padding:1.25rem 1.35rem;border-radius:24px;background:linear-gradient(135deg,#071f29 0%,#0b3441 100%);color:#fff;text-decoration:none;box-shadow:0 24px 52px rgba(2,22,31,0.18);overflow:hidden}
 .people-reward-card::after{content:'';position:absolute;right:-58px;top:-72px;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle,rgba(0,191,255,0.28) 0%,rgba(0,191,255,0) 70%);pointer-events:none}
 .people-benefit-kicker{display:block;font-size:0.68rem;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#8fe8ff;margin-bottom:0.65rem}
@@ -639,7 +639,7 @@ section#service-area{display:block}
       <li><a href="/about">About Us</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:0.75rem"><a href="/book" class="nav-book-cta">Book Now &rarr;</a></div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -676,7 +676,7 @@ section#service-area{display:block}
     Become an Easer
   </a>
 </div>
-<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
+<script src="/assets/js/mobile-nav.js" defer></script>
 
 <main id="main-content">
 
@@ -734,12 +734,12 @@ section#service-area{display:block}
       <h2 class="people-title" id="people-band-title">Cash back, clear pricing, and a cleaner way to handle the job.</h2>
       <p class="people-desc">AssembleAtEase is built for customers who want more than a name and a phone number. You get rewards after completed bookings, upfront totals, reviewed pros, booking updates, and room-ready options when several things need to get done together.</p>
       <div class="people-actions">
-        <a class="people-action-primary" href="/assemblecash">See AssembleCash</a>
+        <a class="people-action-primary" id="homepage-assemblecash-link" href="/assemblecash">See AssembleCash</a>
         <a class="people-action-secondary" href="/pricing">See pricing</a>
       </div>
     </div>
     <div class="people-benefits" aria-label="AssembleAtEase customer benefits">
-      <a class="people-reward-card" href="/assemblecash">
+      <a class="people-reward-card" id="homepage-assemblecash-card" href="/assemblecash">
         <span class="people-benefit-kicker">AssembleCash rewards</span>
         <strong>Earn 5% back after completed bookings.</strong>
         <p>Use future-booking credit toward your next assembly, mounting, setup, or room-ready project.</p>
@@ -1519,6 +1519,15 @@ document.addEventListener('DOMContentLoaded', function() {
   AAE.cart.forEach(function(item) { document.querySelectorAll('[data-item-name="'+item.name+'"]').forEach(function(btn) { btn.textContent = ' Added &mdash; click to remove'; btn.style.background = 'var(--cyan)'; btn.style.color = '#fff'; var card = btn.closest('.item-card, .service-card'); if (card) card.classList.add('selected', 'in-cart'); }); });
   var overlay = document.getElementById('booking-modal');
   if (overlay) overlay.addEventListener('click', function(e) { if (e.target === overlay) AAE.closeBooking(); });
+  ['homepage-assemblecash-link','homepage-assemblecash-card'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.assign('/assemblecash');
+    });
+  });
   document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
   // Benefits cards: readable auto-advance with touch/hover pause.
   (function(){

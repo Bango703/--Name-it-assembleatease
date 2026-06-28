@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/status.css" />
+  <script src="/assets/js/mobile-nav.js" defer></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -463,6 +464,16 @@
               </div>
             </div>
             <div id="ops-today">—</div>
+          </div>
+
+          <div class="ops-panel" style="grid-column:span 2">
+            <div class="ops-panel-header">
+              <div class="ops-panel-title">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                Recent Platform Errors
+              </div>
+            </div>
+            <div id="ops-errors">—</div>
           </div>
 
         </div>
@@ -3802,6 +3813,9 @@ function intelQuick(msg) {
       { label: 'En Route', val: s.enRoute, color: '#00BFFF' },
       { label: 'In Progress', val: s.inProgress, color: '#059669' },
       { label: 'Today', val: s.todayJobs, color: '#7c3aed' },
+      { label: 'Runtime Errors', val: s.runtimeErrors || 0, color: (s.runtimeErrors || 0) > 0 ? '#dc2626' : '#6b7280' },
+      { label: 'Failed Emails', val: s.failedNotifications || 0, color: (s.failedNotifications || 0) > 0 ? '#ea580c' : '#6b7280' },
+      { label: 'Cron Errors', val: s.cronErrors || 0, color: (s.cronErrors || 0) > 0 ? '#dc2626' : '#6b7280' },
       { label: 'Free Easers', val: s.freeEasers, color: s.freeEasers === 0 ? '#dc2626' : '#059669' },
     ];
     document.getElementById('ops-summary').innerHTML = chips.map(function(c) {
@@ -3911,6 +3925,31 @@ function intelQuick(msg) {
           + '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">' + esc(b.assembler_name||'Unassigned') + ' &bull; ' + esc(b.customer_name||'') + '</div>'
           + '</div>'
           + bookingBadge(b)
+          + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    var errorsEl = document.getElementById('ops-errors');
+    var failures = d.recentFailures || [];
+    if (!failures.length) {
+      errorsEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No recent platform errors in the last 24 hours</div>';
+    } else {
+      errorsEl.innerHTML = failures.map(function(item) {
+        var color = item.severity === 'high' ? '#dc2626' : '#d97706';
+        var meta = item.meta ? '<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">' + esc(item.meta) + '</div>' : '';
+        var when = item.when ? new Date(item.when).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+        return '<div style="padding:0.75rem 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:0.84rem;font-weight:700;color:var(--text)">' + esc(item.title || 'Platform error') + '</div>'
+          + '<div style="font-size:0.8rem;color:var(--soft);line-height:1.45;margin-top:2px">' + esc(item.detail || 'Unknown error') + '</div>'
+          + meta
+          + '</div>'
+          + '<div style="text-align:right;flex-shrink:0">'
+          + '<span style="display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:0 8px;border-radius:999px;background:rgba(' + hexToRgb(color) + ',0.1);color:' + color + ';font-size:0.68rem;font-weight:700;text-transform:uppercase">' + esc(item.kind || 'error') + '</span>'
+          + (when ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:6px">' + esc(when) + '</div>' : '')
+          + '</div>'
           + '</div>'
           + '</div>';
       }).join('');
