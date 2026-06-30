@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
-  
+
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -81,123 +81,11 @@
     .earn-tx-status { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
     .earn-tx-status.paid    { color: #059669; }
     .earn-tx-status.pending { color: #d97706; }
-    .earn-summary-box {
-      background: var(--pro-elevated); border-radius: 12px;
-      padding: 1rem 1.25rem; margin-top: 1rem;
-    }
-    .earn-summary-row {
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 0.85rem; padding: 0.35rem 0; color: var(--pro-soft);
-    }
-    .earn-summary-row.total {
-      border-top: 1px solid var(--pro-border-md); padding-top: 0.6rem;
-      margin-top: 0.25rem; font-weight: 700; color: var(--pro-text);
-    }
-    .connect-card {
+    .payout-note {
       margin-top: 1rem;
-      background: #fff;
-      border: 1px solid var(--pro-border);
-      border-radius: 16px;
-      padding: 1rem 1.05rem;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.04);
-    }
-    .connect-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-    }
-    .connect-title {
-      font-size: 0.74rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      text-align: center;
+      font-size: 0.76rem;
       color: var(--pro-muted);
-      font-weight: 700;
-      margin-bottom: 0.2rem;
-    }
-    .connect-state {
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: var(--pro-text);
-    }
-    .connect-note {
-      margin-top: 0.6rem;
-      font-size: 0.78rem;
-      line-height: 1.5;
-      color: var(--pro-soft);
-    }
-    .connect-pill {
-      display: inline-block;
-      padding: 4px 9px;
-      border-radius: 999px;
-      font-size: 0.66rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      border: 1px solid transparent;
-      white-space: nowrap;
-    }
-    .connect-pill.enabled { background: #ecfdf3; color: #166534; border-color: #bbf7d0; }
-    .connect-pill.pending { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-    .connect-pill.restricted { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
-    .connect-pill.action_required { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-    .connect-btn {
-      margin-top: 0.7rem;
-      background: #0f172a;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 0.62rem 0.9rem;
-      font-size: 0.76rem;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .payout-guide {
-      margin-top: 1rem;
-      background: #fff;
-      border: 1px solid var(--pro-border);
-      border-radius: 16px;
-      padding: 1rem;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.04);
-    }
-    .payout-guide-title {
-      font-size: 0.74rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--pro-muted);
-      font-weight: 700;
-      margin-bottom: 0.55rem;
-    }
-    .payout-guide-body {
-      display: grid;
-      gap: 0.75rem;
-    }
-    .payout-guide-row {
-      padding: 0.75rem 0;
-      border-top: 1px solid var(--pro-border);
-    }
-    .payout-guide-row:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-    .payout-guide-label {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--pro-text);
-      margin-bottom: 0.2rem;
-    }
-    .payout-guide-copy {
-      font-size: 0.76rem;
-      line-height: 1.55;
-      color: var(--pro-soft);
-    }
-    .payout-guide-list {
-      margin-top: 0.4rem;
-      padding-left: 1rem;
-      color: var(--pro-soft);
-      font-size: 0.76rem;
-      line-height: 1.55;
     }
   </style>
 </head>
@@ -243,22 +131,7 @@
     </div>
   </div>
 
-  <div class="connect-card" id="connect-card" style="display:none">
-    <div class="connect-head">
-      <div>
-        <div class="connect-title">Stripe Payout Setup</div>
-        <div class="connect-state" id="connect-state">Checking status…</div>
-      </div>
-      <span class="connect-pill pending" id="connect-pill">Pending</span>
-    </div>
-    <div class="connect-note" id="connect-note"></div>
-    <button class="connect-btn" id="connect-action" style="display:none">Complete Setup</button>
-  </div>
-
-  <div class="payout-guide" id="payout-guide">
-    <div class="payout-guide-title">Payouts</div>
-    <div class="payout-guide-body" id="payout-guide-body"></div>
-  </div>
+  <div class="payout-note">Payouts are sent within 2 business days of a completed job.</div>
 
   <div id="payouts-list">
     <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
@@ -317,7 +190,6 @@
 
   function renderEarnings(list) {
     var totalEarned  = list.reduce(function(s, b){ return s + (b.assembler_due || 0); }, 0);
-    var totalFees    = list.reduce(function(s, b){ return s + (b.platform_fee || 0); }, 0);
     var totalPaid    = list.filter(function(b){ return b.payout_status === 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
     var totalPending = list.filter(function(b){ return b.payout_status !== 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
 
@@ -356,151 +228,7 @@
       '</div>';
     }).join('');
 
-    var memberNote = '';
-
-    el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>' + memberNote;
-  }
-
-  function renderPayoutGuide(list, connectData) {
-    var guide = document.getElementById('payout-guide-body');
-    if (!guide) return;
-
-    var connectOn    = !!(connectData && connectData.enabled !== false && connectData.connect);
-    var connectReady = connectOn && connectData.connect.code === 'enabled';
-
-    var latestPaid = list.filter(function(b) { return b.payout_status === 'paid' && b.paid_out_at; })
-      .sort(function(a, b) { return new Date(b.paid_out_at) - new Date(a.paid_out_at); })[0] || null;
-    var pendingCount = list.filter(function(b) { return b.payout_status !== 'paid'; }).length;
-
-    // Accurate to how the platform actually pays: a 48h hold after completion, then
-    // an automatic Stripe transfer to the Pro's bank once their payout setup is done.
-    var howCopy = connectOn
-      ? (connectReady
-          ? 'When you mark a job complete, your earnings are held for 48 hours, then sent automatically to your bank through Stripe. No action needed on your end.'
-          : 'When you mark a job complete, your earnings are held for 48 hours, then sent to your bank through Stripe. Finish your payout setup above so transfers can go through.')
-      : 'When you mark a job complete, the AssembleAtEase team reviews and releases your payout. Nothing to do here.';
-
-    var rows = ''
-      + '<div class="payout-guide-row">'
-        + '<div class="payout-guide-label">How payouts work</div>'
-        + '<div class="payout-guide-copy">' + howCopy + '</div>'
-      + '</div>'
-      + '<div class="payout-guide-row">'
-        + '<div class="payout-guide-label">Pending</div>'
-        + '<div class="payout-guide-copy">' + (pendingCount
-            ? pendingCount + ' job' + (pendingCount === 1 ? '' : 's') + ' awaiting payout.'
-            : 'You’re all caught up — no payouts pending.') + '</div>'
-      + '</div>';
-
-    if (latestPaid) {
-      rows += '<div class="payout-guide-row">'
-        + '<div class="payout-guide-label">Last payout</div>'
-        + '<div class="payout-guide-copy">' + fmt(latestPaid.assembler_due) + ' on ' + fmtDate(latestPaid.paid_out_at) + '.</div>'
-      + '</div>';
-    }
-
-    guide.innerHTML = rows;
-  }
-
-  function renderConnectStatus(data) {
-    var card = document.getElementById('connect-card');
-    var state = document.getElementById('connect-state');
-    var note = document.getElementById('connect-note');
-    var pill = document.getElementById('connect-pill');
-    var btn = document.getElementById('connect-action');
-    card.style.display = '';
-
-    if (!data || data.enabled === false || !data.connect) {
-      state.textContent = 'Manual payouts';
-      note.textContent = 'Payouts are recorded by the AssembleAtEase team after completed jobs. No Stripe setup is required here.';
-      pill.textContent = 'Managed by team';
-      pill.className = 'connect-pill restricted';
-      btn.style.display = 'none';
-      return;
-    }
-
-    var code = data.connect.code || 'pending';
-    var label = data.connect.label || 'Pending';
-    state.textContent = label;
-    note.textContent = data.connect.message || '';
-    pill.textContent = label;
-    pill.className = 'connect-pill ' + code;
-
-    if (code === 'enabled') {
-      btn.style.display = '';
-      btn.dataset.mode = 'portal';
-      btn.textContent = 'Update payout details';
-      return;
-    }
-
-    btn.style.display = '';
-    btn.dataset.mode = 'onboarding';
-    btn.textContent = code === 'action_required' ? 'Fix in Stripe' : 'Complete Setup';
-  }
-
-  function redirectToStripe(rawUrl, fallbackMessage) {
-    var clean = String(rawUrl || '').trim();
-    if (!clean) throw new Error(fallbackMessage || 'Unable to open Stripe right now.');
-    var parsed;
-    try {
-      parsed = new URL(clean, window.location.origin);
-    } catch (err) {
-      throw new Error(fallbackMessage || 'Unable to open Stripe right now.');
-    }
-    if (!/^https?:$/i.test(parsed.protocol)) {
-      throw new Error(fallbackMessage || 'Unable to open Stripe right now.');
-    }
-    window.location.assign(parsed.toString());
-  }
-
-  async function openConnectPortal(token) {
-    var btn = document.getElementById('connect-action');
-    if (!btn) return;
-    btn.disabled = true;
-    var prev = btn.textContent;
-    btn.textContent = 'Opening…';
-    try {
-      var r = await fetch('/api/assembler/connect-login', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      var d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Unable to open Stripe dashboard');
-      redirectToStripe(d.url, 'Unable to open Stripe dashboard right now. Please try again.');
-    } catch (err) {
-      APP.showAlert('page-alert', err.message || 'Unable to open payout settings right now. Please try again.', 'error');
-      btn.disabled = false;
-      btn.textContent = prev;
-    }
-  }
-
-  async function openConnectOnboarding(token) {
-    var btn = document.getElementById('connect-action');
-    if (!btn) return;
-    btn.disabled = true;
-    var prev = btn.textContent;
-    btn.textContent = 'Opening…';
-    try {
-      var r = await fetch('/api/assembler/connect-link', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      var d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Unable to open Stripe onboarding');
-      redirectToStripe(d.onboardingUrl, 'Unable to open Stripe onboarding right now. Please try again.');
-    } catch (err) {
-      APP.showAlert('page-alert', err.message || 'Unable to open onboarding right now. Please try again.', 'error');
-      btn.disabled = false;
-      btn.textContent = prev;
-    }
+    el.innerHTML = '<div style="background:#fff;border:1px solid var(--pro-border);border-radius:14px;padding:0 1rem"><div class="earn-tx-list">' + rows + '</div></div>';
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
@@ -556,26 +284,6 @@
     try {
       let token = await getToken();
       if (!token) { window.location.href = '/auth/login.html'; return; }
-      var connectData = null;
-
-      var connectResp = await fetch('/api/assembler/connect-status', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      if (connectResp.ok) {
-        connectData = await connectResp.json();
-        renderConnectStatus(connectData);
-      }
-      var connectBtn = document.getElementById('connect-action');
-      if (connectBtn) {
-        connectBtn.addEventListener('click', function() {
-          var mode = connectBtn.dataset.mode || 'onboarding';
-          if (mode === 'portal') {
-            openConnectPortal(token);
-            return;
-          }
-          openConnectOnboarding(token);
-        });
-      }
 
       let resp = await fetch('/api/booking/my-assignments', {
         headers: { 'Authorization': 'Bearer ' + token },
@@ -595,7 +303,6 @@
       const data = await resp.json();
       allCompleted = (data.bookings || []).filter(function(b){ return b.status === 'completed'; });
       renderEarnings(allCompleted);
-      renderPayoutGuide(allCompleted, connectData);
     } catch (err) {
       document.getElementById('payouts-list').innerHTML =
         '<div class="e-alert error show">Could not load earnings history. Please refresh.</div>';
@@ -605,6 +312,3 @@
 <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
-
-
-
