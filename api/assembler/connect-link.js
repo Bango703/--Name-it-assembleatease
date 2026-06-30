@@ -1,7 +1,12 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
-import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import {
+  invalidConnectStateUpdate,
+  isRecoverableConnectAccountError,
+  isStripeConnectEnabled,
+  normalizeStripeConnectAccountId,
+} from '../_stripe-connect.js';
 import { deriveAssemblerStatus } from '../_assembler-state.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -41,7 +46,26 @@ export default async function handler(req, res) {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  let accountId = profile.stripe_connect_account_id || null;
+  let accountId = normalizeStripeConnectAccountId(profile.stripe_connect_account_id);
+
+  if (profile.stripe_connect_account_id && !accountId) {
+    await sb.from('profiles').update(invalidConnectStateUpdate()).eq('id', profile.id);
+  }
+
+  if (accountId) {
+    try {
+      await stripe.accounts.retrieve(accountId);
+    } catch (err) {
+      if (isRecoverableConnectAccountError(err)) {
+        console.warn('connect-link resetting invalid Stripe Connect account:', err?.message || err);
+        accountId = null;
+        await sb.from('profiles').update(invalidConnectStateUpdate()).eq('id', profile.id);
+      } else {
+        console.error('connect-link retrieve error:', err?.message || err);
+        return res.status(502).json({ error: 'Stripe payout setup is temporarily unavailable. Please try again shortly.' });
+      }
+    }
+  }
 
   if (!accountId) {
     const account = await stripe.accounts.create({
@@ -88,7 +112,7 @@ export default async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     accountId,
-    onboardingUrl: link.url,
+    onboardingUrl: String(link.url || '').trim(),
     expiresAt: link.expires_at,
   });
 }

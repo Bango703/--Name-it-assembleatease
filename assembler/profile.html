@@ -89,6 +89,28 @@
     body.theme-pro .completion-label { font-size:0.82rem; color:var(--pro-muted); margin-bottom:6px; display:flex; justify-content:space-between; }
     body.theme-pro .completion-bar { height:6px; background:var(--pro-elevated); border-radius:999px; overflow:hidden; }
     body.theme-pro .completion-fill { height:100%; background:var(--pro-teal); border-radius:999px; transition:width 0.4s ease; }
+    body.theme-pro .completion-note { font-size:0.72rem; color:var(--pro-muted); margin-top:0.65rem; line-height:1.5; }
+    body.theme-pro .completion-note.complete { color:#475569; font-weight:600; }
+    body.theme-pro #profile-id-card {
+      border-radius:18px;
+      border-color:#d8e2e8;
+      box-shadow:0 10px 26px rgba(15,23,42,0.05);
+      background:
+        linear-gradient(180deg, rgba(248,250,252,0.92), rgba(255,255,255,1) 34%),
+        #fff;
+    }
+    body.theme-pro #profile-id-tier {
+      background:#f5f7fa !important;
+      color:#334155 !important;
+      border-color:#d8e2e8 !important;
+    }
+    body.theme-pro #prof-stat-earned { color:#0f172a !important; }
+    body.theme-pro #identity-verify-section {
+      background:#f8fafc !important;
+      border-color:#d8e2e8 !important;
+    }
+    body.theme-pro #identity-verify-section p:first-child { color:#334155 !important; }
+    body.theme-pro #identity-verify-section p:last-child { color:#64748b !important; }
 
     /* Payout */
     body.theme-pro .payout-empty { border:2px dashed var(--pro-border-md); border-radius:10px; padding:1.5rem; text-align:center; background:var(--pro-elevated); }
@@ -168,6 +190,7 @@
           </div>
           <div class="completion-bar"><div class="completion-fill" id="completion-fill" style="width:0%"></div></div>
           <div id="completion-checklist" style="margin-top:0.75rem;font-size:0.72rem;display:flex;flex-wrap:wrap;gap:0.35rem 0.75rem"></div>
+          <div id="completion-note" class="completion-note"></div>
         </div>
       </div>
 
@@ -351,15 +374,31 @@
     document.getElementById('completion-fill').style.background =
       pct === 100 ? 'var(--pro-teal)' : pct >= 60 ? '#f59e0b' : '#e86a2e';
     var cl = document.getElementById('completion-checklist');
+    var note = document.getElementById('completion-note');
     if (cl) {
-      cl.innerHTML = checks.map(function(c) {
-        return '<span style="color:' + (c.ok ? '#059669' : '#94a3b8') + '">'
-          + (c.ok ? '&#10003; ' : '&#9675; ') + c.label + '</span>';
-      }).join('');
+      if (done === checks.length) {
+        cl.style.display = 'none';
+        cl.innerHTML = '';
+      } else {
+        cl.style.display = 'flex';
+        cl.innerHTML = checks.map(function(c) {
+          return '<span style="color:' + (c.ok ? '#64748b' : '#94a3b8') + '">'
+            + (c.ok ? '&#10003; ' : '&#9675; ') + c.label + '</span>';
+        }).join('');
+      }
+    }
+    if (note) {
+      if (done === checks.length) {
+        note.className = 'completion-note complete';
+        note.textContent = 'Profile complete. Your dispatch basics are already on file.';
+      } else {
+        note.className = 'completion-note';
+        note.textContent = 'Finish the remaining profile basics so dispatch and support details stay current.';
+      }
     }
   }
 
-  ['full-name','city','state','zip'].forEach(id => {
+  ['full-name','phone','city','state','zip'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCompletion);
   });
 
@@ -507,10 +546,10 @@
       accountTypeEl.textContent = accountTypeMap[profile.tier] || (profile.tier ? 'Easer — ' + profile.tier : 'Easer');
     }
     document.getElementById('identity-value').innerHTML = profile.identity_verified
-      ? '<span style="color:#00BFFF">&#10003; Verified</span>'
+      ? '<span style="display:inline-flex;align-items:center;gap:6px;color:#166534;font-weight:600"><span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:#ecfdf3;border:1px solid #bbf7d0;font-size:0.72rem">&#10003;</span>Verified</span>'
       : profile.stripe_verification_id
-        ? '<span style="color:#f59e0b">In progress</span>'
-        : '<span style="color:#9ca3af">Not started</span>';
+        ? '<span style="color:#92400e;font-weight:600">In progress</span>'
+        : '<span style="color:#64748b">Not started</span>';
 
     if (!profile.identity_verified) {
       document.getElementById('identity-verify-section').style.display = '';

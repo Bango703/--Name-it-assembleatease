@@ -318,6 +318,8 @@
 
   var available = false;
   var currentUserId = null;
+  var currentProfile = null;
+  var currentEffectiveStatus = 'pending';
   var freshTok = null;
   var tosInterval = null;
   var offerTimerInterval = null;
@@ -519,7 +521,7 @@
   function setHomePriorityMode(hasUrgentWork) {
     var checklist = document.getElementById('onboarding-checklist');
     if (checklist && checklist.dataset.deferWhenBusy === 'true') {
-      checklist.style.display = hasUrgentWork ? 'none' : '';
+      checklist.style.display = (hasUrgentWork || checklist.dataset.completed === 'true') ? 'none' : '';
     }
 
     var profileBanner = document.getElementById('profile-banner');
@@ -685,6 +687,7 @@
   });
 
   function setAvailUI(on) {
+    if (currentProfile) currentProfile.is_available = !!on;
     document.getElementById('avail-pill').classList.toggle('on', on);
     document.getElementById('avail-toggle').classList.toggle('on', on);
     document.getElementById('avail-label').textContent = on ? 'Online' : 'Offline';
@@ -694,6 +697,90 @@
     var cardSub   = document.getElementById('avail-card-sub');
     if (cardTitle) cardTitle.textContent = on ? "You're Online" : "You're Offline";
     if (cardSub) cardSub.textContent = on ? "You'll receive job offers when they're available" : "Toggle Online to start receiving job offers";
+    renderOnboardingChecklist();
+  }
+
+  function hasUrgentDashboardWork() {
+    var activeSection = document.getElementById('active-section');
+    var offersSection = document.getElementById('offers-section');
+    return !!(
+      (activeSection && activeSection.style.display !== 'none')
+      || (offersSection && offersSection.style.display !== 'none')
+    );
+  }
+
+  function renderOnboardingChecklist() {
+    var checklist = document.getElementById('onboarding-checklist');
+    var listEl = document.getElementById('onboarding-steps');
+    var progEl = document.getElementById('onboarding-progress-text');
+    if (!checklist || !listEl || !progEl) return;
+
+    if (!currentProfile || currentEffectiveStatus !== 'active') {
+      checklist.dataset.completed = 'false';
+      checklist.style.display = 'none';
+      listEl.innerHTML = '';
+      progEl.textContent = '';
+      return;
+    }
+
+    var onbSteps = [
+      {
+        key:'identity',
+        done: currentProfile.identity_verified===true,
+        label:'Verify your identity',
+        desc: currentProfile.identity_verified ? 'Identity verified.' : 'Required to receive job offers.',
+        action: !currentProfile.identity_verified ? { href:'/assembler/verify-identity', label:'Continue' } : null,
+      },
+      {
+        key:'phone',
+        done: !!currentProfile.phone,
+        label:'Add your phone number',
+        desc: currentProfile.phone ? 'Phone number on file.' : 'Required for dispatch notifications.',
+        action: !currentProfile.phone ? { href:'/assembler/profile', label:'Add Phone' } : null,
+      },
+      {
+        key:'online',
+        done: available,
+        label:'Go Online to receive jobs',
+        desc: available ? 'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
+        action: null,
+      },
+    ];
+    var doneCnt = onbSteps.filter(function(s){ return s.done; }).length;
+    var allDone = doneCnt === onbSteps.length;
+
+    checklist.dataset.deferWhenBusy = 'true';
+    checklist.dataset.completed = allDone ? 'true' : 'false';
+
+    if (allDone) {
+      checklist.style.display = 'none';
+      listEl.innerHTML = '';
+      progEl.textContent = '';
+      return;
+    }
+
+    progEl.textContent = doneCnt + '/' + onbSteps.length + ' complete';
+    listEl.innerHTML = onbSteps.map(function(s){
+      var iconSvg = s.done
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+      var actionHtml = s.action && !s.done
+        ? '<a href="' + s.action.href + '" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">' + s.action.label + '</a>'
+        : '';
+      return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
+        + '<span style="flex-shrink:0">' + iconSvg + '</span>'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:0.82rem;font-weight:' + (s.done ? '500' : '600') + ';color:' + (s.done ? 'var(--e-muted)' : 'var(--e-text)') + (s.done ? ';text-decoration:line-through' : '') + ' ">' + esc(s.label) + '</div>'
+          + '<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">' + esc(s.desc) + '</div>'
+        + '</div>'
+        + actionHtml
+        + '</div>';
+    }).join('');
+
+    var lastItem = listEl.lastElementChild;
+    if (lastItem) lastItem.style.borderBottom = 'none';
+
+    setHomePriorityMode(hasUrgentDashboardWork());
   }
 
   // Build 4-step pipeline HTML
@@ -939,6 +1026,7 @@
     document.body.style.visibility='visible';
     var user=auth.user, session=auth.session, profile=auth.profile;
     currentUserId=user.id;
+    currentProfile=profile;
 
     // Notification bell toggle
     var _notifPanel=document.getElementById('notif-panel');
@@ -1129,6 +1217,7 @@
     }
 
     var effectiveStatus=deriveEffectiveEaserStatus(profile);
+    currentEffectiveStatus=effectiveStatus;
 
     // Status banners
     var tsBanner=document.getElementById('tier-status-banner');
@@ -1139,61 +1228,7 @@
     }
 
     // Onboarding checklist — show for active Easers until all dispatch requirements are met
-    if(effectiveStatus==='active'){
-      var onbSteps=[
-        {
-          key:'identity',
-          done: profile.identity_verified===true,
-          label:'Verify your identity',
-          desc: profile.identity_verified ? 'Identity verified.' : 'Required to receive job offers.',
-          action: !profile.identity_verified ? (profile.stripe_verification_id ? null : {href:'/assembler/apply',label:'Continue'}) : null,
-        },
-        {
-          key:'phone',
-          done: !!profile.phone,
-          label:'Add your phone number',
-          desc: profile.phone ? 'Phone number on file.' : 'Required for dispatch notifications.',
-          action: !profile.phone ? {href:'/assembler/profile',label:'Add Phone'} : null,
-        },
-        {
-          key:'online',
-          done: available,
-          label:'Go Online to receive jobs',
-          desc: available ? 'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
-          action: null,
-        },
-      ];
-      var doneCnt=onbSteps.filter(function(s){return s.done;}).length;
-      var allDone=doneCnt===onbSteps.length;
-      if(!allDone){
-        var listEl=document.getElementById('onboarding-steps');
-        var progEl=document.getElementById('onboarding-progress-text');
-        if(progEl) progEl.textContent=doneCnt+'/'+onbSteps.length+' complete';
-        if(listEl){
-          listEl.innerHTML=onbSteps.map(function(s){
-            var iconSvg=s.done
-              ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-              : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
-            var actionHtml=s.action&&!s.done
-              ? '<a href="'+s.action.href+'" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">'+s.action.label+'</a>'
-              : '';
-            return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
-              +'<span style="flex-shrink:0">'+iconSvg+'</span>'
-              +'<div style="flex:1;min-width:0">'
-                +'<div style="font-size:0.82rem;font-weight:'+(s.done ? '500' : '600')+';color:'+(s.done ? 'var(--e-muted)' : 'var(--e-text)')+(s.done ? ';text-decoration:line-through' : '')+' ">'+esc(s.label)+'</div>'
-                +'<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">'+esc(s.desc)+'</div>'
-              +'</div>'
-              +actionHtml
-              +'</div>';
-          }).join('');
-          // Remove border on last item
-          var lastItem=listEl.lastElementChild;
-          if(lastItem) lastItem.style.borderBottom='none';
-        }
-        document.getElementById('onboarding-checklist').dataset.deferWhenBusy='true';
-        document.getElementById('onboarding-checklist').style.display='';
-      }
-    }
+    renderOnboardingChecklist();
 
     if(!profile.identity_verified){
       document.getElementById('identity-banner').classList.remove('hidden');
