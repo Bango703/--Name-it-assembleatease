@@ -6,9 +6,9 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
-import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { earnForBooking as earnAssembleCashForBooking } from '../_assemblecash.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';

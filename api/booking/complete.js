@@ -5,9 +5,9 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
-import { isStripeConnectEnabled, getAssemblerConnectAccount } from '../_stripe-connect.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -209,6 +209,7 @@ export default async function handler(req, res) {
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;
+  const payoutStatus     = booking.assembler_id && assemblerDue > 0 ? 'pending' : null;
   let connectPayout = { status: 'disabled' };
 
   // Atomic guard: only update if not already completed or captured.
@@ -225,6 +226,7 @@ export default async function handler(req, res) {
       platform_fee_pct: PLATFORM_FEE_PCT,
       platform_fee: platformFee,
       assembler_due: assemblerDue,
+      payout_status: payoutStatus,
     })
     .eq('id', booking.id)
     .neq('status', BOOKING_STATUS.COMPLETED)
@@ -272,122 +274,13 @@ export default async function handler(req, res) {
     } catch (e) { console.warn('stripe_fee store error:', e && (e.message || e)); }
   }
 
-  // Optional Stripe Connect payout path. If disabled or not ready, booking remains pending payout.
-  if (isStripeConnectEnabled() && booking.assembler_id && assemblerDue > 0 && process.env.STRIPE_SECRET_KEY) {
-    const connectState = await getAssemblerConnectAccount(sb, booking.assembler_id);
-    if (!connectState.ok) {
-      connectPayout = {
-        status: 'pending_manual',
-        reason: connectState.reason,
-      };
-    } else {
-      // Shared key with assembler-complete.js — Stripe rejects duplicate if both race.
-      const transferIdempotencyKey = `transfer-booking-${booking.id}`;
-      try {
-        await writeFinancialAudit(sb, {
-          eventType: 'transfer_attempt',
-          eventSource: 'booking_complete_owner',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey: transferIdempotencyKey,
-          status: 'processing',
-          metadata: {
-            ref: booking.ref,
-            destinationAccount: connectState.accountId,
-            amount: assemblerDue,
-          },
-        });
-
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-        const transfer = await stripe.transfers.create({
-          amount: assemblerDue,
-          currency: 'usd',
-          destination: connectState.accountId,
-          transfer_group: `booking_${booking.id}`,
-          metadata: {
-            bookingId: booking.id,
-            bookingRef: booking.ref,
-            type: 'assembler_payout',
-          },
-        }, {
-          idempotencyKey: transferIdempotencyKey,
-        });
-
-        const transferNotes = `Stripe Connect transfer ${transfer.id}`;
-        const { error: payoutErr } = await sb.rpc('record_booking_payout', {
-          p_booking_id: booking.id,
-          p_payout_amount_cents: assemblerDue,
-          p_notes: transferNotes,
-          p_recorded_by: 'system_connect',
-          p_payout_method: 'stripe_connect',
-        });
-
-        if (payoutErr) {
-          console.error('Connect payout RPC error:', payoutErr);
-          await sb.from('bookings').update({
-            payout_status: 'paid',
-            payout_amount: assemblerDue,
-            paid_out_at: new Date().toISOString(),
-            payout_notes: transferNotes,
-          }).eq('id', booking.id);
-        }
-
-        await sb.from('bookings').update({
-          stripe_transfer_id: transfer.id,
-          stripe_destination_account_id: connectState.accountId,
-        }).eq('id', booking.id);
-
-        await writeFinancialAudit(sb, {
-          eventType: 'transfer_attempt',
-          eventSource: 'booking_complete_owner',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey: transferIdempotencyKey,
-          status: 'processed',
-          metadata: {
-            ref: booking.ref,
-            destinationAccount: connectState.accountId,
-            transferId: transfer.id,
-            amount: assemblerDue,
-          },
-        });
-
-        connectPayout = {
-          status: 'paid',
-          transferId: transfer.id,
-          destinationAccount: connectState.accountId,
-          amount: assemblerDue,
-        };
-      } catch (connectErr) {
-        console.error('Stripe Connect transfer error:', connectErr);
-        await writeFinancialAudit(sb, {
-          eventType: 'transfer_attempt',
-          eventSource: 'booking_complete_owner',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey: transferIdempotencyKey,
-          status: 'failed',
-          metadata: {
-            ref: booking.ref,
-            destinationAccount: connectState.accountId,
-            amount: assemblerDue,
-          },
-          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
-        });
-        connectPayout = {
-          status: 'pending_manual',
-          reason: 'transfer-failed',
-          error: connectErr?.message || 'Unknown Stripe Connect transfer error',
-        };
-        // Alert owner — manual payout action required
-        sendEmail({
-          from: 'AssembleAtEase <booking@assembleatease.com>',
-          to: ownerEmail(),
-          subject: `ACTION REQUIRED — Connect transfer failed — ${booking.ref}`,
-          html: `<p>The Stripe Connect transfer for booking <strong>${esc(booking.ref)}</strong> failed and requires manual payout.</p><p><strong>Easer:</strong> ${esc(connectState.accountId)}<br/><strong>Amount:</strong> $${(assemblerDue / 100).toFixed(2)}<br/><strong>Error:</strong> ${esc(connectErr?.message || 'Unknown error')}</p><p>Check the financial audit log and process manually via the owner dashboard.</p>`,
-        }).catch(e => console.error('Connect failure owner alert email error:', e));
-      }
-    }
+  // Keep owner-complete aligned with assembler-complete: payouts are held first,
+  // then released by cron/manual payout after the review window. This preserves a
+  // single payout source of truth and avoids immediate-transfer drift.
+  if (booking.assembler_id && assemblerDue > 0) {
+    connectPayout = isStripeConnectEnabled()
+      ? { status: 'scheduled', note: 'Releases about 48 hours after completion once payout setup is ready.' }
+      : { status: 'pending_manual', reason: 'connect-disabled' };
   }
 
   // Increment assembler's completed_jobs atomically via RPC (prevents lost-update race

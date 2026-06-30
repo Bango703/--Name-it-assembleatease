@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Your account must be approved before setting up payouts.' });
   }
   if (!profile.identity_verified) {
-    return res.status(403).json({ error: 'Complete identity verification before setting up payouts. Check your dashboard for the verification link.' });
+    return res.status(403).json({ error: 'Complete identity verification before setting up payouts. Reopen your AssembleAtEase verification link if needed.' });
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);

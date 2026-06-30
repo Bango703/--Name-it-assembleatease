@@ -5,7 +5,6 @@ import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
-import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
 import { ACTIVE_EASER_TIERS, deriveAssemblerStatus, normalizeAssemblerTier } from '../_assembler-state.js';
 
@@ -423,11 +422,9 @@ function getEaserEligibility(profile) {
     return { ok: false, error: 'Your Easer tier is not eligible for job acceptance.' };
   }
 
-  if (isStripeConnectEnabled()) {
-    if (!profile.stripe_connect_onboarding_complete || !profile.stripe_connect_charges_enabled || !profile.stripe_connect_payouts_enabled) {
-      return { ok: false, error: 'Complete Stripe payout setup before accepting jobs.' };
-    }
-  }
+  // Dispatch intentionally does not block on Stripe Connect readiness. A verified,
+  // approved Easer can accept work first and finish payout setup before the 48-hour
+  // payout release window ends. Keep accept-time eligibility aligned with dispatch.
 
   return { ok: true };
 }

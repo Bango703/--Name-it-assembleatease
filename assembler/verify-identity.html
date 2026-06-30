@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verify Identity | AssembleAtEase</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" crossorigin="anonymous" defer></script>
+  <script src="/config.js" defer></script>
+  <style>
+    :root {
+      --bg: #f5f9fb;
+      --card: #ffffff;
+      --ink: #07121f;
+      --muted: #5d7287;
+      --border: #d7e5ec;
+      --teal: #00bfff;
+      --teal-dark: #0099cc;
+      --navy: #002130;
+      --soft: #eef7fb;
+      --success-bg: #ecfdf5;
+      --success-border: #bbf7d0;
+      --success-text: #166534;
+      --warn-bg: #fff7ed;
+      --warn-border: #fed7aa;
+      --warn-text: #9a3412;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #991b1b;
+      --shadow: 0 18px 54px rgba(6, 24, 37, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(0, 191, 255, 0.16), transparent 28%),
+        linear-gradient(180deg, #f8fcfe 0%, #eef6fa 100%);
+      color: var(--ink);
+      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .shell {
+      width: min(760px, 100%);
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #001f2b 0%, #00485d 62%, #00a7db 100%);
+      color: #fff;
+      border-radius: 22px;
+      padding: 1.5rem 1.5rem 1.75rem;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #b9edfb;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 5px rgba(0, 191, 255, 0.14);
+    }
+
+    h1 {
+      margin: 0 0 0.55rem;
+      font-family: "DM Serif Display", serif;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 0.98;
+    }
+
+    .hero-copy {
+      margin: 0;
+      max-width: 560px;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 0.98rem;
+      line-height: 1.75;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.35rem;
+      box-shadow: var(--shadow);
+    }
+
+    .section-title {
+      margin: 0 0 0.3rem;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .section-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.9rem;
+    }
+
+    .stack { display: grid; gap: 1rem; }
+
+    .alert {
+      display: none;
+      border-radius: 14px;
+      padding: 0.9rem 1rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      border: 1px solid transparent;
+    }
+
+    .alert.show { display: block; }
+    .alert.success { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+    .alert.warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+    .alert.error { background: var(--error-bg); border-color: var(--error-border); color: var(--error-text); }
+
+    .steps {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 0.85rem;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.8rem 0.9rem;
+      border-radius: 14px;
+      background: var(--soft);
+      border: 1px solid #dceaf1;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #dff6ff;
+      color: var(--teal-dark);
+      display: grid;
+      place-items: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .step strong {
+      display: block;
+      font-size: 0.88rem;
+      margin-bottom: 0.18rem;
+    }
+
+    .step span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.55;
+    }
+
+    .agreement-box {
+      display: none;
+      gap: 0.85rem;
+      padding: 1rem;
+      border-radius: 16px;
+      border: 1px solid #cfe6ef;
+      background: #f8fcfe;
+    }
+
+    .agreement-box.show { display: grid; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+      color: #102132;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      padding: 0.75rem 0.9rem;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.12);
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.9rem;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      margin-top: 0.15rem;
+      accent-color: var(--teal);
+    }
+
+    .check span {
+      font-size: 0.84rem;
+      color: #42556a;
+      line-height: 1.65;
+    }
+
+    .check a {
+      color: var(--teal-dark);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.2rem;
+    }
+
+    .btn {
+      border: none;
+      min-height: 50px;
+      padding: 0.85rem 1.2rem;
+      border-radius: 12px;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #002130;
+      box-shadow: 0 14px 28px rgba(0, 191, 255, 0.18);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: #0f2940;
+      border: 1px solid var(--border);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem; }
+      .hero, .card { border-radius: 18px; }
+      .cta-row { align-items: stretch; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">Easer Onboarding</div>
+      <h1 id="hero-title">Continue your identity verification</h1>
+      <p class="hero-copy" id="hero-copy">Use this secure AssembleAtEase page to start or reopen Stripe identity verification. If you switch devices or the Stripe page expires, come back to this link and we will reopen it securely.</p>
+    </section>
+
+    <section class="card stack">
+      <div id="page-alert" class="alert"></div>
+
+      <div>
+        <p class="section-title">What happens here</p>
+        <p class="section-copy">We use Stripe Identity to confirm every Easer before approval. This page keeps the process clear: agreement first if needed, then secure identity verification, then owner review.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div><strong>Review your onboarding details</strong><span>If your contractor agreement is not already on file, we will ask you to confirm it here before sending you to Stripe.</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div><strong>Complete secure ID verification</strong><span>Stripe will ask for a government ID and a selfie. This usually takes about two minutes.</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div><strong>Wait for application review</strong><span>After verification is submitted, AssembleAtEase reviews your application and emails you the next decision.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="agreement-box" class="agreement-box">
+        <div>
+          <p class="section-title">Agreement confirmation required</p>
+          <p class="section-copy">Before we can continue, we need your contractor agreement and code-of-conduct acceptance on file.</p>
+        </div>
+        <div>
+          <label for="full-name">Full legal name</label>
+          <input id="full-name" type="text" autocomplete="name" placeholder="First and last name" />
+        </div>
+        <label class="check">
+          <input id="contractor-agree" type="checkbox" />
+          <span>I have read the <a href="/assembler/contractor-agreement" target="_blank" rel="noopener">Independent Contractor Agreement</a> in full and agree to be legally bound by its terms.</span>
+        </label>
+        <label class="check">
+          <input id="conduct-agree" type="checkbox" />
+          <span>I agree to the AssembleAtEase <a href="/terms" target="_blank" rel="noopener">Code of Conduct and Terms of Service</a>, and I understand identity verification is required before I can receive jobs.</span>
+        </label>
+      </div>
+
+      <div class="cta-row">
+        <button id="continue-btn" class="btn btn-primary" type="button">Continue to secure verification</button>
+        <a href="mailto:service@assembleatease.com" class="btn btn-secondary">Contact support</a>
+      </div>
+
+      <p class="meta" id="helper-copy">If Stripe asks you for more information later, use this same AssembleAtEase link again instead of waiting for a new email.</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var token = (params.get('token') || '').trim();
+      var verificationComplete = params.get('verification') === 'complete';
+      var authToken = null;
+      var requiresAgreement = false;
+
+      var alertEl = document.getElementById('page-alert');
+      var heroTitle = document.getElementById('hero-title');
+      var heroCopy = document.getElementById('hero-copy');
+      var helperCopy = document.getElementById('helper-copy');
+      var agreementBox = document.getElementById('agreement-box');
+      var continueBtn = document.getElementById('continue-btn');
+      var fullNameInput = document.getElementById('full-name');
+      var contractorAgree = document.getElementById('contractor-agree');
+      var conductAgree = document.getElementById('conduct-agree');
+
+      function showAlert(type, message) {
+        alertEl.className = 'alert show ' + type;
+        alertEl.textContent = message;
+      }
+
+      function clearAlert() {
+        alertEl.className = 'alert';
+        alertEl.textContent = '';
+      }
+
+      async function getAuthToken() {
+        if (!window.supabaseClient) return null;
+        try {
+          var sessionResult = await window.supabaseClient.auth.getSession();
+          var session = sessionResult && sessionResult.data && sessionResult.data.session;
+          if (session && session.access_token) return session.access_token;
+        } catch (_) {}
+        return null;
+      }
+
+      async function requestContext() {
+        var headers = {};
+        var url = '/api/assembler/verification-link';
+
+        if (token) {
+          url += '?token=' + encodeURIComponent(token);
+        } else {
+          authToken = await getAuthToken();
+          if (!authToken) {
+            heroTitle.textContent = 'Open your verification link';
+            heroCopy.textContent = 'Use the verification link from your email, or sign in to your Easer dashboard first and then reopen this page.';
+            continueBtn.disabled = true;
+            showAlert('warn', 'This page needs either your email verification link or an active Easer session.');
+            return;
+          }
+          headers.Authorization = 'Bearer ' + authToken;
+        }
+
+        var response = await fetch(url, { headers: headers });
+        var data = await response.json().catch(function () { return {}; });
+        if (!response.ok) {
+          continueBtn.disabled = true;
+          showAlert('error', data.error || 'Could not load verification details right now.');
+          return;
+        }
+
+        if (data.identityVerified) {
+          if (data.agreementPendingOnly) {
+            requiresAgreement = true;
+            agreementBox.classList.add('show');
+            fullNameInput.value = data.fullName || '';
+            heroTitle.textContent = 'Agreement confirmation required';
+            heroCopy.textContent = 'Your identity verification is already complete, but your agreement acceptance is still missing. Finish that step here so your application can move forward.';
+            helperCopy.textContent = 'After you save your agreement acceptance, AssembleAtEase can continue reviewing your application.';
+            continueBtn.textContent = 'Save agreement and finish onboarding';
+            showAlert('warn', 'Identity is verified, but we still need your contractor agreement and code-of-conduct acceptance on file.');
+            return;
+          }
+
+          heroTitle.textContent = 'Identity verification already completed';
+          heroCopy.textContent = 'Stripe identity verification is already on file for this application. AssembleAtEase will email you once the review is complete.';
+          continueBtn.style.display = 'none';
+          helperCopy.textContent = 'If you still need help, contact service@assembleatease.com.';
+          showAlert('success', 'Your identity verification is already marked complete.');
+          return;
+        }
+
+        requiresAgreement = data.requiresAgreement === true;
+        if (requiresAgreement) {
+          agreementBox.classList.add('show');
+          fullNameInput.value = data.fullName || '';
+        }
+      }
+
+      async function continueToStripe() {
+        clearAlert();
+        continueBtn.disabled = true;
+        continueBtn.textContent = 'Opening secure verification...';
+
+        try {
+          if (!authToken && !token) {
+            authToken = await getAuthToken();
+          }
+
+          var headers = { 'Content-Type': 'application/json' };
+          if (authToken) headers.Authorization = 'Bearer ' + authToken;
+
+          var payload = {};
+          if (token) payload.token = token;
+          if (requiresAgreement) {
+            payload.fullName = fullNameInput.value.trim();
+            payload.contractorAgreementSigned = contractorAgree.checked;
+            payload.codeOfConductAccepted = conductAgree.checked;
+          }
+
+          var response = await fetch('/api/assembler/verification-link', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload),
+          });
+          var data = await response.json().catch(function () { return {}; });
+
+          if (!response.ok) {
+            showAlert('error', data.error || 'Could not open verification right now.');
+            continueBtn.disabled = false;
+            continueBtn.textContent = 'Continue to secure verification';
+            return;
+          }
+
+          if (data.alreadyVerified) {
+            heroTitle.textContent = 'Identity verification already completed';
+            heroCopy.textContent = data.agreementRecorded
+              ? 'Your agreement acceptance is now on file and your identity verification is already complete. AssembleAtEase will email you once the review is finished.'
+              : 'Stripe identity verification is already on file for this application. AssembleAtEase will email you once the review is complete.';
+            continueBtn.style.display = 'none';
+            showAlert('success', data.agreementRecorded
+              ? 'Agreement saved. Your onboarding file is now complete for review.'
+              : 'Your identity verification is already marked complete.');
+            return;
+          }
+
+          if (data.verificationUrl) {
+            window.location.href = data.verificationUrl;
+            return;
+          }
+
+          showAlert('error', 'Verification could not be started. Please try again.');
+          continueBtn.disabled = false;
+          continueBtn.textContent = 'Continue to secure verification';
+        } catch (err) {
+          showAlert('error', 'Connection error. Please try again.');
+          continueBtn.disabled = false;
+          continueBtn.textContent = 'Continue to secure verification';
+        }
+      }
+
+      continueBtn.addEventListener('click', continueToStripe);
+
+      window.addEventListener('load', function () {
+        if (verificationComplete) {
+          heroTitle.textContent = 'Verification submitted';
+          heroCopy.textContent = 'Stripe has received your identity verification. AssembleAtEase will review your application after Stripe finishes processing it.';
+          helperCopy.textContent = 'If Stripe later asks for more information or you need to retry, use this same AssembleAtEase link again.';
+          showAlert('success', 'Verification submitted successfully. We will contact you after review.');
+          continueBtn.textContent = 'Reopen verification if needed';
+        }
+        requestContext().catch(function () {
+          continueBtn.disabled = true;
+          showAlert('error', 'Could not load verification details right now.');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

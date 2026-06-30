@@ -5,6 +5,7 @@ import { logActivity } from '../booking/_activity.js';
 import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { releasePendingRedemption } from '../_assemblecash.js';
+import { bestEffortProfileUpdate, buildIdentityResumeUrl, ensureIdentityResumeToken } from '../_assembler-onboarding.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -82,6 +83,10 @@ export default async function handler(req, res) {
           identity_verified: true,
           identity_verified_at: new Date().toISOString(),
         }).eq('id', userId);
+        await bestEffortProfileUpdate(sb, userId, {
+          id_verification_status: 'verified',
+          stripe_identity_session_id: session.id,
+        });
 
         // Notify owner
         const { data: profile } = await sb.from('profiles')
@@ -96,8 +101,20 @@ export default async function handler(req, res) {
               from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Identity Verified — ${esc(profile.full_name)}`,
               html: buildVerifiedEmail(profile.full_name, profile.email, 'verified'),
+              meta: { notificationType: 'identity_verified_owner', recipientType: 'owner' },
             });
           } catch (e) { console.error('Owner verified email error:', e); }
+
+          try {
+            await sendEmail({
+              to: profile.email,
+              from: 'AssembleAtEase <booking@assembleatease.com>',
+              subject: 'Identity Verified — Application Review Pending',
+              html: buildApplicantVerifiedEmail(profile.full_name.split(' ')[0]),
+              replyTo: ownerEmail(),
+              meta: { notificationType: 'identity_verified_applicant', recipientType: 'easer', recipientUserId: userId },
+            });
+          } catch (e) { console.error('Applicant verified email error:', e); }
         }
         break;
       }
@@ -111,21 +128,28 @@ export default async function handler(req, res) {
         await sb.from('profiles').update({
           identity_verified: false,
         }).eq('id', userId);
+        await bestEffortProfileUpdate(sb, userId, {
+          id_verification_status: 'failed',
+          stripe_identity_session_id: session.id,
+        });
 
         // Notify both owner and assembler
         const { data: profile } = await sb.from('profiles')
-          .select('full_name, email')
+          .select('full_name, email, identity_resume_token')
           .eq('id', userId)
           .maybeSingle();
 
         if (profile) {
           const lastError = session.last_error?.reason || 'verification could not be completed';
+          const resumeToken = await ensureIdentityResumeToken(sb, { id: userId, identity_resume_token: profile.identity_resume_token });
+          const resumeUrl = buildIdentityResumeUrl(resumeToken);
           try {
             await sendEmail({
               to: ownerEmail(),
               from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Identity Verification Failed — ${esc(profile.full_name)}`,
               html: buildVerifiedEmail(profile.full_name, profile.email, 'failed', lastError),
+              meta: { notificationType: 'identity_failed_owner', recipientType: 'owner' },
             });
           } catch (e) { console.error('Owner failed email error:', e); }
 
@@ -133,9 +157,10 @@ export default async function handler(req, res) {
             await sendEmail({
               to: profile.email,
               from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: 'Action Required — Identity Verification',
-              html: buildAssemblerFailEmail(profile.full_name.split(' ')[0], lastError),
+              subject: 'Action Required — Retry Identity Verification',
+              html: buildAssemblerFailEmail(profile.full_name.split(' ')[0], lastError, resumeUrl),
               replyTo: ownerEmail(),
+              meta: { notificationType: 'identity_failed_applicant', recipientType: 'easer', recipientUserId: userId },
             });
           } catch (e) { console.error('Assembler failed email error:', e); }
         }
@@ -824,13 +849,26 @@ function buildVerifiedEmail(fullName, email, status, reason = '') {
 </div></body></html>`;
 }
 
-function buildAssemblerFailEmail(firstName, reason) {
+function buildApplicantVerifiedEmail(firstName) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
+<div style="max-width:520px;margin:0 auto;padding:24px 16px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
+    <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#166534">Identity verified, ${esc(firstName)}.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Stripe identity verification has been submitted successfully. AssembleAtEase will now review your application and email you with the next decision.</p>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">No further action is needed from you right now.</p>
+  </td></tr></table>
+</div></body></html>`;
+}
+
+function buildAssemblerFailEmail(firstName, reason, resumeUrl) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
 <div style="max-width:520px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Action required, ${esc(firstName)}</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Your identity verification could not be completed. Reason: <strong>${esc(reason)}</strong></p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> to resolve this.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Use the secure AssembleAtEase link below to retry. If the Stripe page expires or you switch devices, use this same link again.</p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${esc(resumeUrl)}" style="display:inline-block;padding:12px 28px;color:#001f2b;font-size:14px;font-weight:800;text-decoration:none;border-radius:8px">Retry Identity Verification</a></td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
 </div></body></html>`;
 }

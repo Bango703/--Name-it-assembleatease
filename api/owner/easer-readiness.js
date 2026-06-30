@@ -75,6 +75,7 @@ export default async function handler(req, res) {
 
   const applicationSubmitted = !!profile.created_at && ['applied', 'approved', 'rejected'].includes(String(profile.application_status || '').toLowerCase());
   const contractorAgreementAccepted = !!profile.contractor_agreement_signed_at;
+  const codeOfConductAccepted = !!profile.code_of_conduct_agreed_at;
   const agreementVersion = profile.contractor_agreement_version || profile.agreement_version || null;
   const identityVerified = profile.identity_verified === true;
   const effectiveStatus = deriveAssemblerStatus(profile);
@@ -89,6 +90,7 @@ export default async function handler(req, res) {
   const missingItems = [];
   if (!applicationSubmitted) missingItems.push('Application submitted');
   if (!contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
+  if (!codeOfConductAccepted) missingItems.push('Code of conduct accepted');
   // Agreement VERSION is informational, not a dispatch blocker. If the Pro accepted
   // the agreement, a missing version string is just a recording gap (older signups
   // predate version tracking) — it must not hold an otherwise-ready Pro in limbo.
@@ -111,6 +113,7 @@ export default async function handler(req, res) {
       connectRequired,
       applicationSubmitted,
       contractorAgreementAccepted,
+      codeOfConductAccepted,
       agreementVersion: agreementVersion || (contractorAgreementAccepted ? 'Accepted (version not recorded)' : null),
       identityVerified,
       ownerApproved,

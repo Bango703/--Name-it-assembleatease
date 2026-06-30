@@ -1068,8 +1068,8 @@
         <p>Submitting this application does not guarantee work. Approved Easers are matched to jobs based on service fit, availability, and operational readiness.</p>
         <div class="step-list">
           <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service categories, and launch-program status.</span></div></div>
-          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the Stripe Identity link if one is shown after submission.</span></div></div>
-          <div class="mini-step"><div class="mini-num">3</div><div><strong>Owner review</strong><span>We review your tools, transport, service fit, and professionalism.</span></div></div>
+          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the secure AssembleAtEase link sent after submission. If Stripe expires or you switch devices, that same link reopens verification.</span></div></div>
+          <div class="mini-step"><div class="mini-num">3</div><div><strong>Owner review</strong><span>We review your application after identity verification is submitted.</span></div></div>
         </div>
       </div>
 
@@ -1095,9 +1095,9 @@
     <h2 id="success-heading">Application submitted</h2>
     <p id="success-msg">Thank you for applying. No application fee was collected today, and a confirmation has been sent to your email.</p>
     <div id="identity-section" class="verify-card">
-      <p>Complete identity verification to finish your application review.</p>
-      <a id="verify-btn" href="#" class="btn-apply">Verify Identity &rarr;</a>
-      <p style="font-size:0.8rem;margin-top:0.75rem">You will be redirected to Stripe's secure verification page.</p>
+      <p>Complete identity verification through your secure AssembleAtEase onboarding link.</p>
+      <a id="verify-btn" href="#" class="btn-apply">Continue Identity Verification &rarr;</a>
+      <p style="font-size:0.8rem;margin-top:0.75rem">If you switch devices or the Stripe page expires, use this same link again and we will reopen it securely.</p>
     </div>
     <div id="verification-complete-section" class="verification-complete">Verification submitted. Our team will review your application and email you when a decision is made.</div>
   </div>
@@ -1285,10 +1285,11 @@
       }
       successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-      // Show identity verification button if URL was returned
-      if (data.verificationUrl) {
+      // Show reusable verification button if URL was returned
+      var verificationLink = data.verificationResumeUrl || data.verificationUrl;
+      if (verificationLink) {
         document.getElementById('identity-section').style.display = 'block';
-        document.getElementById('verify-btn').href = data.verificationUrl;
+        document.getElementById('verify-btn').href = verificationLink;
       }
 
     } catch (err) {

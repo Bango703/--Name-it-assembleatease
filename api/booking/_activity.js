@@ -11,10 +11,10 @@ export async function logActivity(sb, {
   bookingId, eventType, actorType = 'system',
   actorId = null, actorName = null, description, metadata = null
 }) {
-  if (!bookingId || !eventType || !description) return;
+  if (!eventType || !description) return;
   try {
     await sb.from('activity_logs').insert({
-      booking_id: bookingId,
+      booking_id: bookingId || null,
       event_type: eventType,
       actor_type: actorType,
       actor_id: actorId,

@@ -5,7 +5,7 @@ import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 function deriveUiState(profile, requirementsDue) {
   if (!profile?.stripe_connect_account_id) {
-    return { code: 'action_required', label: 'Action Required', message: 'Set up Stripe payouts to receive jobs and payouts.' };
+    return { code: 'action_required', label: 'Action Required', message: 'Set up Stripe payouts so AssembleAtEase can send your earnings to your bank. Job offers can still start once you are approved and online.' };
   }
   if (profile.stripe_connect_onboarding_complete && profile.stripe_connect_charges_enabled && profile.stripe_connect_payouts_enabled) {
     return { code: 'enabled', label: 'Enabled', message: 'Payouts are enabled.' };

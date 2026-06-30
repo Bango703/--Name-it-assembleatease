@@ -214,7 +214,7 @@
       <div class="eh-banner-title">Identity verification pending</div>
       <div class="eh-banner-sub" id="identity-banner-sub">Your verification is in progress.</div>
     </div>
-    <a id="identity-verify-btn" href="/assembler/apply" class="eh-banner-btn" style="display:none">Verify Now</a>
+    <a id="identity-verify-btn" href="/assembler/verify-identity" class="eh-banner-btn" style="display:none">Continue Verification</a>
   </div>
   <div id="profile-banner" class="eh-banner hidden">
     <div>
@@ -1198,13 +1198,9 @@
     if(!profile.identity_verified){
       document.getElementById('identity-banner').classList.remove('hidden');
       var iSub=document.getElementById('identity-banner-sub');
-      if(profile.stripe_verification_id){
-        iSub.textContent='Your identity verification is being processed. We\'ll notify you once complete.';
-      } else {
-        iSub.textContent='Identity verification required to receive jobs.';
-        var vBtn=document.getElementById('identity-verify-btn');
-        if(vBtn) vBtn.style.display='';
-      }
+      iSub.textContent='Identity verification is required before you can receive jobs. If the Stripe page expired, reopen it here.';
+      var vBtn=document.getElementById('identity-verify-btn');
+      if(vBtn) vBtn.style.display='';
     }
 
     if(!profile.phone){

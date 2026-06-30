@@ -56,6 +56,12 @@ export default async function handler(req, res) {
     if (!profile.identity_verified) {
       return res.status(400).json({ error: 'Identity must be verified before approval. Mark ID verified first.' });
     }
+    if (!profile.contractor_agreement_signed_at) {
+      return res.status(400).json({ error: 'Contractor agreement must be accepted before approval.' });
+    }
+    if (!profile.code_of_conduct_agreed_at) {
+      return res.status(400).json({ error: 'Code of conduct acceptance must be on file before approval.' });
+    }
     if (profile.status === 'active') {
       return res.status(400).json({ error: 'Easer is already active.' });
     }
