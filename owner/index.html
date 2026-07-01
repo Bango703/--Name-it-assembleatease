@@ -857,6 +857,44 @@
           <div class="stat neutral"><div class="stat-value" id="mk-revenue-touched">—</div><div class="stat-label">Revenue Touched</div></div>
         </div>
 
+        <div class="detail-panel open" style="margin-bottom:1rem">
+          <div class="view-header" style="margin-bottom:1rem">
+            <div class="view-header-left">
+              <h2>Social Automation</h2>
+              <p>Buffer queue coverage for Facebook, Google Business, and founder-led LinkedIn posting.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button id="mk-social-refresh" class="btn" type="button">Refresh</button>
+              <button id="mk-social-dry-run" class="btn btn-amber" type="button">Dry Run Queue</button>
+              <button id="mk-social-run" class="btn btn-teal" type="button">Top Up Queue</button>
+            </div>
+          </div>
+          <div id="mk-social-note" style="font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">Loading social automation status...</div>
+          <div class="stats-row" style="margin-bottom:1rem">
+            <div class="stat teal"><div class="stat-value" id="mk-social-ready">—</div><div class="stat-label">Connected Channels</div></div>
+            <div class="stat neutral"><div class="stat-value" id="mk-social-queued">—</div><div class="stat-label">Queued vs Target</div></div>
+            <div class="stat orange"><div class="stat-value" id="mk-social-below">—</div><div class="stat-label">Channels Below Target</div></div>
+            <div class="stat red"><div class="stat-value" id="mk-social-errors">—</div><div class="stat-label">Recent Social Errors</div></div>
+          </div>
+          <div style="overflow:auto">
+            <table class="pro-table">
+              <thead>
+                <tr>
+                  <th>Channel</th>
+                  <th>Lane</th>
+                  <th>Queue</th>
+                  <th>Next Post</th>
+                  <th>Recent Activity</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="mk-social-body">
+                <tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--muted)">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="detail-panel open">
           <div class="view-header" style="margin-bottom:1rem">
             <div class="view-header-left">
@@ -1852,7 +1890,7 @@ function intelQuick(msg) {
     return desc[value] || desc.security;
   }
   function ckRender(kit) {
-    var sections = [['Facebook', kit.facebook], ['Instagram', kit.instagram], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Hashtags', kit.hashtags], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
+    var sections = [['Facebook', kit.facebook], ['LinkedIn', kit.linkedin], ['Google Business', kit.googleBusiness], ['Hashtags', kit.hashtags], ['Video script', kit.videoScript], ['Apartment outreach', kit.apartmentOutreach]];
     return sections.map(function(s, i){
       var id = 'ck-box-' + i;
       return '<div style="border:1px solid #e4e4e7;border-radius:8px;margin-bottom:10px;overflow:hidden">'
@@ -4146,17 +4184,40 @@ function intelQuick(msg) {
   }
 
   // ─── MARKETING VIEW ───
+  var marketingSocialSnapshot = null;
+
   async function loadMarketing() {
     var recentBody = document.getElementById('mk-recent-body');
+    var socialBody = document.getElementById('mk-social-body');
     if (recentBody) {
       recentBody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--muted)">Loading...</td></tr>';
     }
-    try {
-      var r = await fetch('/api/owner/promo', { headers: headers() });
+    if (socialBody) {
+      socialBody.innerHTML = '<tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--muted)">Loading...</td></tr>';
+    }
+    setText('mk-social-ready', '—');
+    setText('mk-social-queued', '—');
+    setText('mk-social-below', '—');
+    setText('mk-social-errors', '—');
+    var socialNote = document.getElementById('mk-social-note');
+    if (socialNote) socialNote.textContent = 'Loading social automation status...';
+
+    var promoReq = fetch('/api/owner/promo', { headers: headers() }).then(async function(r) {
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to load promo settings');
-      renderMarketing(d);
-    } catch (e) {
+      return d;
+    });
+    var socialReq = fetch('/api/owner/social-automation', { headers: headers() }).then(async function(r) {
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to load social automation');
+      return d;
+    });
+
+    var results = await Promise.allSettled([promoReq, socialReq]);
+    if (results[0].status === 'fulfilled') {
+      renderMarketing(results[0].value);
+    } else {
+      var e = results[0].reason || new Error('Failed to load promo settings');
       if (recentBody) {
         recentBody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--red)">Failed to load promo data.</td></tr>';
       }
@@ -4166,6 +4227,13 @@ function intelQuick(msg) {
       setText('mk-revenue-touched', '—');
       var note = document.getElementById('mk-save-note');
       if (note) note.textContent = e.message || 'Failed to load promo data.';
+    }
+
+    if (results[1].status === 'fulfilled') {
+      renderSocialAutomation(results[1].value.snapshot || results[1].value);
+    } else {
+      var socialError = results[1].reason || new Error('Failed to load social automation');
+      setSocialAutomationError(socialError.message || 'Failed to load social automation.');
     }
   }
 
@@ -4256,7 +4324,148 @@ function intelQuick(msg) {
     }).join('');
   }
 
+  function renderSocialAutomation(snapshot) {
+    marketingSocialSnapshot = snapshot || null;
+    var channels = snapshot && snapshot.channels ? snapshot.channels : [];
+    var ready = channels.filter(function(channel){ return channel.ready; }).length;
+    var queued = channels.reduce(function(sum, channel){ return sum + Number(channel.queuedCount || 0); }, 0);
+    var target = channels.filter(function(channel){ return channel.ready; }).reduce(function(sum, channel){ return sum + Number(channel.targetQueued || 0); }, 0);
+    var belowTarget = channels.filter(function(channel){ return channel.ready && Number(channel.deficit || 0) > 0; }).length;
+    var recentErrors = channels.reduce(function(sum, channel){ return sum + Number(channel.recentErrorCount || 0); }, 0);
+
+    setText('mk-social-ready', ready + '/' + channels.length);
+    setText('mk-social-queued', queued + '/' + target);
+    setText('mk-social-below', String(belowTarget));
+    setText('mk-social-errors', String(recentErrors));
+
+    var note = document.getElementById('mk-social-note');
+    if (note) {
+      if (!snapshot || snapshot.enabled === false) {
+        note.textContent = 'Buffer automation is not live from code yet. Set the Buffer API key, connected channel IDs, and SOCIAL_AUTO_PUBLISH=true before relying on scheduled posting.';
+      } else if (belowTarget > 0) {
+        note.textContent = 'Queue coverage is below target on ' + belowTarget + ' channel' + (belowTarget === 1 ? '' : 's') + '. LinkedIn is positioned as founder voice, while Facebook and Google Business stay service- and local-intent focused.';
+      } else {
+        note.textContent = 'Queue coverage is healthy. LinkedIn uses founder/operator voice, while Facebook and Google Business stay local and booking-oriented.';
+      }
+    }
+
+    var body = document.getElementById('mk-social-body');
+    if (!body) return;
+    if (!channels.length) {
+      body.innerHTML = '<tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--muted)">No social channels are configured for automation yet.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = channels.map(function(channel) {
+      var queueLabel = Number(channel.targetQueued || 0) > 0
+        ? '<strong>' + Number(channel.queuedCount || 0) + '</strong> / ' + Number(channel.targetQueued || 0)
+        : '<strong>' + Number(channel.queuedCount || 0) + '</strong>';
+      var recentLabel = Number(channel.recentSentCount || 0) + ' sent';
+      if (Number(channel.recentErrorCount || 0) > 0) recentLabel += ' / ' + Number(channel.recentErrorCount || 0) + ' errors';
+      var postingSchedule = Number(channel.postingSlotsPerWeek || 0) > 0 ? Number(channel.postingSlotsPerWeek || 0) + ' slots/week' : 'Schedule not detected';
+      var missing = (channel.missing || []).length ? '<div style="font-size:0.72rem;color:var(--red);margin-top:0.35rem">' + esc((channel.missing || []).join(', ')) + '</div>' : '';
+      return '<tr>'
+        + '<td>'
+          + '<div style="font-size:0.86rem;font-weight:700;color:var(--text)">' + esc(channel.displayName || channel.label || channel.key) + '</div>'
+          + '<div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem">' + esc(channel.descriptor || channel.label || channel.key) + '</div>'
+        + '</td>'
+        + '<td style="font-size:0.8rem;color:var(--soft);line-height:1.5">' + esc(channel.lane || '—') + '</td>'
+        + '<td>'
+          + '<div style="font-size:0.84rem;color:var(--text)">' + queueLabel + '</div>'
+          + '<div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem">' + esc(postingSchedule) + '</div>'
+        + '</td>'
+        + '<td style="font-size:0.8rem;color:var(--soft)">' + esc(channel.nextDueAt ? formatDateTime(channel.nextDueAt) : '—') + '</td>'
+        + '<td style="font-size:0.8rem;color:var(--soft)">' + esc(recentLabel) + '</td>'
+        + '<td>'
+          + socialStatusBadge(channel)
+          + missing
+        + '</td>'
+      + '</tr>';
+    }).join('');
+  }
+
+  function socialStatusBadge(channel) {
+    if (!channel || !channel.ready) {
+      return '<span style="display:inline-flex;align-items:center;gap:0.45rem;font-size:0.76rem;font-weight:700;color:var(--red)"><span class="dot dot-red"></span>Not ready</span>';
+    }
+    if (channel.queuePaused) {
+      return '<span style="display:inline-flex;align-items:center;gap:0.45rem;font-size:0.76rem;font-weight:700;color:var(--amber)"><span class="dot dot-amber"></span>Queue paused</span>';
+    }
+    if (Number(channel.recentErrorCount || 0) > 0) {
+      return '<span style="display:inline-flex;align-items:center;gap:0.45rem;font-size:0.76rem;font-weight:700;color:var(--red)"><span class="dot dot-red"></span>Recent errors</span>';
+    }
+    if (Number(channel.deficit || 0) > 0) {
+      return '<span style="display:inline-flex;align-items:center;gap:0.45rem;font-size:0.76rem;font-weight:700;color:var(--orange)"><span class="dot dot-amber"></span>Below target</span>';
+    }
+    return '<span style="display:inline-flex;align-items:center;gap:0.45rem;font-size:0.76rem;font-weight:700;color:var(--green)"><span class="dot dot-green"></span>On target</span>';
+  }
+
+  function setSocialAutomationError(message) {
+    marketingSocialSnapshot = null;
+    setText('mk-social-ready', 'Error');
+    setText('mk-social-queued', '—');
+    setText('mk-social-below', '—');
+    setText('mk-social-errors', '—');
+    var note = document.getElementById('mk-social-note');
+    if (note) note.textContent = message || 'Failed to load social automation.';
+    var body = document.getElementById('mk-social-body');
+    if (body) {
+      body.innerHTML = '<tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--red)">' + esc(message || 'Failed to load social automation.') + '</td></tr>';
+    }
+  }
+
+  async function runSocialAutomationAction(dryRun) {
+    var refreshBtn = document.getElementById('mk-social-refresh');
+    var dryBtn = document.getElementById('mk-social-dry-run');
+    var runBtn = document.getElementById('mk-social-run');
+    var buttons = [refreshBtn, dryBtn, runBtn].filter(Boolean);
+    var original = {
+      refresh: refreshBtn ? refreshBtn.textContent : '',
+      dry: dryBtn ? dryBtn.textContent : '',
+      run: runBtn ? runBtn.textContent : '',
+    };
+
+    buttons.forEach(function(btn){ btn.disabled = true; });
+    if (dryBtn) dryBtn.textContent = dryRun ? 'Checking…' : original.dry;
+    if (runBtn) runBtn.textContent = dryRun ? original.run : 'Topping Up…';
+
+    try {
+      var r = await fetch('/api/owner/social-automation', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ dryRun: dryRun === true }),
+      });
+      var d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to run social automation');
+
+      var summary = d.summary || {};
+      var message = dryRun
+        ? 'Dry run checked ' + Number(summary.attemptedPosts || 0) + ' planned post' + (Number(summary.attemptedPosts || 0) === 1 ? '' : 's')
+        : 'Queued ' + Number(summary.queued || 0) + ' post' + (Number(summary.queued || 0) === 1 ? '' : 's');
+      if (Number(summary.errors || 0) > 0) message += ' with ' + Number(summary.errors || 0) + ' error' + (Number(summary.errors || 0) === 1 ? '' : 's');
+      toast(message, Number(summary.errors || 0) > 0 ? 'error' : 'success');
+      await loadMarketing();
+    } catch (e) {
+      toast(e.message || 'Failed to run social automation', 'error');
+      var note = document.getElementById('mk-social-note');
+      if (note) note.textContent = e.message || 'Failed to run social automation.';
+    } finally {
+      buttons.forEach(function(btn){ btn.disabled = false; });
+      if (refreshBtn) refreshBtn.textContent = original.refresh || 'Refresh';
+      if (dryBtn) dryBtn.textContent = original.dry || 'Dry Run Queue';
+      if (runBtn) runBtn.textContent = original.run || 'Top Up Queue';
+    }
+  }
+
   (function(){ var dt = document.getElementById('mk-discount-type'); if (dt) dt.addEventListener('change', applyDiscountTypeUi); })();
+  (function() {
+    var refreshBtn = document.getElementById('mk-social-refresh');
+    var dryBtn = document.getElementById('mk-social-dry-run');
+    var runBtn = document.getElementById('mk-social-run');
+    if (refreshBtn) refreshBtn.addEventListener('click', loadMarketing);
+    if (dryBtn) dryBtn.addEventListener('click', function(){ runSocialAutomationAction(true); });
+    if (runBtn) runBtn.addEventListener('click', function(){ runSocialAutomationAction(false); });
+  })();
 
   document.getElementById('mk-save').addEventListener('click', async function() {
     var btn = this;

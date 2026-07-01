@@ -108,6 +108,10 @@
       "schedule": "0 9 1,15 * *"
     },
     {
+      "path": "/api/cron/auto-social",
+      "schedule": "0 14,20 * * *"
+    },
+    {
       "path": "/api/cron/followup",
       "schedule": "0 15 * * *"
     },

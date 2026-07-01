@@ -2,12 +2,40 @@ const BUFFER_GRAPHQL_URL = 'https://api.buffer.com';
 const BUFFER_DEFAULT_MODE = process.env.BUFFER_POST_MODE || 'addToQueue';
 const BUFFER_DEFAULT_SCHEDULING_TYPE = process.env.BUFFER_SCHEDULING_TYPE || 'automatic';
 
+const CHANNEL_POLICIES = {
+  facebook: {
+    targetQueued: 2,
+    maxPerRun: 2,
+    lane: 'Local trust and homeowner awareness',
+    attachImage: true,
+  },
+  googleBusiness: {
+    targetQueued: 2,
+    maxPerRun: 2,
+    lane: 'Local SEO freshness and booking intent',
+    attachImage: true,
+  },
+  linkedin: {
+    targetQueued: 1,
+    maxPerRun: 1,
+    lane: 'Founder voice and B2B credibility',
+    attachImage: false,
+  },
+};
+
 const CHANNELS = [
   { key: 'facebook', label: 'Facebook', env: ['BUFFER_FACEBOOK_CHANNEL_ID'], kitKey: 'facebook' },
-  { key: 'instagram', label: 'Instagram', env: ['BUFFER_INSTAGRAM_CHANNEL_ID'], kitKey: 'instagram' },
   { key: 'linkedin', label: 'LinkedIn', env: ['BUFFER_LINKEDIN_CHANNEL_ID'], kitKey: 'linkedin' },
   { key: 'googleBusiness', label: 'Google Business', env: ['BUFFER_GOOGLE_BUSINESS_CHANNEL_ID', 'BUFFER_GBP_CHANNEL_ID'], kitKey: 'googleBusiness' },
 ];
+
+export function getSocialChannelPolicies() {
+  return CHANNELS.map((channel) => ({
+    key: channel.key,
+    label: channel.label,
+    ...CHANNEL_POLICIES[channel.key],
+  }));
+}
 
 export function getSocialAutomationStatus({ imageUrl } = {}) {
   const cfg = bufferConfig();
@@ -16,11 +44,12 @@ export function getSocialAutomationStatus({ imageUrl } = {}) {
     enabled: Boolean(cfg.apiKey && cfg.channels.some((channel) => channel.ready)),
     channels: Object.fromEntries(cfg.channels.map((channel) => {
       const missing = [...channel.missing];
-      if (channel.key === 'instagram' && !imageUrl && shouldAttachImage()) missing.push('public imageUrl');
       return [channel.key, {
-        ready: channel.ready && (channel.key !== 'instagram' || !!imageUrl || !shouldAttachImage()),
+        ready: channel.ready,
         provider: 'buffer',
         channelId: channel.channelId || null,
+        targetQueued: channel.targetQueued,
+        lane: channel.lane,
         missing,
       }];
     })),
@@ -34,7 +63,6 @@ export async function publishContentKit({ title, url, kit, imageUrl, channels, d
 
   for (const channel of selected) {
     const missing = [...channel.missing];
-    if (channel.key === 'instagram' && !imageUrl && shouldAttachImage()) missing.push('public imageUrl');
     if (missing.length) {
       results[channel.key] = { status: 'skipped', provider: 'buffer', reason: `Missing ${missing.join(', ')}` };
       continue;
@@ -71,7 +99,13 @@ function bufferConfig() {
       const missing = [];
       if (!apiKey) missing.push('BUFFER_API_KEY');
       if (!channelId) missing.push(channel.env[0]);
-      return { ...channel, channelId, ready: missing.length === 0, missing };
+      return {
+        ...channel,
+        ...CHANNEL_POLICIES[channel.key],
+        channelId,
+        ready: missing.length === 0,
+        missing,
+      };
     }),
   };
 }
@@ -98,12 +132,14 @@ function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {
   };
 
   if (dueAt) input.dueAt = dueAt;
-  if (imageUrl && shouldAttachImage()) input.assets = [{ image: { url: imageUrl } }];
+  if (imageUrl && shouldAttachImageForChannel(channel)) input.assets = [{ image: { url: imageUrl } }];
   return input;
 }
 
 function metadataForChannel(channel, { url } = {}) {
-  if (channel.key === 'facebook') return { facebook: { type: 'post' } };
+  if (channel.key === 'facebook') {
+    return { facebook: { type: 'post', linkAttachment: url ? { url } : undefined } };
+  }
   if (channel.key === 'googleBusiness') {
     return {
       google: {
@@ -112,8 +148,7 @@ function metadataForChannel(channel, { url } = {}) {
       },
     };
   }
-  if (channel.key === 'instagram') return { instagram: { type: 'post', shouldShareToFeed: true } };
-  if (channel.key === 'linkedin') return { linkedin: { type: 'post' } };
+  if (channel.key === 'linkedin') return { linkedin: url ? { linkAttachment: { url } } : {} };
   return undefined;
 }
 
@@ -150,6 +185,217 @@ async function createBufferPost(apiKey, input) {
   return payload.post;
 }
 
+export async function getSocialAutomationSnapshot({ recentDays = 21, scheduledFirst = 50, recentFirst = 100 } = {}) {
+  const cfg = bufferConfig();
+  const status = getSocialAutomationStatus();
+  const readyChannels = cfg.channels.filter((channel) => channel.ready);
+  if (!cfg.apiKey || !readyChannels.length) {
+    return {
+      ...status,
+      organizationId: '',
+      fetchedAt: new Date().toISOString(),
+      totals: { configured: cfg.channels.length, ready: readyChannels.length, queued: 0, targetQueued: 0, belowTarget: 0, paused: 0, recentErrors: 0 },
+      channels: cfg.channels.map((channel) => ({
+        key: channel.key,
+        label: channel.label,
+        lane: channel.lane,
+        targetQueued: channel.targetQueued,
+        maxPerRun: channel.maxPerRun,
+        attachImage: channel.attachImage,
+        provider: 'buffer',
+        ready: channel.ready,
+        channelId: channel.channelId || null,
+        missing: [...channel.missing],
+        queuePaused: false,
+        queuedCount: 0,
+        nextDueAt: null,
+        recentSentCount: 0,
+        recentErrorCount: 0,
+        deficit: channel.ready ? channel.targetQueued : 0,
+        descriptor: '',
+        displayName: channel.label,
+        service: channel.key,
+        postingSlotsPerWeek: 0,
+        externalLink: null,
+      })),
+      scheduledPosts: [],
+      recentPosts: [],
+    };
+  }
+
+  const organizationId = await resolveOrganizationId(cfg);
+  if (!organizationId) {
+    return {
+      ...status,
+      organizationId: '',
+      fetchedAt: new Date().toISOString(),
+      totals: { configured: cfg.channels.length, ready: readyChannels.length, queued: 0, targetQueued: readyChannels.reduce((sum, channel) => sum + (channel.targetQueued || 0), 0), belowTarget: readyChannels.length, paused: 0, recentErrors: 0 },
+      channels: readyChannels.map((channel) => ({
+        key: channel.key,
+        label: channel.label,
+        lane: channel.lane,
+        targetQueued: channel.targetQueued,
+        maxPerRun: channel.maxPerRun,
+        attachImage: channel.attachImage,
+        provider: 'buffer',
+        ready: channel.ready,
+        channelId: channel.channelId || null,
+        missing: [...channel.missing],
+        queuePaused: false,
+        queuedCount: 0,
+        nextDueAt: null,
+        recentSentCount: 0,
+        recentErrorCount: 0,
+        deficit: channel.targetQueued || 0,
+        descriptor: '',
+        displayName: channel.label,
+        service: channel.key,
+        postingSlotsPerWeek: 0,
+        externalLink: null,
+      })),
+      scheduledPosts: [],
+      recentPosts: [],
+    };
+  }
+
+  const recentStart = new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000).toISOString();
+  const channelIds = readyChannels.map((channel) => channel.channelId);
+  const query = `
+    query SocialAutomationSnapshot(
+      $organizationId: OrganizationId!,
+      $channelIds: [ChannelId!],
+      $recentStart: DateTime!,
+      $scheduledFirst: Int!,
+      $recentFirst: Int!
+    ) {
+      channels(input: { organizationId: $organizationId }) {
+        id
+        name
+        displayName
+        descriptor
+        service
+        externalLink
+        isQueuePaused
+        postingSchedule { day times paused }
+      }
+      scheduled: posts(
+        input: {
+          organizationId: $organizationId,
+          filter: { channelIds: $channelIds, status: [scheduled] },
+          sort: [{ field: dueAt, direction: asc }]
+        },
+        first: $scheduledFirst
+      ) {
+        edges {
+          node {
+            id
+            channelId
+            status
+            dueAt
+            text
+            externalLink
+          }
+        }
+      }
+      recent: posts(
+        input: {
+          organizationId: $organizationId,
+          filter: {
+            channelIds: $channelIds,
+            status: [sent, error],
+            createdAt: { start: $recentStart }
+          },
+          sort: [{ field: createdAt, direction: desc }]
+        },
+        first: $recentFirst
+      ) {
+        edges {
+          node {
+            id
+            channelId
+            status
+            createdAt
+            sentAt
+            dueAt
+            text
+            externalLink
+            error { message }
+          }
+        }
+      }
+    }
+  `;
+
+  const json = await bufferRequest(cfg.apiKey, query, {
+    organizationId,
+    channelIds,
+    recentStart,
+    scheduledFirst,
+    recentFirst,
+  });
+
+  const liveChannels = Array.isArray(json?.data?.channels) ? json.data.channels : [];
+  const scheduledPosts = ((json?.data?.scheduled?.edges) || []).map((edge) => edge.node).filter(Boolean);
+  const recentPosts = ((json?.data?.recent?.edges) || []).map((edge) => edge.node).filter(Boolean);
+  const liveById = new Map(liveChannels.map((channel) => [channel.id, channel]));
+
+  const channels = cfg.channels.map((channel) => {
+    const live = liveById.get(channel.channelId) || null;
+    const queued = scheduledPosts.filter((post) => post.channelId === channel.channelId);
+    const recent = recentPosts.filter((post) => post.channelId === channel.channelId);
+    const recentErrors = recent.filter((post) => post.status === 'error');
+    const nextDueAt = queued[0]?.dueAt || null;
+    const postingSlotsPerWeek = Array.isArray(live?.postingSchedule)
+      ? live.postingSchedule.reduce((sum, row) => sum + (row?.paused ? 0 : (Array.isArray(row?.times) ? row.times.length : 0)), 0)
+      : 0;
+    const deficit = channel.ready && !live?.isQueuePaused
+      ? Math.max(0, (channel.targetQueued || 0) - queued.length)
+      : 0;
+
+    return {
+      key: channel.key,
+      label: channel.label,
+      lane: channel.lane,
+      targetQueued: channel.targetQueued,
+      maxPerRun: channel.maxPerRun,
+      attachImage: channel.attachImage,
+      provider: 'buffer',
+      ready: channel.ready,
+      channelId: channel.channelId || null,
+      missing: [...channel.missing],
+      queuePaused: !!live?.isQueuePaused,
+      queuedCount: queued.length,
+      nextDueAt,
+      recentSentCount: recent.filter((post) => post.status === 'sent').length,
+      recentErrorCount: recentErrors.length,
+      deficit,
+      descriptor: live?.descriptor || '',
+      displayName: live?.displayName || live?.name || channel.label,
+      service: live?.service || channel.key,
+      postingSlotsPerWeek,
+      externalLink: live?.externalLink || null,
+    };
+  });
+
+  return {
+    ...status,
+    organizationId,
+    fetchedAt: new Date().toISOString(),
+    totals: {
+      configured: cfg.channels.length,
+      ready: channels.filter((channel) => channel.ready).length,
+      queued: channels.reduce((sum, channel) => sum + channel.queuedCount, 0),
+      targetQueued: channels.filter((channel) => channel.ready).reduce((sum, channel) => sum + (channel.targetQueued || 0), 0),
+      belowTarget: channels.filter((channel) => channel.ready && channel.deficit > 0).length,
+      paused: channels.filter((channel) => channel.queuePaused).length,
+      recentErrors: channels.reduce((sum, channel) => sum + channel.recentErrorCount, 0),
+    },
+    channels,
+    scheduledPosts,
+    recentPosts,
+  };
+}
+
 async function bufferRequest(apiKey, query, variables = {}) {
   const res = await fetch(BUFFER_GRAPHQL_URL, {
     method: 'POST',
@@ -173,10 +419,32 @@ function shouldAttachImage() {
   return String(process.env.BUFFER_ATTACH_IMAGE || 'true').toLowerCase() !== 'false';
 }
 
+function shouldAttachImageForChannel(channel) {
+  return shouldAttachImage() && channel?.attachImage !== false;
+}
+
 function env(...names) {
   for (const name of names) {
     const value = process.env[name];
     if (value) return value;
   }
   return '';
+}
+
+async function resolveOrganizationId(cfg) {
+  const direct = env('BUFFER_ORGANIZATION_ID');
+  if (direct) return direct;
+
+  const firstReady = (cfg?.channels || []).find((channel) => channel.ready && channel.channelId);
+  if (!cfg?.apiKey || !firstReady?.channelId) return '';
+
+  const query = `
+    query ResolveBufferOrganization($id: ChannelId!) {
+      channel(input: { id: $id }) {
+        organizationId
+      }
+    }
+  `;
+  const json = await bufferRequest(cfg.apiKey, query, { id: firstReady.channelId });
+  return String(json?.data?.channel?.organizationId || '').trim();
 }

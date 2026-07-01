@@ -8,7 +8,7 @@ const MODEL = 'claude-haiku-4-5-20251001';
 /**
  * Generate a social content kit for one blog article.
  * @param {{title:string, url:string, tag?:string, hookStyle?:string}} article
- * @returns {Promise<object|null>} { facebook, instagram, linkedin, googleBusiness, videoScript, apartmentOutreach, hashtags } or null on failure
+ * @returns {Promise<object|null>} { facebook, linkedin, googleBusiness, videoScript, apartmentOutreach, hashtags } or null on failure
  */
 export async function generateContentKit({ title, url, tag, hookStyle: requestedHookStyle } = {}) {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -21,6 +21,12 @@ export async function generateContentKit({ title, url, tag, hookStyle: requested
 Voice: warm, helpful, professional, local, confident, and alive. Honest - NEVER overpromise (no "guaranteed same-day", no fake urgency, no fake crime claims, no scare tactics). A little useful opinion is good; fake drama is not.
 Turn ONE blog article into native, ready-to-review posts for each channel. Each must sound natural on its platform and point people toward reading the blog, booking the matching service, or following.
 Mention Austin when the article, URL, or hook is Austin-local. For broader service-first blogs, lead with the service and customer problem first so the copy can work beyond Austin.
+
+Important LinkedIn context:
+- The LinkedIn post is for the founder's personal profile, not a corporate page.
+- It should feel like a founder/operator sharing a practical observation, customer pattern, or local business insight.
+- Keep it credible for property managers, apartment operators, office managers, realtors, and referral partners.
+- Avoid sounding like a generic ad, discount blast, or social-media intern recap.
 
 Use the assigned hook style to avoid boring recap posts:
 - security: smart locks, cameras, porch visibility, "before you need it" urgency, without claiming a specific crime happened or implying a recent break-in.
@@ -45,12 +51,11 @@ Assigned hook style: ${hookStyle}
 Return ONLY valid minified JSON (no markdown, no code fences) with EXACTLY these string keys:
 {
 "facebook":"A scroll-stopping Facebook Page post. Lead with the assigned hook style, then 2-3 useful sentences, then the article URL on its own line, then 1-3 specific hashtags",
-"instagram":"a punchy caption (Instagram links don't click, so end with a 'link in bio' nudge), then a new line with 6-10 relevant hashtags",
-"linkedin":"a slightly more professional post angled at property managers, Airbnb hosts, realtors and offices, ending with the article URL and 0-3 professional hashtags",
+"linkedin":"a founder-style LinkedIn personal-profile post from the founder of AssembleAtEase. Make it sound like an operator sharing something useful he is seeing in the field. Keep it thoughtful, practical, and lightly commercial at most. End with the article URL and 0-3 professional hashtags",
 "googleBusiness":"a short Google Business Profile update under 300 characters. Make it service-specific, local when appropriate, and useful. End with a clear action like 'Book online' or 'Schedule setup'",
 "videoScript":"a 20-30 second short-video script for Reels/TikTok/Shorts, with [HOOK], [VALUE] and [CTA] labels on separate lines",
 "apartmentOutreach":"one short, friendly outreach message to a property manager or apartment complex offering move-in furniture assembly + TV mounting for their residents",
-"hashtags":"separate owner-review hashtag recommendations grouped by platform, like Facebook: ... Instagram: ... LinkedIn: ... Google Business: ..."
+"hashtags":"separate owner-review hashtag recommendations grouped by platform, like Facebook: ... LinkedIn: ... Google Business: ..."
 }
 Plain text only (no HTML). Keep it genuine, specific to the topic, and different from the last service-summary post.`;
 
@@ -67,7 +72,7 @@ Plain text only (no HTML). Keep it genuine, specific to the topic, and different
     const end = text.lastIndexOf('}');
     if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
     const kit = JSON.parse(text);
-    const need = ['facebook', 'instagram', 'linkedin', 'googleBusiness', 'videoScript', 'apartmentOutreach', 'hashtags'];
+    const need = ['facebook', 'linkedin', 'googleBusiness', 'videoScript', 'apartmentOutreach', 'hashtags'];
     for (const k of need) if (typeof kit[k] !== 'string') kit[k] = '';
     return kit;
   } catch (e) {
@@ -98,7 +103,6 @@ function esc(s) {
 export function renderContentKitEmailHtml({ title, url, kit }) {
   const sections = [
     ['Facebook', kit.facebook],
-    ['Instagram', kit.instagram],
     ['LinkedIn', kit.linkedin],
     ['Google Business Profile', kit.googleBusiness],
     ['Hashtags', kit.hashtags],

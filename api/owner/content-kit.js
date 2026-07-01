@@ -1,10 +1,7 @@
-import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
 import { verifyOwner, sendEmail, ownerEmail } from '../_email.js';
+import { listBlogArticles, readBlogArticle } from '../_blog-articles.js';
 import { generateContentKit, renderContentKitEmailHtml } from '../_content-kit.js';
 import { getSocialAutomationStatus, publishContentKit } from '../_social-publisher.js';
-
-const SITE = 'https://www.assembleatease.com';
 
 /**
  * GET /api/owner/content-kit  (owner only)
@@ -20,14 +17,11 @@ export default async function handler(req, res) {
   if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const blogDir = join(process.cwd(), 'blog');
-
-  if (req.method === 'POST') return handlePublish(req, res, blogDir);
+  if (req.method === 'POST') return handlePublish(req, res);
 
   if (req.query.list === '1' || req.query.list === 'true') {
     try {
-      const files = readdirSync(blogDir).filter((f) => f.endsWith('.html') && f !== 'index.html');
-      const articles = files.map((f) => ({ slug: f.replace(/\.html$/, ''), title: extractTitle(join(blogDir, f)) }));
+      const articles = listBlogArticles().map(({ slug, title }) => ({ slug, title }));
       return res.status(200).json({ count: articles.length, articles, socialAutomation: getSocialAutomationStatus() });
     } catch (e) {
       return res.status(500).json({ error: 'Could not list articles', detail: e?.message || String(e) });
@@ -37,7 +31,7 @@ export default async function handler(req, res) {
   const slug = cleanSlug(req.query.slug);
   if (!slug) return res.status(400).json({ error: 'Provide ?slug=<article-slug> (or ?list=1 to see them all).' });
 
-  const article = readArticle(blogDir, slug);
+  const article = readBlogArticle(slug);
   if (!article) return res.status(404).json({ error: 'Article not found: ' + slug });
 
   const hookStyle = cleanHookStyle(req.query.hookStyle);
@@ -83,12 +77,12 @@ export default async function handler(req, res) {
   });
 }
 
-async function handlePublish(req, res, blogDir) {
+async function handlePublish(req, res) {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const slug = cleanSlug(body.slug);
   if (!slug) return res.status(400).json({ error: 'Provide slug in the request body.' });
 
-  const article = readArticle(blogDir, slug);
+  const article = readBlogArticle(slug);
   if (!article) return res.status(404).json({ error: 'Article not found: ' + slug });
 
   const kit = body.kit && typeof body.kit === 'object'
@@ -121,60 +115,4 @@ function cleanSlug(value) {
 function cleanHookStyle(value) {
   const v = String(value || '').trim().toLowerCase();
   return ['security', 'cost', 'mistake', 'local', 'proof', 'direct-offer'].includes(v) ? v : '';
-}
-
-function readArticle(blogDir, slug) {
-  const filePath = join(blogDir, slug + '.html');
-  try {
-    const title = extractTitle(filePath);
-    return {
-      slug,
-      title,
-      url: `${SITE}/blog/${slug}`,
-      imageUrl: extractImageUrl(filePath, { slug, title }),
-    };
-  } catch (_) {
-    return null;
-  }
-}
-
-function extractTitle(filePath) {
-  const html = readFileSync(filePath, 'utf8');
-  const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-  const t = html.match(/<title>([^<]+)<\/title>/i);
-  let raw = (h1?.[1] || t?.[1] || '').replace(/<[^>]+>/g, '');
-  raw = raw.replace(/\s*[|\u2014\u2013]\s*AssembleAtEase.*$/i, '').replace(/&amp;/g, '&').trim();
-    return raw || 'AssembleAtEase Blog';
-}
-
-function extractImageUrl(filePath, article = {}) {
-  try {
-    const html = readFileSync(filePath, 'utf8');
-    const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
-    const firstImg = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-    const candidate = og?.[1] || firstImg?.[1] || '';
-    const raw = isPlaceholderArticleImage(candidate) ? imageForArticle(article) : (candidate || imageForArticle(article));
-    if (/^https?:\/\//i.test(raw)) return raw;
-    if (raw.startsWith('/')) return SITE + raw;
-    return SITE + '/' + raw.replace(/^\.?\//, '');
-  } catch (_) {
-    return SITE + imageForArticle(article);
-  }
-}
-
-function isPlaceholderArticleImage(raw) {
-  const value = String(raw || '').toLowerCase();
-  return !value || value.includes('/images/logo.jpg') || value.includes('/images/logo.webp') || value.endsWith('/images/favicon.svg');
-}
-
-function imageForArticle({ slug = '', title = '' } = {}) {
-  const text = `${slug} ${title}`.toLowerCase();
-  if (/(smart|camera|lock|doorbell|thermostat|security|ring|nest|ecobee)/.test(text)) return '/images/service-smart-home.jpg';
-  if (/(tv|mount|wall|cord|outdoor-tv)/.test(text)) return '/images/service-tv-mounting.jpg';
-  if (/(bed|ikea|wayfair|crate|barrel|furniture|pax|dresser|desk)/.test(text)) return '/images/service-furniture-assembly.jpg';
-  if (/(garage|shelving|storage)/.test(text)) return '/images/work-office-assembly.jpg';
-  if (/(fitness|treadmill|bike|gym|rack|bench)/.test(text)) return '/images/service-fitness-equipment.jpg';
-  if (/(playset|outdoor|gazebo|patio|backyard)/.test(text)) return '/images/service-outdoor-playsets.jpg';
-  if (/(office|workspace|cubicle)/.test(text)) return '/images/service-office-assembly.jpg';
-  return '/images/people-service-calm.jpg';
 }
