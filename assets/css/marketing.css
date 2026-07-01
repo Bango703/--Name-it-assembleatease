@@ -267,11 +267,34 @@ select.waitlist-input option{background:#1a1a2e;color:#fff}
 /* Smoother easing on interactive elements */
 .btn{transition:all 0.18s cubic-bezier(0.4,0,0.2,1)}
 
+/* Primary CTA override — intentionally wins over older inline page copies */
+.btn-cyan{
+  background:linear-gradient(180deg,#12a4c7 0%,#0a8fb1 100%) !important;
+  color:#fff !important;
+  border:1px solid rgba(7,109,136,0.42) !important;
+  border-radius:14px !important;
+  box-shadow:0 10px 24px rgba(8,145,178,0.16),inset 0 1px 0 rgba(255,255,255,0.16) !important;
+  font-weight:700 !important;
+  letter-spacing:-0.01em;
+  text-shadow:0 1px 0 rgba(0,0,0,0.08);
+}
+.btn-cyan:hover{
+  background:linear-gradient(180deg,#1099bb 0%,#087f9d 100%) !important;
+  border-color:rgba(7,109,136,0.54) !important;
+  box-shadow:0 14px 30px rgba(8,145,178,0.2),inset 0 1px 0 rgba(255,255,255,0.14) !important;
+  transform:translateY(-1px);
+}
+
 /* Keyboard focus rings (a11y) */
 .btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;box-shadow:none}
+.btn-cyan:focus-visible{
+  outline:2px solid rgba(8,145,178,0.28);
+  outline-offset:3px;
+  box-shadow:0 0 0 4px rgba(8,145,178,0.12),0 12px 28px rgba(8,145,178,0.18),inset 0 1px 0 rgba(255,255,255,0.16) !important;
+}
 
 /* Button active/press states */
-.btn-cyan:active{background:var(--cyan-dark) !important;box-shadow:none !important;transform:translateY(0) scale(0.97) !important}
+.btn-cyan:active{background:linear-gradient(180deg,#0d89a7 0%,#076f8a 100%) !important;box-shadow:0 6px 14px rgba(8,145,178,0.18) !important;transform:translateY(0) scale(0.985) !important}
 .btn-white:active{background:var(--cyan-mid) !important;transform:scale(0.97)}
 .btn-ghost-white:active{background:rgba(255,255,255,0.35) !important;transform:scale(0.97)}
 .btn-outline:active{background:var(--cyan-light) !important;transform:scale(0.97)}

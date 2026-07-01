@@ -111,6 +111,61 @@ export function computeBookingSplit(totalInclusiveCents, isMember, { taxCents = 
   };
 }
 
+/**
+ * Compute the payout split from a stored booking snapshot. Use this when a
+ * platform-funded credit (for example AssembleCash) reduced what the customer
+ * paid but must NOT reduce the Easer's payout basis.
+ *
+ * @param {{
+ *   amountChargedCents?: number|null,
+ *   totalPriceCents?: number|null,
+ *   taxCents?: number,
+ *   isMember?: boolean,
+ *   assemblecashRedeemedCents?: number,
+ * }} args
+ * @returns {{
+ *   totalCents: number,
+ *   taxCents: number,
+ *   pretaxCollectedCents: number,
+ *   payoutBaseCents: number,
+ *   feePct: number,
+ *   protectedPlatformFeeCents: number,
+ *   platformFeeCents: number,
+ *   assemblerDueCents: number,
+ *   assemblecashRedeemedCents: number,
+ * }}
+ */
+export function computeBookingSplitFromSnapshot({
+  amountChargedCents = null,
+  totalPriceCents = null,
+  taxCents = 0,
+  isMember = false,
+  assemblecashRedeemedCents = 0,
+} = {}) {
+  const chargedRaw = amountChargedCents != null ? amountChargedCents : totalPriceCents;
+  const total = Math.max(0, Math.round(Number(chargedRaw) || 0));
+  const tax = Math.min(total, Math.max(0, Math.round(Number(taxCents) || 0)));
+  const redeemed = Math.max(0, Math.round(Number(assemblecashRedeemedCents) || 0));
+  const pretaxCollected = total - tax;
+  const payoutBase = pretaxCollected + redeemed;
+  const feePct = getPlatformFeePct(isMember);
+  const protectedPlatformFee = Math.round(payoutBase * feePct / 100);
+  const assemblerDue = payoutBase - protectedPlatformFee;
+  const platformFee = pretaxCollected - assemblerDue;
+
+  return {
+    totalCents: total,
+    taxCents: tax,
+    pretaxCollectedCents: pretaxCollected,
+    payoutBaseCents: payoutBase,
+    feePct,
+    protectedPlatformFeeCents: protectedPlatformFee,
+    platformFeeCents: platformFee,
+    assemblerDueCents: assemblerDue,
+    assemblecashRedeemedCents: redeemed,
+  };
+}
+
 // ─── Cancellation policy ─────────────────────────────────────────────────────
 // Tiered cancellation fee as a % of the PRE-TAX SERVICE SUBTOTAL (labor only —
 // NEVER tax, never the service-call fee). Free with reasonable notice; a fair,

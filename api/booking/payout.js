@@ -1,7 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, getPlatformFeePct } from '../_source-of-truth.js';
+import { BOOKING_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -52,14 +52,20 @@ export default async function handler(req, res) {
   }
 
   // Auto-derive payout from assembler_due (recorded at job completion).
-  // Fallback: look up easer membership and apply canonical fee (25% member / 30% non-member).
+  // Fallback: reconstruct the canonical split from the booking snapshot so
+  // platform-funded rewards do not reduce what the Easer is owed.
   let derivedDue;
   if (booking.assembler_due != null) {
     derivedDue = booking.assembler_due;
   } else {
     const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).maybeSingle();
-    const feePct = getPlatformFeePct(asmProf?.has_membership === true);
-    derivedDue = Math.round((booking.amount_charged || 0) * (1 - feePct / 100));
+    derivedDue = computeBookingSplitFromSnapshot({
+      amountChargedCents: booking.amount_charged,
+      totalPriceCents: booking.total_price,
+      taxCents: booking.tax_amount || 0,
+      isMember: asmProf?.has_membership === true,
+      assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    }).assemblerDueCents;
   }
 
   const payoutCents = amount ? parseInt(amount, 10) : derivedDue;

@@ -2,7 +2,7 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, getPlatformFeePct, computeBookingSplit } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const SITE = 'https://www.assembleatease.com';
@@ -246,10 +246,15 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // is accepted only when the Easer taps Accept inside the app (source of truth).
     const offerUrl = `${SITE}/assembler/my-assignments?offer=${bookingId}`;
 
-    // Show net pay in the push too, so a Pro isn't blind. Use the canonical split
-    // (tax excluded) so this matches the in-app estimate and the final payout.
+    // Show net pay in the push too, so a Pro isn't blind. AssembleCash is funded
+    // by the platform margin, so reward use must not shrink the Easer estimate.
     const estPayCents = booking.total_price > 0
-      ? computeBookingSplit(booking.total_price, easer.has_membership, { taxCents: booking.tax_amount || 0 }).assemblerDueCents
+      ? computeBookingSplitFromSnapshot({
+          totalPriceCents: booking.total_price,
+          taxCents: booking.tax_amount || 0,
+          isMember: easer.has_membership === true,
+          assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+        }).assemblerDueCents
       : 0;
     const pushPay = estPayCents > 0 ? '$' + Math.round(estPayCents / 100) + ' pay · ' : '';
     sendPushToUser(easer.id, {
@@ -328,9 +333,14 @@ function extractZip(address) {
 // ── Offer email ───────────────────────────────────────────────────────────────
 function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
   const firstName   = (easer.full_name || 'there').split(' ')[0];
-  // Net take-home from the canonical split (tax excluded, then platform fee for this
-  // Easer's tier) so the offer matches the in-app estimate and the actual payout.
-  const split = computeBookingSplit(booking.total_price || 0, easer.has_membership, { taxCents: booking.tax_amount || 0 });
+  // Net take-home from the canonical split. AssembleCash is platform-funded, so
+  // the offer must not look smaller just because the customer used a reward.
+  const split = computeBookingSplitFromSnapshot({
+    totalPriceCents: booking.total_price || 0,
+    taxCents: booking.tax_amount || 0,
+    isMember: easer.has_membership === true,
+    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+  });
   const payEstimate = booking.total_price > 0
     ? '$' + Math.round(split.assemblerDueCents / 100).toLocaleString()
     : 'Custom quote — price set by owner after review';

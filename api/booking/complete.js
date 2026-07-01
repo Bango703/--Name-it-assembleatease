@@ -5,7 +5,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplit } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
@@ -199,13 +199,19 @@ export default async function handler(req, res) {
   }
 
   // Canonical money split — tax is a pass-through liability and is EXCLUDED from
-  // the fee/payout base. Members 25% / non-members 30% (see _source-of-truth.js).
+  // the fee/payout base. AssembleCash is funded by platform margin, so it must
+  // never reduce the Easer's payout basis.
   let isMember = false;
   if (booking.assembler_id) {
     const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
     isMember = asmProf?.has_membership === true;
   }
-  const split = computeBookingSplit(finalAmountCharged, isMember, { taxCents: booking.tax_amount || 0 });
+  const split = computeBookingSplitFromSnapshot({
+    amountChargedCents: finalAmountCharged,
+    taxCents: booking.tax_amount || 0,
+    isMember,
+    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+  });
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;

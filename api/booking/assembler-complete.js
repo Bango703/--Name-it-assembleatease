@@ -6,7 +6,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplit } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { earnForBooking as earnAssembleCashForBooking } from '../_assemblecash.js';
@@ -233,15 +233,22 @@ export default async function handler(req, res) {
   }
 
   // Canonical money split — tax is a pass-through liability and is EXCLUDED from
-  // the fee/payout base. Members 25% / non-members 30% (see _source-of-truth.js).
+  // the fee/payout base. AssembleCash is funded by platform margin, so it must
+  // never reduce the Easer's payout basis.
   const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', user.id).single();
   const isMember = easerProf?.has_membership === true;
-  const split = computeBookingSplit(finalAmount, isMember, { taxCents: booking.tax_amount || 0 });
+  const split = computeBookingSplitFromSnapshot({
+    amountChargedCents: finalAmount,
+    taxCents: booking.tax_amount || 0,
+    isMember,
+    assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+  });
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;
   const taxCents         = split.taxCents;
-  const revenueBaseCents = split.revenueBaseCents;
+  const payoutBaseCents  = split.payoutBaseCents;
+  const assemblecashRedeemedCents = split.assemblecashRedeemedCents;
   let connectPayout = { status: 'disabled' };
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
@@ -419,8 +426,10 @@ export default async function handler(req, res) {
       <table width="100%" style="font-size:14px">
         <tr><td style="padding:4px 0;color:#166534">Total charged to customer</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(finalAmount/100).toFixed(2)}</td></tr>
         ${taxCents > 0 ? `<tr><td style="padding:4px 0;color:#166534">Sales tax (paid to the state)</td><td style="padding:4px 0;text-align:right;color:#71717a">&minus;$${(taxCents/100).toFixed(2)}</td></tr>
-        <tr><td style="padding:4px 0;color:#166534">Service amount</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(revenueBaseCents/100).toFixed(2)}</td></tr>` : ''}
-        <tr><td style="padding:4px 0;color:#166534">Platform fee (${PLATFORM_FEE_PCT}% of service amount)</td><td style="padding:4px 0;text-align:right;color:#dc2626">&minus;$${(platformFee/100).toFixed(2)}</td></tr>
+        <tr><td style="padding:4px 0;color:#166534">Pre-tax amount collected</td><td style="padding:4px 0;text-align:right;font-weight:600">$${((finalAmount - taxCents)/100).toFixed(2)}</td></tr>` : ''}
+        ${assemblecashRedeemedCents > 0 ? `<tr><td style="padding:4px 0;color:#166534">AssembleCash funded by AssembleAtEase</td><td style="padding:4px 0;text-align:right;font-weight:600;color:#0f766e">+$${(assemblecashRedeemedCents/100).toFixed(2)}</td></tr>
+        <tr><td style="padding:4px 0;color:#166534">Payout basis before platform share</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(payoutBaseCents/100).toFixed(2)}</td></tr>` : ''}
+        <tr><td style="padding:4px 0;color:#166534">${assemblecashRedeemedCents > 0 ? 'Platform share after customer credit' : `Platform fee (${PLATFORM_FEE_PCT}% of service amount)`}</td><td style="padding:4px 0;text-align:right;color:#dc2626">&minus;$${(platformFee/100).toFixed(2)}</td></tr>
         <tr style="border-top:1px solid #bbf7d0"><td style="padding:8px 0 4px;font-weight:700;color:#065f46">Your payout</td><td style="padding:8px 0 4px;text-align:right;font-weight:700;color:#065f46;font-size:18px">$${(assemblerDue/100).toFixed(2)}</td></tr>
       </table>
     </td></tr></table>

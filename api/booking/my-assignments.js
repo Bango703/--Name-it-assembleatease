@@ -5,8 +5,7 @@ import {
   DISPATCH_OFFER_STATUS,
   ACTIVE_BOOKING_STATUSES,
   VISIBLE_ASSIGNMENT_STATUSES,
-  getPlatformFeePct,
-  computeBookingSplit,
+  computeBookingSplitFromSnapshot,
 } from '../_source-of-truth.js';
 
 /**
@@ -54,12 +53,11 @@ export default async function handler(req, res) {
   const easerIsMember = easerProfile?.has_membership === true;
   // Canonical fee — must match the completion payout (assembler-complete.js) so the
   // dashboard estimate never overstates what the Pro will actually receive.
-  const feePct = getPlatformFeePct(easerIsMember);
 
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, assignment_token, total_price, tax_amount, evidence_requested_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -106,7 +104,7 @@ export default async function handler(req, res) {
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, ref, service, customer_name, date, time, address, details, status, total_price, tax_amount')
+        .select('id, ref, service, customer_name, date, time, address, details, status, total_price, tax_amount, assemblecash_redeemed_cents')
         .in('id', unacceptedOfferBookingIds)
         .eq('status', BOOKING_STATUS.CONFIRMED)
         .is('assembler_id', null);
@@ -219,7 +217,13 @@ export default async function handler(req, res) {
     const price = Number(b.amount_charged || b.total_price) || 0;
     if (price > 0) {
       // Canonical split (tax excluded) — must match the completion payout exactly.
-      const split        = computeBookingSplit(price, easerIsMember, { taxCents: b.tax_amount || 0 });
+      const split = computeBookingSplitFromSnapshot({
+        amountChargedCents: b.amount_charged,
+        totalPriceCents: b.total_price,
+        taxCents: b.tax_amount || 0,
+        isMember: easerIsMember,
+        assemblecashRedeemedCents: b.assemblecash_redeemed_cents || 0,
+      });
       b._pay_estimate_lo = split.assemblerDueCents;
       b._pay_estimate_hi = split.assemblerDueCents;
       b._fee_pct         = split.feePct;
