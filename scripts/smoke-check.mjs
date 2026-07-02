@@ -251,17 +251,29 @@ const uniquePublicHtmlFiles = [...new Set(publicHtmlFiles)];
 
 const requiredPublicFooterLinks = [
   'href="mailto:service@assembleatease.com"',
+  'href="/track"',
+  'href="/business"',
+  'href="/assembler/apply"',
+  'href="/privacy"',
+  'href="/terms"',
+];
+
+const footerServicePageLinks = [
   'href="/furniture-assembly-austin-tx"',
   'href="/tv-mounting-austin-tx"',
   'href="/smart-home-installation-austin-tx"',
   'href="/fitness-equipment-assembly-austin-tx"',
   'href="/office-furniture-assembly-austin-tx"',
   'href="/playset-assembly-austin-tx"',
-  'href="/track"',
-  'href="/business"',
-  'href="/assembler/apply"',
-  'href="/privacy"',
-  'href="/terms"',
+];
+
+const footerBookingLinks = [
+  'href="/book?service=Furniture+Assembly"',
+  'href="/book?service=Mounting+%26+Hanging"',
+  'href="/book?service=Smart+Home"',
+  'href="/book?service=Fitness+Equipment"',
+  'href="/book?service=Office+Assembly"',
+  'href="/book?service=Outdoor+%26+Playsets"',
 ];
 
 for (const file of uniquePublicHtmlFiles) {
@@ -307,8 +319,10 @@ for (const file of uniquePublicHtmlFiles) {
   if (file !== 'business.html' && !footer.includes('href="tel:+17372906129"')) {
     throw new Error(`Public footer missing href="tel:+17372906129" in ${file}`);
   }
-  if (footer.includes('/book?service=')) {
-    throw new Error(`Public footer should link to real service pages, not booking query links, in ${file}`);
+  const hasServicePageFooter = footerServicePageLinks.every((href) => footer.includes(href));
+  const hasBookingFooter = footerBookingLinks.every((href) => footer.includes(href));
+  if (!hasServicePageFooter && !hasBookingFooter) {
+    throw new Error(`Public footer missing a complete service-link pattern in ${file}`);
   }
   const privacyLinkCount = (footer.match(/href="\/privacy"/g) || []).length;
   const termsLinkCount = (footer.match(/href="\/terms"/g) || []).length;
