@@ -1370,6 +1370,17 @@ function intelQuick(msg) {
       </select>
       <div id="ck-hook-desc" style="font-size:0.78rem;color:#555;line-height:1.45;padding:0.45rem 0.55rem;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa">Smart locks, cameras, porch visibility, and before-you-need-it urgency without fake crime claims.</div>
     </div>
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:0.7rem 0.8rem;background:#fafafa;margin-bottom:0.65rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.45rem">
+        <div style="font-size:0.76rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#52525b">Send to Buffer</div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+          <button class="btn" type="button" onclick="window.ckSelectAllChannels&&window.ckSelectAllChannels()" style="font-size:0.72rem;padding:0.22rem 0.55rem">All ready</button>
+          <button class="btn" type="button" onclick="window.ckClearChannels&&window.ckClearChannels()" style="font-size:0.72rem;padding:0.22rem 0.55rem">Clear</button>
+        </div>
+      </div>
+      <div id="ck-channel-picker" style="display:flex;gap:0.5rem;flex-wrap:wrap"></div>
+      <div id="ck-channel-note" style="font-size:0.74rem;color:#64748b;line-height:1.45;margin-top:0.45rem">Choose which connected channels should receive this post.</div>
+    </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.6rem">
       <button class="btn btn-teal" id="ck-generate" onclick="window.ckGenerate(false)">Generate</button>
       <button class="btn btn-teal" id="ck-publish" onclick="window.ckPublish(false)">Publish now</button>
@@ -1677,6 +1688,7 @@ function intelQuick(msg) {
   let _ckLoaded = false;
   let _ckLast = null;
   let _ckArticles = [];
+  let _ckSocialAutomation = null;
   var CK_HISTORY_KEY = 'aae-content-kit-history-v1';
   window.openContentKit = async function() {
     document.getElementById('content-kit-modal').classList.add('open');
@@ -1689,6 +1701,7 @@ function intelQuick(msg) {
       var arts = (d.articles || []).sort(function(a, b){ return String(a.title).localeCompare(String(b.title)); });
       _ckArticles = arts;
       window.ckRenderArticleOptions();
+      window.ckRenderChannelPicker(d.socialAutomation, false);
       document.getElementById('ck-status').textContent = ckAutomationLine(d.socialAutomation);
       window.ckArticleChanged();
       _ckLoaded = true;
@@ -1742,6 +1755,7 @@ function intelQuick(msg) {
       var d = await r.json();
       if (!r.ok || !d.kit) throw new Error(d.error || 'Generation failed');
       _ckLast = { slug: slug, kit: d.kit };
+      window.ckRenderChannelPicker(d.socialAutomation, true);
       status.textContent = (email && d.emailed) ? ('Emailed to ' + d.emailed) : ('Ready. ' + ckAutomationLine(d.socialAutomation));
       results.innerHTML = ckRender(d.kit);
       ckRemember(slug, { action: email ? 'emailed' : 'generated', title: d.title || ckArticleTitle(slug), note: (email && d.emailed ? ('Emailed to ' + d.emailed) : 'Generated fresh copy') + ' - ' + ckHookLabel(hook) });
@@ -1761,12 +1775,16 @@ function intelQuick(msg) {
     status.textContent = dryRun ? 'Testing Buffer payloads...' : 'Publishing to Buffer queue...';
     try {
       var hook = ckCurrentHook();
+      var channels = window.ckSelectedChannels ? window.ckSelectedChannels() : [];
+      if (!channels.length) throw new Error('Select at least one social channel before sending to Buffer.');
       var body = { slug: slug, dryRun: !!dryRun, hookStyle: hook };
+      body.channels = channels;
       if (_ckLast && _ckLast.slug === slug && _ckLast.kit) body.kit = _ckLast.kit;
       var r = await fetch('/api/owner/content-kit', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
       var d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Publish failed');
       _ckLast = { slug: slug, kit: d.kit };
+      window.ckRenderChannelPicker(d.socialAutomation, true);
       var summary = ckPublishSummary(d.publish || {}, dryRun);
       status.textContent = summary.text;
       results.innerHTML = ckPublishRender(d.publish || {}) + ckRender(d.kit || {});
@@ -1781,8 +1799,79 @@ function intelQuick(msg) {
   };
   function ckAutomationLine(status) {
     if (!status || !status.channels) return '';
-    var ready = Object.keys(status.channels).filter(function(k){ return status.channels[k].ready; });
-    return ready.length ? ('Buffer connected: ' + ready.join(', ') + '.') : 'Buffer is not connected yet.';
+    var ready = ckOrderedChannelKeys(status.channels).filter(function(k){ return status.channels[k].ready; });
+    return ready.length ? ('Buffer connected: ' + ready.map(ckChannelLabel).join(', ') + '.') : 'Buffer is not connected yet.';
+  }
+  function ckOrderedChannelKeys(channels) {
+    var order = ['facebook', 'linkedin', 'googleBusiness'];
+    var keys = Object.keys(channels || {});
+    return order.filter(function(key){ return keys.indexOf(key) !== -1; }).concat(keys.filter(function(key){ return order.indexOf(key) === -1; }));
+  }
+  function ckChannelLabel(key) {
+    var labels = {
+      facebook: 'Facebook',
+      linkedin: 'LinkedIn',
+      googleBusiness: 'Google Business'
+    };
+    return labels[key] || key;
+  }
+  window.ckSelectedChannels = function() {
+    return Array.prototype.slice.call(document.querySelectorAll('input[name="ck-channel"]:checked'))
+      .map(function(input){ return input.value; });
+  };
+  window.ckSelectAllChannels = function() {
+    Array.prototype.slice.call(document.querySelectorAll('input[name="ck-channel"]')).forEach(function(input) {
+      input.checked = !input.disabled;
+    });
+    window.ckUpdateChannelNote();
+  };
+  window.ckClearChannels = function() {
+    Array.prototype.slice.call(document.querySelectorAll('input[name="ck-channel"]')).forEach(function(input) {
+      input.checked = false;
+    });
+    window.ckUpdateChannelNote();
+  };
+  window.ckUpdateChannelNote = function() {
+    var note = document.getElementById('ck-channel-note');
+    if (!note) return;
+    if (!_ckSocialAutomation || !_ckSocialAutomation.channels) {
+      note.textContent = 'Choose which connected channels should receive this post.';
+      return;
+    }
+    var selected = window.ckSelectedChannels ? window.ckSelectedChannels() : [];
+    if (!selected.length) {
+      note.textContent = 'No channels selected. Choose at least one connected channel before publishing or testing Buffer payloads.';
+      return;
+    }
+    note.textContent = 'Selected for publish/test: ' + selected.map(ckChannelLabel).join(', ') + '.';
+  };
+  window.ckRenderChannelPicker = function(status, preserveSelection) {
+    _ckSocialAutomation = status || _ckSocialAutomation;
+    var box = document.getElementById('ck-channel-picker');
+    if (!box) return;
+    var channels = _ckSocialAutomation && _ckSocialAutomation.channels ? _ckSocialAutomation.channels : null;
+    if (!channels || !Object.keys(channels).length) {
+      box.innerHTML = '<div style="font-size:0.78rem;color:#92400e">No Buffer channels are connected yet.</div>';
+      window.ckUpdateChannelNote();
+      return;
+    }
+    var previous = preserveSelection && window.ckSelectedChannels ? window.ckSelectedChannels() : null;
+    box.innerHTML = ckOrderedChannelKeys(channels).map(function(key) {
+      var channel = channels[key] || {};
+      var checked = previous ? previous.indexOf(key) !== -1 : !!channel.ready;
+      var ready = channel.ready === true;
+      var missing = Array.isArray(channel.missing) && channel.missing.length
+        ? ('Missing ' + channel.missing.join(', '))
+        : 'Not connected yet';
+      return '<label style="display:flex;align-items:flex-start;gap:0.5rem;min-width:170px;padding:0.5rem 0.65rem;border:1px solid ' + (ready ? '#bae6fd' : '#e5e7eb') + ';border-radius:10px;background:' + (ready ? '#f0f9ff' : '#ffffff') + ';cursor:' + (ready ? 'pointer' : 'not-allowed') + ';opacity:' + (ready ? '1' : '0.68') + '">'
+        + '<input type="checkbox" name="ck-channel" value="' + esc(key) + '"' + (checked ? ' checked' : '') + (ready ? '' : ' disabled') + ' onchange="window.ckUpdateChannelNote&&window.ckUpdateChannelNote()" style="margin-top:0.18rem" />'
+        + '<span style="display:block">'
+          + '<span style="display:block;font-size:0.8rem;font-weight:700;color:#111827">' + esc(ckChannelLabel(key)) + '</span>'
+          + '<span style="display:block;font-size:0.72rem;color:' + (ready ? '#475569' : '#b91c1c') + ';margin-top:0.12rem">' + esc(ready ? 'Connected to Buffer' : missing) + '</span>'
+        + '</span>'
+      + '</label>';
+    }).join('');
+    window.ckUpdateChannelNote();
   }
   function ckPublishRender(publish) {
     var keys = Object.keys(publish || {});

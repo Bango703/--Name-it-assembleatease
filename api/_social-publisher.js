@@ -111,11 +111,16 @@ function bufferConfig() {
 }
 
 function normalizeChannels(channels, configured) {
-  const raw = Array.isArray(channels)
-    ? channels
-    : String(channels || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const wanted = raw.length ? new Set(raw) : null;
-  return configured.filter((channel) => !wanted || wanted.has(channel.key));
+  if (Array.isArray(channels)) {
+    const raw = channels.map((value) => String(value || '').trim()).filter(Boolean);
+    if (!raw.length) return [];
+    const wanted = new Set(raw);
+    return configured.filter((channel) => wanted.has(channel.key));
+  }
+  const raw = String(channels || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (!raw.length) return configured;
+  const wanted = new Set(raw);
+  return configured.filter((channel) => wanted.has(channel.key));
 }
 
 function buildCreatePostInput(channel, { title, url, kit, imageUrl, dueAt }) {

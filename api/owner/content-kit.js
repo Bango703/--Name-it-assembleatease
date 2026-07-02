@@ -11,7 +11,7 @@ import { getSocialAutomationStatus, publishContentKit } from '../_social-publish
  *   ?slug=<slug>&email=1 -> also email the kit to the owner
  *
  * POST /api/owner/content-kit
- *   { slug, channels?, dryRun?, kit? } -> publish to configured social APIs
+ *   { slug, channels?, dryRun?, kit? } -> publish to selected Buffer channels
  */
 export default async function handler(req, res) {
   if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
@@ -81,6 +81,9 @@ async function handlePublish(req, res) {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const slug = cleanSlug(body.slug);
   if (!slug) return res.status(400).json({ error: 'Provide slug in the request body.' });
+  if (Array.isArray(body.channels) && body.channels.length === 0) {
+    return res.status(400).json({ error: 'Choose at least one social channel.' });
+  }
 
   const article = readBlogArticle(slug);
   if (!article) return res.status(404).json({ error: 'Article not found: ' + slug });
