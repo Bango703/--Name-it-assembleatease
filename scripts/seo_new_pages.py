@@ -329,7 +329,7 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">AssembleAtEase</div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
-      <div class="footer-contact"><a href="tel:+17372906129">(737) 290-6129</a><a href="mailto:service@assembleatease.com">service@assembleatease.com</a><a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow our project updates</a></div>
+      <div class="footer-contact"><a href="tel:+17372906129">(737) 290-6129</a><a href="mailto:service@assembleatease.com">service@assembleatease.com</a><a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a></div>
     </div>
     <div>
       <div class="footer-col-title">Services</div>

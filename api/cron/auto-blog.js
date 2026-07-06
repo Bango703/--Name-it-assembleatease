@@ -532,7 +532,7 @@ ${body}
     <div class="article-share-actions">
       <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener">Facebook</a>
       <a href="https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}" target="_blank" rel="noopener">LinkedIn</a>
-      <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow</a>
+      <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow</a>
     </div>
   </div>
 </section>
@@ -554,7 +554,7 @@ ${body}
       <div class="footer-contact">
         <a href="tel:+17372906129">(737) 290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
-        <a href="https://www.facebook.com/profile.php?id=61572042722009" target="_blank" rel="noopener">Follow our project updates</a>
+        <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a>
       </div>
     </div>
     <div>
