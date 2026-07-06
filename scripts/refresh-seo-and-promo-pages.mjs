@@ -30,14 +30,9 @@ const SERVICE_DESCRIPTIONS = {
     `Playset assembly in ${city}, TX for trampolines, swing sets, pergolas, and gazebos with upfront pricing before checkout.`,
 };
 
-const EXACT_FILE_DESCRIPTIONS = {
-  'ikea-assembly-austin-tx.html':
-    'IKEA furniture assembly in Austin, TX for beds, dressers, desks, shelving, and wardrobes with upfront pricing before checkout.',
-  'gazebo-assembly-austin-tx.html':
-    'Gazebo assembly in Austin, TX for backyard kits, pergolas, and outdoor structures with upfront pricing before checkout.',
-  'trampoline-assembly-austin-tx.html':
-    'Trampoline assembly in Austin, TX for round, rectangular, and backyard trampoline setups with upfront pricing before checkout.',
-};
+// Orphan one-off pages (ikea/gazebo/trampoline) were removed and 301-redirected
+// to their canonical service pages in vercel.json. Nothing to regenerate here.
+const EXACT_FILE_DESCRIPTIONS = {};
 
 const PROMO_SCRIPT = '<script src="/assets/js/site-promo.js" defer></script>';
 const files = readdirSync('.').filter((name) => name.endsWith('.html'));

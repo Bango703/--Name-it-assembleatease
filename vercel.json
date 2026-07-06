@@ -18,6 +18,21 @@
       "permanent": true
     },
     {
+      "source": "/ikea-assembly-austin-tx",
+      "destination": "/furniture-assembly-austin-tx",
+      "permanent": true
+    },
+    {
+      "source": "/gazebo-assembly-austin-tx",
+      "destination": "/playset-assembly-austin-tx",
+      "permanent": true
+    },
+    {
+      "source": "/trampoline-assembly-austin-tx",
+      "destination": "/playset-assembly-austin-tx",
+      "permanent": true
+    },
+    {
       "source": "/mounting",
       "destination": "/tv-mounting-austin-tx",
       "permanent": true
