@@ -21,7 +21,7 @@ function safeJson(obj) {
 
 function buildMetaDescription(serviceSlug, cityName) {
   if (serviceSlug === 'furniture-assembly') {
-    return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Upfront pricing, service-call fee, and taxes are shown before checkout.`;
+    return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Flat-rate pricing with your full total shown before you book.`;
   }
   if (serviceSlug === 'tv-mounting') {
     return `TV mounting in ${cityName}, TX for TVs, shelves, mirrors, and wall installs with upfront pricing shown before checkout.`;

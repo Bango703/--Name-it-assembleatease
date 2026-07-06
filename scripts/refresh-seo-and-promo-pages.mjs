@@ -17,7 +17,7 @@ const CITY_NAMES = {
 
 const SERVICE_DESCRIPTIONS = {
   'furniture-assembly': (city) =>
-    `Furniture assembly in ${city}, TX for beds, dressers, desks, tables, and IKEA builds. Upfront pricing, service-call fee, and taxes are shown before checkout.`,
+    `Furniture assembly in ${city}, TX for beds, dressers, desks, tables, and IKEA builds. Flat-rate pricing with your full total shown before you book.`,
   'tv-mounting': (city) =>
     `TV mounting in ${city}, TX for TVs, shelves, mirrors, and wall installs with upfront pricing shown before checkout.`,
   'smart-home-installation': (city) =>
