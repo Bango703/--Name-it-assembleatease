@@ -302,6 +302,60 @@ const SERVICES = [
 ];
 
 // ── PAGE TEMPLATE ──────────────────────────────────────────────────────────
+// Real job photos per service, reused across that service's city pages (matches
+// the 6 Austin flagship pages). Keep in sync with images/real-* on disk.
+const OUR_WORK_PHOTOS = {
+  'furniture-assembly': [
+    { img: 'real-furniture-bed-paneled.png', alt: 'Assembled paneled bed frame in a finished bedroom' },
+    { img: 'real-furniture-dresser-white.png', alt: 'Assembled white dresser with drawers fitted' },
+    { img: 'real-furniture-dresser-wood.jpg', alt: 'Assembled wood dresser with aligned drawers' },
+  ],
+  'tv-mounting': [
+    { img: 'real-tv-dawg-days.jpg', alt: 'Large TV mounted on a living-room wall above a soundbar' },
+    { img: 'real-tv-mount-console.jpg', alt: 'Flat TV mounted on the wall above a media console' },
+    { img: 'real-tv-setup-console.jpg', alt: 'TV flush-mounted over a media console with cables concealed' },
+  ],
+  'smart-home-installation': [
+    { img: 'real-smarthome-doorbell-adt.jpg', alt: 'Smart video doorbell installed at a front door' },
+    { img: 'real-smarthome-doorbell-vivint.png', alt: 'Smart doorbell camera mounted and wired' },
+  ],
+  'fitness-equipment-assembly': [
+    { img: 'real-fitness-home-gym.jpg', alt: 'Assembled home gym and fitness equipment' },
+  ],
+  'office-furniture-assembly': [
+    { img: 'real-office-cabinets.jpg', alt: 'Assembled office storage cabinets' },
+    { img: 'real-office-home-ldesk.jpg', alt: 'Assembled L-shaped home office desk' },
+    { img: 'real-office-workstations.jpg', alt: 'Assembled office workstations' },
+  ],
+  'playset-assembly': [
+    { img: 'real-outdoor-gazebo.png', alt: 'Assembled backyard gazebo structure' },
+    { img: 'real-outdoor-patio-gray.jpg', alt: 'Assembled outdoor patio furniture set' },
+    { img: 'real-outdoor-sectional.png', alt: 'Assembled outdoor sectional seating' },
+  ],
+};
+
+function buildOurWork(slug) {
+  const photos = OUR_WORK_PHOTOS[slug];
+  if (!photos || !photos.length) return '';
+  const figs = photos.map((p) =>
+    `\n      <figure style="margin:0;border:1.5px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;background:var(--white)"><img src="/images/${p.img}" alt="${esc(p.alt)}" loading="lazy" style="width:100%;height:230px;object-fit:cover;display:block"/></figure>`
+  ).join('');
+  return `<!-- OUR WORK -->
+<section style="background:var(--white);padding:4.5rem 2rem;border-bottom:1px solid var(--border)">
+  <div style="max-width:960px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Recent Work</div>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Real jobs, done right.</h2>
+      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">A few recent setups from our team.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem">${figs}
+    </div>
+  </div>
+</section>
+
+`;
+}
+
 function generatePage(city, service) {
   const pageSlug = `${service.slug}-${city.slug}-tx`;
   const url = `https://www.assembleatease.com/${pageSlug}`;
@@ -553,7 +607,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
+${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
 <section style="background:var(--off-white);padding:4rem 2rem;border-bottom:1px solid var(--border)">
   <div style="max-width:900px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
