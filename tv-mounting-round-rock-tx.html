@@ -45,9 +45,9 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .btn-lg{padding:0.85rem 2.25rem;font-size:1rem}
 .btn-full{width:100%;text-align:center}
 .pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-bottom:3rem}
-.price-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;transition:border-color 0.15s,box-shadow 0.15s}
+.price-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;transition:border-color 0.15s,box-shadow 0.15s;position:relative;display:flex;flex-direction:column}
 .price-card:hover{border-color:var(--cyan);box-shadow:var(--shadow)}
-.price-card-name{font-size:0.92rem;font-weight:600;color:var(--ink);margin-bottom:0.85rem}
+.price-card-name{font-size:0.92rem;font-weight:600;color:var(--ink);margin-bottom:0.85rem;flex:1}
 .price-card-price{font-family:var(--font-display);font-size:1.45rem;color:var(--cyan)}
 .footer{background:#0a1628;padding:3rem 2rem 2rem}
 .footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
@@ -214,7 +214,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Transparent Pricing</div>
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">Mounting &amp; Hanging Pricing in Round Rock</h2>
-      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat upfront item pricing. Service-call fee and taxes are shown before checkout for Round Rock and nearby Dell Diamond baseball stadium and Old Settlers Park.</p>
+      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat, upfront item pricing. Your service-call fee and tax are shown before checkout &mdash; no surprises.</p>
     </div>
     <div class="pricing-grid">
       
@@ -231,7 +231,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
         <a href="/book?service=Mounting+%26+Hanging" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
       </div>
       <div class="price-card" style="border-color:var(--cyan);box-shadow:var(--shadow)">
-        <div style="font-size:0.65rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.4rem">Popular</div>
+        <div style="position:absolute;top:0.7rem;right:0.9rem;font-size:0.62rem;font-weight:700;color:#fff;background:var(--cyan);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:0.08em">Popular</div>
         <div class="price-card-name">TV 41&quot;–55&quot; (standard wall)</div>
         <div class="price-card-price">$119</div>
         <a href="/book?service=Mounting+%26+Hanging" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
@@ -276,7 +276,7 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   <div style="max-width:780px;margin:0 auto;text-align:center">
     <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Service Area</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,2.5vw,2rem);color:var(--ink);margin-bottom:0.75rem">Mounting &amp; Hanging Near Round Rock</h2>
-    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We serve Round Rock and the surrounding Austin metro area. Near Dell Diamond baseball stadium and Old Settlers Park, we&rsquo;re your local assembly and installation team.</p>
+    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We serve Round Rock and the surrounding Austin metro. From the first booking to final placement, we&rsquo;re your local assembly and installation team.</p>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center">
       <span style="background:var(--white);border:1px solid var(--border);border-radius:999px;padding:0.3rem 0.85rem;font-size:0.8rem;font-weight:500;color:var(--ink-soft)">Round Rock, TX</span>
       <span style="background:var(--white);border:1px solid var(--border);border-radius:999px;padding:0.3rem 0.85rem;font-size:0.8rem;font-weight:500;color:var(--ink-soft)">Austin, TX</span>
@@ -369,11 +369,11 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 </section>
 
 <!-- FINAL CTA -->
-<section style="background:linear-gradient(135deg,#003d47,#006070);padding:5rem 2rem;text-align:center">
+<section style="background:linear-gradient(135deg,#0d2b45,#134a72);padding:5rem 2rem;text-align:center">
   <div style="max-width:600px;margin:0 auto">
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in Round Rock?</h2>
     <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing and same-day availability in Round Rock and the Austin metro. Book in minutes with secure checkout.</p>
-    <a href="/book?service=Mounting+%26+Hanging" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#006070;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book Mounting &amp; Hanging &rarr;</a>
+    <a href="/book?service=Mounting+%26+Hanging" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book Mounting &amp; Hanging &rarr;</a>
     <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
 </section>
