@@ -9,6 +9,28 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const CITY = 'Austin';
 
+function parseStartingPrice(label) {
+  const match = String(label || '').match(/\$(\d+)/);
+  return match ? Number(match[1]) : NaN;
+}
+
+function assertVisibleStartPrice(service) {
+  const expectedStart = parseStartingPrice(service.fromPrice);
+  const visibleStarts = (service.offers || [])
+    .map((offer) => parseStartingPrice(offer.p))
+    .filter(Number.isFinite);
+  const lowestVisible = visibleStarts.length ? Math.min(...visibleStarts) : NaN;
+
+  if (!Number.isFinite(expectedStart) || !Number.isFinite(lowestVisible)) {
+    throw new Error(`Unable to validate visible start price for ${service.slug}.`);
+  }
+  if (lowestVisible > expectedStart) {
+    throw new Error(
+      `${service.slug} starts at ${service.fromPrice}, but visible offers begin at $${lowestVisible}. Update the visible offers before generating pages.`,
+    );
+  }
+}
+
 const FA_STYLE = `<style>
 /* ===== Flagship service page ===== */
 .fa-hero{position:relative;background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#ffffff 100%);overflow:hidden;border-bottom:1px solid var(--border)}
@@ -193,8 +215,8 @@ ${gallerySection(cfg)}
 ${menu}
     </div>
     <div class="fa-price-foot">
-      <p>Plus a flat $25 service-call fee and tax &mdash; the full total is shown before you confirm. Add your exact items in the booking flow for a live total.</p>
-      <a href="${bk}" class="fa-btn-primary">See your total &amp; book &rarr;</a>
+      <p>Common starting points for the jobs we handle most. Add the exact items in booking so we can match the visit to your setup.</p>
+      <a href="${bk}" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
     </div>
   </div>
 </section>
@@ -208,13 +230,13 @@ ${menu}
     </div>
     <div class="fa-process" id="${processId}">
       <div class="fa-process-tabs" role="tablist" aria-label="Simple process">
-        <button type="button" class="fa-process-tab is-active" role="tab" aria-selected="true" onclick="aaeSetProcessStep('${processId}', this, 'Pick what you need', 'Choose the items or options for this job. The booking flow shows the exact total before you confirm.')"><span class="fa-process-num">1</span><span class="fa-process-label">Pick</span></button>
+        <button type="button" class="fa-process-tab is-active" role="tab" aria-selected="true" onclick="aaeSetProcessStep('${processId}', this, 'Tell us what you need', 'Choose the items or options for this job and pick a time that works for you.')"><span class="fa-process-num">1</span><span class="fa-process-label">Pick</span></button>
         <button type="button" class="fa-process-tab" role="tab" aria-selected="false" onclick="aaeSetProcessStep('${processId}', this, 'We confirm the details', 'We review availability, confirm the visit, and reach out if anything needs clarification before the appointment.')"><span class="fa-process-num">2</span><span class="fa-process-label">Confirm</span></button>
-        <button type="button" class="fa-process-tab" role="tab" aria-selected="false" onclick="aaeSetProcessStep('${processId}', this, 'The job gets done, then payment runs', 'Your card is verified when you book. Payment is processed after the work is complete.')"><span class="fa-process-num">3</span><span class="fa-process-label">Done</span></button>
+        <button type="button" class="fa-process-tab" role="tab" aria-selected="false" onclick="aaeSetProcessStep('${processId}', this, 'We complete the setup', 'Your pro arrives ready for the job, finishes the setup carefully, and leaves the space ready to use.')"><span class="fa-process-num">3</span><span class="fa-process-label">Done</span></button>
       </div>
       <div class="fa-process-panel">
-        <h3>Pick what you need</h3>
-        <p>Choose the items or options for this job. The booking flow shows the exact total before you confirm.</p>
+        <h3>Tell us what you need</h3>
+        <p>Choose the items or options for this job and pick a time that works for you.</p>
       </div>
     </div>
   </div>
@@ -229,8 +251,8 @@ ${menu}
     </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong>Reviewed local pro</strong><span>Assigned and confirmed before the visit.</span></div>
-      <div class="fa-mini-fact"><strong>Exact total first</strong><span>Service-call fee and tax are shown before confirmation.</span></div>
-      <div class="fa-mini-fact"><strong>Payment after completion</strong><span>Card is verified at booking and charged after the work is done.</span></div>
+      <div class="fa-mini-fact"><strong>Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
+      <div class="fa-mini-fact"><strong>Ready to use</strong><span>We leave the space clean and the job ready for the next step.</span></div>
     </div>
   </div>
 </section>
@@ -331,9 +353,10 @@ const SERVICES = [
       { src: 'real-furniture-bed-paneled.png', alt: 'Upholstered paneled platform bed assembled in a bedroom', cap: 'Upholstered platform bed', sub: 'Headboard, rails and slats torqued to spec', pos: 'center 26%' },
     ],
     offers: [
+      { n: 'Side / end table', p: '$69' },
+      { n: 'Nightstand (single)', p: '$79' },
       { n: 'Bed frame (queen)', p: '$119', popular: true },
       { n: 'Dresser / chest of drawers', p: '$109&ndash;$129' },
-      { n: 'Sectional sofa (L-shape)', p: '$159&ndash;$199' },
       { n: 'IKEA PAX wardrobe', p: '$169+' },
     ],
     faqs: [
@@ -449,15 +472,16 @@ const SERVICES = [
     fromPrice: '$89', fromLabel: 'outdoor assembly &mdash; playsets from $299', ctaVerb: 'Book outdoor assembly',
     heroTitle: 'Playset Assembly in Austin,<br><em>ready for the backyard.</em>',
     heroSub: 'Playsets, swing sets, trampolines, gazebos and patio sets &mdash; built to spec, anchored safe, and checked over before anyone climbs on. Tools and cleanup included.',
-    heroPhoto: 'real-outdoor-gazebo.png', heroAlt: 'Assembled cedar gazebo with a swing in a backyard',
+    heroPhoto: 'service-outdoor-playsets.jpg', heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
     workHeadline: 'Built safe. Ready to play.',
-    noteStrong: 'Backyards built and counting.', noteSpan: 'Swing sets, trampolines, playhouses, gazebos and patio furniture &mdash; built to spec, anchored, and safety-checked before play.',
+    noteStrong: 'Backyards built and counting.', noteSpan: 'Swing sets, trampolines, playhouses and gazebos &mdash; built to spec, anchored, and safety-checked before play.',
     gallery: [
-      { src: 'real-outdoor-patio-gray.jpg', alt: 'Assembled wicker patio furniture set on a covered patio', cap: 'Patio furniture set', sub: 'Sofa, chairs and table, built and placed' },
-      { src: 'real-outdoor-sectional.png', alt: 'Assembled outdoor wicker sectional in a backyard', cap: 'Outdoor sectional', sub: 'Modular sectional, squared up and leveled' },
+      { src: 'work-outdoor-playset.jpg', alt: 'Assembler working on a backyard playset frame', cap: 'Playset build in progress', sub: 'Frame squared up, hardware staged, setup underway' },
+      { src: 'real-outdoor-gazebo.png', alt: 'Assembled backyard gazebo structure', cap: 'Completed gazebo kit', sub: 'Leveled, tightened, and ready for the backyard' },
     ],
     offers: [
-      { n: 'Sandbox / Outdoor Playhouse', p: '$169' },
+      { n: 'Deck box / outdoor storage bench', p: '$89' },
+      { n: 'Patio umbrella + base', p: '$89' },
       { n: 'Trampoline Assembly', p: '$199', popular: true },
       { n: 'Swing Set / Backyard Playset', p: '$299&ndash;$379' },
       { n: 'Pergola / Gazebo Kit', p: '$399&ndash;$599' },
@@ -472,6 +496,9 @@ const SERVICES = [
 ];
 
 let count = 0;
+for (const cfg of SERVICES) {
+  assertVisibleStartPrice(cfg);
+}
 for (const cfg of SERVICES) {
   const file = `${cfg.slug}.html`;
   let html = readFileSync(file, 'utf8');

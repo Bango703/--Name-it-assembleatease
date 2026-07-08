@@ -24,24 +24,24 @@ function safeJson(obj) {
 
 function buildMetaDescription(serviceSlug, cityName) {
   if (serviceSlug === 'furniture-assembly') {
-    return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Flat-rate pricing with your full total shown before you book.`;
+    return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Clean, careful setup with fast local follow-up.`;
   }
   if (serviceSlug === 'tv-mounting') {
-    return `TV mounting in ${cityName}, TX for TVs, shelves, mirrors, and wall installs with upfront pricing shown before checkout.`;
+    return `TV mounting in ${cityName}, TX for TVs, shelves, mirrors, and wall installs. Clean, level work with fast local confirmation.`;
   }
   if (serviceSlug === 'smart-home-installation') {
-    return `Smart home installation in ${cityName}, TX for locks, cameras, thermostats, and doorbells with upfront pricing before checkout.`;
+    return `Smart home installation in ${cityName}, TX for locks, cameras, thermostats, and doorbells. Installed, connected, and tested before we leave.`;
   }
   if (serviceSlug === 'fitness-equipment-assembly') {
-    return `Fitness equipment assembly in ${cityName}, TX for treadmills, bikes, benches, and home gyms with upfront pricing before checkout.`;
+    return `Fitness equipment assembly in ${cityName}, TX for treadmills, bikes, benches, and home gyms. Solid assembly, leveling, and cleanup included.`;
   }
   if (serviceSlug === 'office-furniture-assembly') {
-    return `Office furniture assembly in ${cityName}, TX for desks, chairs, and workstations with upfront pricing before checkout.`;
+    return `Office furniture assembly in ${cityName}, TX for desks, chairs, and workstations. Home-office and commercial setups built square and ready to use.`;
   }
   if (serviceSlug === 'playset-assembly') {
-    return `Playset assembly in ${cityName}, TX for trampolines, swing sets, pergolas, and gazebos with upfront pricing before checkout.`;
+    return `Playset assembly in ${cityName}, TX for trampolines, swing sets, pergolas, and gazebos. Backyard builds assembled safely and checked before we go.`;
   }
-  return `Professional service in ${cityName}, TX with upfront pricing shown before checkout.`;
+  return `Professional home setup service in ${cityName}, TX with careful work and fast local follow-up.`;
 }
 
 // ── CITY DATA ──────────────────────────────────────────────────────────────
@@ -176,10 +176,14 @@ const SERVICES = [
     bookingParam: 'Furniture+Assembly',
     tagline: 'Professional assembly for any brand, any room.',
     intro: 'We assemble IKEA, Wayfair, Amazon, Ashley, and any other brand — beds, dressers, sofas, desks, wardrobes, and more. All tools included, work guaranteed.',
+    heroPhoto: 'service-furniture-assembly.jpg',
+    heroAlt: 'Assembler building a white storage unit in a bright living room',
+    heroSummary: 'Beds, dressers, desks, dining sets, and IKEA builds assembled carefully and left ready to use.',
     fromPrice: '$69',
     pricingHighlights: [
+      { name: 'Side / end table', price: '$69', popular: false },
+      { name: 'Nightstand (single)', price: '$79', popular: false },
       { name: 'Bed Frame (Queen)', price: '$119', popular: true },
-      { name: 'Sectional Sofa (L-shape)', price: '$139–$169', popular: false },
       { name: 'Dresser / Chest of Drawers', price: '$99–$119', popular: false },
       { name: 'IKEA PAX Wardrobe', price: '$169+', popular: false },
     ],
@@ -199,6 +203,9 @@ const SERVICES = [
     bookingParam: 'Mounting+%26+Hanging',
     tagline: 'Safe, level, and clean mounting on any wall.',
     intro: 'We mount TVs, shelves, mirrors, gallery walls, curtain rods, projectors, and more — standard drywall, brick, concrete, tile, or above the fireplace. All bracket types handled, cords managed, no mess left behind.',
+    heroPhoto: 'service-tv-mounting.jpg',
+    heroAlt: 'Assembler leveling a TV wall mount in a living room',
+    heroSummary: 'TVs, mirrors, shelves, and soundbars mounted level with the right anchors for your wall.',
     fromPrice: '$79',
     pricingHighlights: [
       { name: 'Single framed picture / mirror', price: '$79', popular: false },
@@ -221,6 +228,9 @@ const SERVICES = [
     bookingParam: 'Smart+Home',
     tagline: 'Seamless smart device setup in every room.',
     intro: 'From smart thermostats and doorbells to locks, cameras, lighting systems, hubs, Wi-Fi, and streaming devices — we install, connect, and test every device so it works perfectly the first time.',
+    heroPhoto: 'service-smart-home.jpg',
+    heroAlt: 'Assembler installing a smart video doorbell at a front entry',
+    heroSummary: 'Doorbells, locks, thermostats, cameras, and smart plugs installed, connected, and tested before we leave.',
     fromPrice: '$69',
     pricingHighlights: [
       { name: 'Smart plug install + setup (per 2 plugs)', price: '$69', popular: false },
@@ -243,6 +253,9 @@ const SERVICES = [
     bookingParam: 'Fitness+Equipment',
     tagline: 'Get your home gym set up and ready to use.',
     intro: 'We assemble treadmills, ellipticals, stationary bikes, rowing machines, weight benches, squat racks, and cable machines — heavy equipment handled safely and placed exactly where you want it.',
+    heroPhoto: 'service-fitness-equipment.jpg',
+    heroAlt: 'Assembler building a treadmill in a home gym',
+    heroSummary: 'Treadmills, bikes, benches, racks, and home gym pieces assembled solid, leveled, and ready to train.',
     fromPrice: '$119',
     pricingHighlights: [
       { name: 'Inversion Table', price: '$119', popular: false },
@@ -265,9 +278,13 @@ const SERVICES = [
     bookingParam: 'Outdoor+%26+Playsets',
     tagline: 'Professional outdoor playset, trampoline, and structure assembly.',
     intro: 'We assemble swing sets, playsets, trampolines, pergolas, gazebos, storage sheds, and outdoor structures — fully built, safely leveled, and ready for your family to enjoy.',
+    heroPhoto: 'service-outdoor-playsets.jpg',
+    heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
+    heroSummary: 'Playsets, trampolines, pergolas, gazebos, and backyard builds assembled safely and checked before we leave.',
     fromPrice: '$89',
     pricingHighlights: [
-      { name: 'Sandbox / Outdoor Playhouse', price: '$169', popular: false },
+      { name: 'Deck box / outdoor storage bench', price: '$89', popular: false },
+      { name: 'Patio umbrella + base', price: '$89', popular: false },
       { name: 'Trampoline Assembly', price: '$199', popular: true },
       { name: 'Swing Set / Backyard Playset', price: '$299–$379', popular: false },
       { name: 'Pergola / Gazebo Kit', price: '$399–$599', popular: false },
@@ -287,6 +304,9 @@ const SERVICES = [
     bookingParam: 'Office+Assembly',
     tagline: 'Home office and commercial workspace setup done right.',
     intro: 'We assemble desks, standing desks, L-shaped workstations, office chairs, bookcases, filing cabinets, conference tables, and storage — for home offices, commercial spaces, and everything in between.',
+    heroPhoto: 'service-office-assembly.jpg',
+    heroAlt: 'Assembler tightening the leg on a standing desk in a home office',
+    heroSummary: 'Desks, chairs, cabinets, and workstations built square, leveled, and ready for a productive day.',
     fromPrice: '$89',
     pricingHighlights: [
       { name: 'Office Chair / File Cabinet', price: '$89', popular: false },
@@ -306,8 +326,7 @@ const SERVICES = [
 ];
 
 // ── PAGE TEMPLATE ──────────────────────────────────────────────────────────
-// Real job photos per service, reused across that service's city pages (matches
-// the 6 Austin flagship pages). Keep in sync with images/real-* on disk.
+// Real job photos per service, used in the "Recent Work" gallery on city pages.
 const OUR_WORK_PHOTOS = {
   'furniture-assembly': [
     { img: 'real-furniture-bed-paneled.png', alt: 'Assembled paneled bed frame in a finished bedroom' },
@@ -332,11 +351,32 @@ const OUR_WORK_PHOTOS = {
     { img: 'real-office-workstations.jpg', alt: 'Assembled office workstations' },
   ],
   'playset-assembly': [
+    { img: 'work-outdoor-playset.jpg', alt: 'Assembler working on a backyard playset frame' },
     { img: 'real-outdoor-gazebo.png', alt: 'Assembled backyard gazebo structure' },
-    { img: 'real-outdoor-patio-gray.jpg', alt: 'Assembled outdoor patio furniture set' },
-    { img: 'real-outdoor-sectional.png', alt: 'Assembled outdoor sectional seating' },
   ],
 };
+
+function parseStartingPrice(label) {
+  const match = String(label || '').match(/\$(\d+)/);
+  return match ? Number(match[1]) : NaN;
+}
+
+function assertVisibleStartPrice(service, listKey) {
+  const expectedStart = parseStartingPrice(service.fromPrice);
+  const visibleStarts = (service[listKey] || [])
+    .map((item) => parseStartingPrice(item.price))
+    .filter(Number.isFinite);
+  const lowestVisible = visibleStarts.length ? Math.min(...visibleStarts) : NaN;
+
+  if (!Number.isFinite(expectedStart) || !Number.isFinite(lowestVisible)) {
+    throw new Error(`Unable to validate visible start price for ${service.slug}.`);
+  }
+  if (lowestVisible > expectedStart) {
+    throw new Error(
+      `${service.slug} starts at ${service.fromPrice}, but visible examples begin at $${lowestVisible}. Update the visible pricing examples before generating pages.`,
+    );
+  }
+}
 
 function buildOurWork(slug) {
   const photos = OUR_WORK_PHOTOS[slug];
@@ -364,6 +404,9 @@ function generatePage(city, service) {
   const pageSlug = `${service.slug}-${city.slug}-tx`;
   const url = `https://www.assembleatease.com/${pageSlug}`;
   const serviceDisplayName = service.displayName || service.name;
+  const heroPhoto = service.heroPhoto || OUR_WORK_PHOTOS[service.slug]?.[0]?.img || 'logo.jpg';
+  const heroAlt = service.heroAlt || `${serviceDisplayName} service visit in ${city.name}, TX`;
+  const heroImageUrl = `https://www.assembleatease.com/images/${heroPhoto}`;
   const title = `${serviceDisplayName} in ${city.name}, TX — From ${service.fromPrice} | AssembleAtEase`;
   const metaDesc = buildMetaDescription(service.slug, city.name);
 
@@ -372,7 +415,7 @@ function generatePage(city, service) {
     '@context': 'https://schema.org',
     '@type': ['LocalBusiness', 'HomeAndConstructionBusiness'],
     'name': `AssembleAtEase — ${serviceDisplayName} in ${city.name}`,
-    'image': 'https://www.assembleatease.com/images/logo.jpg',
+    'image': heroImageUrl,
     'url': url,
     'telephone': '+17372906129',
     'email': 'service@assembleatease.com',
@@ -461,11 +504,13 @@ function generatePage(city, service) {
 <meta property="og:description" content="${esc(metaDesc)}"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
-<meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>
-<meta name="twitter:card" content="summary"/>
+<meta property="og:image" content="${esc(heroImageUrl)}"/>
+<meta property="og:image:alt" content="${esc(heroAlt)}"/>
+<meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(metaDesc)}"/>
-<meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
+<meta name="twitter:image" content="${esc(heroImageUrl)}"/>
+<meta name="twitter:image:alt" content="${esc(heroAlt)}"/>
 <script type="application/ld+json">${schema}</script>
 <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
@@ -482,12 +527,40 @@ function generatePage(city, service) {
 .price-card-name{font-size:0.92rem;font-weight:600;color:var(--ink);margin-bottom:0.85rem;flex:1}
 .price-card-price{font-family:var(--font-display);font-size:1.45rem;color:var(--cyan)}
 .how-grid{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:0.5rem}
+.city-hero{background:linear-gradient(135deg,#fff8ef 0%,#f4fbff 54%,#edf7f7 100%);padding:4.75rem 2rem 4.25rem;border-bottom:1px solid var(--border)}
+.city-hero-grid{max-width:1160px;margin:0 auto;display:grid;gap:2.4rem;align-items:center}
+.city-hero-copy{display:flex;flex-direction:column;gap:1rem}
+.city-hero-eyebrow{display:inline-flex;align-items:center;gap:0.55rem;align-self:flex-start;background:rgba(255,255,255,0.82);border:1px solid rgba(13,148,193,0.22);border-radius:999px;padding:0.45rem 0.95rem;font-size:0.74rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
+.city-hero-eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan)}
+.city-hero-title{font-family:var(--font-display);font-size:clamp(2.25rem,4.7vw,3.55rem);line-height:1.04;color:var(--ink);letter-spacing:-0.03em;margin:0}
+.city-hero-lead{font-size:1.08rem;line-height:1.72;color:var(--ink-soft);margin:0;max-width:37rem}
+.city-hero-body{font-size:0.98rem;line-height:1.78;color:var(--muted);margin:0;max-width:35rem}
+.city-hero-rating{display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;font-size:0.92rem;color:var(--ink)}
+.city-hero-rating .stars{display:flex;gap:2px;color:#f59e0b}
+.city-hero-actions{display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center}
+.city-hero-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;color:var(--ink);font-family:var(--font-body);font-size:0.98rem;font-weight:600;padding:0.95rem 1.5rem;border-radius:999px;text-decoration:none;border:1.5px solid var(--border);background:rgba(255,255,255,0.72);transition:all .18s}
+.city-hero-secondary:hover{border-color:var(--cyan);color:var(--cyan-dark)}
+.city-hero-points{display:flex;flex-wrap:wrap;gap:0.75rem}
+.city-hero-point{display:inline-flex;align-items:center;gap:0.45rem;background:rgba(255,255,255,0.82);border:1px solid rgba(15,23,42,0.08);border-radius:999px;padding:0.55rem 0.95rem;font-size:0.84rem;color:var(--ink-soft)}
+.city-hero-point::before{content:"";width:7px;height:7px;border-radius:50%;background:#28d17c}
+.city-hero-media{position:relative}
+.city-hero-photo{position:relative;border-radius:30px;overflow:hidden;border:1px solid rgba(15,23,42,0.08);background:#dce9ef;box-shadow:0 30px 70px rgba(15,23,42,0.18)}
+.city-hero-photo img{display:block;width:100%;height:100%;min-height:390px;object-fit:cover}
+.city-hero-note{position:absolute;left:1rem;bottom:1rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(10,18,32,0.82);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:0.55rem 0.95rem;font-size:0.8rem;font-weight:600;backdrop-filter:blur(6px)}
+.city-hero-note::before{content:"";width:8px;height:8px;border-radius:50%;background:#28d17c;box-shadow:0 0 0 4px rgba(40,209,124,0.24)}
 #m-svc-bar{display:none}
 @media(max-width:700px){.pricing-grid{grid-template-columns:1fr}}
+@media(min-width:900px){
+  .city-hero-grid{grid-template-columns:minmax(0,1.03fr) minmax(420px,0.97fr)}
+}
 @media(max-width:768px){
   .nav-inner{padding:0 1rem}
   .nav-inner>.btn-cyan{display:none}
   .nav-easer-link{display:none}
+  .city-hero{padding:3.35rem 1rem 3rem}
+  .city-hero-photo img{min-height:320px}
+  .city-hero-actions{flex-direction:column;align-items:stretch}
+  .city-hero-secondary,.city-hero .btn-cyan{justify-content:center}
   .pricing-grid{display:flex;flex-direction:column;gap:0}
   .price-card{border:none;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);padding:.9rem 0;display:grid;grid-template-areas:"name price" "btn btn";grid-template-columns:1fr auto;align-items:center;gap:0 .75rem}
   .price-card:first-child{border-top:1px solid var(--border)}
@@ -512,26 +585,34 @@ ${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
 <main id="main-content">
 
 <!-- HERO -->
-<section style="background:linear-gradient(135deg,#f0fdff 0%,#e0f7fa 50%,#f9fafb 100%);padding:4.5rem 2rem 3.5rem;border-bottom:1px solid var(--border)">
-  <div style="max-width:720px;margin:0 auto;text-align:center">
-    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.3rem 0.9rem;font-size:0.72rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1.25rem">${esc(city.name)}, TX &mdash; Serving the Austin Metro</div>
-    <h1 style="font-family:var(--font-display);font-size:clamp(2rem,5vw,3.2rem);color:var(--ink);line-height:1.1;margin-bottom:1rem">${esc(serviceDisplayName)} in ${esc(city.name)}, TX</h1>
-    <p style="font-size:1.05rem;color:var(--ink-soft);line-height:1.75;max-width:580px;margin:0 auto 0.75rem">${esc(service.tagline)}</p>
-    <p style="font-size:0.95rem;color:var(--muted);line-height:1.7;max-width:560px;margin:0 auto 1.5rem">${esc(city.bio)}</p>
-    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:1.75rem;flex-wrap:wrap">
-      <span style="display:flex;gap:2px;color:#f59e0b">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-      <strong style="font-size:0.95rem;color:var(--ink)">4.9</strong>
-      <span style="font-size:0.85rem;color:var(--muted)">&bull; Serving ${esc(city.name)} &amp; surrounding areas</span>
+<section class="city-hero">
+  <div class="city-hero-grid">
+    <div class="city-hero-copy">
+      <div class="city-hero-eyebrow">${esc(city.name)}, TX service area</div>
+      <h1 class="city-hero-title">${esc(serviceDisplayName)} in ${esc(city.name)}, TX</h1>
+      <p class="city-hero-lead">${esc(service.tagline)}</p>
+      <p class="city-hero-body">${esc(service.heroSummary)} We serve homes, apartments, and workplaces across ${esc(city.name)} and nearby Austin-area communities.</p>
+      <div class="city-hero-rating">
+        <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        <strong>4.9</strong>
+        <span style="color:var(--muted)">&bull; Local service across ${esc(city.name)} and nearby areas</span>
+      </div>
+      <div class="city-hero-actions">
+        <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check availability in ${esc(city.name)}</a>
+        <a href="#city-pricing" class="city-hero-secondary">See common jobs</a>
+      </div>
+      <div class="city-hero-points">
+        <span class="city-hero-point">Reviewed local pros</span>
+        <span class="city-hero-point">Careful in-home work</span>
+        <span class="city-hero-point">Fast confirmation</span>
+        <span class="city-hero-point">${esc(city.name)} + nearby areas</span>
+      </div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:0.75rem;margin-bottom:2rem">
-      <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:var(--cyan);color:#fff;font-family:var(--font-body);font-size:1.05rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;transition:all 0.18s;box-shadow:0 4px 20px rgba(0,191,255,0.3)" onmouseover="this.style.background='#0099CC';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#00BFFF';this.style.transform='none'">Book in ${esc(city.name)} &rarr;</a>
-      <span style="font-size:0.82rem;color:var(--muted)">From ${esc(service.fromPrice)} &bull; Secure checkout</span>
-    </div>
-    <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;font-size:0.82rem;color:var(--ink-soft)">
-      <span>&#10003; Total shown upfront</span>
-      <span>&#10003; Fast follow-up</span>
-      <span>&#10003; Same-Day Available</span>
-      <span>&#10003; Clear pricing</span>
+    <div class="city-hero-media">
+      <div class="city-hero-photo">
+        <img src="/images/${heroPhoto}" alt="${esc(heroAlt)}" loading="eager"/>
+        <div class="city-hero-note">Real service visit</div>
+      </div>
     </div>
   </div>
 </section>
@@ -541,49 +622,50 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:900px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Simple Process</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Book in minutes. Done today.</h2>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">A smooth visit from start to finish.</h2>
     </div>
     <div class="how-grid">
       <div style="text-align:center;padding:1.5rem 1rem">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">1</div>
-        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Book online</h3>
-        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Choose your service, pick a date and time. Takes under 2 minutes.</p>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Tell us what you need</h3>
+        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Choose the service, add the details, and pick a time that works for you.</p>
       </div>
       <div style="font-size:1.5rem;color:var(--border);padding-top:2.5rem">&#8594;</div>
       <div style="text-align:center;padding:1.5rem 1rem">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">2</div>
-        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">We confirm</h3>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">We confirm the visit</h3>
         <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We follow up quickly to confirm availability and assign a reviewed service pro in ${esc(city.name)}.</p>
       </div>
       <div style="font-size:1.5rem;color:var(--border);padding-top:2.5rem">&#8594;</div>
       <div style="text-align:center;padding:1.5rem 1rem">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">3</div>
-        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Payment after completion</h3>
-        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">The total is shown before you confirm, and payment is processed after the job is complete.</p>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">We get the setup done</h3>
+        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Your pro arrives ready for the job, finishes carefully, and leaves the space ready to use.</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- PRICING -->
-<section style="padding:4.5rem 2rem;background:var(--white)">
+<section id="city-pricing" style="padding:4.5rem 2rem;background:var(--white)">
   <div style="max-width:960px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
-      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Transparent Pricing</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">${esc(serviceDisplayName)} Pricing in ${esc(city.name)}</h2>
-      <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat, upfront item pricing. Your service-call fee and tax are shown before checkout &mdash; no surprises.</p>
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Common Jobs</div>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">${esc(serviceDisplayName)} jobs we handle in ${esc(city.name)}</h2>
+      <p style="font-size:0.95rem;color:var(--muted);max-width:620px;margin:0 auto">A few common requests to help you ballpark the visit. Add the exact items or options in booking so we can confirm the right setup.</p>
     </div>
     <div class="pricing-grid">
       ${priceCards}
     </div>
     <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:3rem 2rem;text-align:center">
-      <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--ink);margin-bottom:0.65rem">Ready to book in ${esc(city.name)}?</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:520px;margin-left:auto;margin-right:auto">Book in minutes. We follow up quickly and show up on time.</p>
-      <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Book Now &mdash; ${esc(city.name)}</a>
+      <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--ink);margin-bottom:0.65rem">Ready to schedule in ${esc(city.name)}?</h2>
+      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:560px;margin-left:auto;margin-right:auto">Tell us what needs to get done and we will help you get it on the calendar with a fast local follow-up.</p>
+      <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check Availability &mdash; ${esc(city.name)}</a>
       <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:1.75rem;font-size:0.82rem;color:var(--muted)">
-        <span>&#10003; Fast follow-up</span>
-        <span>&#10003; Payment after completion</span>
-        <span>&#10003; Service-call fee shown upfront</span>
+        <span>&#10003; Reviewed local pros</span>
+        <span>&#10003; Fast confirmation</span>
+        <span>&#10003; Careful setup</span>
+        <span>&#10003; Clean finish</span>
       </div>
     </div>
   </div>
@@ -604,7 +686,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:780px;margin:0 auto;text-align:center">
     <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Service Area</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,2.5vw,2rem);color:var(--ink);margin-bottom:0.75rem">${esc(serviceDisplayName)} Near ${esc(city.name)}</h2>
-    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We serve ${esc(city.name)} and the surrounding Austin metro. From the first booking to final placement, we&rsquo;re your local assembly and installation team.</p>
+    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We serve ${esc(city.name)} and nearby Austin-area communities for in-home assembly, mounting, and setup work.</p>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center">
       ${areaChips}
     </div>
@@ -616,16 +698,16 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:960px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Why Choose Us</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">${esc(city.name)}&rsquo;s trusted assembly service.</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Austin-based and built on referrals &mdash; every job matters to us personally.</p>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">${esc(city.name)}&rsquo;s trusted assembly and setup team.</h2>
+      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Local, detail-oriented, and built around a smooth in-home service experience.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem">
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Secure checkout</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Review your total before confirming. Payment is handled securely by Stripe after completion.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Same-day &amp; next-day available</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We keep open slots for last-minute bookings in ${esc(city.name)} and across the Austin metro.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flat-rate pricing &mdash; no surprises</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Every item price, service-call fee, and tax estimate is shown before checkout.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Austin-based &amp; locally operated</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Not a national chain. We live and work in the same communities we serve, including ${esc(city.name)}.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Fast follow-up</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Book online and get a real confirmation fast &mdash; not a chatbot, not days later.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Careful, clean, respectful</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We treat your home like it&rsquo;s ours. No rushing, no shortcuts. Every time.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Reviewed local pros</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We confirm the visit and match the job with a service pro prepared for the work.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Careful in-home work</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Floors respected, parts organized, and the setup checked before we leave.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flexible scheduling</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Weekday and weekend openings with quick follow-up after you book.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Austin-based team</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">One local team serving ${esc(city.name)} and nearby communities, not a faceless lead-gen page.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Clear communication</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">If we need more detail on wall type, item count, or access, you hear from a real person quickly.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg></div><div style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Ready to use when we leave</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Level, square, anchored, or tested as the job requires so the space feels finished.</p></div>
     </div>
   </div>
 </section>
@@ -674,8 +756,8 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
 <section style="background:linear-gradient(135deg,#0d2b45,#134a72);padding:5rem 2rem;text-align:center">
   <div style="max-width:600px;margin:0 auto">
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in ${esc(city.name)}?</h2>
-    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing and same-day availability in ${esc(city.name)} and the Austin metro. Book in minutes with secure checkout.</p>
-    <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book ${esc(serviceDisplayName)} &rarr;</a>
+    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Tell us what is waiting to get done and we will help you get it on the calendar with a fast local follow-up.</p>
+    <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Check availability &rarr;</a>
     <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
 </section>
@@ -695,6 +777,10 @@ ${buildPublicCookieConsentBlock()}
 // ── WRITE FILES ────────────────────────────────────────────────────────────
 let generated = 0;
 const sitemapEntries = [];
+
+for (const service of SERVICES) {
+  assertVisibleStartPrice(service, 'pricingHighlights');
+}
 
 for (const service of SERVICES) {
   for (const city of CITIES) {

@@ -17,17 +17,17 @@ const CITY_NAMES = {
 
 const SERVICE_DESCRIPTIONS = {
   'furniture-assembly': (city) =>
-    `Furniture assembly in ${city}, TX for beds, dressers, desks, tables, and IKEA builds. Flat-rate pricing with your full total shown before you book.`,
+    `Furniture assembly in ${city}, TX for beds, dressers, desks, tables, and IKEA builds. Clean, careful setup with fast local follow-up.`,
   'tv-mounting': (city) =>
-    `TV mounting in ${city}, TX for TVs, shelves, mirrors, and wall installs with upfront pricing shown before checkout.`,
+    `TV mounting in ${city}, TX for TVs, shelves, mirrors, and wall installs. Clean, level work with fast local confirmation.`,
   'smart-home-installation': (city) =>
-    `Smart home installation in ${city}, TX for locks, cameras, thermostats, and doorbells with upfront pricing before checkout.`,
+    `Smart home installation in ${city}, TX for locks, cameras, thermostats, and doorbells. Installed, connected, and tested before we leave.`,
   'fitness-equipment-assembly': (city) =>
-    `Fitness equipment assembly in ${city}, TX for treadmills, bikes, benches, and home gyms with upfront pricing before checkout.`,
+    `Fitness equipment assembly in ${city}, TX for treadmills, bikes, benches, and home gyms. Solid assembly, leveling, and cleanup included.`,
   'office-furniture-assembly': (city) =>
-    `Office furniture assembly in ${city}, TX for desks, chairs, and workstations with upfront pricing before checkout.`,
+    `Office furniture assembly in ${city}, TX for desks, chairs, and workstations. Home-office and commercial setups built square and ready to use.`,
   'playset-assembly': (city) =>
-    `Playset assembly in ${city}, TX for trampolines, swing sets, pergolas, and gazebos with upfront pricing before checkout.`,
+    `Playset assembly in ${city}, TX for trampolines, swing sets, pergolas, and gazebos. Backyard builds assembled safely and checked before we go.`,
 };
 
 // Orphan one-off pages (ikea/gazebo/trampoline) were removed and 301-redirected

@@ -235,7 +235,15 @@ export function collectPageFacts(pagePath) {
     ogTitle: extractTagValue(html, /<meta[^>]+property="og:title"[^>]+content="([^"]*)"/i),
     ogDescription: extractTagValue(html, /<meta[^>]+property="og:description"[^>]+content="([^"]*)"/i),
     ogImage: extractTagValue(html, /<meta[^>]+property="og:image"[^>]+content="([^"]*)"/i),
+    twitterImage: extractTagValue(html, /<meta[^>]+name="twitter:image"[^>]+content="([^"]*)"/i),
     twitterCard: extractTagValue(html, /<meta[^>]+name="twitter:card"[^>]+content="([^"]*)"/i),
+    heroMediaCount: (html.match(/class="(?:fa-hero-media|city-hero-media)"/g) || []).length,
+    legacyAustinMetroCount: (html.match(/Serving the Austin Metro/g) || []).length,
+    secureCheckoutCount: (html.match(/Secure checkout/gi) || []).length,
+    serviceCallFeeCount: (html.match(/service-call fee/gi) || []).length,
+    totalShownUpfrontCount: (html.match(/Total shown upfront/gi) || []).length,
+    clearPricingCount: (html.match(/Clear pricing/gi) || []).length,
+    exactTotalBeforeConfirmCount: (html.match(/exact total before you confirm/gi) || []).length,
     currentFacebookLinkCount: (html.match(new RegExp(escapeRegExp(governanceConfig.social.facebook), 'g')) || []).length,
     oldFacebookLinkCount: (html.match(new RegExp(escapeRegExp(governanceConfig.social.facebookLegacy), 'g')) || []).length,
     malformedFacebookLinkCount: malformedFacebookLink === governanceConfig.social.facebook
@@ -323,6 +331,34 @@ export function auditPageFacts(facts) {
 
   if (facts.hasSkipNavLink && !facts.hasMainContentTarget) {
     addIssue(issues, 'fail', 'missing_main_content_target', 'Skip navigation is present but no #main-content target exists.');
+  }
+
+  if ((facts.pageType === 'city_service' || facts.pageType === 'flagship_service') && /\/images\/logo\.jpg$/i.test(facts.ogImage)) {
+    addIssue(issues, 'fail', 'logo_social_preview', 'Service pages should use a service-relevant social preview image instead of the logo.');
+  }
+
+  if ((facts.pageType === 'city_service' || facts.pageType === 'flagship_service') && facts.twitterCard !== 'summary_large_image') {
+    addIssue(issues, 'warning', 'twitter_card_small', 'Service pages should use summary_large_image for stronger social previews.');
+  }
+
+  if (facts.pageType === 'city_service' && !facts.heroMediaCount) {
+    addIssue(issues, 'fail', 'missing_city_hero_media', 'City service pages should show a real service image above the fold.');
+  }
+
+  if (facts.pageType === 'city_service' && facts.legacyAustinMetroCount) {
+    addIssue(issues, 'fail', 'legacy_city_pitch', 'City service pages should not use the legacy "Serving the Austin Metro" eyebrow.');
+  }
+
+  if (facts.pageType === 'city_service' || facts.pageType === 'flagship_service') {
+    const staleMarketingCopyCount =
+      facts.secureCheckoutCount +
+      facts.serviceCallFeeCount +
+      facts.totalShownUpfrontCount +
+      facts.clearPricingCount +
+      facts.exactTotalBeforeConfirmCount;
+    if (staleMarketingCopyCount) {
+      addIssue(issues, 'fail', 'stale_service_marketing_copy', 'Service marketing pages still include fee-heavy or legacy trust copy that should stay in booking, not in the page pitch.');
+    }
   }
 
   if (
