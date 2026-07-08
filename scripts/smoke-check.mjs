@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { normalizeChatRoute, sanitizeReplyLinks } from '../api/chat.js';
 import { applyPromotionToPricing, resolveBookingPromotion } from '../api/_promotions.js';
+import { businessIdentity } from './lib/site-governance.mjs';
 
 const files = [
   'api/booking.js',
@@ -95,6 +96,11 @@ if (!displayedReviewCount || displayedReviewCount !== customerReviewCount) {
 const faviconSvg = readFileSync('images/favicon.svg', 'utf8');
 if (/<text\b/i.test(faviconSvg) || />\s*AE\s*</i.test(faviconSvg)) {
   throw new Error('Favicon must use the logo mark, not plain AE text');
+}
+
+const marketingDesktopCss = readFileSync('assets/css/marketing-desktop.css', 'utf8');
+if (!marketingDesktopCss.includes('.nav-book-pill{display:inline-flex}')) {
+  throw new Error('Desktop marketing CSS must show the shared nav-book-pill CTA');
 }
 
 // Favicons must be valid, correctly-formatted files. The old /favicon.ico was a
@@ -250,7 +256,7 @@ const publicHtmlFiles = [
 const uniquePublicHtmlFiles = [...new Set(publicHtmlFiles)];
 
 const requiredPublicFooterLinks = [
-  'href="mailto:service@assembleatease.com"',
+  `href="${businessIdentity.mailtoHref}"`,
   'href="/track"',
   'href="/business"',
   'href="/assembler/apply"',
@@ -287,6 +293,12 @@ for (const file of uniquePublicHtmlFiles) {
   if (!html.includes('<meta property="og:title"')) {
     throw new Error(`Public page missing og:title: ${file}`);
   }
+  if (!html.includes('/assets/js/cookie-consent.js')) {
+    throw new Error(`Public page missing shared cookie consent script: ${file}`);
+  }
+  if (!/id="cookie-banner"/i.test(html)) {
+    throw new Error(`Public page missing shared cookie banner: ${file}`);
+  }
   if (!html.includes('/favicon.ico')) {
     throw new Error(`Public page missing /favicon.ico link: ${file}`);
   }
@@ -316,8 +328,8 @@ for (const file of uniquePublicHtmlFiles) {
       throw new Error(`Public footer missing ${required} in ${file}`);
     }
   }
-  if (file !== 'business.html' && !footer.includes('href="tel:+17372906129"')) {
-    throw new Error(`Public footer missing href="tel:+17372906129" in ${file}`);
+  if (file !== 'business.html' && !footer.includes(`href="${businessIdentity.telHref}"`)) {
+    throw new Error(`Public footer missing ${businessIdentity.telHref} in ${file}`);
   }
   const hasServicePageFooter = footerServicePageLinks.every((href) => footer.includes(href));
   const hasBookingFooter = footerBookingLinks.every((href) => footer.includes(href));

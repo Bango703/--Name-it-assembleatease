@@ -4,7 +4,15 @@
   "description": "AssembleAtEase - Assembly services marketplace connecting customers with skilled assemblers",
   "scripts": {
     "test": "node scripts/smoke-check.mjs",
-    "stripe:connect:seed": "node scripts/seed-stripe-connect-test-data.mjs"
+    "stripe:connect:seed": "node scripts/seed-stripe-connect-test-data.mjs",
+    "governance:nav": "node scripts/public-nav-sync.mjs",
+    "governance:footer": "node scripts/public-footer-sync.mjs",
+    "governance:consent": "node scripts/public-consent-sync.mjs",
+    "governance:sync": "node scripts/page-governance-sync.mjs",
+    "governance:public": "npm run governance:sync && npm run governance:nav && npm run governance:footer && npm run governance:consent",
+    "governance:report": "node scripts/page-governance-report.mjs",
+    "governance:check": "node scripts/page-governance-check.mjs",
+    "governance:check:strict": "node scripts/page-governance-check.mjs --strict"
   },
   "repository": {
     "type": "git",

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <meta charset="UTF-8"/>
 <title>Service Pricing &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -78,46 +77,9 @@
 .cta-section{background:linear-gradient(140deg,#00BFFF,#0099CC);padding:5rem 2rem;text-align:center}
 .cta-section h2{font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem}
 .cta-section p{font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2.5rem;line-height:1.7}
-
-/* ===== NAV ===== */
-.nav-logo{display:flex!important;align-items:center;gap:10px;text-decoration:none}
-.nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
-.nav-logo-text{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--ink)}
-.nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;background:none;border:none;z-index:300}
-.nav-hamburger span{display:block;width:24px;height:2px;background:var(--ink);border-radius:2px;transition:all 0.3s}
-.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-.nav-hamburger.open span:nth-child(2){opacity:0}
-.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.nav-mobile{display:none;position:fixed;top:56px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:199;flex-direction:column;gap:1rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
-.nav-mobile.open{display:flex}
-.nav-mobile a{font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
-
-/* ===== FOOTER ===== */
-.footer{background:#0d1117;padding:3rem 2rem 2rem}
-.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
-.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
-.footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
-.footer-logo-text{font-family:'DM Serif Display',serif;font-size:1.05rem;color:#fff}
-.footer-logo-text span{color:var(--cyan)}
-.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.38);line-height:1.65;margin-bottom:1rem}
-.footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
-.footer-contact a:hover{color:var(--cyan)}
-.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.28);margin-bottom:0.85rem;font-weight:700}
-.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
-.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s}
-.footer-links a:hover{color:#fff}
-.footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
-.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.5)}
-.footer-legal{display:flex;gap:1.25rem}
-.footer-legal a{font-size:0.72rem;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.15s}
-.footer-legal a:hover{color:rgba(255,255,255,0.8)}
-
-/* ===== RESPONSIVE ===== */
-@media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}}
 @media(max-width:700px){
   .pricing-grid{grid-template-columns:1fr}
   .trust-prices{gap:1rem}
-  .footer-inner{grid-template-columns:1fr;gap:2rem}
 }
 
 /* ===== PRICING REFRESH ===== */
@@ -234,14 +196,12 @@ body.pricing-page{background:#f6fbfd}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.assembleatease.com"},{"@type":"ListItem","position":2,"name":"Service Pricing","item":"https://www.assembleatease.com/pricing"}]}</script>
 </head>
 <body class="pricing-page">
-<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
-
-<!-- NAV -->
+<a href="#main-content" class="skip-nav">Skip to main content</a>
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture>
-      <div class="nav-logo-text">Assemble<span style="color:var(--cyan)">AtEase</span></div>
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
+      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
@@ -250,14 +210,12 @@ body.pricing-page{background:#f6fbfd}
       <li><a href="/track">Track My Booking</a></li>
       <li><a href="/about">About Us</a></li>
     </ul>
-    <a href="/book" class="btn btn-cyan">Book Now &rarr;</a>
-    <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
+    <a href="/book" class="nav-book-pill">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </div>
 </nav>
-
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services-hdr">Services</a>
   <a href="/bundles">Bundles</a>
@@ -269,7 +227,6 @@ body.pricing-page{background:#f6fbfd}
   <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
 </div>
 <script src="/assets/js/mobile-nav.js" defer></script>
-
 <!-- HERO -->
 <main id="main-content">
 <section class="page-hero" aria-label="AssembleAtEase pricing">
@@ -562,14 +519,7 @@ body.pricing-page{background:#f6fbfd}
   </div>
 </footer>
 <script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
-
 <!-- COOKIE BANNER -->
-<div id="cookie-banner" class="hidden">
-  <span>We use cookies to improve your experience. <a href="/privacy">Privacy Policy</a></span>
-  <div class="cookie-btns">
-    <button class="cookie-btn cookie-accept" style="background:#00BFFF;color:#fff;font-weight:700" onclick="document.getElementById('cookie-banner').classList.add('hidden');localStorage.setItem('cookie-consent','accepted')">Accept</button>
-    <button class="cookie-btn cookie-decline" style="background:none;border:none;color:rgba(255,255,255,0.5);text-decoration:underline;cursor:pointer;font-size:0.8rem" onclick="document.getElementById('cookie-banner').classList.add('hidden')">Decline</button>
-  </div>
 </div>
 
 <script>
@@ -633,6 +583,14 @@ body.pricing-page{background:#f6fbfd}
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 
 <script src="/assets/js/aae-location.js" defer></script>
+<div id="cookie-banner" class="hidden" data-cookie-banner>
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
+  </div>
+</div>
+<script src="/assets/js/cookie-consent.js" defer></script>
 </body>
 </html>
 

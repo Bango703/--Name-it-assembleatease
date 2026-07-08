@@ -1,0 +1,69 @@
+{
+  "business": {
+    "name": "AssembleAtEase",
+    "legalName": "AssembleAtEase LLC",
+    "domain": "https://www.assembleatease.com",
+    "primaryCity": "Austin",
+    "state": "TX",
+    "email": "service@assembleatease.com",
+    "emailAliases": [
+      "service@assembleatease.com"
+    ],
+    "phoneE164": "+17372906129",
+    "phoneDisplay": "(737) 290-6129",
+    "phoneHrefAliases": [
+      "+17372906129",
+      "+1-737-290-6129"
+    ],
+    "phoneDisplayAliases": [
+      "(737) 290-6129",
+      "737-290-6129",
+      "+1-737-290-6129"
+    ],
+    "reviewRatingValue": "5.0",
+    "reviewCount": "11"
+  },
+  "social": {
+    "facebook": "https://www.facebook.com/people/Assembleatease/61572042722009/",
+    "facebookLegacy": "https://www.facebook.com/profile.php?id=61572042722009",
+    "googleMaps": "https://www.google.com/maps?cid=7847022131459448801",
+    "facebookAliases": [
+      "https://www.facebook.com/profile.php?id=61572042722009",
+      "https://www.facebook.com/people/Assembleatease/61572042722009"
+    ],
+    "googleMapsAliases": [
+      "https://www.google.com/maps?cid=7847022131459448801",
+      "https://www.google.com/maps/place/AssembleAtEase/@30.4140535,-97.7491735,10z"
+    ],
+    "linkedinPage": "https://www.linkedin.com/company/133355841",
+    "linkedinAliases": [
+      "https://www.linkedin.com/company/133355841"
+    ]
+  },
+  "cta": {
+    "book": "/book",
+    "pricing": "/pricing",
+    "business": "/business",
+    "track": "/track",
+    "apply": "/assembler/apply",
+    "bundles": "/bundles"
+  },
+  "services": {
+    "flagshipAustinPages": [
+      "furniture-assembly-austin-tx.html",
+      "tv-mounting-austin-tx.html",
+      "smart-home-installation-austin-tx.html",
+      "fitness-equipment-assembly-austin-tx.html",
+      "office-furniture-assembly-austin-tx.html",
+      "playset-assembly-austin-tx.html"
+    ],
+    "locationServicePrefixes": [
+      "furniture-assembly",
+      "tv-mounting",
+      "smart-home-installation",
+      "fitness-equipment-assembly",
+      "office-furniture-assembly",
+      "playset-assembly"
+    ]
+  }
+}

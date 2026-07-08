@@ -1,5 +1,4 @@
 <!DOCTYPE html><html lang="en"><head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <meta charset="UTF-8"/>
 <title>Room-Ready Setup Bundles — Whole-Room Setup in One Visit | AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -9,7 +8,12 @@
 <meta property="og:description" content="Get the whole room handled in one visit — furniture, TV mounting, and smart setup bundled with flat, upfront pricing."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://www.assembleatease.com/bundles"/>
+<meta property="og:site_name" content="AssembleAtEase"/>
+<meta property="og:image" content="https://www.assembleatease.com/images/bundle-move-in-setup.png"/>
 <meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Room-Ready Setup Bundles | AssembleAtEase"/>
+<meta name="twitter:description" content="Get the whole room handled in one visit with flat, upfront pricing for room setup bundles."/>
+<meta name="twitter:image" content="https://www.assembleatease.com/images/bundle-move-in-setup.png"/>
 <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -80,9 +84,13 @@
 @media(max-width:600px){.bn-h1{font-size:2rem}.bn-wrap{padding:2.2rem 1rem}.bn-meta{grid-template-columns:1fr}.bn-grid{grid-template-columns:1fr}.bn-hero-actions{flex-direction:column}.bn-hero-primary,.bn-hero-secondary{width:100%}}
 </style>
 </head><body>
+<a href="#main-content" class="skip-nav">Skip to main content</a>
 <nav class="nav">
   <div class="nav-inner">
-    <a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="nav-logo-text">AssembleAtEase</div></a>
+    <a href="/" class="nav-logo">
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
+      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+    </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
       <li><a href="/bundles">Bundles</a></li>
@@ -90,8 +98,10 @@
       <li><a href="/track">Track My Booking</a></li>
       <li><a href="/about">About Us</a></li>
     </ul>
-    <a href="/book" class="btn btn-cyan" style="padding:0.5rem 1.25rem;font-size:0.875rem">Book Now &rarr;</a>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav"><span></span><span></span><span></span></button>
+    <a href="/book" class="nav-book-pill">Book Now &rarr;</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
 <div class="nav-mobile" id="mobileNav">
@@ -105,7 +115,7 @@
   <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
 </div>
 <script src="/assets/js/mobile-nav.js" defer></script>
-
+<main id="main-content">
 <section class="bn-hero">
   <div class="bn-hero-shell">
     <div class="bn-hero-copy">
@@ -172,6 +182,7 @@
   <p>Flat pricing. Reviewed local pros. No charge until it&rsquo;s done.</p>
   <a href="/book" class="btn btn-cyan" style="display:inline-block">Start your setup &rarr;</a>
 </section>
+ </main>
 
 <footer class="footer">
   <div class="footer-inner">
@@ -220,76 +231,13 @@
     <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
   </div>
 </footer>
-
-<div id="cookie-banner" class="hidden">
-  <span>We use cookies to improve your experience. <a href="/privacy">Learn more</a>.</span>
+<script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
+<div id="cookie-banner" class="hidden" data-cookie-banner>
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
   <div class="cookie-btns">
-    <button class="cookie-btn cookie-accept" onclick="acceptCookies()">Accept</button>
-    <button class="cookie-btn cookie-decline" onclick="declineCookies()">Decline</button>
+    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
   </div>
 </div>
-<script>
-function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-(function(){
-  function findPrice(source, ref){
-    var groups=(source&&source.subcategories&&source.subcategories[ref.service])||[];
-    for(var i=0;i<groups.length;i++){
-      var items=groups[i].items||[];
-      for(var j=0;j<items.length;j++){
-        if(items[j].name===ref.name) return Number(items[j].price)||0;
-      }
-    }
-    return 0;
-  }
-  function money(n){return '$'+Number(n||0).toFixed(0);}
-  var bundleImages={
-    'bedroom-ready':'/images/real-furniture-bed-paneled.png',
-    'living-room-ready':'/images/real-tv-setup-console.jpg',
-    'home-office-ready':'/images/real-office-home-ldesk.jpg',
-    'move-in-ready':'/images/bundle-move-in-setup.png',
-    'smart-entry-setup':'/images/real-smarthome-doorbell-vivint.png',
-    'nursery-setup':'/images/bundle-nursery-setup.png'
-  };
-  var bundleThemes={
-    'bedroom-ready':{tone:'#8c5b52',soft:'#f6ece8',wash:'#fcf7f4'},
-    'living-room-ready':{tone:'#8a6236',soft:'#f7efe2',wash:'#fdf8f2'},
-    'home-office-ready':{tone:'#43617f',soft:'#eaf1f7',wash:'#f7fafc'},
-    'move-in-ready':{tone:'#91613f',soft:'#f4ede5',wash:'#fcf8f4'},
-    'smart-entry-setup':{tone:'#0f6676',soft:'#e8f6f8',wash:'#f5fbfc'},
-    'nursery-setup':{tone:'#6e8b58',soft:'#eef6e6',wash:'#fafcf7'}
-  };
-  function render(){
-    var grid=document.getElementById('bn-grid'); if(!grid)return;
-    var src=window.AAE_BOOKING_SOURCE; var list=(src&&src.bundles)?src.bundles.filter(function(b){return b.active!==false;}):[];
-    list.sort(function(a,b){return (a.displayOrder||99)-(b.displayOrder||99);});
-    if(!list.length){ grid.innerHTML='<p style="color:#5b6b73">Our setup bundles are loading. <a href="/book">Start a booking &rarr;</a></p>'; return; }
-    grid.innerHTML=list.map(function(b){
-      var incl=(b.included||[]).map(function(i){return esc(i.name);}).join(' &middot; ');
-      var subtotal=(b.included||[]).reduce(function(sum, ref){ return sum + findPrice(src, ref); }, 0);
-      var reward=Math.round(subtotal * 5) / 100;
-      var itemCount=(b.included||[]).length;
-      var img=bundleImages[b.slug] || '/images/bundle-move-in-setup.png';
-      var theme=bundleThemes[b.slug] || bundleThemes['move-in-ready'];
-      var style='--bundle-tone:'+theme.tone+';--bundle-soft:'+theme.soft+';--bundle-wash:'+theme.wash;
-      return '<a class="bn-card" style="'+style+'" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
-        +'<div class="bn-photo"><img src="'+esc(img)+'" alt="'+esc(b.name)+' room-ready bundle example" loading="lazy" width="1536" height="960"/><span class="bn-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>'
-        +'<div class="bn-card-body">'
-          +'<div class="bn-card-top"><div class="bn-name">'+esc(b.name)+'</div><span class="bn-badge-lite">Bundle</span></div>'
-          +'<div class="bn-outcome">'+esc(b.outcome||'')+'</div>'
-          +'<div class="bn-meta">'
-            +'<div class="bn-metric"><span class="bn-metric-label">Starts at</span><strong>'+money(subtotal)+'</strong><span>Before service fee and tax</span></div>'
-            +'<div class="bn-metric"><span class="bn-metric-label">Earn back</span><strong>'+money(reward)+'</strong><span>In AssembleCash after completion</span></div>'
-          +'</div>'
-          +(incl?'<div class="bn-incl"><span>Includes</span>'+incl+'</div>':'')
-          +'<div class="bn-cta-row"><div class="bn-cta">Book this room &rarr;</div></div>'
-        +'</div></a>';
-    }).join('');
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render); else render();
-})();
-function acceptCookies(){localStorage.setItem('cookie-consent','accepted');document.getElementById('cookie-banner').classList.add('hidden');var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}
-function declineCookies(){localStorage.setItem('cookie-consent','declined');document.getElementById('cookie-banner').classList.add('hidden');}
-document.getElementById('year').textContent=new Date().getFullYear();
-window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
-</script>
+<script src="/assets/js/cookie-consent.js" defer></script>
 </body></html>

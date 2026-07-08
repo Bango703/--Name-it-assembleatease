@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <meta charset="UTF-8"/>
 <title>Rate Your Pro &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -68,14 +67,41 @@ textarea.form-control{resize:vertical;min-height:120px}
 </head>
 <body>
 
-<nav class="nav"><div class="nav-inner">
-  <a href="/" class="nav-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase"/></picture><div class="nav-logo-text">AssembleAtEase</div></a>
-  <a href="/book" class="btn btn-cyan" style="font-size:0.875rem">Book Now</a>
-</div></nav>
-
+<a href="#main-content" class="skip-nav">Skip to main content</a>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
+      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#services-hdr">Services</a></li>
+      <li><a href="/bundles">Bundles</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/track">Track My Booking</a></li>
+      <li><a href="/about">About Us</a></li>
+    </ul>
+    <a href="/book" class="btn btn-cyan" style="font-size:0.875rem;padding:0.5rem 1.25rem">Book Now &rarr;</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile" id="mobileNav">
+  <a href="/#services-hdr">Services</a>
+  <a href="/bundles">Bundles</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/track">Track My Booking</a>
+  <a href="/about">About Us</a>
+  <a href="/contact">Contact</a>
+  <a href="/assembler/apply">Become an Easer</a>
+  <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
+</div>
+<script src="/assets/js/mobile-nav.js" defer></script>
+<main id="main-content">
 <section class="page-hero">
   <div class="page-hero-inner">
-    <h1 class="page-title">How did your Pro do</h1>
+    <h1 class="page-title">How did your Pro do?</h1>
     <p class="page-desc">Takes 30 seconds. Your honest feedback helps us improve and helps other homeowners find reliable help.</p>
     <div id="service-chip" style="display:none"><span class="service-chip" id="service-chip-text"></span></div>
   </div>
@@ -116,7 +142,7 @@ textarea.form-control{resize:vertical;min-height:120px}
       <!-- Review text -->
       <div class="form-group">
         <label for="r-body">Your review</label>
-        <textarea id="r-body" class="form-control" placeholder="What did your Pro do well Anything we can improve"></textarea>
+        <textarea id="r-body" class="form-control" placeholder="What did your Pro do well? Anything we can improve?"></textarea>
       </div>
 
       <hr class="divider"/>
@@ -148,12 +174,13 @@ textarea.form-control{resize:vertical;min-height:120px}
     </div>
   </div>
 </div>
+ </main>
 
 <footer class="footer">
   <div class="footer-inner">
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services.</p>
       <div class="footer-contact">
         <a href="tel:+17372906129">(737) 290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
@@ -178,10 +205,15 @@ textarea.form-control{resize:vertical;min-height:120px}
         <li><a href="/about">About Us</a></li>
         <li><a href="/pricing">Pricing</a></li>
         <li><a href="/blog/">Blogs</a></li>
+        <li><a href="/business">Business Services</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Support</div>
+      <ul class="footer-links">
         <li><a href="/#faq">FAQ</a></li>
         <li><a href="/track">Track My Booking</a></li>
         <li><a href="/contact">Contact</a></li>
-        <li><a href="/business">Business Services</a></li>
         <li><a href="/assembler/apply">Become an Easer</a></li>
       </ul>
     </div>
@@ -203,7 +235,6 @@ textarea.form-control{resize:vertical;min-height:120px}
   </div>
 </footer>
 <script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
-
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -298,6 +329,14 @@ function showErr(msg) {
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 </script>
+<div id="cookie-banner" class="hidden" data-cookie-banner>
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
+  </div>
+</div>
+<script src="/assets/js/cookie-consent.js" defer></script>
 </body>
 </html>
 

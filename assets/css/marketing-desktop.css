@@ -6,6 +6,8 @@
 .nav-hamburger{display:none}
 .nav-auth-link{display:block}
 .nav-earn-btn{display:inline-flex;align-items:center}
+.nav-book-pill{display:inline-flex}
+.nav-inner>a.btn.btn-cyan{display:inline-flex}
 /* On pages with a "Become an Easer" link (about/business/contact/pricing), group
    the two CTAs together at the right instead of letting space-between spread them.
    Scoped via :not(.nav-book-pill) so the homepage/blog/city navs are untouched. */

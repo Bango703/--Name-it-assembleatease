@@ -6,6 +6,9 @@
 import { writeFileSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
+import { buildPublicFooterBlock } from './lib/public-footer.mjs';
+import { buildPublicNavBlock } from './lib/public-nav.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -191,6 +194,7 @@ const SERVICES = [
   },
   {
     name: 'Mounting & Hanging',
+    displayName: 'TV Mounting',
     slug: 'tv-mounting',
     bookingParam: 'Mounting+%26+Hanging',
     tagline: 'Safe, level, and clean mounting on any wall.',
@@ -359,14 +363,15 @@ function buildOurWork(slug) {
 function generatePage(city, service) {
   const pageSlug = `${service.slug}-${city.slug}-tx`;
   const url = `https://www.assembleatease.com/${pageSlug}`;
-  const title = `${service.name} in ${city.name}, TX — From ${service.fromPrice} | AssembleAtEase`;
+  const serviceDisplayName = service.displayName || service.name;
+  const title = `${serviceDisplayName} in ${city.name}, TX — From ${service.fromPrice} | AssembleAtEase`;
   const metaDesc = buildMetaDescription(service.slug, city.name);
 
   // JSON-LD schema
   const schema = safeJson({
     '@context': 'https://schema.org',
     '@type': ['LocalBusiness', 'HomeAndConstructionBusiness'],
-    'name': `AssembleAtEase — ${service.name} in ${city.name}`,
+    'name': `AssembleAtEase — ${serviceDisplayName} in ${city.name}`,
     'image': 'https://www.assembleatease.com/images/logo.jpg',
     'url': url,
     'telephone': '+17372906129',
@@ -387,7 +392,7 @@ function generatePage(city, service) {
     'priceRange': '$$',
     'hasOfferCatalog': {
       '@type': 'OfferCatalog',
-      'name': service.name,
+      'name': serviceDisplayName,
       'itemListElement': service.pricingHighlights.map((p, i) => ({
         '@type': 'Offer',
         'position': i + 1,
@@ -435,18 +440,17 @@ function generatePage(city, service) {
   const nearbyCityLinks = city.nearby.slice(0, 4).map(n => {
     const c = CITIES.find(x => x.name === n);
     return c
-      ? `<div><a href="/${service.slug}-${c.slug}-tx" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(service.name)} in ${esc(c.name)}</a></div>`
+      ? `<div><a href="/${service.slug}-${c.slug}-tx" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(serviceDisplayName)} in ${esc(c.name)}</a></div>`
       : '';
   }).filter(Boolean).join('\n          ');
 
   const otherServiceLinks = SERVICES.filter(s => s.slug !== service.slug).slice(0, 4).map(s =>
-    `<div><a href="/${s.slug}-${city.slug}-tx" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(s.name)} in ${esc(city.name)}</a></div>`
+    `<div><a href="/${s.slug}-${city.slug}-tx" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(s.displayName || s.name)} in ${esc(city.name)}</a></div>`
   ).join('\n          ');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <meta charset="UTF-8"/>
 <title>${esc(title)}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -463,8 +467,8 @@ function generatePage(city, service) {
 <meta name="twitter:description" content="${esc(metaDesc)}"/>
 <meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>
 <script type="application/ld+json">${schema}</script>
-<link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/><link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
-<link rel="apple-touch-icon" href="/images/logo.jpg"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
@@ -472,57 +476,14 @@ function generatePage(city, service) {
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <script src="/assets/js/site-promo.js" defer></script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--cyan:#00BFFF;--cyan-dark:#0099CC;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;--ink:#0d1117;--ink-soft:#374151;--muted:#6b7280;--border:#e5e7eb;--off-white:#f9fafb;--white:#ffffff;--radius:12px;--radius-lg:18px;--radius-xl:24px;--font-display:'DM Serif Display',serif;--font-body:'DM Sans',sans-serif;--shadow:0 4px 20px rgba(0,0,0,0.08);--shadow-lg:0 8px 40px rgba(0,0,0,0.12);}
-html{scroll-behavior:smooth}
-body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-.nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-.nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo img{width:42px;height:42px;border-radius:50%;object-fit:cover}
-.nav-logo-text{font-family:var(--font-display);font-size:1.15rem;color:var(--ink)}
-.nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
-.nav-links a{font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none;transition:color 0.15s}
-.nav-links a:hover{color:var(--cyan)}
-.nav-easer-link{display:flex;align-items:center;gap:1rem}
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
-.btn-cyan{background:var(--cyan);color:#fff}
-.btn-cyan:hover{background:var(--cyan-dark);box-shadow:0 4px 16px rgba(0,191,255,0.35);transform:translateY(-1px)}
-.btn-lg{padding:0.85rem 2.25rem;font-size:1rem}
-.btn-full{width:100%;text-align:center}
 .pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-bottom:3rem}
 .price-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;transition:border-color 0.15s,box-shadow 0.15s;position:relative;display:flex;flex-direction:column}
 .price-card:hover{border-color:var(--cyan);box-shadow:var(--shadow)}
 .price-card-name{font-size:0.92rem;font-weight:600;color:var(--ink);margin-bottom:0.85rem;flex:1}
 .price-card-price{font-family:var(--font-display);font-size:1.45rem;color:var(--cyan)}
-.footer{background:#0a1628;padding:3rem 2rem 2rem}
-.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:3rem;margin-bottom:2rem}
-.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:0.75rem}
-.footer-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover}
-.footer-logo-text{font-family:var(--font-display);font-size:1.05rem;color:#fff}
-.footer-logo-text span{color:var(--cyan)}
-.footer-tagline{font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.65;margin-bottom:1rem}
-.footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.5);text-decoration:none;margin-bottom:3px;transition:color 0.15s}
-.footer-contact a:hover{color:var(--cyan)}
-.footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.55);margin-bottom:0.85rem;font-weight:700}
-.footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
-.footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.65);text-decoration:none;transition:color 0.15s}
-.footer-links a:hover{color:#fff}
-.footer-bottom{max-width:1100px;margin:0 auto;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
-.footer-copy{font-size:0.72rem;color:rgba(255,255,255,0.5)}
-.nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;background:none;border:none;z-index:300}
-.nav-hamburger span{display:block;width:24px;height:2px;background:var(--ink);border-radius:2px;transition:all 0.3s}
-.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-.nav-hamburger.open span:nth-child(2){opacity:0}
-.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.nav-mobile{display:none;position:fixed;top:56px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:199;flex-direction:column;gap:1rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
-.nav-mobile.open{display:flex}
-.nav-mobile a{font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
-.nav-mobile .btn{margin-top:0.5rem;justify-content:center}
 .how-grid{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:0.5rem}
 #m-svc-bar{display:none}
-@media(max-width:900px){.nav-links{display:none}.nav-hamburger{display:flex}}
-@media(max-width:700px){.footer-inner{grid-template-columns:1fr;gap:2rem}.pricing-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.pricing-grid{grid-template-columns:1fr}}
 @media(max-width:768px){
   .nav-inner{padding:0 1rem}
   .nav-inner>.btn-cyan{display:none}
@@ -535,7 +496,6 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   .price-card-price{grid-area:price;font-size:1rem;white-space:nowrap;margin:0}
   .price-card .btn{grid-area:btn;margin-top:.65rem!important;font-size:.9rem!important;min-height:44px;padding:.7rem 1rem!important}
   .footer{padding-bottom:calc(2rem + env(safe-area-inset-bottom,0px))}
-  .footer-inner{grid-template-columns:1fr;gap:2rem}
   .btn{min-height:44px}
   #m-svc-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:64px;padding:0 1.5rem;padding-bottom:env(safe-area-inset-bottom,0px);z-index:290;background:var(--cyan);align-items:center;justify-content:center}
   #m-svc-bar a{color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -544,49 +504,18 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
   .how-grid > div{width:100%!important;padding:0.95rem 0.5rem!important}
 }
 </style>
-<style>#cookie-banner{position:fixed;bottom:0;left:0;right:0;background:#0d1117;color:#fff;padding:1rem 2rem;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:0.85rem;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}#cookie-banner a{color:#00BFFF;text-decoration:underline}#cookie-banner.hidden{display:none}.cookie-btns{display:flex;gap:0.75rem;flex-shrink:0}.cookie-btn{padding:0.5rem 1.25rem;border-radius:999px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none}.cookie-accept{background:#00BFFF;color:#fff}.cookie-decline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3)}@media(max-width:680px){#cookie-banner{left:.75rem;right:.75rem;bottom:.75rem;border-radius:14px;padding:.85rem;display:block;font-size:.78rem;line-height:1.45}.cookie-btns{display:flex;gap:.5rem;margin-top:.75rem}.cookie-btn{flex:1;min-height:44px;padding:.55rem .8rem}}</style>
 </head>
 <body>
 
-<nav class="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture>
-      <div class="nav-logo-text">AssembleAtEase</div>
-    </a>
-    <ul class="nav-links">
-      <li><a href="/#services">Services</a></li>
-      <li><a href="/#how-it-works">How it works</a></li>
-      <li><a href="/pricing">Pricing</a></li>
-    </ul>
-    <a href="/book" class="btn btn-cyan" style="padding:0.5rem 1.25rem;font-size:0.875rem">Book Now &rarr;</a>
-    <div class="nav-easer-link">
-      <a href="/assembler/apply" style="font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none">Become an Easer</a>
-    </div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-</nav>
-<div class="nav-mobile" id="mobileNav">
-  <a href="/book?service=Furniture+Assembly">Furniture Assembly</a>
-  <a href="/book?service=Mounting+%26+Hanging">Mounting &amp; Hanging</a>
-  <a href="/book?service=Fitness+Equipment">Fitness Equipment</a>
-  <a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a>
-  <a href="/book?service=Office+Assembly">Office Assembly</a>
-  <a href="/book?service=Smart+Home">Smart Home Setup</a>
-  <a href="/pricing">Pricing</a>
-  <a href="/about">About Us</a>
-  <a href="/track">Track My Booking</a>
-  <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
-</div>
-<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>
+${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
+
+<main id="main-content">
 
 <!-- HERO -->
 <section style="background:linear-gradient(135deg,#f0fdff 0%,#e0f7fa 50%,#f9fafb 100%);padding:4.5rem 2rem 3.5rem;border-bottom:1px solid var(--border)">
   <div style="max-width:720px;margin:0 auto;text-align:center">
     <div style="display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.3rem 0.9rem;font-size:0.72rem;font-weight:700;color:var(--cyan-dark);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1.25rem">${esc(city.name)}, TX &mdash; Serving the Austin Metro</div>
-    <h1 style="font-family:var(--font-display);font-size:clamp(2rem,5vw,3.2rem);color:var(--ink);line-height:1.1;margin-bottom:1rem">${esc(service.name)} in ${esc(city.name)}, TX</h1>
+    <h1 style="font-family:var(--font-display);font-size:clamp(2rem,5vw,3.2rem);color:var(--ink);line-height:1.1;margin-bottom:1rem">${esc(serviceDisplayName)} in ${esc(city.name)}, TX</h1>
     <p style="font-size:1.05rem;color:var(--ink-soft);line-height:1.75;max-width:580px;margin:0 auto 0.75rem">${esc(service.tagline)}</p>
     <p style="font-size:0.95rem;color:var(--muted);line-height:1.7;max-width:560px;margin:0 auto 1.5rem">${esc(city.bio)}</p>
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:1.75rem;flex-wrap:wrap">
@@ -641,7 +570,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:960px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Transparent Pricing</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">${esc(service.name)} Pricing in ${esc(city.name)}</h2>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">${esc(serviceDisplayName)} Pricing in ${esc(city.name)}</h2>
       <p style="font-size:0.95rem;color:var(--muted);max-width:520px;margin:0 auto">Flat, upfront item pricing. Your service-call fee and tax are shown before checkout &mdash; no surprises.</p>
     </div>
     <div class="pricing-grid">
@@ -674,7 +603,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
 <section style="background:var(--white);padding:4rem 2rem;border-bottom:1px solid var(--border)">
   <div style="max-width:780px;margin:0 auto;text-align:center">
     <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Service Area</div>
-    <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,2.5vw,2rem);color:var(--ink);margin-bottom:0.75rem">${esc(service.name)} Near ${esc(city.name)}</h2>
+    <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,2.5vw,2rem);color:var(--ink);margin-bottom:0.75rem">${esc(serviceDisplayName)} Near ${esc(city.name)}</h2>
     <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We serve ${esc(city.name)} and the surrounding Austin metro. From the first booking to final placement, we&rsquo;re your local assembly and installation team.</p>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center">
       ${areaChips}
@@ -706,7 +635,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:680px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">FAQ</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Common questions about ${esc(service.name)} in ${esc(city.name)}</h2>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Common questions about ${esc(serviceDisplayName)} in ${esc(city.name)}</h2>
     </div>
     <div style="display:flex;flex-direction:column;gap:0.75rem">
       ${faqItems}
@@ -719,11 +648,11 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:960px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Explore More</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,1.9rem);color:var(--ink)">${esc(service.name)} &amp; More Near ${esc(city.name)}</h2>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,1.9rem);color:var(--ink)">${esc(serviceDisplayName)} &amp; More Near ${esc(city.name)}</h2>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem">
       <div>
-        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:1rem">${esc(service.name)} in Nearby Cities</div>
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:1rem">${esc(serviceDisplayName)} in Nearby Cities</div>
         <div style="display:flex;flex-direction:column;gap:0.65rem">
           ${nearbyCityLinks}
         </div>
@@ -746,59 +675,18 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:600px;margin:0 auto">
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in ${esc(city.name)}?</h2>
     <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing and same-day availability in ${esc(city.name)} and the Austin metro. Book in minutes with secure checkout.</p>
-    <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book ${esc(service.name)} &rarr;</a>
+    <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book ${esc(serviceDisplayName)} &rarr;</a>
     <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
 </section>
 
-<footer class="footer">
-  <div class="footer-inner">
-    <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">AssembleAtEase</div></div>
-      <p class="footer-tagline">Professional assembly and installation services in ${esc(city.name)}, TX and the greater Austin area. Quality work, done right.</p>
-      <div class="footer-contact"><a href="mailto:service@assembleatease.com">service@assembleatease.com</a></div>
-    </div>
-    <div>
-      <div class="footer-col-title">Services</div>
-      <ul class="footer-links">
-        <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
-        <li><a href="/tv-mounting-austin-tx">Mounting & Hanging</a></li>
-        <li><a href="/smart-home-installation-austin-tx">Smart Home Setup</a></li>
-        <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
-        <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
-        <li><a href="/book?service=Office+Assembly">Office Assembly</a></li>
-      </ul>
-    </div>
-    <div>
-      <div class="footer-col-title">Company</div>
-      <ul class="footer-links">
-        <li><a href="/about">About Us</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-        <li><a href="/contact">Contact</a></li>
-        <li><a href="/business">Business Services</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved. Austin, TX.</div>
-    <div class="footer-copy">${esc(city.name)}, TX &bull; Same-Day Available &bull; Clear Pricing</div>
-  </div>
-</footer>
+</main>
 
-<div id="cookie-banner" class="hidden">
-  <span>We use cookies to improve your experience. <a href="/privacy">Learn more</a>.</span>
-  <div class="cookie-btns">
-    <button class="cookie-btn cookie-accept" onclick="acceptCookies()">Accept</button>
-    <button class="cookie-btn cookie-decline" onclick="declineCookies()">Decline</button>
-  </div>
-</div>
-<script>
-function acceptCookies(){localStorage.setItem('cookie-consent','accepted');document.getElementById('cookie-banner').classList.add('hidden');var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}
-function declineCookies(){localStorage.setItem('cookie-consent','declined');document.getElementById('cookie-banner').classList.add('hidden');}
-document.getElementById('year').textContent=new Date().getFullYear();
-window.addEventListener('DOMContentLoaded',function(){if(!localStorage.getItem('cookie-consent')){document.getElementById('cookie-banner').classList.remove('hidden');}});
-</script>
+${buildPublicFooterBlock({
+  variant: 'service_support',
+  tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services across Austin and the surrounding metro.',
+})}
+${buildPublicCookieConsentBlock()}
 
 </body>
 </html>`;

@@ -1,5 +1,8 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
+import { buildPublicFooterBlock } from './lib/public-footer.mjs';
+import { buildPublicNavBlock } from './lib/public-nav.mjs';
 
 const SITE = 'https://www.assembleatease.com';
 const root = process.cwd();
@@ -249,7 +252,6 @@ function renderPost(post) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <meta charset="UTF-8"/>
 <title>${esc(post.title)} | AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -268,8 +270,9 @@ function renderPost(post) {
 <meta name="twitter:title" content="${esc(post.title)}"/>
 <meta name="twitter:description" content="${esc(post.description)}"/>
 <meta name="twitter:image" content="${SITE}${post.image}"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
-<link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
@@ -314,7 +317,6 @@ function renderIndex(allPosts) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');}})();</script>
 <meta charset="UTF-8"/>
 <title>Home Setup Blogs | AssembleAtEase Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -330,8 +332,9 @@ function renderIndex(allPosts) {
 <meta property="og:image" content="${SITE}/images/people-service-calm.jpg"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:image" content="${SITE}/images/people-service-calm.jpg"/>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
-<link rel="icon" type="image/jpeg" href="/images/logo.jpg"/>
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
@@ -378,104 +381,21 @@ ${cookieBanner()}
 }
 
 function nav() {
-  return `<a href="#main-content" class="skip-nav">Skip to main content</a>
-<nav class="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
-      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
-    </a>
-    <ul class="nav-links">
-      <li><a href="/#services">Services</a></li>
-      <li><a href="/blog/">Blogs</a></li>
-      <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/about">About</a></li>
-    </ul>
-    <a href="/book" class="btn btn-cyan nav-book-pill">Book Now</a>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" onclick="document.getElementById('hamburger').classList.toggle('open');document.getElementById('mobileNav').classList.toggle('open')"><span></span><span></span><span></span></button>
-  </div>
-</nav>
-<div class="nav-mobile" id="mobileNav">
-  <a href="/furniture-assembly-austin-tx">Furniture Assembly</a>
-  <a href="/tv-mounting-austin-tx">TV Mounting</a>
-  <a href="/smart-home-installation-austin-tx">Smart Home Setup</a>
-  <a href="/pricing">Pricing</a>
-  <a href="/track">Track My Booking</a>
-  <a href="/book" class="btn btn-cyan btn-full">Book Now</a>
-</div>
-<script>document.getElementById('mobileNav').addEventListener('click',function(e){if(e.target.closest('a')){document.getElementById('hamburger').classList.remove('open');document.getElementById('mobileNav').classList.remove('open');}});</script>`;
+  return buildPublicNavBlock({
+    variant: 'blog',
+    includeSkipNav: true,
+  });
 }
 
 function footer() {
-  return `<footer class="footer">
-  <div class="footer-inner">
-    <div>
-      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
-      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
-      <div class="footer-contact">
-        <a href="tel:+17372906129">(737) 290-6129</a>
-        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
-        <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a>
-      </div>
-    </div>
-    <div>
-      <div class="footer-col-title">Services</div>
-      <ul class="footer-links">
-        <li><a href="/furniture-assembly-austin-tx">Furniture Assembly</a></li>
-        <li><a href="/tv-mounting-austin-tx">TV Mounting</a></li>
-        <li><a href="/smart-home-installation-austin-tx">Smart Home Setup</a></li>
-        <li><a href="/fitness-equipment-assembly-austin-tx">Fitness Equipment</a></li>
-        <li><a href="/office-furniture-assembly-austin-tx">Office Furniture</a></li>
-        <li><a href="/playset-assembly-austin-tx">Outdoor / Playsets</a></li>
-        <li><a href="/business">Business &amp; Custom Quotes</a></li>
-      </ul>
-    </div>
-    <div>
-      <div class="footer-col-title">Company</div>
-      <ul class="footer-links">
-        <li><a href="/about">About Us</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog/">Blogs</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-        <li><a href="/track">Track My Booking</a></li>
-        <li><a href="/contact">Contact</a></li>
-        <li><a href="/business">Business Services</a></li>
-        <li><a href="/assembler/apply">Become an Easer</a></li>
-      </ul>
-    </div>
-    <div style="grid-column:1 / -1">
-      <div class="footer-col-title">Home Setup Blogs</div>
-      <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
-        <li><a href="/blog/ikea-assembly-cost-austin">IKEA Assembly Cost Austin</a></li>
-        <li><a href="/blog/tv-mounting-costs-austin">TV Mounting Costs Austin</a></li>
-        <li><a href="/blog/best-furniture-assembly-austin">Best Assembly Service Austin</a></li>
-        <li><a href="/blog/new-home-setup-checklist-austin">New Home Setup Checklist</a></li>
-        <li><a href="/blog/smart-home-installation-austin">Smart Home Install Austin</a></li>
-        <li><a href="/blog/">All Blogs &rarr;</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase. All rights reserved.</div>
-    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
-  </div>
-</footer>
-<script>document.getElementById('year').textContent=new Date().getFullYear();</script>`;
+  return buildPublicFooterBlock({
+    variant: 'blog_resources',
+    tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.',
+  });
 }
 
 function cookieBanner() {
-  return `<div id="cookie-banner" class="hidden">
-  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
-  <div class="cookie-btns">
-    <button class="cookie-btn cookie-decline" onclick="declineCookies()">Decline</button>
-    <button class="cookie-btn cookie-accept" onclick="acceptCookies()">Accept</button>
-  </div>
-</div>
-<script>
-function acceptCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","accepted");(function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');gtag('config','AW-16551666395');})();}
-function declineCookies(){document.getElementById("cookie-banner").classList.add("hidden");localStorage.setItem("cookie-consent","declined");}
-window.addEventListener("DOMContentLoaded",function(){if(!localStorage.getItem("cookie-consent")){document.getElementById("cookie-banner").classList.remove("hidden");}});
-</script>`;
+  return buildPublicCookieConsentBlock();
 }
 
 function esc(value) {

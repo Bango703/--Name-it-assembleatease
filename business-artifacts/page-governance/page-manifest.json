@@ -1,0 +1,3051 @@
+[
+  {
+    "path": "404.html",
+    "pageType": "utility",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "Page Not Found | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/",
+    "generatorOwners": [
+      "unmapped"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 11,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "about.html",
+    "pageType": "core_marketing",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "About Us &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/about",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 1,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 10,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "AboutPage",
+      "BreadcrumbList",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "assemblecash.html",
+    "pageType": "support",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "AssembleCash Rewards — Earn 5% Back Toward Your Next Setup | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/assemblecash",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 10,
+    "businessLinkCount": 2,
+    "trackLinkCount": 5,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/apply.html",
+    "pageType": "assembler_public",
+    "visibility": "public_hiring",
+    "status": "PASS",
+    "title": "Apply to Become an Easer | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/assembler/apply",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/contractor-agreement.html",
+    "pageType": "assembler_portal",
+    "visibility": "private_assembler",
+    "status": "PASS",
+    "title": "Independent Contractor Agreement | AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/index.html",
+    "pageType": "assembler_portal",
+    "visibility": "private_assembler",
+    "status": "PASS",
+    "title": "Home — Easer",
+    "canonical": "",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/my-assignments.html",
+    "pageType": "assembler_portal",
+    "visibility": "private_assembler",
+    "status": "PASS",
+    "title": "Jobs — Easer",
+    "canonical": "",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/payouts.html",
+    "pageType": "assembler_portal",
+    "visibility": "private_assembler",
+    "status": "PASS",
+    "title": "Earnings — Easer",
+    "canonical": "",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/profile.html",
+    "pageType": "assembler_portal",
+    "visibility": "private_assembler",
+    "status": "PASS",
+    "title": "My Profile — Easer",
+    "canonical": "",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "assembler/verify-identity.html",
+    "pageType": "assembler_portal",
+    "visibility": "private_assembler",
+    "status": "PASS",
+    "title": "Verify Identity | AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual assembler page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "auth/forgot-password.html",
+    "pageType": "auth",
+    "visibility": "private_customer",
+    "status": "PASS",
+    "title": "Reset Password — AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual auth page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "auth/login.html",
+    "pageType": "auth",
+    "visibility": "private_customer",
+    "status": "PASS",
+    "title": "Easer Sign In — AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual auth page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "auth/reset-password.html",
+    "pageType": "auth",
+    "visibility": "private_customer",
+    "status": "PASS",
+    "title": "Set New Password — AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual auth page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "auth/set-password.html",
+    "pageType": "auth",
+    "visibility": "private_customer",
+    "status": "PASS",
+    "title": "Set Your Password — AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual auth page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "auth/signup.html",
+    "pageType": "auth",
+    "visibility": "private_customer",
+    "status": "PASS",
+    "title": "Apply to Join — AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual auth page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "blog/bed-frame-assembly-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Bed Frame Assembly in Austin TX | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/bed-frame-assembly-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/best-furniture-assembly-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Best Furniture Assembly Service in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/best-furniture-assembly-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/crate-and-barrel-furniture-assembly-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Crate and Barrel Assembly Cost in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/crate-and-barrel-furniture-assembly-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/furniture-assembly-steiner-ranch-austin-tx.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "furniture assembly steiner ranch austin tx &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/furniture-assembly-steiner-ranch-austin-tx",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 4,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/garage-shelving-installation-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Garage Shelving Installation Cost in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/garage-shelving-installation-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/ikea-assembly-cost-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "IKEA Assembly Cost in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/ikea-assembly-cost-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/ikea-pax-wardrobe-assembly.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "IKEA PAX Wardrobe Assembly | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/ikea-pax-wardrobe-assembly",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/index.html",
+    "pageType": "blog_index",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Home Setup Blogs | AssembleAtEase Austin TX",
+    "canonical": "https://www.assembleatease.com/blog",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 6,
+    "businessLinkCount": 3,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "blog/new-home-setup-checklist-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "New Home Setup Checklist for Austin Movers | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/new-home-setup-checklist-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/outdoor-tv-installation-austin-texas.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Outdoor TV Installation Cost in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/outdoor-tv-installation-austin-texas",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/same-day-handyman-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Same-Day Handyman Service in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/same-day-handyman-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/smart-home-installation-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/smart-home-installation-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/tv-mounting-costs-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "TV Mounting Costs in Austin TX | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/tv-mounting-costs-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/tv-mounting-in-apartment-austin-texas.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "tv mounting in apartment austin texas &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/tv-mounting-in-apartment-austin-texas",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 4,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/tv-mounting-tips-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "TV Mounting Tips for Austin Homes | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/tv-mounting-tips-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/tv-wall-mount-installation-cost-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "TV Wall Mount Installation Cost in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/tv-wall-mount-installation-cost-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/wayfair-furniture-assembly-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Wayfair Furniture Assembly in Austin | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/wayfair-furniture-assembly-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "blog/why-hire-handyman-austin.html",
+    "pageType": "blog_article",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Why Austin Homeowners Hire Instead of DIY | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/blog/why-hire-handyman-austin",
+    "generatorOwners": [
+      "manual content",
+      "scripts/cleanup-blog-pages.mjs"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 3,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BlogPosting"
+    ]
+  },
+  {
+    "path": "book.html",
+    "pageType": "booking",
+    "visibility": "public_conversion",
+    "status": "PASS",
+    "title": "Book a Service &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/book",
+    "generatorOwners": [
+      "manual core page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 1,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "bundles.html",
+    "pageType": "core_marketing",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Room-Ready Setup Bundles — Whole-Room Setup in One Visit | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/bundles",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 4,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "business.html",
+    "pageType": "business",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Business &amp; Commercial Services &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/business",
+    "generatorOwners": [
+      "manual core page"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 1,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 8,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BreadcrumbList",
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "contact.html",
+    "pageType": "core_marketing",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Contact Us &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/contact",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 1,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 8,
+    "businessLinkCount": 2,
+    "trackLinkCount": 4,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BreadcrumbList",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-austin-tx.html",
+    "pageType": "flagship_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Austin, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-austin-tx",
+    "generatorOwners": [
+      "scripts/build-flagship-service-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-bee-cave-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Bee Cave, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-bee-cave-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-buda-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Buda, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-buda-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-cedar-park-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Cedar Park, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-cedar-park-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-georgetown-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Georgetown, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-georgetown-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-hutto-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Hutto, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-hutto-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-kyle-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Kyle, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-kyle-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-lakeway-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Lakeway, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-lakeway-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-leander-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Leander, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-leander-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-manor-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Manor, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-manor-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-pflugerville-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Pflugerville, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-pflugerville-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "fitness-equipment-assembly-round-rock-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Fitness Equipment Assembly in Round Rock, TX — From $119 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/fitness-equipment-assembly-round-rock-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-austin-tx.html",
+    "pageType": "flagship_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Austin, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-austin-tx",
+    "generatorOwners": [
+      "scripts/build-flagship-service-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-bee-cave-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Bee Cave, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-bee-cave-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-buda-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Buda, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-buda-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-cedar-park-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Cedar Park, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-cedar-park-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-georgetown-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Georgetown, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-georgetown-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-hutto-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Hutto, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-hutto-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-kyle-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Kyle, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-kyle-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-lakeway-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Lakeway, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-lakeway-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-leander-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Leander, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-leander-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-manor-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Manor, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-manor-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-pflugerville-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Pflugerville, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-pflugerville-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "furniture-assembly-round-rock-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Furniture Assembly in Round Rock, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/furniture-assembly-round-rock-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "index.html",
+    "pageType": "home",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "AssembleAtEase &mdash; Assembly, Mounting &amp; Setup Services",
+    "canonical": "https://www.assembleatease.com/",
+    "generatorOwners": [
+      "manual core page"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 4,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 24,
+    "businessLinkCount": 2,
+    "trackLinkCount": 4,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "LocalBusiness",
+      "WebSite"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-austin-tx.html",
+    "pageType": "flagship_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Austin, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-austin-tx",
+    "generatorOwners": [
+      "scripts/build-flagship-service-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-bee-cave-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Bee Cave, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-bee-cave-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-buda-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Buda, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-buda-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-cedar-park-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Cedar Park, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-cedar-park-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-georgetown-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Georgetown, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-georgetown-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-hutto-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Hutto, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-hutto-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-kyle-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Kyle, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-kyle-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-lakeway-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Lakeway, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-lakeway-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-leander-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Leander, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-leander-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-manor-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Manor, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-manor-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-pflugerville-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Pflugerville, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-pflugerville-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "office-furniture-assembly-round-rock-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Office Furniture Assembly in Round Rock, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/office-furniture-assembly-round-rock-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "owner/index.html",
+    "pageType": "owner_portal",
+    "visibility": "private_owner",
+    "status": "PASS",
+    "title": "Owner Dashboard — AssembleAtEase",
+    "canonical": "",
+    "generatorOwners": [
+      "manual owner page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 0,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 0,
+    "businessLinkCount": 0,
+    "trackLinkCount": 0,
+    "usesSharedCookieScript": false,
+    "hasCookieBanner": false,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "playset-assembly-austin-tx.html",
+    "pageType": "flagship_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Austin, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-austin-tx",
+    "generatorOwners": [
+      "scripts/build-flagship-service-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-bee-cave-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Bee Cave, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-bee-cave-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-buda-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Buda, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-buda-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-cedar-park-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Cedar Park, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-cedar-park-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-georgetown-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Georgetown, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-georgetown-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-hutto-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Hutto, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-hutto-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-kyle-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Kyle, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-kyle-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-lakeway-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Lakeway, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-lakeway-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-leander-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Leander, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-leander-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-manor-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Manor, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-manor-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-pflugerville-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Pflugerville, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-pflugerville-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "playset-assembly-round-rock-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Playset Assembly in Round Rock, TX — From $89 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/playset-assembly-round-rock-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "pricing.html",
+    "pageType": "pricing",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Service Pricing &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/pricing",
+    "generatorOwners": [
+      "manual core page"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 1,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 17,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "BreadcrumbList",
+      "HomeAndConstructionBusiness",
+      "LocalBusiness",
+      "Service",
+      "WebPage"
+    ]
+  },
+  {
+    "path": "privacy.html",
+    "pageType": "policy",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "Privacy Policy &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/privacy",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 1,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 8,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "review.html",
+    "pageType": "support",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "Rate Your Pro &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/review",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 8,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "setup-club.html",
+    "pageType": "support",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "Setup Club — Priority Home Setup, Rewards &amp; Member Benefits | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/setup-club",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 10,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "smart-home-installation-austin-tx.html",
+    "pageType": "flagship_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Austin, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-austin-tx",
+    "generatorOwners": [
+      "scripts/build-flagship-service-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-bee-cave-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Bee Cave, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-bee-cave-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-buda-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Buda, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-buda-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-cedar-park-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Cedar Park, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-cedar-park-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-georgetown-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Georgetown, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-georgetown-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-hutto-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Hutto, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-hutto-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-kyle-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Kyle, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-kyle-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-lakeway-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Lakeway, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-lakeway-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-leander-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Leander, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-leander-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-manor-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Manor, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-manor-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-pflugerville-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Pflugerville, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-pflugerville-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "smart-home-installation-round-rock-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Smart Home Installation in Round Rock, TX — From $69 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/smart-home-installation-round-rock-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "terms.html",
+    "pageType": "policy",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "Terms &amp; Conditions &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/terms",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 2,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 1,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 8,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "track.html",
+    "pageType": "support",
+    "visibility": "public_support",
+    "status": "PASS",
+    "title": "Manage My Booking &mdash; AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/track",
+    "generatorOwners": [
+      "manual marketing page"
+    ],
+    "usesSitePromoScript": false,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 9,
+    "businessLinkCount": 2,
+    "trackLinkCount": 3,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": []
+  },
+  {
+    "path": "tv-mounting-austin-tx.html",
+    "pageType": "flagship_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Austin, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-austin-tx",
+    "generatorOwners": [
+      "scripts/build-flagship-service-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-bee-cave-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Bee Cave, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-bee-cave-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-buda-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Buda, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-buda-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-cedar-park-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Cedar Park, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-cedar-park-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-georgetown-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Georgetown, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-georgetown-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-hutto-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Hutto, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-hutto-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-kyle-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Kyle, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-kyle-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-lakeway-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Lakeway, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-lakeway-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-leander-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Leander, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-leander-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-manor-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Manor, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-manor-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-pflugerville-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Pflugerville, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-pflugerville-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  },
+  {
+    "path": "tv-mounting-round-rock-tx.html",
+    "pageType": "city_service",
+    "visibility": "public_marketing",
+    "status": "PASS",
+    "title": "Mounting &amp; Hanging in Round Rock, TX — From $79 | AssembleAtEase",
+    "canonical": "https://www.assembleatease.com/tv-mounting-round-rock-tx",
+    "generatorOwners": [
+      "scripts/generate-location-pages.js",
+      "scripts/refresh-seo-and-promo-pages.mjs"
+    ],
+    "usesSitePromoScript": true,
+    "currentFacebookLinkCount": 1,
+    "oldFacebookLinkCount": 0,
+    "malformedFacebookLinkCount": 0,
+    "currentGoogleMapsLinkCount": 0,
+    "oldGoogleMapsLinkCount": 0,
+    "bookLinkCount": 16,
+    "businessLinkCount": 2,
+    "trackLinkCount": 2,
+    "usesSharedCookieScript": true,
+    "hasCookieBanner": true,
+    "jsonLdTypes": [
+      "HomeAndConstructionBusiness",
+      "LocalBusiness"
+    ]
+  }
+]

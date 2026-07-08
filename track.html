@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){if(localStorage.getItem('cookie-consent')==='accepted'){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-ZN45GP8D25';document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','G-ZN45GP8D25');}})();</script>
 <meta charset="UTF-8"/>
 <title>Manage My Booking &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -144,25 +143,21 @@
 </head>
 <body>
 
-<a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#00BFFF;color:#fff;padding:8px 16px;z-index:9999;text-decoration:none;border-radius:0 0 8px 0;font-size:0.875rem;font-weight:600;transition:top 0.15s" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
-
+<a href="#main-content" class="skip-nav">Skip to main content</a>
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" /></picture>
-      <div class="nav-logo-text">AssembleAtEase</div>
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
+      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
       <li><a href="/bundles">Bundles</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/track">Track My Booking</a></li>
+      <li><a href="/track" style="color:var(--cyan)">Track My Booking</a></li>
       <li><a href="/about">About Us</a></li>
     </ul>
-    <div style="display:flex;align-items:center;gap:0.75rem">
-      <a href="/book" class="btn btn-cyan" style="font-size:0.875rem;padding:0.5rem 1.25rem">Book Now &rarr;</a>
-    </div>
-    <a href="/book" class="nav-book-pill">Book Now &#8594;</a>
+    <a href="/book" class="btn btn-cyan" style="font-size:0.875rem;padding:0.5rem 1.25rem">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
@@ -179,7 +174,6 @@
   <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
 </div>
 <script src="/assets/js/mobile-nav.js" defer></script>
-
 <main id="main-content">
 
 <!-- HERO + LOOKUP FORM -->
@@ -489,7 +483,6 @@
   </div>
 </footer>
 <script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
-
 <script>
 // ── State ──────────────────────────────────────────────────
 let currentBooking = null;
@@ -926,6 +919,14 @@ function cancelFeeClient(b) {
 </script>
 
 <script src="/assets/js/aae-location.js" defer></script>
+<div id="cookie-banner" class="hidden" data-cookie-banner>
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
+  </div>
+</div>
+<script src="/assets/js/cookie-consent.js" defer></script>
 </body>
 </html>
 

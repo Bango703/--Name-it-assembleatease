@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-07-07T15:56:23.682Z",
+  "sourceOfTruth": "https://www.assembleatease.com",
+  "filesScanned": 151,
+  "changedFileCount": 0,
+  "totalReplacementCount": 0,
+  "replacementSummary": {
+    "business_email": 0,
+    "business_phone_href": 0,
+    "business_phone_display": 0,
+    "facebook_page": 0,
+    "google_maps": 0,
+    "linkedin_page": 0
+  },
+  "changedFiles": []
+}
