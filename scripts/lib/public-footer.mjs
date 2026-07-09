@@ -23,7 +23,7 @@ const SERVICE_PAGE_LINKS = [
 const COMPANY_LINKS = [
   ['/about', 'About Us'],
   ['/pricing', 'Pricing'],
-  ['/blog/', 'Blogs'],
+  ['/blog/', 'Guides'],
   ['/business', 'Business Services'],
 ];
 
@@ -35,12 +35,12 @@ const SUPPORT_LINKS = [
 ];
 
 const RESOURCES_LINKS = [
-  ['/blog/', 'Home setup blogs'],
+  ['/blog/', 'Home setup guides'],
   ['/blog/', 'Furniture assembly guides'],
   ['/blog/', 'TV mounting guides'],
   ['/blog/', 'Smart home guides'],
-  ['/blog/', 'Move-in planning'],
-  ['/blog/', 'All Blogs &rarr;'],
+  ['/blog/', 'Move-in checklists'],
+  ['/blog/', 'All guides &rarr;'],
 ];
 
 const BLOG_RESOURCES_LINKS = [
@@ -49,7 +49,7 @@ const BLOG_RESOURCES_LINKS = [
   ['/blog/best-furniture-assembly-austin', 'Best Assembly Service Austin'],
   ['/blog/new-home-setup-checklist-austin', 'New Home Setup Checklist'],
   ['/blog/smart-home-installation-austin', 'Smart Home Install Austin'],
-  ['/blog/', 'All Blogs &rarr;'],
+  ['/blog/', 'View all guides &rarr;'],
 ];
 
 function renderLinks(links) {
@@ -84,7 +84,7 @@ function renderContact(mode) {
   return `      <div class="footer-contact">
         <a href="${businessIdentity.telHref}">${businessIdentity.phoneDisplay}</a>
         <a href="${businessIdentity.mailtoHref}">${businessIdentity.email}</a>
-        <a href="${businessIdentity.facebookUrl}" target="_blank" rel="noopener">Follow our project updates</a>
+        <a href="${businessIdentity.facebookUrl}" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>`;
 }
 
@@ -167,7 +167,7 @@ ${renderFooterInner({
   servicesLinks: SERVICE_PAGE_LINKS,
   companyLinks: [...COMPANY_LINKS, ...SUPPORT_LINKS],
   supportLinks: [],
-  resourcesTitle: 'Home Setup Blogs',
+  resourcesTitle: 'Helpful Guides',
   resourcesLinks: BLOG_RESOURCES_LINKS,
   copyrightLabel,
 })}

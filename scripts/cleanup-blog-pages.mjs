@@ -83,7 +83,7 @@ const posts = [
     slug: 'best-furniture-assembly-austin',
     title: 'Best Furniture Assembly Service in Austin',
     tag: 'Furniture assembly',
-    image: '/images/people-service-calm.jpg',
+    image: '/images/booking-service-furniture-assembly.jpg',
     alt: 'Austin homeowners talking with a local setup pro after service',
     serviceUrl: '/book?service=Furniture+Assembly',
     cta: 'Book Furniture Assembly',
@@ -112,7 +112,7 @@ const posts = [
     title: 'Bed Frame Assembly in Austin TX',
     tag: 'Furniture assembly',
     image: '/images/hero-pro-optimized.jpg',
-    alt: 'Home setup blogs pro assembling furniture after delivery',
+    alt: 'Home setup guides pro assembling furniture after delivery',
     serviceUrl: '/book?service=Furniture+Assembly',
     cta: 'Book Bed Assembly',
     description: 'Cost, timing, and prep tips for Austin bed frame assembly.',
@@ -318,15 +318,15 @@ function renderIndex(allPosts) {
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Home Setup Blogs | AssembleAtEase Austin TX</title>
+<title>Home Setup Guides | AssembleAtEase Austin TX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="description" content="Short home setup blogs for furniture assembly, TV mounting, smart home installation, move-ins, and booking decisions."/>
+<meta name="description" content="Short home setup guides for furniture assembly, TV mounting, smart home installation, move-ins, and booking decisions."/>
 <link rel="stylesheet" href="/assets/css/marketing.css"/>
 <link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <link rel="canonical" href="${SITE}/blog"/>
 <meta property="og:type" content="website"/>
-<meta property="og:title" content="Home Setup Blogs | AssembleAtEase Austin TX"/>
-<meta property="og:description" content="Short home setup blogs for booking the right service without reading a long article."/>
+<meta property="og:title" content="Home Setup Guides | AssembleAtEase Austin TX"/>
+<meta property="og:description" content="Short home setup guides for booking the right service without reading a long article."/>
 <meta property="og:url" content="${SITE}/blog"/>
 <meta property="og:site_name" content="AssembleAtEase"/>
 <meta property="og:image" content="${SITE}/images/people-service-calm.jpg"/>
@@ -346,15 +346,15 @@ ${nav()}
   <section class="page-hero">
     <div class="page-hero-inner">
       <a href="/" class="page-back">Back to Home</a>
-      <h1 class="page-title">Home Setup Blogs</h1>
-      <p class="page-desc">Short, practical blogs that help you choose the right service and book without guesswork.</p>
+      <h1 class="page-title">Home Setup Guides</h1>
+      <p class="page-desc">Short, practical guides that help you choose the right service and book without guesswork.</p>
     </div>
   </section>
   <section class="guides-section">
     <div class="guides-wrap">
       <div class="guides-head">
         <div>
-          <div class="guides-kicker">Home setup blogs</div>
+          <div class="guides-kicker">Home setup guides</div>
           <h2 class="guides-heading">Pick the issue. Book the fix.</h2>
           <p class="guides-intro">Every blog is short on purpose: two paragraphs, one clear next step, no filler.</p>
         </div>

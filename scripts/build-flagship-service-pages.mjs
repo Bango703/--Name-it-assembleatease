@@ -38,9 +38,9 @@ const FA_STYLE = `<style>
 .fa-hero{position:relative;background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#ffffff 100%);overflow:hidden;border-bottom:1px solid var(--border)}
 .fa-hero::before{content:"";position:absolute;top:-28%;right:-8%;width:52%;height:130%;background:radial-gradient(circle at center,rgba(0,191,255,0.16),transparent 60%);pointer-events:none}
 .fa-hero-grid{position:relative;z-index:1;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.02fr 0.98fr;gap:3.5rem;align-items:center;padding:4.25rem 2rem 4.5rem}
-.fa-eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:0.72rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--cyan-dark);margin-bottom:1.25rem}
+.fa-eyebrow{display:inline-flex;align-items:center;gap:9px;flex-wrap:wrap;max-width:100%;font-size:0.72rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--cyan-dark);margin-bottom:1.25rem}
 .fa-eyebrow::before{content:"";width:24px;height:2px;background:var(--cyan)}
-.fa-title{font-family:var(--font-display);font-size:clamp(2.3rem,4.6vw,3.6rem);line-height:1.04;letter-spacing:-0.5px;color:var(--ink);margin-bottom:1.1rem}
+.fa-title{font-family:var(--font-display);font-size:clamp(2.3rem,4.6vw,3.6rem);line-height:1.04;letter-spacing:-0.5px;color:var(--ink);margin-bottom:1.1rem;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .fa-title em{font-style:italic;color:var(--cyan-dark)}
 .fa-sub{font-size:1.08rem;line-height:1.7;color:var(--ink-soft);max-width:31rem;margin-bottom:1.85rem}
 .fa-cta-row{display:flex;flex-wrap:wrap;gap:0.9rem;margin-bottom:1.7rem}
@@ -128,6 +128,7 @@ const FA_STYLE = `<style>
 }
 @media(max-width:560px){
   .fa-section{padding:3.4rem 1.4rem}
+  .fa-title{font-size:clamp(2rem,10.5vw,2.6rem)}
   .fa-gallery{grid-template-columns:1fr}
   .fa-cta-row{flex-direction:column;align-items:stretch}
   .fa-btn-primary,.fa-btn-ghost{justify-content:center}
@@ -229,7 +230,7 @@ ${gallerySection(cfg)}
     <div class="fa-price-shell">
       <div class="fa-price-side">
         <div class="fa-price-anchor"><span class="big">From ${cfg.fromPrice}</span><span class="lbl">${cfg.fromLabel}</span></div>
-        <p class="fa-price-note">Common jobs and starting points for this service. Use them to get close, then tell us the exact setup in booking so we can line up the right visit.</p>
+        <p class="fa-price-note">Common jobs and starting points for this service. Choose the matching service type, then add the exact setup details in booking so we can confirm the scope before the visit.</p>
       </div>
       <div class="fa-menu">
 ${menu}
@@ -238,11 +239,11 @@ ${menu}
     <div class="fa-price-foot">
       <div class="fa-price-copy">
         <strong>Need a different setup?</strong>
-        <span>Tell us the exact items, wall conditions, or room layout and we will help match the visit to the real scope.</span>
+        <span>Tell us the exact items, wall conditions, or room layout and we will line up the right visit for the job.</span>
       </div>
       <div class="fa-price-actions">
         <a href="${bk}" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
-        <p class="fa-price-support">Start with the closest option and include item count, wall details, or room notes so we can confirm the real scope before the visit.</p>
+        <p class="fa-price-support">Add item count, wall details, or room notes in booking and we will confirm the setup before the visit.</p>
       </div>
     </div>
   </div>

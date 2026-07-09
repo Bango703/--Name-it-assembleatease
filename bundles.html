@@ -229,7 +229,7 @@
       var includedPreview=included.slice(0,3).map(function(ref){ return ref.name; }).join(', ');
       return '<a class="bn-card" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
         +'<div class="bn-photo">'
-          +'<img src="'+esc(img)+'" alt="'+esc(b.name)+' bundle preview" loading="lazy" width="1536" height="960"/>'
+          +'<img src="'+esc(img)+'" alt="'+esc(b.name)+' bundle preview" loading="eager" width="1536" height="960"/>'
           +'<span class="bn-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span>'
         +'</div>'
         +'<div class="bn-card-body">'
@@ -258,7 +258,7 @@
       <div class="footer-contact">
         <a href="tel:+17372906129">(737) 290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
-        <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a>
+        <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>
     </div>
     <div>
@@ -278,7 +278,7 @@
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/blog/">Blogs</a></li>
+        <li><a href="/blog/">Guides</a></li>
         <li><a href="/business">Business Services</a></li>
       </ul>
     </div>

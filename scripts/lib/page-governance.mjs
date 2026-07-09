@@ -244,6 +244,7 @@ export function collectPageFacts(pagePath) {
     totalShownUpfrontCount: (html.match(/Total shown upfront/gi) || []).length,
     clearPricingCount: (html.match(/Clear pricing/gi) || []).length,
     exactTotalBeforeConfirmCount: (html.match(/exact total before you confirm/gi) || []).length,
+    closestOptionCount: (html.match(/closest option/gi) || []).length,
     currentFacebookLinkCount: (html.match(new RegExp(escapeRegExp(governanceConfig.social.facebook), 'g')) || []).length,
     oldFacebookLinkCount: (html.match(new RegExp(escapeRegExp(governanceConfig.social.facebookLegacy), 'g')) || []).length,
     malformedFacebookLinkCount: malformedFacebookLink === governanceConfig.social.facebook
@@ -358,6 +359,9 @@ export function auditPageFacts(facts) {
       facts.exactTotalBeforeConfirmCount;
     if (staleMarketingCopyCount) {
       addIssue(issues, 'fail', 'stale_service_marketing_copy', 'Service marketing pages still include fee-heavy or legacy trust copy that should stay in booking, not in the page pitch.');
+    }
+    if (facts.closestOptionCount) {
+      addIssue(issues, 'fail', 'closest_option_copy', 'Service marketing pages should not tell customers to book the closest option and sort it out later.');
     }
   }
 

@@ -43,6 +43,10 @@ function getBalancedPricingGridClass(count) {
   return layout;
 }
 
+function buildBookingHref(serviceParam, itemName = '') {
+  return `/book?service=${serviceParam}${itemName ? `&item=${encodeURIComponent(itemName)}` : ''}`;
+}
+
 function buildMetaDescription(serviceSlug, cityName) {
   if (serviceSlug === 'furniture-assembly') {
     return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Clean, careful setup with fast local follow-up.`;
@@ -490,7 +494,7 @@ function generatePage(city, service) {
             <span class="price-card-label">Common price</span>
             <div class="price-card-price">${esc(p.price)}</div>
           </div>
-          <a href="/book?service=${service.bookingParam}" class="price-card-link">Book this &rarr;</a>
+          <a href="${buildBookingHref(service.bookingParam, p.name)}" class="price-card-link">Book this setup &rarr;</a>
         </div>
       </article>`).join('');
 
@@ -579,9 +583,9 @@ function generatePage(city, service) {
 .city-hero{background:linear-gradient(135deg,#fff8ef 0%,#f4fbff 54%,#edf7f7 100%);padding:4.75rem 2rem 4.25rem;border-bottom:1px solid var(--border)}
 .city-hero-grid{max-width:1160px;margin:0 auto;display:grid;gap:2.4rem;align-items:center}
 .city-hero-copy{display:flex;flex-direction:column;gap:1rem}
-.city-hero-eyebrow{display:inline-flex;align-items:center;gap:0.55rem;align-self:flex-start;background:rgba(255,255,255,0.82);border:1px solid rgba(13,148,193,0.22);border-radius:999px;padding:0.45rem 0.95rem;font-size:0.74rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
+.city-hero-eyebrow{display:inline-flex;align-items:center;gap:0.55rem;align-self:flex-start;flex-wrap:wrap;max-width:100%;background:rgba(255,255,255,0.82);border:1px solid rgba(13,148,193,0.22);border-radius:999px;padding:0.45rem 0.95rem;font-size:0.74rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
 .city-hero-eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan)}
-.city-hero-title{font-family:var(--font-display);font-size:clamp(2.25rem,4.7vw,3.55rem);line-height:1.04;color:var(--ink);letter-spacing:-0.03em;margin:0}
+.city-hero-title{font-family:var(--font-display);font-size:clamp(2.25rem,4.7vw,3.55rem);line-height:1.04;color:var(--ink);letter-spacing:-0.03em;margin:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .city-hero-lead{font-size:1.08rem;line-height:1.72;color:var(--ink-soft);margin:0;max-width:37rem}
 .city-hero-body{font-size:0.98rem;line-height:1.78;color:var(--muted);margin:0;max-width:35rem}
 .city-hero-rating{display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;font-size:0.92rem;color:var(--ink)}
@@ -629,6 +633,7 @@ function generatePage(city, service) {
   .nav-inner>.btn-cyan{display:none}
   .nav-easer-link{display:none}
   .city-hero{padding:3.35rem 1rem 3rem}
+  .city-hero-title{font-size:clamp(2rem,10vw,2.65rem)}
   .city-hero-photo img{min-height:320px}
   .city-hero-actions{flex-direction:column;align-items:stretch}
   .city-hero-secondary,.city-hero .btn-cyan{justify-content:center}
@@ -670,7 +675,7 @@ ${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
       </div>
       <div class="city-hero-actions">
         <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check availability in ${esc(city.name)}</a>
-        <a href="#city-pricing" class="city-hero-secondary">See common jobs</a>
+        <a href="#city-pricing" class="city-hero-secondary">See pricing examples</a>
       </div>
       <div class="city-hero-points">
         <span class="city-hero-point">Book online in minutes</span>
@@ -732,12 +737,12 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
       <div class="pricing-band">
         <div class="pricing-band-copy">
           <div class="pricing-band-kicker">Need something different?</div>
-          <h3 class="pricing-band-title">Tell us the exact setup.</h3>
-          <p class="pricing-band-text">If your item list, wall type, or room setup is different, book the closest option and we will follow up quickly to confirm the right visit.</p>
+          <h3 class="pricing-band-title">Tell us the details.</h3>
+          <p class="pricing-band-text">If the setup is a little different, add the item list, wall type, or room notes in booking so we can confirm the right visit before it is scheduled.</p>
         </div>
         <div class="pricing-band-actions">
           <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check Availability &mdash; ${esc(city.name)}</a>
-          <p class="pricing-band-note">Start with the closest option and we will confirm item count, wall type, or room details before the visit.</p>
+          <p class="pricing-band-note">Add item count, wall details, or room notes and we will review everything before the visit.</p>
         </div>
       </div>
     </div>

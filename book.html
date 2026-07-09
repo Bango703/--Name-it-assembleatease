@@ -1146,7 +1146,7 @@
       #svc-screen .svc-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
       #svc-screen .svc-row { padding: 1.25rem 0.75rem; }
     }
-    @media (max-width: 360px) {
+    @media (max-width: 640px) {
       #svc-screen .svc-list { grid-template-columns: 1fr; }
     }
 
@@ -2523,7 +2523,7 @@
           <button class="svc-row" data-service="Mounting &amp; Hanging" onclick="showItemScreen(this.dataset.service)">
             <div class="svc-row-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg></div>
             <div class="svc-row-info">
-              <div class="svc-row-name">Mounting &amp; Hanging</div>
+              <div class="svc-row-name">TV Mounting</div>
               <div class="svc-row-meta">From $79</div>
               <div class="svc-row-badge"></div>
             </div>
@@ -3304,7 +3304,7 @@
     <a href="tel:+17372906129" style="color:rgba(255,255,255,0.6);text-decoration:none">(737) 290-6129</a> •
 
     <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.6);text-decoration:none">service@assembleatease.com</a><br>
-    <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none">Follow our project updates</a><br>
+    <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.6);text-decoration:none">Follow us on Facebook</a><br>
 
     <a href="/terms" style="color:rgba(255,255,255,0.45);text-decoration:none" target="_blank">Terms &amp; Conditions</a> &nbsp;•&nbsp;
 
@@ -4073,7 +4073,7 @@ function showItemScreen(svc, desiredStage) {
   BOOK.itemStage = desiredStage || (svc === 'Other' ? 'notes' : 'group');
   ensureValidItemStage(svc);
 
-  document.getElementById('item-screen-heading').textContent = svc === 'Other' ? 'Custom Quote' : svc;
+  document.getElementById('item-screen-heading').textContent = getDisplayServiceName(svc);
   var itemFromEl = document.getElementById('item-screen-from');
   if (itemFromEl) {
     if (svc === 'Other') {
@@ -4952,7 +4952,63 @@ function deselectService(svc) {
 
 function getDisplayServiceName(svc) {
 
-  return svc === 'Other' ? 'Custom Quote' : svc;
+  if (svc === 'Other') return 'Custom Quote';
+  if (svc === 'Mounting & Hanging') return 'TV Mounting';
+  return svc;
+
+}
+
+function formatSelectedServices(separator) {
+
+  return (BOOK.selectedServices || [])
+    .map(function(svc) { return getDisplayServiceName(svc); })
+    .filter(Boolean)
+    .join(separator || ' / ');
+
+}
+
+function normalizeServiceToken(value) {
+
+  return String(value || '').toLowerCase().replace(/[^a-z]/g, '');
+
+}
+
+function resolveServiceSelection(value) {
+
+  var normalized = normalizeServiceToken(value);
+  if (!normalized) return '';
+
+  var aliases = {
+    furnitureassembly: 'Furniture Assembly',
+    tvmounting: 'Mounting & Hanging',
+    mounting: 'Mounting & Hanging',
+    mountinghanging: 'Mounting & Hanging',
+    smarthome: 'Smart Home',
+    smarthomeinstallation: 'Smart Home',
+    fitnessequipment: 'Fitness Equipment',
+    fitnessequipmentassembly: 'Fitness Equipment',
+    outdoorplaysets: 'Outdoor & Playsets',
+    outdoorplayset: 'Outdoor & Playsets',
+    playsetassembly: 'Outdoor & Playsets',
+    officeassembly: 'Office Assembly',
+    officefurniture: 'Office Assembly',
+    officefurnitureassembly: 'Office Assembly',
+    other: 'Other',
+    customquote: 'Other',
+    quote: 'Other'
+  };
+
+  if (aliases[normalized]) return aliases[normalized];
+
+  var match = '';
+  document.querySelectorAll('.svc-row').forEach(function(row) {
+    var rowClean = normalizeServiceToken(row.dataset.service || '');
+    if (!match && (rowClean.indexOf(normalized) !== -1 || normalized.indexOf(rowClean) !== -1)) {
+      match = row.dataset.service;
+    }
+  });
+
+  return match;
 
 }
 
@@ -6340,6 +6396,7 @@ function saveContactEdit() {
   var params = new URLSearchParams(window.location.search);
 
   var svc = params.get('service') || params.get('s') || '';
+  var itemParam = String(params.get('item') || '').trim();
   BOOK.promoCode = String(params.get('promo') || '').trim().toUpperCase();
 
   // Room-Ready bundle deep-link (/book?bundle=<slug>): pre-add the bundle's
@@ -6378,24 +6435,21 @@ function saveContactEdit() {
 
   if (!svc) return;
 
-  var svcClean = svc.toLowerCase().replace(/[^a-z]/g,'');
+  var resolvedSvc = resolveServiceSelection(svc);
 
-  if (svcClean === 'other' || svcClean === 'customquote' || svcClean === 'quote') {
+  if (resolvedSvc === 'Other') {
     startCustomQuoteFlow();
     return;
   }
 
-  document.querySelectorAll('.svc-row').forEach(function(row) {
+  if (!resolvedSvc) return;
 
-    var rowClean = (row.dataset.service || '').toLowerCase().replace(/[^a-z]/g,'');
+  if (itemParam) {
+    openQuickPick(resolvedSvc, itemParam);
+    return;
+  }
 
-    if (rowClean.indexOf(svcClean) !== -1 || svcClean.indexOf(rowClean) !== -1) {
-
-      showItemScreen(row.dataset.service);
-
-    }
-
-  });
+  showItemScreen(resolvedSvc);
 
 })();
 
@@ -6950,7 +7004,7 @@ async function submitMarketDemand() {
       body: JSON.stringify({
         services: BOOK.selectedServices,
         items: buildItemsPayload(),
-        requestedService: BOOK.selectedServices.join(', '),
+        requestedService: formatSelectedServices(', '),
         name: BOOK.firstName + ' ' + BOOK.lastName,
         phone: BOOK.phone,
         email: BOOK.email,
@@ -6998,7 +7052,7 @@ function showMarketDemandConfirmation(ref) {
   if (svcEl) {
     svcEl.textContent = BOOK.selectedServices.indexOf('Other') !== -1
       ? 'Custom Quote'
-      : (BOOK.selectedServices.join(' / ') || 'Your services');
+      : (formatSelectedServices(' / ') || 'Your services');
   }
 
   var dtEl = document.getElementById('confirm-datetime');
@@ -7081,7 +7135,7 @@ function showConfirmation(ref, isQuote) {
 
   var svcEl = document.getElementById('confirm-services');
 
-  if (svcEl) svcEl.textContent = BOOK.selectedServices.join(' / ') || 'Your services';
+  if (svcEl) svcEl.textContent = formatSelectedServices(' / ') || 'Your services';
 
 
 
@@ -7141,7 +7195,7 @@ function showConfirmation(ref, isQuote) {
 
       calEl.href = 'https://calendar.google.com/calendar/renderaction=TEMPLATE'
 
-        + '&text=' + encodeURIComponent('AssembleAtEase - ' + BOOK.selectedServices.join(', '))
+        + '&text=' + encodeURIComponent('AssembleAtEase - ' + formatSelectedServices(', '))
 
         + '&dates=' + s + '/' + e
 
