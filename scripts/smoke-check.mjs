@@ -187,6 +187,45 @@ const balancedPricingClassByCount = new Map([
   [7, 'pricing-grid--7'],
   [8, 'pricing-grid--8'],
 ]);
+const MAX_COMMON_JOBS = 4;
+
+function decodeHtmlEntities(text) {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&rsquo;/g, "'")
+    .replace(/&mdash;/g, '-')
+    .replace(/&#39;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+}
+
+function normalizeVisibleText(text) {
+  return decodeHtmlEntities(String(text || '').replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function collectClassTexts(html, className) {
+  const classMatcher = new RegExp(`<[^>]*class="[^"]*\\b${className}\\b[^"]*"[^>]*>([\\s\\S]*?)<\\/[^>]+>`, 'gi');
+  return [...html.matchAll(classMatcher)]
+    .map((match) => normalizeVisibleText(match[1]))
+    .filter(Boolean);
+}
+
+function findDuplicateLabel(groups) {
+  const seen = new Map();
+  for (const [groupName, values] of groups) {
+    for (const value of values) {
+      if (seen.has(value)) {
+        return { value, firstGroup: seen.get(value), secondGroup: groupName };
+      }
+      seen.set(value, groupName);
+    }
+  }
+  return null;
+}
 
 for (const file of cityServiceFiles) {
   const html = readFileSync(file, 'utf8');
@@ -217,6 +256,20 @@ for (const file of cityServiceFiles) {
   if (actualPriceCardCount !== pricingCount) {
     throw new Error(`City pricing count mismatch in ${file}: data-pricing-count says ${pricingCount}, found ${actualPriceCardCount} cards`);
   }
+  if (actualPriceCardCount > MAX_COMMON_JOBS) {
+    throw new Error(`City service page ${file} should show at most ${MAX_COMMON_JOBS} common jobs; found ${actualPriceCardCount}`);
+  }
+
+  const duplicateCityProofLabel = findDuplicateLabel([
+    ['hero points', collectClassTexts(html, 'city-hero-point')],
+    ['pricing band', collectClassTexts(html, 'pricing-band-point')],
+    ['proof cards', collectClassTexts(html, 'city-proof-title')],
+  ]);
+  if (duplicateCityProofLabel) {
+    throw new Error(
+      `City service page ${file} repeats proof label "${duplicateCityProofLabel.value}" across ${duplicateCityProofLabel.firstGroup} and ${duplicateCityProofLabel.secondGroup}`,
+    );
+  }
 }
 
 for (const file of flagshipAustinPages) {
@@ -229,6 +282,20 @@ for (const file of flagshipAustinPages) {
   }
   if (html.includes('class="city-hero"')) {
     throw new Error(`Flagship Austin page should not be overwritten by the city template: ${file}`);
+  }
+  const flagshipMenuCount = (html.match(/class="fa-menu-row"/g) || []).length;
+  if (flagshipMenuCount > MAX_COMMON_JOBS) {
+    throw new Error(`Flagship Austin page ${file} should show at most ${MAX_COMMON_JOBS} common jobs; found ${flagshipMenuCount}`);
+  }
+
+  const duplicateFlagshipProofLabel = findDuplicateLabel([
+    ['pricing footer', collectClassTexts(html, 'fa-price-point')],
+    ['booking notes', collectClassTexts(html, 'fa-mini-fact-title')],
+  ]);
+  if (duplicateFlagshipProofLabel) {
+    throw new Error(
+      `Flagship Austin page ${file} repeats proof label "${duplicateFlagshipProofLabel.value}" across ${duplicateFlagshipProofLabel.firstGroup} and ${duplicateFlagshipProofLabel.secondGroup}`,
+    );
   }
 }
 

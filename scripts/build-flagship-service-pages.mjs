@@ -8,6 +8,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const CITY = 'Austin';
+const MAX_COMMON_JOBS = 4;
 
 function parseStartingPrice(label) {
   const match = String(label || '').match(/\$(\d+)/);
@@ -17,6 +18,7 @@ function parseStartingPrice(label) {
 function assertVisibleStartPrice(service) {
   const expectedStart = parseStartingPrice(service.fromPrice);
   const visibleStarts = (service.offers || [])
+    .slice(0, MAX_COMMON_JOBS)
     .map((offer) => parseStartingPrice(offer.p))
     .filter(Number.isFinite);
   const lowestVisible = visibleStarts.length ? Math.min(...visibleStarts) : NaN;
@@ -83,9 +85,7 @@ const FA_STYLE = `<style>
 .fa-price-copy strong{font-size:1.05rem;color:#fff}
 .fa-price-copy span{font-size:0.88rem;line-height:1.7;color:rgba(255,255,255,0.82)}
 .fa-price-actions{display:flex;flex-direction:column;align-items:flex-end;gap:0.8rem}
-.fa-price-points{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:flex-end}
-.fa-price-point{display:inline-flex;align-items:center;gap:0.4rem;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.08);border-radius:999px;padding:0.42rem 0.78rem;font-size:0.74rem;color:rgba(255,255,255,0.88)}
-.fa-price-point::before{content:"";width:7px;height:7px;border-radius:50%;background:#5cf0a5}
+.fa-price-support{max-width:21rem;font-size:0.8rem;line-height:1.6;color:rgba(255,255,255,0.8);margin:0;text-align:right}
 .fa-process{max-width:900px;margin:0 auto}
 .fa-process-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem}
 .fa-process-tab{appearance:none;border:1.5px solid var(--border);background:var(--white);border-radius:16px;padding:0.95rem 1rem;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
@@ -124,7 +124,7 @@ const FA_STYLE = `<style>
   .fa-price-shell{grid-template-columns:1fr}
   .fa-price-foot{flex-direction:column;align-items:flex-start}
   .fa-price-actions{align-items:flex-start}
-  .fa-price-points{justify-content:flex-start}
+  .fa-price-support{text-align:left}
 }
 @media(max-width:560px){
   .fa-section{padding:3.4rem 1.4rem}
@@ -186,7 +186,10 @@ function buildBody(cfg) {
   const pageUrl = `https://www.assembleatease.com/${cfg.slug}`;
   const facebookShare = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
   const linkedinShare = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
-  const menu = cfg.offers.map((o) => `      <div class="fa-menu-row"><span class="nm">${o.n}${o.popular ? ' <span class="tag">Popular</span>' : ''}</span><span class="pr">${o.p}</span></div>`).join('\n');
+  const menu = cfg.offers
+    .slice(0, MAX_COMMON_JOBS)
+    .map((o) => `      <div class="fa-menu-row"><span class="nm">${o.n}${o.popular ? ' <span class="tag">Popular</span>' : ''}</span><span class="pr">${o.p}</span></div>`)
+    .join('\n');
   const faqs = cfg.faqs.map((f) => `    <div class="fa-faq-item">
       <button class="fa-faq-q" onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fa-chev').style.transform=a.style.display==='block'?'rotate(180deg)':'rotate(0)'">${f.q} <span class="fa-chev">&#8964;</span></button>
       <div class="fa-faq-a">${f.a}</div>
@@ -239,11 +242,7 @@ ${menu}
       </div>
       <div class="fa-price-actions">
         <a href="${bk}" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
-        <div class="fa-price-points">
-          <span class="fa-price-point">Reviewed local pros</span>
-          <span class="fa-price-point">Fast confirmation</span>
-          <span class="fa-price-point">Careful setup</span>
-        </div>
+        <p class="fa-price-support">Start with the closest option and include item count, wall details, or room notes so we can confirm the real scope before the visit.</p>
       </div>
     </div>
   </div>
@@ -278,9 +277,9 @@ ${menu}
       <h2 class="fa-h2">Before you book.</h2>
     </div>
     <div class="fa-mini-facts">
-      <div class="fa-mini-fact"><strong>Reviewed local pro</strong><span>Assigned and confirmed before the visit.</span></div>
-      <div class="fa-mini-fact"><strong>Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
-      <div class="fa-mini-fact"><strong>Ready to use</strong><span>We leave the space clean and the job ready for the next step.</span></div>
+      <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Reviewed local pro</strong><span>Assigned and confirmed before the visit.</span></div>
+      <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
+      <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Ready to use</strong><span>We leave the space clean and the job ready for the next step.</span></div>
     </div>
   </div>
 </section>
