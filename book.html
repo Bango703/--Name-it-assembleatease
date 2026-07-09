@@ -46,8 +46,7 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background:
-        linear-gradient(180deg, #f2fbff 0%, #ffffff 220px, #ffffff 100%);
+      background: #ffffff;
     }
 
     .book-nav {
@@ -1367,6 +1366,12 @@
       flex-wrap: wrap;
       gap: 0.55rem;
       margin: 0 0 0.9rem;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .item-section-switcher::-webkit-scrollbar {
+      display: none;
     }
 
     .item-section-btn {
@@ -1577,7 +1582,17 @@
 
     .tile-feedback { display: none; }
 
-    .book-progress-hint { text-align: center; font-size: 0.8rem; color: var(--ink-soft); font-weight: 600; margin-top: 0.35rem; letter-spacing: 0.01em; }
+    .book-progress-hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      font-weight: 600;
+      margin-top: 0;
+      padding: 0.45rem 0 0.9rem;
+      letter-spacing: 0.01em;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+    }
 
     .almost-done-banner { background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%); border: 1px solid rgba(34,197,94,0.35); border-radius: var(--radius-md); padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; color: #166534; text-align: center; margin-bottom: 1.25rem; }
 
@@ -2052,7 +2067,7 @@
 
       .progress-label { display: block; font-size: 0.85rem; }
 
-      .book-progress-hint { display: block; font-size: 0.78rem; margin-top: 0.45rem; }
+      .book-progress-hint { display: block; font-size: 0.78rem; margin-top: 0; }
 
       .item-screen-nav { margin-bottom: 0.7rem; }
 
@@ -2192,22 +2207,6 @@
       }
 
       .mobile-step-summary { display: flex; }
-
-      .quick-start-bar .qp-chips,
-      #item-popular-picks .qp-chips,
-      #item-group-jumps .qp-chips {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        margin-right: -0.1rem;
-        padding-bottom: 0.2rem;
-        scrollbar-width: thin;
-      }
-
-      .quick-start-bar .qp-chip,
-      #item-popular-picks .qp-chip,
-      #item-group-jumps .qp-chip {
-        white-space: nowrap;
-      }
 
       .item-picker-divider {
         margin: 0.65rem 0 0.7rem;
@@ -2624,12 +2623,6 @@
             <div class="item-section-switcher" id="item-section-switcher"></div>
             <div class="item-mobile-tools" id="item-mobile-tools">
               <button type="button" class="item-tool-btn" id="item-search-toggle" onclick="toggleItemSearch()">Search items</button>
-            </div>
-            <div class="quick-start-bar" id="item-quick-start" style="display:none">
-              <div class="quick-start-head">Start faster</div>
-              <div class="quick-start-copy" id="item-quick-start-copy">Choose a most-booked item or switch sections before browsing the full list.</div>
-              <div id="item-popular-picks"></div>
-              <div id="item-group-jumps"></div>
             </div>
 
           <style>
@@ -4466,9 +4459,6 @@ function renderBrowserPane(svc, stage) {
     title.textContent = activeName || 'Choose items';
     copy.textContent = (SUBCAT_NOTES[activeName] || 'Choose the exact items in this section.');
     wrap.innerHTML = group ? buildStaticGroupHtml(svc, group, group.items.length) : '';
-    renderPopularPicks(svc);
-    renderGroupJumps(svc);
-    syncItemQuickStartBar(stage);
     if (searchWrap) searchWrap.style.display = '';
     if (searchInput) searchInput.placeholder = 'Search items... e.g. queen bed';
     if (searchInput && searchInput.value) BOOK.itemSearchOpen = true;
@@ -4491,7 +4481,6 @@ function renderBrowserPane(svc, stage) {
     ? extraGroups.map(function(group) { return buildStaticGroupHtml(svc, group, group.items.length); }).join('')
     : '<div class="quote-helper" style="margin-top:0">No extra add-ons are listed for this service.</div>';
 
-  syncItemQuickStartBar(stage);
   if (searchWrap) searchWrap.style.display = 'none';
   if (searchInput) searchInput.value = '';
   if (clearBtn) clearBtn.classList.remove('vis');
@@ -4661,105 +4650,16 @@ function syncMobileStepActionsForKeyboard() {
   setMobileStepActionsHidden(keyboardLikelyOpen && activeElementNeedsKeyboardRoom());
 }
 
-function renderPopularPicks(svc) {
-  var wrap = document.getElementById('item-popular-picks');
-  if (!wrap) return;
-
-  var picks = [];
-  getPrimaryGroups(svc).forEach(function(group) {
-    (group.items || []).forEach(function(item) {
-      if (item.popular && !item.customQuote) picks.push({ group: group.group, item: item });
-    });
-  });
-
-  if (!picks.length) {
-    wrap.style.display = 'none';
-    wrap.innerHTML = '';
-    return;
-  }
-
-  wrap.innerHTML = '<div class="qp-heading">Most booked for this service</div>'
-    + '<div class="qp-chips">' + picks.slice(0, 6).map(function(entry) {
-      var item = entry.item;
-      var selected = isItemSelected(svc, item.name);
-      return '<button type="button" class="qp-chip' + (selected ? ' selected' : '') + '"'
-        + ' data-svc="' + escAttr(svc) + '"'
-        + ' data-group="' + escAttr(entry.group) + '"'
-        + ' data-name="' + escAttr(item.name) + '"'
-        + ' onclick="togglePopularPick(this)">'
-        + '<span>' + esc(item.name) + '</span>'
-        + '</button>';
-    }).join('') + '</div>';
-  wrap.style.display = '';
-}
-
-function renderGroupJumps(svc) {
-  var wrap = document.getElementById('item-group-jumps');
-  if (!wrap) return;
-
-  var groups = getPrimaryGroups(svc);
-  if (groups.length <= 1) {
-    wrap.style.display = 'none';
-    wrap.innerHTML = '';
-    return;
-  }
-
-  wrap.innerHTML = '<div class="qp-heading">Browse by section</div>'
-    + '<div class="qp-chips">' + groups.map(function(group, index) {
-      var active = (BOOK.currentGroup && BOOK.currentGroup === group.group) || (!BOOK.currentGroup && index === 0);
-      return '<button type="button" class="qp-chip' + (active ? ' selected' : '') + '"'
-        + ' data-group="' + escAttr(group.group) + '" onclick="jumpToGroup(this.dataset.group)">'
-        + '<span>' + esc(group.group) + '</span>'
-        + '<span class="qp-chip-price">' + group.items.length + ' items</span>'
-        + '</button>';
-    }).join('') + '</div>';
-  wrap.style.display = '';
-}
-
-function syncItemQuickStartBar(stage) {
-  var bar = document.getElementById('item-quick-start');
-  var copy = document.getElementById('item-quick-start-copy');
-  var picks = document.getElementById('item-popular-picks');
-  var jumps = document.getElementById('item-group-jumps');
-  if (!bar) return;
-
-  if (stage !== 'items') {
-    bar.style.display = 'none';
-    if (picks) {
-      picks.innerHTML = '';
-      picks.style.display = 'none';
-    }
-    if (jumps) {
-      jumps.innerHTML = '';
-      jumps.style.display = 'none';
-    }
-    return;
-  }
-
-  var hasPicks = !!(picks && picks.innerHTML.trim());
-  var hasJumps = !!(jumps && jumps.innerHTML.trim());
-  if (copy) {
-    copy.textContent = hasPicks
-      ? 'Start with a most-booked item or switch sections before browsing the full list.'
-      : 'Switch sections first, then browse the exact items for your job.';
-  }
-  bar.style.display = hasPicks || hasJumps ? '' : 'none';
-}
-
 function syncMobileItemAssistivePanels(stage) {
   var tools = document.getElementById('item-mobile-tools');
   var searchWrap = document.getElementById('item-search-wrap');
   var searchBtn = document.getElementById('item-search-toggle');
-  var quick = document.getElementById('item-quick-start');
-  var picks = document.getElementById('item-popular-picks');
-  var jumps = document.getElementById('item-group-jumps');
-  if (!tools || !searchWrap || !searchBtn || !quick) return;
+  if (!tools || !searchWrap || !searchBtn) return;
 
   var isCompactMobile = !!(window.matchMedia && window.matchMedia('(max-width: 640px)').matches);
   if (!isCompactMobile || stage !== 'items') {
     tools.style.display = 'none';
     if (stage === 'items') searchWrap.style.display = '';
-    quick.style.display = '';
     return;
   }
 
@@ -4770,7 +4670,6 @@ function syncMobileItemAssistivePanels(stage) {
   tools.style.display = '';
   searchWrap.style.display = BOOK.itemSearchOpen ? '' : 'none';
   searchBtn.textContent = BOOK.itemSearchOpen ? 'Hide search' : 'Search items';
-  quick.style.display = 'none';
 }
 
 function toggleItemSearch(forceOpen) {
@@ -4783,14 +4682,6 @@ function toggleItemSearch(forceOpen) {
   }
   syncMobileItemAssistivePanels('items');
   if (BOOK.itemSearchOpen && input) setTimeout(function(){ input.focus(); }, 0);
-}
-
-function syncGroupJumpState(groupName) {
-  var wrap = document.getElementById('item-group-jumps');
-  if (!wrap) return;
-  wrap.querySelectorAll('.qp-chip[data-group]').forEach(function(btn) {
-    btn.classList.toggle('selected', btn.dataset.group === groupName);
-  });
 }
 
 function jumpToGroup(groupName, skipScroll) {
@@ -4812,19 +4703,8 @@ function jumpToGroup(groupName, skipScroll) {
   }
 
   target.classList.add('open');
-  syncGroupJumpState(groupName);
 
   if (!skipScroll) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function togglePopularPick(btn) {
-  var svc = btn.getAttribute('data-svc');
-  var name = btn.getAttribute('data-name');
-  var item = findCatalogItem(svc, name);
-  if (!svc || !name || !item) return;
-
-  BOOK.currentGroup = btn.getAttribute('data-group') || findItemGroup(svc, name);
-  toggleItem(svc, item.name, item.price, item.priceMax, !!item.addon, !!item.customQuote);
 }
 
 function openQuickPick(svc, itemName) {
@@ -4870,7 +4750,6 @@ function toggleSubcat(btn) {
 
   if (group.classList.contains('open')) {
     BOOK.currentGroup = group.dataset.group || '';
-    syncGroupJumpState(BOOK.currentGroup);
   }
 }
 
@@ -4964,8 +4843,6 @@ function filterItemList(q) {
     if (sp) sp.textContent = q;
 
   }
-
-  if (!q && BOOK.currentGroup) syncGroupJumpState(BOOK.currentGroup);
 
 }
 

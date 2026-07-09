@@ -165,12 +165,22 @@ if (!bookingPage.includes('id="s5-promo-code"') || !bookingPage.includes('/api/b
   throw new Error('Booking flow must expose promo code verification before confirmation');
 }
 const pricingPage = readFileSync('pricing.html', 'utf8');
+const bundlesPage = readFileSync('bundles.html', 'utf8');
 const furniturePflugervillePage = readFileSync('furniture-assembly-pflugerville-tx.html', 'utf8');
 if (!furniturePflugervillePage.includes('/assets/js/site-promo.js')) {
   throw new Error('Service pages must load the shared promo script');
 }
 if (!furniturePflugervillePage.includes('beds, dressers, desks, tables, and IKEA builds')) {
   throw new Error('Furniture assembly city pages must use the stronger local-intent SEO description');
+}
+if (!bundlesPage.includes('id="bn-grid"')) {
+  throw new Error('Bundles page must expose the bundle catalog mount point');
+}
+if (!bundlesPage.includes('renderBundleCatalog')) {
+  throw new Error('Bundles page must render the full bundle catalog');
+}
+if (!bundlesPage.includes('/book?bundle=')) {
+  throw new Error('Bundles page should deep-link each bundle card into booking');
 }
 
 const cityServiceFiles = readdirSync('.').filter((name) =>

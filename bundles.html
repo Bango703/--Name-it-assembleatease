@@ -182,7 +182,73 @@
   <p>Flat pricing. Reviewed local pros. No charge until it&rsquo;s done.</p>
   <a href="/book" class="btn btn-cyan" style="display:inline-block">Start your setup &rarr;</a>
 </section>
- </main>
+</main>
+<script>
+(function(){
+  function esc(str){
+    return String(str == null ? '' : str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+  function money(n){return '$'+Number(n||0).toFixed(0);}
+  function findPrice(src, ref){
+    var groups=((src&&src.subcategories&&src.subcategories[ref.service])||[]);
+    for(var i=0;i<groups.length;i++){
+      var items=groups[i].items||[];
+      for(var j=0;j<items.length;j++){
+        if(items[j].name===ref.name) return Number(items[j].price||0);
+      }
+    }
+    return 0;
+  }
+  var bundleImages={
+    'bedroom-ready':'/images/real-furniture-bed-paneled.png',
+    'living-room-ready':'/images/real-tv-setup-console.jpg',
+    'home-office-ready':'/images/real-office-home-ldesk.jpg',
+    'move-in-ready':'/images/bundle-move-in-setup.png',
+    'smart-entry-setup':'/images/real-smarthome-doorbell-vivint.png',
+    'nursery-setup':'/images/bundle-nursery-setup.png'
+  };
+  function renderBundleCatalog(){
+    var grid=document.getElementById('bn-grid');
+    if(!grid) return;
+    var src=window.AAE_BOOKING_SOURCE;
+    var list=(src&&src.bundles)?src.bundles.filter(function(b){return b.active!==false;}):[];
+    list.sort(function(a,b){return (a.displayOrder||99)-(b.displayOrder||99);});
+    if(!list.length){
+      grid.innerHTML='<div class="quote-helper" style="grid-column:1/-1;margin:0">Bundles are being updated right now. You can still <a href="/book">start a booking here</a>.</div>';
+      return;
+    }
+    grid.innerHTML=list.map(function(b){
+      var included=b.included||[];
+      var subtotal=included.reduce(function(sum, ref){ return sum + findPrice(src, ref); }, 0);
+      var itemCount=included.length;
+      var img=bundleImages[b.slug] || '/images/bundle-move-in-setup.png';
+      var includedPreview=included.slice(0,3).map(function(ref){ return ref.name; }).join(', ');
+      return '<a class="bn-card" href="/book?bundle='+encodeURIComponent(b.slug)+'">'
+        +'<div class="bn-photo">'
+          +'<img src="'+esc(img)+'" alt="'+esc(b.name)+' bundle preview" loading="lazy" width="1536" height="960"/>'
+          +'<span class="bn-badge">'+itemCount+' item'+(itemCount===1?'':'s')+'</span>'
+        +'</div>'
+        +'<div class="bn-card-body">'
+          +'<div class="bn-card-top"><div class="bn-name">'+esc(b.name)+'</div><span class="bn-badge-lite">Bundle</span></div>'
+          +'<div class="bn-outcome">'+esc(b.outcome||'')+'</div>'
+          +'<div class="bn-meta">'
+            +'<div class="bn-metric"><span class="bn-metric-label">Starts at</span><strong>'+money(subtotal)+'</strong><span>Live item pricing before checkout</span></div>'
+            +'<div class="bn-metric"><span class="bn-metric-label">Includes</span><strong>'+itemCount+' item'+(itemCount===1?'':'s')+'</strong><span>Adjust anything before you book</span></div>'
+          +'</div>'
+          +'<div class="bn-incl"><span>Typical items</span>'+esc(includedPreview)+(included.length>3?' and more.':'.')+'</div>'
+          +'<div class="bn-cta-row"><div class="bn-cta-copy">Open this room setup in booking and edit it before checkout.</div><div class="bn-cta">Start this bundle &rarr;</div></div>'
+        +'</div>'
+      +'</a>';
+    }).join('');
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderBundleCatalog);
+  else renderBundleCatalog();
+})();
+</script>
 
 <footer class="footer">
   <div class="footer-inner">
