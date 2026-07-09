@@ -67,17 +67,25 @@ const FA_STYLE = `<style>
 .fa-note{background:var(--off-white);border:1px solid var(--border);border-radius:16px;padding:1.7rem 1.5rem;color:var(--ink);display:flex;flex-direction:column;justify-content:center;min-height:200px}
 .fa-note strong{font-family:var(--font-display);font-size:1.25rem;line-height:1.18;display:block;margin-bottom:0.55rem}
 .fa-note p{font-size:0.92rem;line-height:1.6;color:var(--muted)}
-.fa-price-anchor{text-align:center;margin-bottom:1.8rem}
+.fa-price-shell{display:grid;grid-template-columns:minmax(240px,0.78fr) minmax(0,1.22fr);gap:1rem;align-items:stretch}
+.fa-price-side{background:linear-gradient(180deg,#ffffff 0%,#f5fbfe 100%);border:1px solid rgba(15,23,42,0.08);border-radius:28px;padding:1.6rem 1.5rem;box-shadow:0 20px 48px rgba(15,23,42,0.08);display:flex;flex-direction:column;justify-content:space-between}
+.fa-price-anchor{text-align:left;margin-bottom:1rem}
 .fa-price-anchor .big{font-family:var(--font-display);font-size:clamp(2.4rem,5vw,3.1rem);color:var(--cyan-dark);line-height:1}
 .fa-price-anchor .lbl{display:block;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);font-weight:700;margin-top:0.45rem}
-.fa-menu{max-width:600px;margin:0 auto;background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:0.4rem 1.7rem;box-shadow:var(--shadow)}
-.fa-menu-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.05rem 0;border-bottom:1px solid var(--border)}
-.fa-menu-row:last-child{border-bottom:none}
-.fa-menu-row .nm{font-size:0.96rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap}
+.fa-price-note{font-size:0.92rem;line-height:1.72;color:var(--muted);margin:0}
+.fa-menu{background:var(--white);border:1px solid rgba(15,23,42,0.08);border-radius:28px;padding:1rem;box-shadow:0 20px 48px rgba(15,23,42,0.08);display:grid;gap:0.75rem}
+.fa-menu-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.05rem;border:1px solid rgba(15,23,42,0.08);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)}
+.fa-menu-row .nm{font-size:0.96rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap}
 .fa-menu-row .tag{font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--cyan-dark);background:var(--cyan-light);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.12rem 0.5rem}
 .fa-menu-row .pr{font-family:var(--font-display);font-size:1.2rem;color:var(--cyan-dark);white-space:nowrap}
-.fa-price-foot{max-width:600px;margin:1.5rem auto 0;text-align:center}
-.fa-price-foot p{font-size:0.88rem;color:var(--muted);line-height:1.65;margin-bottom:1.4rem}
+.fa-price-foot{margin-top:1rem;padding:1.2rem 1.35rem;border-radius:24px;background:linear-gradient(135deg,#0f3558 0%,#1a6a87 100%);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.fa-price-copy{display:flex;flex-direction:column;gap:0.35rem;max-width:33rem}
+.fa-price-copy strong{font-size:1.05rem;color:#fff}
+.fa-price-copy span{font-size:0.88rem;line-height:1.7;color:rgba(255,255,255,0.82)}
+.fa-price-actions{display:flex;flex-direction:column;align-items:flex-end;gap:0.8rem}
+.fa-price-points{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:flex-end}
+.fa-price-point{display:inline-flex;align-items:center;gap:0.4rem;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.08);border-radius:999px;padding:0.42rem 0.78rem;font-size:0.74rem;color:rgba(255,255,255,0.88)}
+.fa-price-point::before{content:"";width:7px;height:7px;border-radius:50%;background:#5cf0a5}
 .fa-process{max-width:900px;margin:0 auto}
 .fa-process-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem}
 .fa-process-tab{appearance:none;border:1.5px solid var(--border);background:var(--white);border-radius:16px;padding:0.95rem 1rem;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
@@ -113,13 +121,17 @@ const FA_STYLE = `<style>
   .fa-hero-grid{grid-template-columns:1fr;gap:2.2rem;padding:3rem 1.5rem 3.25rem}
   .fa-hero-media{order:-1;max-width:540px;margin:0 auto;width:100%}
   .fa-mini-facts{grid-template-columns:1fr}
+  .fa-price-shell{grid-template-columns:1fr}
+  .fa-price-foot{flex-direction:column;align-items:flex-start}
+  .fa-price-actions{align-items:flex-start}
+  .fa-price-points{justify-content:flex-start}
 }
 @media(max-width:560px){
   .fa-section{padding:3.4rem 1.4rem}
   .fa-gallery{grid-template-columns:1fr}
   .fa-cta-row{flex-direction:column;align-items:stretch}
   .fa-btn-primary,.fa-btn-ghost{justify-content:center}
-  .fa-menu{padding:0.25rem 1.2rem}
+  .fa-menu{padding:0.8rem}
   .fa-process-tabs{gap:0.5rem}
   .fa-process-tab{padding:0.8rem 0.75rem}
   .fa-process-label{font-size:0.82rem}
@@ -143,6 +155,7 @@ const NEAR_CITIES = [
   { slug: 'lakeway', name: 'Lakeway' },
 ];
 const FLAGSHIP_STYLE_RE = /<style>\s*\/\* ===== Flagship[\s\S]*?<\/style>\s*/g;
+const CITY_TEMPLATE_STYLE_RE = /<style>\s*\.pricing-shell\{[\s\S]*?#m-svc-bar\{display:none\}[\s\S]*?<\/style>\s*/g;
 
 function gallerySection(cfg) {
   const header = `    <div class="fa-head">
@@ -194,7 +207,7 @@ function buildBody(cfg) {
       </div>
     </div>
     <div class="fa-hero-media">
-      <img src="/images/${cfg.heroPhoto}" alt="${cfg.heroAlt}" loading="eager"/>
+      <img src="/images/${cfg.heroPhoto}" alt="${cfg.heroAlt}" loading="eager" fetchpriority="high"/>
       <div class="fa-media-chip">Done in ${CITY}</div>
     </div>
   </div>
@@ -210,13 +223,28 @@ ${gallerySection(cfg)}
       <div class="fa-kicker">Pricing</div>
       <h2 class="fa-h2">Simple, flat pricing</h2>
     </div>
-    <div class="fa-price-anchor"><span class="big">From ${cfg.fromPrice}</span><span class="lbl">${cfg.fromLabel}</span></div>
-    <div class="fa-menu">
+    <div class="fa-price-shell">
+      <div class="fa-price-side">
+        <div class="fa-price-anchor"><span class="big">From ${cfg.fromPrice}</span><span class="lbl">${cfg.fromLabel}</span></div>
+        <p class="fa-price-note">Common jobs and starting points for this service. Use them to get close, then tell us the exact setup in booking so we can line up the right visit.</p>
+      </div>
+      <div class="fa-menu">
 ${menu}
+      </div>
     </div>
     <div class="fa-price-foot">
-      <p>Common starting points for the jobs we handle most. Add the exact items in booking so we can match the visit to your setup.</p>
-      <a href="${bk}" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
+      <div class="fa-price-copy">
+        <strong>Need a different setup?</strong>
+        <span>Tell us the exact items, wall conditions, or room layout and we will help match the visit to the real scope.</span>
+      </div>
+      <div class="fa-price-actions">
+        <a href="${bk}" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
+        <div class="fa-price-points">
+          <span class="fa-price-point">Reviewed local pros</span>
+          <span class="fa-price-point">Fast confirmation</span>
+          <span class="fa-price-point">Careful setup</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -505,6 +533,7 @@ for (const cfg of SERVICES) {
 
   // 1. replace any previous flagship CSS block so regenerated pages stay clean.
   html = html.replace(FLAGSHIP_STYLE_RE, '');
+  html = html.replace(CITY_TEMPLATE_STYLE_RE, '');
   html = html.replace('</head>', `${FA_STYLE}\n</head>`);
 
   // 2. swap visible body

@@ -4,6 +4,7 @@
   "description": "AssembleAtEase - Assembly services marketplace connecting customers with skilled assemblers",
   "scripts": {
     "test": "node scripts/smoke-check.mjs",
+    "build:services": "node scripts/generate-location-pages.js && node scripts/build-flagship-service-pages.mjs",
     "stripe:connect:seed": "node scripts/seed-stripe-connect-test-data.mjs",
     "governance:nav": "node scripts/public-nav-sync.mjs",
     "governance:footer": "node scripts/public-footer-sync.mjs",

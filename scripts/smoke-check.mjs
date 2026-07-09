@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { normalizeChatRoute, sanitizeReplyLinks } from '../api/chat.js';
 import { applyPromotionToPricing, resolveBookingPromotion } from '../api/_promotions.js';
-import { businessIdentity } from './lib/site-governance.mjs';
+import { businessIdentity, governanceConfig } from './lib/site-governance.mjs';
 
 const files = [
   'api/booking.js',
@@ -172,6 +172,66 @@ if (!furniturePflugervillePage.includes('/assets/js/site-promo.js')) {
 if (!furniturePflugervillePage.includes('beds, dressers, desks, tables, and IKEA builds')) {
   throw new Error('Furniture assembly city pages must use the stronger local-intent SEO description');
 }
+
+const cityServiceFiles = readdirSync('.').filter((name) =>
+  /^(furniture-assembly|tv-mounting|smart-home-installation|fitness-equipment-assembly|office-furniture-assembly|playset-assembly)-.*-tx\.html$/.test(name),
+);
+const flagshipAustinPages = governanceConfig.services.flagshipAustinPages || [];
+const balancedPricingClassByCount = new Map([
+  [1, 'pricing-grid--1'],
+  [2, 'pricing-grid--2'],
+  [3, 'pricing-grid--3'],
+  [4, 'pricing-grid--4'],
+  [5, 'pricing-grid--5'],
+  [6, 'pricing-grid--6'],
+  [7, 'pricing-grid--7'],
+  [8, 'pricing-grid--8'],
+]);
+
+for (const file of cityServiceFiles) {
+  const html = readFileSync(file, 'utf8');
+  if (!html.includes('id="city-pricing"')) continue;
+
+  const pricingSection = html.match(/<section id="city-pricing"[\s\S]*?<\/section>/)?.[0];
+  if (!pricingSection) {
+    throw new Error(`City pricing section missing in ${file}`);
+  }
+
+  const pricingGridMatch = pricingSection.match(/<div class="pricing-grid ([^"]+)" data-pricing-count="(\d+)">/);
+  if (!pricingGridMatch) {
+    throw new Error(`City pricing grid must declare a balanced layout class and pricing count in ${file}`);
+  }
+
+  const [, classList, pricingCountText] = pricingGridMatch;
+  const pricingCount = Number(pricingCountText);
+  const expectedLayoutClass = balancedPricingClassByCount.get(pricingCount);
+  if (!expectedLayoutClass) {
+    throw new Error(`Define a balanced city pricing layout for ${pricingCount} cards before shipping ${file}`);
+  }
+
+  if (!classList.split(/\s+/).includes(expectedLayoutClass)) {
+    throw new Error(`City pricing grid in ${file} should use ${expectedLayoutClass} for ${pricingCount} cards; found "${classList}"`);
+  }
+
+  const actualPriceCardCount = (pricingSection.match(/class="price-card(?:\s|")/g) || []).length;
+  if (actualPriceCardCount !== pricingCount) {
+    throw new Error(`City pricing count mismatch in ${file}: data-pricing-count says ${pricingCount}, found ${actualPriceCardCount} cards`);
+  }
+}
+
+for (const file of flagshipAustinPages) {
+  const html = readFileSync(file, 'utf8');
+  if (!html.includes('class="fa-hero"')) {
+    throw new Error(`Flagship Austin page should render the flagship hero template: ${file}`);
+  }
+  if (!html.includes('class="fa-price-shell"')) {
+    throw new Error(`Flagship Austin page should render the flagship pricing template: ${file}`);
+  }
+  if (html.includes('class="city-hero"')) {
+    throw new Error(`Flagship Austin page should not be overwritten by the city template: ${file}`);
+  }
+}
+
 const sitemap = readFileSync('sitemap.xml', 'utf8');
 const robots = readFileSync('robots.txt', 'utf8');
 

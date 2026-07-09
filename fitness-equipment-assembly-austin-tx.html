@@ -28,63 +28,6 @@
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <script src="/assets/js/site-promo.js" defer></script>
 <style>
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-bottom:3rem}
-.price-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;transition:border-color 0.15s,box-shadow 0.15s;position:relative;display:flex;flex-direction:column}
-.price-card:hover{border-color:var(--cyan);box-shadow:var(--shadow)}
-.price-card-name{font-size:0.92rem;font-weight:600;color:var(--ink);margin-bottom:0.85rem;flex:1}
-.price-card-price{font-family:var(--font-display);font-size:1.45rem;color:var(--cyan)}
-.how-grid{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:0.5rem}
-.city-hero{background:linear-gradient(135deg,#fff8ef 0%,#f4fbff 54%,#edf7f7 100%);padding:4.75rem 2rem 4.25rem;border-bottom:1px solid var(--border)}
-.city-hero-grid{max-width:1160px;margin:0 auto;display:grid;gap:2.4rem;align-items:center}
-.city-hero-copy{display:flex;flex-direction:column;gap:1rem}
-.city-hero-eyebrow{display:inline-flex;align-items:center;gap:0.55rem;align-self:flex-start;background:rgba(255,255,255,0.82);border:1px solid rgba(13,148,193,0.22);border-radius:999px;padding:0.45rem 0.95rem;font-size:0.74rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
-.city-hero-eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan)}
-.city-hero-title{font-family:var(--font-display);font-size:clamp(2.25rem,4.7vw,3.55rem);line-height:1.04;color:var(--ink);letter-spacing:-0.03em;margin:0}
-.city-hero-lead{font-size:1.08rem;line-height:1.72;color:var(--ink-soft);margin:0;max-width:37rem}
-.city-hero-body{font-size:0.98rem;line-height:1.78;color:var(--muted);margin:0;max-width:35rem}
-.city-hero-rating{display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;font-size:0.92rem;color:var(--ink)}
-.city-hero-rating .stars{display:flex;gap:2px;color:#f59e0b}
-.city-hero-actions{display:flex;flex-wrap:wrap;gap:0.85rem;align-items:center}
-.city-hero-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;color:var(--ink);font-family:var(--font-body);font-size:0.98rem;font-weight:600;padding:0.95rem 1.5rem;border-radius:999px;text-decoration:none;border:1.5px solid var(--border);background:rgba(255,255,255,0.72);transition:all .18s}
-.city-hero-secondary:hover{border-color:var(--cyan);color:var(--cyan-dark)}
-.city-hero-points{display:flex;flex-wrap:wrap;gap:0.75rem}
-.city-hero-point{display:inline-flex;align-items:center;gap:0.45rem;background:rgba(255,255,255,0.82);border:1px solid rgba(15,23,42,0.08);border-radius:999px;padding:0.55rem 0.95rem;font-size:0.84rem;color:var(--ink-soft)}
-.city-hero-point::before{content:"";width:7px;height:7px;border-radius:50%;background:#28d17c}
-.city-hero-media{position:relative}
-.city-hero-photo{position:relative;border-radius:30px;overflow:hidden;border:1px solid rgba(15,23,42,0.08);background:#dce9ef;box-shadow:0 30px 70px rgba(15,23,42,0.18)}
-.city-hero-photo img{display:block;width:100%;height:100%;min-height:390px;object-fit:cover}
-.city-hero-note{position:absolute;left:1rem;bottom:1rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(10,18,32,0.82);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:0.55rem 0.95rem;font-size:0.8rem;font-weight:600;backdrop-filter:blur(6px)}
-.city-hero-note::before{content:"";width:8px;height:8px;border-radius:50%;background:#28d17c;box-shadow:0 0 0 4px rgba(40,209,124,0.24)}
-#m-svc-bar{display:none}
-@media(max-width:700px){.pricing-grid{grid-template-columns:1fr}}
-@media(min-width:900px){
-  .city-hero-grid{grid-template-columns:minmax(0,1.03fr) minmax(420px,0.97fr)}
-}
-@media(max-width:768px){
-  .nav-inner{padding:0 1rem}
-  .nav-inner>.btn-cyan{display:none}
-  .nav-easer-link{display:none}
-  .city-hero{padding:3.35rem 1rem 3rem}
-  .city-hero-photo img{min-height:320px}
-  .city-hero-actions{flex-direction:column;align-items:stretch}
-  .city-hero-secondary,.city-hero .btn-cyan{justify-content:center}
-  .pricing-grid{display:flex;flex-direction:column;gap:0}
-  .price-card{border:none;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);padding:.9rem 0;display:grid;grid-template-areas:"name price" "btn btn";grid-template-columns:1fr auto;align-items:center;gap:0 .75rem}
-  .price-card:first-child{border-top:1px solid var(--border)}
-  .price-card:hover{border-color:var(--border)!important;box-shadow:none!important}
-  .price-card-name{grid-area:name;font-size:.92rem;margin:0}
-  .price-card-price{grid-area:price;font-size:1rem;white-space:nowrap;margin:0}
-  .price-card .btn{grid-area:btn;margin-top:.65rem!important;font-size:.9rem!important;min-height:44px;padding:.7rem 1rem!important}
-  .footer{padding-bottom:calc(2rem + env(safe-area-inset-bottom,0px))}
-  .btn{min-height:44px}
-  #m-svc-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:64px;padding:0 1.5rem;padding-bottom:env(safe-area-inset-bottom,0px);z-index:290;background:var(--cyan);align-items:center;justify-content:center}
-  #m-svc-bar a{color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
-  .how-grid{display:flex!important;flex-direction:column!important;gap:0.75rem!important}
-  .how-grid > div:nth-child(2),.how-grid > div:nth-child(4){display:none!important}
-  .how-grid > div{width:100%!important;padding:0.95rem 0.5rem!important}
-}
-</style>
-<style>
 /* ===== Flagship service page ===== */
 .fa-hero{position:relative;background:linear-gradient(180deg,#edf6fe 0%,#f6fbff 55%,#ffffff 100%);overflow:hidden;border-bottom:1px solid var(--border)}
 .fa-hero::before{content:"";position:absolute;top:-28%;right:-8%;width:52%;height:130%;background:radial-gradient(circle at center,rgba(0,191,255,0.16),transparent 60%);pointer-events:none}
@@ -120,17 +63,25 @@
 .fa-note{background:var(--off-white);border:1px solid var(--border);border-radius:16px;padding:1.7rem 1.5rem;color:var(--ink);display:flex;flex-direction:column;justify-content:center;min-height:200px}
 .fa-note strong{font-family:var(--font-display);font-size:1.25rem;line-height:1.18;display:block;margin-bottom:0.55rem}
 .fa-note p{font-size:0.92rem;line-height:1.6;color:var(--muted)}
-.fa-price-anchor{text-align:center;margin-bottom:1.8rem}
+.fa-price-shell{display:grid;grid-template-columns:minmax(240px,0.78fr) minmax(0,1.22fr);gap:1rem;align-items:stretch}
+.fa-price-side{background:linear-gradient(180deg,#ffffff 0%,#f5fbfe 100%);border:1px solid rgba(15,23,42,0.08);border-radius:28px;padding:1.6rem 1.5rem;box-shadow:0 20px 48px rgba(15,23,42,0.08);display:flex;flex-direction:column;justify-content:space-between}
+.fa-price-anchor{text-align:left;margin-bottom:1rem}
 .fa-price-anchor .big{font-family:var(--font-display);font-size:clamp(2.4rem,5vw,3.1rem);color:var(--cyan-dark);line-height:1}
 .fa-price-anchor .lbl{display:block;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);font-weight:700;margin-top:0.45rem}
-.fa-menu{max-width:600px;margin:0 auto;background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:0.4rem 1.7rem;box-shadow:var(--shadow)}
-.fa-menu-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.05rem 0;border-bottom:1px solid var(--border)}
-.fa-menu-row:last-child{border-bottom:none}
-.fa-menu-row .nm{font-size:0.96rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap}
+.fa-price-note{font-size:0.92rem;line-height:1.72;color:var(--muted);margin:0}
+.fa-menu{background:var(--white);border:1px solid rgba(15,23,42,0.08);border-radius:28px;padding:1rem;box-shadow:0 20px 48px rgba(15,23,42,0.08);display:grid;gap:0.75rem}
+.fa-menu-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.05rem;border:1px solid rgba(15,23,42,0.08);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)}
+.fa-menu-row .nm{font-size:0.96rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap}
 .fa-menu-row .tag{font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--cyan-dark);background:var(--cyan-light);border:1px solid var(--cyan-mid);border-radius:999px;padding:0.12rem 0.5rem}
 .fa-menu-row .pr{font-family:var(--font-display);font-size:1.2rem;color:var(--cyan-dark);white-space:nowrap}
-.fa-price-foot{max-width:600px;margin:1.5rem auto 0;text-align:center}
-.fa-price-foot p{font-size:0.88rem;color:var(--muted);line-height:1.65;margin-bottom:1.4rem}
+.fa-price-foot{margin-top:1rem;padding:1.2rem 1.35rem;border-radius:24px;background:linear-gradient(135deg,#0f3558 0%,#1a6a87 100%);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.fa-price-copy{display:flex;flex-direction:column;gap:0.35rem;max-width:33rem}
+.fa-price-copy strong{font-size:1.05rem;color:#fff}
+.fa-price-copy span{font-size:0.88rem;line-height:1.7;color:rgba(255,255,255,0.82)}
+.fa-price-actions{display:flex;flex-direction:column;align-items:flex-end;gap:0.8rem}
+.fa-price-points{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:flex-end}
+.fa-price-point{display:inline-flex;align-items:center;gap:0.4rem;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.08);border-radius:999px;padding:0.42rem 0.78rem;font-size:0.74rem;color:rgba(255,255,255,0.88)}
+.fa-price-point::before{content:"";width:7px;height:7px;border-radius:50%;background:#5cf0a5}
 .fa-process{max-width:900px;margin:0 auto}
 .fa-process-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.75rem}
 .fa-process-tab{appearance:none;border:1.5px solid var(--border);background:var(--white);border-radius:16px;padding:0.95rem 1rem;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
@@ -166,13 +117,17 @@
   .fa-hero-grid{grid-template-columns:1fr;gap:2.2rem;padding:3rem 1.5rem 3.25rem}
   .fa-hero-media{order:-1;max-width:540px;margin:0 auto;width:100%}
   .fa-mini-facts{grid-template-columns:1fr}
+  .fa-price-shell{grid-template-columns:1fr}
+  .fa-price-foot{flex-direction:column;align-items:flex-start}
+  .fa-price-actions{align-items:flex-start}
+  .fa-price-points{justify-content:flex-start}
 }
 @media(max-width:560px){
   .fa-section{padding:3.4rem 1.4rem}
   .fa-gallery{grid-template-columns:1fr}
   .fa-cta-row{flex-direction:column;align-items:stretch}
   .fa-btn-primary,.fa-btn-ghost{justify-content:center}
-  .fa-menu{padding:0.25rem 1.2rem}
+  .fa-menu{padding:0.8rem}
   .fa-process-tabs{gap:0.5rem}
   .fa-process-tab{padding:0.8rem 0.75rem}
   .fa-process-label{font-size:0.82rem}
@@ -235,7 +190,7 @@
       </div>
     </div>
     <div class="fa-hero-media">
-      <img src="/images/real-fitness-home-gym.jpg" alt="Home gym with assembled cardio machines and a power rack" loading="eager"/>
+      <img src="/images/real-fitness-home-gym.jpg" alt="Home gym with assembled cardio machines and a power rack" loading="eager" fetchpriority="high"/>
       <div class="fa-media-chip">Done in Austin</div>
     </div>
   </div>
@@ -260,16 +215,31 @@
       <div class="fa-kicker">Pricing</div>
       <h2 class="fa-h2">Simple, flat pricing</h2>
     </div>
-    <div class="fa-price-anchor"><span class="big">From $119</span><span class="lbl">per machine &mdash; assembled &amp; leveled</span></div>
-    <div class="fa-menu">
+    <div class="fa-price-shell">
+      <div class="fa-price-side">
+        <div class="fa-price-anchor"><span class="big">From $119</span><span class="lbl">per machine &mdash; assembled &amp; leveled</span></div>
+        <p class="fa-price-note">Common jobs and starting points for this service. Use them to get close, then tell us the exact setup in booking so we can line up the right visit.</p>
+      </div>
+      <div class="fa-menu">
       <div class="fa-menu-row"><span class="nm">Inversion Table</span><span class="pr">$119</span></div>
       <div class="fa-menu-row"><span class="nm">Treadmill Assembly <span class="tag">Popular</span></span><span class="pr">$189</span></div>
       <div class="fa-menu-row"><span class="nm">Elliptical Machine</span><span class="pr">$209</span></div>
       <div class="fa-menu-row"><span class="nm">Squat Rack / Power Cage</span><span class="pr">$219+</span></div>
+      </div>
     </div>
     <div class="fa-price-foot">
-      <p>Common starting points for the jobs we handle most. Add the exact items in booking so we can match the visit to your setup.</p>
-      <a href="/book?service=Fitness+Equipment" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
+      <div class="fa-price-copy">
+        <strong>Need a different setup?</strong>
+        <span>Tell us the exact items, wall conditions, or room layout and we will help match the visit to the real scope.</span>
+      </div>
+      <div class="fa-price-actions">
+        <a href="/book?service=Fitness+Equipment" class="fa-btn-primary">Check availability &amp; book &rarr;</a>
+        <div class="fa-price-points">
+          <span class="fa-price-point">Reviewed local pros</span>
+          <span class="fa-price-point">Fast confirmation</span>
+          <span class="fa-price-point">Careful setup</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>

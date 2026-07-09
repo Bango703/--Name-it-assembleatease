@@ -1,4 +1,4 @@
-﻿/* Shared CSS for all AssembleAtEase marketing pages */
+/* Shared CSS for all AssembleAtEase marketing pages */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --cyan:#00BFFF;--cyan-dark:#0099CC;--cyan-light:#e0f7fa;--cyan-mid:#b2ebf2;
@@ -10,6 +10,7 @@
 }
 html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body.nav-open{overflow:hidden}
 .nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .nav-inner{max-width:1100px;margin:0 auto;padding:0 2rem 0 1rem;height:56px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
@@ -31,11 +32,12 @@ body{font-family:var(--font-body);background:var(--white);color:var(--ink);-webk
 .nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 .nav-hamburger.open span:nth-child(2){opacity:0}
 .nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.nav-mobile{display:none;position:fixed;top:56px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.25rem 1.5rem;z-index:199;flex-direction:column;gap:0.75rem;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.nav-mobile{display:none;position:fixed;top:56px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:1.25rem 1.5rem;padding-bottom:max(1.25rem,calc(env(safe-area-inset-bottom,0px) + 1rem));z-index:350;flex-direction:column;gap:0.75rem;box-shadow:0 4px 20px rgba(0,0,0,0.08);max-height:calc(100vh - 56px);max-height:calc(100dvh - 56px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .nav-mobile.open{display:flex}
 .nav-mobile a{font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
 .nav-mobile a:last-child{border-bottom:none}
 .nav-mobile .btn{margin-top:0.5rem;text-align:center}
+body.nav-open #cookie-banner{display:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
 .btn-cyan{background:var(--cyan);color:#fff}
 .btn-cyan:hover{background:var(--cyan-dark);box-shadow:0 4px 16px rgba(0,188,212,0.35);transform:translateY(-1px)}

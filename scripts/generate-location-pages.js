@@ -9,10 +9,12 @@ import { fileURLToPath } from 'url';
 import { buildPublicCookieConsentBlock } from './lib/public-consent.mjs';
 import { buildPublicFooterBlock } from './lib/public-footer.mjs';
 import { buildPublicNavBlock } from './lib/public-nav.mjs';
+import { governanceConfig } from './lib/site-governance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const TODAY = '2026-06-04';
+const FLAGSHIP_AUSTIN_PAGES = new Set(governanceConfig.services.flagshipAustinPages || []);
 
 function esc(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -20,6 +22,24 @@ function esc(str) {
 
 function safeJson(obj) {
   return JSON.stringify(obj).replace(/<\//g, '<\\/');
+}
+
+function getBalancedPricingGridClass(count) {
+  const layouts = {
+    1: 'pricing-grid--1',
+    2: 'pricing-grid--2',
+    3: 'pricing-grid--3',
+    4: 'pricing-grid--4',
+    5: 'pricing-grid--5',
+    6: 'pricing-grid--6',
+    7: 'pricing-grid--7',
+    8: 'pricing-grid--8',
+  };
+  const layout = layouts[count];
+  if (!layout) {
+    throw new Error(`Define a balanced desktop pricing layout for ${count} common jobs before generating service pages.`);
+  }
+  return layout;
 }
 
 function buildMetaDescription(serviceSlug, cityName) {
@@ -454,13 +474,23 @@ function generatePage(city, service) {
   const allFaqs = [...service.faqs, cityFaq];
 
   // Pricing cards
+  const pricingCount = service.pricingHighlights.length;
+  const pricingGridClass = getBalancedPricingGridClass(pricingCount);
   const priceCards = service.pricingHighlights.map(p => `
-      <div class="price-card"${p.popular ? ' style="border-color:var(--cyan);box-shadow:var(--shadow)"' : ''}>
-        ${p.popular ? '<div style="position:absolute;top:0.7rem;right:0.9rem;font-size:0.62rem;font-weight:700;color:#fff;background:var(--cyan);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:0.08em">Popular</div>' : ''}
+      <article class="price-card${p.popular ? ' price-card-popular' : ''}">
+        <div class="price-card-head">
+          <span class="price-card-kicker">Common job</span>
+          ${p.popular ? '<span class="price-card-badge">Popular</span>' : ''}
+        </div>
         <div class="price-card-name">${esc(p.name)}</div>
-        <div class="price-card-price">${esc(p.price)}</div>
-        <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-full" style="margin-top:0.75rem;font-size:0.82rem;padding:0.5rem 1rem">Book Now &rarr;</a>
-      </div>`).join('');
+        <div class="price-card-bottom">
+          <div class="price-card-meta">
+            <span class="price-card-label">Common price</span>
+            <div class="price-card-price">${esc(p.price)}</div>
+          </div>
+          <a href="/book?service=${service.bookingParam}" class="price-card-link">Book this &rarr;</a>
+        </div>
+      </article>`).join('');
 
   // FAQ items
   const faqItems = allFaqs.map(f => `
@@ -521,11 +551,30 @@ function generatePage(city, service) {
 <link rel="stylesheet" href="/assets/css/marketing.css"/><link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)"/>
 <script src="/assets/js/site-promo.js" defer></script>
 <style>
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-bottom:3rem}
-.price-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;transition:border-color 0.15s,box-shadow 0.15s;position:relative;display:flex;flex-direction:column}
-.price-card:hover{border-color:var(--cyan);box-shadow:var(--shadow)}
-.price-card-name{font-size:0.92rem;font-weight:600;color:var(--ink);margin-bottom:0.85rem;flex:1}
-.price-card-price{font-family:var(--font-display);font-size:1.45rem;color:var(--cyan)}
+.pricing-shell{background:linear-gradient(180deg,#ffffff 0%,#f5fbff 100%);border:1px solid rgba(15,23,42,0.08);border-radius:34px;padding:1.5rem;box-shadow:0 28px 62px rgba(15,23,42,0.09)}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;align-items:stretch}
+.price-card{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid rgba(15,23,42,0.08);border-radius:24px;padding:1.15rem 1.15rem 1rem;transition:border-color 0.15s,box-shadow 0.15s,transform 0.15s;display:flex;flex-direction:column;gap:0.95rem;min-height:212px}
+.price-card:hover{border-color:rgba(0,191,255,0.45);box-shadow:0 18px 40px rgba(15,23,42,0.10);transform:translateY(-2px)}
+.price-card-popular{border-color:rgba(0,191,255,0.42);box-shadow:0 18px 40px rgba(0,191,255,0.12)}
+.price-card-head{display:flex;align-items:center;justify-content:space-between;gap:0.6rem}
+.price-card-kicker{font-size:0.67rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+.price-card-badge{font-size:0.62rem;font-weight:700;color:#fff;background:var(--cyan);padding:0.22rem 0.6rem;border-radius:999px;text-transform:uppercase;letter-spacing:0.08em}
+.price-card-name{font-size:0.98rem;font-weight:700;color:var(--ink);line-height:1.45;flex:1}
+.price-card-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:0.75rem;margin-top:auto}
+.price-card-meta{display:flex;flex-direction:column;gap:0.22rem}
+.price-card-label{font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+.price-card-price{font-family:var(--font-display);font-size:1.6rem;color:var(--cyan-dark);line-height:1}
+.price-card-link{display:inline-flex;align-items:center;justify-content:center;background:var(--white);border:1.5px solid var(--cyan-mid);border-radius:999px;padding:0.7rem 1rem;font-size:0.82rem;font-weight:700;color:var(--cyan-dark);text-decoration:none;white-space:nowrap;transition:all .18s}
+.price-card-link:hover{background:var(--cyan-light);border-color:var(--cyan);color:var(--ink)}
+.pricing-band{display:flex;align-items:center;justify-content:space-between;gap:1.4rem;margin-top:1rem;padding:1.35rem 1.5rem;border-radius:24px;background:linear-gradient(135deg,#0f3558 0%,#1a6a87 100%);color:#fff}
+.pricing-band-copy{max-width:31rem}
+.pricing-band-kicker{font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:0.45rem}
+.pricing-band-title{font-family:var(--font-display);font-size:1.7rem;line-height:1.08;margin:0 0 0.45rem}
+.pricing-band-text{font-size:0.92rem;line-height:1.7;color:rgba(255,255,255,0.82);margin:0}
+.pricing-band-actions{display:flex;flex-direction:column;align-items:flex-end;gap:0.9rem}
+.pricing-band-points{display:flex;gap:0.65rem;flex-wrap:wrap;justify-content:flex-end}
+.pricing-band-point{display:inline-flex;align-items:center;gap:0.45rem;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.08);border-radius:999px;padding:0.45rem 0.8rem;font-size:0.76rem;color:rgba(255,255,255,0.88)}
+.pricing-band-point::before{content:"";width:7px;height:7px;border-radius:50%;background:#5cf0a5}
 .how-grid{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:start;gap:0.5rem}
 .city-hero{background:linear-gradient(135deg,#fff8ef 0%,#f4fbff 54%,#edf7f7 100%);padding:4.75rem 2rem 4.25rem;border-bottom:1px solid var(--border)}
 .city-hero-grid{max-width:1160px;margin:0 auto;display:grid;gap:2.4rem;align-items:center}
@@ -549,6 +598,28 @@ function generatePage(city, service) {
 .city-hero-note{position:absolute;left:1rem;bottom:1rem;display:inline-flex;align-items:center;gap:0.5rem;background:rgba(10,18,32,0.82);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:0.55rem 0.95rem;font-size:0.8rem;font-weight:600;backdrop-filter:blur(6px)}
 .city-hero-note::before{content:"";width:8px;height:8px;border-radius:50%;background:#28d17c;box-shadow:0 0 0 4px rgba(40,209,124,0.24)}
 #m-svc-bar{display:none}
+@media(max-width:900px){
+  .pricing-band{flex-direction:column;align-items:flex-start}
+  .pricing-band-actions{align-items:flex-start}
+  .pricing-band-points{justify-content:flex-start}
+}
+@media(min-width:901px){
+  .pricing-grid--1{grid-template-columns:minmax(0,360px);justify-content:center}
+  .pricing-grid--2{grid-template-columns:repeat(2,minmax(260px,320px));justify-content:center}
+  .pricing-grid--3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pricing-grid--4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .pricing-grid--5{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .pricing-grid--5 .price-card{grid-column:span 2}
+  .pricing-grid--5 .price-card:nth-last-child(2){grid-column:2 / span 2}
+  .pricing-grid--5 .price-card:last-child{grid-column:4 / span 2}
+  .pricing-grid--6{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pricing-grid--7{grid-template-columns:repeat(8,minmax(0,1fr))}
+  .pricing-grid--7 .price-card{grid-column:span 2}
+  .pricing-grid--7 .price-card:nth-last-child(3){grid-column:2 / span 2}
+  .pricing-grid--7 .price-card:nth-last-child(2){grid-column:4 / span 2}
+  .pricing-grid--7 .price-card:last-child{grid-column:6 / span 2}
+  .pricing-grid--8{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 @media(max-width:700px){.pricing-grid{grid-template-columns:1fr}}
 @media(min-width:900px){
   .city-hero-grid{grid-template-columns:minmax(0,1.03fr) minmax(420px,0.97fr)}
@@ -561,13 +632,13 @@ function generatePage(city, service) {
   .city-hero-photo img{min-height:320px}
   .city-hero-actions{flex-direction:column;align-items:stretch}
   .city-hero-secondary,.city-hero .btn-cyan{justify-content:center}
-  .pricing-grid{display:flex;flex-direction:column;gap:0}
-  .price-card{border:none;border-radius:0;box-shadow:none;border-bottom:1px solid var(--border);padding:.9rem 0;display:grid;grid-template-areas:"name price" "btn btn";grid-template-columns:1fr auto;align-items:center;gap:0 .75rem}
-  .price-card:first-child{border-top:1px solid var(--border)}
-  .price-card:hover{border-color:var(--border)!important;box-shadow:none!important}
-  .price-card-name{grid-area:name;font-size:.92rem;margin:0}
-  .price-card-price{grid-area:price;font-size:1rem;white-space:nowrap;margin:0}
-  .price-card .btn{grid-area:btn;margin-top:.65rem!important;font-size:.9rem!important;min-height:44px;padding:.7rem 1rem!important}
+  .pricing-shell{padding:1rem}
+  .pricing-grid{display:flex;flex-direction:column;gap:0.8rem}
+  .price-card{min-height:auto;padding:1rem}
+  .price-card-bottom{flex-direction:column;align-items:flex-start}
+  .price-card-link{width:100%;min-height:44px}
+  .pricing-band{padding:1.1rem 1rem}
+  .pricing-band-title{font-size:1.4rem}
   .footer{padding-bottom:calc(2rem + env(safe-area-inset-bottom,0px))}
   .btn{min-height:44px}
   #m-svc-bar{display:flex;position:fixed;bottom:0;left:0;right:0;height:64px;padding:0 1.5rem;padding-bottom:env(safe-area-inset-bottom,0px);z-index:290;background:var(--cyan);align-items:center;justify-content:center}
@@ -610,7 +681,7 @@ ${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
     </div>
     <div class="city-hero-media">
       <div class="city-hero-photo">
-        <img src="/images/${heroPhoto}" alt="${esc(heroAlt)}" loading="eager"/>
+        <img src="/images/${heroPhoto}" alt="${esc(heroAlt)}" loading="eager" fetchpriority="high"/>
         <div class="city-hero-note">Real service visit</div>
       </div>
     </div>
@@ -654,18 +725,24 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink);margin-bottom:0.6rem">${esc(serviceDisplayName)} jobs we handle in ${esc(city.name)}</h2>
       <p style="font-size:0.95rem;color:var(--muted);max-width:620px;margin:0 auto">A few common requests to help you ballpark the visit. Add the exact items or options in booking so we can confirm the right setup.</p>
     </div>
-    <div class="pricing-grid">
-      ${priceCards}
-    </div>
-    <div style="background:var(--off-white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:3rem 2rem;text-align:center">
-      <h2 style="font-family:var(--font-display);font-size:1.8rem;color:var(--ink);margin-bottom:0.65rem">Ready to schedule in ${esc(city.name)}?</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.65;max-width:560px;margin-left:auto;margin-right:auto">Tell us what needs to get done and we will help you get it on the calendar with a fast local follow-up.</p>
-      <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check Availability &mdash; ${esc(city.name)}</a>
-      <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:1.75rem;font-size:0.82rem;color:var(--muted)">
-        <span>&#10003; Reviewed local pros</span>
-        <span>&#10003; Fast confirmation</span>
-        <span>&#10003; Careful setup</span>
-        <span>&#10003; Clean finish</span>
+    <div class="pricing-shell">
+      <div class="pricing-grid ${pricingGridClass}" data-pricing-count="${pricingCount}">
+        ${priceCards}
+      </div>
+      <div class="pricing-band">
+        <div class="pricing-band-copy">
+          <div class="pricing-band-kicker">Need something different?</div>
+          <h3 class="pricing-band-title">Tell us the exact setup.</h3>
+          <p class="pricing-band-text">If your item list, wall type, or room setup is different, book the closest option and we will follow up quickly to confirm the right visit.</p>
+        </div>
+        <div class="pricing-band-actions">
+          <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check Availability &mdash; ${esc(city.name)}</a>
+          <div class="pricing-band-points">
+            <span class="pricing-band-point">Reviewed local pros</span>
+            <span class="pricing-band-point">Fast confirmation</span>
+            <span class="pricing-band-point">Careful setup</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -776,7 +853,10 @@ ${buildPublicCookieConsentBlock()}
 
 // ── WRITE FILES ────────────────────────────────────────────────────────────
 let generated = 0;
+let skippedFlagships = 0;
 const sitemapEntries = [];
+const TOTAL_LOCATION_PAGE_COUNT = CITIES.length * SERVICES.length;
+const CITY_PAGE_COUNT = TOTAL_LOCATION_PAGE_COUNT - FLAGSHIP_AUSTIN_PAGES.size;
 
 for (const service of SERVICES) {
   assertVisibleStartPrice(service, 'pricingHighlights');
@@ -786,15 +866,20 @@ for (const service of SERVICES) {
   for (const city of CITIES) {
     const pageSlug = `${service.slug}-${city.slug}-tx`;
     const filename = `${pageSlug}.html`;
+    sitemapEntries.push(`  <url><loc>https://www.assembleatease.com/${pageSlug}</loc><lastmod>${TODAY}</lastmod><priority>0.8</priority></url>`);
+    if (FLAGSHIP_AUSTIN_PAGES.has(filename)) {
+      skippedFlagships++;
+      process.stdout.write(`\r  Kept flagship ${skippedFlagships}/${FLAGSHIP_AUSTIN_PAGES.size}: ${filename}                    `);
+      continue;
+    }
     const html = generatePage(city, service);
     writeFileSync(join(ROOT, filename), html, 'utf8');
-    sitemapEntries.push(`  <url><loc>https://www.assembleatease.com/${pageSlug}</loc><lastmod>${TODAY}</lastmod><priority>0.8</priority></url>`);
     generated++;
-    process.stdout.write(`\r  Generated ${generated}/72: ${filename}                    `);
+    process.stdout.write(`\r  Generated ${generated}/${CITY_PAGE_COUNT}: ${filename}                    `);
   }
 }
 
-console.log(`\n  All ${generated} pages written.`);
+console.log(`\n  Wrote ${generated} city pages. Kept ${skippedFlagships} Austin flagship pages for the flagship builder.`);
 
 // ── UPDATE SITEMAP ─────────────────────────────────────────────────────────
 const sitemapPath = join(ROOT, 'sitemap.xml');
