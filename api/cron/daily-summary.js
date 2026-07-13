@@ -150,7 +150,7 @@ function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCo
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px">
         <tr>
           <td style="padding:4px 0;color:#71717a;width:50%">Pending Bookings (total)</td>
-          <td style="padding:4px 0;font-weight:600">${pendingCount} ${pendingCount > 5 ? '<span style="color:#dc2626">⚠ Action needed</span>' : ''}</td>
+          <td style="padding:4px 0;font-weight:600">${pendingCount} ${pendingCount > 5 ? '<span style="color:#dc2626">Action needed</span>' : ''}</td>
         </tr>
         <tr>
           <td style="padding:4px 0;color:#71717a">Active Easers</td>

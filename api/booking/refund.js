@@ -28,22 +28,77 @@ export default async function handler(req, res) {
   if (!booking.stripe_payment_intent_id) {
     return res.status(400).json({ error: 'No Stripe payment found for this booking' });
   }
-  if (booking.payment_status === 'refunded') {
-    return res.status(400).json({ error: 'Booking has already been refunded' });
-  }
   if (booking.payment_status === 'authorized') {
     return res.status(400).json({ error: 'This payment has not been captured yet — the card hold has not been charged. Cancel the booking instead to release the hold on the customer\'s card.' });
   }
-
-  const refundAmountCents = amount ? parseInt(amount, 10) : (booking.amount_charged || null);
-  if (!refundAmountCents || refundAmountCents <= 0) {
-    return res.status(400).json({ error: 'Invalid refund amount' });
-  }
+  if (!process.env.STRIPE_SECRET_KEY) return res.status(503).json({ error: 'Stripe is unavailable. No refund was attempted.' });
 
   let stripeRefund;
-  const idempotencyKey = `booking-refund-${booking.id}-${refundAmountCents}`;
+  let refundAmountCents;
+  let capturedAmountCents;
+  let priorRefundedCents;
+  let cumulativeRefundCents;
+  let idempotencyKey;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id, { expand: ['latest_charge'] });
+    if (!['succeeded', 'requires_capture'].includes(pi.status) || pi.metadata?.bookingId !== booking.id) {
+      return res.status(409).json({ error: 'Stripe payment state does not match this booking. No refund was attempted.' });
+    }
+    const charge = typeof pi.latest_charge === 'string'
+      ? await stripe.charges.retrieve(pi.latest_charge)
+      : pi.latest_charge;
+    if (!charge) return res.status(409).json({ error: 'Stripe has no captured charge to refund.' });
+
+    capturedAmountCents = Number(charge.amount || pi.amount_received || booking.amount_charged || 0);
+    priorRefundedCents = Number(charge.amount_refunded || 0);
+    const dbRefundedCents = Number(booking.refund_amount || 0);
+
+    // Recover safely from a prior Stripe-success/DB-failure without issuing a
+    // second refund. Stripe cumulative refunded amount is financial truth.
+    if (priorRefundedCents > dbRefundedCents) {
+      const recoveredStatus = priorRefundedCents >= capturedAmountCents ? 'refunded' : 'partially_refunded';
+      const { error: reconcileErr } = await sb.from('bookings').update({
+        payment_status: recoveredStatus,
+        refund_amount: priorRefundedCents,
+        refunded_at: new Date().toISOString(),
+      }).eq('id', booking.id);
+      if (reconcileErr) return res.status(500).json({ error: 'Stripe refund exists, but booking reconciliation still failed. Owner action is required.' });
+      await reverseAssembleCashForBooking(sb, booking.id, 'reverse:refund_reconciliation');
+      if (booking.payout_status === 'paid') {
+        const newlyReconciledCents = priorRefundedCents - dbRefundedCents;
+        await writeFinancialAudit(sb, {
+          eventType: 'clawback_required',
+          eventSource: 'booking_refund_reconciliation',
+          bookingId: booking.id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          status: 'open',
+          metadata: {
+            ref: booking.ref,
+            refundAmountCents: newlyReconciledCents,
+            cumulativeRefundAmountCents: priorRefundedCents,
+            payoutAmountCents: booking.payout_amount || 0,
+            clawbackOwedCents: Math.min(newlyReconciledCents, booking.payout_amount || booking.assembler_due || 0),
+          },
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        reconciled: true,
+        cumulativeRefundAmount: priorRefundedCents,
+        paymentStatus: recoveredStatus,
+      });
+    }
+
+    const remainingRefundable = Math.max(0, capturedAmountCents - priorRefundedCents);
+    if (remainingRefundable <= 0) return res.status(409).json({ error: 'This charge has already been fully refunded.' });
+    refundAmountCents = amount != null ? Number.parseInt(amount, 10) : remainingRefundable;
+    if (!Number.isInteger(refundAmountCents) || refundAmountCents <= 0 || refundAmountCents > remainingRefundable) {
+      return res.status(400).json({ error: `Refund must be between $0.01 and $${(remainingRefundable / 100).toFixed(2)}.` });
+    }
+    cumulativeRefundCents = priorRefundedCents + refundAmountCents;
+    idempotencyKey = `booking-refund-${booking.id}-total-${cumulativeRefundCents}`;
+
     await writeFinancialAudit(sb, {
       eventType: 'refund_attempt',
       eventSource: 'booking_refund_owner',
@@ -86,14 +141,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: stripeErr?.raw?.message || stripeErr.message || 'Refund failed' });
   }
 
-  // Update booking record
+  const paymentStatus = cumulativeRefundCents >= capturedAmountCents ? 'refunded' : 'partially_refunded';
+  // Update cumulative booking refund truth. Each Stripe refund remains durable
+  // in financial_event_audit; refund_id is the most recent Stripe refund.
   const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
-    payment_status: 'refunded',
+    payment_status: paymentStatus,
     refund_id: stripeRefund.id,
-    refund_amount: stripeRefund.amount,
+    refund_amount: cumulativeRefundCents,
     refunded_at: new Date().toISOString(),
     refund_reason: reason?.trim() || null,
-  }).eq('id', booking.id).neq('payment_status', 'refunded').select('id');
+  }).eq('id', booking.id).select('id');
 
   // Reverse any still-available AssembleCash earned from this booking. Idempotent
   // (only touches 'available' earn rows); credit already spent is never clawed back.
@@ -101,20 +158,7 @@ export default async function handler(req, res) {
     reverseAssembleCashForBooking(sb, booking.id, 'reverse:refund').catch(() => {});
   }
 
-  if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
-    await writeFinancialAudit(sb, {
-      eventType: 'refund_sync',
-      eventSource: 'booking_refund_owner',
-      bookingId: booking.id,
-      paymentIntentId: booking.stripe_payment_intent_id,
-      refundId: stripeRefund.id,
-      status: 'duplicate',
-      metadata: { ref: booking.ref, amount: stripeRefund.amount },
-    });
-    return res.status(409).json({ error: 'Booking has already been refunded' });
-  }
-
-  if (updateErr) {
+  if (updateErr || !updatedRows?.length) {
     console.error('Refund DB update error:', updateErr);
     await writeFinancialAudit(sb, {
       eventType: 'refund_sync',
@@ -124,7 +168,12 @@ export default async function handler(req, res) {
       refundId: stripeRefund.id,
       status: 'failed',
       metadata: { ref: booking.ref, amount: stripeRefund.amount },
-      error: updateErr.message || 'Failed to persist refund state to booking',
+      error: updateErr?.message || 'Failed to persist refund state to booking',
+    });
+    return res.status(500).json({
+      error: 'Stripe processed the refund, but booking reconciliation failed. Retry this action to reconcile; do not issue another refund in Stripe.',
+      code: 'REFUND_RECONCILIATION_REQUIRED',
+      refundId: stripeRefund.id,
     });
   }
   if (!updateErr) {
@@ -188,7 +237,7 @@ export default async function handler(req, res) {
   try {
     const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
     const totalDisplay = booking.amount_charged ? `$${(booking.amount_charged / 100).toFixed(2)}` : null;
-    const isPartial = booking.amount_charged && stripeRefund.amount < booking.amount_charged;
+    const isPartial = paymentStatus === 'partially_refunded';
 
     const html = buildStatusEmail({
       customerName: booking.customer_name,
@@ -229,6 +278,8 @@ export default async function handler(req, res) {
     success: true,
     refundId: stripeRefund.id,
     amount: stripeRefund.amount,
+    cumulativeRefundAmount: cumulativeRefundCents,
+    paymentStatus,
     status: stripeRefund.status,
     payoutReviewRequired,
   });

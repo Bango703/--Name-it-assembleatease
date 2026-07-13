@@ -28,7 +28,13 @@ const limiters = {
   apply: buildLimiter('rl:apply', 3, '300 s'),
   setup_intent: buildLimiter('rl:setup_intent', 3, '600 s'),
   setup_intent_email: buildLimiter('rl:setup_intent_email', 2, '600 s'),
+  owner_auth: buildLimiter('rl:owner_auth', 5, '900 s'),
+  track_link: buildLimiter('rl:track_link', 3, '900 s'),
 };
+
+export function hasDurableRateLimit() {
+  return hasRedisConfig;
+}
 
 export async function rateLimitKey(key, type = 'default') {
   const limiter = limiters[type] || limiters.default;

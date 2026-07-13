@@ -2496,7 +2496,7 @@
 
       <div class="step-panel" id="step-1">
 
-        <!-- â”€â”€ SCREEN A: Service Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- SCREEN A: Service Selection -->
         <div id="svc-screen">
 
         <div class="svc-screen-head">
@@ -2586,7 +2586,7 @@
 
 
 
-        <!-- â”€â”€ SCREEN B: Item Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <!-- SCREEN B: Item Selection -->
 
         <div id="item-screen" style="display:none">
 
@@ -3413,7 +3413,7 @@ var BOOK = {
 
 
 
-var TIME_SLOTS = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM','5:00 PM \u2013 7:00 PM'];
+var TIME_SLOTS = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM'];
 
 var CHECK_SVG = '<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
 
@@ -5874,7 +5874,7 @@ async function goToStep5Payment() {
 
 
 
-  var TIME_SLOTS = ['7:00 AM','8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM'];
+  var TIME_SLOTS = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM'];
 
 
 
@@ -6065,7 +6065,6 @@ async function goToStep5Payment() {
       var siData = await siResp.json();
       if (!siResp.ok) throw new Error(siData.error || 'Could not initialize payment form');
       BOOK._setupIntentSecret = siData.clientSecret;
-      BOOK._setupCustomerId = siData.customerId;
     } catch(siErr) {
       var errElSetup = document.getElementById('s5-err');
       if (errElSetup) { errElSetup.textContent = siErr.message; errElSetup.classList.add('show'); }
@@ -6126,6 +6125,17 @@ function saveDtEdit() {
   if (!dateInp || !dateInp.value) return;
 
   if (!_s5SelTime) return;
+
+  var selectedDay = new Date(dateInp.value + 'T12:00:00').getDay();
+  var slotIndex = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM'].indexOf(_s5SelTime);
+  if (selectedDay === 0 || slotIndex < 0 || (selectedDay === 6 && slotIndex >= 3)) {
+    var scheduleErr = document.getElementById('s5-err');
+    if (scheduleErr) {
+      scheduleErr.textContent = 'Choose a time within service hours: Monday–Friday 7 AM–5 PM, Saturday 7 AM–1 PM, closed Sunday.';
+      scheduleErr.classList.add('show');
+    }
+    return;
+  }
 
   BOOK.date = dateInp.value;
 
@@ -6529,7 +6539,7 @@ function saveContactEdit() {
 
       var dateStr = curYear+'-'+pad(curMonth+1)+'-'+pad(d);
 
-      var disabled = dateObj < today || dateObj > maxDate;
+      var disabled = dateObj < today || dateObj > maxDate || dateObj.getDay() === 0;
 
       var cls = 'dt-day' + (dateObj.getTime() === today.getTime() ? ' today' : '') + (BOOK.date === dateStr ? ' selected' : '');
 
@@ -6573,9 +6583,11 @@ function saveContactEdit() {
 
     var nowHour = new Date().getHours() + 1; // require 1hr notice
 
-    timesEl.innerHTML = TIME_SLOTS.map(function(slot) {
+    var selectedWeekday = new Date(BOOK.date + 'T12:00:00').getDay();
 
-      var disabled = false;
+    timesEl.innerHTML = TIME_SLOTS.map(function(slot, slotIndex) {
+
+      var disabled = selectedWeekday === 6 && slotIndex >= 3;
 
       if (isToday) {
 
@@ -6803,7 +6815,7 @@ async function submitBooking() {
 
 
 
-  var savedPaymentMethodId = null;
+  var savedSetupIntentId = null;
 
   if (BOOK._isQuoteFlow && BOOK._setupIntentSecret) {
 
@@ -6828,7 +6840,7 @@ async function submitBooking() {
       submitBtn.innerHTML = 'Request Custom Quote <span>&#8594;</span>'; return;
     }
 
-    savedPaymentMethodId = setupResult.setupIntent.payment_method;
+    savedSetupIntentId = setupResult.setupIntent.id;
 
     submitBtn.innerHTML = 'Submitting request&hellip;';
 
@@ -6874,9 +6886,7 @@ async function submitBooking() {
 
         isQuoteRequest: BOOK._isQuoteFlow || false,
 
-        paymentMethodId: savedPaymentMethodId || null,
-
-        stripeCustomerId: BOOK._isQuoteFlow ? (BOOK._setupCustomerId || null) : null
+        setupIntentId: BOOK._isQuoteFlow ? savedSetupIntentId : null
 
       })
 
@@ -6941,6 +6951,19 @@ async function submitBooking() {
 
     submitBtn.innerHTML = 'Processing payment&hellip;';
 
+    BOOK._guestMutationToken = data.guestMutationToken || '';
+    sessionStorage.setItem('aaePaymentRecovery', JSON.stringify({
+      bookingId: data.bookingId,
+      ref: data.ref,
+      guestMutationToken: data.guestMutationToken || '',
+      email: BOOK.email,
+      date: BOOK.date,
+      time: BOOK.time,
+      address: BOOK.address,
+      selectedServices: BOOK.selectedServices,
+      isQuote: false
+    }));
+
     var result = await BOOK._stripe.confirmCardPayment(data.clientSecret, {
 
       payment_method: {
@@ -6961,7 +6984,7 @@ async function submitBooking() {
 
       },
 
-      return_url: window.location.origin + '/book'
+      return_url: window.location.origin + '/book?payment_return=1'
 
     });
 
@@ -6975,14 +6998,20 @@ async function submitBooking() {
 
     }
 
-    try { await fetch('/api/booking-confirmed', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({bookingId:data.bookingId}) }); }
-
-    catch(e) { console.error('booking-confirmed error:', e); }
+    try {
+      var confirmResp = await fetch('/api/booking-confirmed', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({bookingId:data.bookingId,guestMutationToken:data.guestMutationToken}) });
+      var confirmData = await confirmResp.json();
+      if (!confirmResp.ok) throw new Error(confirmData.error || 'Payment was authorized, but the booking is still being confirmed.');
+      sessionStorage.removeItem('aaePaymentRecovery');
+    } catch(e) {
+      console.error('booking-confirmed error:', e);
+      showConfirmationPending(data.ref, e.message);
+      return;
+    }
 
   }
 
-
-
+  BOOK._guestMutationToken = data.guestMutationToken || BOOK._guestMutationToken || '';
   showConfirmation(data.ref, BOOK._isQuoteFlow);
 
 }
@@ -7215,7 +7244,7 @@ function showConfirmation(ref, isQuote) {
 
   var trackUrl = '/track';
 
-  if (ref && BOOK.email) trackUrl += '?ref=' + encodeURIComponent(ref) + '&email=' + encodeURIComponent(BOOK.email);
+  if (ref && BOOK.email) trackUrl += '?ref=' + encodeURIComponent(ref) + '&email=' + encodeURIComponent(BOOK.email) + (BOOK._guestMutationToken ? '&token=' + encodeURIComponent(BOOK._guestMutationToken) : '');
 
   else if (ref) trackUrl += '?ref=' + encodeURIComponent(ref);
 
@@ -7224,6 +7253,50 @@ function showConfirmation(ref, isQuote) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
 }
+
+function showConfirmationPending(ref, message) {
+  for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
+  document.getElementById('step-confirm').classList.remove('hidden');
+  syncBookingChrome(true);
+  var title=document.querySelector('#step-confirm .confirm-title');
+  if(title) title.textContent='Payment authorized — confirmation pending';
+  var refEl=document.getElementById('confirm-ref');
+  if(refEl) refEl.textContent=ref ? 'Ref: '+ref : '';
+  var steps=document.getElementById('confirm-next-steps');
+  if(steps) steps.innerHTML='<div style="font-size:0.9rem;color:var(--ink-soft);line-height:1.6"><strong style="color:var(--ink)">Do not submit another booking.</strong> Your card authorization exists, but we could not finish confirming the booking. Retry this page or contact (737) 290-6129 with your reference.<br><br>'+esc(message||'Confirmation is still pending.')+'</div>';
+  var portal=document.getElementById('confirm-portal-link'); if(portal) portal.style.display='none';
+  var cal=document.getElementById('confirm-calendar-link'); if(cal) cal.style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function recoverRedirectedPayment() {
+  var params=new URLSearchParams(window.location.search);
+  if(!params.get('payment_intent_client_secret')) return;
+  var raw=sessionStorage.getItem('aaePaymentRecovery');
+  if(!raw){ showConfirmationPending('', 'This browser no longer has the booking recovery details. Contact support with the Stripe payment reference shown by your bank.'); return; }
+  var recovery;
+  try{ recovery=JSON.parse(raw); }catch(e){ showConfirmationPending('', 'Stored booking recovery details could not be read.'); return; }
+  try{
+    var cfgResp=await fetch('/api/config/public-key');
+    var cfg=await cfgResp.json();
+    if(!cfgResp.ok||!cfg.publishableKey) throw new Error('Could not load secure payment verification.');
+    var stripe=Stripe(cfg.publishableKey);
+    var retrieved=await stripe.retrievePaymentIntent(params.get('payment_intent_client_secret'));
+    if(retrieved.error) throw new Error(retrieved.error.message);
+    if(!retrieved.paymentIntent||retrieved.paymentIntent.status!=='requires_capture') throw new Error('The payment authorization is not ready for booking confirmation.');
+    var confirmResp=await fetch('/api/booking-confirmed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bookingId:recovery.bookingId,guestMutationToken:recovery.guestMutationToken})});
+    var confirmData=await confirmResp.json();
+    if(!confirmResp.ok) throw new Error(confirmData.error||'Booking confirmation is still pending.');
+    BOOK.email=recovery.email||''; BOOK.date=recovery.date||''; BOOK.time=recovery.time||''; BOOK.address=recovery.address||'';
+    BOOK.selectedServices=Array.isArray(recovery.selectedServices)?recovery.selectedServices:[];
+    BOOK._guestMutationToken=recovery.guestMutationToken||'';
+    sessionStorage.removeItem('aaePaymentRecovery');
+    history.replaceState({},document.title,'/book');
+    showConfirmation(recovery.ref,false);
+  }catch(e){ showConfirmationPending(recovery.ref,e.message); }
+}
+
+window.setTimeout(recoverRedirectedPayment, 0);
 
 </script>
 

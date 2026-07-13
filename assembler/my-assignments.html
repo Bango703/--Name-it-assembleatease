@@ -195,6 +195,20 @@
       </div>
       <div id="evidence-req-status" style="font-size:0.75rem;color:#92400e;margin-top:0.45rem;display:none"></div>
     </div>
+    <div id="damage-report-section" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:0.875rem 1rem;margin-top:0.5rem;margin-bottom:0.75rem">
+      <button type="button" id="damage-report-toggle" style="width:100%;border:0;background:none;padding:0;text-align:left;color:#991b1b;font-size:0.82rem;font-weight:700;cursor:pointer">Report damage or an onsite incident</button>
+      <div id="damage-report-form" style="display:none;margin-top:0.75rem">
+        <label for="damage-report-notes" style="display:block;font-size:0.76rem;font-weight:700;color:#7f1d1d;margin-bottom:0.35rem">Describe exactly what happened</label>
+        <textarea id="damage-report-notes" maxlength="2000" rows="4" placeholder="Include what was affected, when it happened, and what you did immediately afterward." style="width:100%;box-sizing:border-box;border:1px solid #fca5a5;border-radius:8px;padding:0.65rem;font:inherit;font-size:0.8rem;resize:vertical"></textarea>
+        <input type="file" id="damage-report-photo" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
+        <div id="damage-report-file" style="font-size:0.74rem;color:#7f1d1d;margin:0.45rem 0"></div>
+        <div style="display:flex;gap:0.5rem">
+          <button type="button" id="damage-report-pick" class="btn" style="flex:1;background:#fff;border-color:#fca5a5;color:#991b1b;min-height:42px">Choose Photo</button>
+          <button type="button" id="damage-report-submit" class="btn" style="flex:1;background:#b91c1c;border-color:#b91c1c;color:#fff;min-height:42px">Send Report</button>
+        </div>
+        <div id="damage-report-status" style="display:none;font-size:0.75rem;color:#7f1d1d;margin-top:0.5rem;line-height:1.5"></div>
+      </div>
+    </div>
     <!-- Payout info section (shown for completed jobs) -->
     <div id="payout-info-section" style="display:none;background:rgba(5,150,105,0.07);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:0.75rem 1rem;margin-top:0.5rem;margin-bottom:1rem">
       <div style="font-size:0.8rem;font-weight:700;color:#065f46;margin-bottom:0.25rem">Your Payout</div>
@@ -237,6 +251,9 @@
   var _evidenceReqFile = null;
   var _evidenceReqBookingId = null;
   var _evidenceReqInFlight = false;
+  var _damageBookingId = null;
+  var _damagePhotoFile = null;
+  var _damageInFlight = false;
 
   // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
   // sessionToken is set to the initial session access_token once auth completes.
@@ -414,7 +431,7 @@
           (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
           (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
         '</div>' +
-        (b.address && !isCompleted ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
+        (b.assembler_accepted_at && b.address && !isCompleted ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
         (isPendingOffer && b._offer_expires_at ? '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
         (isLive ? renderPipeline5(b) : '') +
         (isLive ? '<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="card-help-btn" data-bid="' + b.id + '" style="font-size:0.75rem;color:var(--pro-teal);background:none;border:1px solid rgba(0,191,255,0.35);border-radius:6px;padding:3px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent">Help</button></div>' : '') +
@@ -820,6 +837,81 @@
       _evidenceReqInFlight = false;
     });
 
+    document.getElementById('damage-report-toggle').addEventListener('click', function() {
+      var form = document.getElementById('damage-report-form');
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    });
+    document.getElementById('damage-report-pick').addEventListener('click', function() {
+      document.getElementById('damage-report-photo').click();
+    });
+    document.getElementById('damage-report-photo').addEventListener('change', function() {
+      var file = this.files && this.files[0];
+      var fileEl = document.getElementById('damage-report-file');
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        _damagePhotoFile = null;
+        fileEl.textContent = 'Photo must be under 5 MB.';
+        this.value = '';
+        return;
+      }
+      _damagePhotoFile = file;
+      fileEl.textContent = file.name || 'Photo selected';
+    });
+    document.getElementById('damage-report-submit').addEventListener('click', async function() {
+      if (_damageInFlight || !_damageBookingId) return;
+      var notes = document.getElementById('damage-report-notes').value.trim();
+      var statusEl = document.getElementById('damage-report-status');
+      var submitBtn = document.getElementById('damage-report-submit');
+      if (notes.length < 10) {
+        statusEl.textContent = 'Describe what happened before sending the report.';
+        statusEl.style.display = 'block';
+        return;
+      }
+      if (!_damagePhotoFile) {
+        statusEl.textContent = 'Choose a clear photo of the affected area.';
+        statusEl.style.display = 'block';
+        return;
+      }
+      _damageInFlight = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      statusEl.textContent = 'Saving the report and notifying the owner...';
+      statusEl.style.display = 'block';
+      try {
+        var fileBase64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(event) { resolve(event.target.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(_damagePhotoFile);
+        });
+        var response = await fetch('/api/booking/upload-evidence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+          body: JSON.stringify({
+            bookingId: _damageBookingId,
+            fileBase64: fileBase64,
+            mimeType: _damagePhotoFile.type,
+            evidenceType: 'damage_claim',
+            notes: notes,
+          }),
+        });
+        var result = await response.json();
+        if (!response.ok || result.error) throw new Error(result.error || 'Damage report could not be saved.');
+        statusEl.textContent = result.warning || 'Damage report saved. Stop work if continuing could make the issue worse, and contact support.';
+        statusEl.style.color = result.warning ? '#92400e' : '#166534';
+        document.getElementById('damage-report-notes').value = '';
+        document.getElementById('damage-report-photo').value = '';
+        document.getElementById('damage-report-file').textContent = '';
+        _damagePhotoFile = null;
+      } catch (error) {
+        statusEl.textContent = error.message || 'Connection error. Please try again.';
+        statusEl.style.color = '#991b1b';
+      }
+      _damageInFlight = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Report';
+    });
+
     document.getElementById('complete-sheet-yes').addEventListener('click', async function() {
       if (_completionInFlight) return;
       var bookingIdToComplete = _pendingCompleteBookingId;
@@ -977,7 +1069,7 @@
     const b = allAssignments.find(x => x.id === bookingId);
     if (!b) return;
     selectedBookingId = bookingId;
-    const accepted = !!(b.assembler_accepted_at || b.assigned_at);
+    const accepted = !!b.assembler_accepted_at;
     const isPendingOffer = b._is_pending_offer;
     const isCompleted = b.status === 'completed';
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
@@ -1006,7 +1098,7 @@
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
         b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
-        b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
+        accepted && b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
         accepted && b.customer_name ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="color:var(--pro-text)">' + esc(b.customer_name) + '</span></div>' : '',
         accepted && !isCompleted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(fmtPhone(b.customer_phone)) + '</a></div>' : '',
         accepted && !isCompleted && b.customer_email ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m4 7 8 6 8-6"/></svg><a href="mailto:' + esc(b.customer_email) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none;overflow-wrap:anywhere">' + esc(b.customer_email) + '</a></div>' : '',
@@ -1015,7 +1107,7 @@
 
       scopeHtml,
 
-      b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
+      accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
 
       // Offer expiry countdown
       isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
@@ -1059,8 +1151,19 @@
       completeBtn.innerHTML = '&#10003; Mark Job as Complete';
     }
     document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Loading messages…</div>';
-    const canComplete2 = ['arrived', 'in_progress'].includes(b.status) && (b.assembler_accepted_at || b.assigned_at);
+    const canComplete2 = b.status === 'in_progress' && !!b.assembler_accepted_at;
     document.getElementById('complete-section').style.display = canComplete2 ? 'block' : 'none';
+
+    var damageSection = document.getElementById('damage-report-section');
+    var mayReportDamage = accepted && ['arrived', 'in_progress', 'completed'].includes(b.status);
+    damageSection.style.display = mayReportDamage ? 'block' : 'none';
+    _damageBookingId = mayReportDamage ? b.id : null;
+    _damagePhotoFile = null;
+    document.getElementById('damage-report-form').style.display = 'none';
+    document.getElementById('damage-report-notes').value = '';
+    document.getElementById('damage-report-photo').value = '';
+    document.getElementById('damage-report-file').textContent = '';
+    document.getElementById('damage-report-status').style.display = 'none';
 
     // Evidence request section — shown when payout is held pending upload
     var evReqSection = document.getElementById('evidence-request-section');
@@ -1086,10 +1189,12 @@
       var payoutNote;
       if (b.payout_status === 'paid') {
         payoutNote = b.paid_out_at ? 'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
+      } else if (b.payout_status === 'transferred') {
+        payoutNote = 'Transferred to your Stripe balance. Bank payout is still pending verification and is not yet marked paid.';
       } else if (evidenceHeld) {
         payoutNote = 'Payout on hold — upload photos above to release.';
       } else if (dueCents > 0) {
-        payoutNote = 'Payout pending — typically 2–3 business days.';
+        payoutNote = 'Manual payout pending after customer payment capture — typically within 7 business days.';
       } else {
         payoutNote = 'Payout amount pending — will be confirmed shortly.';
       }

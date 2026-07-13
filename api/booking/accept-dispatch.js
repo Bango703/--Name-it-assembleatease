@@ -6,7 +6,7 @@ import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
-import { ACTIVE_EASER_TIERS, deriveAssemblerStatus, normalizeAssemblerTier } from '../_assembler-state.js';
+import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -233,9 +233,9 @@ export default async function handler(req, res) {
     const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
     if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
     {
-      const eligibility = getEaserEligibility(easer);
-      if (!eligibility.ok) {
-        return res.status(403).json({ error: eligibility.error });
+      const readiness = await getEaserReadiness(easer);
+      if (!readiness.isReady) {
+        return res.status(403).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
       }
     }
 
@@ -280,7 +280,7 @@ export default async function handler(req, res) {
     // Increment active_jobs_today — the CAS guard ensures this runs exactly once
     adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
 
-    logActivity(sb, {
+    await logActivity(sb, {
       bookingId,
       eventType: 'easer_accepted',
       actorType: 'easer',
@@ -290,8 +290,8 @@ export default async function handler(req, res) {
       metadata: { tier: easer.tier, score: offer.dispatch_score, attempt: offer.attempt_number },
     });
 
-    sendNotifications(sb, booking, easer, assemblerId);
-    return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
+    const notification = await sendNotifications(sb, booking, easer, assemblerId);
+    return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref, notification });
   }
 
   // ── Path 2: Legacy inline tokens (assignment_token or dispatch_token) ─────
@@ -320,9 +320,9 @@ export default async function handler(req, res) {
   const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
   if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
   {
-    const eligibility = getEaserEligibility(easer);
-    if (!eligibility.ok) {
-      return res.status(403).json({ error: eligibility.error });
+    const readiness = await getEaserReadiness(easer);
+    if (!readiness.isReady) {
+      return res.status(403).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
     }
   }
 
@@ -341,16 +341,16 @@ export default async function handler(req, res) {
     });
   }
 
-  const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId);
-  const { error: assignErr } = isDispatch
-    ? await updateQuery.is('assembler_id', null)
-    : await updateQuery.eq('assembler_id', assemblerId);   // CAS guard: fails if booking was reassigned
+  const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId).eq('status', BOOKING_STATUS.CONFIRMED);
+  const { data: acceptedRows, error: assignErr } = isDispatch
+    ? await updateQuery.is('assembler_id', null).select('id')
+    : await updateQuery.eq('assembler_id', assemblerId).select('id');   // CAS guard: fails if booking was reassigned
 
-  if (assignErr) return res.status(409).json({ error: 'Sorry — this job is no longer available.' });
+  if (assignErr || !acceptedRows?.length) return res.status(409).json({ error: 'Sorry — this job is no longer available.' });
 
   await sb.from('profiles').update({ last_assigned_at: now }).eq('id', assemblerId);
 
-  logActivity(sb, {
+  await logActivity(sb, {
     bookingId,
     eventType: 'easer_accepted',
     actorType: 'easer',
@@ -360,33 +360,35 @@ export default async function handler(req, res) {
     metadata: { tier: easer.tier },
   });
 
-  sendNotifications(sb, booking, easer, assemblerId);
-  return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref });
+  const notification = await sendNotifications(sb, booking, easer, assemblerId);
+  return res.status(200).json({ ok: true, message: 'Job accepted! It will appear in your My Assignments.', ref: booking.ref, notification });
 }
 
-function sendNotifications(sb, booking, easer, assemblerId) {
+async function sendNotifications(sb, booking, easer, assemblerId) {
   const bookingId = booking.id;
+  const results = [];
 
   // Customer: "Your Easer is confirmed"
   if (booking.customer_email) {
-    sendEmail({
+    const result = await sendEmail({
       to:   booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your Easer is confirmed — ${esc(booking.ref)}`,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h2 style="color:#00BFFF">Your Easer is confirmed!</h2>
         <p>Hi ${esc((booking.customer_name||'').split(' ')[0])},</p>
-        <p>A professional Easer has been assigned to your job and will arrive on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time||'the scheduled time')}</strong>.</p>
+        <p><strong>${esc(easer.full_name || 'Your Easer')}</strong> is confirmed for your job and will arrive on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time||'the scheduled time')}</strong>.</p>
         <p>You will receive another notification when your Easer is on their way.</p>
         <p style="color:#6b7280;font-size:0.85rem">Booking ref: ${esc(booking.ref)}</p>
       </div>`,
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: 'job_accepted', recipientType: 'customer' },
-    }).catch(() => {});
+    }).catch(err => ({ ok: false, error: err?.message || String(err) }));
+    results.push({ recipient: 'customer', ...result });
   }
 
   // Owner: "Job Accepted"
-  sendEmail({
+  const ownerResult = await sendEmail({
     to:   ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Job Accepted — ${esc(booking.ref)} · ${esc(easer.full_name)}`,
@@ -399,32 +401,30 @@ function sendNotifications(sb, booking, easer, assemblerId) {
       <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
     </div>`,
     meta: { bookingId, notificationType: 'job_accepted', recipientType: 'owner' },
-  }).catch(() => {});
-}
+  }).catch(err => ({ ok: false, error: err?.message || String(err) }));
+  results.push({ recipient: 'owner', ...ownerResult });
 
-function getEaserEligibility(profile) {
-  if (!profile) {
-    return { ok: false, error: 'Easer profile not found' };
+  const failures = results.filter(result => !result.ok);
+  if (failures.length) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'acceptance_notification_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: `Job acceptance saved, but ${failures.map(f => f.recipient).join(' and ')} notification failed`,
+      metadata: { failures },
+    });
   }
-
-  const tier = normalizeAssemblerTier(profile.tier);
-  const status = deriveAssemblerStatus(profile);
-
-  if (status !== 'active') {
-    return { ok: false, error: 'Your Easer account is not eligible to accept jobs right now.' };
+  const auditFailures = results.filter(result => result.logged === false);
+  if (auditFailures.length) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'notification_audit_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: 'Job acceptance notifications were attempted, but one or more attempt logs could not be saved',
+      metadata: { failures: auditFailures.map(result => ({ recipient: result.recipient, error: result.logError || null })) },
+    });
   }
-
-  if (profile.identity_verified !== true) {
-    return { ok: false, error: 'Identity verification is required before accepting jobs.' };
-  }
-
-  if (!ACTIVE_EASER_TIERS.includes(tier)) {
-    return { ok: false, error: 'Your Easer tier is not eligible for job acceptance.' };
-  }
-
-  // Dispatch intentionally does not block on Stripe Connect readiness. A verified,
-  // approved Easer can accept work first and finish payout setup before the 48-hour
-  // payout release window ends. Keep accept-time eligibility aligned with dispatch.
-
-  return { ok: true };
+  return { delivered: results.filter(result => result.ok).map(result => result.recipient), failures, auditFailures };
 }

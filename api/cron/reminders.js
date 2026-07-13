@@ -1,6 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
-import { sendEmail, esc } from '../_email.js';
+import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logCron } from './_cron-logger.js';
+import { appointmentTimestampMs } from '../booking/_appt-date.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -52,14 +53,19 @@ export default async function handler(req, res) {
   }
 
   let sent = 0;
+  let reconciled = 0;
   const errors = [];
 
   for (const booking of bookings) {
     try {
       // Double-check the booking date is actually within 25 hours
       // (date column is YYYY-MM-DD — combined with time or assumed 9am)
-      const bookingDatetime = new Date(`${booking.date}T${booking.time || '09:00'}:00`);
-      const msUntil = bookingDatetime.getTime() - now.getTime();
+      const bookingDatetimeMs = appointmentTimestampMs(booking.date, booking.time || '9:00 AM');
+      if (bookingDatetimeMs == null) {
+        errors.push({ ref: booking.ref, error: 'Unrecognized appointment time' });
+        continue;
+      }
+      const msUntil = bookingDatetimeMs - now.getTime();
       if (msUntil < 0 || msUntil > 25 * 60 * 60 * 1000) {
         // Outside window — skip
         continue;
@@ -68,7 +74,7 @@ export default async function handler(req, res) {
       const customerFirst = (booking.customer_name || 'there').split(' ')[0];
       const html = buildReminderEmail({ customerFirst, booking });
 
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: booking.customer_email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Reminder: Your appointment is tomorrow — ${booking.ref}`,
@@ -78,19 +84,33 @@ export default async function handler(req, res) {
           bookingId: booking.id,
           notificationType: 'reminder',
           recipientType: 'customer',
+          disableDailyCap: true,
         },
       });
+      if (!emailResult?.ok) {
+        errors.push({ ref: booking.ref, error: emailResult?.error || 'Reminder delivery failed' });
+        continue;
+      }
+      if (emailResult.logged === false) {
+        errors.push({ ref: booking.ref, error: emailResult.logError || 'Reminder delivered but notification log failed' });
+      }
 
-      // Mark reminder sent
-      await sb
+      // Mark only after Resend accepted the message, or a prior confirmed send
+      // caused deduplication after an earlier flag-write failure.
+      const { error: flagErr } = await sb
         .from('bookings')
         .update({ reminder_sent: true })
         .eq('id', booking.id);
+      if (flagErr) {
+        errors.push({ ref: booking.ref, error: 'Reminder delivered but sent flag failed: ' + flagErr.message });
+        continue;
+      }
 
-      sent++;
+      if (emailResult.suppressed) reconciled++;
+      else sent++;
     } catch (e) {
       console.error(`Reminder error for booking ${booking.ref}:`, e);
-      errors.push(booking.ref);
+      errors.push({ ref: booking.ref, error: e?.message || String(e) });
     }
   }
 
@@ -117,14 +137,14 @@ export default async function handler(req, res) {
     ).join('');
 
     try {
-      await sendEmail({
-        to: 'service@assembleatease.com',
+      const warningResult = await sendEmail({
+        to: ownerEmail(),
         from: 'AssembleAtEase System <booking@assembleatease.com>',
-        subject: `⚠️ Action Required: ${expiringAuths.length} card authorization(s) expiring within 48 hours`,
+        subject: `Action Required: ${expiringAuths.length} card authorization(s) expiring within 48 hours`,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,sans-serif">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #fcd34d"><tr><td style="padding:24px">
-    <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#92400e">⚠️ Card Authorizations Expiring Soon</p>
+    <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#92400e">Card Authorizations Expiring Soon</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">The following ${expiringAuths.length} booking(s) have card authorizations that will expire within ~48 hours (Stripe holds last 7 days). You must complete or cancel these jobs before the authorization expires, or the payment cannot be captured.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
       <tr style="background:#fafafa"><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Ref</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Service</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Date</th><th style="padding:8px;text-align:left;font-size:12px;color:#71717a">Customer</th></tr>
@@ -136,13 +156,15 @@ export default async function handler(req, res) {
         meta: {
           notificationType: 'cron_alert',
           recipientType: 'owner',
+          disableDedupe: true,
         },
       });
+      if (!warningResult?.ok) errors.push({ ref: null, error: warningResult?.error || 'Authorization warning delivery failed' });
     } catch (e) { console.error('Auth expiry warning email error:', e); }
   }
 
-  await logCron('reminders', { status: 'ok', records: sent, duration: Date.now() - t });
-  return res.status(200).json({ ok: true, sent, expiringAuthsWarned: expiringAuths?.length || 0, errors: errors.length ? errors : undefined });
+  await logCron('reminders', { status: errors.length ? 'warning' : 'ok', records: sent + reconciled, error: errors.length ? JSON.stringify(errors).slice(0, 1000) : null, duration: Date.now() - t });
+  return res.status(200).json({ ok: true, sent, reconciled, expiringAuthsWarned: expiringAuths?.length || 0, errors: errors.length ? errors : undefined });
 }
 
 function buildReminderEmail({ customerFirst, booking }) {

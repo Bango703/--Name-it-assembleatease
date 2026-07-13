@@ -119,7 +119,13 @@ export default async function handler(req, res) {
             type: 'reauth',
           },
           description: `${booking.service} — ${booking.customer_name} (re-auth)`,
-        });
+        }, { idempotencyKey: `booking-reauth-${booking.id}-${targetStr}` });
+        if (newPi.status !== 'requires_capture'
+            || newPi.capture_method !== 'manual'
+            || newPi.amount !== amount
+            || newPi.metadata?.bookingId !== booking.id) {
+          throw new Error(`New authorization returned unexpected state: ${newPi.status}`);
+        }
       } catch (piErr) {
         // Card declined, 3DS required, or other Stripe error — leave old PI untouched
         console.error(`reauth-payments: new PI creation failed for ${booking.ref}:`, piErr.message);
@@ -142,41 +148,63 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // 3. Cancel the old PI (best-effort — don't abort if this fails)
-      try {
-        if (oldPi.status === 'requires_capture' || oldPi.status === 'requires_confirmation') {
-          await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
-        }
-      } catch (cancelErr) {
-        // Non-fatal — old PI may already be expired/canceled by Stripe
-        console.warn(`reauth-payments: could not cancel old PI for ${booking.ref}:`, cancelErr.message);
-      }
-
-      // 4. Update Supabase with the new PI id
-      const { error: updateErr } = await sb
+      // 3. Persist the new PI before releasing the old hold. The create call is
+      // idempotent, so a DB failure is recovered by rerunning this cron: Stripe
+      // returns the same new authorization and the database link is retried.
+      const { error: updateErr, data: updatedRows } = await sb
         .from('bookings')
-        .update({ stripe_payment_intent_id: newPi.id })
-        .eq('id', booking.id);
+        .update({ stripe_payment_intent_id: newPi.id, payment_authorized_at: new Date().toISOString() })
+        .eq('id', booking.id)
+        .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+        .select('id');
 
-      if (updateErr) {
+      if (updateErr || !updatedRows?.length) {
         console.error(`reauth-payments: DB update failed for ${booking.ref}:`, updateErr);
+        await sendEmail({
+          to: ownerEmail(),
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: `ACTION REQUIRED: Re-auth database link failed — ${booking.ref}`,
+          html: `<p>Stripe authorization <strong>${esc(newPi.id)}</strong> succeeded, but the booking still points to <strong>${esc(booking.stripe_payment_intent_id)}</strong>.</p><p>Rerun the reauthorization cron to reuse the same idempotent PaymentIntent and finish the database link before releasing the old hold.</p>`,
+        });
         errors.push({ ref: booking.ref, reason: 'db_update_failed' });
         continue;
       }
 
-      // 5. Send customer reassurance email (non-blocking)
+      // 4. Release the old hold only after the new authorization is durable.
+      let oldReleaseFailed = false;
       try {
-        const html = buildReauthEmail(booking);
+        if (oldPi.status === 'requires_capture' || oldPi.status === 'requires_confirmation') {
+          await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id, {}, {
+            idempotencyKey: `booking-reauth-release-old-${booking.id}-${targetStr}`,
+          });
+        }
+      } catch (cancelErr) {
+        oldReleaseFailed = true;
+        console.error(`reauth-payments: old authorization still open for ${booking.ref}:`, cancelErr.message);
+        errors.push({ ref: booking.ref, reason: 'old_authorization_release_failed' });
         await sendEmail({
-          to: booking.customer_email,
+          to: ownerEmail(),
           from: 'AssembleAtEase <booking@assembleatease.com>',
-          subject: `Your upcoming appointment is confirmed — ${booking.ref}`,
-          html,
-          replyTo: 'service@assembleatease.com',
+          subject: `ACTION REQUIRED: Old card hold still open — ${booking.ref}`,
+          html: `<p>A new authorization <strong>${esc(newPi.id)}</strong> was saved for ${esc(booking.ref)}, but old authorization <strong>${esc(booking.stripe_payment_intent_id)}</strong> could not be released.</p><p>Review both PaymentIntents in Stripe and release only the old hold.</p>`,
         });
-      } catch (emailErr) {
-        console.error(`reauth-payments: email failed for ${booking.ref}:`, emailErr.message);
-        // Non-fatal — re-auth succeeded even if email failed
+      }
+
+      // 5. Send customer reassurance email (non-blocking)
+      if (!oldReleaseFailed) {
+        try {
+          const html = buildReauthEmail(booking);
+          await sendEmail({
+            to: booking.customer_email,
+            from: 'AssembleAtEase <booking@assembleatease.com>',
+            subject: `Your upcoming appointment is confirmed — ${booking.ref}`,
+            html,
+            replyTo: 'service@assembleatease.com',
+          });
+        } catch (emailErr) {
+          console.error(`reauth-payments: email failed for ${booking.ref}:`, emailErr.message);
+          // Non-fatal — re-auth succeeded even if email failed
+        }
       }
 
       reauthed++;

@@ -17,13 +17,12 @@ const API = {
   },
 
   async updateProfile(userId, updates) {
+    // Migration 031 intentionally removes direct authenticated UPDATE access
+    // to profiles. The RPC binds the row to auth.uid() and accepts only the
+    // small self-service field allowlist used by the profile UI.
     const { data, error } = await supabaseClient
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-    return { data, error };
+      .rpc('update_own_easer_profile', { p_updates: updates });
+    return { data: Array.isArray(data) ? (data[0] || null) : data, error };
   },
 
   async getAssemblers({ search, city, limit = 12, offset = 0 } = {}) {
@@ -212,41 +211,27 @@ const API = {
   // ── REVIEWS ───────────────────────────────
 
   async getReviews(assemblerId) {
-    const { data: bookings, error: bookingError } = await supabaseClient
-      .from('bookings')
-      .select('id, customer_name')
-      .eq('assembler_id', assemblerId)
-      .eq('status', 'completed');
-
-    if (bookingError) return { data: null, error: bookingError };
-
-    const bookingList = Array.isArray(bookings) ? bookings : [];
-    if (!bookingList.length) return { data: [], error: null };
-
-    const bookingIds = bookingList.map(booking => booking.id).filter(Boolean);
-    const customerNameByBookingId = bookingList.reduce((lookup, booking) => {
-      lookup[booking.id] = booking.customer_name || 'Customer';
-      return lookup;
-    }, {});
-
-    const { data: reviews, error } = await supabaseClient
-      .from('reviews')
-      .select('id, booking_id, customer_name, rating, body, comment, customer_would_rehire, created_at, approved')
-      .in('booking_id', bookingIds)
-      .eq('approved', true)
-      .order('created_at', { ascending: false });
-
-    if (error) return { data: null, error };
-
-    const normalized = (reviews || []).map(review => ({
-      ...review,
-      comment: review.comment || review.body || '',
-      reviewer: {
-        full_name: review.customer_name || customerNameByBookingId[review.booking_id] || 'Customer'
-      }
-    }));
-
-    return { data: normalized, error: null };
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) return { data: null, error: new Error('Authentication required') };
+    try {
+      const response = await fetch('/api/assembler/reviews', {
+        headers: { Authorization: 'Bearer ' + session.access_token },
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Could not load reviews');
+      return {
+        data: (payload.reviews || []).map(review => ({
+          rating: review.rating,
+          comment: review.comment,
+          customer_would_rehire: review.customerWouldRehire,
+          created_at: review.createdAt,
+          reviewer: { full_name: review.customerFirstName || 'Customer' },
+        })),
+        error: null,
+      };
+    } catch (error) {
+      return { data: null, error };
+    }
   },
 
   async createReview(reviewData) {
@@ -299,29 +284,6 @@ const API = {
     };
   },
 
-  async getAssemblerStats(assemblerId) {
-    // Only query bookings — marketplace (bids/jobs) tables removed from platform
-    const { data: allBookings } = await supabaseClient
-      .from('bookings')
-      .select('id, status, assembler_due')
-      .eq('assembler_id', assemblerId);
-
-    const bookings = allBookings || [];
-
-    const completedBookings = bookings.filter(b => b.status === 'completed');
-    const totalEarned = completedBookings
-      .filter(b => b.assembler_due)
-      .reduce((sum, b) => sum + (b.assembler_due || 0), 0) / 100;
-
-    return {
-      totalBids:     0,
-      pendingBids:   0,
-      acceptedBids:  0,
-      completedJobs: completedBookings.length,
-      assignedJobs:  bookings.filter(b => b.status === 'confirmed').length,
-      totalEarned,
-    };
-  },
 };
 
 window.API = API;

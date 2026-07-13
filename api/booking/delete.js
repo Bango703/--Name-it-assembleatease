@@ -11,15 +11,21 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
 export default async function handler(req, res) {
   if (req.method !== 'DELETE' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
+  if (process.env.VERCEL_ENV === 'production' || String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase() !== 'true') {
+    return res.status(404).json({ error: 'Not found' });
+  }
 
   const body = req.method === 'DELETE' ? req.body : req.body;
-  const { bookingId, ref } = body || {};
+  const { bookingId, ref, confirm } = body || {};
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
+  if (confirm !== 'DELETE_ZERO_VALUE_SIMULATION') {
+    return res.status(400).json({ error: 'Explicit simulation deletion confirmation is required' });
+  }
 
   const sb = getSupabase();
   const now = new Date().toISOString();
 
-  let query = sb.from('bookings').select('id, status, ref, customer_name, customer_email, service, date, time, cancel_reason, cancellation_fee, payment_status');
+  let query = sb.from('bookings').select('id, status, ref, customer_name, customer_email, service, date, time, cancel_reason, cancellation_fee, payment_status, total_price, amount_charged, refund_amount, payout_amount, assembler_id, stripe_payment_intent_id, stripe_transfer_id');
   if (bookingId) query = query.eq('id', bookingId);
   else query = query.eq('ref', ref);
   const { data: booking, error: fetchErr } = await query.single();
@@ -29,6 +35,19 @@ export default async function handler(req, res) {
   const deletable = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.DECLINED];
   if (!deletable.includes(booking.status)) {
     return res.status(400).json({ error: 'Only cancelled or declined bookings can be deleted' });
+  }
+  const isSimulation = String(booking.customer_name || '').startsWith('SIM-');
+  const hasFinancialOrAssignmentState = !!(
+    Number(booking.total_price || 0)
+    || Number(booking.amount_charged || 0)
+    || Number(booking.refund_amount || 0)
+    || Number(booking.payout_amount || 0)
+    || booking.assembler_id
+    || booking.stripe_payment_intent_id
+    || booking.stripe_transfer_id
+  );
+  if (!isSimulation || hasFinancialOrAssignmentState || !['not_required', 'pending'].includes(String(booking.payment_status || 'pending'))) {
+    return res.status(409).json({ error: 'Only zero-value, unassigned SIM- records can be hard-deleted' });
   }
 
   // Durable pre-delete audit row. notification_log uses ON DELETE SET NULL,

@@ -27,7 +27,7 @@ export async function sendPushToUser(userId, payload, meta = {}) {
     configure();
   } catch (e) {
     console.warn('Push not configured — skipping:', e.message);
-    return;
+    return { ok: false, sent: 0, failed: 0, skipped: true, reason: 'push_not_configured', error: e.message };
   }
 
   const sb = getSupabase();
@@ -36,11 +36,14 @@ export async function sendPushToUser(userId, payload, meta = {}) {
     .select('endpoint, p256dh, auth')
     .eq('user_id', userId);
 
-  if (!subs || !subs.length) return;
+  if (!subs || !subs.length) {
+    return { ok: false, sent: 0, failed: 0, skipped: true, reason: 'no_push_subscriptions' };
+  }
 
   const message = JSON.stringify(payload);
   const dead = [];
   const logRows = [];
+  let logError = null;
 
   await Promise.all(subs.map(async (s) => {
     let status = 'sent';
@@ -86,12 +89,28 @@ export async function sendPushToUser(userId, payload, meta = {}) {
     // normally ({ error } is returned, not thrown) and guard against real throws.
     try {
       const { error: logErr } = await sb.from('notification_log').insert(logRows);
-      if (logErr) console.error('[push] notification_log insert failed:', logErr.message || logErr, logErr.code || '');
+      if (logErr) {
+        logError = logErr.message || String(logErr);
+        console.error('[push] notification_log insert failed:', logErr.message || logErr, logErr.code || '');
+      }
     } catch (e) {
+      logError = e && (e.message || String(e));
       console.error('[push] notification_log insert threw:', e && (e.message || String(e)));
     }
   }
   if (dead.length) {
     await sb.from('push_subscriptions').delete().in('endpoint', dead);
   }
+  const sent = logRows.filter(row => row.status === 'sent').length;
+  const failed = logRows.filter(row => row.status === 'failed').length;
+  return {
+    ok: sent > 0,
+    sent,
+    failed,
+    skipped: false,
+    logged: !logError,
+    logError,
+    reason: sent > 0 ? null : 'push_delivery_failed',
+    error: sent > 0 ? null : (logRows.find(row => row.error_text)?.error_text || 'Push delivery failed'),
+  };
 }

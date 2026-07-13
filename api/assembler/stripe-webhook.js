@@ -62,7 +62,16 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const claim = await claimStripeWebhookEvent(sb, event);
   if (claim.duplicate) {
-    return res.status(200).json({ received: true, duplicate: true });
+    const { data: prior } = await sb.from('financial_event_audit')
+      .select('status')
+      .eq('stripe_event_id', event.id)
+      .maybeSingle();
+    if (prior?.status !== 'failed') {
+      return res.status(200).json({ received: true, duplicate: true });
+    }
+    await sb.from('financial_event_audit').update({
+      status: 'processing', error: null, processed_at: new Date().toISOString(),
+    }).eq('stripe_event_id', event.id).eq('status', 'failed');
   }
 
   let webhookOutcome = 'processed';
@@ -172,10 +181,20 @@ export default async function handler(req, res) {
         const pi = event.data.object;
         const userId = pi.metadata?.userId;
         if (userId && pi.metadata?.type === 'assembler_application_fee') {
-          await sb.from('profiles').update({
+          const { error: feeSyncErr } = await sb.from('profiles').update({
             payment_confirmed: true,
             application_fee_paid: true,
           }).eq('id', userId);
+          if (feeSyncErr) throw new Error(`Application fee sync failed: ${feeSyncErr.message}`);
+          break;
+        }
+        if (['customer_booking', 'customer_booking_balance', 'customer_quote'].includes(pi.metadata?.type)) {
+          const captureSync = await syncCapturedCustomerPayment({ sb, pi, event });
+          webhookBookingId = captureSync.bookingId;
+          webhookPaymentIntentId = pi.id;
+          webhookOutcome = captureSync.outcome;
+          webhookError = captureSync.error;
+          webhookMetadata = { ...webhookMetadata, ...captureSync.metadata };
         }
         break;
       }
@@ -262,84 +281,6 @@ export default async function handler(req, res) {
               meta: { bookingId, notificationType: 'booking_confirmed', recipientType: 'customer' },
             });
           } catch (e) { console.error('Booking confirm email error:', e); }
-        }
-        break;
-      }
-
-      // ── Customer booking: payment captured (job completed) ──
-      case 'payment_intent.captured': {
-        const pi = event.data.object;
-        if (pi.metadata?.type !== 'customer_booking' && pi.metadata?.type !== 'customer_booking_balance') break;
-
-        const { bookingId } = pi.metadata;
-        if (!bookingId) break;
-        webhookBookingId = bookingId;
-        webhookPaymentIntentId = pi.id;
-
-        const { data: current } = await sb.from('bookings')
-          .select('id, payment_status, status, amount_charged, customer_name, customer_email, ref, service, date')
-          .eq('id', bookingId)
-          .maybeSingle();
-
-        if (!current) {
-          webhookOutcome = 'ignored';
-          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
-          break;
-        }
-
-        if (current.payment_status === 'refunded') {
-          webhookOutcome = 'ignored';
-          webhookMetadata = { ...webhookMetadata, reason: 'stale-captured-after-refund', bookingId };
-          break;
-        }
-
-        if (current.payment_status === 'captured' && current.status === 'completed') {
-          webhookOutcome = 'ignored';
-          webhookMetadata = { ...webhookMetadata, reason: 'already-captured-and-completed', bookingId };
-          break;
-        }
-
-        await sb.from('bookings').update({
-          payment_status: 'captured',
-          amount_charged: pi.amount_received,
-          payment_captured_at: new Date().toISOString(),
-        }).eq('id', bookingId).neq('payment_status', 'refunded');
-
-        logActivity(sb, {
-          bookingId,
-          eventType: 'captured',
-          actorType: 'system',
-          actorName: 'stripe_webhook',
-          description: `Stripe webhook captured payment: $${((pi.amount_received || 0) / 100).toFixed(2)}`,
-          metadata: { stripeEventId: event.id, paymentIntentId: pi.id, amountCharged: pi.amount_received || 0 },
-        });
-
-        // Fetch booking for receipt emails
-        const capturedBk = current;
-
-        const capturedAmount = pi.amount_received ? `$${(pi.amount_received / 100).toFixed(2)}` : null;
-
-        if (capturedBk) {
-          // #6 — Customer payment receipt
-          try {
-            await sendEmail({
-              to: capturedBk.customer_email,
-              from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: `Payment Receipt — ${esc(capturedBk.ref)}`,
-              html: buildCustomerReceiptEmail(capturedBk, capturedAmount),
-              replyTo: ownerEmail(),
-            });
-          } catch (e) { console.error('Customer receipt email error:', e); }
-
-          // #22 — Owner capture notification
-          try {
-            await sendEmail({
-              to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: `Payment Captured — ${esc(capturedBk.ref)} — ${capturedAmount || ''}`,
-              html: buildOwnerCaptureEmail(capturedBk, capturedAmount),
-            });
-          } catch (e) { console.error('Owner capture email error:', e); }
         }
         break;
       }
@@ -453,7 +394,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = paymentIntentId;
 
         const { data: booking } = await sb.from('bookings')
-          .select('id, ref, payment_status')
+          .select('id, ref, payment_status, amount_charged')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle();
 
@@ -465,20 +406,16 @@ export default async function handler(req, res) {
 
         webhookBookingId = booking.id;
 
-        let { error: refundSyncErr } = await sb.from('bookings').update({
-          payment_status: 'refunded',
-          refund_amount: charge.amount_refunded || 0,
+        const cumulativeRefund = Number(charge.amount_refunded || 0);
+        const capturedAmount = Number(charge.amount || booking.amount_charged || 0);
+        const refundPaymentStatus = charge.refunded === true || cumulativeRefund >= capturedAmount
+          ? 'refunded'
+          : 'partially_refunded';
+        const { error: refundSyncErr } = await sb.from('bookings').update({
+          payment_status: refundPaymentStatus,
+          refund_amount: cumulativeRefund,
           refunded_at: new Date().toISOString(),
-        }).eq('id', booking.id).neq('payment_status', 'refunded');
-
-        if (refundSyncErr) {
-          // Some environments may not have refund columns yet. Preserve core truth by
-          // falling back to payment_status-only sync instead of dropping the webhook update.
-          const fallback = await sb.from('bookings').update({
-            payment_status: 'refunded',
-          }).eq('id', booking.id).neq('payment_status', 'refunded');
-          refundSyncErr = fallback.error || null;
-        }
+        }).eq('id', booking.id);
 
         if (refundSyncErr) {
           webhookOutcome = 'failed';
@@ -493,7 +430,7 @@ export default async function handler(req, res) {
           actorType: 'system',
           actorName: 'stripe_webhook',
           description: `Stripe webhook refund sync: $${((charge.amount_refunded || 0) / 100).toFixed(2)}`,
-          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: charge.amount_refunded || 0 },
+          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: cumulativeRefund, paymentStatus: refundPaymentStatus },
         });
 
         await writeFinancialAudit(sb, {
@@ -654,7 +591,6 @@ export default async function handler(req, res) {
     console.error('Stripe webhook handler error:', err);
     webhookOutcome = 'failed';
     webhookError = err?.message || 'Unhandled webhook handler error';
-    // Still return 200 to prevent Stripe retries for logic errors
     await finalizeStripeWebhookEvent(sb, event.id, {
       bookingId: webhookBookingId,
       paymentIntentId: webhookPaymentIntentId,
@@ -662,7 +598,7 @@ export default async function handler(req, res) {
       metadata: webhookMetadata,
       error: webhookError,
     });
-    return res.status(200).json({ received: true, warning: 'Handler error logged' });
+    return res.status(500).json({ received: false, error: 'Webhook processing failed and is retryable' });
   }
 
   await finalizeStripeWebhookEvent(sb, event.id, {
@@ -673,7 +609,75 @@ export default async function handler(req, res) {
     error: webhookError,
   });
 
+  if (webhookOutcome === 'failed') {
+    return res.status(500).json({ received: false, error: webhookError || 'Webhook processing failed and is retryable' });
+  }
   return res.status(200).json({ received: true });
+}
+
+async function syncCapturedCustomerPayment({ sb, pi, event }) {
+  const bookingId = pi.metadata?.bookingId;
+  if (!bookingId) return { bookingId: null, outcome: 'ignored', error: null, metadata: { reason: 'missing-booking-id' } };
+
+  const { data: current, error: fetchErr } = await sb.from('bookings')
+    .select('id, payment_status, status, amount_charged, customer_name, customer_email, ref, service, date')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (fetchErr) throw new Error(`Captured payment lookup failed: ${fetchErr.message}`);
+  if (!current) return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'booking-not-found', bookingId } };
+  if (current.payment_status === 'refunded') {
+    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'stale-capture-after-refund', bookingId } };
+  }
+  if (current.payment_status === 'captured' && Number(current.amount_charged || 0) === Number(pi.amount_received || 0)) {
+    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'already-captured', bookingId } };
+  }
+
+  const isPartialCapture = Number(pi.amount_received || 0) < Number(pi.amount || 0);
+  const { error: updateErr } = await sb.from('bookings').update({
+    payment_status: (current.status === 'cancelled' || isPartialCapture) ? 'cancellation_fee_captured' : 'captured',
+    amount_charged: pi.amount_received,
+    payment_captured_at: new Date().toISOString(),
+  }).eq('id', bookingId).neq('payment_status', 'refunded');
+  if (updateErr) throw new Error(`Captured payment sync failed: ${updateErr.message}`);
+
+  logActivity(sb, {
+    bookingId,
+    eventType: 'captured',
+    actorType: 'system',
+    actorName: 'stripe_webhook',
+    description: `Stripe webhook captured payment: $${((pi.amount_received || 0) / 100).toFixed(2)}`,
+    metadata: { stripeEventId: event.id, paymentIntentId: pi.id, amountCharged: pi.amount_received || 0 },
+  });
+
+  if (isPartialCapture) {
+    return {
+      bookingId,
+      outcome: 'processed',
+      error: null,
+      metadata: { amountCharged: pi.amount_received || 0, captureType: 'cancellation_fee' },
+    };
+  }
+
+  const amountDisplay = pi.amount_received ? `$${(pi.amount_received / 100).toFixed(2)}` : null;
+  await Promise.allSettled([
+    sendEmail({
+      to: current.customer_email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Payment Receipt — ${esc(current.ref)}`,
+      html: buildCustomerReceiptEmail(current, amountDisplay),
+      replyTo: ownerEmail(),
+      meta: { bookingId, notificationType: 'payment_receipt', recipientType: 'customer' },
+    }),
+    sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Payment Captured — ${esc(current.ref)} — ${amountDisplay || ''}`,
+      html: buildOwnerCaptureEmail(current, amountDisplay),
+      meta: { bookingId, notificationType: 'payment_captured_owner', recipientType: 'owner' },
+    }),
+  ]);
+
+  return { bookingId, outcome: 'processed', error: null, metadata: { amountCharged: pi.amount_received || 0 } };
 }
 
 function buildCustomerReceiptEmail(booking, amountDisplay) {
@@ -827,7 +831,7 @@ function buildVerifiedEmail(fullName, email, status, reason = '') {
   const borderColor = isVerified ? '#bbf7d0' : '#fecaca';
   const textColor = isVerified ? '#166534' : '#991b1b';
   const headline = isVerified
-    ? `${esc(fullName)} — Identity Verified ✓`
+    ? `${esc(fullName)} - Identity Verified`
     : `${esc(fullName)} — Identity Verification Failed`;
   const detail = isVerified
     ? 'The assembler has successfully completed identity verification and is ready for approval.'

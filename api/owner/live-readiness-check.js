@@ -1,4 +1,5 @@
 import { verifyOwner } from '../_email.js';
+import { getSupabase } from '../_supabase.js';
 
 const MIN_SECRET_LENGTH = 24;
 
@@ -11,6 +12,10 @@ export default async function handler(req, res) {
     checkUrl('SUPABASE_URL', { required: true, startsWith: 'https://' }),
     checkSecret('SUPABASE_SERVICE_KEY', { required: true }),
     checkSecret('OWNER_PASSWORD', { required: true }),
+    checkSecret('OWNER_SESSION_SECRET', { required: true, minLength: 32 }),
+    checkSecret('GUEST_ACCESS_TOKEN_SECRET', { required: true, minLength: 32 }),
+    checkSecret('UPSTASH_REDIS_REST_URL', { required: true }),
+    checkSecret('UPSTASH_REDIS_REST_TOKEN', { required: true }),
     checkSecret('CRON_SECRET', { required: true }),
     checkSecret('RESEND_API_KEY', { required: true }),
     checkSecret('GEOAPIFY_API_KEY', { required: true }),
@@ -19,6 +24,10 @@ export default async function handler(req, res) {
     checkStripeKey('STRIPE_PUBLISHABLE_KEY', 'publishable', target),
     checkWebhookSecret('STRIPE_WEBHOOK_SECRET', { required: true }),
     checkWebhookSecret('STRIPE_IDENTITY_WEBHOOK_SECRET', { required: true }),
+    checkRequiredApproval(
+      'TEXAS_TAX_CONFIGURATION_APPROVED',
+      'A Texas tax professional must approve the launch service classifications and address-sourcing configuration before live charging.',
+    ),
 
     checkConnectMode(),
     checkOptionalSecret('AAE_EASER_MEMBERSHIP', 'Required only if Easer membership checkout is enabled.'),
@@ -28,6 +37,8 @@ export default async function handler(req, res) {
 
   const stripeModeCheck = checkStripeModePair(target);
   if (stripeModeCheck) checks.push(stripeModeCheck);
+
+  checks.push(await checkSchemaState());
 
   const failed = checks.filter(check => check.status === 'fail');
   const warnings = checks.filter(check => check.status === 'warning');
@@ -41,6 +52,21 @@ export default async function handler(req, res) {
     checks,
     nextRequiredActions: failed.map(check => check.action).filter(Boolean),
   });
+}
+
+async function checkSchemaState() {
+  try {
+    const { data, error } = await getSupabase().from('platform_schema_state')
+      .select('migration_number, migration_name, applied_at')
+      .eq('migration_number', 33)
+      .maybeSingle();
+    if (error || !data) {
+      return fail('DATABASE_SCHEMA_033', 'Launch migration 033 is not verified in this environment.', 'Apply migrations 031-033 and rerun readiness.');
+    }
+    return pass('DATABASE_SCHEMA_033', `Launch schema ${data.migration_number} is applied.`);
+  } catch (error) {
+    return fail('DATABASE_SCHEMA_033', 'Could not verify the launch database schema.', 'Confirm Supabase connectivity and apply migrations 031-033.');
+  }
 }
 
 function normalizeTarget(raw) {
@@ -58,10 +84,10 @@ function checkUrl(name, { required, startsWith }) {
   return pass(name, `${name} is set.`);
 }
 
-function checkSecret(name, { required }) {
+function checkSecret(name, { required, minLength = MIN_SECRET_LENGTH }) {
   const value = cleanEnv(name);
   if (!value) return requiredCheck(name, required, `Set ${name}.`);
-  if (looksPlaceholder(value) || value.length < MIN_SECRET_LENGTH) {
+  if (looksPlaceholder(value) || value.length < minLength) {
     return fail(name, `${name} looks empty, too short, or placeholder-like.`, `Paste a real ${name} value.`);
   }
   return pass(name, `${name} is set.`);
@@ -123,9 +149,20 @@ function checkStripeModePair(target) {
 function checkConnectMode() {
   const enabled = String(process.env.STRIPE_CONNECT_ENABLED || '').toLowerCase() === 'true';
   if (!enabled) {
-    return warning('STRIPE_CONNECT_ENABLED', 'Stripe Connect payouts are disabled. Manual payouts remain required.', 'Keep false until live Connect onboarding and transfer testing passes.');
+    return pass('STRIPE_CONNECT_ENABLED', 'Manual payout launch mode is active; Stripe Connect is disabled.');
   }
-  return warning('STRIPE_CONNECT_ENABLED', 'Stripe Connect payouts are enabled. Confirm live connected accounts and payout tests before launch.', 'Run a controlled live Connect payout test before relying on automated payouts.');
+  if (cleanEnv('STRIPE_CONNECT_LIVE_VALIDATED').toLowerCase() !== 'true') {
+    return fail('STRIPE_CONNECT_LIVE_VALIDATED', 'Stripe Connect is enabled without recorded live end-to-end validation.', 'Disable Stripe Connect or complete connected-account, transfer, and bank-payout reconciliation tests, then set STRIPE_CONNECT_LIVE_VALIDATED=true.');
+  }
+  return pass('STRIPE_CONNECT_LIVE_VALIDATED', 'Stripe Connect live validation is recorded for this environment.');
+}
+
+function checkRequiredApproval(name, note) {
+  const approved = cleanEnv(name).toLowerCase() === 'true';
+  if (!approved) {
+    return fail(name, `${name} is not approved. ${note}`, `Complete the required review, then set ${name}=true in production.`);
+  }
+  return pass(name, `${name} is approved for this environment.`);
 }
 
 function cleanEnv(name) {

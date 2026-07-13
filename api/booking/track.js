@@ -1,12 +1,15 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { safeTokenHashMatch } from '../_payment-security.js';
 
 /**
  * POST /api/booking/track
  * Guest booking lookup — no authentication required.
- * Verifies ownership via email + ref (two-factor without a password).
- * Body: { email, ref }
+ * Verifies ownership via email + ref + the high-entropy token delivered to the
+ * customer's email. Email and a guessable/displayed reference alone never
+ * authorize access to an address, name, price, or booking state.
+ * Body: { email, ref, token }
  * Returns sanitized booking fields only (no Stripe IDs, no payment methods).
  */
 export default async function handler(req, res) {
@@ -16,9 +19,9 @@ export default async function handler(req, res) {
   const ok = await rateLimit(ip, 'default');
   if (!ok) return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
 
-  const { email, ref } = req.body || {};
-  if (!email || !ref) {
-    return res.status(400).json({ error: 'Email and booking reference are required.' });
+  const { email, ref, token } = req.body || {};
+  if (!email || !ref || !token) {
+    return res.status(400).json({ error: 'Open the secure link in your latest booking email, or request a new link below.' });
   }
 
   const sb = getSupabase();
@@ -33,9 +36,9 @@ export default async function handler(req, res) {
     console.error('Track lookup error:', { message: error.message, code: error.code, ref: ref.toUpperCase().trim() });
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking) {
+  if (!booking || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
     return res.status(404).json({
-      error: 'No booking found with that reference and email. Double-check your confirmation email.',
+      error: 'This secure booking link is invalid or expired. Request a new link and try again.',
     });
   }
 
@@ -44,7 +47,7 @@ export default async function handler(req, res) {
     if (b.status === BOOKING_STATUS.CANCELLED) return { label: 'Booking cancelled', detail: null };
     if (b.status === BOOKING_STATUS.DECLINED)  return { label: 'Booking could not be confirmed', detail: 'Please contact us to reschedule.' };
     if (b.status === BOOKING_STATUS.COMPLETED) {
-      const paymentProcessed = ['captured', 'deposit_paid'].includes(String(b.payment_status || '').toLowerCase());
+      const paymentProcessed = ['captured', 'deposit_paid', 'partially_refunded', 'refunded'].includes(String(b.payment_status || '').toLowerCase());
       return {
         label: 'Job complete — thank you!',
         detail: paymentProcessed ? 'Payment has been processed.' : 'Your booking is complete.',
@@ -78,18 +81,19 @@ export default async function handler(req, res) {
 
   // Pro trust details — photo, rating, jobs done — once a Pro has accepted.
   // Builds confidence before a stranger arrives. First name + these only; no PII.
-  let proPhoto = null, proRating = null, proJobs = null;
+  let proPhoto = null, proRating = null, proJobs = null, proVerified = false;
   if (booking.assembler_accepted_at && booking.assembler_id) {
     try {
       const { data: pro } = await sb
         .from('profiles')
-        .select('profile_photo, rating, completed_jobs')
+        .select('profile_photo, rating, completed_jobs, identity_verified')
         .eq('id', booking.assembler_id)
         .maybeSingle();
       if (pro) {
         proPhoto  = pro.profile_photo || null;
         proRating = (pro.rating != null && pro.rating > 0) ? Number(pro.rating) : null;
         proJobs   = (pro.completed_jobs != null) ? Number(pro.completed_jobs) : null;
+        proVerified = pro.identity_verified === true;
       }
     } catch (e) { /* non-fatal */ }
   }
@@ -111,6 +115,7 @@ export default async function handler(req, res) {
     tax_amount: booking.tax_amount || 0,
     service_call_fee: booking.service_call_fee || 0,
     amount_charged: booking.amount_charged || null,
+    refund_amount: booking.refund_amount || 0,
     deposit_amount: booking.deposit_amount || null,
     payment_status: booking.payment_status || null,
     created_at: booking.created_at,
@@ -124,7 +129,7 @@ export default async function handler(req, res) {
     pro_first_name: (booking.assembler_accepted_at && booking.assembler_name)
       ? booking.assembler_name.split(' ')[0]
       : null,
-    pro_verified: booking.identity_verified === true,
+    pro_verified: proVerified,
     pro_photo: proPhoto,
     pro_rating: proRating,
     pro_jobs: proJobs,

@@ -1,3 +1,4 @@
+import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
@@ -25,13 +26,61 @@ export default async function handler(req, res) {
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CONFIRMED);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
 
-  // Update status
-  const { error: updateErr } = await sb
-    .from('bookings')
-    .update({ status: BOOKING_STATUS.CONFIRMED, confirmed_at: new Date().toISOString(), confirmed_by: 'owner' })
-    .eq('id', booking.id);
+  if (['quote_pending_approval', 'quote_authorization_pending', 'card_saved'].includes(booking.payment_status)
+      || (booking.quote_amount_cents && !booking.quote_approved_at)) {
+    return res.status(409).json({
+      error: 'Custom quotes must be approved by the customer through the secure quote link before confirmation.',
+      code: 'CUSTOMER_QUOTE_APPROVAL_REQUIRED',
+    });
+  }
 
-  if (updateErr) {
+  const totalCents = Number(booking.total_price || 0);
+  let confirmedBy = 'owner_payment_verified';
+  if (totalCents > 0) {
+    if (booking.payment_status !== 'authorized' || !booking.stripe_payment_intent_id || !process.env.STRIPE_SECRET_KEY) {
+      return res.status(409).json({
+        error: 'Positive-price bookings require a verified Stripe authorization before confirmation.',
+        code: 'PAYMENT_NOT_AUTHORIZED',
+      });
+    }
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    let pi;
+    try { pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id); }
+    catch (stripeErr) {
+      console.error('Owner confirm Stripe verification failed:', stripeErr);
+      return res.status(502).json({ error: 'Could not verify Stripe authorization. Booking was not confirmed.' });
+    }
+    const validIntent = pi.status === 'requires_capture'
+      && pi.capture_method === 'manual'
+      && pi.currency === 'usd'
+      && pi.amount === totalCents
+      && pi.metadata?.bookingId === booking.id
+      && ['customer_booking', 'customer_quote'].includes(pi.metadata?.type);
+    if (!validIntent) {
+      return res.status(409).json({
+        error: 'Stripe authorization does not match this booking. Booking was not confirmed.',
+        code: 'PAYMENT_BOOKING_MISMATCH',
+      });
+    }
+  } else {
+    if (process.env.VERCEL_ENV === 'production' || req.body?.allowZeroSimulation !== true) {
+      return res.status(409).json({
+        error: 'Zero-dollar bookings cannot be owner-confirmed in production. In non-production, explicit simulation approval is required.',
+        code: 'ZERO_DOLLAR_CONFIRMATION_BLOCKED',
+      });
+    }
+    confirmedBy = 'owner_zero_dollar_simulation';
+  }
+
+  // Update status
+  const { error: updateErr, data: updatedRows } = await sb
+    .from('bookings')
+    .update({ status: BOOKING_STATUS.CONFIRMED, confirmed_at: new Date().toISOString(), confirmed_by: confirmedBy })
+    .eq('id', booking.id)
+    .eq('status', BOOKING_STATUS.PENDING)
+    .select('id');
+
+  if (updateErr || !updatedRows?.length) {
     console.error('Confirm update error:', updateErr);
     return res.status(500).json({ error: 'Failed to update booking' });
   }
@@ -75,7 +124,8 @@ export default async function handler(req, res) {
   }
 
   logActivity(sb, { bookingId: booking.id, eventType: 'confirmed', actorType: 'owner', actorName: 'Owner', description: 'Booking confirmed by owner' });
-  dispatchBooking(booking.id).catch(e => console.error('Auto-dispatch error:', e.message));
+  try { await dispatchBooking(booking.id); }
+  catch (dispatchErr) { console.error('Auto-dispatch error:', dispatchErr?.message || dispatchErr); }
 
   return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CONFIRMED } });
 }

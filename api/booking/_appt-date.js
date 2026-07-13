@@ -12,7 +12,7 @@ export function appointmentTimestampMs(dateStr, timeStr) {
 
   // ── Parse appointment hour/minute ──────────────────────────────────────────
   let h = 12, m = 0; // default noon local — conservative, avoids edge-case misfire
-  const slotStart = (timeStr || '').split('-')[0].trim();
+  const slotStart = (timeStr || '').split(/[-–—]/)[0].trim();
   const match = slotStart.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (match) {
     h = parseInt(match[1], 10);
@@ -59,8 +59,8 @@ export function appointmentTimestampMs(dateStr, timeStr) {
 
   // ── Build the appointment's UTC timestamp ──────────────────────────────────
   // Treat h:m as Chicago local time on dateStr, then add offsetMs to get UTC.
-  // e.g. 9:00 AM CDT → Date.UTC(…, 9, 0) + 18 000 000 = 14:00 UTC  ✓
-  // e.g. 9:00 AM CST → Date.UTC(…, 9, 0) + 21 600 000 = 15:00 UTC  ✓
+  // e.g. 9:00 AM CDT -> Date.UTC(..., 9, 0) + 18 000 000 = 14:00 UTC
+  // e.g. 9:00 AM CST -> Date.UTC(..., 9, 0) + 21 600 000 = 15:00 UTC
   return Date.UTC(
     parseInt(dateStr.slice(0, 4), 10),
     parseInt(dateStr.slice(5, 7), 10) - 1,

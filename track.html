@@ -181,7 +181,7 @@
   <div class="page-hero-inner">
     <a href="/" class="page-back">&larr; Back to Home</a>
     <h1 class="page-title">Manage My Booking</h1>
-    <p class="page-desc">Look up your appointment status, view details, or cancel &mdash; no account needed.</p>
+    <p class="page-desc">Use the secure link in your booking email to view details, reschedule, or cancel &mdash; no account needed.</p>
   </div>
 </section>
 
@@ -190,7 +190,7 @@
     <div class="track-tool-card track-form-shell">
       <div class="track-tool-kicker">Booking lookup</div>
       <h2 class="track-tool-title">Look up your booking</h2>
-      <p class="track-tool-copy">Enter the email and reference from your confirmation email to view appointment status, details, or cancellation options.</p>
+      <p class="track-tool-copy">Open your latest secure email link. If you no longer have it, enter your email and reference and we will send a replacement.</p>
       <form id="trackForm" onsubmit="lookupBooking(event)">
         <div class="form-group">
           <label for="t-email">Email address</label>
@@ -314,7 +314,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Cancel This Booking
         </button>
-        <a href="/contact" class="btn-portal">
+        <a href="/contact" class="btn-portal" id="bookingSupportLink">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Contact Support
         </a>
@@ -322,7 +322,7 @@
     </div>
 
     <p class="track-help">
-      Need help Call us at <a href="tel:+17372906129">(737) 290-6129</a> or <a href="/contact">send a message</a>.
+      Need help? Call us at <a href="tel:+17372906129">(737) 290-6129</a> or <a href="/contact">send a message</a>.
     </p>
     <button class="new-lookup-btn" onclick="resetLookup()">Look up a different booking</button>
   </div>
@@ -487,7 +487,13 @@
 // ── State ──────────────────────────────────────────────────
 let currentBooking = null;
 let currentEmail   = null;
+let currentMutationToken = new URLSearchParams(window.location.search).get('token') || '';
 let autoLookupPending = false;
+
+function safeProfilePhoto(value) {
+  var photo = String(value || '');
+  return /^(https:\/\/[^"'<>\s]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+)$/i.test(photo) ? photo : '';
+}
 
 // ── Lookup ─────────────────────────────────────────────────
 async function lookupBooking(e) {
@@ -507,9 +513,22 @@ async function lookupBooking(e) {
     const res = await fetch('/api/booking/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, ref }),
+      body: JSON.stringify({ email, ref, token: currentMutationToken }),
     });
     const data = await res.json();
+    if (!res.ok && [400, 403, 404].includes(res.status)) {
+      const linkResponse = await fetch('/api/booking/request-track-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, ref })
+      });
+      const linkData = await linkResponse.json();
+      if (!linkResponse.ok) throw new Error(linkData.error || 'Could not request a secure link.');
+      infoEl.textContent = linkData.message;
+      infoEl.style.display = 'block';
+      autoLookupPending = false;
+      return;
+    }
     if (!res.ok) throw new Error(data.error || 'Lookup failed');
 
     currentBooking = data.booking;
@@ -545,11 +564,12 @@ function renderBooking(b) {
     var bd = document.getElementById('priceBreakdown');
     if (!bd) return;
     var total = Number(displayTotal) || 0;
+    var refunded = Math.min(total, Math.max(0, Number(b.refund_amount) || 0));
     var tax   = Number(b.tax_amount) || 0;
     var call  = Number(b.service_call_fee) || 0;
     if (total <= 0) { bd.style.display = 'none'; return; }
     var serviceItems = Math.max(0, total - tax - call);
-    function money(c){ return '$' + (c/100).toFixed(2); }
+    function money(c){ return (c < 0 ? '-$' : '$') + (Math.abs(c)/100).toFixed(2); }
     function row(label, val, strong){
       return '<div style="display:flex;justify-content:space-between;gap:1rem">'
         + '<span>' + label + '</span>'
@@ -559,10 +579,21 @@ function renderBooking(b) {
         row('Service &amp; items', serviceItems)
       + (call > 0 ? row('Service call fee', call) : '')
       + (tax  > 0 ? row('Sales tax', tax) : '')
-      + '<div style="border-top:1px solid var(--border,#e5e7eb);margin-top:5px;padding-top:5px">' + row('Total charged', total, true) + '</div>';
+      + '<div style="border-top:1px solid var(--border,#e5e7eb);margin-top:5px;padding-top:5px">' + row(
+          ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(String(b.payment_status||'')) ? 'Total charged' : 'Booking total (authorized only)',
+          total,
+          true
+        ) + '</div>'
+      + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
     bd.style.display = '';
   })();
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);
+  var supportLink = document.getElementById('bookingSupportLink');
+  if (supportLink) {
+    var issueSubject = 'Booking ' + (b.ref || '') + (b.status === 'completed' ? ' - service issue' : ' - support request');
+    supportLink.href = 'mailto:service@assembleatease.com?subject=' + encodeURIComponent(issueSubject);
+    supportLink.lastChild.textContent = b.status === 'completed' ? ' Report a Service Issue' : ' Contact Support';
+  }
 
   const addrEl = document.getElementById('bAddress');
   const addrWrap = document.getElementById('bAddressWrap');
@@ -580,15 +611,21 @@ function renderBooking(b) {
     if (b.pro_first_name && !terminal) {
       document.getElementById('bProName').textContent = b.pro_first_name;
       var av = document.getElementById('bProAvatar');
-      if (b.pro_photo) {
-        av.innerHTML = '<img src="' + b.pro_photo + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+      var safePhoto = safeProfilePhoto(b.pro_photo);
+      if (safePhoto) {
+        av.textContent = '';
+        var photo = document.createElement('img');
+        photo.src = safePhoto;
+        photo.alt = '';
+        photo.style.cssText = 'width:100%;height:100%;object-fit:cover';
+        av.appendChild(photo);
       } else {
         av.textContent = b.pro_first_name.charAt(0).toUpperCase();
       }
       document.getElementById('bProVerified').style.display = b.pro_verified ? 'inline-flex' : 'none';
       var metaEl = document.getElementById('bProMeta');
       var parts = [];
-      if (b.pro_rating) parts.push('★ ' + Number(b.pro_rating).toFixed(1));
+      if (b.pro_rating) parts.push('Rated ' + Number(b.pro_rating).toFixed(1) + ' / 5');
       if (b.pro_jobs && b.pro_jobs > 0) parts.push(b.pro_jobs + ' job' + (b.pro_jobs === 1 ? '' : 's') + ' completed');
       if (parts.length) { metaEl.textContent = parts.join('  ·  '); metaEl.style.display = ''; }
       else { metaEl.style.display = 'none'; }
@@ -657,6 +694,12 @@ function renderBooking(b) {
     }
   }
 
+  if (!currentMutationToken) {
+    cancelBtn.style.display = 'none';
+    feeWarn.style.display = 'none';
+    if (reschedBtn) reschedBtn.style.display = 'none';
+  }
+
   // Show result section, scroll to it
   const resultEl = document.getElementById('trackResult');
   resultEl.classList.add('show');
@@ -689,7 +732,7 @@ function closeCancelModal() {
 }
 
 // ── Reschedule modal ───────────────────────────────────────
-var RS_TIME_SLOTS = ['7:00 AM – 9:00 AM','9:00 AM – 11:00 AM','11:00 AM – 1:00 PM','1:00 PM – 3:00 PM','3:00 PM – 5:00 PM','5:00 PM – 7:00 PM'];
+var RS_TIME_SLOTS = ['7:00 AM – 9:00 AM','9:00 AM – 11:00 AM','11:00 AM – 1:00 PM','1:00 PM – 3:00 PM','3:00 PM – 5:00 PM'];
 
 function openRescheduleModal() {
   if (!currentBooking) return;
@@ -745,13 +788,20 @@ async function confirmReschedule() {
     var res = await fetch('/api/booking/reschedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref, date: date, time: time }),
+      body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref, token: currentMutationToken, date: date, time: time }),
     });
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Reschedule failed');
 
+    if (data.guestMutationToken) {
+      currentMutationToken = data.guestMutationToken;
+      var secureUrl = new URL(window.location.href);
+      secureUrl.searchParams.set('token', currentMutationToken);
+      history.replaceState({}, document.title, secureUrl.pathname + secureUrl.search);
+    }
+
     document.getElementById('rescheduleModalContent').style.display = 'none';
-    document.getElementById('rescheduleResultIcon').textContent  = '✅';
+    document.getElementById('rescheduleResultIcon').textContent  = 'Done';
     document.getElementById('rescheduleResultTitle').textContent = 'Appointment rescheduled';
     document.getElementById('rescheduleResultDesc').textContent  =
       'Your appointment is now ' + date + ' at ' + time + '. A confirmation email is on its way.'
@@ -780,7 +830,7 @@ async function confirmCancel() {
     const res = await fetch('/api/booking/guest-cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref }),
+      body: JSON.stringify({ email: currentEmail, ref: currentBooking.ref, token: currentMutationToken }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Cancellation failed');
@@ -788,7 +838,7 @@ async function confirmCancel() {
     // Success UI
     document.getElementById('cancelModalContent').style.display = 'none';
     const resultEl = document.getElementById('cancelModalResult');
-    document.getElementById('cancelResultIcon').textContent   = '✅';
+    document.getElementById('cancelResultIcon').textContent   = 'Done';
     document.getElementById('cancelResultTitle').textContent  = 'Booking cancelled';
     document.getElementById('cancelResultDesc').textContent   =
       data.feeCaptured > 0
@@ -808,7 +858,7 @@ async function confirmCancel() {
     document.getElementById('cancelModalContent').style.display = '';
     document.getElementById('cancelModalResult').style.display  = 'none';
     const resultEl = document.getElementById('cancelModalResult');
-    document.getElementById('cancelResultIcon').textContent  = '❌';
+    document.getElementById('cancelResultIcon').textContent  = 'Error';
     document.getElementById('cancelResultTitle').textContent = 'Something went wrong';
     document.getElementById('cancelResultDesc').textContent  = err.message + ' — Call us at (737) 290-6129 to cancel.';
     resultEl.style.display = 'block';

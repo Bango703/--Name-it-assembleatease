@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
-import { ACTIVE_EASER_TIERS, normalizeAssemblerProfile } from '../_assembler-state.js';
+import { normalizeAssemblerProfile } from '../_assembler-state.js';
+import { getEaserReadiness } from '../_easer-readiness.js';
 
 /**
  * GET /api/assembler/list
@@ -32,8 +33,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch assemblers: ' + error.message });
   }
 
-  const assemblers = (data || []).map(normalizeAssemblerProfile);
+  const normalized = (data || []).map(normalizeAssemblerProfile);
   const requireConnect = isStripeConnectEnabled();
+  const assemblers = await Promise.all(normalized.map(async assembler => ({
+    ...assembler,
+    readiness: await getEaserReadiness(assembler, { connectRequired: requireConnect }),
+  })));
 
   const stats = {
     total:         assemblers.length,
@@ -44,13 +49,7 @@ export default async function handler(req, res) {
     starter:       assemblers.filter(a => a.status === 'active' && a.tier === 'starter').length,
     professional:  assemblers.filter(a => a.status === 'active' && a.tier === 'professional').length,
     elite:         assemblers.filter(a => a.status === 'active' && a.tier === 'elite').length,
-    dispatchEligible: assemblers.filter(a => {
-      if (!(a.status === 'active' && a.identity_verified && ACTIVE_EASER_TIERS.includes(a.tier))) {
-        return false;
-      }
-      if (!requireConnect) return true;
-      return !!(a.stripe_connect_onboarding_complete && a.stripe_connect_charges_enabled && a.stripe_connect_payouts_enabled);
-    }).length,
+    dispatchEligible: assemblers.filter(a => a.readiness.isReady).length,
     connectRequired: requireConnect,
   };
 

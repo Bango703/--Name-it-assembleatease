@@ -1,5 +1,6 @@
 ﻿import { timingSafeEqual } from 'crypto';
 import { getSupabase } from './_supabase.js';
+import { createHmac, randomBytes } from 'crypto';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -66,9 +67,12 @@ function normalizeEmail(addr) {
 
 async function insertNotificationLog(sb, payload) {
   try {
-    await sb.from('notification_log').insert(payload);
-  } catch (_) {
-    // Never fail caller because notification logging failed.
+    const { error } = await sb.from('notification_log').insert(payload);
+    if (error) throw error;
+    return { ok: true, error: null };
+  } catch (err) {
+    console.error('notification_log insert failed:', err?.message || err);
+    return { ok: false, error: err?.message || String(err) };
   }
 }
 
@@ -148,7 +152,7 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   });
 
   if (suppressionReason) {
-    await insertNotificationLog(sb, {
+    const logResult = await insertNotificationLog(sb, {
       channel: 'email',
       booking_id: meta.bookingId || null,
       notification_type: notificationType,
@@ -160,7 +164,7 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
       provider_id: null,
       error_text: suppressionReason,
     });
-    return { ok: true, suppressed: true, reason: suppressionReason };
+    return { ok: true, suppressed: true, reason: suppressionReason, logged: logResult.ok, logError: logResult.error };
   }
 
   const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
@@ -191,7 +195,7 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   }
 
   // Non-blocking log — never let logging failure break the caller
-  await insertNotificationLog(sb, {
+  const logResult = await insertNotificationLog(sb, {
     channel: 'email',
     booking_id: meta.bookingId || null,
     notification_type: notificationType,
@@ -204,8 +208,8 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
     error_text: errorText,
   });
 
-  if (status === 'failed') return { ok: false, error: errorText };
-  return { ok: true, providerId, notificationType, priority };
+  if (status === 'failed') return { ok: false, error: errorText, logged: logResult.ok, logError: logResult.error };
+  return { ok: true, providerId, notificationType, priority, logged: logResult.ok, logError: logResult.error };
 }
 
 export function ownerEmail() {
@@ -267,11 +271,7 @@ function recordOwnerAuthSuccess(req) {
   ownerAuthAttempts.delete(key);
 }
 
-/**
- * Verify owner authorization via password header.
- * Returns true if authorized.
- */
-export function verifyOwner(req) {
+export function verifyOwnerPassword(req, suppliedPassword) {
   if (ownerAuthLocked(req)) return false;
 
   const pw = process.env.OWNER_PASSWORD;
@@ -280,7 +280,7 @@ export function verifyOwner(req) {
     return false;
   }
 
-  const provided = req.headers['x-owner-password'] || req.body?.ownerPassword;
+  const provided = suppliedPassword ?? req.headers?.['x-owner-password'] ?? req.body?.ownerPassword;
   if (!provided) {
     recordOwnerAuthFailure(req);
     return false;
@@ -304,6 +304,76 @@ export function verifyOwner(req) {
     recordOwnerAuthFailure(req);
     return false;
   }
+}
+
+const OWNER_SESSION_TTL_SECONDS = 8 * 60 * 60;
+
+function ownerSessionSecret() {
+  return String(process.env.OWNER_SESSION_SECRET || '').trim();
+}
+
+function signOwnerSessionPayload(encodedPayload) {
+  const secret = ownerSessionSecret();
+  if (secret.length < 32) return null;
+  return createHmac('sha256', secret).update(encodedPayload).digest('base64url');
+}
+
+export function createOwnerSessionToken() {
+  const now = Math.floor(Date.now() / 1000);
+  const payload = Buffer.from(JSON.stringify({
+    v: 1,
+    sub: 'owner',
+    iat: now,
+    exp: now + OWNER_SESSION_TTL_SECONDS,
+    nonce: randomBytes(16).toString('hex'),
+  })).toString('base64url');
+  const signature = signOwnerSessionPayload(payload);
+  if (!signature) return null;
+  return {
+    token: `${payload}.${signature}`,
+    expiresAt: new Date((now + OWNER_SESSION_TTL_SECONDS) * 1000).toISOString(),
+  };
+}
+
+function verifyOwnerSessionToken(token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2) return false;
+  const [payload, suppliedSignature] = parts;
+  const expectedSignature = signOwnerSessionPayload(payload);
+  if (!expectedSignature) return false;
+
+  try {
+    const a = Buffer.from(expectedSignature);
+    const b = Buffer.from(suppliedSignature);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    return decoded?.v === 1
+      && decoded?.sub === 'owner'
+      && Number.isInteger(decoded?.iat)
+      && Number.isInteger(decoded?.exp)
+      && decoded.iat <= now + 60
+      && decoded.exp > now
+      && decoded.exp - decoded.iat <= OWNER_SESSION_TTL_SECONDS;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verify owner authorization using a short-lived signed bearer session.
+ * Direct password headers remain available only outside production for local
+ * operational scripts unless explicitly enabled during a controlled migration.
+ */
+export function verifyOwner(req) {
+  const authorization = String(req.headers?.authorization || '');
+  if (/^Bearer\s+/i.test(authorization)) {
+    return verifyOwnerSessionToken(authorization.replace(/^Bearer\s+/i, '').trim());
+  }
+
+  const allowLegacyPassword = process.env.VERCEL_ENV !== 'production'
+    || process.env.ALLOW_LEGACY_OWNER_PASSWORD === 'true';
+  return allowLegacyPassword ? verifyOwnerPassword(req) : false;
 }
 
 /**

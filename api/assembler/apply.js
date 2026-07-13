@@ -4,7 +4,7 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { rateLimit } from '../_ratelimit.js';
 import { logActivity } from '../booking/_activity.js';
-import { buildIdentityResumeUrl, ensureIdentityResumeToken, getClientIp } from '../_assembler-onboarding.js';
+import { buildIdentityResumeUrl, ensureIdentityResumeToken, getClientIp, CONTRACTOR_AGREEMENT_VERSION } from '../_assembler-onboarding.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -18,8 +18,6 @@ const VALID_SERVICES = [
 ];
 
 const FOUNDING_EASER_FREE_APPLICATION_LIMIT = parseInt(process.env.FOUNDING_EASER_FREE_APPLICATION_LIMIT || '20', 10);
-const CONTRACTOR_AGREEMENT_VERSION = '2026-06-08';
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -50,38 +48,72 @@ export default async function handler(req, res) {
   if (!codeOfConduct) return res.status(400).json({ error: 'You must agree to the code of conduct' });
   if (!contractorAgreementSigned) return res.status(400).json({ error: 'You must read and sign the Independent Contractor Agreement' });
 
-  const sb = getSupabase();
-  const foundingApplication = await getFoundingApplicationStatus(sb);
-  if (!foundingApplication.feeWaived && !paymentMethodId) {
-    return res.status(400).json({ error: 'Payment is required to submit your application' });
-  }
-
   const cleanName = fullName.trim();
   const cleanEmail = email.trim().toLowerCase();
   const cleanPhone = phone.trim();
+  const sb = getSupabase();
+  const { data: existingProfile, error: existingProfileErr } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('email', cleanEmail)
+    .maybeSingle();
+  if (existingProfileErr) return res.status(500).json({ error: 'Unable to check application status. Please try again.' });
+  if (existingProfile && existingProfile.role !== 'assembler') {
+    return res.status(409).json({ error: 'An account with this email already exists. Please use a different email or contact support.' });
+  }
+  if (existingProfile && ['active', 'suspended', 'rejected'].includes(String(existingProfile.status || '').toLowerCase())) {
+    return res.status(409).json({ error: 'An Easer account with this email already exists. Please log in or contact support.' });
+  }
+
+  const computedFoundingApplication = await getFoundingApplicationStatus(sb, { excludeProfileId: existingProfile?.id || null });
+  const foundingApplication = existingProfile?.application_fee_waived === true
+    ? {
+        feeWaived: true,
+        foundingNumber: existingProfile.founding_easer_number || computedFoundingApplication.foundingNumber,
+      }
+    : computedFoundingApplication;
+  const applicationFeeAlreadyPaid = existingProfile?.application_fee_paid === true;
+  if (!foundingApplication.feeWaived && !applicationFeeAlreadyPaid && !paymentMethodId) {
+    return res.status(400).json({ error: 'Payment is required to submit your application' });
+  }
+
   const agreementIp = getClientIp(req);
   const agreementUserAgent = String(req.headers['user-agent'] || '').slice(0, 500);
 
   // Generate a random temporary password — assembler sets their real password via the approval email link
   const tempPassword = randomUUID() + randomUUID();
 
-  // ── Create Supabase auth user ──
-  const { data: authData, error: authError } = await sb.auth.admin.createUser({
-    email: cleanEmail,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { role: 'assembler', full_name: cleanName },
-  });
-
-  if (authError) {
-    console.error('Auth create error:', authError);
-    if (authError.message?.includes('already')) {
-      return res.status(409).json({ error: 'An account with this email already exists. Please log in instead.' });
+  // Reuse an existing partial application/auth account so a database or email
+  // failure cannot permanently strand the applicant on retry.
+  let authUser = existingProfile ? { id: existingProfile.id, email: existingProfile.email } : null;
+  if (!authUser) {
+    try {
+      authUser = await findAuthUserByEmail(sb, cleanEmail);
+    } catch (lookupErr) {
+      console.error('Auth recovery lookup failed:', lookupErr);
+      return res.status(500).json({ error: 'Unable to recover the application account. Please try again.' });
     }
-    return res.status(500).json({ error: 'Failed to create account' });
+  }
+  let authUserCreated = false;
+  if (authUser && !existingProfile && String(authUser.user_metadata?.role || '').toLowerCase() !== 'assembler') {
+    return res.status(409).json({ error: 'An account with this email already exists. Please log in or contact support.' });
+  }
+  if (!authUser) {
+    const { data: authData, error: authError } = await sb.auth.admin.createUser({
+      email: cleanEmail,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { role: 'assembler', full_name: cleanName },
+    });
+    if (authError) {
+      console.error('Auth create error:', authError);
+      return res.status(500).json({ error: 'Failed to create account' });
+    }
+    authUser = authData.user;
+    authUserCreated = true;
   }
 
-  const userId = authData.user.id;
+  const userId = authUser.id;
 
   // ---- Upsert profile (core fields first, then assembler-specific) ----
   const coreProfile = {
@@ -109,7 +141,7 @@ export default async function handler(req, res) {
     years_experience: parseInt(yearsExperience, 10),
     bio: bio?.trim() || null,
     tier: 'pending',
-    identity_verified: false,
+    identity_verified: existingProfile?.identity_verified === true,
     application_status: 'applied',
   }).eq('id', userId);
   if (extError) {
@@ -118,6 +150,20 @@ export default async function handler(req, res) {
   }
 
   const agreementTs = new Date().toISOString();
+  // Agreement timestamps live on profiles when the schema is present; keep this
+  // isolated so a schema gap never suppresses the core application write above.
+  const { error: agreementErr } = await sb.from('profiles').update({
+    code_of_conduct_agreed_at: agreementTs,
+    contractor_agreement_signed_at: agreementTs,
+    contractor_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
+    contractor_agreement_ip: agreementIp,
+    contractor_agreement_user_agent: agreementUserAgent,
+    contractor_agreement_signed_name: cleanName,
+  }).eq('id', userId);
+  if (agreementErr) {
+    console.error('Agreement acceptance save failed:', agreementErr.message);
+    return res.status(500).json({ error: 'Failed to save required agreement acceptance. Your application can be safely retried.' });
+  }
   await logActivity(sb, {
     bookingId: null,
     eventType: 'assembler_application_submitted',
@@ -136,22 +182,9 @@ export default async function handler(req, res) {
       servicesOffered: validServices,
       foundingEaser: foundingApplication.feeWaived,
       foundingNumber: foundingApplication.foundingNumber,
+      recoveredApplication: !!existingProfile || !authUserCreated,
     },
   });
-
-  // Agreement timestamps live on profiles when the schema is present; keep this
-  // isolated so a schema gap never suppresses the core application write above.
-  const { error: agreementErr } = await sb.from('profiles').update({
-    code_of_conduct_agreed_at: agreementTs,
-    contractor_agreement_signed_at: agreementTs,
-    contractor_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
-    contractor_agreement_ip: agreementIp,
-    contractor_agreement_user_agent: agreementUserAgent,
-    contractor_agreement_signed_name: cleanName,
-  }).eq('id', userId);
-  if (agreementErr) {
-    console.error('Agreement timestamp columns missing — run assembler onboarding migration:', agreementErr.message);
-  }
 
   // Founding Easer launch columns are additive; keep them separate so older schemas
   // still save the core application fields before migration 018 is applied.
@@ -190,11 +223,11 @@ export default async function handler(req, res) {
 
   // ---- Stripe: optionally charge application fee ----
   const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-  let paymentIntentId = null;
-  let stripeCustomerId = null;
+  let paymentIntentId = existingProfile?.stripe_payment_intent_id || null;
+  let stripeCustomerId = existingProfile?.stripe_customer_id || null;
 
-  if (!stripe && !foundingApplication.feeWaived) {
-    await sb.auth.admin.deleteUser(userId).catch(() => {});
+  if (!stripe && !foundingApplication.feeWaived && !applicationFeeAlreadyPaid) {
+    if (authUserCreated) await sb.auth.admin.deleteUser(userId).catch(() => {});
     return res.status(500).json({ error: 'Payment processing is not configured. Please try again later.' });
   }
 
@@ -202,48 +235,64 @@ export default async function handler(req, res) {
     if (!stripe) throw new Error('Stripe is not configured; skipping Stripe customer creation for founding application.');
 
     // Create Stripe customer
-    const customer = await stripe.customers.create({
-      email: cleanEmail,
-      name: cleanName,
-      metadata: { userId, role: 'assembler' },
-    });
-    stripeCustomerId = customer.id;
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: cleanEmail,
+        name: cleanName,
+        metadata: { userId, role: 'assembler' },
+      }, { idempotencyKey: `easer_application_customer_${userId}` });
+      stripeCustomerId = customer.id;
+    }
 
-    if (!foundingApplication.feeWaived) {
-      // Charge $30 application fee when the Founding Easer waiver is no longer available.
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: 3000,
-        currency: 'usd',
-        customer: customer.id,
-        payment_method: paymentMethodId,
-        confirm: true,
-        metadata: { userId, type: 'assembler_application_fee' },
-        description: 'AssembleAtEase Assembler Application Fee',
-        receipt_email: cleanEmail,
-        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-      });
+    if (!foundingApplication.feeWaived && !applicationFeeAlreadyPaid) {
+      // Recover a prior successful fee before charging. This covers the failure
+      // window where Stripe succeeded but the profile write did not.
+      const priorIntents = await stripe.paymentIntents.list({ customer: stripeCustomerId, limit: 20 });
+      let paymentIntent = priorIntents.data.find(intent => (
+        intent.status === 'succeeded'
+        && intent.metadata?.userId === userId
+        && intent.metadata?.type === 'assembler_application_fee'
+      ));
+      if (!paymentIntent) {
+        const paymentMethodKey = String(paymentMethodId || 'missing').replace(/[^A-Za-z0-9_-]/g, '').slice(-32);
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: 3000,
+          currency: 'usd',
+          customer: stripeCustomerId,
+          payment_method: paymentMethodId,
+          confirm: true,
+          metadata: { userId, type: 'assembler_application_fee' },
+          description: 'AssembleAtEase Assembler Application Fee',
+          receipt_email: cleanEmail,
+          automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+        }, { idempotencyKey: `easer_application_fee_${userId}_${paymentMethodKey}` });
+      }
 
       if (paymentIntent.status !== 'succeeded') {
-        await sb.auth.admin.deleteUser(userId).catch(() => {});
+        if (authUserCreated) await sb.auth.admin.deleteUser(userId).catch(() => {});
         return res.status(402).json({ error: 'Payment failed. Please check your card details and try again.' });
       }
 
       paymentIntentId = paymentIntent.id;
     }
 
-    // Persist Stripe data to profile (non-blocking on failure)
-    await sb.from('profiles').update({
+    // Persist Stripe truth before reporting application success.
+    const { error: paymentPersistErr } = await sb.from('profiles').update({
       stripe_customer_id: stripeCustomerId,
       stripe_payment_intent_id: paymentIntentId,
-      payment_confirmed: !foundingApplication.feeWaived,
-      application_fee_paid: !foundingApplication.feeWaived,
+      payment_confirmed: applicationFeeAlreadyPaid || !foundingApplication.feeWaived,
+      application_fee_paid: applicationFeeAlreadyPaid || !foundingApplication.feeWaived,
     }).eq('id', userId);
+    if (paymentPersistErr) {
+      console.error('Application payment state persist failed:', paymentPersistErr.message);
+      return res.status(500).json({ error: 'Application payment state could not be saved. Your application can be safely retried.' });
+    }
 
   } catch (stripeErr) {
     console.error('Stripe error:', stripeErr);
     if (!foundingApplication.feeWaived && !paymentIntentId) {
       // Payment itself failed - clean up auth user
-      await sb.auth.admin.deleteUser(userId).catch(() => {});
+      if (authUserCreated) await sb.auth.admin.deleteUser(userId).catch(() => {});
       const msg = stripeErr?.raw?.message || stripeErr?.message || 'Payment failed. Please check your card details.';
       return res.status(402).json({ error: msg });
     }
@@ -251,9 +300,10 @@ export default async function handler(req, res) {
   }
 
   // ---- Send owner notification ----
+  let ownerNotification = { ok: false, error: 'Owner notification not attempted' };
   try {
     const servicesList = validServices.map(s => `<li style="padding:3px 0">${esc(s)}</li>`).join('');
-    await sendEmail({
+    ownerNotification = await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: cleanEmail,
@@ -261,11 +311,15 @@ export default async function handler(req, res) {
       html: buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId, feeWaived: foundingApplication.feeWaived, foundingNumber: foundingApplication.foundingNumber, verificationResumeUrl }),
       meta: { notificationType: 'easer_application_owner_notice', recipientType: 'owner', disableDedupe: true },
     });
-  } catch (e) { console.error('Owner email error:', e); }
+  } catch (e) {
+    console.error('Owner email error:', e);
+    ownerNotification = { ok: false, error: e?.message || String(e) };
+  }
 
   // ---- Send applicant confirmation ----
+  let applicantNotification = { ok: false, error: 'Applicant notification not attempted' };
   try {
-    await sendEmail({
+    applicantNotification = await sendEmail({
       to: cleanEmail,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Application Received - AssembleAtEase',
@@ -273,7 +327,10 @@ export default async function handler(req, res) {
       replyTo: ownerEmail(),
       meta: { notificationType: 'easer_application_received', recipientType: 'easer', recipientUserId: userId, disableDedupe: true },
     });
-  } catch (e) { console.error('Applicant email error:', e); }
+  } catch (e) {
+    console.error('Applicant email error:', e);
+    applicantNotification = { ok: false, error: e?.message || String(e) };
+  }
 
   return res.status(200).json({
     success: true,
@@ -281,10 +338,16 @@ export default async function handler(req, res) {
     verificationUrl: verificationResumeUrl,
     feeWaived: foundingApplication.feeWaived,
     foundingProgram: foundingApplication.feeWaived,
+    recoveredApplication: !!existingProfile || !authUserCreated,
+    notifications: {
+      ownerDelivered: ownerNotification?.ok === true && !ownerNotification?.suppressed,
+      applicantDelivered: applicantNotification?.ok === true && !applicantNotification?.suppressed,
+    },
+    warning: applicantNotification?.ok ? null : 'Application saved, but the confirmation email could not be delivered. Save the verification link shown on this page.',
   });
 }
 
-async function getFoundingApplicationStatus(sb) {
+async function getFoundingApplicationStatus(sb, { excludeProfileId = null } = {}) {
   const limit = Number.isFinite(FOUNDING_EASER_FREE_APPLICATION_LIMIT)
     ? Math.max(0, FOUNDING_EASER_FREE_APPLICATION_LIMIT)
     : 20;
@@ -292,10 +355,12 @@ async function getFoundingApplicationStatus(sb) {
   if (limit <= 0) return { feeWaived: false, foundingNumber: null };
 
   try {
-    const { count, error } = await sb
+    let countQuery = sb
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'assembler');
+    if (excludeProfileId) countQuery = countQuery.neq('id', excludeProfileId);
+    const { count, error } = await countQuery;
 
     if (error) throw error;
     const existingCount = count || 0;
@@ -307,6 +372,18 @@ async function getFoundingApplicationStatus(sb) {
     console.warn('Founding Easer count unavailable; waiving application fee for launch safety:', err.message || err);
     return { feeWaived: true, foundingNumber: null };
   }
+}
+
+async function findAuthUserByEmail(sb, email) {
+  for (let page = 1; page <= 5; page++) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const users = data?.users || [];
+    const match = users.find(user => String(user.email || '').toLowerCase() === email);
+    if (match) return match;
+    if (users.length < 200) return null;
+  }
+  return null;
 }
 
 function buildOwnerEmail({ cleanName, cleanEmail, cleanPhone, city, zip, yearsExperience, hasTools, hasTransport, bio, servicesList, paymentIntentId, feeWaived, foundingNumber, verificationResumeUrl }) {

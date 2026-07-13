@@ -3,7 +3,8 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
-import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { getEaserReadiness } from '../_easer-readiness.js';
+import { logActivity } from './_activity.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -55,7 +56,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   // ── Easer eligibility query ───────────────────────────────────────────────
   const { data: easers } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, status, tier, rating, completed_jobs, has_membership, is_available, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, full_name, email, phone, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('role', 'assembler')
     .eq('status', 'active')
     .eq('identity_verified', true)
@@ -64,26 +65,28 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
 
-  // ── Filter by availability and service area ───────────────────────────────
-  // We intentionally do NOT gate dispatch on Stripe Connect onboarding. A verified,
-  // approved, online Pro can take a job and link their bank any time before the
-  // payout releases (48h hold). The payout cron (release-payouts.js) refuses to
-  // transfer until their Connect account is ready, so money is never at risk —
-  // but supply isn't choked by Pros who haven't linked a bank yet.
+  // ── Filter by canonical readiness and service area ────────────────────────
+  // Manual payout mode does not require Connect. When Connect is enabled, the
+  // shared readiness predicate verifies the account live and fails closed on
+  // requirements or disabled capabilities.
   // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
   // Do NOT filter on active_jobs_today here — the profile counter can be stale.
-  let eligible = easers.filter(e => {
-    if (!e.is_available) return false;
+  const readinessPairs = await Promise.all(easers.map(async (easer) => ({
+    easer,
+    readiness: await getEaserReadiness(easer),
+  })));
+  let eligible = readinessPairs.filter(({ easer, readiness }) => {
+    if (!readiness.isReady) return false;
     // When re-dispatching a job a Pro just dropped, don't bounce it straight back
     // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
-    if (excludeEaserId && e.id === excludeEaserId) return false;
+    if (excludeEaserId && easer.id === excludeEaserId) return false;
     // No hard city filter. The booking already passed the service-area (ZIP 786–788)
     // check at creation, and every Pro serves the one Austin metro. City NAME matching
     // wrongly excludes Pros whose profile city differs from the booking's (e.g. an
     // "Austin" Pro on a Pflugerville job, or a mistyped city) — which silently chokes
     // dispatch. Proximity is rewarded in scoring (ZIP-match bonus) instead.
     return true;
-  });
+  }).map(({ easer }) => easer);
 
   if (!eligible.length) return { dispatched: 0, message: 'No available Easers in service area' };
 
@@ -222,15 +225,15 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // ── Atomic booking update ────────────────────────────────────────────────
   // Single update — atomic guard: only proceed if still unassigned
-  const { error: bookingUpdateErr } = await sb.from('bookings').update({
+  const { data: updatedBookings, error: bookingUpdateErr } = await sb.from('bookings').update({
     dispatch_attempt:    attemptNumber,
     dispatch_offered_at: now,
     dispatch_status:     'offered',
     dispatch_offered_to: top.map(e => e.id), // keep for backwards compat
     needs_manual_dispatch: false,             // clear manual flag on retry
-  }).eq('id', bookingId).is('assembler_id', null);
+  }).eq('id', bookingId).is('assembler_id', null).eq('status', BOOKING_STATUS.CONFIRMED).select('id');
 
-  if (bookingUpdateErr) {
+  if (bookingUpdateErr || !updatedBookings?.length) {
     // Booking was just assigned — cancel the offers we just created
     await sb.from('dispatch_offers')
       .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
@@ -241,6 +244,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // ── Send notifications (non-blocking) ────────────────────────────────────
   let notified = 0;
+  const notificationFailures = [];
   for (const easer of top) {
     // Notifications/emails OPEN the offer in the app — they NEVER accept it. A job
     // is accepted only when the Easer taps Accept inside the app (source of truth).
@@ -257,18 +261,20 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         }).assemblerDueCents
       : 0;
     const pushPay = estPayCents > 0 ? '$' + Math.round(estPayCents / 100) + ' pay · ' : '';
-    sendPushToUser(easer.id, {
-      title: 'New Job Available!',
+    const pushResult = await sendPushToUser(easer.id, {
+      title: 'New Job Available',
       body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Tap to review`,
       url:   offerUrl,
       jobId: bookingId,
       urgent: true,
     }, { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer' }).catch(function(err) {
       console.error('[dispatch] Push failed for easer', easer.id, err && (err.message || String(err)));
+      return { ok: false, error: err?.message || String(err) };
     });
 
+    let emailResult = { ok: false, error: 'Missing Easer email' };
     try {
-      await sendEmail({
+      emailResult = await sendEmail({
         to:       easer.email,
         from:     'AssembleAtEase <booking@assembleatease.com>',
         subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity}`,
@@ -276,17 +282,65 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
         replyTo:  'service@assembleatease.com',
         meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id },
       });
-      // Mark notification sent
-      await sb.from('dispatch_offers')
+    } catch (err) {
+      console.error('Dispatch email error:', easer.email, err.message);
+      emailResult = { ok: false, error: err.message };
+    }
+
+    const delivered = Boolean(
+      (emailResult?.ok && !emailResult?.suppressed)
+      || pushResult?.ok
+    );
+    if (emailResult?.logged === false || pushResult?.logged === false) {
+      await logActivity(sb, {
+        bookingId,
+        eventType: 'notification_audit_failed',
+        actorType: 'system',
+        actorName: 'notifications',
+        description: `Job offer notification was attempted for ${easer.full_name || 'Easer'}, but an attempt log could not be saved`,
+        metadata: { easerId: easer.id, emailLogError: emailResult?.logError || null, pushLogError: pushResult?.logError || null },
+      });
+    }
+    if (delivered) {
+      const { error: sentStateErr } = await sb.from('dispatch_offers')
         .update({ notification_sent: true })
         .eq('booking_id', bookingId)
         .eq('easer_id', easer.id)
         .eq('attempt_number', attemptNumber);
-      notified++;
-    } catch (err) {
-      console.error('Dispatch email error:', easer.email, err.message);
+      if (!sentStateErr) notified++;
+    } else {
+      notificationFailures.push({
+        easerId: easer.id,
+        easerName: easer.full_name,
+        email: easer.email || null,
+        emailError: emailResult?.error || emailResult?.reason || null,
+        pushError: pushResult?.error || pushResult?.reason || null,
+      });
+      await logActivity(sb, {
+        bookingId,
+        eventType: 'dispatch_notification_failed',
+        actorType: 'system',
+        actorName: 'dispatch',
+        description: `Job offer created for ${easer.full_name || 'Easer'}, but no notification channel confirmed delivery`,
+        metadata: { easerId: easer.id, email: easer.email || null, attemptNumber },
+      });
     }
   }
+
+  await logActivity(sb, {
+    bookingId,
+    eventType: 'dispatched',
+    actorType: 'system',
+    actorName: 'dispatch',
+    description: `Created ${top.length} job offer(s); ${notified} had a channel-confirmed notification`,
+    metadata: {
+      attemptNumber,
+      expiresAt,
+      offeredEaserIds: top.map(easer => easer.id),
+      notified,
+      failedNotificationCount: notificationFailures.length,
+    },
+  });
 
   console.log(JSON.stringify({
     event: 'dispatch',
@@ -299,8 +353,11 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   }));
 
   return {
-    dispatched: notified,
-    message: notified > 0 ? `Offered to ${notified} Easer(s) — expires in ${OFFER_TTL_MIN} min` : 'Failed to send notifications',
+    dispatched: top.length,
+    notified,
+    message: notified > 0
+      ? `Created ${top.length} offer(s); notified ${notified} Easer(s) — expires in ${OFFER_TTL_MIN} min`
+      : `Created ${top.length} offer(s), but no notification channel confirmed delivery`,
     offeredTo: top.map(e => ({
       name: e.full_name,
       tier: e.tier,
@@ -309,6 +366,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     })),
     attemptNumber,
     expiresAt,
+    notificationFailures,
   };
 }
 
@@ -362,9 +420,8 @@ function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
         <p style="margin:0 0 4px;font-size:0.875rem;color:#374151">Date: ${esc(booking.date || 'TBD')}${booking.time ? ' · ' + esc(booking.time) : ''}</p>
         <p style="margin:8px 0 0;font-size:0.95rem;font-weight:${booking.total_price > 0 ? '700' : '500'};color:#00BFFF">Est. pay: ${payEstimate}</p>
       </div>
-      <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px">
-        <span style="font-size:1rem">⏱</span>
-        <span style="font-size:0.85rem;color:#92400e;font-weight:600">Offer expires in ~${expiryMin} minutes</span>
+      <div style="background:#fef9ec;border:1px solid #fbbf24;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1.25rem">
+        <span style="font-size:0.85rem;color:#92400e;font-weight:600">Offer expires in about ${expiryMin} minutes</span>
       </div>
       <a href="${esc(offerUrl)}" style="display:block;text-align:center;background:#00BFFF;color:#fff;padding:14px 20px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">View Job &amp; Respond →</a>
       <p style="margin:10px 0 0;text-align:center;font-size:11px;color:#9ca3af">Opens your dashboard — review the details and tap Accept there.</p>

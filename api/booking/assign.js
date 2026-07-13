@@ -3,8 +3,8 @@ import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
-import { ACTIVE_EASER_TIERS, deriveAssemblerStatus, normalizeAssemblerTier } from '../_assembler-state.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -37,23 +37,15 @@ export default async function handler(req, res) {
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, status, tier, identity_verified')
+    .select('id, full_name, email, status, application_status, tier, has_membership, identity_verified, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .single();
 
   if (aErr || !assembler) return res.status(404).json({ error: 'Easer not found' });
-  const assemblerStatus = deriveAssemblerStatus(assembler);
-  const assemblerTier = normalizeAssemblerTier(assembler.tier);
-  if (assemblerStatus !== 'active') {
-    return res.status(400).json({ error: `Easer account is ${assemblerStatus || 'not active'}. Only active Easers can be assigned.` });
-  }
-  if (!ACTIVE_EASER_TIERS.includes(assemblerTier)) {
-    return res.status(400).json({ error: 'Easer must have a valid tier (Starter, Professional, or Elite).' });
-  }
-  if (!assembler.identity_verified) {
-    return res.status(400).json({ error: 'Easer must be identity verified before assignment.' });
-  }
+  const readiness = await getEaserReadiness(assembler);
+  if (!readiness.isReady) return res.status(400).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
+  const assemblerTier = readiness.tier;
 
   // Cancel any open dispatch offers so Easers don't get a stale offer email
   await sb.from('dispatch_offers')
@@ -73,7 +65,7 @@ export default async function handler(req, res) {
     assignment_token: token,
     assembler_accepted_at: null,
     dispatch_token: null,
-    dispatch_status: null,
+    dispatch_status: 'assigned_pending_acceptance',
     dispatch_paused: true,       // pause auto-dispatch once manually assigned
     needs_manual_dispatch: false,
   }).eq('id', bookingId);
@@ -99,7 +91,9 @@ export default async function handler(req, res) {
   // - Increment the new Easer's count
   // - If this is a reassignment to a *different* Easer, decrement the old one
   const prevEaserId = booking.assembler_id; // captured before the DB update
-  adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
+  if (!prevEaserId || prevEaserId !== assemblerId) {
+    adjustActiveJobs(sb, assemblerId, +1).catch(() => {});
+  }
   if (reassign && prevEaserId && prevEaserId !== assemblerId) {
     adjustActiveJobs(sb, prevEaserId, -1).catch(() => {});
   }
@@ -108,9 +102,18 @@ export default async function handler(req, res) {
   const firstName = (assembler.full_name || 'Easer').split(' ')[0];
   const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
   const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
+  const estimatedPayCents = Number(booking.total_price || 0) > 0
+    ? computeBookingSplitFromSnapshot({
+        totalPriceCents: booking.total_price,
+        taxCents: booking.tax_amount || 0,
+        isMember: assembler.has_membership === true,
+        assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+      }).assemblerDueCents
+    : 0;
 
+  let emailResult = { ok: false, error: 'Missing Easer email' };
   try {
-    await sendEmail({
+    emailResult = await sendEmail({
       to: assembler.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
@@ -120,29 +123,30 @@ export default async function handler(req, res) {
         service: booking.service,
         date: booking.date,
         time: booking.time,
-        address: booking.address,
-        details: booking.details,
-        customerName: (booking.customer_name || '').split(' ')[0],
+        estimatedPayCents,
         acceptUrl,
         declineUrl,
         ref: booking.ref,
       }),
+      meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: assemblerId },
     });
   } catch (e) {
     console.error('Assignment email error:', e);
+    emailResult = { ok: false, error: e?.message || String(e) };
   }
 
-  // Push notification — non-blocking
-  sendPushToUser(assemblerId, {
-    title: '🔧 New Job Assigned!',
+  // Push notification — delivery failure never rolls back the assignment.
+  const pushResult = await sendPushToUser(assemblerId, {
+    title: 'New Job Assigned',
     body:  (booking.service || 'Service') + ' · ' + (booking.date || '') + (booking.time ? ' · ' + booking.time : ''),
     url:   '/assembler/my-assignments',
     jobId: booking.id,
     urgent: true,
-  }).catch(e => console.error('Push notification error:', e));
+  }, { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer' })
+    .catch(e => ({ ok: false, error: e?.message || String(e) }));
 
   const didReassign = Boolean(reassign && prevEaserId && prevEaserId !== assemblerId);
-  logActivity(sb, {
+  await logActivity(sb, {
     bookingId: booking.id,
     eventType: didReassign ? 'reassigned' : 'assigned',
     actorType: 'owner',
@@ -159,10 +163,49 @@ export default async function handler(req, res) {
     },
   });
 
-  return res.status(200).json({ ok: true, assignedTo: assembler.full_name });
+  const notificationDelivered = Boolean(
+    (emailResult?.ok && !emailResult?.suppressed)
+    || pushResult?.ok
+  );
+  if (!notificationDelivered) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'assignment_notification_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: `Booking assigned to ${assembler.full_name}, but no notification channel confirmed delivery`,
+      metadata: {
+        assemblerId,
+        assemblerEmail: assembler.email || null,
+        emailError: emailResult?.error || emailResult?.reason || null,
+        pushError: pushResult?.error || pushResult?.reason || null,
+      },
+    });
+  }
+  if (emailResult?.logged === false || pushResult?.logged === false) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'notification_audit_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: `Assignment notification was attempted for ${assembler.full_name}, but an attempt log could not be saved`,
+      metadata: { emailLogError: emailResult?.logError || null, pushLogError: pushResult?.logError || null },
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    assignedTo: assembler.full_name,
+    notification: {
+      delivered: notificationDelivered,
+      email: emailResult,
+      push: pushResult,
+    },
+    warning: notificationDelivered ? null : 'Assigned, but the Easer notification needs owner follow-up.',
+  });
 }
 
-function buildAssignmentEmail({ firstName, service, date, time, address, details, customerName, acceptUrl, declineUrl, ref }) {
+function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref }) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
@@ -176,10 +219,9 @@ function buildAssignmentEmail({ firstName, service, date, time, address, details
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
         <tr><td style="padding:6px 0;color:#71717a;width:110px">Reference</td><td style="padding:6px 0;font-weight:600">${esc(ref)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Service</td><td style="padding:6px 0;font-weight:600">${esc(service)}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Customer</td><td style="padding:6px 0">${esc(customerName)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a">Date</td><td style="padding:6px 0">${esc(date || 'TBD')}${time ? ' at ' + esc(time) : ''}</td></tr>
-        <tr><td style="padding:6px 0;color:#71717a">Address</td><td style="padding:6px 0">${esc(address || 'Provided on acceptance')}</td></tr>
-        ${details ? `<tr><td style="padding:6px 0;color:#71717a;vertical-align:top">Details</td><td style="padding:6px 0">${esc(details)}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;color:#71717a">Estimated earnings</td><td style="padding:6px 0;font-weight:700;color:#059669">${estimatedPayCents > 0 ? '$' + (estimatedPayCents / 100).toFixed(2) : 'Pending custom quote'}</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a">Location</td><td style="padding:6px 0">Customer contact and exact address are shown after acceptance.</td></tr>
       </table>
     </td></tr></table>
     <div style="text-align:center;margin-bottom:16px">

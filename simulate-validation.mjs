@@ -5,21 +5,33 @@
  * Easer-JWT-required stages (status progression) are flagged as MANUAL.
  *
  * Usage:
- *   OWNER_PASSWORD=Gibson1242$ node --use-system-ca simulate-validation.mjs
+ *   Set OWNER_PASSWORD, SIMULATION_BASE_URL, and SIMULATION_EMAIL locally, then run:
+ *   node --use-system-ca simulate-validation.mjs
  *
- * Safe: uses source:'sim', totalCents:0 — no real Stripe charges.
- * All bookings are tagged SIM- in the customer name for easy cleanup.
+ * Run only against a local or explicitly approved non-production environment.
+ * Prices and payment state are server-authoritative; browser-supplied zero-value
+ * fields do not make a production simulation safe. Generated customer names are
+ * tagged SIM- so test records remain identifiable.
  */
 
 import { randomUUID } from 'crypto';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const BASE    = 'https://www.assembleatease.com';
+const BASE    = String(process.env.SIMULATION_BASE_URL || '').replace(/\/$/, '');
 const PW      = process.env.OWNER_PASSWORD;
-const EMAIL   = 'tg703664@gmail.com';  // all test notifications route here
+const EMAIL   = String(process.env.SIMULATION_EMAIL || '').trim();
 const CRON_SECRET = process.env.CRON_SECRET || null;
 
 if (!PW) { console.error('\nERROR: Set OWNER_PASSWORD env var.\n'); process.exit(1); }
+if (!BASE) { console.error('\nERROR: Set SIMULATION_BASE_URL to a local or approved non-production environment.\n'); process.exit(1); }
+if (!EMAIL || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(EMAIL)) {
+  console.error('\nERROR: Set SIMULATION_EMAIL to the approved test notification inbox.\n');
+  process.exit(1);
+}
+if (/^https?:\/\/(www\.)?assembleatease\.com$/i.test(BASE) && process.env.ALLOW_PRODUCTION_SIMULATION !== 'true') {
+  console.error('\nERROR: Production simulation is disabled. Use a local/test environment.\n');
+  process.exit(1);
+}
 
 // ─── Result tracker ───────────────────────────────────────────────────────────
 const R = { pass: [], fail: [], warn: [], manual: [] };

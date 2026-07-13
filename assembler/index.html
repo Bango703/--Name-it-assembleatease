@@ -679,11 +679,12 @@
     available = true;
     setAvailUI(true);
     try {
-      var res = await supabaseClient.from('profiles').update({is_available:true}).eq('id',currentUserId);
+      var res = await supabaseClient.rpc('update_own_easer_profile',{p_updates:{is_available:true}});
       if (res.error) throw res.error;
     } catch(e) {
       available = false;
       setAvailUI(false);
+      APP.showAlert('page-alert', (e && e.message) || 'Your readiness checklist must be complete before going Online.', 'error');
     }
   });
 
@@ -725,6 +726,13 @@
     }
 
     var onbSteps = [
+      {
+        key:'agreement',
+        done: !!currentProfile.contractor_agreement_signed_at && currentProfile.contractor_agreement_version === '2026-07-12' && !!currentProfile.code_of_conduct_agreed_at,
+        label:'Accept the current contractor agreement',
+        desc: currentProfile.contractor_agreement_version === '2026-07-12' ? 'Current agreement and code of conduct accepted.' : 'Review and accept the current terms before receiving offers.',
+        action: currentProfile.contractor_agreement_version !== '2026-07-12' ? { href:'/assembler/verify-identity', label:'Review' } : null,
+      },
       {
         key:'identity',
         done: currentProfile.identity_verified===true,
@@ -1063,7 +1071,7 @@
     var statsStrip=document.getElementById('eh-stats-strip');
     if(statsStrip){
       statsStrip.style.display='';
-      var ratingVal=profile.rating ? profile.rating.toFixed(1)+' ★' : 'New';
+      var ratingVal=profile.rating ? profile.rating.toFixed(1)+' / 5' : 'New';
       document.getElementById('stat-rating').textContent=ratingVal;
       document.getElementById('stat-jobs').textContent=profile.completed_jobs||'0';
       var earnedCents=profile.total_earned||0;
@@ -1129,7 +1137,7 @@
       available = false;
       setAvailUI(false);
       try {
-        var res = await supabaseClient.from('profiles').update({is_available:false}).eq('id',currentUserId);
+        var res = await supabaseClient.rpc('update_own_easer_profile',{p_updates:{is_available:false}});
         if (res.error) throw res.error;
       } catch(e) {
         available = true;

@@ -28,11 +28,18 @@ export default async function handler(req, res) {
     const notifEvents = (notifRes.data || []).map(n => ({
       id:          n.id,
       booking_id:  bookingId,
-      event_type:  'notification_sent',
+      event_type:  n.status === 'failed' ? 'notification_failed' : (n.status === 'suppressed' ? 'notification_suppressed' : 'notification_sent'),
       actor_type:  n.channel,           // 'email' | 'push'
       actor_name:  n.channel === 'email' ? 'Email' : 'Push',
       description: formatNotifDescription(n),
-      metadata:    { status: n.status, error: n.error_text, notificationType: n.notification_type },
+      metadata:    {
+        status: n.status,
+        error: n.error_text,
+        notificationType: n.notification_type,
+        recipientType: n.recipient_type,
+        recipientEmail: n.recipient_email,
+        ownerAction: n.status === 'failed' ? 'Confirm the booking state, then contact the intended recipient using the booking record.' : null,
+      },
       created_at:  n.sent_at,
       _source:     'notification',
       _status:     n.status,            // 'sent' | 'failed' — used for dot color in UI
@@ -42,7 +49,11 @@ export default async function handler(req, res) {
     const all = [...(activityRes.data || []), ...notifEvents]
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-    return res.status(200).json({ activity: all });
+    return res.status(200).json({
+      activity: all,
+      partial: Boolean(notifRes.error),
+      warning: notifRes.error ? 'Notification history could not be loaded.' : null,
+    });
   }
 
   if (req.method === 'POST') {
@@ -81,6 +92,10 @@ function formatNotifDescription(n) {
     review_request:           'Review request sent',
     reminder:                 'Appointment reminder sent',
     payout_summary:           'Payout summary sent',
+    reschedule_customer:      'Reschedule confirmation to customer',
+    reschedule_owner:         'Reschedule alert to owner',
+    reschedule_easer_reconfirmation: 'Reschedule acceptance request to Easer',
+    damage_claim_reported:    'Damage report alert to owner',
     cron_alert:               'System alert',
     transactional:            'Email notification',
   };
@@ -95,6 +110,9 @@ function formatNotifDescription(n) {
 
   if (n.status === 'failed') {
     return `${label} ${via} to ${to} FAILED — ${n.error_text || 'unknown error'}`;
+  }
+  if (n.status === 'suppressed') {
+    return `${label} ${via} to ${to} suppressed — ${n.error_text || 'duplicate or delivery cap'}`;
   }
   const recipient = n.recipient_email || to;
   return `${label} sent via ${via} to ${recipient}`;

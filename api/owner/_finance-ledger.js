@@ -1,9 +1,8 @@
-import { estimateStripeFeeCents } from '../_source-of-truth.js';
+import { computeBookingFinancialSummary } from '../_source-of-truth.js';
 
 export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   let bookings = null;
 
-  // Some environments may not have refund columns yet.
   let bookingsQuery = sb
     .from('bookings')
     .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents')
@@ -12,20 +11,13 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   if (to) bookingsQuery = bookingsQuery.lte('completed_at', to + 'T23:59:59Z');
 
   const firstAttempt = await bookingsQuery;
-  if (!firstAttempt.error) {
-    bookings = firstAttempt.data || [];
-  } else {
-    let fallbackQuery = sb
-      .from('bookings')
-      .select('id, ref, status, created_at, completed_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, platform_fee, platform_revenue, payment_status, tax_amount, bundle_slug')
-      .eq('status', 'completed');
-    if (from) fallbackQuery = fallbackQuery.gte('completed_at', from);
-    if (to) fallbackQuery = fallbackQuery.lte('completed_at', to + 'T23:59:59Z');
-
-    const secondAttempt = await fallbackQuery;
-    if (secondAttempt.error) throw secondAttempt.error;
-    bookings = (secondAttempt.data || []).map(b => ({ ...b, refund_amount: null, stripe_fee: (b.stripe_fee != null ? b.stripe_fee : null) }));
+  if (firstAttempt.error) {
+    const migrationError = new Error('Finance schema is incomplete. Apply all required migrations before using owner financial reports.');
+    migrationError.code = 'MIGRATION_REQUIRED';
+    migrationError.cause = firstAttempt.error;
+    throw migrationError;
   }
+  bookings = firstAttempt.data || [];
 
   const completed = bookings || [];
   const bookingIds = completed.map(b => b.id).filter(Boolean);
@@ -34,7 +26,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   if (bookingIds.length) {
     const { data, error } = await sb
       .from('payout_ledger')
-      .select('booking_id, payout_amount, platform_revenue, amount_charged, assembler_due, recorded_at')
+      .select('booking_id, payout_amount, platform_revenue, amount_charged, assembler_due, payout_method, payout_notes, recorded_by, recorded_at')
       .in('booking_id', bookingIds)
       .order('recorded_at', { ascending: false });
     if (error) throw error;
@@ -56,7 +48,6 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       ? Number(ledger.amount_charged || 0)
       : Number(b.amount_charged || b.total_price || 0);
     const refund = Number(b.refund_amount || 0);
-    const netCharged = Math.max(0, charged - refund);
 
     const paidOut = !!ledger || b.payout_status === 'paid' || Number(b.payout_amount || 0) > 0;
     const payoutAmount = ledger
@@ -67,15 +58,20 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       ? Number(ledger.payout_amount || 0)
       : Number(b.assembler_due || 0);
 
-    const isRefunded = b.payment_status === 'refunded' || refund > 0;
+    const isRefunded = ['refunded', 'partially_refunded'].includes(b.payment_status) || refund > 0;
     const legacyDerived = !ledger;
 
     // Sales tax is a pass-through liability owed to the state — NOT platform revenue.
     // Exclude it from platform revenue so the books reconcile to true operating profit.
-    const taxCollected = Math.min(Math.max(0, Number(b.tax_amount || 0)), netCharged);
-    // Actual Stripe fee when captured (migration 011); else the canonical estimate.
-    const stripeFee = (b.stripe_fee != null ? Number(b.stripe_fee) : estimateStripeFeeCents(netCharged));
-    const payoutForRevenue = paidOut ? payoutAmount : (isRefunded ? 0 : owed);
+    const financial = computeBookingFinancialSummary({
+      amountChargedCents: charged,
+      totalPriceCents: b.total_price,
+      refundAmountCents: refund,
+      taxAmountCents: b.tax_amount,
+      stripeFeeCents: b.stripe_fee,
+      assemblerDueCents: owed,
+      payoutAmountCents: paidOut ? payoutAmount : 0,
+    });
 
     return {
       bookingId: b.id,
@@ -97,16 +93,16 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       assemblecashRedeemedCents: Number(b.assemblecash_redeemed_cents || 0),
       charged,
       refund,
-      netCharged,
+      netCharged: financial.netChargedCents,
       paidOut,
       payoutAmount,
       owed,
-      taxCollected,
-      stripeFee,
-      stripeFeeIsActual: b.stripe_fee != null,
+      taxCollected: financial.taxCollectedCents,
+      stripeFee: financial.processingFeeCents,
+      stripeFeeIsActual: financial.processingFeeIsActual,
       // Platform gross profit — ONE definition shared across all finance surfaces:
       // revenue (net of refunds) MINUS Easer payout, sales tax (pass-through), and Stripe fee.
-      platformRevenue: netCharged - payoutForRevenue - taxCollected - stripeFee,
+      platformRevenue: financial.platformGrossCents,
       isRefunded,
       hasLedger: !!ledger,
       legacyDerived,

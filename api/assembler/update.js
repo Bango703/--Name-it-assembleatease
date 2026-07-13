@@ -7,6 +7,7 @@ import {
   getRestorableTier,
   normalizeAssemblerProfile,
 } from '../_assembler-state.js';
+import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -29,7 +30,7 @@ const SITE = 'https://www.assembleatease.com';
  *   promote          → tier upgrade (status must be active)
  *   demote           → tier downgrade (status must be active)
  *   mark_id_verified → id_verified=true, id_verification_status=verified
- *   delete           → permanently remove (pending/rejected only)
+ *   delete           → archive account, revoke access, preserve business records
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -53,17 +54,20 @@ export default async function handler(req, res) {
 
   // ── APPROVE ──────────────────────────────────────────────────────────────
   if (action === 'approve') {
-    if (!profile.identity_verified) {
-      return res.status(400).json({ error: 'Identity must be verified before approval. Mark ID verified first.' });
-    }
-    if (!profile.contractor_agreement_signed_at) {
-      return res.status(400).json({ error: 'Contractor agreement must be accepted before approval.' });
-    }
-    if (!profile.code_of_conduct_agreed_at) {
-      return res.status(400).json({ error: 'Code of conduct acceptance must be on file before approval.' });
-    }
     if (profile.status === 'active') {
       return res.status(400).json({ error: 'Easer is already active.' });
+    }
+    const approvalReadiness = await getEaserReadiness({
+      ...profile,
+      status: 'active',
+      application_status: 'approved',
+      tier: 'starter',
+    }, { connectRequired: false, requireAvailability: false });
+    if (!approvalReadiness.isReady) {
+      return res.status(400).json({
+        error: readinessError(approvalReadiness),
+        missingItems: approvalReadiness.missingItems,
+      });
     }
 
     const { error: approveErr } = await sb.from('profiles').update({
@@ -168,15 +172,16 @@ export default async function handler(req, res) {
     }
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    sendEmail({
+    const rejectionEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase Application',
       replyTo: 'service@assembleatease.com',
       html: buildRejectionEmail(firstName, rejectionReason?.trim() || null, !!refundId, !!profile.application_fee_waived),
-    }).catch(e => console.error('Rejection email error:', e));
+      meta: { notificationType: 'easer_application_rejected', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 
-    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId });
+    return res.status(200).json({ ok: true, action: 'rejected', status: 'rejected', refundId, emailDelivered: rejectionEmail?.ok === true && !rejectionEmail?.suppressed });
   }
 
   // ── SUSPEND ──────────────────────────────────────────────────────────────
@@ -218,6 +223,9 @@ export default async function handler(req, res) {
 
   // ── REINSTATE ────────────────────────────────────────────────────────────
   if (action === 'reinstate') {
+    if (profile.account_closure_status === 'completed') {
+      return res.status(409).json({ error: 'This account was closed and its sign-in access was revoked. Create a reviewed re-onboarding record instead of reinstating it.' });
+    }
     if (profile.status !== 'suspended' && profile.tier !== 'suspended') {
       return res.status(400).json({ error: 'Easer is not suspended.' });
     }
@@ -235,15 +243,16 @@ export default async function handler(req, res) {
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
     const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[restoredTier] || restoredTier;
-    sendEmail({
+    const reinstateEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase account has been reinstated',
       replyTo: 'service@assembleatease.com',
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer and you can now receive job assignments again.</p><p><a href="${SITE}/assembler/" style="color:#00BFFF">Open your dashboard</a></p></div>`,
-    }).catch(() => {});
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer. Review your readiness checklist, then switch to Online when you are ready to receive offers.</p><p><a href="${SITE}/assembler/" style="color:#00BFFF">Open your dashboard</a></p></div>`,
+      meta: { notificationType: 'easer_reinstated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 
-    return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier });
+    return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier, emailDelivered: reinstateEmail?.ok === true && !reinstateEmail?.suppressed });
   }
 
   // ── PROMOTE / DEMOTE ─────────────────────────────────────────────────────
@@ -274,13 +283,14 @@ export default async function handler(req, res) {
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
 
     if (action === 'promote') {
-      sendEmail({
+      await sendEmail({
         to: profile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Congratulations — you've been promoted to ${tierLabel}`,
         replyTo: 'service@assembleatease.com',
         html: buildPromotionEmail(firstName, tierLabel, tier),
-      }).catch(() => {});
+        meta: { notificationType: 'easer_tier_changed', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+      }).catch(() => ({ ok: false }));
     }
 
     return res.status(200).json({ ok: true, action, tier, previous: profile.tier });
@@ -300,40 +310,63 @@ export default async function handler(req, res) {
     // Best-effort: also update new columns if they exist
     await sb.from('profiles').update({ id_verification_status: 'verified' }).eq('id', assemblerId);
 
-    sendEmail({
+    const ownerNotice = await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `ID Verified — ${esc(profile.full_name)} ready to approve`,
       html: `<div style="font-family:sans-serif;padding:1.5rem"><p><strong>${esc(profile.full_name)}</strong> identity manually verified. They can now be approved. <a href="${SITE}/owner/" style="color:#00BFFF">Open dashboard</a></p></div>`,
-    }).catch(() => {});
+      meta: { notificationType: 'easer_identity_verified', recipientType: 'owner', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 
-    return res.status(200).json({ ok: true, action: 'id_verified', identity_verified: true });
+    return res.status(200).json({ ok: true, action: 'id_verified', identity_verified: true, ownerNotified: ownerNotice?.ok === true && !ownerNotice?.suppressed });
   }
 
-  // ── DELETE ───────────────────────────────────────────────────────────────
+  // ── CLOSE / ARCHIVE ACCOUNT ─────────────────────────────────────────────
   if (action === 'delete') {
-    // An active Easer can be removed directly, but only when they have no live
-    // jobs — same safety guard as suspend, so a booking is never stranded.
-    if (profile.status === 'active') {
-      const { data: liveJobs } = await sb
-        .from('bookings')
-        .select('id, ref, service, date')
-        .eq('assembler_id', assemblerId)
-        .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
-      if (liveJobs?.length) {
-        return res.status(409).json({
-          error: `Cannot remove — this Easer has ${liveJobs.length} active job(s). Reassign or complete them first.`,
-          activeJobs: liveJobs.map(b => ({ ref: b.ref, service: b.service, date: b.date })),
-        });
-      }
+    const { data: liveJobs, error: liveJobsError } = await sb
+      .from('bookings')
+      .select('id, ref, service, date')
+      .eq('assembler_id', assemblerId)
+      .in('status', ['confirmed', 'en_route', 'arrived', 'in_progress']);
+    if (liveJobsError) return res.status(500).json({ error: 'Could not verify active assignments.' });
+    if (liveJobs?.length) {
+      return res.status(409).json({
+        error: `Cannot close this account - the Easer has ${liveJobs.length} active job(s). Reassign or complete them first.`,
+        activeJobs: liveJobs.map(b => ({ ref: b.ref, service: b.service, date: b.date })),
+      });
     }
 
-    sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
-    const { error: profileDeleteErr } = await sb.from('profiles').delete().eq('id', assemblerId);
-    if (profileDeleteErr) return res.status(500).json({ error: 'Failed to delete profile' });
-    sb.auth.admin.deleteUser(assemblerId).catch(() => {});
+    const closedAt = new Date().toISOString();
+    const { error: profileCloseError } = await sb.from('profiles').update({
+      status: 'suspended',
+      tier: 'suspended',
+      previous_tier: getPreservedTier(profile),
+      is_available: false,
+      account_closure_status: 'completed',
+      account_closure_requested_at: profile.account_closure_requested_at || closedAt,
+      auth_access_revoke_error: null,
+    }).eq('id', assemblerId);
+    if (profileCloseError) return res.status(500).json({ error: 'Failed to archive Easer account' });
 
-    return res.status(200).json({ ok: true, action: 'deleted' });
+    let accessRevoked = false;
+    let accessError = null;
+    try {
+      const { error: authDeleteError } = await sb.auth.admin.deleteUser(assemblerId, true);
+      if (authDeleteError) throw authDeleteError;
+      accessRevoked = true;
+      await sb.from('profiles').update({ auth_access_revoked_at: closedAt }).eq('id', assemblerId);
+    } catch (error) {
+      accessError = error?.message || 'Auth access revocation failed';
+      await sb.from('profiles').update({ auth_access_revoke_error: accessError }).eq('id', assemblerId);
+    }
+
+    return res.status(200).json({
+      ok: true,
+      action: 'account_archived',
+      recordsPreserved: true,
+      accessRevoked,
+      warning: accessRevoked ? null : 'auth_access_revocation_failed',
+    });
   }
 
   return res.status(400).json({ error: `Unknown action: ${action}` });

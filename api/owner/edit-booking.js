@@ -17,12 +17,25 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Cannot edit a ' + booking.status + ' booking' });
   }
 
+  if (typeof totalPrice === 'number') {
+    if (booking.stripe_payment_intent_id
+        || ['authorized', 'captured', 'partially_refunded', 'refunded', 'cancellation_fee_captured'].includes(booking.payment_status)) {
+      return res.status(409).json({
+        error: 'Price is locked because Stripe already has financial state for this booking. Cancel/release the authorization and create a new booking if the scope changed.',
+        code: 'PRICE_LOCKED_AFTER_PAYMENT',
+      });
+    }
+    return res.status(409).json({
+      error: 'Prices cannot be edited directly. Use the quote approval workflow so the customer sees and approves the exact subtotal, tax, total, and cancellation terms.',
+      code: 'CUSTOMER_QUOTE_APPROVAL_REQUIRED',
+    });
+  }
+
   const updates = {};
   if (date)    updates.date    = date;
   if (time)    updates.time    = time;
   if (address) updates.address = address;
   if (service) updates.service = service;
-  if (typeof totalPrice === 'number' && totalPrice >= 0) updates.total_price = totalPrice;
 
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
 

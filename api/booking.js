@@ -11,6 +11,8 @@ import {
   resolveBookingPromotion,
 } from './_promotions.js';
 import { logActivity } from './booking/_activity.js';
+import { appointmentTimestampMs } from './booking/_appt-date.js';
+import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import {
   verifyRedemptionToken,
   getAvailableBalanceCents,
@@ -38,8 +40,7 @@ export default async function handler(req, res) {
     time,
     details,
     isQuoteRequest,
-    paymentMethodId,
-    stripeCustomerId,
+    setupIntentId,
     promoCode,
     promoPreviewApplied,
     promoPreviewTotalCents,
@@ -57,13 +58,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const requestedDate = new Date(`${date}T00:00:00`);
+  const requestedDate = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(requestedDate.getTime())) {
     return res.status(400).json({ error: 'Invalid appointment date.' });
   }
 
-  const bookingWindowStart = new Date();
-  bookingWindowStart.setHours(0, 0, 0, 0);
+  const chicagoToday = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  const bookingWindowStart = new Date(`${chicagoToday}T12:00:00Z`);
   const bookingWindowEnd = new Date(bookingWindowStart.getTime() + 6 * 24 * 60 * 60 * 1000);
   if (requestedDate < bookingWindowStart || requestedDate > bookingWindowEnd) {
     return res.status(400).json({
@@ -73,11 +76,40 @@ export default async function handler(req, res) {
     });
   }
 
+  const weekday = requestedDate.getUTCDay();
+  const weekdaySlots = [
+    '7:00 AM – 9:00 AM', '9:00 AM – 11:00 AM', '11:00 AM – 1:00 PM',
+    '1:00 PM – 3:00 PM', '3:00 PM – 5:00 PM',
+  ];
+  const saturdaySlots = weekdaySlots.slice(0, 3);
+  const allowedSlots = weekday === 0 ? [] : (weekday === 6 ? saturdaySlots : weekdaySlots);
+  if (!allowedSlots.includes(time)) {
+    return res.status(400).json({
+      error: weekday === 0
+        ? 'Online appointments are closed on Sunday. Please choose Monday through Saturday.'
+        : 'Please choose a time within published service hours (Monday–Friday 7 AM–5 PM; Saturday 7 AM–1 PM).',
+      code: 'INVALID_SERVICE_HOURS',
+    });
+  }
+  const appointmentMs = appointmentTimestampMs(date, time);
+  if (appointmentMs == null || appointmentMs <= Date.now()) {
+    return res.status(400).json({ error: 'That appointment time has already passed. Please choose a later time.' });
+  }
+
   const KEY = process.env.RESEND_API_KEY;
   const TO  = ownerEmail();
-  const ref = 'AAE-' + Date.now().toString(36).toUpperCase();
+  const ref = 'AAE-' + randomToken(8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
+
+  try { assertGuestTokenConfiguration(); }
+  catch (tokenConfigErr) {
+    console.error('Guest token configuration unavailable:', tokenConfigErr.message);
+    return res.status(503).json({
+      error: 'Secure booking access is not configured. No booking was created.',
+      code: 'GUEST_TOKEN_CONFIGURATION_REQUIRED',
+    });
+  }
 
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
@@ -106,6 +138,46 @@ export default async function handler(req, res) {
   let taxCents = pricingWithPromo.taxCents;
   const serviceCallFeeCents = pricingWithPromo.serviceCallFeeCents;
   const shouldChargeNow = amount > 0 && !quoteRequested;
+  let verifiedQuotePaymentMethodId = null;
+  let verifiedQuoteCustomerId = null;
+
+  if (quoteRequested) {
+    if (!setupIntentId || !process.env.STRIPE_SECRET_KEY) {
+      return res.status(409).json({
+        error: 'Secure card setup must be completed before submitting a custom quote request.',
+        code: 'QUOTE_CARD_SETUP_REQUIRED',
+      });
+    }
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const setupIntent = await stripe.setupIntents.retrieve(String(setupIntentId));
+      const setupEmail = String(setupIntent.metadata?.email || '').trim().toLowerCase();
+      if (setupIntent.status !== 'succeeded'
+          || setupIntent.metadata?.source !== 'quote_booking'
+          || setupEmail !== String(email).trim().toLowerCase()
+          || typeof setupIntent.customer !== 'string'
+          || typeof setupIntent.payment_method !== 'string') {
+        return res.status(409).json({
+          error: 'Secure card setup does not match this quote request.',
+          code: 'QUOTE_CARD_SETUP_MISMATCH',
+        });
+      }
+      verifiedQuoteCustomerId = setupIntent.customer;
+      verifiedQuotePaymentMethodId = setupIntent.payment_method;
+    } catch (setupErr) {
+      console.error('Quote SetupIntent verification failed:', setupErr);
+      return res.status(502).json({ error: 'Could not verify secure card setup. Please retry the quote request.' });
+    }
+  }
+
+  if (amount > 0
+      && process.env.VERCEL_ENV === 'production'
+      && process.env.TEXAS_TAX_CONFIGURATION_APPROVED !== 'true') {
+    return res.status(503).json({
+      error: 'Online paid booking is paused until the launch tax configuration is approved. Please contact AssembleAtEase for assistance.',
+      code: 'TAX_CONFIGURATION_REQUIRED',
+    });
+  }
 
   const previewApplied = promoPreviewApplied === true;
   const previewTotal = Number.isFinite(Number(promoPreviewTotalCents)) ? Math.round(Number(promoPreviewTotalCents)) : null;
@@ -273,6 +345,21 @@ export default async function handler(req, res) {
   }
 
   const bookingId = savedBooking.id;
+  const guestMutationToken = deriveGuestMutationToken({ bookingId, ref, email });
+  const { error: guestTokenErr } = await sb.from('bookings').update({
+    guest_mutation_token_hash: guestMutationTokenHash({ id: bookingId, ref, customer_email: email }),
+  }).eq('id', bookingId);
+  if (guestTokenErr) {
+    if (assemblecashRedeemedCents > 0) {
+      await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:guest_token_setup_failed' });
+    }
+    await sb.from('bookings').delete().eq('id', bookingId);
+    console.error('Booking guest-token setup failed:', guestTokenErr);
+    return res.status(503).json({
+      error: 'Secure booking access is temporarily unavailable. Please try again shortly.',
+      code: 'BOOKING_SECURITY_UNAVAILABLE',
+    });
+  }
   if (assemblecashRedeemedCents > 0) {
     await attachRedemptionToBooking(sb, { bookingId, bookingRef: ref, customerEmail: email });
   }
@@ -300,12 +387,16 @@ export default async function handler(req, res) {
   }
 
   // Quote booking with saved card: store the customer + payment method from SetupIntent
-  if (quoteRequested && paymentMethodId && stripeCustomerId) {
-    await sb.from('bookings').update({
-      stripe_customer_id: stripeCustomerId,
-      stripe_payment_method_id: paymentMethodId,
+  if (quoteRequested && verifiedQuotePaymentMethodId && verifiedQuoteCustomerId) {
+    const { error: quoteCardLinkErr } = await sb.from('bookings').update({
+      stripe_customer_id: verifiedQuoteCustomerId,
+      stripe_payment_method_id: verifiedQuotePaymentMethodId,
       payment_status: 'card_saved',
     }).eq('id', bookingId);
+    if (quoteCardLinkErr) {
+      await sb.from('bookings').delete().eq('id', bookingId);
+      return res.status(500).json({ error: 'Could not save secure quote payment setup. Please try again.' });
+    }
   }
 
   // ── Stripe: create customer + PaymentIntent (skip if no price) ──
@@ -359,13 +450,20 @@ export default async function handler(req, res) {
           promoDiscountCents: String(promoDiscountCents || 0),
           assemblecashRedeemedCents: String(assemblecashRedeemedCents || 0),
         },
-      });
+      }, { idempotencyKey: `booking-create-${bookingId}-${amount}` });
 
       // Save Stripe IDs to booking record
-      await sb.from('bookings').update({
+      const { error: stripeLinkErr } = await sb.from('bookings').update({
         stripe_customer_id: customer.id,
         stripe_payment_intent_id: pi.id,
       }).eq('id', bookingId);
+
+      if (stripeLinkErr) {
+        try { await stripe.paymentIntents.cancel(pi.id); } catch (cancelErr) {
+          console.error('Failed to cancel unlinked PaymentIntent:', cancelErr);
+        }
+        throw new Error(`Failed to persist Stripe payment link: ${stripeLinkErr.message}`);
+      }
 
       clientSecret = pi.client_secret;
     } catch (stripeErr) {
@@ -392,6 +490,7 @@ export default async function handler(req, res) {
   const sDate = esc(date);
   const sTime = esc(time);
   const sDetails = esc(details);
+  const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -490,7 +589,7 @@ export default async function handler(req, res) {
     </td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
-      <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Contact Us</a>
+      <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage this request</a>
     </td></tr></table>
   </td></tr></table>
 
@@ -559,6 +658,7 @@ export default async function handler(req, res) {
       success: true,
       ref,
       bookingId,
+      guestMutationToken,
       clientSecret,
       isDeposit,
       depositAmountCents,

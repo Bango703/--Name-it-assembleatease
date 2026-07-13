@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { verifyOwner } from '../_email.js';
 import { getSupabase } from '../_supabase.js';
-import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
 
 export default async function handler(req, res) {
@@ -125,19 +124,6 @@ export default async function handler(req, res) {
     topServices: Object.entries(svcMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, c]) => s + ': ' + c + ' bookings'),
   };
 
-  // ── Auto-dispatch confirmed unassigned bookings ─────────────────
-  const unassigned = confirmed.filter(b => !b.assembler_id && !b.dispatch_offered_at);
-  const dispatchResults = [];
-  for (const b of unassigned) {
-    try {
-      const r = await dispatchBooking(b.id);
-      dispatchResults.push({ ref: b.ref, result: r.message, dispatched: r.dispatched });
-    } catch(e) { dispatchResults.push({ ref: b.ref, result: 'error: ' + e.message }); }
-  }
-  if (dispatchResults.length) {
-    platformData.autoDispatchedNow = dispatchResults;
-  }
-
   // ── Ask Claude Haiku to synthesize ──────────────────────────────
   const client = key ? new Anthropic({ apiKey: key }) : null;
 
@@ -165,8 +151,6 @@ CRITICAL FORMATTING RULES — you must follow these exactly:
 
   const userMsg = isChat ? message.trim()
     : `Today is ${todayStr}. Run a full platform health check.
-
-${dispatchResults.length ? `NOTE: I just auto-dispatched ${dispatchResults.length} confirmed unassigned booking(s) to Easers: ${dispatchResults.map(r => r.ref + ' (' + r.result + ')').join(', ')}.` : ''}
 
 Give me:
 1. URGENT — anything that needs attention right now (stale pending, missed jobs, uncontacted customers)

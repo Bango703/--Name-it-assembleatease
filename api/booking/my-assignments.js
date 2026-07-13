@@ -8,6 +8,23 @@ import {
   computeBookingSplitFromSnapshot,
 } from '../_source-of-truth.js';
 
+export function redactAssignmentCustomerData(bookings = []) {
+  return bookings.map(booking => {
+    const maySeeOperationalContact = Boolean(
+      booking.assembler_accepted_at && ACTIVE_BOOKING_STATUSES.includes(booking.status)
+    );
+    if (!maySeeOperationalContact) {
+      booking.customer_name = null;
+      booking.customer_phone = null;
+      booking.customer_email = null;
+      booking.address = null;
+      booking.details = null;
+    }
+    if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) booking.assignment_token = null;
+    return booking;
+  });
+}
+
 /**
  * GET /api/booking/my-assignments
  * Returns bookings assigned to the authenticated assembler PLUS any open
@@ -57,7 +74,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -104,7 +121,7 @@ export default async function handler(req, res) {
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, ref, service, customer_name, date, time, address, details, status, total_price, tax_amount, assemblecash_redeemed_cents')
+        .select('id, ref, service, date, time, status, total_price, tax_amount, assemblecash_redeemed_cents')
         .in('id', unacceptedOfferBookingIds)
         .eq('status', BOOKING_STATUS.CONFIRMED)
         .is('assembler_id', null);
@@ -141,6 +158,11 @@ export default async function handler(req, res) {
       b._offer_score      = offerMap[b.id].dispatch_score;
     }
   });
+
+  // Customer operational contact data is available only while an accepted job
+  // is active. Pending/unaccepted assignments and terminal history are always
+  // server-redacted so UI mistakes cannot expose retained customer PII.
+  redactAssignmentCustomerData(assignedBookings || []);
 
   // For completed jobs where evidence was requested, flag whether evidence has been uploaded.
   // This lets the Easer dashboard show/hide the upload prompt without a separate API call.

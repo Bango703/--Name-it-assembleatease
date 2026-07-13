@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import {
   buildIdentityResumeUrl,
+  CONTRACTOR_AGREEMENT_VERSION,
   createIdentityVerificationSession,
   ensureIdentityResumeToken,
   getClientIp,
@@ -22,7 +23,7 @@ async function resolveAssemblerProfile(req, sb) {
 
     const { data: profile, error } = await sb
       .from('profiles')
-      .select('id, role, full_name, email, status, application_status, identity_verified, contractor_agreement_signed_at, code_of_conduct_agreed_at, identity_resume_token')
+      .select('id, role, full_name, email, status, application_status, identity_verified, contractor_agreement_signed_at, code_of_conduct_agreed_at, contractor_agreement_version, identity_resume_token')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -41,7 +42,7 @@ async function resolveAssemblerProfile(req, sb) {
 
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('id, role, full_name, email, status, application_status, identity_verified, contractor_agreement_signed_at, code_of_conduct_agreed_at, identity_resume_token')
+    .select('id, role, full_name, email, status, application_status, identity_verified, contractor_agreement_signed_at, code_of_conduct_agreed_at, contractor_agreement_version, identity_resume_token')
     .eq('identity_resume_token', resumeToken)
     .maybeSingle();
 
@@ -70,7 +71,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    const requiresAgreement = !profile.contractor_agreement_signed_at || !profile.code_of_conduct_agreed_at;
+    const requiresAgreement = !profile.contractor_agreement_signed_at
+      || !profile.code_of_conduct_agreed_at
+      || profile.contractor_agreement_version !== CONTRACTOR_AGREEMENT_VERSION;
     return res.status(200).json({
       ok: true,
       authMode,
@@ -83,7 +86,9 @@ export default async function handler(req, res) {
     });
   }
 
-  const requiresAgreement = !profile.contractor_agreement_signed_at || !profile.code_of_conduct_agreed_at;
+  const requiresAgreement = !profile.contractor_agreement_signed_at
+    || !profile.code_of_conduct_agreed_at
+    || profile.contractor_agreement_version !== CONTRACTOR_AGREEMENT_VERSION;
   if (profile.identity_verified === true && !requiresAgreement) {
     return res.status(200).json({
       ok: true,

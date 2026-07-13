@@ -35,6 +35,9 @@ export default async function handler(req, res) {
 
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.assembler_id !== user.id) return res.status(403).json({ error: 'Not your booking' });
+  if (!booking.assembler_accepted_at) {
+    return res.status(409).json({ error: 'Accept this assignment before updating the job status.' });
+  }
 
   // Hard-block terminal states — completed/cancelled bookings must never be updated
   if (TERMINAL_BOOKING_STATUSES.includes(booking.status)) {
@@ -45,35 +48,42 @@ export default async function handler(req, res) {
   }
 
   const { status, field, label } = STAGES[stage];
-  const transitionErr = getTransitionError(booking.status, status, { allowNoop: true });
+  if (booking.status === status && booking[field]) {
+    return res.status(200).json({ ok: true, stage, label, alreadyUpdated: true });
+  }
+  if (booking.status === status && !booking[field]) {
+    return res.status(409).json({ error: `Booking is missing its ${field} timestamp. Owner review is required.` });
+  }
+  const transitionErr = getTransitionError(booking.status, status);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
   const now = new Date().toISOString();
 
   // Primary update: status + pipeline_stage + timestamp field
   const update = { status, pipeline_stage: stage, [field]: now };
-  // Backfill acceptance timestamp for legacy/manual assignments that skipped accept-dispatch.
-  if (!booking.assembler_accepted_at) update.assembler_accepted_at = now;
-  const { error: updateErr } = await sb.from('bookings').update(update).eq('id', bookingId);
-  if (updateErr) {
-    // Fallback: pipeline_stage column may not exist — preserve the timestamp field
-    const { error: e2 } = await sb.from('bookings').update({ status, [field]: now }).eq('id', bookingId);
-    if (e2) return res.status(500).json({ error: 'Failed to update status' });
+  const { data: updatedRows, error: updateErr } = await sb.from('bookings')
+    .update(update)
+    .eq('id', bookingId)
+    .eq('assembler_id', user.id)
+    .eq('status', booking.status)
+    .select('id');
+  if (updateErr || !updatedRows?.length) {
+    return res.status(409).json({ error: 'Job status changed before this update. Refresh and try again.' });
   }
 
   const easerFirstName = (booking.assembler_name || 'Your Easer').split(' ')[0];
   const customerFirstName = (booking.customer_name || 'there').split(' ')[0];
 
   // Log activity
-  logActivity(sb, { bookingId, eventType: stage, actorType: 'easer', actorId: user.id, actorName: booking.assembler_name || 'Easer', description: `${booking.assembler_name || 'Easer'} — ${label}` });
+  await logActivity(sb, { bookingId, eventType: stage, actorType: 'easer', actorId: user.id, actorName: booking.assembler_name || 'Easer', description: `${booking.assembler_name || 'Easer'} — ${label}` });
 
   // Notify owner
-  sendEmail({
+  const ownerNotice = await sendEmail({
     to: ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `${label} — ${esc(booking.ref)} · ${esc(booking.service)}`,
     html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem"><p style="font-size:1.1rem;font-weight:700;color:#00BFFF">${label}</p><p><strong>${esc(booking.assembler_name||'Easer')}</strong> — ${esc(booking.service)}<br>Customer: ${esc(booking.customer_name)}<br>Address: ${esc(booking.address)}</p><p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View Dashboard</a></p></div>`,
     meta: { bookingId, notificationType: stage, recipientType: 'owner' },
-  }).catch(() => {});
+  }).catch(err => ({ ok: false, error: err?.message || String(err) }));
 
   // Notify customer at key stages
   const customerMessages = {
@@ -91,17 +101,46 @@ export default async function handler(req, res) {
     },
   };
 
+  let customerNotice = { ok: true, skipped: true, reason: 'customer_email_missing' };
   if (booking.customer_email && customerMessages[stage]) {
     const msg = customerMessages[stage];
-    sendEmail({
+    customerNotice = await sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: msg.subject,
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">${label}</h2><p>Hi ${esc(customerFirstName)},</p><p>${msg.body}</p><p style="margin-top:1rem;color:#6b7280;font-size:0.85rem">Booking: ${esc(booking.ref)} · Questions? Reply to this email.</p></div>`,
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: stage, recipientType: 'customer' },
-    }).catch(() => {});
+    }).catch(err => ({ ok: false, error: err?.message || String(err) }));
   }
 
-  return res.status(200).json({ ok: true, stage, label });
+  const notificationFailures = [];
+  if (!ownerNotice?.ok) notificationFailures.push({ recipient: 'owner', error: ownerNotice?.error || 'Owner email failed' });
+  if (!customerNotice?.ok) notificationFailures.push({ recipient: 'customer', error: customerNotice?.error || 'Customer email failed' });
+  if (notificationFailures.length) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'status_notification_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: `${label} status saved, but ${notificationFailures.map(f => f.recipient).join(' and ')} notification failed`,
+      metadata: { stage, failures: notificationFailures },
+    });
+  }
+  const auditFailures = [
+    { recipient: 'owner', result: ownerNotice },
+    { recipient: 'customer', result: customerNotice },
+  ].filter(item => item.result?.logged === false);
+  if (auditFailures.length) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'notification_audit_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: `${label} notifications were attempted, but one or more attempt logs could not be saved`,
+      metadata: { stage, failures: auditFailures.map(item => ({ recipient: item.recipient, error: item.result?.logError || null })) },
+    });
+  }
+
+  return res.status(200).json({ ok: true, stage, label, notificationFailures, auditFailures });
 }

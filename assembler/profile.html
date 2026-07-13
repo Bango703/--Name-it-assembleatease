@@ -307,9 +307,9 @@
 
       <!-- Danger zone -->
       <div class="form-section danger-zone">
-        <div class="form-section-title">Danger zone</div>
-        <p class="danger-text">Deleting your account is permanent. All your assignments, reviews, and earnings history will be removed.</p>
-        <button class="btn btn-danger" id="delete-account-btn" type="button">Delete my account</button>
+        <div class="form-section-title">Close account</div>
+        <p class="danger-text">Request account closure and stop receiving offers. AssembleAtEase will review active jobs, payouts, tax records, and legally required retention before removing access.</p>
+        <button class="btn btn-danger" id="delete-account-btn" type="button">Request account closure</button>
       </div>
     </div>
 </div><!-- /easer-page -->
@@ -336,6 +336,17 @@
 <script>
   let photoBase64 = null;
   let currentUserId = null;  // set after auth; lets the photo picker save immediately
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function safeProfilePhoto(value) {
+    var photo = String(value || '');
+    return /^(https:\/\/[^"'<>\s]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+)$/i.test(photo) ? photo : '';
+  }
 
   function collapseBasicSection() {
     var name  = document.getElementById('full-name').value.trim();
@@ -452,6 +463,11 @@
     document.body.style.visibility = 'visible';
     const { user, profile } = auth;
     currentUserId = user.id;  // enable immediate photo auto-save
+    if (['requested', 'reviewing'].includes(profile.account_closure_status)) {
+      const closureButton = document.getElementById('delete-account-btn');
+      closureButton.disabled = true;
+      closureButton.textContent = 'Closure requested';
+    }
 
     // Offline / online detection
     var offlineBanner = document.getElementById('e-offline');
@@ -505,17 +521,21 @@
     }
     if (idRating) {
       if (profile.rating) {
-        var stars = '';
-        for (var i = 0; i < 5; i++) stars += i < Math.round(profile.rating) ? '★' : '☆';
-        idRating.textContent = stars + ' ' + Number(profile.rating).toFixed(1) + (profile.review_count ? ' (' + profile.review_count + ' reviews)' : '');
+        idRating.textContent = Number(profile.rating).toFixed(1) + ' / 5' + (profile.review_count ? ' (' + profile.review_count + ' reviews)' : '');
         idRating.style.color = '#f59e0b';
       } else {
         idRating.textContent = 'No reviews yet';
       }
     }
     if (idAvatar) {
-      if (profile.profile_photo) {
-        idAvatar.innerHTML = '<img src="' + profile.profile_photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      var safePhoto = safeProfilePhoto(profile.profile_photo);
+      if (safePhoto) {
+        idAvatar.textContent = '';
+        var profileImage = document.createElement('img');
+        profileImage.src = safePhoto;
+        profileImage.alt = '';
+        profileImage.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+        idAvatar.appendChild(profileImage);
       } else {
         var initials2 = (profile.full_name || 'E').split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
         idAvatar.textContent = initials2;
@@ -703,12 +723,27 @@
     });
     document.getElementById('delete-sheet-confirm').addEventListener('click', async () => {
       document.getElementById('delete-sheet').classList.remove('open');
-      APP.setLoading('delete-account-btn', true, 'Deleting...');
+      APP.setLoading('delete-account-btn', true, 'Requesting...');
       try {
-        await supabaseClient.from('profiles').delete().eq('id', user.id);
-        await supabaseClient.auth.signOut();
-        window.location.href='/auth/login.html';
-      } catch (err) { APP.showAlert('page-alert', 'Failed to delete account.', 'error'); APP.setLoading('delete-account-btn', false, 'Delete my account'); }
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session?.access_token) throw new Error('Please sign in again.');
+        const reason = document.getElementById('closure-reason').value.trim();
+        const response = await fetch('/api/assembler/request-account-closure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ reason: reason })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || 'Could not request account closure.');
+        APP.showAlert('page-alert', data.warning
+          ? 'Your request was saved, but support notification failed. Please also email service@assembleatease.com.'
+          : 'Account closure requested. You are offline and support will review the request.', data.warning ? 'error' : 'success');
+        document.getElementById('delete-account-btn').disabled = true;
+        document.getElementById('delete-account-btn').textContent = 'Closure requested';
+      } catch (err) {
+        APP.showAlert('page-alert', err.message || 'Failed to request account closure.', 'error');
+        APP.setLoading('delete-account-btn', false, 'Request account closure');
+      }
     });
 
     // Load reviews for this assembler
@@ -721,16 +756,15 @@
       if (reviewList.length) {
         countLabel.textContent = '(' + reviewList.length + ')';
         list.innerHTML = reviewList.map(function(r) {
-          var name = (r.reviewer.full_name || 'Customer').split(' ')[0];
-          var stars = '';
-          for (var i = 0; i < 5; i++) stars += i < r.rating ? '&#9733;' : '&#9734;';
+          var name = escapeHtml((r.reviewer.full_name || 'Customer').split(' ')[0]);
+          var ratingLabel = Number(r.rating || 0).toFixed(1) + ' / 5';
           var date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
           return '<div style="padding:0.85rem 0;border-bottom:1px solid var(--pro-border)">'
             + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem">'
             + '<span style="font-weight:500;color:var(--pro-text)">' + name + '</span>'
-            + '<span style="color:#f59e0b;font-size:0.85rem">' + stars + '</span>'
+            + '<span style="color:#f59e0b;font-size:0.85rem">' + ratingLabel + '</span>'
             + '</div>'
-            + '<div style="color:var(--pro-soft);line-height:1.6">' + (r.comment || 'No comment.') + '</div>'
+            + '<div style="color:var(--pro-soft);line-height:1.6">' + escapeHtml(r.comment || 'No comment.') + '</div>'
             + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,191,255,0.15)">&#10003; Would hire again</div>' : '')
             + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
             + '</div>';
@@ -746,10 +780,12 @@
 </script>
 <div class="sheet-overlay" id="delete-sheet">
   <div class="sheet-box">
-    <div class="sheet-title" style="color:#dc2626">Delete Account</div>
-    <div class="sheet-body">This cannot be undone. All assignments, reviews, and earnings history will be permanently deleted.</div>
+    <div class="sheet-title" style="color:#dc2626">Request Account Closure</div>
+    <div class="sheet-body">You will be switched offline immediately. Support will review active work, unpaid earnings, tax records, and data-retention requirements before closing access.</div>
+    <label for="closure-reason" style="display:block;font-size:0.78rem;font-weight:700;margin:0.8rem 0 0.35rem">Reason (optional)</label>
+    <textarea id="closure-reason" maxlength="500" style="width:100%;min-height:76px;box-sizing:border-box" placeholder="Tell support anything needed to process this safely."></textarea>
     <div class="sheet-actions">
-      <button class="sheet-btn-danger" id="delete-sheet-confirm">Yes, delete my account</button>
+      <button class="sheet-btn-danger" id="delete-sheet-confirm">Submit closure request</button>
       <button class="sheet-btn-cancel" id="delete-sheet-cancel">Cancel</button>
     </div>
   </div>

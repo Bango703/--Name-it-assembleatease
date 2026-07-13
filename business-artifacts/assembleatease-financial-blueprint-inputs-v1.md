@@ -2,11 +2,13 @@
 
 These are draft operating assumptions for Theodore to use in a first financial model. They are not final prices, legal policies, or proven labor data. The labor estimates should be validated against actual Austin jobs during launch.
 
-## Biggest Missing Input Now Filled as V1
+## Catalog Coverage Status
 
-- Full catalog rows modeled: 178
-- Low-priced non-add-on services under $99: 80
-- Pricing bucket counts: Quick: 46, Standard: 85, Premium: 28, Complex: 17, Custom quote: 2
+- Current booking catalog rows: 202
+- Labor-assumption rows modeled in the V1 CSV: 178
+- Current low-priced non-add-on services under $99: 41
+- Current custom-quote rows: 3
+- The V1 labor CSV is not a pricing source of truth. The 24-row coverage gap must be modeled and all labor assumptions must be validated against actual Austin jobs before they are used for automated pricing decisions.
 
 ## Service Area Rules to Model
 
@@ -29,8 +31,8 @@ These are draft operating assumptions for Theodore to use in a first financial m
 | Situation | Current draft rule |
 | --- | --- |
 | Customer cancels more than 24 hours before service | No charge; card hold released. |
-| Customer cancels less than 24 hours before service | 50% cancellation fee. |
-| Customer no-show | Full booked service price charged. |
+| Customer cancels less than 24 hours before service | 10% of the pre-tax service subtotal, excluding the service-call fee. |
+| Customer cancels within 2 hours, after the Easer is en route, or no-shows | 15% of the pre-tax service subtotal, excluding the service-call fee; never the full unperformed service amount. |
 | Customer dissatisfied | Customer must contact within 7 days; company may offer redo, partial refund, or full refund. |
 | Refund processing | Owner can issue full or partial Stripe refund after payment capture. |
 

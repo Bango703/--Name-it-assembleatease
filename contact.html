@@ -442,16 +442,19 @@ AAE.initAddressAutocomplete = function() {
     var q = input.value.trim();
     if (q.length < 4) { dropdown.style.display = 'none'; return; }
     debounce = setTimeout(function() {
-      fetch('https://nominatim.openstreetmap.org/searchformat=json&countrycodes=us&addressdetails=1&limit=5&q=' + encodeURIComponent(q))
+      fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&addressdetails=1&limit=5&q=' + encodeURIComponent(q))
         .then(function(r) { return r.json(); })
         .then(function(results) {
           if (!results.length) { dropdown.style.display = 'none'; return; }
-          dropdown.innerHTML = results.map(function(r) {
-            var addr = r.display_name.replace(/, United States$/, '');
-            return '<div style="padding:0.65rem 1rem;cursor:pointer;font-size:0.85rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s" onmouseenter="this.style.background=\'#e0f7fa\'" onmouseleave="this.style.background=\'#fff\'">' + addr + '</div>';
-          }).join('');
-          dropdown.querySelectorAll('div').forEach(function(opt) {
+          dropdown.textContent = '';
+          results.forEach(function(result) {
+            var opt = document.createElement('div');
+            opt.style.cssText = 'padding:0.65rem 1rem;cursor:pointer;font-size:0.85rem;border-bottom:1px solid #f3f4f6;transition:background 0.1s';
+            opt.textContent = String(result.display_name || '').replace(/, United States$/, '');
+            opt.addEventListener('mouseenter', function() { opt.style.background = '#e0f7fa'; });
+            opt.addEventListener('mouseleave', function() { opt.style.background = '#fff'; });
             opt.addEventListener('mousedown', function(ev) { ev.preventDefault(); input.value = opt.textContent; dropdown.style.display = 'none'; });
+            dropdown.appendChild(opt);
           });
           dropdown.style.display = 'block';
         }).catch(function() { dropdown.style.display = 'none'; });

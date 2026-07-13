@@ -98,6 +98,9 @@ export default async function handler(req, res) {
   // Stripe: release hold or capture the tiered cancellation fee
   let feeCaptured = 0;
   let proTripCutCents = 0;
+  if (booking.payment_status === 'cancellation_fee_captured') {
+    feeCaptured = Number(booking.cancellation_fee || booking.amount_charged || 0);
+  }
   const stripeMutationRequired = booking.payment_status === 'authorized';
   if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please contact support.' });
@@ -109,11 +112,22 @@ export default async function handler(req, res) {
   if (stripeMutationRequired) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      if (policy.feeCents > 0) {
-        const feeCents = policy.feeCents;
+      const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+      if (pi.metadata?.bookingId !== booking.id
+          || !['customer_booking', 'customer_quote'].includes(pi.metadata?.type)) {
+        return res.status(409).json({ error: 'Stripe authorization does not match this booking. Your booking is unchanged; contact support.' });
+      }
+      if (pi.status === 'succeeded' && pi.amount_received > 0) {
+        feeCaptured = pi.amount_received;
+      } else if (pi.status === 'canceled') {
+        feeCaptured = 0;
+      } else if (pi.status !== 'requires_capture') {
+        return res.status(409).json({ error: `Stripe authorization is in unexpected state ${pi.status}. Your booking is unchanged; contact support.` });
+      } else if (policy.feeCents > 0) {
+        const feeCents = Math.min(policy.feeCents, pi.amount_capturable || pi.amount);
         const idempotencyKey = `customer-cancel-fee-${booking.id}-${feeCents}`;
-        await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
-        feeCaptured = feeCents;
+        const captured = await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
+        feeCaptured = captured.amount_received;
         await writeFinancialAudit(sb, {
           eventType: 'capture_attempt',
           eventSource: 'booking_cancel_customer',
@@ -125,7 +139,7 @@ export default async function handler(req, res) {
         });
       } else {
         const idempotencyKey = `customer-cancel-release-${booking.id}`;
-        await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+        await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id, {}, { idempotencyKey });
         await writeFinancialAudit(sb, {
           eventType: 'capture_release',
           eventSource: 'booking_cancel_customer',
@@ -166,6 +180,13 @@ export default async function handler(req, res) {
     cancelled_at: new Date().toISOString(),
     cancel_reason: 'Cancelled by customer',
     cancellation_fee: feeCaptured || null,
+    payment_status: feeCaptured > 0
+      ? 'cancellation_fee_captured'
+      : (stripeMutationRequired ? 'authorization_released' : booking.payment_status),
+    amount_charged: feeCaptured > 0 ? feeCaptured : (booking.amount_charged || null),
+    payment_captured_at: feeCaptured > 0 ? new Date().toISOString() : booking.payment_captured_at,
+    cancellation_easer_due_cents: proTripCutCents,
+    cancellation_easer_payout_status: proTripCutCents > 0 ? 'pending' : null,
   }).eq('id', booking.id);
 
   if (updateErr) {

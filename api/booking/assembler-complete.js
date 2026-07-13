@@ -54,8 +54,8 @@ export default async function handler(req, res) {
   if (transitionErr) {
     return res.status(400).json({ error: transitionErr });
   }
-  if (!booking.assembler_accepted_at && !booking.assigned_at) {
-    return res.status(400).json({ error: 'You must be assigned to this booking before marking it complete' });
+  if (!booking.assembler_accepted_at) {
+    return res.status(409).json({ error: 'You must explicitly accept this job before it can be completed.' });
   }
 
   // Require at least one completion photo — no exceptions
@@ -68,9 +68,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'A completion photo is required. Please upload a photo before marking this job complete.' });
   }
 
-  // Block completion if no payment is authorized — applies to quote bookings
-  // where the owner has not yet called /api/owner/quote-approve.
-  if (!booking.stripe_payment_intent_id) {
+  const positivePrice = Number(booking.total_price || 0) > 0;
+  const capturedRecovery = booking.payment_status === 'captured';
+  if (positivePrice && !['authorized', 'deposit_paid', 'captured'].includes(booking.payment_status)) {
+    return res.status(409).json({
+      error: 'Customer payment is not authorized. The job cannot be completed and no earnings will be created until the owner resolves payment.',
+      code: 'PAYMENT_NOT_AUTHORIZED',
+    });
+  }
+
+  // Block positive-price completion if no Stripe source exists.
+  if (positivePrice && !booking.stripe_payment_intent_id) {
     if (!booking.stripe_payment_method_id) {
       return res.status(400).json({
         error: 'No payment method on file. Contact AssembleAtEase to resolve before completing.',
@@ -84,10 +92,10 @@ export default async function handler(req, res) {
   }
 
   // ── Stripe: capture payment ──────────────────────────────────────────────
-  let amountCharged = 0;
+  let amountCharged = capturedRecovery ? Number(booking.amount_charged || 0) : 0;
   let actualStripeFee = null; // actual Stripe fee (cents) from the balance transaction, if captured
   const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
-  if (captureRequired && !process.env.STRIPE_SECRET_KEY) {
+  if ((captureRequired || capturedRecovery) && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({
       error: 'Payment capture configuration is unavailable. Booking was not completed.',
       code: 'CAPTURE_CONFIGURATION_UNAVAILABLE',
@@ -97,7 +105,31 @@ export default async function handler(req, res) {
   if (process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      if (capturedRecovery) {
+        const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id, { expand: ['latest_charge.balance_transaction'] });
+        const validCapturedIntent = pi.status === 'succeeded'
+          && pi.currency === 'usd'
+          && pi.amount_received === Number(booking.amount_charged || 0)
+          && pi.metadata?.bookingId === booking.id
+          && ['customer_booking', 'customer_quote', 'customer_booking_balance'].includes(pi.metadata?.type);
+        if (!validCapturedIntent) throw new Error('Captured Stripe payment does not match this booking recovery.');
+        amountCharged = pi.amount_received;
+        const recoveryBt = pi.latest_charge && pi.latest_charge.balance_transaction;
+        if (recoveryBt && typeof recoveryBt.fee === 'number') actualStripeFee = recoveryBt.fee;
+      }
       if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
+        const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+        const validIntent = pi.status === 'requires_capture'
+          && pi.capture_method === 'manual'
+          && pi.currency === 'usd'
+          && pi.amount === Number(booking.total_price || 0)
+          && pi.metadata?.bookingId === booking.id
+          && ['customer_booking', 'customer_quote'].includes(pi.metadata?.type);
+        if (!validIntent) {
+          const mismatch = new Error('Stripe authorization is not capturable or does not match this booking.');
+          mismatch.code = 'PAYMENT_INTENT_MISMATCH';
+          throw mismatch;
+        }
         // Shared with owner complete.js so owner/Easer races cannot create
         // two distinct Stripe capture attempts for the same booking.
         const idempotencyKey = `booking-complete-capture-${booking.id}`;
@@ -196,7 +228,7 @@ export default async function handler(req, res) {
         await sendEmail({
           to: ownerEmail(),
           from: 'AssembleAtEase <booking@assembleatease.com>',
-          subject: `⚠️ Payment Capture Failed — ${booking.ref}`,
+          subject: `Payment Capture Failed - ${booking.ref}`,
           html: `<p>Payment capture failed for booking <strong>${esc(booking.ref)}</strong> after assembler marked job complete.</p>
 <p>Customer: ${esc(booking.customer_name)} | Error: ${esc(stripeErr?.message)}</p>
 <p>Manual resolution required in Stripe dashboard.</p>`,
@@ -252,10 +284,9 @@ export default async function handler(req, res) {
   let connectPayout = { status: 'disabled' };
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
-  const { error: updateErr, data: updatedRows } = await sb.from('bookings').update({
+  let completionUpdate = sb.from('bookings').update({
     status: BOOKING_STATUS.COMPLETED,
     completed_at: new Date().toISOString(),
-    assembler_accepted_at: booking.assembler_accepted_at || new Date().toISOString(),
     payment_status: 'captured',
     payment_captured_at: new Date().toISOString(),
     amount_charged: finalAmount,
@@ -266,9 +297,9 @@ export default async function handler(req, res) {
     payout_status: 'pending',
   })
   .eq('id', booking.id)
-  .neq('status', BOOKING_STATUS.COMPLETED)
-  .neq('payment_status', 'captured')
-  .select('id');
+  .neq('status', BOOKING_STATUS.COMPLETED);
+  if (!capturedRecovery) completionUpdate = completionUpdate.neq('payment_status', 'captured');
+  const { error: updateErr, data: updatedRows } = await completionUpdate.select('id');
 
   if (updateErr) {
     console.error('Assembler-complete update error:', updateErr);
@@ -314,7 +345,7 @@ export default async function handler(req, res) {
   // ── AssembleCash: credit the customer 5% after a successful capture ──────────
   // Idempotent (unique earn index per booking) and best-effort — a missing table
   // (migration 025 not applied) or any error must never block completion.
-  if (captureRequired && amountCharged > 0 && booking.customer_email) {
+  if ((captureRequired || capturedRecovery) && amountCharged > 0 && booking.customer_email) {
     try {
       const earned = await earnAssembleCashForBooking(sb, {
         bookingId: booking.id,
@@ -350,7 +381,6 @@ export default async function handler(req, res) {
 
   // ── Email customer receipt ───────────────────────────────────────────────
   try {
-    const reviewUrl = process.env.GOOGLE_REVIEW_URL || 'https://www.assembleatease.com';
     const amountDisplay = finalAmount > 0 ? `$${(finalAmount / 100).toFixed(2)}` : null;
 
     // Completion photo — visual proof of the finished work (signed URL, 30-day expiry).
@@ -380,7 +410,7 @@ export default async function handler(req, res) {
         <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#166534">
           <tr><td style="padding:3px 0;width:130px">Service</td><td style="padding:3px 0;font-weight:600">${esc(booking.service)}</td></tr>
           <tr><td style="padding:3px 0">Reference</td><td style="padding:3px 0;font-weight:600">${esc(booking.ref)}</td></tr>
-          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged ✓</td></tr>
+          <tr><td style="padding:3px 0">Status</td><td style="padding:3px 0;font-weight:700">Charged</td></tr>
         </table>
       </td></tr></table>` : '';
 
@@ -399,11 +429,7 @@ export default async function handler(req, res) {
           <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase!</p>
           ${photoBlock}
           ${receiptBlock}
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px;text-align:center">
-            <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1e40af">Did we do a good job?</p>
-            <p style="margin:0 0 16px;font-size:13px;color:#1e40af;line-height:1.6">A quick Google review helps Austin homeowners find trusted help — takes 30 seconds.</p>
-            <a href="${esc(reviewUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Leave a Review &#9733;</a>
-          </td></tr></table>`,
+          <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work or receipt? Reply to this email and the owner will follow up.</p>`,
       }),
       replyTo: ownerEmail(),
     });

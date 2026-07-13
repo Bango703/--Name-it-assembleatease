@@ -79,25 +79,29 @@ export default async function handler(req, res) {
         metadata: { bookingId: b.id, bookingRef: b.ref, type: 'assembler_payout' },
       }, { idempotencyKey: idem });
 
-      const notes = `Stripe Connect transfer ${transfer.id} (released after ${PAYOUT_HOLD_HOURS}h hold)`;
-      const { error: rpcErr } = await sb.rpc('record_booking_payout', {
-        p_booking_id: b.id, p_payout_amount_cents: b.assembler_due,
-        p_notes: notes, p_recorded_by: 'system_connect', p_payout_method: 'stripe_connect',
-      });
-      if (rpcErr) {
-        await sb.from('bookings').update({
-          payout_status: 'paid', payout_amount: b.assembler_due,
-          paid_out_at: new Date().toISOString(), payout_notes: notes,
-        }).eq('id', b.id);
-      }
-      await sb.from('bookings').update({
-        stripe_transfer_id: transfer.id, stripe_destination_account_id: connectState.accountId,
-      }).eq('id', b.id);
+      const notes = `Stripe Connect transfer ${transfer.id} created after ${PAYOUT_HOLD_HOURS}h hold; bank payout not yet verified`;
+      const { error: transferStateErr } = await sb.from('bookings').update({
+        payout_status: 'transferred',
+        payout_amount: b.assembler_due,
+        payout_notes: notes,
+        stripe_transfer_id: transfer.id,
+        stripe_destination_account_id: connectState.accountId,
+        stripe_transfer_status: 'succeeded',
+        stripe_transfer_created_at: new Date().toISOString(),
+        stripe_bank_payout_status: 'pending',
+      }).eq('id', b.id).eq('payout_status', 'pending');
+      if (transferStateErr) throw new Error(`Transfer created but booking state failed: ${transferStateErr.message}`);
 
       await writeFinancialAudit(sb, {
         eventType: 'transfer_attempt', eventSource: 'cron_release_payouts',
         bookingId: b.id, paymentIntentId: b.stripe_payment_intent_id, idempotencyKey: idem,
-        status: 'processed', metadata: { ref: b.ref, transferId: transfer.id, amount: b.assembler_due },
+        status: 'processed', metadata: {
+          ref: b.ref,
+          transferId: transfer.id,
+          amount: b.assembler_due,
+          transferStatus: 'succeeded',
+          bankPayoutStatus: 'pending',
+        },
       });
 
       released++;

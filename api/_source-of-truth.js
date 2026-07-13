@@ -74,8 +74,8 @@ export function getPlatformFeePct(isMember) {
 // ── Sales tax ────────────────────────────────────────────────────────────────
 // Texas sales tax rate (8.25%). Tax is a PASS-THROUGH LIABILITY owed to the state —
 // it is NEVER platform revenue and must be excluded from the platform fee and the
-// Easer payout base. Online bookings store the exact tax in bookings.tax_amount;
-// owner-set custom quotes are entered tax-exclusive (tax_amount stays 0).
+// Easer payout base. Online bookings and customer-approved custom quotes store
+// the exact server-calculated tax in bookings.tax_amount.
 export const SALES_TAX_RATE = 0.0825;
 
 /**
@@ -212,6 +212,50 @@ export function computeCancellationFee({ serviceSubtotalCents = 0, hoursUntilApp
 export function estimateStripeFeeCents(chargeCents) {
   const c = Math.round(Number(chargeCents) || 0);
   return c > 0 ? Math.round(c * 0.029) + 30 : 0;
+}
+
+/**
+ * Canonical owner-facing financial summary for a captured booking.
+ * Tax is proportionally reversed with refunds and never treated as platform
+ * revenue. Easer cost is the actual payout when recorded, otherwise the
+ * booking's outstanding earnings liability. Stripe's recorded fee wins over
+ * the estimator because Stripe is financial truth after capture.
+ */
+export function computeBookingFinancialSummary({
+  amountChargedCents = 0,
+  totalPriceCents = 0,
+  refundAmountCents = 0,
+  taxAmountCents = 0,
+  stripeFeeCents = null,
+  assemblerDueCents = 0,
+  payoutAmountCents = 0,
+} = {}) {
+  const grossChargedCents = Math.max(0, Math.round(Number(amountChargedCents || totalPriceCents) || 0));
+  const refundedCents = Math.min(grossChargedCents, Math.max(0, Math.round(Number(refundAmountCents) || 0)));
+  const netChargedCents = Math.max(0, grossChargedCents - refundedCents);
+  const originalTaxCents = Math.min(grossChargedCents, Math.max(0, Math.round(Number(taxAmountCents) || 0)));
+  const taxCollectedCents = grossChargedCents > 0
+    ? Math.min(netChargedCents, Math.round(originalTaxCents * netChargedCents / grossChargedCents))
+    : 0;
+  const recordedStripeFee = Number(stripeFeeCents);
+  const processingFeeCents = stripeFeeCents != null && Number.isFinite(recordedStripeFee)
+    ? Math.max(0, Math.round(recordedStripeFee))
+    : estimateStripeFeeCents(netChargedCents);
+  const payoutRecorded = Math.max(0, Math.round(Number(payoutAmountCents) || 0));
+  const easerCostCents = payoutRecorded > 0
+    ? payoutRecorded
+    : Math.max(0, Math.round(Number(assemblerDueCents) || 0));
+
+  return {
+    grossChargedCents,
+    refundedCents,
+    netChargedCents,
+    taxCollectedCents,
+    processingFeeCents,
+    processingFeeIsActual: stripeFeeCents != null && Number.isFinite(recordedStripeFee),
+    easerCostCents,
+    platformGrossCents: netChargedCents - taxCollectedCents - processingFeeCents - easerCostCents,
+  };
 }
 
 // Service-call fee — FLAT $25 across all served zones (covers Easer dispatch, travel, setup).

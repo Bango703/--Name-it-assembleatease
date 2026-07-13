@@ -14,20 +14,21 @@ export default async function handler(req, res) {
   const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [bookingsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes] = await Promise.all([
+  const [bookingsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes] = await Promise.all([
     sb.from('bookings')
       .select('id, ref, service, status, pipeline_stage, customer_name, customer_phone, date, time, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, needs_manual_dispatch, total_price')
       .not('status', 'in', '("cancelled","declined","completed")')
       .order('date', { ascending: true }),
     sb.from('profiles')
-      .select('id, full_name, tier, rating, completed_jobs, is_available, has_membership, city, phone')
+      .select('id, full_name, email, tier, rating, completed_jobs, is_available, has_membership, city, phone')
       .eq('role', 'assembler')
       .eq('status', 'active')
       .eq('identity_verified', true)
       .in('tier', ['starter', 'professional', 'elite']),
     sb.from('dispatch_offers')
-      .select('booking_id')
+      .select('id, booking_id, easer_id, notification_sent, expires_at')
       .eq('offer_status', 'sent')
       .gt('expires_at', now.toISOString()),
     sb.from('operational_events')
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(8),
     sb.from('notification_log')
-      .select('id, channel, notification_type, recipient_type, subject, error_text, sent_at')
+      .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, error_text, sent_at')
       .eq('status', 'failed')
       .gte('sent_at', twentyFourHoursAgo)
       .order('sent_at', { ascending: false })
@@ -48,12 +49,19 @@ export default async function handler(req, res) {
       .gte('ran_at', twentyFourHoursAgo)
       .order('ran_at', { ascending: false })
       .limit(8),
+    sb.from('activity_logs')
+      .select('id, booking_id, description, metadata, created_at')
+      .eq('event_type', 'damage_claim_reported')
+      .gte('created_at', sevenDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ]);
 
   const bookings = bookingsRes.data || [];
   const easers = easersRes.data || [];
   const now_ts = now.getTime();
-  const activeOfferBookingIds = new Set((activeOffersRes.data || []).map(o => o.booking_id));
+  const activeOffers = activeOffersRes.data || [];
+  const activeOfferBookingIds = new Set(activeOffers.map(o => o.booking_id));
   const runtimeErrors = (runtimeErrorsRes.data || []).map(row => ({
     kind: 'runtime',
     title: 'Customer-side page error',
@@ -69,6 +77,12 @@ export default async function handler(req, res) {
     meta: [row.notification_type, row.recipient_type].filter(Boolean).join(' • '),
     when: row.sent_at,
     severity: 'medium',
+    bookingId: row.booking_id || null,
+    notificationId: row.id,
+    recipient: row.recipient_email || row.recipient_user_id || row.recipient_type || 'unknown',
+    recipientType: row.recipient_type || null,
+    notificationType: row.notification_type || null,
+    ownerAction: 'Review the booking timeline and contact the recipient using the booking record. Do not assume delivery.',
   }));
   const cronErrors = (cronErrorsRes.data || []).map(row => ({
     kind: 'cron',
@@ -77,6 +91,13 @@ export default async function handler(req, res) {
     meta: 'Background job',
     when: row.ran_at,
     severity: row.status === 'error' ? 'high' : 'medium',
+  }));
+  const damageReports = (damageReportsRes.data || []).map(row => ({
+    id: row.id,
+    bookingId: row.booking_id,
+    detail: row.description || 'Easer reported possible damage',
+    notes: row.metadata?.notes || null,
+    when: row.created_at,
   }));
 
   // ── Categorize bookings ─────────────────────────────────────────
@@ -113,25 +134,64 @@ export default async function handler(req, res) {
     b.assembler_id && !b.assembler_accepted_at && b.status === 'confirmed'
   );
 
-  const enRoute = bookings.filter(b =>
-    b.status === 'en_route' || b.pipeline_stage === 'en_route'
-  );
+  const enRoute = bookings.filter(b => b.status === 'en_route');
 
   // A booking is "arrived" when status = 'arrived' OR it has checked_in_at but no job_started_at
   // (easer-status.js sets status='arrived' when Easer checks in)
-  const arrived = bookings.filter(b =>
-    b.status === 'arrived' || (b.checked_in_at && !b.job_started_at && b.status !== 'in_progress')
-  );
+  const arrived = bookings.filter(b => b.status === 'arrived');
 
-  const inProgress = bookings.filter(b =>
-    b.status === 'in_progress' || b.pipeline_stage === 'in_progress' ||
-    (b.job_started_at && b.status === 'confirmed')
-  );
+  const inProgress = bookings.filter(b => b.status === 'in_progress');
 
   const pendingConfirm = bookings.filter(b => b.status === 'pending');
 
   // ── Alerts ──────────────────────────────────────────────────────
   const alerts = [];
+
+  const workflowMismatches = bookings.filter(booking => {
+    if (booking.pipeline_stage && booking.pipeline_stage !== booking.status) return true;
+    if (booking.status === 'en_route') return !booking.assembler_accepted_at || !booking.en_route_at;
+    if (booking.status === 'arrived') return !booking.assembler_accepted_at || !booking.en_route_at || !booking.checked_in_at;
+    if (booking.status === 'in_progress') return !booking.assembler_accepted_at || !booking.en_route_at || !booking.checked_in_at || !booking.job_started_at;
+    return booking.status === 'confirmed' && Boolean(booking.en_route_at || booking.checked_in_at || booking.job_started_at);
+  });
+  workflowMismatches.forEach(booking => alerts.push({
+    type: 'workflow_state_mismatch',
+    severity: 'high',
+    ref: booking.ref,
+    bookingId: booking.id,
+    message: `${booking.ref} has conflicting status or workflow timestamps. Review before dispatch, completion, or payout.`,
+    action: 'review_timeline',
+  }));
+
+  damageReports.forEach(report => {
+    alerts.push({
+      type: 'damage_claim_reported',
+      severity: 'critical',
+      ref: '',
+      bookingId: report.bookingId,
+      message: report.detail,
+      detail: report.notes,
+      action: 'review_damage_evidence',
+    });
+  });
+
+  // Active offers with no channel-confirmed notification remain visible in the
+  // Easer app, but need owner follow-up before the appointment is at risk.
+  activeOffers.filter(offer => offer.notification_sent !== true).forEach(offer => {
+    const booking = bookings.find(row => row.id === offer.booking_id);
+    const easer = easers.find(row => row.id === offer.easer_id);
+    alerts.push({
+      type: 'dispatch_notification_failed',
+      severity: 'high',
+      ref: booking?.ref || '',
+      bookingId: offer.booking_id,
+      offerId: offer.id,
+      recipientUserId: offer.easer_id,
+      recipientEmail: easer?.email || null,
+      message: `${booking?.service || 'Job offer'} — no notification channel confirmed delivery to ${easer?.full_name || 'the selected Easer'}`,
+      action: 'contact_easer',
+    });
+  });
 
   // Stale unassigned (>2 hours old)
   bookings.filter(b => !b.assembler_id && b.status === 'confirmed').forEach(b => {
@@ -251,9 +311,12 @@ export default async function handler(req, res) {
       arrived: arrived.length,
       inProgress: inProgress.length,
       alertCount: alerts.length,
-      criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
+      criticalAlerts: alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length,
       runtimeErrors: runtimeErrors.length,
       failedNotifications: failedNotifications.length,
+      unnotifiedActiveOffers: activeOffers.filter(offer => offer.notification_sent !== true).length,
+      recentDamageReports: damageReports.length,
+      workflowMismatches: workflowMismatches.length,
       cronErrors: cronErrors.length,
       onlineEasers: onlineEasers.length,
       freeEasers: freeEasers.length,
@@ -282,5 +345,6 @@ export default async function handler(req, res) {
     recentFailures: runtimeErrors.concat(failedNotifications, cronErrors)
       .sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime())
       .slice(0, 12),
+    damageReports,
   });
 }

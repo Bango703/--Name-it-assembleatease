@@ -11,9 +11,9 @@ export async function logActivity(sb, {
   bookingId, eventType, actorType = 'system',
   actorId = null, actorName = null, description, metadata = null
 }) {
-  if (!eventType || !description) return;
+  if (!eventType || !description) return { ok: false, error: 'eventType and description are required' };
   try {
-    await sb.from('activity_logs').insert({
+    const { error } = await sb.from('activity_logs').insert({
       booking_id: bookingId || null,
       event_type: eventType,
       actor_type: actorType,
@@ -22,8 +22,11 @@ export async function logActivity(sb, {
       description,
       metadata,
     });
+    if (error) throw error;
+    return { ok: true };
   } catch(e) {
     // Non-fatal — table may not exist yet
     console.warn('Activity log skipped:', e.message);
+    return { ok: false, error: e.message || String(e) };
   }
 }

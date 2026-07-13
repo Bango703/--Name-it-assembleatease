@@ -1,7 +1,7 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, computeBookingFinancialSummary } from '../_source-of-truth.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -27,14 +27,25 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== BOOKING_STATUS.COMPLETED) {
-    return res.status(400).json({ error: 'Only completed bookings can be paid out. Current status: ' + booking.status });
+  const completedPayout = booking.status === BOOKING_STATUS.COMPLETED;
+  const cancellationPayout = booking.status === BOOKING_STATUS.CANCELLED
+    && Number(booking.cancellation_easer_due_cents || 0) > 0;
+  if (!completedPayout && !cancellationPayout) {
+    return res.status(400).json({ error: 'Only completed jobs or fee-bearing cancellations can be paid out. Current status: ' + booking.status });
   }
   if (!booking.assembler_id) {
     return res.status(400).json({ error: 'No assembler assigned to this booking' });
   }
-  if (booking.payout_status === 'paid') {
+  if (['paid', 'transferred'].includes(booking.payout_status)) {
     return res.status(409).json({ error: 'Payout already recorded for this booking.' });
+  }
+  const expectedPaymentStatus = cancellationPayout
+    ? 'cancellation_fee_captured'
+    : ['captured', 'partially_refunded'];
+  if (Array.isArray(expectedPaymentStatus)
+      ? !expectedPaymentStatus.includes(booking.payment_status)
+      : booking.payment_status !== expectedPaymentStatus) {
+    return res.status(409).json({ error: 'Customer funds must be captured before an Easer payout can be recorded.' });
   }
 
   // Evidence check — hard block when owner has explicitly requested it and none exists yet
@@ -51,35 +62,41 @@ export default async function handler(req, res) {
     console.warn(`[payout-no-evidence] ${booking.ref} — proceeding with no completion evidence on file`);
   }
 
-  // Auto-derive payout from assembler_due (recorded at job completion).
-  // Fallback: reconstruct the canonical split from the booking snapshot so
-  // platform-funded rewards do not reduce what the Easer is owed.
-  let derivedDue;
-  if (booking.assembler_due != null) {
-    derivedDue = booking.assembler_due;
-  } else {
-    const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).maybeSingle();
-    derivedDue = computeBookingSplitFromSnapshot({
-      amountChargedCents: booking.amount_charged,
-      totalPriceCents: booking.total_price,
-      taxCents: booking.tax_amount || 0,
-      isMember: asmProf?.has_membership === true,
-      assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
-    }).assemblerDueCents;
+  const derivedDue = cancellationPayout
+    ? Number(booking.cancellation_easer_due_cents || 0)
+    : Number(booking.assembler_due || 0);
+  if (!derivedDue || derivedDue <= 0) return res.status(409).json({ error: 'Canonical Easer earnings are missing. Reconcile completion before payout.' });
+  if (amount != null && Number.parseInt(amount, 10) !== derivedDue) {
+    return res.status(409).json({
+      error: `Payout amount is server-controlled and must equal $${(derivedDue / 100).toFixed(2)}. Record adjustments separately.`,
+      code: 'PAYOUT_AMOUNT_MISMATCH',
+    });
+  }
+  const payoutCents = derivedDue;
+  const payoutMethod = String(method || 'manual').trim().toLowerCase();
+  const payoutReference = String(notes || '').trim();
+  if (!payoutReference) return res.status(400).json({ error: 'A bank confirmation ID, payment reference, or check number is required.' });
+  if (payoutMethod === 'stripe_connect') {
+    return res.status(400).json({ error: 'Stripe Connect transfers cannot be recorded manually. Use verified Stripe transfer and bank-payout state.' });
   }
 
-  const payoutCents = amount ? parseInt(amount, 10) : derivedDue;
-  if (!payoutCents || payoutCents <= 0) return res.status(400).json({ error: 'Cannot determine payout amount — no assembler_due recorded and no amount supplied' });
-
   const payoutDisplay = `$${(payoutCents / 100).toFixed(2)}`;
-  const platformRevenue = (booking.amount_charged || 0) - payoutCents;
+  const platformRevenue = computeBookingFinancialSummary({
+    amountChargedCents: booking.amount_charged || 0,
+    totalPriceCents: booking.total_price || 0,
+    refundAmountCents: booking.refund_amount || 0,
+    taxAmountCents: cancellationPayout ? 0 : (booking.tax_amount || 0),
+    stripeFeeCents: booking.stripe_fee,
+    assemblerDueCents: payoutCents,
+    payoutAmountCents: payoutCents,
+  }).platformGrossCents;
 
   const { data: payoutRows, error: payoutErr } = await sb.rpc('record_booking_payout', {
     p_booking_id: booking.id,
     p_payout_amount_cents: payoutCents,
-    p_notes: notes?.trim() || null,
+    p_notes: payoutReference,
     p_recorded_by: 'owner',
-    p_payout_method: method?.trim() || 'manual',
+    p_payout_method: payoutMethod,
   });
 
   if (payoutErr) {
@@ -119,8 +136,8 @@ export default async function handler(req, res) {
           service: booking.service,
           date: booking.date,
           payoutDisplay,
-          notes: notes?.trim() || null,
-          method: method?.trim() || 'manual',
+          notes: payoutReference,
+          method: payoutMethod,
         }),
         replyTo: ownerEmail(),
       });

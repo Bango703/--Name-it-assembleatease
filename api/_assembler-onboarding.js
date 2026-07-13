@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 
 export const SITE = 'https://www.assembleatease.com';
-export const CONTRACTOR_AGREEMENT_VERSION = '2026-06-08';
+export const CONTRACTOR_AGREEMENT_VERSION = '2026-07-12';
 
 export function buildIdentityResumeUrl(resumeToken) {
   return `${SITE}/assembler/verify-identity?token=${encodeURIComponent(String(resumeToken || '').trim())}`;

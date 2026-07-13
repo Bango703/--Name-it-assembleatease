@@ -582,12 +582,13 @@ async function loadOpenClawbacks(sb) {
 }
 
 // Calendar-year payouts per Easer from the immutable ledger — drives 1099-NEC
-// tracking ($600 IRS threshold). Read-only; stores no TIN/SSN. Graceful if the
+// tracking (current $2,000 threshold for payments made after 2025-12-31).
+// Read-only; stores no TIN/SSN. Graceful if the
 // ledger table is unavailable.
 async function loadContractorTaxYear(sb) {
   const year = new Date().getFullYear();
   const yearStart = new Date(Date.UTC(year, 0, 1)).toISOString();
-  const THRESHOLD_CENTS = 60000; // $600 1099-NEC reporting threshold
+  const THRESHOLD_CENTS = 200000;
   try {
     const { data, error } = await sb
       .from('payout_ledger')

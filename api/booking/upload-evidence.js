@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { deriveAssemblerStatus } from '../_assembler-state.js';
+import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { logActivity } from './_activity.js';
 
 // Raise body-parser limit: base64 of a 5 MB image is ~6.7 MB JSON
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
@@ -101,11 +103,18 @@ export default async function handler(req, res) {
   if (!VALID_EVIDENCE_TYPES.has(evidenceType)) {
     return res.status(400).json({ error: 'Invalid evidenceType' });
   }
+  const cleanNotes = String(notes || '').trim();
+  if (evidenceType === 'damage_claim' && cleanNotes.length < 10) {
+    return res.status(400).json({ error: 'Damage reports require a clear description of what happened.' });
+  }
+  if (cleanNotes.length > 2000) {
+    return res.status(400).json({ error: 'Evidence notes must be 2,000 characters or fewer.' });
+  }
 
   // ── Verify booking ownership ──────────────────────────────────────────────
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id')
+    .select('id, ref, service, date, time, status, assembler_id, assembler_name')
     .eq('id', bookingId)
     .eq('assembler_id', user.id)
     .maybeSingle();
@@ -182,7 +191,7 @@ export default async function handler(req, res) {
       mime_type:       mimeType,
       file_size_bytes: buf.length,
       visibility:      'owner',
-      notes:           notes?.trim() || null,
+      notes:           cleanNotes || null,
     })
     .select('id, evidence_type, mime_type, file_size_bytes, created_at')
     .single();
@@ -193,6 +202,54 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Evidence recorded in storage but failed to save record. Contact support.' });
   }
 
+  let ownerNotification = null;
+  if (evidenceType === 'damage_claim') {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'damage_claim_reported',
+      actorType: 'easer',
+      actorId: user.id,
+      actorName: booking.assembler_name || 'Easer',
+      description: `${booking.assembler_name || 'Easer'} reported possible damage and uploaded evidence`,
+      metadata: { evidenceId: evidenceRow.id, notes: cleanNotes },
+    });
+    ownerNotification = await sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Owner action required: damage reported — ${booking.ref}`,
+      replyTo: ownerEmail(),
+      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#991b1b">Damage report requires review</h2>
+        <p><strong>${esc(booking.assembler_name || 'An Easer')}</strong> reported possible damage on booking <strong>${esc(booking.ref)}</strong>.</p>
+        <p><strong>Service:</strong> ${esc(booking.service || '')}<br/><strong>Appointment:</strong> ${esc(booking.date || '')} ${esc(booking.time || '')}</p>
+        <p><strong>Easer notes:</strong><br/>${esc(cleanNotes)}</p>
+        <p>Open the booking timeline and evidence panel before contacting the customer or making a financial decision.</p>
+        <p><a href="https://www.assembleatease.com/owner/">Open owner dashboard</a></p>
+      </div>`,
+      meta: { bookingId: booking.id, notificationType: 'damage_claim_reported', recipientType: 'owner', disableDedupe: true },
+    }).catch(err => ({ ok: false, error: err?.message || String(err) }));
+    if (!ownerNotification?.ok) {
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'damage_claim_notification_failed',
+        actorType: 'system',
+        actorName: 'notifications',
+        description: 'Damage evidence was saved, but the owner email failed',
+        metadata: { evidenceId: evidenceRow.id, error: ownerNotification?.error || null },
+      });
+    }
+    if (ownerNotification?.logged === false) {
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'notification_audit_failed',
+        actorType: 'system',
+        actorName: 'notifications',
+        description: 'Damage report owner email was attempted, but its notification log could not be saved',
+        metadata: { evidenceId: evidenceRow.id, error: ownerNotification.logError || null },
+      });
+    }
+  }
+
   return res.status(201).json({
     ok:           true,
     evidenceId:   evidenceRow.id,
@@ -201,5 +258,11 @@ export default async function handler(req, res) {
     mimeType:     evidenceRow.mime_type,
     sizeBytes:    evidenceRow.file_size_bytes,
     createdAt:    evidenceRow.created_at,
+    ownerNotified: evidenceType === 'damage_claim' ? ownerNotification?.ok === true && !ownerNotification?.suppressed : undefined,
+    warning: evidenceType === 'damage_claim' && (!ownerNotification?.ok || ownerNotification?.logged === false)
+      ? (ownerNotification?.ok
+          ? 'Damage evidence was saved and the owner email was sent, but the notification audit log needs owner review.'
+          : 'Damage evidence was saved, but the owner notification needs retry.')
+      : undefined,
   });
 }

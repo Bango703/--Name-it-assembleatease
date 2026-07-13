@@ -132,7 +132,7 @@
     </div>
   </div>
 
-  <div class="payout-note">Payouts are sent within 2 business days of a completed job.</div>
+  <div class="payout-note">Manual payouts are typically issued within 7 business days after completion and customer payment capture. Stripe Connect timing is shown separately when Connect is enabled.</div>
 
   <div id="payouts-list">
     <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
@@ -211,10 +211,13 @@
 
     var rows = list.slice().reverse().map(function(b) {
       var isPaid = b.payout_status === 'paid';
+      var isTransferred = b.payout_status === 'transferred';
       var isZero = !b.assembler_due;
       var dateLabel = (isPaid && b.paid_out_at)
         ? ('Paid ' + fmtDate(b.paid_out_at))
-        : ('Completed ' + fmtDate(b.completed_at) + ' · Awaiting payout');
+        : (isTransferred
+            ? ('Transferred to Stripe balance ' + fmtDate(b.stripe_transfer_created_at) + ' · Bank payout not yet verified')
+            : ('Completed ' + fmtDate(b.completed_at) + ' · Awaiting manual payout'));
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
@@ -224,7 +227,7 @@
         '</div>' +
         '<div class="earn-tx-right">' +
           '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(b.assembler_due) + '</div>' +
-          '<div class="earn-tx-status ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? 'Paid' : 'Awaiting Payout') + '</div>' +
+          '<div class="earn-tx-status ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? 'Paid' : (isTransferred ? 'Bank Payout Pending' : 'Awaiting Manual Payout')) + '</div>' +
         '</div>' +
       '</div>';
     }).join('');

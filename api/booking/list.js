@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { computeBookingFinancialSummary } from '../_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -27,6 +28,18 @@ export default async function handler(req, res) {
 
   // Enrich with assembler name/tier/rating — separate query avoids FK constraint uncertainty
   if (data && data.length) {
+    data.forEach(booking => {
+      booking.financial_summary = computeBookingFinancialSummary({
+        amountChargedCents: booking.amount_charged,
+        totalPriceCents: booking.total_price,
+        refundAmountCents: booking.refund_amount,
+        taxAmountCents: booking.tax_amount,
+        stripeFeeCents: booking.stripe_fee,
+        assemblerDueCents: booking.assembler_due,
+        payoutAmountCents: booking.payout_amount,
+      });
+    });
+
     const aIds = [...new Set(data.filter(b => b.assembler_id).map(b => b.assembler_id))];
     if (aIds.length) {
       const { data: profiles } = await sb

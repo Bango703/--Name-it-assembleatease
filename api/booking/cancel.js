@@ -7,7 +7,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplit } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
-import { releasePendingRedemption } from '../_assemblecash.js';
+import { releasePendingRedemption, reverseForBooking as reverseAssembleCashForBooking } from '../_assemblecash.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -49,15 +49,23 @@ export default async function handler(req, res) {
 
   // ── Stripe: charge fee or release hold ────────────────────────────────────
   let refundAmount = 0;
+  let refundId = null;
   let feeCaptured = 0;
   let proTripCutCents = 0;
+  if (booking.payment_status === 'cancellation_fee_captured') {
+    feeCaptured = Number(booking.cancellation_fee || booking.amount_charged || 0);
+  }
+  const stripeMutationRequired = ['authorized', 'captured', 'partially_refunded', 'deposit_paid'].includes(booking.payment_status);
+  if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: 'Stripe is unavailable. The booking was not cancelled because payment state could not be reconciled.' });
+  }
   if (process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
       if (booking.payment_status === 'pending' || !booking.stripe_payment_intent_id) {
         // Card was never authorized — no Stripe action needed
-      } else if (booking.payment_status === 'captured') {
+      } else if (['captured', 'partially_refunded'].includes(booking.payment_status)) {
         // Payment already captured (job was marked complete then cancelled) — issue full refund
         const idempotencyKey = `owner-cancel-refund-${booking.id}`;
         const refund = await stripe.refunds.create({
@@ -65,6 +73,7 @@ export default async function handler(req, res) {
           metadata: { bookingRef: booking.ref, reason: 'owner_cancelled_post_capture' },
         }, { idempotencyKey });
         refundAmount = refund.amount;
+        refundId = refund.id;
         await writeFinancialAudit(sb, {
           eventType: 'refund_attempt',
           eventSource: 'booking_cancel_owner',
@@ -76,17 +85,27 @@ export default async function handler(req, res) {
           metadata: { reason: 'owner_cancelled_post_capture', refundAmount },
         });
       } else if (booking.payment_status === 'authorized') {
-        if (!waiveFee && policy.feeCents > 0) {
+        const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+        if (pi.metadata?.bookingId !== booking.id
+            || !['customer_booking', 'customer_quote'].includes(pi.metadata?.type)) {
+          return res.status(409).json({ error: 'Stripe authorization does not match this booking. Nothing was cancelled.' });
+        }
+        if (pi.status === 'succeeded' && pi.amount_received > 0) {
+          feeCaptured = pi.amount_received;
+        } else if (pi.status === 'canceled') {
+          feeCaptured = 0;
+        } else if (pi.status !== 'requires_capture') {
+          return res.status(409).json({ error: `Stripe authorization is in unexpected state ${pi.status}. Nothing was cancelled.` });
+        } else if (!waiveFee && policy.feeCents > 0) {
           // Capture the tiered cancellation fee. Clamp to the actual authorized
           // amount (not total_price, which may have been edited) so a capture can
           // never exceed what Stripe holds.
-          const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-          const feeCents = Math.min(policy.feeCents, pi.amount);
+          const feeCents = Math.min(policy.feeCents, pi.amount_capturable || pi.amount);
           const idempotencyKey = `owner-cancel-fee-${booking.id}-${feeCents}`;
-          await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, {
+          const captured = await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, {
             amount_to_capture: feeCents,
           }, { idempotencyKey });
-          feeCaptured = feeCents;
+          feeCaptured = captured.amount_received;
           await writeFinancialAudit(sb, {
             eventType: 'capture_attempt',
             eventSource: 'booking_cancel_owner',
@@ -99,7 +118,7 @@ export default async function handler(req, res) {
         } else {
           // Outside window or fee waived — release hold entirely
           const idempotencyKey = `owner-cancel-release-${booking.id}`;
-          await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+          await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id, {}, { idempotencyKey });
           await writeFinancialAudit(sb, {
             eventType: 'capture_release',
             eventSource: 'booking_cancel_owner',
@@ -120,6 +139,7 @@ export default async function handler(req, res) {
             metadata: { bookingRef: booking.ref, reason: 'owner_cancelled' },
           }, { idempotencyKey });
           refundAmount = refund.amount;
+          refundId = refund.id;
           await writeFinancialAudit(sb, {
             eventType: 'refund_attempt',
             eventSource: 'booking_cancel_owner',
@@ -143,7 +163,9 @@ export default async function handler(req, res) {
         metadata: { reason: reason || null, paymentStatus: booking.payment_status },
         error: stripeErr?.message || 'Owner cancellation Stripe mutation failed',
       });
-      // Log but do not block cancellation — owner can handle payment manually
+      return res.status(502).json({
+        error: 'Stripe could not complete the cancellation payment action. The booking is unchanged. Retry or reconcile Stripe before cancelling.',
+      });
     }
   }
 
@@ -155,25 +177,35 @@ export default async function handler(req, res) {
     } catch (e) { console.error('pro trip-cut calc error:', e); }
   }
 
-  // Try full update first; fall back to just status if optional columns don't exist yet
-  let updateErr;
-  ({ error: updateErr } = await sb.from('bookings')
-    .update({ status: BOOKING_STATUS.CANCELLED, cancelled_at: new Date().toISOString(), cancel_reason: reason || null, cancellation_fee: feeCaptured || null })
-    .eq('id', booking.id));
+  let paymentStatus = booking.payment_status;
+  if (refundAmount > 0) paymentStatus = 'refunded';
+  else if (feeCaptured > 0) paymentStatus = 'cancellation_fee_captured';
+  else if (booking.payment_status === 'authorized') paymentStatus = 'authorization_released';
 
-  if (updateErr) {
-    console.warn('Cancel full update failed, trying status-only:', updateErr.message);
-    ({ error: updateErr } = await sb.from('bookings')
-      .update({ status: BOOKING_STATUS.CANCELLED })
-      .eq('id', booking.id));
-  }
+  const cumulativeRefund = Number(booking.refund_amount || 0) + refundAmount;
+  const { error: updateErr } = await sb.from('bookings').update({
+    status: BOOKING_STATUS.CANCELLED,
+    cancelled_at: new Date().toISOString(),
+    cancel_reason: reason || null,
+    cancellation_fee: feeCaptured || null,
+    payment_status: paymentStatus,
+    amount_charged: feeCaptured > 0 ? feeCaptured : booking.amount_charged,
+    payment_captured_at: feeCaptured > 0 ? new Date().toISOString() : booking.payment_captured_at,
+    refund_amount: cumulativeRefund,
+    refund_id: refundId || booking.refund_id,
+    refunded_at: refundAmount > 0 ? new Date().toISOString() : booking.refunded_at,
+    cancellation_easer_due_cents: proTripCutCents,
+    cancellation_easer_payout_status: proTripCutCents > 0 ? 'pending' : null,
+  }).eq('id', booking.id);
 
   if (updateErr) {
     console.error('Cancel update error:', updateErr);
     return res.status(500).json({ error: 'Failed to cancel booking: ' + updateErr.message });
   }
 
-  if (feeCaptured === 0 && booking.payment_status !== 'captured') {
+  if (refundAmount > 0) {
+    await reverseAssembleCashForBooking(sb, booking.id, 'reverse:owner_cancellation_refund');
+  } else if (feeCaptured === 0 && !['captured', 'partially_refunded'].includes(booking.payment_status)) {
     await releasePendingRedemption(sb, {
       bookingId: booking.id,
       bookingRef: booking.ref,

@@ -4,7 +4,7 @@ Use this before accepting real Austin customers. Do not treat the site as self-r
 
 ## Launch Blockers
 
-- Supabase production schema verified for all migrations through `021_stripe_connect_columns.sql`.
+- Supabase production schema verified for all migrations through `033_launch_compliance_and_schema_state.sql`; the owner readiness endpoint reports `DATABASE_SCHEMA_033: pass`.
 - `record_booking_payout` RPC accepts `p_payout_method`.
 - `booking_evidence`, `booking_items`, `financial_event_audit`, `notification_log`, `payout_ledger`, and `dispatch_offers` exist.
 - `profiles` includes agreement evidence fields: `contractor_agreement_signed_at`, `code_of_conduct_agreed_at`, `contractor_agreement_version`, `contractor_agreement_ip`, `contractor_agreement_user_agent`, `contractor_agreement_signed_name`.
@@ -12,7 +12,11 @@ Use this before accepting real Austin customers. Do not treat the site as self-r
 - Stripe refund test completed after capture.
 - Manual payout record test completed after capture.
 - Terms, privacy, and contractor agreement reviewed for manual payout and Founding Easer fee-waiver language.
-- Owner password rotated before launch and stored outside the browser.
+- The exposed owner password is rotated in hosting, local snapshots, and the password manager; repository history is treated as compromised.
+- `OWNER_SESSION_SECRET` is a separate random secret of at least 32 characters, legacy production password headers are disabled, and Upstash rate-limit credentials are configured.
+- A Texas tax professional has approved service taxability and address sourcing; only then is `TEXAS_TAX_CONFIGURATION_APPROVED=true` set in production.
+- The current contractor agreement version is `2026-07-12`; active Easers have reaccepted it before receiving offers.
+- W-9 status is recorded for every paid Easer. Raw forms, SSNs, and EINs are retained only in an approved secure tax-document system, never in dashboard notes.
 - Stripe Connect stays disabled unless every active Easer has completed Connect onboarding and a test transfer has reconciled.
 
 ## Daily Owner Checklist
@@ -30,11 +34,13 @@ Use this before accepting real Austin customers. Do not treat the site as self-r
 
 ## First 25 Jobs Operating Rules
 
-- Owner personally reviews every booking before service.
-- Owner manually confirms every same-day or next-day booking with the customer.
+- Owner personally reviews every booking before service without overriding server payment or consent gates.
+- Owner personally contacts every same-day or next-day customer to reconfirm access and timing.
+- Custom quotes are never owner-confirmed: the customer must approve the itemized quote, cancellation terms, and Stripe authorization through the one-time link.
 - Owner confirms Easer acceptance by text/call for the first 10 jobs.
 - No payout is recorded until customer payment is captured.
 - No payout is recorded without an external payout method and separate proof retained by owner.
+- A Stripe Connect transfer is never labeled as a completed bank payout; Connect remains disabled during manual-payout launch.
 - Completion photo is required before Easer completion whenever possible.
 - If a customer complains, do not pay out until the complaint is triaged unless the complaint is clearly unrelated to the Easer.
 - If a refund is issued after payout, record whether the Easer payout stands, is reduced, or requires clawback.

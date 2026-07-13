@@ -31,6 +31,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const now = Date.now();
   const todayStr = new Date(now).toISOString().slice(0, 10);
+  const sixHoursAgo = new Date(now - 6 * 60 * 60 * 1000).toISOString();
 
   const { data: bookings, error } = await sb
     .from('bookings')
@@ -74,6 +75,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('booking_id', b.id)
         .eq('event_type', 'ops_alert_sent')
+        .gte('created_at', sixHoursAgo)
         .limit(1);
       if (prior && prior.length) continue;
     } catch (e) { /* if dedup check fails, fall through (better a dup than a miss) */ }
@@ -104,11 +106,12 @@ export default async function handler(req, res) {
     </tr>`).join('');
 
   const critCount = issues.filter(i => i.sev === 'CRITICAL').length;
-  const subject = `${critCount ? '🔴 ' : ''}${issues.length} booking${issues.length === 1 ? '' : 's'} need your attention`;
+  const subject = `${critCount ? 'Urgent: ' : ''}${issues.length} booking${issues.length === 1 ? '' : 's'} need your attention`;
 
   let alerted = 0;
+  let deliveryError = null;
   try {
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase System <booking@assembleatease.com>',
       subject,
@@ -119,29 +122,37 @@ export default async function handler(req, res) {
     <p style="margin:0 0 16px;font-size:19px;font-weight:700">${issues.length} booking${issues.length === 1 ? '' : 's'} need attention</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f0f0f0;border-radius:8px;border-collapse:separate">${rows}</table>
     <a href="https://www.assembleatease.com/owner/" style="display:inline-block;margin-top:18px;background:#00BFFF;color:#fff;padding:11px 26px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:700">Open Live Ops</a>
-    <p style="margin:14px 0 0;font-size:11px;color:#a1a1aa">You're alerted once per booking. Routine unassigned jobs are handled automatically by dispatch.</p>
+    <p style="margin:14px 0 0;font-size:11px;color:#a1a1aa">Unresolved booking alerts may repeat after six hours. Routine unassigned jobs are handled by dispatch.</p>
   </td></tr></table>
 </div></body></html>`,
       replyTo: ownerEmail(),
-      meta: { notificationType: 'ops_alert', recipientType: 'owner' },
+      meta: { notificationType: 'ops_alert', recipientType: 'owner', disableDedupe: true },
     });
 
-    // Mark each booking alerted so it isn't re-sent.
-    for (const { b, sev, label } of issues) {
-      logActivity(sb, {
-        bookingId: b.id,
-        eventType: 'ops_alert_sent',
-        actorType: 'system',
-        actorName: 'ops_alert',
-        description: `Owner alerted [${sev}]: ${label}`,
-        metadata: { severity: sev },
-      });
-      alerted++;
+    if (emailResult?.ok && !emailResult?.suppressed) {
+      // Mark only confirmed delivery attempts so failed alerts remain retryable.
+      for (const { b, sev, label } of issues) {
+        await logActivity(sb, {
+          bookingId: b.id,
+          eventType: 'ops_alert_sent',
+          actorType: 'system',
+          actorName: 'ops_alert',
+          description: `Owner alerted [${sev}]: ${label}`,
+          metadata: { severity: sev },
+        });
+        alerted++;
+      }
+      if (emailResult.logged === false) {
+        deliveryError = emailResult.logError || 'Owner alert was delivered, but its notification log failed';
+      }
+    } else {
+      deliveryError = emailResult?.error || emailResult?.reason || 'Owner alert email was not delivered';
     }
   } catch (e) {
     console.error('ops-alert email error:', e);
+    deliveryError = e?.message || String(e);
   }
 
-  await logCron('ops-alert', { status: 'ok', records: alerted, duration: Date.now() - t });
-  return res.status(200).json({ alerted, refs: issues.map(i => i.b.ref) });
+  await logCron('ops-alert', { status: deliveryError ? 'warning' : 'ok', records: alerted, error: deliveryError, duration: Date.now() - t });
+  return res.status(200).json({ alerted, refs: issues.map(i => i.b.ref), deliveryError });
 }

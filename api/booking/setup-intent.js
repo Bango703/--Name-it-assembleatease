@@ -4,8 +4,9 @@ import { rateLimit, rateLimitKey } from '../_ratelimit.js';
 /**
  * POST /api/booking/setup-intent
  * Creates a Stripe Customer + SetupIntent for saving a card off-session.
- * Used by the quote booking flow — collects card upfront, no charge until
- * the owner finalizes the quote price via /api/owner/quote-approve.
+ * Used by the quote booking flow — saves a card without charging it. The owner
+ * can send a quote, but only the customer's one-time approval link may authorize
+ * the final amount through /api/owner/quote-approve.
  * Body: { name, email }
  * Returns: { clientSecret, customerId }
  */

@@ -4,6 +4,7 @@ import { sendEmail, ownerEmail, esc } from './_email.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { logActivity } from './booking/_activity.js';
+import { deriveGuestMutationToken, safeTokenHashMatch } from './_payment-security.js';
 
 /**
  * POST /api/booking-confirmed
@@ -21,13 +22,13 @@ export default async function handler(req, res) {
     console.error('Rate limit error (Redis unavailable):', rlErr);
   }
 
-  const { bookingId } = req.body;
-  if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
+  const { bookingId, guestMutationToken } = req.body || {};
+  if (!bookingId || !guestMutationToken) return res.status(400).json({ error: 'Missing secure booking confirmation credentials' });
 
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, payment_status, status, assembler_id')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, payment_status, status, assembler_id, guest_mutation_token_hash')
     .eq('id', bookingId)
     .single();
 
@@ -45,9 +46,12 @@ export default async function handler(req, res) {
     }
   }
 
+  if (!safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash)) {
+    return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
+  }
   // Guard: already confirmed — idempotent, but still retry dispatch in case
-  // a prior request confirmed the booking and failed before dispatch ran.
-  if (booking.payment_status === 'authorized' || booking.status === 'confirmed') {
+  // a prior authorized request confirmed the booking and dispatch later failed.
+  if (booking.payment_status === 'authorized') {
     await ensureDispatch();
     return res.status(200).json({ success: true, alreadyConfirmed: true });
   }
@@ -55,20 +59,32 @@ export default async function handler(req, res) {
   // Verify the PaymentIntent is genuinely authorized with Stripe before marking the booking.
   // This prevents IDOR abuse where anyone with a bookingId could call this endpoint.
   let verifiedPaymentMethodId = null;
-  if (booking.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-      // Valid post-auth PI states: requires_capture (manual) or succeeded (auto-capture)
-      if (pi.status !== 'requires_capture' && pi.status !== 'succeeded') {
-        console.warn(`[booking-confirmed] PI ${pi.id} in unexpected state: ${pi.status} for booking ${bookingId}`);
-        return res.status(402).json({ error: 'Payment not yet authorized. Please complete payment before confirming.' });
-      }
-      verifiedPaymentMethodId = typeof pi.payment_method === 'string' ? pi.payment_method : null;
-    } catch (piErr) {
-      console.error('[booking-confirmed] Stripe PI verification error:', piErr);
-      return res.status(502).json({ error: 'Could not verify payment status. Please try again.' });
+  if (!booking.stripe_payment_intent_id || !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: 'Payment verification is unavailable. Your booking has not been confirmed.' });
+  }
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+    const metadataMatches = pi.metadata?.bookingId === booking.id
+      && pi.metadata?.type === 'customer_booking';
+    const amountMatches = pi.currency === 'usd' && pi.amount === Number(booking.total_price || 0);
+    if (!metadataMatches || !amountMatches || pi.capture_method !== 'manual') {
+      console.error('[booking-confirmed] PaymentIntent/booking mismatch', {
+        bookingId, paymentIntentId: pi.id, metadataMatches, amountMatches,
+      });
+      return res.status(409).json({
+        error: 'Payment details do not match this booking. The booking was not confirmed.',
+        code: 'PAYMENT_BOOKING_MISMATCH',
+      });
     }
+    if (pi.status !== 'requires_capture') {
+      console.warn(`[booking-confirmed] PI ${pi.id} in unexpected state: ${pi.status} for booking ${bookingId}`);
+      return res.status(402).json({ error: 'Payment is not authorized for later capture. Please complete payment before confirming.' });
+    }
+    verifiedPaymentMethodId = typeof pi.payment_method === 'string' ? pi.payment_method : null;
+  } catch (piErr) {
+    console.error('[booking-confirmed] Stripe PI verification error:', piErr);
+    return res.status(502).json({ error: 'Could not verify payment status. Please try again.' });
   }
 
   // Confirm booking + mark card authorized. Promotes status so dispatch can run.
@@ -90,8 +106,10 @@ export default async function handler(req, res) {
 
   if (updateErr) {
     console.error('booking-confirmed status update error:', updateErr);
-    // Re-fetching is unnecessary here because the idempotent guard above will
-    // retry dispatch on a follow-up call if another request already confirmed it.
+    return res.status(500).json({
+      error: 'Your card was authorized, but the booking could not be confirmed. Please retry; you will not be authorized twice.',
+      code: 'CONFIRMATION_PERSIST_FAILED',
+    });
   }
   if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
     const { data: current } = await sb
@@ -130,6 +148,8 @@ export default async function handler(req, res) {
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
   const TO   = ownerEmail();
+  const guestToken = deriveGuestMutationToken({ bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
+  const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestToken)}`;
 
   const paymentLine = amount > 0
     ? `Your payment method has been verified securely for $${(amount / 100).toFixed(2)}. Payment is processed after the job is complete.`
@@ -168,7 +188,7 @@ export default async function handler(req, res) {
       <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your appointment at no charge. Inside 24 hours, a late-cancel fee may apply because a pro has already reserved the time.
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
-      <a href="mailto:service@assembleatease.com" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Questions? Contact Us</a>
+      <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage your booking</a>
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
