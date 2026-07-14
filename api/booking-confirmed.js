@@ -4,7 +4,7 @@ import { sendEmail, ownerEmail, esc } from './_email.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { logActivity } from './booking/_activity.js';
-import { deriveGuestMutationToken, safeTokenHashMatch } from './_payment-security.js';
+import { safeTokenHashMatch } from './_payment-security.js';
 
 /**
  * POST /api/booking-confirmed
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, payment_status, status, assembler_id, guest_mutation_token_hash')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type')
     .eq('id', bookingId)
     .single();
 
@@ -49,9 +49,15 @@ export default async function handler(req, res) {
   if (!safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash)) {
     return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
   }
+  if (booking.financial_operation_key) {
+    return res.status(409).json({
+      error: 'A cancellation or payment action is already being reconciled for this booking. Refresh the tracking page before continuing.',
+      code: 'BOOKING_FINANCIAL_OPERATION_IN_PROGRESS',
+    });
+  }
   // Guard: already confirmed — idempotent, but still retry dispatch in case
   // a prior authorized request confirmed the booking and dispatch later failed.
-  if (booking.payment_status === 'authorized') {
+  if (booking.payment_status === 'authorized' && booking.status === 'confirmed') {
     await ensureDispatch();
     return res.status(200).json({ success: true, alreadyConfirmed: true });
   }
@@ -68,9 +74,15 @@ export default async function handler(req, res) {
     const metadataMatches = pi.metadata?.bookingId === booking.id
       && pi.metadata?.type === 'customer_booking';
     const amountMatches = pi.currency === 'usd' && pi.amount === Number(booking.total_price || 0);
-    if (!metadataMatches || !amountMatches || pi.capture_method !== 'manual') {
+    const paymentIntentCustomerId = typeof pi.customer === 'string' ? pi.customer : pi.customer?.id || null;
+    const customerMatches = !booking.stripe_customer_id || paymentIntentCustomerId === booking.stripe_customer_id;
+    const expectedLiveMode = String(process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_')
+      ? true
+      : (String(process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? false : null);
+    const modeMatches = expectedLiveMode == null || pi.livemode === expectedLiveMode;
+    if (!metadataMatches || !amountMatches || !customerMatches || !modeMatches || pi.capture_method !== 'manual') {
       console.error('[booking-confirmed] PaymentIntent/booking mismatch', {
-        bookingId, paymentIntentId: pi.id, metadataMatches, amountMatches,
+        bookingId, paymentIntentId: pi.id, metadataMatches, amountMatches, customerMatches, modeMatches,
       });
       return res.status(409).json({
         error: 'Payment details do not match this booking. The booking was not confirmed.',
@@ -95,13 +107,21 @@ export default async function handler(req, res) {
     confirmed_at: new Date().toISOString(),
     confirmed_by: 'payment',
   };
+  if (booking.dispatch_status === 'payment_hold') {
+    updatePayload.dispatch_status = null;
+    updatePayload.dispatch_paused = false;
+    updatePayload.needs_manual_dispatch = false;
+  }
   if (verifiedPaymentMethodId) updatePayload.stripe_payment_method_id = verifiedPaymentMethodId;
 
   const { error: updateErr, data: updatedRows } = await sb
     .from('bookings')
     .update(updatePayload)
     .eq('id', bookingId)
-    .eq('payment_status', 'pending')
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+    .in('status', ['pending', 'confirmed'])
+    .in('payment_status', ['pending', 'failed', 'authorized'])
+    .is('financial_operation_key', null)
     .select('id');
 
   if (updateErr) {
@@ -117,7 +137,7 @@ export default async function handler(req, res) {
       .select('id, status, payment_status, assembler_id')
       .eq('id', bookingId)
       .maybeSingle();
-    if (current?.payment_status === 'authorized' || current?.status === 'confirmed') {
+    if (current?.payment_status === 'authorized' && current?.status === 'confirmed') {
       booking.payment_status = current.payment_status || 'authorized';
       booking.status = current.status || 'confirmed';
       booking.assembler_id = current.assembler_id || null;
@@ -148,8 +168,10 @@ export default async function handler(req, res) {
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
   const TO   = ownerEmail();
-  const guestToken = deriveGuestMutationToken({ bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
-  const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestToken)}`;
+  // The request token was verified against the current database hash above.
+  // Re-deriving the original deterministic token here would email an invalid
+  // link after a secure token rotation (for example, a reschedule or recovery).
+  const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;
 
   const paymentLine = amount > 0
     ? `Your payment method has been verified securely for $${(amount / 100).toFixed(2)}. Payment is processed after the job is complete.`

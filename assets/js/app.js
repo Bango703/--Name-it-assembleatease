@@ -79,6 +79,21 @@ const APP = {
       : role === 'owner' ? '/owner/' : '/';
   },
 
+  // Remove authenticated Easer data that must never survive an account switch
+  // in the same browser tab. Keep unrelated preferences such as cookie consent.
+  clearPrivateSessionData() {
+    try {
+      const keys = [];
+      for (let i = 0; i < sessionStorage.length; i += 1) {
+        const key = sessionStorage.key(i);
+        if (key === 'easer_dashboard_cache_v1' || key?.startsWith('easer_dashboard_cache_v1:')) {
+          keys.push(key);
+        }
+      }
+      keys.forEach((key) => sessionStorage.removeItem(key));
+    } catch {}
+  },
+
   // ── PATH HELPERS ────────────────────────────────────────
 
   // Resolve paths relative to the site root regardless of current directory depth
@@ -131,6 +146,7 @@ const APP = {
 
     // Logout handler
     document.getElementById('nav-logout')?.addEventListener('click', async () => {
+      this.clearPrivateSessionData();
       await supabaseClient.auth.signOut();
       window.location.href = root;
     });
@@ -226,13 +242,15 @@ const APP = {
 
   formatCurrency(amount, currency = 'USD') {
     if (amount == null) return '—';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2,
+    }).format(Number(amount) || 0);
   },
 
   // ── RENDER HELPERS ──────────────────────────────────────
 
   renderError(message) {
-    return `<div class="error-state"><span>⚠️</span>${message}</div>`;
+    return `<div class="error-state"><strong>Error:</strong> ${message}</div>`;
   },
 
   renderEmpty(message, linkHref, linkText) {

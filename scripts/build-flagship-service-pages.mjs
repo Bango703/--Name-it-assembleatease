@@ -1,14 +1,61 @@
 // Transforms the 6 footer-linked Austin service pages to the flagship layout.
-// Keeps each page's <head> (title/meta/canonical/JSON-LD/base CSS), nav, mobile nav,
+// Keeps each page's <head> (title/meta/canonical/base CSS), nav, mobile nav,
 // footer, mobile sticky bar, cookie banner and scripts INTACT. Only:
 //   1. injects the flagship .fa-* CSS before </head> (idempotent)
 //   2. swaps the visible body (between <!-- HERO --> and <footer class="footer">)
 //   3. points og:image / twitter:image at the service's real hero photo
+//   4. normalizes the page entity to a Service supplied by one Organization
 // Copy is location-NEUTRAL except the SEO spots (eyebrow, service-area, FAQ, links).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const CITY = 'Austin';
 const MAX_COMMON_JOBS = 4;
+
+function decodeHtmlText(value) {
+  return String(value || '')
+    .replaceAll('&ndash;', '–')
+    .replaceAll('&mdash;', '—')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&rsquo;', '’')
+    .replaceAll('&#39;', "'");
+}
+
+function buildServiceSchema(cfg) {
+  const url = `https://www.assembleatease.com/${cfg.slug}`;
+  return `<script type="application/ld+json">${JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${url}#service`,
+    name: `AssembleAtEase — ${cfg.eyebrow} in ${CITY}`,
+    serviceType: cfg.eyebrow,
+    image: `https://www.assembleatease.com/images/${cfg.heroPhoto}`,
+    url,
+    provider: {
+      '@type': 'Organization',
+      '@id': 'https://www.assembleatease.com/#organization',
+      name: 'AssembleAtEase',
+      url: 'https://www.assembleatease.com',
+      telephone: '+17372906129',
+      email: 'service@assembleatease.com',
+    },
+    areaServed: {
+      '@type': 'City',
+      name: CITY,
+      containedInPlace: { '@type': 'State', name: 'Texas' },
+    },
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: cfg.eyebrow,
+      itemListElement: cfg.offers.map((offer, index) => ({
+        '@type': 'Offer',
+        position: index + 1,
+        name: decodeHtmlText(offer.n),
+        description: decodeHtmlText(offer.p),
+      })),
+    },
+  }).replace(/<\//g, '<\\/')}</script>`;
+}
 
 function parseStartingPrice(label) {
   const match = String(label || '').match(/\$(\d+)/);
@@ -385,7 +432,7 @@ const SERVICES = [
       { n: 'Nightstand (single)', p: '$79' },
       { n: 'Bed frame (queen)', p: '$119', popular: true },
       { n: 'Dresser / chest of drawers', p: '$109&ndash;$129' },
-      { n: 'IKEA PAX wardrobe', p: '$169+' },
+      { n: 'IKEA PAX wardrobe (single unit)', p: '$169' },
     ],
     faqs: [
       { q: 'How long does furniture assembly take?', a: 'Most single items take 30&ndash;90 minutes. A full bedroom set or several pieces can take longer. We&rsquo;ll give you a time estimate when confirming your booking.' },
@@ -397,7 +444,7 @@ const SERVICES = [
   {
     slug: 'tv-mounting-austin-tx', prefix: 'tv-mounting', linkLabel: 'TV Mounting',
     eyebrow: 'TV Mounting', faqNoun: 'TV mounting', bookingParam: 'Mounting+%26+Hanging',
-    fromPrice: '$79', fromLabel: 'pictures &amp; mirrors &mdash; TVs from $99', ctaVerb: 'Book TV mounting',
+    fromPrice: '$99', fromLabel: 'standard TV &mdash; pictures &amp; mirrors from $79', ctaVerb: 'Book TV mounting',
     heroTitle: 'TV Mounting in Austin,<br><em>level and clean.</em>',
     heroSub: 'TVs, soundbars, mirrors and art &mdash; mounted level, anchored to studs, cables hidden. You supply the mount and hardware; we bring the tools and the steady hands for a clean, level wall.',
     heroPhoto: 'real-tv-mount-console.jpg', heroAlt: 'Large flat-screen TV wall-mounted above a media console',
@@ -417,7 +464,7 @@ const SERVICES = [
       { q: 'How long does TV mounting take?', a: 'Most standard wall mounts take 60&ndash;90 minutes. Cord concealment, brick or stone, and above-fireplace jobs take a little longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },
       { q: 'Do you provide the TV mount?', a: 'No &mdash; please have your wall mount and any hardware ready before the visit. Our pros bring the tools and do the install. Not sure which mount fits your TV and wall? Message your pro after booking and they&rsquo;ll point you to the right one.' },
       { q: 'Can you hide the cables in the wall?', a: 'Yes &mdash; in-wall cord concealment runs the cables behind the drywall for a clean look on standard walls. On brick, stone or surfaces where in-wall isn&rsquo;t possible, we use a paintable cable raceway.' },
-      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.' },
+      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; we currently serve participating ZIP codes in Round Rock, Cedar Park, Pflugerville, and Lakeway. Enter the service address during booking to confirm current availability.' },
     ],
   },
   {
@@ -442,7 +489,7 @@ const SERVICES = [
       { q: 'What can you install?', a: 'Thermostats, video doorbells, cameras, smart locks, plugs, switches and hubs. If it connects to an app, we can usually mount it, wire it, and set it up.' },
       { q: 'Do I need to buy the device first?', a: 'Yes &mdash; have your device and any subscription ready. We handle mounting, wiring where needed, app setup and testing on your Wi-Fi.' },
       { q: 'Will it work with my existing setup?', a: 'We connect new devices to your Wi-Fi and your existing app or ecosystem (Google, Alexa, Apple Home where supported) and test everything before we leave.' },
-      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.' },
+      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; we currently serve participating ZIP codes in Round Rock, Cedar Park, Pflugerville, and Lakeway. Enter the service address during booking to confirm current availability.' },
     ],
   },
   {
@@ -459,13 +506,13 @@ const SERVICES = [
       { n: 'Inversion Table', p: '$119' },
       { n: 'Treadmill Assembly', p: '$189', popular: true },
       { n: 'Elliptical Machine', p: '$209' },
-      { n: 'Squat Rack / Power Cage', p: '$219+' },
+      { n: 'Squat Rack / Power Cage', p: '$219' },
     ],
     faqs: [
       { q: 'How long does equipment assembly take?', a: 'Most treadmills and ellipticals take 1&ndash;2 hours; racks, cages and full home gyms can take longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },
       { q: 'Do you bring tools?', a: 'Yes &mdash; our Easers arrive fully equipped. You don&rsquo;t need to provide any tools or equipment.' },
       { q: 'Can you assemble any brand?', a: 'Yes &mdash; Peloton, NordicTrack, Bowflex, Sole, Rogue, Titan and more. If it shipped in a box with instructions, we can build it.' },
-      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.' },
+      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; we currently serve participating ZIP codes in Round Rock, Cedar Park, Pflugerville, and Lakeway. Enter the service address during booking to confirm current availability.' },
     ],
   },
   {
@@ -491,13 +538,13 @@ const SERVICES = [
       { q: 'How long does office assembly take?', a: 'A single desk or chair is usually 45&ndash;90 minutes; a full workstation or several pieces takes longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },
       { q: 'Do you bring tools?', a: 'Yes &mdash; fully equipped, including for electric standing desks. You don&rsquo;t need to provide any tools or equipment.' },
       { q: 'Can you do a whole office?', a: 'Yes &mdash; desks, chairs, cabinets, bookcases and full workstation sets. Bundle the pieces into one visit and we&rsquo;ll knock it out in a single trip.' },
-      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.' },
+      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; we currently serve participating ZIP codes in Round Rock, Cedar Park, Pflugerville, and Lakeway. Enter the service address during booking to confirm current availability.' },
     ],
   },
   {
     slug: 'playset-assembly-austin-tx', prefix: 'playset-assembly', linkLabel: 'Playset Assembly',
     eyebrow: 'Outdoor & Playset Assembly', faqNoun: 'playset & outdoor assembly', bookingParam: 'Outdoor+%26+Playsets',
-    fromPrice: '$89', fromLabel: 'outdoor assembly &mdash; playsets from $299', ctaVerb: 'Book outdoor assembly',
+    fromPrice: '$299', fromLabel: 'playsets &mdash; smaller outdoor items from $89', ctaVerb: 'Book outdoor assembly',
     heroTitle: 'Playset Assembly in Austin,<br><em>ready for the backyard.</em>',
     heroSub: 'Playsets, swing sets, trampolines, gazebos and patio sets &mdash; built to spec, anchored safe, and checked over before anyone climbs on. Tools and cleanup included.',
     heroPhoto: 'service-outdoor-playsets.jpg', heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
@@ -518,7 +565,7 @@ const SERVICES = [
       { q: 'How long does a playset take?', a: 'A trampoline or sandbox is often 1&ndash;2 hours; a large swing set or playset can take 3&ndash;5 hours or more. We&rsquo;ll give you a time estimate when we confirm your booking.' },
       { q: 'Do you anchor it safely?', a: 'Yes &mdash; we build to the manufacturer&rsquo;s spec, anchor per the instructions, and check stability before anyone gets on.' },
       { q: 'Can you assemble any brand?', a: 'Yes &mdash; Backyard Discovery, Gorilla, Lifetime, Rainbow, Springfree and more, plus pergola and gazebo kits and patio furniture.' },
-      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.' },
+      { q: 'Do you serve Round Rock too?', a: 'Yes &mdash; we currently serve participating ZIP codes in Round Rock, Cedar Park, Pflugerville, and Lakeway. Enter the service address during booking to confirm current availability.' },
     ],
   },
 ];
@@ -549,6 +596,13 @@ for (const cfg of SERVICES) {
   html = html.replace('<meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>', `<meta property="og:image" content="${heroUrl}"/>`);
   html = html.replace('<meta name="twitter:card" content="summary"/>', '<meta name="twitter:card" content="summary_large_image"/>');
   html = html.replace('<meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>', `<meta name="twitter:image" content="${heroUrl}"/>`);
+
+  // One Organization is the business identity; each location landing page
+  // describes the specific service supplied in that verified market.
+  html = html.replace(
+    /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+    buildServiceSchema(cfg),
+  );
 
   writeFileSync(file, html);
   count += 1;

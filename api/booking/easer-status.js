@@ -1,12 +1,14 @@
-﻿import { createClient } from '@supabase/supabase-js';
-import { getSupabase } from '../_supabase.js';
+﻿import { getSupabase } from '../_supabase.js';
+import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import {
   BOOKING_STATUS,
   EASER_STAGE,
   ACTIVE_BOOKING_STATUSES,
   TERMINAL_BOOKING_STATUSES,
+  isBookingPaymentReadyForDispatch,
 } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 
@@ -19,18 +21,15 @@ const STAGES = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
-
-  const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  const sb = getSupabase();
+  const access = await requireAssignedWorkEaser(req, { supabase: sb });
+  if (!access.ok) return respondWithEaserAccessError(res, access);
+  const { user } = access;
 
   const { bookingId, stage } = req.body;
   if (!bookingId || !stage) return res.status(400).json({ error: 'bookingId and stage required' });
   if (!STAGES[stage]) return res.status(400).json({ error: 'Invalid stage. Use: en_route, arrived, in_progress' });
 
-  const sb = getSupabase();
   const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
 
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
@@ -46,6 +45,18 @@ export default async function handler(req, res) {
   if (!ACTIVE_BOOKING_STATUSES.includes(booking.status)) {
     return res.status(400).json({ error: 'Booking is not in an updatable state' });
   }
+  if (booking.financial_operation_key) {
+    return res.status(409).json({
+      error: 'A payment, cancellation, or payout action is already in progress. Refresh before updating the job.',
+      code: 'FINANCIAL_OPERATION_IN_PROGRESS',
+    });
+  }
+  if (!isBookingPaymentReadyForDispatch(booking)) {
+    return res.status(409).json({
+      error: 'This job is on payment hold. Do not travel to or start the job until the owner resolves it.',
+      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
+    });
+  }
 
   const { status, field, label } = STAGES[stage];
   if (booking.status === status && booking[field]) {
@@ -56,6 +67,14 @@ export default async function handler(req, res) {
   }
   const transitionErr = getTransitionError(booking.status, status);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
+  const appointmentGate = evaluateEaserAppointmentGate({
+    date: booking.date,
+    time: booking.time,
+    stage,
+  });
+  if (!appointmentGate.allowed) {
+    return res.status(409).json(appointmentGate);
+  }
   const now = new Date().toISOString();
 
   // Primary update: status + pipeline_stage + timestamp field
@@ -65,6 +84,10 @@ export default async function handler(req, res) {
     .eq('id', bookingId)
     .eq('assembler_id', user.id)
     .eq('status', booking.status)
+    .eq('payment_status', booking.payment_status)
+    .eq('date', booking.date)
+    .eq('time', booking.time)
+    .is('financial_operation_key', null)
     .select('id');
   if (updateErr || !updatedRows?.length) {
     return res.status(409).json({ error: 'Job status changed before this update. Refresh and try again.' });

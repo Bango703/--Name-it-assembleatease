@@ -1,14 +1,78 @@
-﻿import Stripe from 'stripe';
+import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplit } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeCancellationFee, computeBookingSplitAtFeePct } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { appointmentTimestampMs } from './_appt-date.js';
-import { writeFinancialAudit } from '../_financial-audit.js';
-import { releasePendingRedemption } from '../_assemblecash.js';
+import { writeFinancialAudit, writeFinancialAuditRequired } from '../_financial-audit.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
+import { reserveBookingFinancialOperation } from './_financial-operation.js';
+import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { reconcileCancellationAssembleCash } from './_cancellation-credits.js';
+import { loadBookingRescheduleTruth } from './_cancellation-policy-truth.js';
+import { adjustActiveJobs } from './_active-jobs.js';
+import { bookingEmailMatches } from './_guest-booking-auth.js';
+import {
+  CANCELLABLE_PAYMENT_INTENT_STATES,
+  bookingCancellationPaymentIntentIds,
+  isUnrefundedCancellationFeeCapture,
+  loadBookingCancellationPaymentIntents,
+} from './_cancellation-stripe-truth.js';
+import {
+  assertCancellationPayoutUnsettled,
+  cancellationPolicyEvaluationTimeMs,
+  hasDurableCancellationFeeCaptureAudit,
+} from './_cancellation-operation.js';
+
+async function cancelGuestIntent(stripe, booking, row) {
+  if (row.intent.status === 'canceled') return;
+  if (!CANCELLABLE_PAYMENT_INTENT_STATES.has(row.intent.status)) {
+    const error = new Error(`Stripe authorization is in unexpected state ${row.intent.status}.`);
+    error.code = 'OWNER_CANCELLATION_REQUIRED';
+    throw error;
+  }
+  const canceled = await stripe.paymentIntents.cancel(
+    row.paymentIntentId,
+    {},
+    { idempotencyKey: `guest-cancel-release-${booking.id}-${row.paymentIntentId}` },
+  );
+  if (canceled?.status !== 'canceled') {
+    const error = new Error('Stripe did not confirm release of the card authorization.');
+    error.code = 'OWNER_CANCELLATION_REQUIRED';
+    throw error;
+  }
+}
+
+async function holdGuestCancellation(sb, booking, operationKey, metadata = {}) {
+  const { error: holdError, data: heldRows } = await sb.from('bookings').update({
+    dispatch_paused: true,
+    needs_manual_dispatch: false,
+    dispatch_status: 'payment_hold',
+    cancellation_reconciliation_required_at: new Date().toISOString(),
+    cancellation_reconciliation_reason: metadata.code || 'CANCELLATION_PAYMENT_RECONCILIATION_REQUIRED',
+  })
+    .eq('id', booking.id)
+    .eq('status', booking.status)
+    .eq('financial_operation_key', operationKey)
+    .select('id');
+  const { error: offersError } = await sb.from('dispatch_offers')
+    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
+    .eq('booking_id', booking.id)
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
+  if (holdError || !heldRows?.length) console.error('Guest cancellation hold failed:', holdError);
+  if (offersError) console.error('Guest cancellation offer cleanup failed:', offersError);
+  await logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'cancellation_payment_hold',
+    actorType: 'guest',
+    description: 'Guest cancellation paused for owner payment reconciliation',
+    metadata,
+  });
+  return { ok: !holdError && !!heldRows?.length && !offersError };
+}
 
 /**
  * POST /api/booking/guest-cancel
@@ -34,14 +98,13 @@ export default async function handler(req, res) {
     .from('bookings')
     .select('*')
     .eq('ref', ref.toUpperCase().trim())
-    .ilike('customer_email', email.trim())
     .maybeSingle();
 
   if (fetchErr) {
     console.error('Guest cancel lookup error:', fetchErr);
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking) {
+  if (!booking || !bookingEmailMatches(booking, email)) {
     return res.status(404).json({ error: 'Booking not found. Check your reference and email.' });
   }
   if (!safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
@@ -50,24 +113,36 @@ export default async function handler(req, res) {
 
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
   if (transitionErr) return res.status(400).json({ error: transitionErr + '.' });
+  if (booking.status === BOOKING_STATUS.IN_PROGRESS || booking.job_started_at) {
+    return res.status(409).json({
+      error: 'Work has already started. Contact support so job completion, payment, and any adjustment can be reviewed safely.',
+      code: 'OWNER_CANCELLATION_REQUIRED',
+    });
+  }
+  try {
+    await assertCancellationPayoutUnsettled(sb, booking);
+  } catch (payoutError) {
+    return res.status(payoutError.code === 'CANCELLATION_PAYOUT_RECONCILIATION_REQUIRED' ? 409 : 503).json({
+      error: payoutError.message,
+      code: payoutError.code,
+    });
+  }
 
   // Timing → tiered cancellation fee (% of pre-tax service subtotal, never tax).
+  const policyEvaluationTimeMs = cancellationPolicyEvaluationTimeMs(booking);
   let hoursAway = null;
   try {
     const apptMs = appointmentTimestampMs(booking.date, booking.time);
-    if (apptMs != null) hoursAway = (apptMs - Date.now()) / 3600000;
+    if (apptMs != null) hoursAway = (apptMs - policyEvaluationTimeMs) / 3600000;
   } catch (e) { console.error('Date parse error:', e); }
 
   // A rescheduled booking forfeits its free window (disclosed at reschedule time).
-  let wasRescheduled = false;
+  let wasRescheduled;
   try {
-    const { count } = await sb
-      .from('activity_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('booking_id', booking.id)
-      .eq('event_type', 'rescheduled');
-    wasRescheduled = (count || 0) > 0;
-  } catch (e) { console.warn('Reschedule-lock check failed (continuing):', e.message); }
+    ({ wasRescheduled } = loadBookingRescheduleTruth(booking));
+  } catch (policyTruthError) {
+    return res.status(503).json({ error: policyTruthError.message, code: policyTruthError.code });
+  }
 
   const serviceSubtotalCents = Math.max(0,
     (booking.total_price || 0) - (booking.tax_amount || 0) - (booking.service_call_fee || 0));
@@ -79,60 +154,180 @@ export default async function handler(req, res) {
   });
   const withinWindow = policy.tier !== 'free';
 
+  if (!['pending', 'failed', 'authorized', 'not_required'].includes(booking.payment_status)) {
+    return res.status(409).json({
+      error: 'This booking has a captured or deposit payment that requires owner-assisted cancellation. Contact support so the payment is reconciled before the booking changes.',
+      code: 'OWNER_CANCELLATION_REQUIRED',
+    });
+  }
+
+  let feeSnapshot = null;
+  if (policy.proTripCut && booking.assembler_id) {
+    try {
+      feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, booking.assembler_id);
+    } catch (feeError) {
+      console.error('Guest cancellation fee snapshot error:', feeError);
+      return res.status(503).json({ error: feeError.message, code: feeError.code });
+    }
+  }
+
   // Stripe: release hold or capture the tiered cancellation fee
   let feeCaptured = 0;
   let proTripCutCents = 0;
   if (booking.payment_status === 'cancellation_fee_captured') {
     feeCaptured = Number(booking.cancellation_fee || booking.amount_charged || 0);
   }
-  const stripeMutationRequired = booking.payment_status === 'authorized';
-  if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
-    return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please call us at (737) 290-6129.' });
+  const paymentIntentIds = bookingCancellationPaymentIntentIds(booking);
+  const stripeMutationRequired = paymentIntentIds.length > 0;
+  if (booking.payment_status === 'authorized' && !stripeMutationRequired) {
+    return res.status(409).json({ error: 'Your booking needs manual cancellation assistance. Please call us at 737-290-6129.' });
   }
-  if (stripeMutationRequired && !booking.stripe_payment_intent_id) {
-    return res.status(409).json({ error: 'Your booking needs manual cancellation assistance. Please call us at (737) 290-6129.' });
+  if (stripeMutationRequired && !process.env.STRIPE_SECRET_KEY) {
+    return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please call us at 737-290-6129.' });
+  }
+
+  const operationKey = `cancel:guest:${booking.id}`;
+  try {
+    await reserveBookingFinancialOperation(sb, {
+      bookingId: booking.id,
+      operationKey,
+      operationType: 'cancel_guest',
+      expectedStatuses: [booking.status],
+      expectedAssemblerId: booking.assembler_id || null,
+      expectedDate: booking.date,
+      expectedTime: booking.time,
+      checkAppointment: true,
+      expectedBooking: booking,
+    });
+  } catch (reservationError) {
+    return res.status(reservationError.code === 'FINANCIAL_OPERATION_CONFLICT' ? 409 : 503).json({
+      error: reservationError.message,
+      code: reservationError.code,
+    });
   }
 
   if (stripeMutationRequired) {
+    let stripeMutationStarted = false;
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-      if (pi.metadata?.bookingId !== booking.id
-          || !['customer_booking', 'customer_quote'].includes(pi.metadata?.type)) {
-        return res.status(409).json({ error: 'Stripe authorization does not match this booking. Your booking is unchanged; contact support.' });
+      const intentRows = await loadBookingCancellationPaymentIntents(stripe, booking, {
+        errorCode: 'OWNER_CANCELLATION_REQUIRED',
+      });
+      const invalidSucceededIntent = intentRows.find(row => row.intent.status === 'succeeded'
+        && (!Number.isInteger(Number(row.intent.amount_received)) || Number(row.intent.amount_received) <= 0));
+      if (invalidSucceededIntent) {
+        for (const row of intentRows.filter(item => CANCELLABLE_PAYMENT_INTENT_STATES.has(item.intent.status))) {
+          stripeMutationStarted = true;
+          await cancelGuestIntent(stripe, booking, row);
+        }
+        const error = new Error('Stripe captured payment totals require owner reconciliation.');
+        error.code = 'OWNER_CANCELLATION_REQUIRED';
+        throw error;
       }
-      if (pi.status === 'succeeded' && pi.amount_received > 0) {
-        feeCaptured = pi.amount_received;
-      } else if (pi.status === 'canceled') {
-        feeCaptured = 0;
-      } else if (pi.status !== 'requires_capture') {
-        return res.status(409).json({ error: `Stripe authorization is in unexpected state ${pi.status}. Your booking is unchanged; contact support.` });
-      } else if (policy.feeCents > 0) {
-        const feeCents = Math.min(policy.feeCents, pi.amount_capturable || pi.amount);
-        const idempotencyKey = `guest-cancel-fee-${booking.id}-${feeCents}`;
-        const captured = await stripe.paymentIntents.capture(booking.stripe_payment_intent_id, { amount_to_capture: feeCents }, { idempotencyKey });
-        feeCaptured = captured.amount_received;
-        await writeFinancialAudit(sb, {
-          eventType: 'capture_attempt',
-          eventSource: 'booking_cancel_guest',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey,
-          status: 'processed',
-          metadata: { reason: (wasRescheduled && policy.tier === 'late') ? 'guest_cancel_fee_rescheduled' : 'guest_cancel_fee', feeCaptured, tier: policy.tier, feePct: policy.feePct, wasRescheduled },
+      const unexpected = intentRows.find(row => row.intent.status !== 'succeeded'
+        && row.intent.status !== 'canceled'
+        && !CANCELLABLE_PAYMENT_INTENT_STATES.has(row.intent.status));
+      if (unexpected) {
+        for (const row of intentRows.filter(item => CANCELLABLE_PAYMENT_INTENT_STATES.has(item.intent.status))) {
+          stripeMutationStarted = true;
+          await cancelGuestIntent(stripe, booking, row);
+        }
+        const error = new Error(`Stripe authorization is in unexpected state ${unexpected.intent.status}.`);
+        error.code = 'OWNER_CANCELLATION_REQUIRED';
+        throw error;
+      }
+
+      const capturedRows = intentRows.filter(row => row.intent.status === 'succeeded'
+        && Number(row.intent.amount_received || 0) > 0);
+      const feeRecoveryRow = capturedRows.length === 1 ? capturedRows[0] : null;
+      const expectedRecoveredFee = feeRecoveryRow
+        ? policy.feeCents
+        : 0;
+      const feeRecoveryMatchesStripe = isUnrefundedCancellationFeeCapture(
+        feeRecoveryRow,
+        booking,
+        expectedRecoveredFee,
+      );
+      const canRecoverCancellationFee = feeRecoveryMatchesStripe
+        && await hasDurableCancellationFeeCaptureAudit(sb, {
+          booking,
+          paymentIntentId: feeRecoveryRow.paymentIntentId,
+          feeCents: expectedRecoveredFee,
         });
+
+      if (capturedRows.length && !canRecoverCancellationFee) {
+        for (const row of intentRows.filter(item => item.intent.status !== 'succeeded' && item.intent.status !== 'canceled')) {
+          stripeMutationStarted = true;
+          await cancelGuestIntent(stripe, booking, row);
+        }
+        const error = new Error('A captured payment needs owner reconciliation before this booking can be cancelled.');
+        error.code = 'OWNER_CANCELLATION_REQUIRED';
+        throw error;
+      }
+
+      if (canRecoverCancellationFee) {
+        for (const row of intentRows.filter(item => item !== feeRecoveryRow && item.intent.status !== 'canceled')) {
+          stripeMutationStarted = true;
+          await cancelGuestIntent(stripe, booking, row);
+        }
+        feeCaptured = Number(feeRecoveryRow.intent.amount_received);
       } else {
-        const idempotencyKey = `guest-cancel-release-${booking.id}`;
-        await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id, {}, { idempotencyKey });
-        await writeFinancialAudit(sb, {
-          eventType: 'capture_release',
-          eventSource: 'booking_cancel_guest',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey,
-          status: 'processed',
-          metadata: { reason: 'guest_cancel_release', tier: policy.tier },
-        });
+        const primaryRow = intentRows.find(row => row.paymentIntentId === booking.stripe_payment_intent_id)
+          || intentRows.find(row => row.paymentIntentId === booking.stripe_deposit_intent_id)
+          || intentRows[0];
+        const feeRow = primaryRow?.intent.status === 'requires_capture'
+          && ['customer_booking', 'customer_quote', 'reauth'].includes(primaryRow.intent.metadata?.type)
+          ? primaryRow
+          : null;
+        for (const row of intentRows) {
+          if (row === feeRow || row.intent.status === 'canceled') continue;
+          stripeMutationStarted = true;
+          await cancelGuestIntent(stripe, booking, row);
+        }
+
+        if (feeRow && policy.feeCents > 0) {
+          if (feeRow.intent.capture_method !== 'manual'
+              || Number(feeRow.intent.amount || 0) !== Number(booking.total_price || 0)
+              || !Number.isInteger(Number(feeRow.intent.amount_capturable))
+              || Number(feeRow.intent.amount_capturable) < policy.feeCents) {
+            stripeMutationStarted = true;
+            await cancelGuestIntent(stripe, booking, feeRow);
+            const error = new Error('Stripe authorization amount or capture method does not match the server-priced booking.');
+            error.code = 'OWNER_CANCELLATION_REQUIRED';
+            throw error;
+          }
+          const feeCents = policy.feeCents;
+          const idempotencyKey = `guest-cancel-fee-${booking.id}-${feeCents}`;
+          stripeMutationStarted = true;
+          const captured = await stripe.paymentIntents.capture(feeRow.paymentIntentId, { amount_to_capture: feeCents }, { idempotencyKey });
+          if (captured?.status !== 'succeeded' || Number(captured.amount_received || 0) !== feeCents) {
+            const error = new Error('Stripe did not confirm the exact cancellation fee capture.');
+            error.code = 'OWNER_CANCELLATION_REQUIRED';
+            throw error;
+          }
+          feeCaptured = feeCents;
+          await writeFinancialAuditRequired(sb, {
+            eventType: 'capture_attempt',
+            eventSource: 'booking_cancel_guest',
+            bookingId: booking.id,
+            paymentIntentId: feeRow.paymentIntentId,
+            idempotencyKey,
+            status: 'processed',
+            metadata: { reason: (wasRescheduled && policy.tier === 'late') ? 'guest_cancel_fee_rescheduled' : 'guest_cancel_fee', feeCaptured, tier: policy.tier, feePct: policy.feePct, wasRescheduled },
+          });
+        } else if (feeRow) {
+          stripeMutationStarted = true;
+          await cancelGuestIntent(stripe, booking, feeRow);
+          await writeFinancialAuditRequired(sb, {
+            eventType: 'capture_release',
+            eventSource: 'booking_cancel_guest',
+            bookingId: booking.id,
+            paymentIntentId: feeRow.paymentIntentId,
+            idempotencyKey: `guest-cancel-release-${booking.id}-${feeRow.paymentIntentId}`,
+            status: 'processed',
+            metadata: { reason: 'guest_cancel_release', tier: policy.tier },
+          });
+        }
       }
     } catch (e) {
       console.error('Stripe guest-cancel error:', e);
@@ -145,19 +340,25 @@ export default async function handler(req, res) {
         metadata: { paymentStatus: booking.payment_status, tier: policy.tier },
         error: e?.message || 'Guest cancellation Stripe mutation failed',
       });
-      return res.status(502).json({ error: 'We could not complete the payment portion of this cancellation. Your booking is unchanged. Please try again or call us at (737) 290-6129.' });
+      const held = await holdGuestCancellation(sb, booking, operationKey, {
+        code: e?.code || 'CANCELLATION_PAYMENT_RECONCILIATION_REQUIRED',
+        stripeMutationStarted,
+      });
+      return res.status(held.ok && e?.code === 'OWNER_CANCELLATION_REQUIRED' ? 409 : 503).json({
+        error: 'We could not fully reconcile the payment portion of this cancellation. Dispatch is paused; please call us at 737-290-6129.',
+        code: e?.code || 'CANCELLATION_PAYMENT_RECONCILIATION_REQUIRED',
+        recoverable: true,
+      });
     }
   }
 
   // Pro trip cut: pro committed (en route / no-show tier) → their split of the fee, recorded for manual payout.
   if (feeCaptured > 0 && policy.proTripCut && booking.assembler_id) {
-    try {
-      const { data: easerProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
-      proTripCutCents = computeBookingSplit(feeCaptured, easerProf?.has_membership === true, { taxCents: 0 }).assemblerDueCents;
-    } catch (e) { console.error('pro trip-cut calc error:', e); }
+    proTripCutCents = computeBookingSplitAtFeePct(feeCaptured, feeSnapshot.feePct, { taxCents: 0 }).assemblerDueCents;
   }
+  const releasedWithoutCharge = stripeMutationRequired && feeCaptured === 0;
 
-  const { error: updateErr } = await sb.from('bookings').update({
+  const cancellationUpdate = {
     status: BOOKING_STATUS.CANCELLED,
     cancelled_at: new Date().toISOString(),
     cancel_reason: 'Cancelled by customer (guest)',
@@ -165,36 +366,54 @@ export default async function handler(req, res) {
     payment_status: feeCaptured > 0
       ? 'cancellation_fee_captured'
       : (stripeMutationRequired ? 'authorization_released' : booking.payment_status),
-    amount_charged: feeCaptured > 0 ? feeCaptured : (booking.amount_charged || null),
-    payment_captured_at: feeCaptured > 0 ? new Date().toISOString() : booking.payment_captured_at,
+    amount_charged: feeCaptured > 0 ? feeCaptured : (releasedWithoutCharge ? null : (booking.amount_charged || null)),
+    payment_captured_at: feeCaptured > 0 ? new Date().toISOString() : (releasedWithoutCharge ? null : booking.payment_captured_at),
     cancellation_easer_due_cents: proTripCutCents,
     cancellation_easer_payout_status: proTripCutCents > 0 ? 'pending' : null,
-  }).eq('id', booking.id);
+    payout_status: proTripCutCents > 0 ? 'pending' : booking.payout_status,
+    payout_mode_snapshot: proTripCutCents > 0
+      ? (isStripeConnectEnabled() ? 'stripe_connect' : 'manual')
+      : booking.payout_mode_snapshot,
+    payout_review_status: proTripCutCents > 0 ? 'not_required' : booking.payout_review_status,
+    cancellation_reconciliation_required_at: null,
+    cancellation_reconciliation_reason: null,
+  };
+  let updateQuery = sb.from('bookings').update(cancellationUpdate)
+    .eq('id', booking.id)
+    .eq('status', booking.status)
+    .eq('financial_operation_key', operationKey)
+    .eq('financial_operation_type', 'cancel_guest');
+  updateQuery = booking.assembler_id
+    ? updateQuery.eq('assembler_id', booking.assembler_id)
+    : updateQuery.is('assembler_id', null);
+  const { error: updateErr, data: updatedRows } = await updateQuery.select('id');
 
-  if (updateErr) {
+  if (updateErr || !updatedRows?.length) {
     console.error('Guest cancel update failed:', updateErr);
-    return res.status(500).json({ error: 'Unable to process cancellation. Please call us at (737) 290-6129.' });
-  }
-
-  if (feeCaptured === 0 && booking.payment_status !== 'captured') {
-    await releasePendingRedemption(sb, {
-      bookingId: booking.id,
-      bookingRef: booking.ref,
-      customerEmail: booking.customer_email,
-      reason: 'reverse:guest_cancelled_before_completion',
+    await holdGuestCancellation(sb, booking, operationKey, {
+      code: 'CANCELLATION_FINALIZE_FAILED',
+      stripeReconciled: true,
+    });
+    return res.status(500).json({
+      error: 'The payment action completed, but the cancellation could not be finalized. Please call us at 737-290-6129 and do not retry through another cancellation path.',
+      code: 'CANCELLATION_FINALIZE_FAILED',
     });
   }
+
+  const cancellationCredits = await reconcileCancellationAssembleCash(sb, booking, 'booking_cancel_guest', operationKey);
 
   // Cancel all open dispatch offers so an Easer cannot accept a cancelled booking
-  sb.from('dispatch_offers')
+  const { error: dispatchCleanupError } = await sb.from('dispatch_offers')
     .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
     .eq('booking_id', booking.id)
-    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
-    .then(({ error: doErr }) => {
-      if (doErr) console.error('dispatch_offers cancel cleanup error (guest):', doErr.message);
-    });
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
+  if (dispatchCleanupError) console.error('dispatch_offers cancel cleanup error (guest):', dispatchCleanupError.message);
 
-  logActivity(sb, {
+  if (booking.assembler_id) {
+    await adjustActiveJobs(sb, booking.assembler_id, -1);
+  }
+
+  const timelineResult = await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'cancelled',
     actorType: 'guest',
@@ -227,6 +446,7 @@ export default async function handler(req, res) {
 
     await sendEmail({
       to: booking.customer_email,
+      meta: { bookingId: booking.id, notificationType: 'cancellation', recipientType: 'customer' },
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Booking Cancelled — ${booking.ref}`,
       html: buildStatusEmail({
@@ -249,6 +469,7 @@ export default async function handler(req, res) {
   try {
     await sendEmail({
       to: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'cancellation', recipientType: 'owner' },
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Customer Cancelled (Guest) — ${booking.ref}`,
       html: `<p>Customer <strong>${esc(booking.customer_name)}</strong> cancelled booking <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}) via guest track page.</p>
@@ -263,5 +484,5 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
     feeCaptured, withinWindow, timestamp: new Date().toISOString(),
   }));
 
-  return res.status(200).json({ success: true, feeCaptured, withinWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents });
+  return res.status(cancellationCredits.ok ? 200 : 202).json({ success: true, feeCaptured, withinWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents, rewardsReconciliationRequired: !cancellationCredits.ok, operationalFollowupRequired: !!dispatchCleanupError || !timelineResult.ok });
 }

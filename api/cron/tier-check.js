@@ -83,8 +83,17 @@ export default async function handler(req, res) {
 
   if (!e1 && starterProfiles?.length) {
     const ids = starterProfiles.map(p => p.id);
-    const { error: upErr } = await sb.from('profiles').update({ tier: 'professional' }).in('id', ids);
-    if (!upErr) promoted.toProfessional = ids.length;
+    const { data: promotedRows, error: upErr } = await sb.from('profiles')
+      .update({ tier: 'professional' })
+      .in('id', ids)
+      .eq('role', 'assembler')
+      .eq('status', 'active')
+      .eq('tier', 'starter')
+      .eq('identity_verified', true)
+      .gte('completed_jobs', 10)
+      .gte('rating', 4.5)
+      .select('id');
+    if (!upErr) promoted.toProfessional = promotedRows?.length || 0;
     else console.error('Tier-check starter→professional error:', upErr);
   }
 
@@ -101,8 +110,17 @@ export default async function handler(req, res) {
 
   if (!e2 && proProfiles?.length) {
     const ids = proProfiles.map(p => p.id);
-    const { error: upErr } = await sb.from('profiles').update({ tier: 'elite' }).in('id', ids);
-    if (!upErr) promoted.toElite = ids.length;
+    const { data: promotedRows, error: upErr } = await sb.from('profiles')
+      .update({ tier: 'elite' })
+      .in('id', ids)
+      .eq('role', 'assembler')
+      .eq('status', 'active')
+      .eq('tier', 'professional')
+      .eq('identity_verified', true)
+      .gte('completed_jobs', 30)
+      .gte('rating', 4.8)
+      .select('id');
+    if (!upErr) promoted.toElite = promotedRows?.length || 0;
     else console.error('Tier-check professional→elite error:', upErr);
   }
 

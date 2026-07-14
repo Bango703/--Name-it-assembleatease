@@ -2,6 +2,14 @@
 import { rateLimit } from './_ratelimit.js';
 import { getSupabase } from './_supabase.js';
 
+import { sendEmail, ownerEmail, esc } from './_email.js';
+import { formatUsPhone, normalizeUsPhone } from './_phone.js';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const US_STATE_CODES = new Set([
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]);
+
 // ── Disposable / spam email domain blocklist ──────────────────────────────────
 const BLOCKED_DOMAINS = new Set([
   'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org',
@@ -34,7 +42,7 @@ const BLOCKED_DOMAINS = new Set([
   'inboxalias.com','jnxjn.com','klzlk.com','kyois.com','llogin.com',
   'mail4trash.com','mailbidon.com','mailimate.com','mailmetrash.com',
   'mailmoat.com','mailnew.com','mailscrap.com','mailsiphon.com','notmailinator.com',
-  'no-spam.ws','nospam.ze.tc','nus.edu.sg',
+  'no-spam.ws','nospam.ze.tc',
 ]);
 
 function isDisposableEmail(email) {
@@ -45,32 +53,58 @@ function isDisposableEmail(email) {
 }
 
 // ── Location gibberish detection ─────────────────────────────────────────────
-function isGibberish(str) {
-  const s = str.trim();
-  if (s.length < 2) return true;
-  // Must contain at least one real letter (not all digits/symbols)
-  if (!/[a-zA-Z]/.test(s)) return true;
-  // Reject strings with 4+ consecutive consonants that form no known pattern
-  const consonants = /[^aeiouAEIOU\s\-'\.]{5,}/;
-  if (consonants.test(s.replace(/[^a-zA-Z]/g, ''))) return true;
-  // Detect keyboard mashing: 3+ repeating chars in a row
-  if (/(.)\1{3,}/.test(s)) return true;
-  // Ratio of unique chars must be reasonable — "asdfgh" → all unique but no vowel → caught above
-  // City names should have at least one vowel
-  if (!/[aeiouAEIOU]/.test(s)) return true;
-  return false;
+function cleanText(value, maxLength) {
+  return String(value || '')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function isInvalidHumanText(value) {
+  return value.length < 2 || !/[a-z]/i.test(value) || /(.)\1{3,}/i.test(value);
+}
+
+async function saveWaitlistRecord(sb, record) {
+  const { data: existing, error: lookupError } = await sb
+    .from('assembler_waitlist')
+    .select('id, status')
+    .eq('email', record.email)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+
+  if (existing) {
+    const { error: updateError } = await sb
+      .from('assembler_waitlist')
+      .update(record)
+      .eq('id', existing.id);
+    if (updateError) throw updateError;
+    return { id: existing.id, status: existing.status, created: false };
+  }
+
+  const { data: inserted, error: insertError } = await sb
+    .from('assembler_waitlist')
+    .insert({ ...record, status: 'pending' })
+    .select('id, status')
+    .single();
+  if (insertError) throw insertError;
+  return { id: inserted.id, status: inserted.status, created: true };
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'default')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
-  const { name, email, phone, city, state } = req.body;
-  const KEY = process.env.RESEND_API_KEY;
-  const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const name = cleanText(body.name, 120);
+  const email = cleanText(body.email, 180).toLowerCase();
+  const phone = normalizeUsPhone(cleanText(body.phone, 40));
+  const city = cleanText(body.city, 80);
+  const state = cleanText(body.state, 2).toUpperCase();
+  const TO = ownerEmail();
 
-  if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !phone || !city || !state) {
-    return res.status(400).json({ error: 'All fields are required' });
+  if (!name || !EMAIL_RE.test(email) || !phone || !city || !US_STATE_CODES.has(state)) {
+    return res.status(400).json({ error: 'Enter a valid name, email, 10-digit U.S. phone number, city, and 2-letter state.' });
   }
 
   // ── Email quality checks ──────────────────────────────────────────────────
@@ -79,37 +113,31 @@ export default async function handler(req, res) {
   }
 
   // ── Location sanity checks ────────────────────────────────────────────────
-  if (isGibberish(city)) {
+  if (isInvalidHumanText(city)) {
     return res.status(400).json({ error: 'Please enter a valid city name.' });
   }
-  if (isGibberish(name)) {
+  if (isInvalidHumanText(name)) {
     return res.status(400).json({ error: 'Please enter your real full name.' });
   }
 
-  const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const sName = esc(name);
   const sEmail = esc(email);
-  const sPhone = esc(phone);
+  const displayPhone = formatUsPhone(phone);
+  const sPhone = esc(displayPhone);
   const sCity = esc(city);
   const sState = esc(state);
 
   const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
   const SITE = 'https://www.assembleatease.com';
 
-  // ── Save to assembler_waitlist table (upsert by email) ──
+  // Save first: the database is the waitlist source of truth. Email is notification only.
+  let saved;
   try {
     const sb = getSupabase();
-    await sb.from('assembler_waitlist').upsert({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      city: city.trim(),
-      state: state.trim(),
-      status: 'pending',
-    }, { onConflict: 'email', ignoreDuplicates: false });
+    saved = await saveWaitlistRecord(sb, { name, email, phone, city, state });
   } catch (dbErr) {
     console.error('Waitlist DB save error:', dbErr);
-    // Continue — email notifications still matter
+    return res.status(500).json({ error: 'We could not save your waitlist request. Please try again.' });
   }
 
   const ownerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
@@ -138,13 +166,13 @@ export default async function handler(req, res) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Follow Up Required</p>
-      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Reach out to <strong>${sName}</strong> at <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> or <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> to begin the onboarding process.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Review coverage and Easer demand for <strong>${sCity}, ${sState}</strong>. Contact ${sName} only when the market is ready for applications; a waitlist entry is not approval to receive jobs.</p>
     </td></tr></table>
   </td></tr></table>
 
   <!-- Footer -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa;line-height:1.6">
-    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a><br/>Reviewed local pros &bull; Clear pricing
+    AssembleAtEase &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a><br/>Professional home-service marketplace
   </td></tr></table>
 </div></body></html>`;
 
@@ -177,10 +205,10 @@ export default async function handler(req, res) {
 
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Why Professionals Choose Us</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:24px">
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> Get matched with customers in your area</td></tr>
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> Earn competitive pay on every job</td></tr>
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> We handle customer booking &amp; scheduling</td></tr>
-      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5"><span style="color:#00BFFF;font-weight:700;margin-right:8px">&#10003;</span> No upfront fees to join the platform</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0">Review job scope and estimated earnings before accepting.</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0">Receive offers only after application, verification, and owner approval.</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5;border-bottom:1px solid #f0f0f0">Customer booking and scheduling are managed through the platform.</td></tr>
+      <tr><td style="padding:8px 0;color:#52525b;line-height:1.5">If invited, you will see all application requirements and any applicable fee before submitting.</td></tr>
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
@@ -192,64 +220,47 @@ export default async function handler(req, res) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
     <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
     <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Austin, TX &bull; Reviewed local pros &bull; Clear pricing</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#a1a1aa;line-height:1.5">Professional Assembly &amp; Handyman Services<br/>Market availability varies by service area.</p>
     <p style="margin:0;font-size:11px;color:#a1a1aa"><a href="${SITE}" style="color:#71717a;text-decoration:none">assembleatease.com</a> &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
     <p style="margin:10px 0 0;font-size:10px;color:#d4d4d8">You received this email because you signed up for the AssembleAtEase assembler waitlist. If you did not make this request, please disregard this email.</p>
   </td></tr></table>
 </div></body></html>`;
 
-  try {
-    // Send notification to owner
-    const ownerResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'AssembleAtEase Waitlist <waitlist@assembleatease.com>',
-        to: [TO],
-        subject: 'New Assembler Waitlist Signup - ' + name + ' (' + city + ', ' + state + ')',
-        html: ownerHtml,
-        reply_to: email,
-      }),
-    });
-    if (!ownerResp.ok) {
-      const err = await ownerResp.text();
-      console.error('Resend owner error:', err);
-      return res.status(500).json({ error: 'Failed to send notification' });
-    }
-
-    // Send confirmation to assembler
-    const assemblerResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'AssembleAtEase <waitlist@assembleatease.com>',
-        to: [email],
-        subject: "You're on the AssembleAtEase Waitlist!",
-        html: assemblerHtml,
-        reply_to: TO,
-      }),
-    });
-    if (!assemblerResp.ok) {
-      const err = await assemblerResp.text();
-      console.error('Resend assembler error:', err);
-      // Still return success since owner was notified
-    }
-
-    // HubSpot CRM — non-blocking
-    if (process.env.HUBSPOT_ACCESS_TOKEN) {
-      try {
+  const ownerMail = sendEmail({
+    to: TO,
+    from: 'AssembleAtEase Waitlist <waitlist@assembleatease.com>',
+    subject: 'New Easer waitlist signup - ' + name + ' (' + city + ', ' + state + ')',
+    html: ownerHtml,
+    replyTo: email,
+    meta: { notificationType: 'easer_waitlist', recipientType: 'owner', disableDedupe: true },
+  });
+  const easerMail = sendEmail({
+    to: email,
+    from: 'AssembleAtEase <waitlist@assembleatease.com>',
+    subject: 'Your AssembleAtEase Easer waitlist request',
+    html: assemblerHtml,
+    replyTo: TO,
+    meta: { notificationType: 'easer_waitlist_confirmation', recipientType: 'easer' },
+  });
+  const hubspot = process.env.HUBSPOT_ACCESS_TOKEN
+    ? (async () => {
         const contactId = await upsertContact({ email, name, phone, address: city + ', ' + state, lifecycleStage: 'subscriber' });
         if (contactId) {
-          await addNote({ contactId, body: `<strong>Assembler Waitlist Signup</strong><br>Name: ${esc(name)}<br>Phone: ${esc(phone)}<br>Location: ${esc(city)}, ${esc(state)}<br>Interested in joining the AssembleAtEase handyman network.` });
+          await addNote({ contactId, body: `<strong>Easer Waitlist Signup</strong><br>Name: ${esc(name)}<br>Phone: ${esc(displayPhone)}<br>Location: ${esc(city)}, ${esc(state)}<br>Interested in joining the AssembleAtEase professional network.` });
         }
-      } catch (err) { console.error('HubSpot waitlist error:', err); }
-    }
+      })()
+    : Promise.resolve();
 
-    return res.status(200).json({ success: true });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: 'Failed' });
-  }
+  const [ownerResult, easerResult, hubspotResult] = await Promise.allSettled([ownerMail, easerMail, hubspot]);
+  if (ownerResult.status === 'rejected' || ownerResult.value?.ok === false) console.error('Waitlist owner notification failed');
+  if (easerResult.status === 'rejected' || easerResult.value?.ok === false) console.error('Waitlist confirmation failed');
+  if (hubspotResult.status === 'rejected') console.error('HubSpot waitlist error:', hubspotResult.reason);
+
+  return res.status(200).json({
+    success: true,
+    status: saved.status,
+    confirmationSent: easerResult.status === 'fulfilled' && easerResult.value?.ok === true,
+  });
 }
 
 

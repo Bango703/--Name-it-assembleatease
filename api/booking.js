@@ -4,14 +4,15 @@ import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
-import { getMinimumPretaxBookingCents } from './_source-of-truth.js';
+import { getMinimumPretaxBookingCents, isActiveInstantBookingZip } from './_source-of-truth.js';
 import {
   applyPromotionToPricing,
   isMissingColumnError,
   resolveBookingPromotion,
 } from './_promotions.js';
 import { logActivity } from './booking/_activity.js';
-import { appointmentTimestampMs } from './booking/_appt-date.js';
+import { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } from './booking/_appt-date.js';
+import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import {
   verifyRedemptionToken,
@@ -32,9 +33,10 @@ export default async function handler(req, res) {
     items,
     service: serviceLegacy,
     name,
-    phone,
+    phone: rawPhone,
     email,
     address,
+    city,
     zip,
     date,
     time,
@@ -48,24 +50,39 @@ export default async function handler(req, res) {
     bundleSlug,
   } = req.body;
 
+  const phone = normalizeUsPhone(rawPhone);
+
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
     ? services
     : (serviceLegacy ? [serviceLegacy] : []);
   const service = serviceList.join(', ');
 
-  if (!service || !name || !phone || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !address || !date || !time) {
+  if (!service || !name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !address || !zip || !date || !time) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+  if (!phone) {
+    return res.status(400).json({ error: 'Enter a valid 10-digit US phone number.', code: 'INVALID_PHONE' });
+  }
+  if (!/^\d{5}$/.test(String(zip).trim())) {
+    return res.status(400).json({ error: 'Enter a valid 5-digit ZIP code.', code: 'INVALID_ZIP' });
+  }
+  if (!isActiveInstantBookingZip(zip)) {
+    return res.status(409).json({
+      error: 'Online booking is not active for this ZIP yet. Submit a market request and no payment will be collected.',
+      code: 'MARKET_NOT_ACTIVE',
+      marketRequestUrl: '/locations#request-market',
+    });
+  }
 
-  const requestedDate = new Date(`${date}T12:00:00Z`);
-  if (Number.isNaN(requestedDate.getTime())) {
+  const bookingCity = String(city || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+
+  const requestedDate = parseIsoCalendarDate(date);
+  if (!requestedDate) {
     return res.status(400).json({ error: 'Invalid appointment date.' });
   }
 
-  const chicagoToday = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date());
+  const chicagoToday = chicagoTodayIso();
   const bookingWindowStart = new Date(`${chicagoToday}T12:00:00Z`);
   const bookingWindowEnd = new Date(bookingWindowStart.getTime() + 6 * 24 * 60 * 60 * 1000);
   if (requestedDate < bookingWindowStart || requestedDate > bookingWindowEnd) {
@@ -401,6 +418,7 @@ export default async function handler(req, res) {
 
   // ── Stripe: create customer + PaymentIntent (skip if no price) ──
   let clientSecret = null;
+  let paymentIntentCreationAttempted = false;
 
   if (shouldChargeNow && process.env.STRIPE_SECRET_KEY) {
     try {
@@ -415,6 +433,7 @@ export default async function handler(req, res) {
       });
 
       // Create PaymentIntent — authorize card now, capture manually after job completion
+      paymentIntentCreationAttempted = true;
       const pi = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
@@ -434,8 +453,9 @@ export default async function handler(req, res) {
           name,
           address: {
             line1: address,
-            city: 'Austin',
+            ...(bookingCity ? { city: bookingCity } : {}),
             state: 'TX',
+            postal_code: String(zip).trim(),
             country: 'US',
           },
         },
@@ -453,27 +473,82 @@ export default async function handler(req, res) {
       }, { idempotencyKey: `booking-create-${bookingId}-${amount}` });
 
       // Save Stripe IDs to booking record
-      const { error: stripeLinkErr } = await sb.from('bookings').update({
+      const { data: stripeLinkRows, error: stripeLinkErr } = await sb.from('bookings').update({
         stripe_customer_id: customer.id,
         stripe_payment_intent_id: pi.id,
-      }).eq('id', bookingId);
+      })
+        .eq('id', bookingId)
+        .eq('status', 'pending')
+        .eq('payment_status', 'pending')
+        .is('stripe_payment_intent_id', null)
+        .select('id');
 
-      if (stripeLinkErr) {
-        try { await stripe.paymentIntents.cancel(pi.id); } catch (cancelErr) {
+      if (stripeLinkErr || !stripeLinkRows?.length) {
+        let cancellationConfirmed = false;
+        try {
+          const cancelledIntent = await stripe.paymentIntents.cancel(pi.id);
+          cancellationConfirmed = cancelledIntent?.status === 'canceled';
+        } catch (cancelErr) {
           console.error('Failed to cancel unlinked PaymentIntent:', cancelErr);
         }
-        throw new Error(`Failed to persist Stripe payment link: ${stripeLinkErr.message}`);
+
+        if (!cancellationConfirmed) {
+          // Preserve a durable booking record whenever Stripe cancellation is
+          // unknown. A best-effort second link makes the existing intent
+          // recoverable from the owner dashboard; the row is never deleted in
+          // this state even if the database is temporarily unavailable.
+          const { data: recoveryRows, error: recoveryLinkError } = await sb.from('bookings').update({
+            stripe_customer_id: customer.id,
+            stripe_payment_intent_id: pi.id,
+            payment_status: 'failed',
+          })
+            .eq('id', bookingId)
+            .eq('status', 'pending')
+            .in('payment_status', ['pending', 'failed'])
+            .is('stripe_payment_intent_id', null)
+            .select('id');
+          if (recoveryLinkError || !recoveryRows?.length) {
+            console.error('Uncancelled PaymentIntent could not be linked for recovery:', recoveryLinkError || pi.id);
+          }
+          const reconciliationError = new Error(`Stripe payment link requires reconciliation for ${pi.id}`);
+          reconciliationError.preserveBooking = true;
+          reconciliationError.paymentIntentId = pi.id;
+          throw reconciliationError;
+        }
+
+        const safeLinkError = new Error(`Failed to persist Stripe payment link: ${stripeLinkErr?.message || 'booking state changed'}`);
+        safeLinkError.safeToDeleteBooking = true;
+        throw safeLinkError;
       }
 
       clientSecret = pi.client_secret;
     } catch (stripeErr) {
       console.error('Stripe setup error:', stripeErr);
+      const preserveForReconciliation = stripeErr?.preserveBooking
+        || (paymentIntentCreationAttempted && stripeErr?.safeToDeleteBooking !== true);
+      if (preserveForReconciliation) {
+        await logActivity(sb, {
+          bookingId,
+          eventType: 'payment_reconciliation_required',
+          actorType: 'system',
+          actorName: 'booking-create',
+          description: 'Stripe payment setup could not be safely cancelled or linked. The booking was preserved for owner reconciliation.',
+          metadata: { paymentIntentId: stripeErr.paymentIntentId || null },
+        }).catch(activityError => console.error('Payment reconciliation activity log failed:', activityError?.message || activityError));
+        return res.status(503).json({
+          error: `Payment setup needs review. Do not submit another booking. Contact 737-290-6129 with reference ${ref}.`,
+          code: 'PAYMENT_RECONCILIATION_REQUIRED',
+          bookingRef: ref,
+        });
+      }
+
       if (assemblecashRedeemedCents > 0) {
         await releasePendingRedemption(sb, { bookingId, bookingRef: ref, customerEmail: email, reason: 'reverse:stripe_setup_failed' });
       }
-      // Delete the booking row we just created — do not leave an unpayable ghost booking.
+      // Deletion is safe only when no PaymentIntent exists or Stripe confirmed
+      // cancellation of the unlinked intent.
       await sb.from('bookings').delete().eq('id', bookingId).catch(delErr =>
-        console.error('Failed to clean up ghost booking after Stripe error:', delErr)
+        console.error('Failed to clean up booking after Stripe setup error:', delErr)
       );
       return res.status(502).json({
         error: 'Payment setup failed. Please try again in a moment. Your card was not charged.',
@@ -484,7 +559,7 @@ export default async function handler(req, res) {
 
   const sService = esc(quoteRequested && service === 'Other' ? 'Custom Quote' : service);
   const sName = esc(name);
-  const sPhone = esc(phone);
+  const sPhone = esc(formatUsPhone(phone));
   const sEmail = esc(email);
   const sAddress = esc(address);
   const sDate = esc(date);

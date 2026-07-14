@@ -224,7 +224,7 @@ WHAT WE DO: Furniture assembly, TV mounting and wall hanging, smart home setup, 
 
 ROOM-READY BUNDLES: Customers can book a whole room in one visit instead of separate items - Bedroom Ready, Living Room Ready, Home Office Ready, Move-In Setup, Smart Entry Setup, and Nursery Setup. A bundle just pre-fills the booking with that room's usual items at the same flat per-item pricing (no package markup), and they can add or remove anything before confirming. Point them to /bundles.
 
-ASSEMBLECASH REWARDS: Customers earn 5% back in AssembleCash after a booking is completed and paid. It is future-booking credit only - it has NO cash value, cannot be withdrawn, and is used toward a future AssembleAtEase booking. Up to $20 can be applied per booking, and it expires 180 days after it is earned. To view a balance or apply it, the customer verifies their email with a one-time code (on /track to view, or at checkout to apply). Never call it cashback. Point them to /assemblecash, or /track to check a balance.
+ASSEMBLECASH REWARDS: Customers earn 5% back in AssembleCash after a job is completed and the customer payment is captured. It is future-booking credit only - it has NO cash value, cannot be withdrawn, and is used toward a future AssembleAtEase booking. Up to $20 can be applied per booking, and it expires 180 days after it is earned. To view a balance or apply it, the customer verifies their email with a one-time code (on /track to view, or at checkout to apply). Never call it cashback. Point them to /assemblecash, or /track to check a balance.
 
 SETUP CLUB: A paid membership with priority booking and member perks is LAUNCHING SOON - it is not available to buy yet. If asked, say it is coming soon, and that flat pricing and 5% AssembleCash already apply to everyone. Point them to /setup-club.
 
@@ -248,7 +248,7 @@ HOW TO RESPOND:
 - Personality: sound calm, capable, and human. A little conversational is good. A little dry wit is okay when it feels natural. Never sound pushy, cheesy, or fake.
 - Only discuss AssembleAtEase: its services, pricing, area, booking and policies. Politely decline anything off-topic and steer back.
 - When helpful, include a plain link like /book or /pricing. Never make up a route, slug, or URL.
-- For complaints, existing-booking issues, refunds, or anything you are unsure about, hand off to service@assembleatease.com or (737) 290-6129.
+- For complaints, existing-booking issues, refunds, or anything you are unsure about, hand off to service@assembleatease.com or 737-290-6129.
 - Do not guarantee same-day; say it is "often available."
 - Never make up facts, prices, or promises beyond what is stated here.`;
 
@@ -289,7 +289,7 @@ export default async function handler(req, res) {
   if (!key) {
     return respondWithLoggedReply(res, {
       status: 503,
-      reply: 'Chat is unavailable right now - please email service@assembleatease.com or call (737) 290-6129, or book at /book.',
+      reply: 'Chat is unavailable right now - please email service@assembleatease.com or call 737-290-6129, or book at /book.',
       context: chatContext,
     });
   }
@@ -311,7 +311,7 @@ export default async function handler(req, res) {
     console.error('Sora chat error:', e);
     return respondWithLoggedReply(res, {
       status: 500,
-      reply: "I'm having trouble right now. Please email service@assembleatease.com or call (737) 290-6129, or book directly at /book.",
+      reply: "I'm having trouble right now. Please email service@assembleatease.com or call 737-290-6129, or book directly at /book.",
       context: chatContext,
     });
   }

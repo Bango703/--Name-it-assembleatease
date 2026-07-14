@@ -13,10 +13,9 @@ import { governanceConfig } from './lib/site-governance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const TODAY = '2026-06-04';
+const TODAY = '2026-07-13';
 const FLAGSHIP_AUSTIN_PAGES = new Set(governanceConfig.services.flagshipAustinPages || []);
 const MAX_COMMON_JOBS = 4;
-
 function esc(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -209,8 +208,8 @@ const SERVICES = [
       { name: 'Side / end table', price: '$69', popular: false },
       { name: 'Nightstand (single)', price: '$79', popular: false },
       { name: 'Bed Frame (Queen)', price: '$119', popular: true },
-      { name: 'Dresser / Chest of Drawers', price: '$99–$119', popular: false },
-      { name: 'IKEA PAX Wardrobe', price: '$169+', popular: false },
+      { name: 'Dresser / Chest of Drawers', price: '$109–$129', popular: false },
+      { name: 'IKEA PAX Wardrobe', price: '$169', popular: false },
     ],
     faqs: [
       { q: 'How long does furniture assembly take?', a: 'Most single items take 30–90 minutes. A full bedroom set (bed + dresser + desk) typically takes 2–3 hours. We\'ll give you a time estimate when confirming your booking.' },
@@ -232,6 +231,7 @@ const SERVICES = [
     heroAlt: 'Assembler leveling a TV wall mount in a living room',
     heroSummary: 'TVs, mirrors, shelves, and soundbars mounted level with the right anchors for your wall.',
     fromPrice: '$79',
+    titleFromPrice: '$99',
     pricingHighlights: [
       { name: 'Single framed picture / mirror', price: '$79', popular: false },
       { name: 'TV up to 40" (standard wall)', price: '$99', popular: false },
@@ -286,7 +286,7 @@ const SERVICES = [
       { name: 'Inversion Table', price: '$119', popular: false },
       { name: 'Treadmill Assembly', price: '$189', popular: true },
       { name: 'Elliptical Machine', price: '$209', popular: false },
-      { name: 'Squat Rack / Power Cage', price: '$219+', popular: false },
+      { name: 'Squat Rack / Power Cage', price: '$219', popular: false },
     ],
     faqs: [
       { q: 'Do you move the equipment to the right room?', a: 'Yes — same-floor equipment moves can be added during booking. Heavy or stair moves may need a custom quote.' },
@@ -307,6 +307,7 @@ const SERVICES = [
     heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
     heroSummary: 'Playsets, trampolines, pergolas, gazebos, and backyard builds assembled safely and checked before we leave.',
     fromPrice: '$89',
+    titleFromPrice: '$299',
     pricingHighlights: [
       { name: 'Deck box / outdoor storage bench', price: '$89', popular: false },
       { name: 'Patio umbrella + base', price: '$89', popular: false },
@@ -432,32 +433,32 @@ function generatePage(city, service) {
   const heroPhoto = service.heroPhoto || OUR_WORK_PHOTOS[service.slug]?.[0]?.img || 'logo.jpg';
   const heroAlt = service.heroAlt || `${serviceDisplayName} service visit in ${city.name}, TX`;
   const heroImageUrl = `https://www.assembleatease.com/images/${heroPhoto}`;
-  const title = `${serviceDisplayName} in ${city.name}, TX — From ${service.fromPrice} | AssembleAtEase`;
+  const titleFromPrice = service.titleFromPrice || service.fromPrice;
+  const title = `${serviceDisplayName} in ${city.name}, TX — From ${titleFromPrice} | AssembleAtEase`;
   const metaDesc = buildMetaDescription(service.slug, city.name);
 
   // JSON-LD schema
   const schema = safeJson({
     '@context': 'https://schema.org',
-    '@type': ['LocalBusiness', 'HomeAndConstructionBusiness'],
+    '@type': 'Service',
+    '@id': `${url}#service`,
     'name': `AssembleAtEase — ${serviceDisplayName} in ${city.name}`,
+    'serviceType': serviceDisplayName,
     'image': heroImageUrl,
     'url': url,
-    'telephone': '+17372906129',
-    'email': 'service@assembleatease.com',
-    'address': {
-      '@type': 'PostalAddress',
-      'streetAddress': '1910 W Braker Ln',
-      'addressLocality': 'Austin',
-      'addressRegion': 'TX',
-      'postalCode': '78701',
-      'addressCountry': 'US',
+    'provider': {
+      '@type': 'Organization',
+      '@id': 'https://www.assembleatease.com/#organization',
+      'name': 'AssembleAtEase',
+      'url': 'https://www.assembleatease.com',
+      'telephone': '+17372906129',
+      'email': 'service@assembleatease.com',
     },
     'areaServed': {
       '@type': 'City',
       'name': city.name,
       'containedInPlace': { '@type': 'State', 'name': 'Texas' },
     },
-    'priceRange': '$$',
     'hasOfferCatalog': {
       '@type': 'OfferCatalog',
       'name': serviceDisplayName,
@@ -473,7 +474,7 @@ function generatePage(city, service) {
   // City-specific FAQ
   const cityFaq = {
     q: `Do you serve ${city.nearby[0]} too?`,
-    a: `Yes — in addition to ${city.name}, we cover ${city.nearby.join(', ')}, and the entire Austin metro. Book online and we’ll follow up quickly to confirm the details.`,
+    a: `Yes — in addition to ${city.name}, we currently serve participating ZIP codes in ${city.nearby.join(', ')}. Enter the service address during booking to confirm current availability.`,
   };
 
   const allFaqs = [...service.faqs, cityFaq];
@@ -667,11 +668,11 @@ ${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
       <div class="city-hero-eyebrow">${esc(city.name)}, TX service area</div>
       <h1 class="city-hero-title">${esc(serviceDisplayName)} in ${esc(city.name)}, TX</h1>
       <p class="city-hero-lead">${esc(service.tagline)}</p>
-      <p class="city-hero-body">${esc(service.heroSummary)} We serve homes, apartments, and workplaces across ${esc(city.name)} and nearby Austin-area communities.</p>
+      <p class="city-hero-body">${esc(service.heroSummary)} Current availability covers participating ZIP codes in ${esc(city.name)} and nearby Central Texas communities.</p>
       <div class="city-hero-rating">
-        <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-        <strong>4.9</strong>
-        <span style="color:var(--muted)">&bull; Local service across ${esc(city.name)} and nearby areas</span>
+        <strong>Reviewed service pros</strong>
+        <span style="color:var(--muted)">&bull; Clear pricing before confirmation</span>
+        <span style="color:var(--muted)">&bull; ${esc(city.name)} service-area availability</span>
       </div>
       <div class="city-hero-actions">
         <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check availability in ${esc(city.name)}</a>
@@ -764,7 +765,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:780px;margin:0 auto;text-align:center">
     <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Service Area</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,2.5vw,2rem);color:var(--ink);margin-bottom:0.75rem">${esc(serviceDisplayName)} Near ${esc(city.name)}</h2>
-    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We serve ${esc(city.name)} and nearby Austin-area communities for in-home assembly, mounting, and setup work.</p>
+    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We currently accept online bookings in participating ${esc(city.name)} and Central Texas ZIP codes for assembly, mounting, and setup work.</p>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center">
       ${areaChips}
     </div>
@@ -776,14 +777,14 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:960px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Why Choose Us</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">${esc(city.name)}&rsquo;s trusted assembly and setup team.</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Local, detail-oriented, and built around a smooth in-home service experience.</p>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">A clearer way to book ${esc(service.name)} in ${esc(city.name)}.</h2>
+      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Clear scope, reviewed service pros, and status updates from booking through completion.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem">
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Reviewed local pros</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We confirm the visit and match the job with a service pro prepared for the work.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Careful in-home work</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Floors respected, parts organized, and the setup checked before we leave.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flexible scheduling</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Weekday and weekend openings with quick follow-up after you book.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Austin-based team</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">One local team serving ${esc(city.name)} and nearby communities, not a faceless lead-gen page.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Verified service area</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">The booking flow checks the service ZIP before payment so coverage is clear before you confirm.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Clear communication</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">If we need more detail on wall type, item count, or access, you hear from a real person quickly.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Ready to use when we leave</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Level, square, anchored, or tested as the job requires so the space feels finished.</p></div>
     </div>
@@ -836,7 +837,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in ${esc(city.name)}?</h2>
     <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Tell us what is waiting to get done and we will help you get it on the calendar with a fast local follow-up.</p>
     <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Check availability &rarr;</a>
-    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">737-290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
 </section>
 

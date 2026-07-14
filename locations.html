@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Service Areas &amp; Market Requests | AssembleAtEase</title>
+  <meta name="description" content="See where AssembleAtEase is currently accepting bookings and request assembly, mounting, or setup service in a future U.S. market." />
+  <link rel="canonical" href="https://www.assembleatease.com/locations" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Service Areas | AssembleAtEase" />
+  <meta property="og:description" content="Check active AssembleAtEase coverage or request service in your city." />
+  <meta property="og:url" content="https://www.assembleatease.com/locations" />
+  <meta property="og:site_name" content="AssembleAtEase" />
+  <meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="icon" href="/favicon.ico" sizes="any" /><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&amp;family=DM+Sans:wght@300;400;500;600;700&amp;display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&amp;family=DM+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet" /></noscript>
+  <link rel="stylesheet" href="/assets/css/marketing.css" />
+  <link rel="stylesheet" href="/assets/css/marketing-desktop.css" media="(min-width:900px)" />
+  <style>
+    body.locations-page .nav{position:relative}
+    .locations-hero{padding:5.5rem 1.25rem 4.5rem;background:linear-gradient(135deg,#001f2b 0%,#004d60 62%,#007b96 100%);color:#fff}
+    .locations-hero-inner,.locations-inner{width:min(1080px,100%);margin:0 auto}
+    .locations-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#7ee8ff;margin-bottom:.8rem}
+    .locations-hero h1{font-family:var(--font-display);font-size:clamp(2.5rem,6vw,5.2rem);line-height:.98;color:#fff;max-width:800px;margin:0 0 1rem}
+    .locations-hero p{max-width:700px;font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.75;color:rgba(255,255,255,.82)}
+    .coverage-note{display:inline-flex;align-items:center;gap:.55rem;margin-top:1.5rem;padding:.65rem .9rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.09);font-size:.84rem;font-weight:700}
+    .coverage-note svg{width:17px;height:17px;fill:none;stroke:#7ee8ff;stroke-width:2.2;flex:none}
+    .locations-main{padding:4.5rem 1.25rem 5.5rem;background:linear-gradient(180deg,#fff,#f5fbfd)}
+    .market-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(340px,.95fr);gap:2rem;align-items:start}
+    .market-card,.request-card{background:#fff;border:1px solid rgba(13,17,23,.09);border-radius:22px;padding:2rem;box-shadow:0 16px 42px rgba(0,45,56,.07)}
+    .market-status{display:inline-flex;align-items:center;gap:.45rem;padding:.35rem .7rem;border-radius:999px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+    .market-status::before{content:"";width:8px;height:8px;border-radius:50%;background:#10b981}
+    .market-card h2,.request-card h2{font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.6rem);line-height:1.05;color:var(--ink);margin:1rem 0 .75rem}
+    .market-card>p,.request-card>p{color:var(--muted);line-height:1.75;font-size:.94rem}
+    .city-list{display:flex;flex-wrap:wrap;gap:.55rem;margin:1.4rem 0}
+    .city-list span{padding:.48rem .72rem;border-radius:999px;background:var(--cyan-light);border:1px solid rgba(0,153,204,.16);color:#075985;font-size:.8rem;font-weight:700}
+    .service-links{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1.35rem}
+    .service-links a{display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:46px;padding:.7rem .8rem;border:1px solid var(--border);border-radius:10px;color:var(--ink-soft);text-decoration:none;font-size:.82rem;font-weight:700;background:#fff}
+    .service-links a:hover{border-color:var(--cyan);color:var(--cyan-dark)}
+    .service-links svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;flex:none}
+    .market-actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.5rem}
+    .market-actions .btn{min-height:48px}
+    .request-card{position:sticky;top:1rem}
+    .request-card form{margin-top:1.4rem}
+    .request-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .request-field{margin-bottom:.85rem}
+    .request-field label{display:block;font-size:.78rem;font-weight:800;color:var(--ink-soft);margin-bottom:.35rem}
+    .request-field input,.request-field select,.request-field textarea{width:100%;min-height:46px;border:1.5px solid var(--border);border-radius:10px;padding:.7rem .8rem;background:#fff;color:var(--ink);font:inherit;font-size:.9rem;outline:none}
+    .request-field textarea{min-height:92px;resize:vertical;line-height:1.5}
+    .request-field input:focus,.request-field select:focus,.request-field textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,191,255,.1)}
+    .request-submit{width:100%;min-height:50px;border:0;border-radius:999px;background:var(--cyan);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+    .request-submit:disabled{opacity:.6;cursor:wait}
+    .request-fine{font-size:.74rem;color:var(--muted);line-height:1.55;margin-top:.7rem;text-align:center}
+    .request-result{display:none;margin-top:.8rem;padding:.75rem .85rem;border-radius:10px;font-size:.84rem;line-height:1.55}
+    .request-result.success{display:block;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+    .request-result.error{display:block;background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+    .expansion-section{margin-top:2.5rem;padding:2rem;border-radius:22px;background:#002d38;color:#fff;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}
+    .expansion-section h2{font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.7rem);line-height:1.05;color:#fff;margin:0 0 .75rem}
+    .expansion-section p{color:rgba(255,255,255,.76);line-height:1.75;font-size:.92rem}
+    .expansion-steps{display:grid;gap:.7rem}
+    .expansion-step{display:flex;gap:.7rem;align-items:flex-start;padding:.75rem;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.06);font-size:.82rem;line-height:1.5;color:rgba(255,255,255,.86)}
+    .expansion-step strong{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--cyan);color:#002d38;flex:none;font-size:.75rem}
+    @media(max-width:820px){
+      .locations-hero{padding:4rem 1rem 3.5rem}
+      .locations-main{padding:3rem 1rem 4rem}
+      .market-grid,.expansion-section{grid-template-columns:1fr}
+      .request-card{position:static}
+    }
+    @media(max-width:520px){
+      .market-card,.request-card,.expansion-section{padding:1.25rem;border-radius:16px}
+      .request-row,.service-links{grid-template-columns:1fr}
+      .request-field input,.request-field select,.request-field textarea{font-size:16px}
+      .coverage-note{align-items:flex-start;border-radius:14px}
+    }
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"AssembleAtEase Service Areas","url":"https://www.assembleatease.com/locations","description":"Active AssembleAtEase service areas and a request form for future U.S. markets.","isPartOf":{"@type":"WebSite","name":"AssembleAtEase","url":"https://www.assembleatease.com"},"mainEntity":{"@type":"ItemList","name":"Current Central Texas service area","itemListElement":[{"@type":"ListItem","position":1,"name":"Austin, Texas"},{"@type":"ListItem","position":2,"name":"Round Rock, Texas"},{"@type":"ListItem","position":3,"name":"Cedar Park, Texas"},{"@type":"ListItem","position":4,"name":"Pflugerville, Texas"},{"@type":"ListItem","position":5,"name":"Georgetown, Texas"},{"@type":"ListItem","position":6,"name":"Leander, Texas"},{"@type":"ListItem","position":7,"name":"Buda, Texas"},{"@type":"ListItem","position":8,"name":"Kyle, Texas"},{"@type":"ListItem","position":9,"name":"Lakeway, Texas"},{"@type":"ListItem","position":10,"name":"Bee Cave, Texas"},{"@type":"ListItem","position":11,"name":"Hutto, Texas"},{"@type":"ListItem","position":12,"name":"Manor, Texas"}]}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.assembleatease.com"},{"@type":"ListItem","position":2,"name":"Service Areas","item":"https://www.assembleatease.com/locations"}]}</script>
+</head>
+<body class="locations-page">
+<a href="#main-content" class="skip-nav">Skip to main content</a>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
+      <div class="nav-logo-text">AssembleAtEase<div class="nav-logo-sub">Furniture Assembly &bull; TV Mounting</div></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#services-hdr">Services</a></li>
+      <li><a href="/locations" style="color:var(--cyan)">Locations</a></li>
+      <li><a href="/bundles">Bundles</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/track">Track My Booking</a></li>
+      <li><a href="/about">About Us</a></li>
+    </ul>
+    <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="nav-mobile" id="mobileNav">
+  <a href="/#services-hdr">Services</a>
+  <a href="/locations">Locations</a>
+  <a href="/bundles">Bundles</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/track">Track My Booking</a>
+  <a href="/about">About Us</a>
+  <a href="/contact">Contact</a>
+  <a href="/assembler/apply">Become an Easer</a>
+  <a href="/book" class="btn btn-cyan btn-full">Book Now &rarr;</a>
+</div>
+<script src="/assets/js/mobile-nav.js" defer></script>
+<main id="main-content">
+  <section class="locations-hero">
+    <div class="locations-hero-inner">
+      <div class="locations-eyebrow">Service areas</div>
+      <h1>One platform, expanding market by market.</h1>
+      <p>AssembleAtEase is designed to grow across the United States. We activate each market only after local Easer coverage and owner operations are ready, so customers are never promised a booking we cannot fulfill.</p>
+      <div class="coverage-note"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>Currently accepting online bookings in Austin and participating Central Texas communities</div>
+    </div>
+  </section>
+
+  <section class="locations-main">
+    <div class="locations-inner">
+      <div class="market-grid">
+        <article class="market-card">
+          <div class="market-status">Booking now</div>
+          <h2>Central Texas</h2>
+          <p>Customers in the communities below can check live service availability and complete the regular booking flow. Exact coverage is confirmed from the service ZIP code before checkout.</p>
+          <div class="city-list" aria-label="Current service communities">
+            <span>Austin</span><span>Round Rock</span><span>Cedar Park</span><span>Pflugerville</span><span>Georgetown</span><span>Leander</span><span>Buda</span><span>Kyle</span><span>Lakeway</span><span>Bee Cave</span><span>Hutto</span><span>Manor</span>
+          </div>
+          <div class="service-links" aria-label="Austin service pages">
+            <a href="/furniture-assembly-austin-tx">Furniture assembly <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
+            <a href="/tv-mounting-austin-tx">TV mounting <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
+            <a href="/fitness-equipment-assembly-austin-tx">Fitness equipment <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
+            <a href="/smart-home-installation-austin-tx">Smart home setup <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
+            <a href="/office-furniture-assembly-austin-tx">Office furniture <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
+            <a href="/playset-assembly-austin-tx">Outdoor assembly <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
+          </div>
+          <div class="market-actions"><a href="/book" class="btn btn-cyan btn-lg">Check my ZIP &amp; book</a><a href="/pricing" class="btn btn-outline btn-lg">View pricing</a></div>
+        </article>
+
+        <aside class="request-card" id="request-market">
+          <div class="locations-eyebrow" style="color:var(--cyan-dark)">Future markets</div>
+          <h2>Request your city</h2>
+          <p>Outside current coverage? Tell us what you need. This records demand for your market; it does not collect payment or promise an appointment.</p>
+          <form id="market-request-form" novalidate>
+            <div class="request-row">
+              <div class="request-field"><label for="market-name">Name</label><input id="market-name" name="name" autocomplete="name" required /></div>
+              <div class="request-field"><label for="market-email">Email</label><input id="market-email" name="email" type="email" autocomplete="email" required /></div>
+            </div>
+            <div class="request-row">
+              <div class="request-field"><label for="market-phone">Phone</label><input id="market-phone" name="phone" type="tel" autocomplete="tel" placeholder="555-555-5555" required /></div>
+              <div class="request-field"><label for="market-service">Service needed</label><select id="market-service" name="service" required><option value="">Select a service</option><option>Furniture Assembly</option><option>TV Mounting</option><option>Fitness Equipment Assembly</option><option>Smart Home Setup</option><option>Office Furniture Assembly</option><option>Outdoor / Playset / Gazebo Assembly</option><option>Custom Quote</option></select></div>
+            </div>
+            <div class="request-row">
+              <div class="request-field"><label for="market-city">City</label><input id="market-city" name="city" autocomplete="address-level2" required /></div>
+              <div class="request-field"><label for="market-state">State</label><select id="market-state" name="state" autocomplete="address-level1" required><option value="">Select a state</option><option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="DC">District of Columbia</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option></select></div>
+            </div>
+            <div class="request-field"><label for="market-zip">ZIP code</label><input id="market-zip" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" required /></div>
+            <div class="request-field"><label for="market-details">Project details (optional)</label><textarea id="market-details" name="details" maxlength="2000" placeholder="Tell us what needs to be assembled, mounted, or set up."></textarea></div>
+            <button type="submit" class="request-submit" id="market-submit">Send market request</button>
+            <p class="request-fine">No payment is collected. We will contact you before any scheduling or booking confirmation.</p>
+            <div class="request-result" id="market-result" role="status" aria-live="polite"></div>
+          </form>
+        </aside>
+      </div>
+
+      <section class="expansion-section" aria-labelledby="expansion-title">
+        <div><h2 id="expansion-title">How a new market becomes active</h2><p>Location SEO follows real operations. We publish an active city page only when the company can fulfill the work, support customers, and pay Easers correctly in that market.</p></div>
+        <div class="expansion-steps">
+          <div class="expansion-step"><strong>1</strong><span>Customer and business demand is recorded by ZIP code and service type.</span></div>
+          <div class="expansion-step"><strong>2</strong><span>Local Easers complete screening, agreements, identity verification, and owner approval.</span></div>
+          <div class="expansion-step"><strong>3</strong><span>The market passes test bookings, payment, support, cancellation, and payout checks before launch.</span></div>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
+      <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services.</p>
+      <div class="footer-contact">
+        <a href="tel:+17372906129">737-290-6129</a>
+        <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
+        <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow us on Facebook</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <ul class="footer-links">
+        <li><a href="/book?service=Furniture+Assembly">Furniture Assembly</a></li>
+        <li><a href="/book?service=Mounting+%26+Hanging">TV Mounting</a></li>
+        <li><a href="/book?service=Smart+Home">Smart Home Setup</a></li>
+        <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
+        <li><a href="/book?service=Office+Assembly">Office Furniture</a></li>
+        <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a href="/about">About Us</a></li>
+        <li><a href="/locations">Locations</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/blog/">Guides</a></li>
+        <li><a href="/business">Business Services</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Support</div>
+      <ul class="footer-links">
+        <li><a href="/#faq">FAQ</a></li>
+        <li><a href="/track">Track My Booking</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/assembler/apply">Become an Easer</a></li>
+      </ul>
+    </div>
+    <div style="grid-column:1 / -1">
+      <div class="footer-col-title">Resources</div>
+      <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
+        <li><a href="/blog/new-home-setup-checklist-austin">New home setup checklist</a></li>
+        <li><a href="/blog/ikea-assembly-cost-austin">IKEA assembly cost guide</a></li>
+        <li><a href="/blog/tv-mounting-costs-austin">TV mounting cost guide</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart home setup guide</a></li>
+        <li><a href="/blog/best-furniture-assembly-austin">Choosing an assembly pro</a></li>
+        <li><a href="/blog/">All guides &rarr;</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">&copy; <span id="year"></span> AssembleAtEase LLC. All rights reserved.</div>
+    <div class="footer-legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></div>
+  </div>
+</footer>
+<script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
+<script>
+document.getElementById('market-request-form').addEventListener('submit',async function(event){
+  event.preventDefault();
+  var form=event.currentTarget;
+  var result=document.getElementById('market-result');
+  var submit=document.getElementById('market-submit');
+  result.className='request-result';result.textContent='';
+  if(!form.reportValidity())return;
+  var data=Object.fromEntries(new FormData(form).entries());
+  data.state=String(data.state||'').trim().toUpperCase();
+  data.source='locations_page';
+  submit.disabled=true;submit.textContent='Sending request...';
+  try{
+    var response=await fetch('/api/market-demand',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    var body={};try{body=await response.json();}catch(parseError){}
+    if(!response.ok||body.error)throw new Error(body.error||'Your request could not be saved. Please try again.');
+    result.className='request-result success';
+    result.textContent='Request received. Reference '+body.requestRef+'. No payment was collected; we will contact you before scheduling.';
+    form.reset();
+  }catch(error){result.className='request-result error';result.textContent=error.message||'Your request could not be saved. Please try again.';}
+  finally{submit.disabled=false;submit.textContent='Send market request';}
+});
+</script>
+<div id="cookie-banner" class="hidden" data-cookie-banner><span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span><div class="cookie-btns"><button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button><button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button></div></div>
+<script src="/assets/js/cookie-consent.js" defer></script>
+</body>
+</html>

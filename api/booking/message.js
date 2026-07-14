@@ -1,76 +1,132 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
-import { createClient } from '@supabase/supabase-js';
+import { logActivity } from './_activity.js';
+import {
+  authenticateBearerUser,
+  requireAssignedWorkEaser,
+  respondWithEaserAccessError,
+} from '../_easer-access.js';
+import { customerOwnsBooking } from './_customer-booking-auth.js';
 
 const SITE = 'https://www.assembleatease.com';
 
 export default async function handler(req, res) {
-  // GET — list messages for a booking (owner only)
+  // GET — owner or the active, approved Easer assigned to the booking.
   if (req.method === 'GET') {
-    if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
-    const { bookingId, ref } = req.query;
+    const { bookingId, ref } = req.query || {};
     if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref query param required' });
     const sb = getSupabase();
-    let bq = sb.from('bookings').select('id');
+    const ownerRequest = verifyOwner(req);
+    let easerAccess = null;
+    if (!ownerRequest) {
+      easerAccess = await requireAssignedWorkEaser(req, { supabase: sb });
+      if (!easerAccess.ok) return respondWithEaserAccessError(res, easerAccess);
+    }
+
+    let bq = sb.from('bookings').select('id, assembler_id');
     if (bookingId) bq = bq.eq('id', bookingId); else bq = bq.eq('ref', ref);
-    const { data: bk, error: bkErr } = await bq.single();
-    if (bkErr || !bk) return res.status(404).json({ error: 'Booking not found' });
-    const { data: msgs, error: msgsErr } = await sb
+    const { data: bk, error: bkErr } = await bq.maybeSingle();
+    if (bkErr) return res.status(500).json({ error: 'Failed to verify booking access' });
+    if (!bk) return res.status(404).json({ error: 'Booking not found' });
+    if (!ownerRequest && bk.assembler_id !== easerAccess.user.id) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+    let messagesQuery = sb
       .from('messages')
-      .select('*')
-      .eq('booking_id', bk.id)
+      .select('id, booking_id, sender, sender_user_id, recipient_type, recipient_user_id, body, created_at, read_at')
+      .eq('booking_id', bk.id);
+    if (!ownerRequest) {
+      // Assignment alone is not message ownership: after reassignment, role-
+      // only rows could disclose the prior Easer's thread. Legacy rows with no
+      // user identity intentionally remain owner-only.
+      messagesQuery = messagesQuery.or(
+        `sender_user_id.eq.${easerAccess.user.id},recipient_user_id.eq.${easerAccess.user.id}`,
+      );
+    }
+    const { data: msgs, error: msgsErr } = await messagesQuery
       .order('created_at', { ascending: true });
     if (msgsErr) return res.status(500).json({ error: 'Failed to fetch messages' });
+
+    const readRecipient = ownerRequest ? 'owner' : 'assembler';
+    const unreadIds = (msgs || [])
+      .filter(message => message.recipient_type === readRecipient
+        && (ownerRequest || message.recipient_user_id === easerAccess.user.id)
+        && !message.read_at)
+      .map(message => message.id);
+    if (unreadIds.length) {
+      let readQuery = sb
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .in('id', unreadIds)
+        .eq('recipient_type', readRecipient);
+      if (!ownerRequest) {
+        readQuery = readQuery.eq('recipient_user_id', easerAccess.user.id);
+      }
+      const { error: readError } = await readQuery.is('read_at', null);
+      if (readError) {
+        console.error('Message read-state update error:', readError);
+        return res.status(503).json({ error: 'Messages loaded, but read state could not be secured. Please retry.' });
+      }
+    }
     return res.status(200).json({ messages: msgs || [] });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { bookingId, ref, body: msgBody, sender, target } = req.body;
+  const { bookingId, ref, body: msgBody, sender, target } = req.body || {};
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
-  if (!msgBody || !msgBody.trim()) return res.status(400).json({ error: 'Message body is required' });
-  if (msgBody.trim().length > 2000) return res.status(400).json({ error: 'Message must be 2000 characters or fewer' });
+  const messageText = typeof msgBody === 'string' ? msgBody.trim() : '';
+  if (!messageText) return res.status(400).json({ error: 'Message body is required' });
+  if (messageText.length > 2000) return res.status(400).json({ error: 'Message must be 2000 characters or fewer' });
 
   const sb = getSupabase();
 
-  // Fetch booking
-  let query = sb.from('bookings').select('*');
-  if (bookingId) query = query.eq('id', bookingId);
-  else query = query.eq('ref', ref);
-  const { data: booking, error: fetchErr } = await query.single();
-
-  if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-
-  // Determine sender
+  // Authenticate before looking up a caller-supplied booking identifier.
   let resolvedSender;
+  let resolvedRecipient;
+  let authenticatedUser = null;
   if (sender === 'owner') {
     if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
     resolvedSender = 'owner';
+    resolvedRecipient = target === 'assembler' ? 'assembler' : target === 'customer' ? 'customer' : null;
+    if (!resolvedRecipient) {
+      return res.status(400).json({ error: 'Owner messages require target customer or assembler' });
+    }
+  } else if (sender === 'assembler') {
+    const easerAccess = await requireAssignedWorkEaser(req, { supabase: sb });
+    if (!easerAccess.ok) return respondWithEaserAccessError(res, easerAccess);
+    authenticatedUser = easerAccess.user;
+    resolvedSender = 'assembler';
+    resolvedRecipient = 'owner';
   } else {
-    // Customer and assembler messages require JWT authentication
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const authenticated = await authenticateBearerUser(req);
+    if (!authenticated.ok) {
+      return res.status(authenticated.status).json({ error: authenticated.error });
     }
-    const token = authHeader.replace('Bearer ', '');
-    const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-    const { data: { user }, error: authErr } = await userClient.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    authenticatedUser = authenticated.user;
+    resolvedSender = 'customer';
+    resolvedRecipient = 'owner';
+  }
 
-    if (sender === 'assembler') {
-      // Verify user is the assigned assembler on this booking
-      if (!booking.assembler_id || booking.assembler_id !== user.id) {
-        return res.status(403).json({ error: 'You are not assigned to this booking' });
-      }
-      resolvedSender = 'assembler';
-    } else {
-      // Default: customer
-      if (user.email.toLowerCase() !== booking.customer_email.toLowerCase()) {
-        return res.status(401).json({ error: 'Unauthorized — email does not match booking' });
-      }
-      resolvedSender = 'customer';
+  let query = sb.from('bookings').select('*');
+  if (bookingId) query = query.eq('id', bookingId);
+  else query = query.eq('ref', ref);
+  const { data: booking, error: fetchErr } = await query.maybeSingle();
+  if (fetchErr) return res.status(500).json({ error: 'Failed to verify booking access' });
+  if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+  if (resolvedSender === 'assembler'
+      && (!booking.assembler_id || booking.assembler_id !== authenticatedUser.id)) {
+    return res.status(404).json({ error: 'Booking not found' });
+  }
+  if (resolvedSender === 'customer') {
+    if (!customerOwnsBooking(booking, authenticatedUser)) {
+      return res.status(404).json({ error: 'Booking not found' });
     }
+  }
+  if (resolvedSender === 'owner' && target === 'assembler' && !booking.assembler_id) {
+    return res.status(409).json({ error: 'No Easer is assigned to this booking' });
   }
 
   // Insert message
@@ -79,7 +135,12 @@ export default async function handler(req, res) {
     .insert({
       booking_id: booking.id,
       sender: resolvedSender,
-      body: msgBody.trim(),
+      sender_user_id: authenticatedUser?.id || null,
+      recipient_type: resolvedRecipient,
+      recipient_user_id: resolvedSender === 'owner' && resolvedRecipient === 'assembler'
+        ? booking.assembler_id
+        : null,
+      body: messageText,
     })
     .select()
     .single();
@@ -89,19 +150,19 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to save message' });
   }
 
-  // Send notification email to the other party
+  // Send notification email to the other party. Message persistence remains
+  // authoritative even if this notification fails.
+  let notificationResult = null;
+  let notificationFailure = null;
   try {
     const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-    const sBody = esc(msgBody.trim());
+    const sBody = esc(messageText);
 
     if (resolvedSender === 'owner' && target === 'assembler') {
       // Notify assigned Easer
-      if (!booking.assembler_id) {
-        return res.status(400).json({ error: 'No Easer is assigned to this booking' });
-      }
       const { data: { user: easerUser }, error: easerErr } = await sb.auth.admin.getUserById(booking.assembler_id);
       if (easerErr || !easerUser?.email) {
-        return res.status(500).json({ error: 'Could not look up Easer email' });
+        throw new Error('Message was saved, but the assigned Easer email could not be resolved');
       }
       const easerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -121,7 +182,7 @@ export default async function handler(req, res) {
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
   </td></tr></table>
 </div></body></html>`;
-      await sendEmail({
+      notificationResult = await sendEmail({
         to: easerUser.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Job update from dispatcher — ' + booking.ref,
@@ -139,7 +200,7 @@ export default async function handler(req, res) {
       // same channel as job offers. Email alone is easy to miss on a job.
       sendPushToUser(booking.assembler_id, {
         title: 'New message from dispatch',
-        body: msgBody.trim().slice(0, 140),
+        body: messageText.slice(0, 140),
         url: SITE + '/assembler/my-assignments',
         jobId: booking.id,
       }, { bookingId: booking.id, notificationType: 'owner_message', recipientType: 'easer' }).catch(() => {});
@@ -163,7 +224,7 @@ export default async function handler(req, res) {
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
   </td></tr></table>
 </div></body></html>`;
-      await sendEmail({
+      notificationResult = await sendEmail({
         to: booking.customer_email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'Message about booking ' + booking.ref,
@@ -178,7 +239,7 @@ export default async function handler(req, res) {
       });
     } else if (resolvedSender === 'assembler') {
       // Notify owner about assembler message
-      await sendEmail({
+      notificationResult = await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         subject: 'Easer Message — ' + booking.ref,
@@ -203,7 +264,7 @@ export default async function handler(req, res) {
       });
     } else {
       // Customer message — notify owner
-      await sendEmail({
+      notificationResult = await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
         subject: 'Customer Reply — ' + booking.ref + ' from ' + booking.customer_name,
@@ -236,9 +297,34 @@ export default async function handler(req, res) {
         },
       });
     }
+    if (notificationResult?.ok !== true || notificationResult?.suppressed === true) {
+      throw new Error(notificationResult?.error || notificationResult?.reason || 'Message notification was not delivered');
+    }
   } catch (emailErr) {
     console.error('Message email error:', emailErr);
+    notificationFailure = emailErr?.message || String(emailErr);
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'message_notification_failed',
+      actorType: 'system',
+      actorName: 'notifications',
+      description: `Message ${message.id} was saved, but its notification failed.`,
+      metadata: {
+        messageId: message.id,
+        sender: resolvedSender,
+        recipientType: resolvedRecipient,
+        error: notificationFailure,
+      },
+    }).catch(activityError => {
+      console.error('Message notification failure activity log error:', activityError?.message || activityError);
+    });
   }
 
-  return res.status(200).json({ success: true, message: { id: message.id, sender: resolvedSender } });
+  return res.status(200).json({
+    success: true,
+    message: { id: message.id, sender: resolvedSender, recipientType: resolvedRecipient },
+    notification: notificationFailure
+      ? { delivered: false, warning: 'Message saved, but the notification was not delivered.' }
+      : { delivered: true },
+  });
 }

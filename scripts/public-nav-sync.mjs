@@ -28,6 +28,9 @@ function resolveNavOptions(pagePath) {
   if (pagePath === 'about.html') {
     return { variant: 'core', includeSkipNav: true, activeHref: '/about' };
   }
+  if (pagePath === 'locations.html') {
+    return { variant: 'core', includeSkipNav: true, activeHref: '/locations' };
+  }
   return { variant: 'core', includeSkipNav: true };
 }
 
@@ -61,10 +64,13 @@ const report = {
   changedFileCount: changedFiles.length,
 };
 
-writeReportFile('page-public-nav-sync-report.json', `${JSON.stringify(report, null, 2)}\n`);
-writeReportFile(
-  'page-public-nav-sync-report.md',
-  ['# Public Nav Sync Report', '', `Changed ${changedFiles.length} file(s).`, '', ...changedFiles.map((path) => `- ${path}`)].join('\n') + '\n',
-);
+const shouldWriteReport = !process.argv.includes('--no-report');
+if (shouldWriteReport) {
+  writeReportFile('page-public-nav-sync-report.json', `${JSON.stringify(report, null, 2)}\n`);
+  writeReportFile(
+    'page-public-nav-sync-report.md',
+    ['# Public Nav Sync Report', '', `Changed ${changedFiles.length} file(s).`, '', ...changedFiles.map((path) => `- ${path}`)].join('\n') + '\n',
+  );
+}
 
 console.log(`Synced governed public nav blocks across ${changedFiles.length} file(s).`);

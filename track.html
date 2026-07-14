@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<meta name="referrer" content="no-referrer"/>
 <title>Manage My Booking &mdash; AssembleAtEase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="description" content="Look up your AssembleAtEase booking, check your appointment status, or cancel your booking."/>
@@ -67,9 +68,14 @@
 .detail-item{display:flex;flex-direction:column;gap:3px}
 .detail-label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
 .detail-value{font-size:0.95rem;font-weight:500;color:var(--ink)}
-.booking-card-price{padding:1.25rem 2rem;background:var(--off-white);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.booking-card-price{padding:1.25rem 2rem;background:var(--off-white);border-bottom:1.5px solid var(--border)}
+.booking-total-row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .price-label{font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em}
 .price-value{font-family:var(--font-display);font-size:1.5rem;color:var(--ink)}
+.price-breakdown{margin-top:1rem;padding-top:0.85rem;border-top:1px solid var(--border);font-size:0.82rem;color:var(--muted);line-height:1.7}
+.price-breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:1rem;align-items:start}
+.price-breakdown-value{color:var(--ink);text-align:right;white-space:nowrap}
+.price-breakdown-value.strong{font-weight:700}
 .booking-card-actions{padding:1.5rem 2rem;display:flex;flex-direction:column;gap:0.75rem}
 .btn-cancel-booking{width:100%;padding:0.85rem;background:#fef2f2;color:#991b1b;border:1.5px solid #fecaca;border-radius:10px;font-family:var(--font-body);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn-cancel-booking:hover{background:#fee2e2;border-color:#fca5a5}
@@ -106,7 +112,7 @@
 /* ── CONFIRM CANCEL MODAL ───────────────────────────────── */
 .cancel-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity 0.2s}
 .cancel-modal-overlay.open{opacity:1;pointer-events:all}
-.cancel-modal{background:#fff;border-radius:18px;padding:2rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.18);transform:translateY(16px) scale(0.98);transition:transform 0.2s}
+.cancel-modal{background:#fff;border-radius:18px;padding:2rem;max-width:420px;width:100%;max-height:calc(100vh - 2rem);max-height:calc(100dvh - 2rem);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 20px 60px rgba(0,0,0,0.18);transform:translateY(16px) scale(0.98);transition:transform 0.2s}
 .cancel-modal-overlay.open .cancel-modal{transform:translateY(0) scale(1)}
 .cancel-modal-title{font-family:var(--font-display);font-size:1.4rem;color:var(--ink);margin-bottom:0.6rem}
 .cancel-modal-fee{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;font-size:0.83rem;color:#92400e;line-height:1.6;margin-bottom:1.25rem;display:none}
@@ -125,7 +131,7 @@
 @media(max-width:600px){
   .detail-grid{grid-template-columns:1fr}
   .cancel-modal-actions{grid-template-columns:1fr}
-  .booking-card-price{flex-direction:column;align-items:flex-start;gap:4px}
+  .booking-total-row{flex-direction:column;align-items:flex-start;gap:4px}
 }
 @media(max-width:768px){
   .nav-inner{padding:0 1rem}
@@ -148,16 +154,17 @@
   <div class="nav-inner">
     <a href="/" class="nav-logo">
       <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
-      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+      <div class="nav-logo-text">AssembleAtEase<div class="nav-logo-sub">Furniture Assembly &bull; TV Mounting</div></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
+      <li><a href="/locations">Locations</a></li>
       <li><a href="/bundles">Bundles</a></li>
       <li><a href="/pricing">Pricing</a></li>
       <li><a href="/track" style="color:var(--cyan)">Track My Booking</a></li>
       <li><a href="/about">About Us</a></li>
     </ul>
-    <a href="/book" class="btn btn-cyan" style="font-size:0.875rem;padding:0.5rem 1.25rem">Book Now &rarr;</a>
+    <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
@@ -165,6 +172,7 @@
 </nav>
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services-hdr">Services</a>
+  <a href="/locations">Locations</a>
   <a href="/bundles">Bundles</a>
   <a href="/pricing">Pricing</a>
   <a href="/track">Track My Booking</a>
@@ -293,10 +301,12 @@
 
       <!-- Price -->
       <div class="booking-card-price">
-        <span class="price-label">Booking Total</span>
-        <span class="price-value" id="bPrice"></span>
+        <div class="booking-total-row">
+          <span class="price-label" id="bPriceLabel">Booking Total</span>
+          <span class="price-value" id="bPrice"></span>
+        </div>
+        <div id="priceBreakdown" class="price-breakdown" style="display:none"></div>
       </div>
-      <div id="priceBreakdown" style="display:none;margin-top:0.5rem;font-size:0.82rem;color:var(--muted);line-height:1.7"></div>
 
       <!-- Cancel fee warning (shown if applicable) -->
       <div class="cancel-fee-warn" id="cancelFeeWarn">
@@ -322,13 +332,17 @@
     </div>
 
     <p class="track-help">
-      Need help? Call us at <a href="tel:+17372906129">(737) 290-6129</a> or <a href="/contact">send a message</a>.
+      Need help? Call us at <a href="tel:+17372906129">737-290-6129</a> or <a href="/contact">send a message</a>.
     </p>
     <button class="new-lookup-btn" onclick="resetLookup()">Look up a different booking</button>
   </div>
 </section>
 
 <script>
+function formatUsdCents(value){
+  var cents=Number(value);
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number.isFinite(cents)?cents/100:0);
+}
 (function(){
   function el(id){ return document.getElementById(id); }
   window.acReset = function(){
@@ -355,11 +369,11 @@
       var d=await r.json().catch(function(){return {};});
       if(!r.ok){ err.textContent=(d&&d.error)||'That code is invalid or expired. Request a new one.'; }
       else {
-        var cents=(d&&d.balanceCents)||0; var dollars=(cents/100).toFixed(2);
+        var cents=(d&&d.balanceCents)||0; var dollars=formatUsdCents(cents);
         el('acStepCode').style.display='none'; var res=el('acResult'); res.style.display='';
         res.innerHTML='<div style="text-align:center;padding:0.6rem 0">'
           +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--cyan-dark)">Your AssembleCash</div>'
-          +'<div style="font-size:2.4rem;font-weight:800;color:var(--ink);margin:0.2rem 0">$'+dollars+'</div>'
+          +'<div style="font-size:2.4rem;font-weight:800;color:var(--ink);margin:0.2rem 0">'+dollars+'</div>'
           +'<div style="font-size:0.88rem;color:var(--muted);line-height:1.5">'+(cents>0?'Apply it at checkout on your next eligible booking.':'Complete a booking to start earning 5% back.')+'</div>'
           +'<a href="/book" class="btn btn-cyan" style="margin-top:0.9rem;display:inline-block">Book a setup &rarr;</a></div>';
       }
@@ -402,11 +416,11 @@
       </div>
       <div style="margin-bottom:1rem">
         <label for="rsDate" style="display:block;font-size:0.75rem;font-weight:700;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">New date</label>
-        <input type="date" id="rsDate" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);outline:none"/>
+        <input type="date" id="rsDate" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:16px;color:var(--ink);outline:none"/>
       </div>
       <div style="margin-bottom:1.25rem">
         <label for="rsTime" style="display:block;font-size:0.75rem;font-weight:700;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">New time</label>
-        <select id="rsTime" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:0.95rem;color:var(--ink);outline:none;background:#fff"></select>
+        <select id="rsTime" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:16px;color:var(--ink);outline:none;background:#fff"></select>
       </div>
       <div id="rsError" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:0.6rem 0.9rem;font-size:0.83rem;margin-bottom:1rem"></div>
       <div class="cancel-modal-actions">
@@ -430,7 +444,7 @@
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="tel:+17372906129">737-290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
         <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>
@@ -444,13 +458,13 @@
         <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
         <li><a href="/book?service=Office+Assembly">Office Furniture</a></li>
         <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
-        <li><a href="/business">Business &amp; Custom Quotes</a></li>
       </ul>
     </div>
     <div>
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
+        <li><a href="/locations">Locations</a></li>
         <li><a href="/pricing">Pricing</a></li>
         <li><a href="/blog/">Guides</a></li>
         <li><a href="/business">Business Services</a></li>
@@ -468,11 +482,11 @@
     <div style="grid-column:1 / -1">
       <div class="footer-col-title">Resources</div>
       <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
-        <li><a href="/blog/">Home setup guides</a></li>
-        <li><a href="/blog/">Furniture assembly guides</a></li>
-        <li><a href="/blog/">TV mounting guides</a></li>
-        <li><a href="/blog/">Smart home guides</a></li>
-        <li><a href="/blog/">Move-in checklists</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New home setup checklist</a></li>
+        <li><a href="/blog/ikea-assembly-cost-austin">IKEA assembly cost guide</a></li>
+        <li><a href="/blog/tv-mounting-costs-austin">TV mounting cost guide</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart home setup guide</a></li>
+        <li><a href="/blog/best-furniture-assembly-austin">Choosing an assembly pro</a></li>
         <li><a href="/blog/">All guides &rarr;</a></li>
       </ul>
     </div>
@@ -487,7 +501,8 @@
 // ── State ──────────────────────────────────────────────────
 let currentBooking = null;
 let currentEmail   = null;
-let currentMutationToken = new URLSearchParams(window.location.search).get('token') || '';
+const initialTrackParams = new URLSearchParams(window.location.search);
+let currentMutationToken = initialTrackParams.get('token') || '';
 let autoLookupPending = false;
 
 function safeProfilePhoto(value) {
@@ -557,7 +572,12 @@ function renderBooking(b) {
   document.getElementById('bDate').textContent     = formatDate(b.date);
   document.getElementById('bTime').textContent     = b.time || '—';
   var displayTotal = (b.amount_charged != null ? b.amount_charged : b.total_price);
-  document.getElementById('bPrice').textContent    = displayTotal ? '$' + (displayTotal / 100).toFixed(2) : '—';
+  var paymentStatus = String(b.payment_status || '');
+  var totalLabel = ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(paymentStatus)
+    ? 'Total Charged'
+    : (paymentStatus === 'authorized' ? 'Total Authorized' : (paymentStatus === 'deposit_paid' ? 'Deposit Paid' : 'Booking Total'));
+  document.getElementById('bPriceLabel').textContent = totalLabel;
+  document.getElementById('bPrice').textContent    = displayTotal ? formatUsdCents(displayTotal) : '—';
 
   // Customer breakdown — subtotal / service call / tax / total (reconciles to total).
   (function(){
@@ -569,21 +589,16 @@ function renderBooking(b) {
     var call  = Number(b.service_call_fee) || 0;
     if (total <= 0) { bd.style.display = 'none'; return; }
     var serviceItems = Math.max(0, total - tax - call);
-    function money(c){ return (c < 0 ? '-$' : '$') + (Math.abs(c)/100).toFixed(2); }
+    function money(c){ return formatUsdCents(c); }
     function row(label, val, strong){
-      return '<div style="display:flex;justify-content:space-between;gap:1rem">'
+      return '<div class="price-breakdown-row">'
         + '<span>' + label + '</span>'
-        + '<span style="color:var(--ink)' + (strong ? ';font-weight:700' : '') + '">' + money(val) + '</span></div>';
+        + '<span class="price-breakdown-value' + (strong ? ' strong' : '') + '">' + money(val) + '</span></div>';
     }
     bd.innerHTML =
         row('Service &amp; items', serviceItems)
       + (call > 0 ? row('Service call fee', call) : '')
       + (tax  > 0 ? row('Sales tax', tax) : '')
-      + '<div style="border-top:1px solid var(--border,#e5e7eb);margin-top:5px;padding-top:5px">' + row(
-          ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(String(b.payment_status||'')) ? 'Total charged' : 'Booking total (authorized only)',
-          total,
-          true
-        ) + '</div>'
       + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
     bd.style.display = '';
   })();
@@ -734,30 +749,108 @@ function closeCancelModal() {
 // ── Reschedule modal ───────────────────────────────────────
 var RS_TIME_SLOTS = ['7:00 AM – 9:00 AM','9:00 AM – 11:00 AM','11:00 AM – 1:00 PM','1:00 PM – 3:00 PM','3:00 PM – 5:00 PM'];
 
+var RS_CHICAGO_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+});
+var RS_CHICAGO_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+});
+
+function rsParts(formatter, date) {
+  var values = {};
+  formatter.formatToParts(date || new Date()).forEach(function(part) {
+    if (part.type !== 'literal') values[part.type] = part.value;
+  });
+  return values;
+}
+
+function rsTodayIso() {
+  var values = rsParts(RS_CHICAGO_DATE_FORMATTER, new Date());
+  return values.year + '-' + values.month + '-' + values.day;
+}
+
+function rsAddDays(isoDate, days) {
+  var value = new Date(isoDate + 'T12:00:00Z');
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function rsNormalizeSlot(slot) {
+  return String(slot || '').trim().replace(/\s*[-–—]\s*/g, ' - ');
+}
+
+function rsSlotStartMinutes(slot) {
+  var match = String(slot || '').match(/^(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return null;
+  var hour = parseInt(match[1], 10);
+  var minute = parseInt(match[2], 10);
+  if (match[3].toUpperCase() === 'PM' && hour !== 12) hour += 12;
+  if (match[3].toUpperCase() === 'AM' && hour === 12) hour = 0;
+  return hour * 60 + minute;
+}
+
+function rsSlotAvailable(isoDate, slot) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(isoDate || ''))) return false;
+  var parsed = new Date(isoDate + 'T12:00:00Z');
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== isoDate) return false;
+  var today = rsTodayIso();
+  if (isoDate < today || isoDate > rsAddDays(today, 6)) return false;
+  var slotIndex = RS_TIME_SLOTS.map(rsNormalizeSlot).indexOf(rsNormalizeSlot(slot));
+  var weekday = parsed.getUTCDay();
+  if (slotIndex < 0 || weekday === 0 || (weekday === 6 && slotIndex >= 3)) return false;
+  if (isoDate === today) {
+    var clock = rsParts(RS_CHICAGO_TIME_FORMATTER, new Date());
+    var nowMinutes = (parseInt(clock.hour, 10) || 0) * 60 + (parseInt(clock.minute, 10) || 0);
+    var startMinutes = rsSlotStartMinutes(slot);
+    if (startMinutes == null || startMinutes <= nowMinutes) return false;
+  }
+  return true;
+}
+
+function renderRescheduleTimes(preferredTime) {
+  var date = document.getElementById('rsDate').value;
+  var timeEl = document.getElementById('rsTime');
+  var preferred = rsNormalizeSlot(preferredTime);
+  timeEl.innerHTML = RS_TIME_SLOTS.map(function(slot) {
+    var disabled = !rsSlotAvailable(date, slot);
+    var selected = !disabled && rsNormalizeSlot(slot) === preferred;
+    return '<option value="' + slot + '"' + (disabled ? ' disabled' : '') + (selected ? ' selected' : '') + '>' + slot + (disabled ? ' — unavailable' : '') + '</option>';
+  }).join('');
+  var firstAvailable = Array.prototype.find.call(timeEl.options, function(option) { return !option.disabled; });
+  if (timeEl.selectedIndex < 0 || timeEl.options[timeEl.selectedIndex].disabled) {
+    if (firstAvailable) firstAvailable.selected = true;
+  }
+  document.getElementById('btnConfirmReschedule').disabled = !firstAvailable;
+}
+
+function firstAvailableRescheduleDate(preferredDate) {
+  var today = rsTodayIso();
+  var candidates = [];
+  if (preferredDate) candidates.push(preferredDate);
+  for (var offset = 0; offset <= 6; offset++) candidates.push(rsAddDays(today, offset));
+  return candidates.find(function(date, index) {
+    return candidates.indexOf(date) === index && RS_TIME_SLOTS.some(function(slot) { return rsSlotAvailable(date, slot); });
+  }) || today;
+}
+
 function openRescheduleModal() {
   if (!currentBooking) return;
   var dateEl = document.getElementById('rsDate');
   var timeEl = document.getElementById('rsTime');
   var errEl  = document.getElementById('rsError');
 
-  // Date bounds: today .. today + 6 days (matches server booking window)
-  var today = new Date();
-  var pad = function(n){ return (n < 10 ? '0' : '') + n; };
-  var fmt = function(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
-  var max = new Date(today.getTime() + 6 * 86400000);
-  dateEl.min = fmt(today);
-  dateEl.max = fmt(max);
-  dateEl.value = currentBooking.date && currentBooking.date >= fmt(today) ? currentBooking.date : fmt(today);
-
-  timeEl.innerHTML = RS_TIME_SLOTS.map(function(s){
-    return '<option value="' + s + '"' + (currentBooking.time === s ? ' selected' : '') + '>' + s + '</option>';
-  }).join('');
-
+  // Date bounds and time options use the same Austin calendar rules as the server.
+  var today = rsTodayIso();
+  dateEl.min = today;
+  dateEl.max = rsAddDays(today, 6);
+  dateEl.value = firstAvailableRescheduleDate(currentBooking.date);
+  dateEl.onchange = function() { renderRescheduleTimes(''); };
   errEl.style.display = 'none';
   document.getElementById('rescheduleModalContent').style.display = '';
   document.getElementById('rescheduleModalResult').style.display  = 'none';
   var btn = document.getElementById('btnConfirmReschedule');
-  btn.disabled = false; btn.textContent = 'Confirm New Time';
+  btn.textContent = 'Confirm New Time';
+  renderRescheduleTimes(currentBooking.time);
   document.getElementById('rescheduleModal').classList.add('open');
 }
 
@@ -777,7 +870,12 @@ async function confirmReschedule() {
     errEl.style.display = 'block';
     return;
   }
-  if (date === currentBooking.date && time === currentBooking.time) {
+  if (!rsSlotAvailable(date, time)) {
+    errEl.textContent = 'Choose an available time within the next 6 days. Sunday is closed, and Saturday appointments end at 1 PM.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (date === currentBooking.date && rsNormalizeSlot(time) === rsNormalizeSlot(currentBooking.time)) {
     errEl.textContent = 'That is already your scheduled date and time.';
     errEl.style.display = 'block';
     return;
@@ -793,18 +891,13 @@ async function confirmReschedule() {
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Reschedule failed');
 
-    if (data.guestMutationToken) {
-      currentMutationToken = data.guestMutationToken;
-      var secureUrl = new URL(window.location.href);
-      secureUrl.searchParams.set('token', currentMutationToken);
-      history.replaceState({}, document.title, secureUrl.pathname + secureUrl.search);
-    }
+    if (data.guestMutationToken) currentMutationToken = data.guestMutationToken;
 
     document.getElementById('rescheduleModalContent').style.display = 'none';
     document.getElementById('rescheduleResultIcon').textContent  = 'Done';
     document.getElementById('rescheduleResultTitle').textContent = 'Appointment rescheduled';
     document.getElementById('rescheduleResultDesc').textContent  =
-      'Your appointment is now ' + date + ' at ' + time + '. A confirmation email is on its way.'
+      'Your appointment is now ' + formatDate(date) + ' at ' + time + '. A confirmation email is on its way.'
       + (typeof data.reschedulesRemaining === 'number' && data.reschedulesRemaining === 0 ? ' This was your final self-service reschedule.' : '');
     document.getElementById('rescheduleModalResult').style.display = 'block';
 
@@ -842,7 +935,7 @@ async function confirmCancel() {
     document.getElementById('cancelResultTitle').textContent  = 'Booking cancelled';
     document.getElementById('cancelResultDesc').textContent   =
       data.feeCaptured > 0
-        ? 'A cancellation fee of $' + (data.feeCaptured / 100).toFixed(2) + ' was charged. A confirmation email is on its way.'
+        ? 'A cancellation fee of ' + formatUsdCents(data.feeCaptured) + ' was charged. A confirmation email is on its way.'
         : 'Your booking has been cancelled and your card hold released. A confirmation email is on its way.';
     resultEl.style.display = 'block';
 
@@ -860,7 +953,7 @@ async function confirmCancel() {
     const resultEl = document.getElementById('cancelModalResult');
     document.getElementById('cancelResultIcon').textContent  = 'Error';
     document.getElementById('cancelResultTitle').textContent = 'Something went wrong';
-    document.getElementById('cancelResultDesc').textContent  = err.message + ' — Call us at (737) 290-6129 to cancel.';
+    document.getElementById('cancelResultDesc').textContent  = err.message + ' — Call us at 737-290-6129 to cancel.';
     resultEl.style.display = 'block';
     document.getElementById('cancelModalContent').style.display = 'none';
     btn.disabled = false;
@@ -944,15 +1037,20 @@ function cancelFeeClient(b) {
       : 'Your appointment is within 24 hours, so a 10% fee applies (on the service subtotal, no tax). The rest of your hold is released.';
   }
   const feeCents = Math.round(sub * pct / 100);
-  return { pct, feeCents, feeText: '$' + (feeCents / 100).toFixed(2), msg };
+  return { pct, feeCents, feeText: formatUsdCents(feeCents), msg };
 }
 
 // Pre-fill from URL params.
 // If both ref and email are present from a post-booking link, auto-run lookup.
 (function() {
-  const params = new URLSearchParams(window.location.search);
+  const params = initialTrackParams;
   const ref = params.get('ref');
   const email = params.get('email');
+  // Keep the verified credentials in memory for this page load, then remove
+  // customer email and mutation credentials from the address bar/history.
+  if (window.location.search) {
+    history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  }
   if (ref) {
     document.getElementById('t-ref').value = ref.toUpperCase();
   }

@@ -22,7 +22,7 @@ const EXCLUDED_DIRS = new Set([
 export const PAGE_TYPE_RULES = {
   home: {
     visibility: 'public_marketing',
-    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'localBusinessSchema', 'currentFacebookLink', 'sharedCookieConsent'],
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'organizationSchema', 'currentFacebookLink', 'sharedCookieConsent'],
     recommended: ['trackLink', 'businessLink', 'bookLink'],
   },
   booking: {
@@ -32,22 +32,22 @@ export const PAGE_TYPE_RULES = {
   },
   flagship_service: {
     visibility: 'public_marketing',
-    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'localBusinessSchema', 'currentFacebookLink', 'sitePromoScript', 'bookLink', 'sharedCookieConsent'],
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'serviceSchema', 'currentFacebookLink', 'sitePromoScript', 'bookLink', 'sharedCookieConsent'],
     recommended: ['trackLink', 'businessLink'],
   },
   city_service: {
     visibility: 'public_marketing',
-    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'localBusinessSchema', 'currentFacebookLink', 'sitePromoScript', 'bookLink', 'sharedCookieConsent'],
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'serviceSchema', 'currentFacebookLink', 'sitePromoScript', 'bookLink', 'sharedCookieConsent'],
     recommended: ['trackLink', 'businessLink'],
   },
   pricing: {
     visibility: 'public_marketing',
-    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'localBusinessSchema', 'currentFacebookLink', 'bookLink', 'sharedCookieConsent'],
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'serviceSchema', 'currentFacebookLink', 'bookLink', 'sharedCookieConsent'],
     recommended: ['trackLink', 'businessLink'],
   },
   business: {
     visibility: 'public_marketing',
-    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'localBusinessSchema', 'currentFacebookLink', 'businessLink', 'sharedCookieConsent'],
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'serviceSchema', 'currentFacebookLink', 'businessLink', 'sharedCookieConsent'],
     recommended: ['bookLink'],
   },
   blog_index: {
@@ -186,7 +186,7 @@ export function classifyPage(pagePath) {
   if (path === '404.html') return 'utility';
   if (path === 'terms.html' || path === 'privacy.html') return 'policy';
   if (path === 'track.html' || path === 'review.html' || path === 'assemblecash.html' || path === 'setup-club.html') return 'support';
-  if (path === 'about.html' || path === 'contact.html' || path === 'bundles.html') return 'core_marketing';
+  if (path === 'about.html' || path === 'contact.html' || path === 'bundles.html' || path === 'locations.html') return 'core_marketing';
   if (path === 'owner/index.html') return 'owner_portal';
   if (path.startsWith('auth/')) return 'auth';
   if (path === 'assembler/apply.html') return 'assembler_public';
@@ -268,6 +268,8 @@ export function collectPageFacts(pagePath) {
     hasSkipNavLink: /class="skip-nav"/i.test(html),
     hasMainContentTarget: /id="main-content"/i.test(html),
     hasLocalBusinessSchema: jsonLdTypes.includes('LocalBusiness') || jsonLdTypes.includes('HomeAndConstructionBusiness'),
+    hasOrganizationSchema: jsonLdTypes.includes('Organization'),
+    hasServiceSchema: jsonLdTypes.includes('Service'),
     jsonLdTypes,
   };
 
@@ -288,6 +290,8 @@ function evaluateRequiredRule(rule, facts, issues) {
   if (rule === 'canonical' && !facts.canonical) addIssue(issues, 'fail', 'missing_canonical', 'Canonical link is missing.');
   if (rule === 'openGraphCore' && !hasOpenGraphCore(facts)) addIssue(issues, 'fail', 'missing_open_graph', 'One or more core Open Graph tags are missing.');
   if (rule === 'localBusinessSchema' && !facts.hasLocalBusinessSchema) addIssue(issues, 'fail', 'missing_localbusiness_schema', 'LocalBusiness/HomeAndConstructionBusiness schema is missing.');
+  if (rule === 'organizationSchema' && !facts.hasOrganizationSchema) addIssue(issues, 'fail', 'missing_organization_schema', 'Organization schema is missing.');
+  if (rule === 'serviceSchema' && !facts.hasServiceSchema) addIssue(issues, 'fail', 'missing_service_schema', 'Service schema is missing.');
   if (rule === 'currentFacebookLink' && !facts.currentFacebookLinkCount) addIssue(issues, 'fail', 'missing_current_facebook_link', 'Current Facebook Page link is missing.');
   if (rule === 'sitePromoScript' && !facts.usesSitePromoScript) addIssue(issues, 'fail', 'missing_site_promo_script', 'Shared promo script is missing.');
   if (rule === 'bookLink' && !facts.bookLinkCount) addIssue(issues, 'fail', 'missing_book_link', 'Book CTA link is missing.');
@@ -355,7 +359,6 @@ export function auditPageFacts(facts) {
       facts.secureCheckoutCount +
       facts.serviceCallFeeCount +
       facts.totalShownUpfrontCount +
-      facts.clearPricingCount +
       facts.exactTotalBeforeConfirmCount;
     if (staleMarketingCopyCount) {
       addIssue(issues, 'fail', 'stale_service_marketing_copy', 'Service marketing pages still include fee-heavy or legacy trust copy that should stay in booking, not in the page pitch.');

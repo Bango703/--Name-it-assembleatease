@@ -4,9 +4,12 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { buildRequestId, hashIdentifier, getDeploymentMetadata, normalizeReasonCode, redactString } from '../_observability.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
+import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
+import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
+import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -204,8 +207,24 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const now = new Date().toISOString();
 
+  // Authentication proves a user identity, not an Easer role. Fail closed
+  // before even resolving/expiring an offer so a role-revoked account cannot
+  // mutate dispatch state. Full readiness is checked again before acceptance.
+  const { data: actorProfile, error: actorProfileError } = await sb
+    .from('profiles')
+    .select('id, role')
+    .eq('id', assemblerId)
+    .maybeSingle();
+  if (actorProfileError) {
+    console.error('accept-dispatch actor role lookup error:', actorProfileError);
+    return res.status(503).json({ error: 'Easer role could not be verified. The job was not accepted.' });
+  }
+  if (!actorProfile || actorProfile.role !== 'assembler') {
+    return res.status(403).json({ error: 'An Easer account is required to accept job offers.' });
+  }
+
   // ── Path 1: dispatch_offers table (new) ───────────────────────────────────
-  const { data: offer } = await sb
+  const { data: offer, error: offerLookupErr } = await sb
     .from('dispatch_offers')
     .select('*')
     .eq('token', token)
@@ -214,63 +233,96 @@ export default async function handler(req, res) {
     .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
     .maybeSingle();
 
+  if (offerLookupErr) {
+    console.error('accept-dispatch offer lookup error:', offerLookupErr);
+    return res.status(500).json({ error: 'Could not verify this offer. Please try again.' });
+  }
+
   if (offer) {
     // Verify offer not expired
     if (new Date(offer.expires_at) < new Date()) {
       await sb.from('dispatch_offers')
         .update({ offer_status: DISPATCH_OFFER_STATUS.EXPIRED, timed_out_at: now })
-        .eq('id', offer.id);
+        .eq('id', offer.id)
+        .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
       return res.status(410).json({ error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' });
     }
 
     // Verify booking still exists and is available
-    const { data: booking } = await sb.from('bookings').select('*').eq('id', bookingId).single();
+    const { data: booking, error: bookingLookupError } = await sb.from('bookings').select('*').eq('id', bookingId).maybeSingle();
+    if (bookingLookupError) {
+      console.error('accept-dispatch booking lookup error:', bookingLookupError);
+      return res.status(500).json({ error: 'Could not verify this booking. Please try again.' });
+    }
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
     if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
+    if (!isBookingPaymentReadyForDispatch(booking)) {
+      return res.status(409).json({ error: 'This booking is on payment hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
+    }
+    if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
+      return res.status(409).json({ error: 'This booking is temporarily locked while a financial operation finishes.' });
+    }
     if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
 
     // Get Easer profile and enforce operational eligibility at accept time
-    const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
+    const { data: easer, error: easerLookupError } = await sb.from('profiles').select('*').eq('id', assemblerId).maybeSingle();
+    if (easerLookupError) {
+      console.error('accept-dispatch Easer profile lookup error:', easerLookupError);
+      return res.status(503).json({ error: 'Easer membership status could not be verified. The job was not accepted.' });
+    }
     if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
+    if (easer.role !== 'assembler') {
+      return res.status(403).json({ error: 'An Easer account is required to accept job offers.' });
+    }
     {
       const readiness = await getEaserReadiness(easer);
       if (!readiness.isReady) {
         return res.status(403).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
       }
     }
-
-    // ── Atomic CAS: assign only if assembler_id is still null ───────────────
-    // .select('id') returns the updated row(s). If 0 rows returned, the guard
-    // condition failed — another Easer won the race. No separate read needed.
-    const { data: assignedRows, error: assignErr } = await sb.from('bookings').update({
-      assembler_id:          assemblerId,
-      assembler_name:        easer.full_name,
-      assembler_tier:        easer.tier,
-      assigned_at:           now,
-      assembler_accepted_at: now,
-      dispatch_status:       'accepted',
-      dispatch_token:        null,
-      assignment_token:      null,
-    })
-    .eq('id', bookingId)
-    .is('assembler_id', null)
-    .select('id');
-
-    if (assignErr || !assignedRows || assignedRows.length === 0) {
-      return res.status(409).json({ error: 'Sorry — another Easer accepted this job first.' });
+    let feeSnapshot;
+    try {
+      feeSnapshot = buildEaserFeeSnapshot(booking, easer, { snapshottedAt: now });
+    } catch (snapshotError) {
+      console.error('accept-dispatch Easer fee snapshot error:', snapshotError);
+      return res.status(503).json({ error: 'Easer membership status could not be verified. The job was not accepted.' });
     }
 
-    // Mark this offer accepted
-    await sb.from('dispatch_offers')
-      .update({ offer_status: DISPATCH_OFFER_STATUS.ACCEPTED, accepted_at: now })
-      .eq('id', offer.id);
+    // Accept the offer and assign the booking in one row-locked transaction.
+    // This is the final CAS against the exact confirmed/unassigned dispatch
+    // attempt, so cancellation, decline, expiry, and owner assignment races
+    // cannot leave the two tables disagreeing.
+    const { data: acceptResult, error: claimErr } = await sb.rpc('accept_dispatch_offer', {
+      p_offer_id: offer.id,
+      p_booking_id: bookingId,
+      p_easer_id: assemblerId,
+      p_expected_attempt: offer.attempt_number,
+      p_easer_name: easer.full_name,
+      p_easer_tier: easer.tier,
+      p_easer_fee_pct_snapshot: feeSnapshot.feePct,
+      p_easer_estimated_due_snapshot: feeSnapshot.estimatedDueCents,
+      p_easer_fee_snapshot_at: feeSnapshot.snapshottedAt,
+      p_accepted_at: now,
+    });
 
-    // Supersede all other open offers for this booking
-    await sb.from('dispatch_offers')
-      .update({ offer_status: DISPATCH_OFFER_STATUS.SUPERSEDED })
-      .eq('booking_id', bookingId)
-      .eq('offer_status', DISPATCH_OFFER_STATUS.SENT)
-      .neq('id', offer.id);
+    if (claimErr) {
+      console.error('accept-dispatch atomic accept error:', claimErr);
+      const guardConflict = ['23503', '23514', '40001'].includes(claimErr.code)
+        || /Easer|assignment|readiness|eligible|closure|available/i.test(claimErr.message || '');
+      return res.status(guardConflict ? 409 : 500).json({
+        error: guardConflict
+          ? 'Your Easer readiness changed before acceptance. Review your checklist, then try again.'
+          : 'Could not accept this offer. Please try again.',
+        code: guardConflict ? 'EASER_ACCEPTANCE_READINESS_CHANGED' : 'DISPATCH_ACCEPT_FAILED',
+      });
+    }
+    const accepted = Array.isArray(acceptResult) ? acceptResult[0] : acceptResult;
+    if (accepted?.result_action === 'expired') {
+      return res.status(410).json({ error: 'Sorry — this job offer has expired. Check your dashboard for new opportunities.' });
+    }
+    if (accepted?.result_action !== 'accepted') {
+      return res.status(409).json({ error: 'Sorry — this job is no longer available.' });
+    }
 
     // Update Easer's last_assigned_at for fairness scoring
     await sb.from('profiles')
@@ -287,7 +339,13 @@ export default async function handler(req, res) {
       actorId: assemblerId,
       actorName: easer.full_name,
       description: `${easer.full_name} accepted the job via dispatch offer`,
-      metadata: { tier: easer.tier, score: offer.dispatch_score, attempt: offer.attempt_number },
+      metadata: {
+        tier: easer.tier,
+        score: offer.dispatch_score,
+        attempt: offer.attempt_number,
+        easerFeePctSnapshot: feeSnapshot.feePct,
+        easerEstimatedDueSnapshot: feeSnapshot.estimatedDueCents,
+      },
     });
 
     const notification = await sendNotifications(sb, booking, easer, assemblerId);
@@ -300,6 +358,9 @@ export default async function handler(req, res) {
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
+  if (!isBookingPaymentReadyForDispatch(booking)) {
+    return res.status(409).json({ error: 'This booking is on payment hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
+  }
 
   const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
   const isAssignment = booking.assignment_token && booking.assignment_token === token
@@ -307,6 +368,18 @@ export default async function handler(req, res) {
 
   if (!isDispatch && !isAssignment) {
     return res.status(403).json({ error: 'Invalid or expired offer token' });
+  }
+  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
+    return res.status(409).json({ error: 'This booking is temporarily locked while a financial operation finishes.' });
+  }
+
+  if (isAssignment && !isLegacyAssignmentTokenFresh(booking)) {
+    await sb.from('bookings')
+      .update({ assignment_token: null })
+      .eq('id', bookingId)
+      .eq('assembler_id', assemblerId)
+      .eq('assignment_token', token);
+    return res.status(410).json({ error: 'This assignment link has expired. Ask the owner to resend or reassign the job.' });
   }
 
   if (isDispatch) {
@@ -317,13 +390,27 @@ export default async function handler(req, res) {
     }
   }
 
-  const { data: easer } = await sb.from('profiles').select('*').eq('id', assemblerId).single();
+  const { data: easer, error: easerLookupError } = await sb.from('profiles').select('*').eq('id', assemblerId).maybeSingle();
+  if (easerLookupError) {
+    console.error('accept-dispatch legacy Easer profile lookup error:', easerLookupError);
+    return res.status(503).json({ error: 'Easer membership status could not be verified. The job was not accepted.' });
+  }
   if (!easer) return res.status(404).json({ error: 'Easer profile not found' });
+  if (easer.role !== 'assembler') {
+    return res.status(403).json({ error: 'An Easer account is required to accept job offers.' });
+  }
   {
     const readiness = await getEaserReadiness(easer);
     if (!readiness.isReady) {
       return res.status(403).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
     }
+  }
+  let feeSnapshot;
+  try {
+    feeSnapshot = buildEaserFeeSnapshot(booking, easer, { snapshottedAt: now });
+  } catch (snapshotError) {
+    console.error('accept-dispatch legacy Easer fee snapshot error:', snapshotError);
+    return res.status(503).json({ error: 'Easer membership status could not be verified. The job was not accepted.' });
   }
 
   const updateData = {
@@ -331,6 +418,7 @@ export default async function handler(req, res) {
     dispatch_status: 'accepted',
     dispatch_token: null,
     assignment_token: null,
+    ...feeSnapshot.updates,
   };
   if (isDispatch) {
     Object.assign(updateData, {
@@ -341,10 +429,25 @@ export default async function handler(req, res) {
     });
   }
 
-  const updateQuery = sb.from('bookings').update(updateData).eq('id', bookingId).eq('status', BOOKING_STATUS.CONFIRMED);
+  let updateQuery = sb.from('bookings').update(updateData)
+    .eq('id', bookingId)
+    .eq('status', BOOKING_STATUS.CONFIRMED)
+    .eq('payment_status', booking.payment_status)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+  updateQuery = booking.total_price == null
+    ? updateQuery.is('total_price', null)
+    : updateQuery.eq('total_price', booking.total_price);
+  updateQuery = booking.stripe_payment_intent_id == null
+    ? updateQuery.is('stripe_payment_intent_id', null)
+    : updateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+  updateQuery = booking.stripe_deposit_intent_id == null
+    ? updateQuery.is('stripe_deposit_intent_id', null)
+    : updateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
   const { data: acceptedRows, error: assignErr } = isDispatch
-    ? await updateQuery.is('assembler_id', null).select('id')
-    : await updateQuery.eq('assembler_id', assemblerId).select('id');   // CAS guard: fails if booking was reassigned
+    ? await updateQuery.is('assembler_id', null).eq('dispatch_token', token).select('id')
+    : await updateQuery.eq('assembler_id', assemblerId).eq('assignment_token', token).select('id');
 
   if (assignErr || !acceptedRows?.length) return res.status(409).json({ error: 'Sorry — this job is no longer available.' });
 
@@ -357,7 +460,11 @@ export default async function handler(req, res) {
     actorId: assemblerId,
     actorName: easer.full_name,
     description: `${easer.full_name} accepted the job (legacy token)`,
-    metadata: { tier: easer.tier },
+    metadata: {
+      tier: easer.tier,
+      easerFeePctSnapshot: feeSnapshot.feePct,
+      easerEstimatedDueSnapshot: feeSnapshot.estimatedDueCents,
+    },
   });
 
   const notification = await sendNotifications(sb, booking, easer, assemblerId);
@@ -394,7 +501,7 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
     subject: `Job Accepted — ${esc(booking.ref)} · ${esc(easer.full_name)}`,
     html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
       <h2 style="color:#00BFFF">Job Accepted</h2>
-      <p><strong>${esc(easer.full_name)}</strong> (${esc(easer.tier)}${easer.has_membership?' · Member':''}) accepted booking <strong>${esc(booking.ref)}</strong>.</p>
+      <p><strong>${esc(easer.full_name)}</strong> (${esc(easer.tier)}${hasEffectiveEaserMembership(easer) ? ' · Member' : ''}) accepted booking <strong>${esc(booking.ref)}</strong>.</p>
       <p><strong>Service:</strong> ${esc(booking.service)}<br>
       <strong>Date:</strong> ${esc(booking.date)} at ${esc(booking.time||'TBD')}<br>
       <strong>Customer:</strong> ${esc(booking.customer_name)}</p>

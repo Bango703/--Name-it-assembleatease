@@ -3,6 +3,7 @@ import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { normalizeAssemblerProfile } from '../_assembler-state.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
+import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 
 /**
  * GET /api/assembler/list
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to fetch assemblers: ' + error.message });
   }
 
-  const normalized = (data || []).map(normalizeAssemblerProfile);
+  const normalized = (data || []).map(profile => normalizeAssemblerProfile(sanitizeAssemblerForOwner(profile)));
   const requireConnect = isStripeConnectEnabled();
   const assemblers = await Promise.all(normalized.map(async assembler => ({
     ...assembler,
@@ -54,4 +55,19 @@ export default async function handler(req, res) {
   };
 
   return res.status(200).json({ assemblers, stats });
+}
+
+function sanitizeAssemblerForOwner(profile = {}) {
+  // Owner operations need readiness evidence, not reusable bearer secrets or
+  // raw device/network fingerprints in browser memory.
+  const {
+    identity_resume_token,
+    contractor_agreement_ip,
+    contractor_agreement_user_agent,
+    ...safeProfile
+  } = profile;
+  return {
+    ...safeProfile,
+    has_membership: hasEffectiveEaserMembership(profile),
+  };
 }

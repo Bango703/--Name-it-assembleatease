@@ -7,11 +7,36 @@
 .nav-auth-link{display:block}
 .nav-earn-btn{display:inline-flex;align-items:center}
 .nav-book-pill{display:inline-flex}
+.nav-book-cta{display:inline-flex}
+.nav-logo-sub{display:block}
 .nav-inner>a.btn.btn-cyan{display:inline-flex}
+/* Premium nav layout (site-wide standard). A wider container brings the brand
+   close to the edge; the links flex-fill the space between a left-anchored logo
+   and a right-anchored CTA and center there, so they never wrap or crowd. */
+@media(min-width:1024px){
+  .nav-inner{max-width:1500px;padding-left:clamp(1.5rem,3vw,3rem);padding-right:clamp(1.5rem,3vw,3rem)}
+  .nav-logo,.nav-book-cta{flex-shrink:0}
+  .nav-links{flex:1;justify-content:center;gap:clamp(1.5rem,2.2vw,2.75rem)}
+  .nav-links a{white-space:nowrap}
+}
 /* On pages with a "Become an Easer" link (about/business/contact/pricing), group
    the two CTAs together at the right instead of letting space-between spread them.
    Scoped via :not(.nav-book-pill) so the homepage/blog/city navs are untouched. */
 .nav-inner > .btn-cyan:not(.nav-book-pill){margin-left:auto}
 
+/* Keep the first desktop breakpoint on one clean line. */
+@media(max-width:1024px){
+  .nav-inner{padding-inline:0.75rem;gap:0.65rem}
+  .nav-logo{gap:7px}
+  .nav-logo-text{font-size:1rem}
+  .nav-links{gap:0.7rem}
+  .nav-links a{font-size:0.78rem;white-space:nowrap}
+  .nav-book-pill{padding-inline:0.75rem}
+}
+
 /* ── FOOTER ── */
-.footer-inner{grid-template-columns:2fr 1fr 1fr;gap:3rem}
+/* Brand column + three even link columns (Services · Company · Support); any
+   Resources/Guides block spans the full width on its own row below. Matches the
+   1500px nav frame so the top and bottom of every page align. */
+.footer-inner{grid-template-columns:1.5fr 1fr 1fr 1fr;gap:2.5rem 3rem;max-width:1500px}
+.footer-bottom{max-width:1500px}

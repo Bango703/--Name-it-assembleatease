@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { buildIdentityResumeUrl, ensureIdentityResumeToken } from '../_assembler-onboarding.js';
+import { normalizeUsPhone } from '../_phone.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -11,7 +12,7 @@ const SITE = 'https://www.assembleatease.com';
  * POST /api/owner/add-easer
  * Owner manually adds an Easer — skips the $30 application fee.
  * Creates auth account, profile, and sends them a password-set link plus
- * a reusable onboarding link for agreement acceptance + identity verification.
+ * a time-limited onboarding link for agreement acceptance + identity verification.
  * The Easer still appears as 'pending' in the Easers tab and must be
  * approved by the owner after identity verification — same as normal flow.
  */
@@ -24,6 +25,8 @@ export default async function handler(req, res) {
   if (!fullName?.trim()) return res.status(400).json({ error: 'Full name is required' });
   if (fullName.trim().split(/\s+/).filter(Boolean).length < 2) return res.status(400).json({ error: 'Please enter the Easer\'s first and last name.' });
   if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
+  const cleanPhone = normalizeUsPhone(phone);
+  if (!cleanPhone) return res.status(400).json({ error: 'Valid 10-digit U.S. phone number is required' });
   if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
 
   const sb = getSupabase();
@@ -50,11 +53,11 @@ export default async function handler(req, res) {
   const userId = authData.user.id;
 
   // ── Create profile ────────────────────────────────────────────────
-  await sb.from('profiles').upsert({
+  const { error: profileError } = await sb.from('profiles').upsert({
     id: userId,
     full_name: cleanName,
     email: cleanEmail,
-    phone: phone?.trim() || null,
+    phone: cleanPhone,
     role: 'assembler',
     city: city.trim(),
     zip: zip?.trim() || null,
@@ -70,9 +73,22 @@ export default async function handler(req, res) {
     application_fee_paid: false,  // fee waived by owner
     fee_waived_by_owner: true,
   }, { onConflict: 'id' });
+  if (profileError) {
+    console.error('Owner-added Easer profile create error:', profileError);
+    await sb.auth.admin.deleteUser(userId).catch(() => {});
+    return res.status(500).json({ error: 'Failed to save the Easer profile. No onboarding email was sent.' });
+  }
 
-  const verificationResumeToken = await ensureIdentityResumeToken(sb, { id: userId });
-  const verificationResumeUrl = buildIdentityResumeUrl(verificationResumeToken);
+  let verificationResumeUrl;
+  try {
+    const verificationResumeToken = await ensureIdentityResumeToken(sb, { id: userId });
+    verificationResumeUrl = buildIdentityResumeUrl(verificationResumeToken);
+  } catch (tokenError) {
+    console.error('Owner-added Easer onboarding token error:', tokenError?.message || tokenError);
+    await sb.from('profiles').delete().eq('id', userId);
+    await sb.auth.admin.deleteUser(userId).catch(() => {});
+    return res.status(503).json({ error: 'Secure onboarding setup failed. The partial account was removed; retry safely.' });
+  }
 
   // ── Password reset link so they can set their own password ────────
   let passwordSetUrl = SITE + '/auth/set-password';
@@ -91,8 +107,9 @@ export default async function handler(req, res) {
 
   // ── Email to Easer ────────────────────────────────────────────────
   const firstName = cleanName.split(' ')[0];
+  let easerEmailResult = { ok: false, error: 'Welcome email was not attempted' };
   try {
-    await sendEmail({
+    easerEmailResult = await sendEmail({
       to: cleanEmail,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Complete Your Setup',
@@ -111,7 +128,7 @@ export default async function handler(req, res) {
     <table cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${esc(passwordSetUrl)}" style="display:inline-block;padding:12px 28px;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px">Set My Password →</a></td></tr></table>
 
     <p style="margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Step 2 — Review your agreement and verify your identity</p>
-    <p style="margin:0 0 12px;font-size:13px;color:#52525b;line-height:1.6">Use the secure AssembleAtEase link below to confirm your onboarding agreement and complete Stripe identity verification. If you switch devices or the Stripe page expires, this same link will reopen it for you.</p>
+    <p style="margin:0 0 12px;font-size:13px;color:#52525b;line-height:1.6">Use the time-limited secure AssembleAtEase link below to confirm your onboarding agreement and complete Stripe identity verification. If it expires or Stripe requires another attempt, use the newest link sent to you.</p>
     <table cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr><td style="background:#1a1a1a;border-radius:8px"><a href="${esc(verificationResumeUrl)}" style="display:inline-block;padding:12px 28px;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px">Continue Onboarding →</a></td></tr></table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:16px 18px">
@@ -127,7 +144,10 @@ export default async function handler(req, res) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</td></tr></table>
 </div></body></html>`,
     });
-  } catch (e) { console.error('Easer welcome email error:', e); }
+  } catch (e) {
+    console.error('Easer welcome email error:', e);
+    easerEmailResult = { ok: false, error: e?.message || String(e) };
+  }
 
   // ── Owner notification ────────────────────────────────────────────
   try {
@@ -135,11 +155,17 @@ export default async function handler(req, res) {
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Easer Manually Added — ' + cleanName,
-      html: `<p style="font-family:sans-serif;font-size:14px;color:#111"><strong>${esc(cleanName)}</strong> (${esc(cleanEmail)}) was manually added as an Easer. Application fee waived. They have been sent a password setup link and a reusable onboarding link for agreement acceptance plus identity verification. They appear as <strong>Pending</strong> in the Easers tab — approve after they complete onboarding.</p>`,
+      html: `<p style="font-family:sans-serif;font-size:14px;color:#111"><strong>${esc(cleanName)}</strong> (${esc(cleanEmail)}) was manually added as an Easer. Application fee waived. They have been sent a password setup link and a time-limited onboarding link for agreement acceptance plus identity verification. They appear as <strong>Pending</strong> in the Easers tab — approve after they complete onboarding.</p>`,
       replyTo: cleanEmail,
     });
   } catch (e) { console.error('Owner notification error:', e); }
 
+  const emailDelivered = easerEmailResult?.ok === true && !easerEmailResult?.suppressed;
   console.log(JSON.stringify({ audit: true, action: 'owner_add_easer', actor: 'owner', userId, email: cleanEmail, feeWaived: true, timestamp: new Date().toISOString() }));
-  return res.status(200).json({ success: true, userId });
+  return res.status(200).json({
+    success: true,
+    userId,
+    emailDelivered,
+    warning: emailDelivered ? null : 'Easer created, but the secure onboarding email was not delivered. Reissue it before approval.',
+  });
 }

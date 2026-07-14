@@ -95,6 +95,7 @@
       color: #80dfff;
       font-weight: 700;
     }
+    .brand-bullet-icon::before { content: ''; width: 5px; height: 9px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px,-1px); }
 
     /* RIGHT — form panel */
     .auth-form-panel {
@@ -192,10 +193,10 @@
       <h1 class="brand-headline">Easer Portal</h1>
       <p class="brand-sub">Your professional dashboard for managing jobs, tracking earnings, and growing your reputation.</p>
       <div class="brand-bullets">
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Receive job assignments instantly</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Track your earnings and payouts</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Build your reviews and tier</div>
-        <div class="brand-bullet"><div class="brand-bullet-icon">✓</div>Get priority jobs with membership</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>Review available job offers</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>Track earnings and payout status</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>Build reviews and service history</div>
+        <div class="brand-bullet"><div class="brand-bullet-icon" aria-hidden="true"></div>See job scope and estimated earnings before accepting</div>
       </div>
     </div>
   </div>
@@ -295,14 +296,9 @@
         }
 
         if (profile.role === 'assembler' && profile.tier === 'pending') {
-          await supabaseClient.auth.signOut();
-          document.querySelector('.auth-form-inner').innerHTML = `
-            <div style="text-align:center;padding:2rem 0">
-              <div style="font-size:3rem;margin-bottom:1rem">&#9203;</div>
-              <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.75rem">Application Under Review</h2>
-              <p style="color:#64748b;font-size:0.9rem;line-height:1.65;margin-bottom:1.5rem">Your application is being reviewed by our team.<br>You will receive an email once a decision is made.</p>
-              <p style="font-size:0.82rem;color:#94a3b8">Questions <a href="mailto:service@assembleatease.com" style="color:#00BFFF;text-decoration:none">service@assembleatease.com</a></p>
-            </div>`;
+          // Keep the authenticated session so a pending applicant can safely
+          // resume required agreement/Identity steps or see review status.
+          window.location.href = '/assembler/verify-identity';
           return;
         }
 
@@ -323,7 +319,6 @@
     });
   });
 </script>
-<script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
 

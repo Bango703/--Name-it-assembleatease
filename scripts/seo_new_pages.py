@@ -320,7 +320,7 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in Austin?</h2>
     <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Flat-rate pricing, same-day available. Book in minutes with secure checkout.</p>
     <a href="/book?service={book_param}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#006070;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Book Now &rarr;</a>
-    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">(737) 290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">737-290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
 </section>
 
@@ -329,7 +329,7 @@ body{{font-family:var(--font-body);background:var(--white);color:var(--ink);-web
     <div>
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">AssembleAtEase</div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
-      <div class="footer-contact"><a href="tel:+17372906129">(737) 290-6129</a><a href="mailto:service@assembleatease.com">service@assembleatease.com</a><a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a></div>
+      <div class="footer-contact"><a href="tel:+17372906129">737-290-6129</a><a href="mailto:service@assembleatease.com">service@assembleatease.com</a><a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a></div>
     </div>
     <div>
       <div class="footer-col-title">Services</div>

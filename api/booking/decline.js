@@ -4,6 +4,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { bookingCancellationPaymentIntentIds } from './_cancellation-stripe-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -23,14 +24,64 @@ export default async function handler(req, res) {
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.DECLINED);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
 
-  const { error: updateErr } = await sb
+  if (booking.financial_operation_key) {
+    return res.status(409).json({
+      error: 'A payment, cancellation, completion, refund, or payout action is already in progress. Refresh before changing this request.',
+      code: 'BOOKING_FINANCIAL_OPERATION_IN_PROGRESS',
+    });
+  }
+
+  // Decline is only the no-money terminal path. Any linked Stripe intent or
+  // recorded financial/payout evidence must go through the cancellation flow,
+  // which reconciles Stripe before changing database state.
+  const hasFinancialEvidence = bookingCancellationPaymentIntentIds(booking).length > 0
+    || Number(booking.amount_charged || 0) > 0
+    || Number(booking.refund_amount || 0) > 0
+    || Number(booking.payout_amount || 0) > 0
+    || ['paid', 'transferred'].includes(String(booking.payout_status || ''))
+    || ['paid', 'transferred'].includes(String(booking.cancellation_easer_payout_status || ''))
+    || Boolean(booking.stripe_transfer_id || booking.paid_out_at);
+  const { data: payoutLedgerRows, error: payoutLedgerError } = hasFinancialEvidence
+    ? { data: [], error: null }
+    : await sb.from('payout_ledger').select('id').eq('booking_id', booking.id).limit(1);
+  if (payoutLedgerError) {
+    return res.status(503).json({
+      error: 'Payout history could not be verified. The request was not declined.',
+      code: 'DECLINE_PAYOUT_VERIFICATION_UNAVAILABLE',
+    });
+  }
+  if (hasFinancialEvidence || payoutLedgerRows?.length) {
+    return res.status(409).json({
+      error: 'This request has linked payment or payout activity. Use Cancel Booking so Stripe and the booking record are reconciled safely.',
+      code: 'DECLINE_REQUIRES_CANCELLATION',
+    });
+  }
+
+  let declineUpdate = sb
     .from('bookings')
     .update({ status: BOOKING_STATUS.DECLINED, declined_at: new Date().toISOString(), decline_reason: reason || null })
-    .eq('id', booking.id);
+    .eq('id', booking.id)
+    .eq('status', booking.status)
+    .is('stripe_payment_intent_id', null)
+    .is('stripe_deposit_intent_id', null)
+    .is('stripe_balance_payment_intent_id', null)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+  declineUpdate = booking.payment_status == null
+    ? declineUpdate.is('payment_status', null)
+    : declineUpdate.eq('payment_status', booking.payment_status);
+  const { data: updatedRows, error: updateErr } = await declineUpdate.select('id');
 
   if (updateErr) {
     console.error('Decline update error:', updateErr);
-    return res.status(500).json({ error: 'Failed to update booking' });
+    return res.status(503).json({ error: 'Failed to update booking safely. Refresh before retrying.' });
+  }
+  if (!updatedRows?.length) {
+    return res.status(409).json({
+      error: 'Booking or payment state changed before it could be declined. Refresh and reconcile before retrying.',
+      code: 'DECLINE_STATE_CHANGED',
+    });
   }
 
   // Send decline email to customer
@@ -72,6 +123,7 @@ export default async function handler(req, res) {
     updateDealStage(booking.hubspot_deal_id, 'closedlost').catch(e => console.error('HubSpot decline stage error:', e));
   }
 
-  logActivity(sb, { bookingId: booking.id, eventType: 'declined', actorType: 'owner', actorName: 'Owner', description: `Booking declined${reason ? ': ' + reason : ''}` });
+  await logActivity(sb, { bookingId: booking.id, eventType: 'declined', actorType: 'owner', actorName: 'Owner', description: `Booking declined${reason ? ': ' + reason : ''}` })
+    .catch(error => console.error('Decline activity log error:', error));
   return res.status(200).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.DECLINED } });
 }

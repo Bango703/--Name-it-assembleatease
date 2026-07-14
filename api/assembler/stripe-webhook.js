@@ -4,10 +4,33 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
-import { releasePendingRedemption } from '../_assemblecash.js';
-import { bestEffortProfileUpdate, buildIdentityResumeUrl, ensureIdentityResumeToken } from '../_assembler-onboarding.js';
+import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
+import {
+  buildIdentityResumeUrl,
+  ensureIdentityResumeToken,
+  updateProfileRequired,
+} from '../_assembler-onboarding.js';
+import {
+  EASER_APPLICATION_FEE_CENTS,
+  EASER_APPLICATION_FEE_DISPLAY,
+  validateEaserApplicationPaymentIntent,
+} from '../_easer-application-fee.js';
+import {
+  holdEaserApplicationFeeRefund,
+  loadEaserApplicationFeeDisputeTruth,
+  loadEaserApplicationFeeRefundTruth,
+  reconcileEaserApplicationFeeRefund,
+} from '../_easer-application-refund.js';
+import { isEaserMembershipEnabled } from '../_easer-membership.js';
+import { finalizeEaserApplicationSubmission } from './apply.js';
+import { loadBookingStripeRefundTruth, refundPaymentStatus } from '../booking/_stripe-refund-truth.js';
+import { reconcileRefundAssembleCash } from '../booking/_refund-credits.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
+const STRIPE_DISPUTE_STATUSES = new Set([
+  'warning_needs_response', 'warning_under_review', 'warning_closed',
+  'needs_response', 'under_review', 'won', 'lost', 'prevented',
+]);
 
 // Vercel: disable body parser so we can verify webhook signature
 export const config = { api: { bodyParser: false } };
@@ -61,17 +84,42 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const claim = await claimStripeWebhookEvent(sb, event);
+  if (!claim.claimed && !claim.duplicate) {
+    console.error('Stripe webhook claim failed:', claim.reason, claim.error || 'unknown claim error');
+    return res.status(503).json({ received: false, error: 'Webhook event could not be claimed for safe processing' });
+  }
   if (claim.duplicate) {
-    const { data: prior } = await sb.from('financial_event_audit')
-      .select('status')
+    const { data: prior, error: priorError } = await sb.from('financial_event_audit')
+      .select('id, status, processed_at')
       .eq('stripe_event_id', event.id)
       .maybeSingle();
-    if (prior?.status !== 'failed') {
+    if (priorError || !prior) {
+      console.error('Stripe webhook duplicate claim lookup failed:', priorError?.message || 'claim row missing');
+      return res.status(503).json({ received: false, error: 'Webhook claim state could not be verified' });
+    }
+    if (['processed', 'ignored'].includes(prior.status)) {
       return res.status(200).json({ received: true, duplicate: true });
     }
-    await sb.from('financial_event_audit').update({
+    const staleBefore = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    let reclaimQuery = sb.from('financial_event_audit').update({
       status: 'processing', error: null, processed_at: new Date().toISOString(),
-    }).eq('stripe_event_id', event.id).eq('status', 'failed');
+    }).eq('stripe_event_id', event.id);
+    if (prior.status === 'failed') {
+      reclaimQuery = reclaimQuery.eq('status', 'failed');
+    } else if (prior.status === 'processing') {
+      reclaimQuery = reclaimQuery.eq('status', 'processing').lt('processed_at', staleBefore);
+    } else {
+      return res.status(503).json({ received: false, error: 'Webhook claim has an unknown status (' + (prior.status || 'missing') + ')' });
+    }
+    const { data: reclaimedRows, error: reclaimError } = await reclaimQuery.select('id');
+    if (reclaimError || !reclaimedRows?.length) {
+      return res.status(503).json({
+        received: false,
+        error: prior.status === 'processing'
+          ? 'Webhook event is still processing and must be retried'
+          : 'Failed webhook event could not be reclaimed',
+      });
+    }
   }
 
   let webhookOutcome = 'processed';
@@ -88,21 +136,29 @@ export default async function handler(req, res) {
         const userId = session.metadata?.userId;
         if (!userId) { console.warn('No userId in verified session metadata'); break; }
 
-        await sb.from('profiles').update({
-          identity_verified: true,
-          identity_verified_at: new Date().toISOString(),
-        }).eq('id', userId);
-        await bestEffortProfileUpdate(sb, userId, {
-          id_verification_status: 'verified',
-          stripe_identity_session_id: session.id,
-        });
-
-        // Notify owner
-        const { data: profile } = await sb.from('profiles')
-          .select('full_name, email')
+        const { data: profile, error: profileError } = await sb.from('profiles')
+          .select('full_name, email, stripe_identity_session_id')
           .eq('id', userId)
           .maybeSingle();
+        if (profileError || !profile) {
+          throw new Error(`Verified Easer profile lookup failed: ${profileError?.message || 'profile not found'}`);
+        }
+        if (profile.stripe_identity_session_id && profile.stripe_identity_session_id !== session.id) {
+          webhookMetadata = { ...webhookMetadata, ignored: true, reason: 'stale-identity-session', sessionId: session.id };
+          break;
+        }
 
+        await updateProfileRequired(sb, userId, {
+          identity_verified: true,
+          identity_verified_at: new Date().toISOString(),
+          id_verification_status: 'verified',
+          stripe_identity_session_id: session.id,
+          identity_resume_token: null,
+          identity_resume_token_created_at: null,
+          identity_resume_token_expires_at: null,
+        }, 'Stripe Identity verified state');
+
+        // Notify owner
         if (profile) {
           try {
             await sendEmail({
@@ -134,24 +190,29 @@ export default async function handler(req, res) {
         const userId = session.metadata?.userId;
         if (!userId) { console.warn('No userId in requires_input session metadata'); break; }
 
-        await sb.from('profiles').update({
-          identity_verified: false,
-        }).eq('id', userId);
-        await bestEffortProfileUpdate(sb, userId, {
-          id_verification_status: 'failed',
-          stripe_identity_session_id: session.id,
-        });
-
-        // Notify both owner and assembler
-        const { data: profile } = await sb.from('profiles')
-          .select('full_name, email, identity_resume_token')
+        const { data: profile, error: profileError } = await sb.from('profiles')
+          .select('full_name, email, stripe_identity_session_id')
           .eq('id', userId)
           .maybeSingle();
+        if (profileError || !profile) {
+          throw new Error(`Retry Easer profile lookup failed: ${profileError?.message || 'profile not found'}`);
+        }
+        if (profile.stripe_identity_session_id && profile.stripe_identity_session_id !== session.id) {
+          webhookMetadata = { ...webhookMetadata, ignored: true, reason: 'stale-identity-session', sessionId: session.id };
+          break;
+        }
 
+        await updateProfileRequired(sb, userId, {
+          identity_verified: false,
+          id_verification_status: 'failed',
+          stripe_identity_session_id: session.id,
+        }, 'Stripe Identity retry state');
+        const resumeToken = await ensureIdentityResumeToken(sb, { id: userId }, { rotate: true });
+        const resumeUrl = buildIdentityResumeUrl(resumeToken);
+
+        // Notify both owner and assembler
         if (profile) {
           const lastError = session.last_error?.reason || 'verification could not be completed';
-          const resumeToken = await ensureIdentityResumeToken(sb, { id: userId, identity_resume_token: profile.identity_resume_token });
-          const resumeUrl = buildIdentityResumeUrl(resumeToken);
           try {
             await sendEmail({
               to: ownerEmail(),
@@ -181,15 +242,97 @@ export default async function handler(req, res) {
         const pi = event.data.object;
         const userId = pi.metadata?.userId;
         if (userId && pi.metadata?.type === 'assembler_application_fee') {
-          const { error: feeSyncErr } = await sb.from('profiles').update({
-            payment_confirmed: true,
-            application_fee_paid: true,
-          }).eq('id', userId);
-          if (feeSyncErr) throw new Error(`Application fee sync failed: ${feeSyncErr.message}`);
+          const { data: applicationProfile, error: applicationProfileError } = await sb
+            .from('profiles')
+            .select('id, role, status, application_status, full_name, email, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, stripe_customer_id, stripe_payment_intent_id')
+            .eq('id', userId)
+            .maybeSingle();
+          if (applicationProfileError || !applicationProfile || applicationProfile.role !== 'assembler') {
+            throw new Error(applicationProfileError?.message || 'Application-fee webhook profile was not found');
+          }
+          if (!['payment_pending', 'applied'].includes(String(applicationProfile.application_status || '').toLowerCase())) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = {
+              ...webhookMetadata,
+              reason: 'stale-application-fee-success',
+              applicationStatus: applicationProfile.application_status || null,
+            };
+            break;
+          }
+          if (!applicationProfile.stripe_customer_id
+              || applicationProfile.stripe_payment_intent_id !== pi.id) {
+            throw new Error('Application-fee webhook does not match the stored Stripe identifiers');
+          }
+          // Independently confirm Stripe truth before finalizing: type, canonical
+          // fee amount, currency, customer binding, succeeded capture, and consent.
+          // The success handler is an authoritative finalization path, so it must
+          // not trust the identity binding alone.
+          validateEaserApplicationPaymentIntent(pi, {
+            userId,
+            paymentIntentId: applicationProfile.stripe_payment_intent_id,
+            customerId: applicationProfile.stripe_customer_id,
+            requireSucceeded: true,
+            requireConsent: true,
+          });
+          const refundSync = await syncEaserApplicationFeeRefund({
+            sb,
+            stripe,
+            event,
+            paymentIntentId: pi.id,
+            expectedChargeId: typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge?.id || null,
+            forceHold: false,
+            reason: 'Payment confirmation checked fresh application-fee refund truth',
+          });
+          if (!refundSync.handled) throw new Error('Application-fee Stripe identifiers no longer map to an Easer profile');
+          if (refundSync.holdRequired) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = {
+              ...webhookMetadata,
+              reason: 'application-fee-refund-blocks-stale-success',
+              refundedCents: refundSync.truth?.succeededRefundedCents || 0,
+              pendingRefundCents: refundSync.truth?.pendingRefundCents || 0,
+            };
+            break;
+          }
+          const { data: paidProfile, error: paidProfileError } = await sb
+            .from('profiles')
+            .update({
+              payment_confirmed: true,
+              application_fee_paid: true,
+            })
+            .eq('id', userId)
+            .eq('stripe_payment_intent_id', pi.id)
+            .eq('stripe_customer_id', applicationProfile.stripe_customer_id)
+            .eq('application_fee_waived', false)
+            .eq('fee_waived_by_owner', false)
+            .eq('application_fee_refunded', false)
+            .eq('application_fee_refunded_cents', 0)
+            .eq('application_fee_refund_pending_cents', 0)
+            .is('application_fee_refund_review_required_at', null)
+            .select('id')
+            .maybeSingle();
+          if (paidProfileError || !paidProfile) {
+            throw new Error(`Application-fee webhook truth persistence failed: ${paidProfileError?.message || 'profile changed'}`);
+          }
+          await logActivity(sb, {
+            bookingId: null,
+            eventType: 'assembler_application_fee_confirmed',
+            actorType: 'stripe',
+            actorId: userId,
+            actorName: 'Stripe',
+            description: 'Stripe confirmed the Easer application fee.',
+            metadata: { paymentIntentId: pi.id, amountReceived: pi.amount_received, currency: pi.currency },
+          });
+          await finalizeEaserApplicationSubmission({
+            sb,
+            userId,
+            expectedPaymentIntentId: pi.id,
+            stripeClient: stripe,
+          });
           break;
         }
-        if (['customer_booking', 'customer_booking_balance', 'customer_quote'].includes(pi.metadata?.type)) {
-          const captureSync = await syncCapturedCustomerPayment({ sb, pi, event });
+        if (['customer_booking', 'customer_booking_balance', 'customer_quote', 'reauth'].includes(pi.metadata?.type)) {
+          const captureSync = await syncCapturedCustomerPayment({ sb, stripe, pi, event });
           webhookBookingId = captureSync.bookingId;
           webhookPaymentIntentId = pi.id;
           webhookOutcome = captureSync.outcome;
@@ -202,6 +345,15 @@ export default async function handler(req, res) {
       // ── Customer booking: card authorized (requires_capture) ──
       case 'payment_intent.amount_capturable_updated': {
         const pi = event.data.object;
+        if (pi.metadata?.type === 'customer_quote') {
+          const quoteSync = await syncAuthorizedCustomerQuote({ sb, stripe, pi, event });
+          webhookBookingId = quoteSync.bookingId;
+          webhookPaymentIntentId = pi.id;
+          webhookOutcome = quoteSync.outcome;
+          webhookError = quoteSync.error;
+          webhookMetadata = { ...webhookMetadata, ...quoteSync.metadata };
+          break;
+        }
         if (pi.metadata?.type !== 'customer_booking') break;
 
         const { bookingId } = pi.metadata;
@@ -209,48 +361,120 @@ export default async function handler(req, res) {
         webhookBookingId = bookingId;
         webhookPaymentIntentId = pi.id;
 
-        const { data: existing } = await sb.from('bookings')
-          .select('id, ref, payment_status, status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id')
+        const { data: existing, error: existingError } = await sb.from('bookings')
+          .select('id, ref, payment_status, status, payment_authorized_at, confirmed_at, dispatch_status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
           .eq('id', bookingId)
           .maybeSingle();
 
+        if (existingError) {
+          webhookOutcome = 'failed';
+          webhookError = existingError.message || 'Authorized booking lookup failed';
+          break;
+        }
         if (!existing) {
           webhookOutcome = 'ignored';
           webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
           break;
         }
+        if (existing.financial_operation_key) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'financial-operation-will-reconcile-authorization', bookingId, financialOperationType: existing.financial_operation_type || null };
+          break;
+        }
 
-        if (['captured', 'refunded', 'deposit_paid'].includes(existing.payment_status)) {
+        if (['captured', 'cancellation_fee_captured', 'partially_refunded', 'refunded', 'deposit_paid'].includes(existing.payment_status)) {
           webhookOutcome = 'ignored';
           webhookMetadata = { ...webhookMetadata, reason: 'stale-authorize-event', bookingId, currentPaymentStatus: existing.payment_status };
           break;
         }
 
-        if (existing.payment_status === 'authorized' || existing.status === 'confirmed') {
+        const liveAuthorization = await stripe.paymentIntents.retrieve(pi.id);
+        if (liveAuthorization.id !== pi.id || liveAuthorization.metadata?.bookingId !== bookingId) {
+          webhookOutcome = 'failed';
+          webhookError = 'Stripe authorization no longer matches the event booking';
+          webhookMetadata = { ...webhookMetadata, reason: 'authorization-live-link-mismatch', bookingId };
+          break;
+        }
+        if (liveAuthorization.status !== 'requires_capture') {
+          webhookOutcome = 'ignored';
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'stale-authorization-status',
+            bookingId,
+            liveStatus: liveAuthorization.status || null,
+          };
+          break;
+        }
+
+        const paymentValidation = validateBookingPaymentIntent(existing, liveAuthorization);
+        if (!paymentValidation.ok) {
+          webhookOutcome = 'failed';
+          webhookError = `Stripe authorization did not match booking truth: ${paymentValidation.errors.join(', ')}`;
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'authorization-validation-failed',
+            bookingId,
+            validationErrors: paymentValidation.errors,
+            stripeStatus: liveAuthorization.status || null,
+          };
+          break;
+        }
+
+        if (existing.payment_status === 'authorized' && existing.status === 'confirmed') {
           if (existing.status === 'confirmed' && !existing.assembler_id) {
-            dispatchBooking(bookingId).catch(err => console.error('webhook dispatch retry error:', err?.message || err));
+            try {
+              const retry = await dispatchBooking(bookingId);
+              webhookMetadata = { ...webhookMetadata, dispatchRetry: retry };
+            } catch (err) {
+              console.error('webhook dispatch retry error:', err?.message || err);
+              webhookMetadata = { ...webhookMetadata, dispatchRetryError: err?.message || String(err) };
+            }
           }
           webhookOutcome = 'ignored';
           webhookMetadata = { ...webhookMetadata, reason: 'already-authorized', bookingId, currentPaymentStatus: existing.payment_status, currentStatus: existing.status };
           break;
         }
 
-        const paymentMethodId = pi.payment_method;
-        // Update booking: authorized only from pre-capture states. Also promote to
-        // confirmed so webhook-only authorization cannot strand dispatch.
-        const { error: authErr, data: authRows } = await sb.from('bookings').update({
+        const repairableBookingStatuses = ['pending', 'confirmed'];
+        const repairablePaymentStatuses = ['pending', 'failed', 'authorized'];
+        if (!repairableBookingStatuses.includes(existing.status)
+            || !repairablePaymentStatuses.includes(existing.payment_status)) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'authorization-state-not-repairable',
+            bookingId,
+            currentPaymentStatus: existing.payment_status,
+            currentStatus: existing.status,
+          };
+          break;
+        }
+
+        const paymentMethodId = typeof liveAuthorization.payment_method === 'string'
+          ? liveAuthorization.payment_method
+          : liveAuthorization.payment_method?.id || null;
+        const authorizedAt = new Date().toISOString();
+        // Repair either half of the confirmed/authorized state pair. Stripe is
+        // validated first, and the linked PaymentIntent participates in the CAS.
+        const authorizationUpdate = {
           payment_status: 'authorized',
-          payment_authorized_at: new Date().toISOString(),
+          payment_authorized_at: existing.payment_authorized_at || authorizedAt,
           stripe_payment_method_id: paymentMethodId,
           status: 'confirmed',
-          confirmed_at: new Date().toISOString(),
+          confirmed_at: existing.confirmed_at || authorizedAt,
           confirmed_by: 'stripe_webhook',
-        })
+          ...(existing.dispatch_status === 'payment_hold' ? {
+            dispatch_status: null,
+            dispatch_paused: false,
+            needs_manual_dispatch: false,
+          } : {}),
+        };
+        const { error: authErr, data: authRows } = await sb.from('bookings').update(authorizationUpdate)
           .eq('id', bookingId)
-          .eq('payment_status', 'pending')
-          .neq('payment_status', 'captured')
-          .neq('payment_status', 'refunded')
-          .neq('payment_status', 'deposit_paid')
+          .eq('status', existing.status)
+          .eq('payment_status', existing.payment_status)
+          .eq('stripe_payment_intent_id', pi.id)
+          .is('financial_operation_key', null)
           .select('id');
 
         if (authErr) {
@@ -259,12 +483,39 @@ export default async function handler(req, res) {
           break;
         }
         if (!authRows || authRows.length === 0) {
-          webhookOutcome = 'ignored';
-          webhookMetadata = { ...webhookMetadata, reason: 'authorization-state-not-pending', bookingId, currentPaymentStatus: existing.payment_status, currentStatus: existing.status };
+          const { data: current } = await sb.from('bookings')
+            .select('status, payment_status, stripe_payment_intent_id, assembler_id')
+            .eq('id', bookingId)
+            .maybeSingle();
+          if (current?.status === 'confirmed'
+              && current?.payment_status === 'authorized'
+              && current?.stripe_payment_intent_id === pi.id) {
+            if (!current.assembler_id) {
+              try {
+                const retry = await dispatchBooking(bookingId);
+                webhookMetadata = { ...webhookMetadata, dispatchRetry: retry };
+              } catch (err) {
+                console.error('webhook concurrent dispatch retry error:', err?.message || err);
+                webhookMetadata = { ...webhookMetadata, dispatchRetryError: err?.message || String(err) };
+              }
+            }
+            webhookOutcome = 'ignored';
+            webhookMetadata = { ...webhookMetadata, reason: 'authorization-concurrently-reconciled', bookingId };
+            break;
+          }
+          webhookOutcome = 'failed';
+          webhookError = 'Stripe is authorized, but the booking state could not be reconciled';
+          webhookMetadata = { ...webhookMetadata, reason: 'authorization-cas-failed', bookingId };
           break;
         }
 
-        dispatchBooking(bookingId).catch(err => console.error('webhook dispatch error:', err?.message || err));
+        try {
+          const dispatchResult = await dispatchBooking(bookingId);
+          webhookMetadata = { ...webhookMetadata, dispatchResult };
+        } catch (err) {
+          console.error('webhook dispatch error:', err?.message || err);
+          webhookMetadata = { ...webhookMetadata, dispatchError: err?.message || String(err) };
+        }
 
         // Send customer confirmation email
         const bk = existing;
@@ -294,7 +545,20 @@ export default async function handler(req, res) {
         if (pi.metadata?.type === 'assembler_application_fee') {
           const userId = pi.metadata?.userId;
           if (!userId) break;
-          const { data: profile } = await sb.from('profiles').select('full_name, email').eq('id', userId).maybeSingle();
+          const { data: profile, error: profileError } = await sb.from('profiles')
+            .select('full_name, email, role, stripe_customer_id, stripe_payment_intent_id')
+            .eq('id', userId)
+            .maybeSingle();
+          if (profileError || !profile || profile.role !== 'assembler'
+              || !profile.stripe_customer_id
+              || profile.stripe_payment_intent_id !== pi.id) {
+            throw new Error(profileError?.message || 'Failed application-fee event does not match a stored Easer payment');
+          }
+          validateEaserApplicationPaymentIntent(pi, {
+            userId,
+            paymentIntentId: profile.stripe_payment_intent_id,
+            customerId: profile.stripe_customer_id,
+          });
           if (profile) {
             const reason = pi.last_payment_error?.message || 'Your payment could not be processed.';
             try {
@@ -310,24 +574,68 @@ export default async function handler(req, res) {
           break;
         }
 
-        // Customer booking payment failure
-        if (pi.metadata?.type === 'customer_booking') {
+        // Customer booking/quote failure. Stripe events can arrive out of order,
+        // so retrieve live truth and mutate only the exact currently linked PI.
+        if (['customer_booking', 'customer_quote', 'reauth'].includes(pi.metadata?.type)) {
           const { bookingId } = pi.metadata;
           if (!bookingId) break;
           webhookBookingId = bookingId;
 
-          const { data: currentBooking } = await sb.from('bookings')
-            .select('id, payment_status, status, customer_name, customer_email, ref, service')
+          const { data: currentBooking, error: bookingLookupError } = await sb.from('bookings')
+            .select('id, payment_status, status, customer_name, customer_email, ref, service, total_price, quote_amount_cents, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
             .eq('id', bookingId)
             .maybeSingle();
 
+          if (bookingLookupError) throw new Error(`Failed-payment booking lookup failed: ${bookingLookupError.message}`);
           if (!currentBooking) {
             webhookOutcome = 'ignored';
             webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
             break;
           }
+          if (['cancelled', 'declined', 'completed', 'refunded'].includes(currentBooking.status)
+              || currentBooking.financial_operation_key) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = {
+              ...webhookMetadata,
+              reason: currentBooking.financial_operation_key ? 'financial-operation-will-reconcile-failure' : 'terminal-booking-payment-failure',
+              bookingId,
+              currentStatus: currentBooking.status,
+              financialOperationType: currentBooking.financial_operation_type || null,
+            };
+            break;
+          }
+          if (currentBooking.stripe_payment_intent_id !== pi.id) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = { ...webhookMetadata, reason: 'stale-payment-failed-intent', bookingId, currentPaymentIntentId: currentBooking.stripe_payment_intent_id };
+            break;
+          }
 
-          if (['captured', 'deposit_paid', 'refunded'].includes(currentBooking.payment_status)) {
+          const liveIntent = await stripe.paymentIntents.retrieve(pi.id);
+          if (['requires_capture', 'succeeded'].includes(liveIntent.status)) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = { ...webhookMetadata, reason: 'stale-payment-failed-event', bookingId, liveStatus: liveIntent.status };
+            break;
+          }
+
+          const expectedAmount = Number(
+            pi.metadata?.type === 'customer_quote'
+              ? currentBooking.quote_amount_cents
+              : currentBooking.total_price,
+          );
+          const typeMatches = liveIntent.metadata?.type === pi.metadata?.type
+            || (pi.metadata?.type === 'reauth' && liveIntent.metadata?.type === 'reauth');
+          if (liveIntent.id !== currentBooking.stripe_payment_intent_id
+              || liveIntent.metadata?.bookingId !== currentBooking.id
+              || !typeMatches
+              || liveIntent.currency !== 'usd'
+              || liveIntent.capture_method !== 'manual'
+              || !Number.isInteger(expectedAmount)
+              || expectedAmount <= 0
+              || liveIntent.amount !== expectedAmount) {
+            throw new Error('Failed PaymentIntent does not match current booking truth');
+          }
+
+          if (['captured', 'deposit_paid', 'refund_pending', 'refunded', 'partially_refunded', 'cancellation_fee_captured', 'authorization_released'].includes(currentBooking.payment_status)) {
             webhookOutcome = 'ignored';
             webhookMetadata = {
               ...webhookMetadata,
@@ -338,15 +646,40 @@ export default async function handler(req, res) {
             break;
           }
 
-          await sb.from('bookings').update({ payment_status: 'failed' }).eq('id', bookingId);
-          await releasePendingRedemption(sb, {
-            bookingId,
-            bookingRef: currentBooking.ref,
-            customerEmail: currentBooking.customer_email,
-            reason: 'reverse:payment_failed',
-          });
+          const isQuote = pi.metadata?.type === 'customer_quote';
+          const failureUpdate = isQuote
+            ? { payment_status: 'quote_pending_approval' }
+            : { payment_status: 'failed', dispatch_paused: true, needs_manual_dispatch: false, dispatch_status: 'payment_hold' };
+          const { data: failedRows, error: failedUpdateError } = await sb.from('bookings')
+            .update(failureUpdate)
+            .eq('id', bookingId)
+            .eq('stripe_payment_intent_id', pi.id)
+            .eq('payment_status', currentBooking.payment_status)
+            .is('financial_operation_key', null)
+            .is('financial_operation_type', null)
+            .is('financial_operation_started_at', null)
+            .select('id');
+          if (failedUpdateError) {
+            throw new Error(`Failed-payment state persistence failed: ${failedUpdateError.message}`);
+          }
+          if (!failedRows?.length) {
+            webhookOutcome = 'ignored';
+            webhookMetadata = {
+              ...webhookMetadata,
+              reason: 'financial-operation-reserved-during-webhook',
+              bookingId,
+              paymentIntentId: pi.id,
+            };
+            break;
+          }
 
-          logActivity(sb, {
+          const { error: offerCancelError } = await sb.from('dispatch_offers')
+            .update({ offer_status: 'cancelled' })
+            .eq('booking_id', bookingId)
+            .eq('offer_status', 'sent');
+          if (offerCancelError) throw new Error(`Failed-payment offer cleanup failed: ${offerCancelError.message}`);
+
+          await logActivity(sb, {
             bookingId,
             eventType: 'payment_failed',
             actorType: 'system',
@@ -355,19 +688,18 @@ export default async function handler(req, res) {
             metadata: { stripeEventId: event.id, paymentIntentId: pi.id },
           });
 
-          const bk = currentBooking;
-
           const reason = pi.last_payment_error?.message || 'Card could not be authorized.';
 
-          if (bk) {
+          if (currentBooking.customer_email) {
             // Notify customer
             try {
               await sendEmail({
-                to: bk.customer_email,
+                to: currentBooking.customer_email,
                 from: 'AssembleAtEase <booking@assembleatease.com>',
-                subject: `Card Authorization Failed — ${esc(bk.ref)}`,
-                html: buildCustomerPaymentFailEmail(bk.customer_name.split(' ')[0], bk.ref, reason),
+                subject: `Card Authorization Failed — ${esc(currentBooking.ref)}`,
+                html: buildCustomerPaymentFailEmail((currentBooking.customer_name || 'Customer').split(' ')[0], currentBooking.ref, reason),
                 replyTo: ownerEmail(),
+                meta: { bookingId, notificationType: 'payment_failed_customer', recipientType: 'customer' },
               });
             } catch (e) { console.error('Customer payment fail email error:', e); }
           }
@@ -377,15 +709,184 @@ export default async function handler(req, res) {
             await sendEmail({
               to: ownerEmail(),
               from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: `Payment Failed — ${esc(bk?.ref || bookingId)}`,
-              html: buildOwnerPaymentFailEmail(bk?.ref || bookingId, reason, bk?.customer_name),
+              subject: `Payment Failed — ${esc(currentBooking.ref || bookingId)}`,
+              html: buildOwnerPaymentFailEmail(currentBooking.ref || bookingId, reason, currentBooking.customer_name),
+              meta: { bookingId, notificationType: 'payment_failed_owner', recipientType: 'owner' },
             });
           } catch (e) { console.error('Owner payment fail email error:', e); }
         }
         break;
       }
 
+      // ── Payment authorization released/canceled ──
+      case 'payment_intent.canceled': {
+        const pi = event.data.object;
+        if (!['customer_booking', 'customer_quote', 'reauth'].includes(pi.metadata?.type)) break;
+        const bookingId = pi.metadata?.bookingId;
+        if (!bookingId) break;
+        webhookBookingId = bookingId;
+        webhookPaymentIntentId = pi.id;
+
+        const { data: booking, error: bookingError } = await sb.from('bookings')
+          .select('id, ref, service, status, payment_status, customer_name, customer_email, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
+          .eq('id', bookingId)
+          .maybeSingle();
+        if (bookingError) throw new Error(`Canceled-payment booking lookup failed: ${bookingError.message}`);
+        if (!booking) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found-for-canceled-payment', bookingId };
+          break;
+        }
+        if (booking.financial_operation_key) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'financial-operation-will-reconcile-cancellation', bookingId, financialOperationType: booking.financial_operation_type || null };
+          break;
+        }
+        if (booking.stripe_payment_intent_id !== pi.id) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'stale-canceled-payment-intent', bookingId, currentPaymentIntentId: booking.stripe_payment_intent_id };
+          break;
+        }
+        if (['cancelled', 'declined', 'completed', 'refunded'].includes(booking.status)
+            || ['captured', 'deposit_paid', 'refunded', 'partially_refunded'].includes(booking.payment_status)) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'expected-or-stale-payment-cancellation', bookingId, currentStatus: booking.status, currentPaymentStatus: booking.payment_status };
+          break;
+        }
+
+        const isQuote = pi.metadata?.type === 'customer_quote';
+        const canceledUpdate = isQuote
+          ? { stripe_payment_intent_id: null, payment_status: 'quote_pending_approval', quote_approval_started_at: null }
+          : { payment_status: 'failed', dispatch_paused: true, needs_manual_dispatch: false, dispatch_status: 'payment_hold' };
+        const { data: canceledRows, error: canceledUpdateError } = await sb.from('bookings')
+          .update(canceledUpdate)
+          .eq('id', booking.id)
+          .eq('stripe_payment_intent_id', pi.id)
+          .eq('status', booking.status)
+          .eq('payment_status', booking.payment_status)
+          .is('financial_operation_key', null)
+          .is('financial_operation_type', null)
+          .is('financial_operation_started_at', null)
+          .select('id');
+        if (canceledUpdateError) {
+          throw new Error(`Canceled-payment state persistence failed: ${canceledUpdateError.message}`);
+        }
+        if (!canceledRows?.length) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'financial-operation-reserved-during-webhook',
+            bookingId,
+            paymentIntentId: pi.id,
+          };
+          break;
+        }
+
+        const { error: canceledOffersError } = await sb.from('dispatch_offers')
+          .update({ offer_status: 'cancelled' })
+          .eq('booking_id', booking.id)
+          .eq('offer_status', 'sent');
+        if (canceledOffersError) throw new Error(`Canceled-payment offer cleanup failed: ${canceledOffersError.message}`);
+
+        await logActivity(sb, {
+          bookingId: booking.id,
+          eventType: 'payment_authorization_canceled',
+          actorType: 'stripe',
+          actorName: 'Stripe',
+          description: `${booking.ref} card authorization was released; dispatch is blocked until payment is restored`,
+          metadata: { stripeEventId: event.id, paymentIntentId: pi.id, cancellationReason: pi.cancellation_reason || null },
+        });
+
+        await sendEmail({
+          to: ownerEmail(),
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: `Payment Hold Released - ${esc(booking.ref)}`,
+          html: `<p>Stripe canceled the current card authorization for <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p><p>Dispatch is blocked. Review the booking timeline, then send a secure payment continuation or new quote approval link. Do not assign an Easer until payment is verified.</p>`,
+          meta: { bookingId: booking.id, notificationType: 'payment_authorization_canceled_owner', recipientType: 'owner' },
+        }).catch(error => console.error('Canceled payment owner email failed:', error?.message || error));
+        break;
+      }
+
       // ── Refund sync: keep booking truth aligned to Stripe refund truth ──
+      case 'refund.created':
+      case 'refund.failed':
+      case 'refund.updated': {
+        const refund = event.data.object;
+        const paymentIntentId = typeof refund.payment_intent === 'string' ? refund.payment_intent : null;
+        if (!paymentIntentId) break;
+        webhookPaymentIntentId = paymentIntentId;
+        const refundStatus = String(refund.status || '').toLowerCase();
+        const applicationRefundSync = await syncEaserApplicationFeeRefund({
+          sb,
+          stripe,
+          event,
+          paymentIntentId,
+          expectedChargeId: typeof refund.charge === 'string' ? refund.charge : refund.charge?.id || null,
+          forceHold: !['failed', 'canceled'].includes(refundStatus),
+          reason: `Stripe application-fee refund ${refund.id || 'unknown'} is ${refundStatus || 'unknown'}`,
+        });
+        if (applicationRefundSync.handled) {
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'application-fee-refund-synchronized',
+            refundId: refund.id || null,
+            refundStatus: refund.status || null,
+            refundedCents: applicationRefundSync.truth?.succeededRefundedCents || 0,
+            pendingRefundCents: applicationRefundSync.truth?.pendingRefundCents || 0,
+            newJobsBlocked: applicationRefundSync.holdRequired,
+          };
+          break;
+        }
+        if (!['failed', 'canceled'].includes(refundStatus)) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'refund-update-awaiting-charge-sync', refundStatus: refund.status || null, refundId: refund.id || null };
+          break;
+        }
+        const { data: booking, error: refundFailureLookupError } = await sb.from('bookings')
+          .select('id, ref, refund_amount, financial_operation_key, financial_operation_type, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id')
+          .or(`stripe_payment_intent_id.eq.${paymentIntentId},stripe_deposit_intent_id.eq.${paymentIntentId},stripe_balance_payment_intent_id.eq.${paymentIntentId}`)
+          .maybeSingle();
+        if (refundFailureLookupError) throw new Error(`Failed-refund booking lookup failed: ${refundFailureLookupError.message}`);
+        if (!booking) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found-for-failed-refund', paymentIntentId, refundId: refund.id || null };
+          break;
+        }
+        webhookBookingId = booking.id;
+        const stripeTruth = await loadBookingStripeRefundTruth({ stripe, booking });
+        const expectedOperationKey = `refund:owner:${booking.id}:total:${stripeTruth.capturedCents}`;
+        const storedRefundCents = Number(booking.refund_amount || 0);
+        const matchingRefundLock = booking.financial_operation_type === 'refund_owner'
+          && booking.financial_operation_key === expectedOperationKey;
+        await logActivity(sb, {
+          bookingId: booking.id,
+          eventType: 'refund_failed',
+          actorType: 'stripe',
+          actorName: 'Stripe',
+          description: `${booking.ref} refund ${refund.id || ''} failed; any owner refund lock remains unchanged until fresh aggregate Stripe truth is reconciled`,
+          metadata: {
+            stripeEventId: event.id,
+            paymentIntentId,
+            refundId: refund.id || null,
+            failureReason: refund.failure_reason || null,
+            releasedLock: false,
+            matchingRefundLock,
+            stripeRefundedCents: stripeTruth.refundedCents,
+            stripePendingRefundCents: stripeTruth.pendingRefundCents,
+            storedRefundCents,
+          },
+        });
+        await sendEmail({
+          to: ownerEmail(),
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: `Refund Failed - ${esc(booking.ref)}`,
+          html: `<p>Stripe reports that refund <strong>${esc(refund.id || 'unknown')}</strong> for booking <strong>${esc(booking.ref)}</strong> failed.</p><p>Review the aggregate refund in Stripe before retrying. A webhook never releases an owner refund lock because this event may belong to an older attempt. Retry only from the owner booking action, which rechecks fresh Stripe truth first.</p>`,
+          meta: { bookingId: booking.id, notificationType: 'refund_failed_owner', recipientType: 'owner' },
+        }).catch(error => console.error('Refund failure owner email failed:', error?.message || error));
+        webhookMetadata = { ...webhookMetadata, reason: 'refund-failure-synchronized', refundId: refund.id || null, releasedLock: false, matchingRefundLock };
+        break;
+      }
+
       case 'charge.refunded': {
         const charge = event.data.object;
         const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
@@ -393,104 +894,397 @@ export default async function handler(req, res) {
 
         webhookPaymentIntentId = paymentIntentId;
 
-        const { data: booking } = await sb.from('bookings')
-          .select('id, ref, payment_status, amount_charged')
-          .eq('stripe_payment_intent_id', paymentIntentId)
+        const applicationRefundSync = await syncEaserApplicationFeeRefund({
+          sb,
+          stripe,
+          event,
+          paymentIntentId,
+          expectedChargeId: charge.id || null,
+          forceHold: true,
+          reason: `Stripe application-fee charge ${charge.id || 'unknown'} was refunded`,
+        });
+        if (applicationRefundSync.handled) {
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'application-fee-refund-synchronized',
+            refundedCents: applicationRefundSync.truth?.succeededRefundedCents || 0,
+            pendingRefundCents: applicationRefundSync.truth?.pendingRefundCents || 0,
+            fullyRefunded: applicationRefundSync.truth?.fullyRefunded === true,
+            newJobsBlocked: true,
+          };
+          break;
+        }
+
+        const { data: booking, error: refundBookingError } = await sb.from('bookings')
+          .select('id, ref, status, payment_status, amount_charged, refund_id, refund_amount, assembler_id, assembler_name, assembler_due, payout_status, payout_amount, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id')
+          .or(`stripe_payment_intent_id.eq.${paymentIntentId},stripe_deposit_intent_id.eq.${paymentIntentId},stripe_balance_payment_intent_id.eq.${paymentIntentId}`)
           .maybeSingle();
+
+        if (refundBookingError) throw new Error(`Refund booking lookup failed: ${refundBookingError.message}`);
 
         if (!booking) {
           webhookOutcome = 'ignored';
-          webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found-for-refund', paymentIntentId };
+          webhookMetadata = { ...webhookMetadata, reason: 'booking-or-application-not-found-for-refund', paymentIntentId };
           break;
         }
 
         webhookBookingId = booking.id;
 
-        const cumulativeRefund = Number(charge.amount_refunded || 0);
-        const capturedAmount = Number(charge.amount || booking.amount_charged || 0);
-        const refundPaymentStatus = charge.refunded === true || cumulativeRefund >= capturedAmount
-          ? 'refunded'
-          : 'partially_refunded';
-        const { error: refundSyncErr } = await sb.from('bookings').update({
-          payment_status: refundPaymentStatus,
+        const stripeTruth = await loadBookingStripeRefundTruth({ stripe, booking });
+        const cumulativeRefund = stripeTruth.refundedCents;
+        const capturedAmount = stripeTruth.capturedCents;
+        const storedRefund = Number(booking.refund_amount || 0);
+        if (storedRefund > cumulativeRefund) {
+          throw new Error(`Booking refund total (${storedRefund}) exceeds current aggregate Stripe truth (${cumulativeRefund})`);
+        }
+        if (cumulativeRefund <= 0 || capturedAmount <= 0) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'no-succeeded-refund-in-stripe-truth', paymentIntentId };
+          break;
+        }
+        const refundPaymentState = refundPaymentStatus(stripeTruth);
+        const easerReviewRequired = booking.status === 'completed'
+          && !!booking.assembler_id
+          && Number(booking.assembler_due || 0) > 0;
+        const expectedRefundOperationKey = `refund:owner:${booking.id}:total:${cumulativeRefund}`;
+        const clearRefundLock = booking.financial_operation_type === 'refund_owner'
+          && booking.financial_operation_key === expectedRefundOperationKey;
+        const refundRows = Array.isArray(charge.refunds?.data) ? charge.refunds.data : [];
+        const latestSucceededRefund = refundRows
+          .filter(refund => refund.status === 'succeeded')
+          .sort((a, b) => Number(b.created || 0) - Number(a.created || 0))[0] || null;
+        const refundUpdate = {
+          payment_status: refundPaymentState,
           refund_amount: cumulativeRefund,
-          refunded_at: new Date().toISOString(),
-        }).eq('id', booking.id);
+          refund_id: latestSucceededRefund?.id || booking.refund_id || null,
+          refunded_at: event.created ? new Date(event.created * 1000).toISOString() : new Date().toISOString(),
+          ...(easerReviewRequired ? {
+            payout_review_status: 'review_required',
+            payout_reviewed_at: null,
+            payout_reviewed_by: null,
+            payout_review_notes: null,
+          } : {}),
+        };
+        let refundUpdateQuery = sb.from('bookings').update(refundUpdate).eq('id', booking.id);
+        refundUpdateQuery = booking.refund_amount == null
+          ? refundUpdateQuery.is('refund_amount', null)
+          : refundUpdateQuery.eq('refund_amount', booking.refund_amount);
+        refundUpdateQuery = booking.financial_operation_key == null
+          ? refundUpdateQuery.is('financial_operation_key', null)
+          : refundUpdateQuery.eq('financial_operation_key', booking.financial_operation_key);
+        refundUpdateQuery = booking.financial_operation_type == null
+          ? refundUpdateQuery.is('financial_operation_type', null)
+          : refundUpdateQuery.eq('financial_operation_type', booking.financial_operation_type);
+        refundUpdateQuery = booking.financial_operation_started_at == null
+          ? refundUpdateQuery.is('financial_operation_started_at', null)
+          : refundUpdateQuery.eq('financial_operation_started_at', booking.financial_operation_started_at);
+        const { error: refundSyncErr, data: refundSyncRows } = await refundUpdateQuery.select('id');
 
-        if (refundSyncErr) {
+        if (refundSyncErr || !refundSyncRows?.length) {
           webhookOutcome = 'failed';
-          webhookError = refundSyncErr.message || 'Refund sync failed';
+          webhookError = refundSyncErr?.message || 'Refund sync state changed before persistence';
           webhookMetadata = { ...webhookMetadata, reason: 'refund-sync-update-failed', paymentIntentId };
           break;
         }
 
-        logActivity(sb, {
+        const rewardsReversal = await reconcileRefundAssembleCash({
+          sb,
+          booking,
+          cumulativeRefundCents: cumulativeRefund,
+          eventSource: 'stripe_webhook',
+          fullyRefunded: stripeTruth.fullyRefunded,
+        });
+
+        await logActivity(sb, {
           bookingId: booking.id,
           eventType: 'refunded',
           actorType: 'system',
           actorName: 'stripe_webhook',
-          description: `Stripe webhook refund sync: $${((charge.amount_refunded || 0) / 100).toFixed(2)}`,
-          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: cumulativeRefund, paymentStatus: refundPaymentStatus },
+          description: `Stripe webhook aggregate refund sync: $${(cumulativeRefund / 100).toFixed(2)}`,
+          metadata: { stripeEventId: event.id, paymentIntentId, amountRefunded: cumulativeRefund, capturedAmount, paymentStatus: refundPaymentState },
         });
 
-        await writeFinancialAudit(sb, {
+        const refundAudit = await writeFinancialAudit(sb, {
           eventType: 'refund_sync',
           eventSource: 'stripe_webhook',
-          stripeEventId: event.id,
           bookingId: booking.id,
           paymentIntentId,
           status: 'processed',
+          idempotencyKey: `refund-sync:${booking.id}:total:${cumulativeRefund}`,
           eventCreatedAt: event.created ? new Date(event.created * 1000).toISOString() : null,
-          metadata: { amountRefunded: charge.amount_refunded || 0, chargeId: charge.id || null },
+          metadata: { amountRefunded: cumulativeRefund, capturedAmount, chargeId: charge.id || null, stripeEventId: event.id },
         });
+        if (!refundAudit?.ok) throw new Error(`Refund financial audit failed: ${refundAudit?.error || 'unknown error'}`);
+
+        if (['paid', 'transferred'].includes(booking.payout_status)) {
+          const clawbackKey = `clawback:${booking.id}:refund-total:${cumulativeRefund}`;
+          const { data: existingClawback, error: clawbackLookupError } = await sb.from('financial_event_audit')
+            .select('id')
+            .eq('idempotency_key', clawbackKey)
+            .limit(1)
+            .maybeSingle();
+          if (clawbackLookupError) throw new Error(`Clawback audit lookup failed: ${clawbackLookupError.message}`);
+          if (!existingClawback) {
+            const clawbackOwedCents = Math.min(cumulativeRefund, Number(booking.payout_amount || booking.assembler_due || 0));
+            const clawbackAudit = await writeFinancialAudit(sb, {
+              eventType: 'clawback_required',
+              eventSource: 'stripe_webhook',
+              bookingId: booking.id,
+              paymentIntentId,
+              refundId: latestSucceededRefund?.id || null,
+              idempotencyKey: clawbackKey,
+              status: 'open',
+              metadata: {
+                ref: booking.ref,
+                assemblerId: booking.assembler_id,
+                assemblerName: booking.assembler_name || null,
+                cumulativeRefundAmountCents: cumulativeRefund,
+                payoutAmountCents: booking.payout_amount || 0,
+                clawbackOwedCents,
+              },
+            });
+            if (!clawbackAudit?.ok) {
+              const { data: racedClawback, error: racedClawbackError } = await sb.from('financial_event_audit')
+                .select('id')
+                .eq('idempotency_key', clawbackKey)
+                .limit(1)
+                .maybeSingle();
+              if (racedClawbackError || !racedClawback) {
+                throw new Error(`Clawback audit failed: ${clawbackAudit?.error || racedClawbackError?.message || 'unknown error'}`);
+              }
+            }
+            await sendEmail({
+              to: ownerEmail(),
+              from: 'AssembleAtEase <booking@assembleatease.com>',
+              subject: `Payout Review Required - Refund after payout - ${esc(booking.ref)}`,
+              html: `<p>Booking <strong>${esc(booking.ref)}</strong> has an aggregate Stripe refund of <strong>$${(cumulativeRefund / 100).toFixed(2)}</strong>, but the Easer payout is already ${esc(booking.payout_status)}.</p><p>A durable clawback review is open in the Owner dashboard. Do not close this financial record until the recovery or owner adjustment is documented.</p>`,
+              meta: { bookingId: booking.id, notificationType: 'refund_clawback_required', recipientType: 'owner' },
+            }).catch(error => console.error('Refund clawback owner email failed:', error?.message || error));
+          }
+        }
+
+        if (!rewardsReversal.ok) {
+          const rewardHoldUpdate = {
+            financial_reconciliation_required_at: new Date().toISOString(),
+            financial_reconciliation_reason: 'AssembleCash could not be reconciled after Stripe completed the refund.',
+          };
+          if (booking.financial_operation_key == null
+              && booking.financial_operation_type == null
+              && booking.financial_operation_started_at == null) {
+            // External Stripe refunds have no owner reservation. Convert the
+            // no-lock hold into the same exact refund tuple used by the owner
+            // endpoint so webhook or owner retries are safe and idempotent.
+            rewardHoldUpdate.financial_operation_key = expectedRefundOperationKey;
+            rewardHoldUpdate.financial_operation_type = 'refund_owner';
+            rewardHoldUpdate.financial_operation_started_at = new Date().toISOString();
+          }
+          let rewardHoldQuery = sb.from('bookings').update(rewardHoldUpdate).eq('id', booking.id);
+          rewardHoldQuery = booking.financial_operation_key == null
+            ? rewardHoldQuery.is('financial_operation_key', null)
+            : rewardHoldQuery.eq('financial_operation_key', booking.financial_operation_key);
+          rewardHoldQuery = booking.financial_operation_type == null
+            ? rewardHoldQuery.is('financial_operation_type', null)
+            : rewardHoldQuery.eq('financial_operation_type', booking.financial_operation_type);
+          rewardHoldQuery = booking.financial_operation_started_at == null
+            ? rewardHoldQuery.is('financial_operation_started_at', null)
+            : rewardHoldQuery.eq('financial_operation_started_at', booking.financial_operation_started_at);
+          const { error: rewardHoldError, data: rewardHoldRows } = await rewardHoldQuery.select('id');
+          webhookOutcome = 'failed';
+          webhookError = rewardsReversal.reconciliation?.error || 'AssembleCash refund reconciliation failed';
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'assemblecash-refund-reconciliation-required',
+            paymentIntentId,
+            rewardHoldPersisted: !rewardHoldError && !!rewardHoldRows?.length,
+          };
+          break;
+        }
+
+        if (clearRefundLock) {
+          const { error: refundReleaseError, data: refundReleaseRows } = await sb.from('bookings').update({
+            financial_operation_key: null,
+            financial_operation_type: null,
+            financial_operation_started_at: null,
+            financial_reconciliation_required_at: null,
+            financial_reconciliation_reason: null,
+          })
+            .eq('id', booking.id)
+            .eq('financial_operation_key', expectedRefundOperationKey)
+            .eq('financial_operation_type', 'refund_owner')
+            .select('id');
+          if (refundReleaseError || !refundReleaseRows?.length) {
+            throw new Error(`Refund lock release failed after rewards reconciliation: ${refundReleaseError?.message || 'reservation changed'}`);
+          }
+        } else if (!booking.financial_operation_key
+            && !booking.financial_operation_type
+            && !booking.financial_operation_started_at) {
+          await sb.from('bookings').update({
+            financial_reconciliation_required_at: null,
+            financial_reconciliation_reason: null,
+          })
+            .eq('id', booking.id)
+            .is('financial_operation_key', null)
+            .is('financial_operation_type', null)
+            .is('financial_operation_started_at', null)
+            .eq('financial_reconciliation_reason', 'AssembleCash could not be reconciled after Stripe completed the refund.');
+        }
+
+        webhookMetadata = {
+          ...webhookMetadata,
+          reason: 'aggregate-refund-synchronized',
+          cumulativeRefund,
+          capturedAmount,
+          paymentStatus: refundPaymentState,
+          clearedRefundLock: clearRefundLock,
+        };
 
         break;
       }
 
-      // ── Dispute created — urgent alert ──
-      case 'charge.dispute.created': {
-        const dispute = event.data.object;
-        const disputeAmount = `$${(dispute.amount / 100).toFixed(2)}`;
-
-        // Try to find the related booking via charge → payment intent
-        let disputeBk = null;
-        try {
-          const ch = await stripe.charges.retrieve(dispute.charge);
-          if (ch.payment_intent) {
-            const { data: foundBk } = await sb.from('bookings')
-              .select('customer_name, customer_email, ref, service')
-              .eq('stripe_payment_intent_id', ch.payment_intent)
-              .maybeSingle();
-            disputeBk = foundBk;
-          }
-        } catch (e) { console.error('Dispute charge lookup error:', e); }
-
-        // #24 — Branded owner URGENT email
-        try {
-          await sendEmail({
-            to: ownerEmail(),
-            from: 'AssembleAtEase <booking@assembleatease.com>',
-            subject: `URGENT: Chargeback Dispute — ${disputeAmount}`,
-            html: buildOwnerDisputeEmail(dispute, disputeAmount, disputeBk),
-          });
-        } catch (e) { console.error('Dispute owner email error:', e); }
-
-        // #9 — Customer dispute acknowledgment
-        if (disputeBk?.customer_email) {
-          try {
-            await sendEmail({
-              to: disputeBk.customer_email,
-              from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: `Dispute Received — ${esc(disputeBk.ref)}`,
-              html: buildCustomerDisputeEmail(
-                (disputeBk.customer_name || '').split(' ')[0],
-                disputeBk.ref,
-                dispute.reason,
-              ),
-              replyTo: ownerEmail(),
-            });
-          } catch (e) { console.error('Customer dispute email error:', e); }
+      // ── Dispute lifecycle — durable payout/new-work hold ──
+      case 'charge.dispute.created':
+      case 'charge.dispute.updated':
+      case 'charge.dispute.funds_withdrawn':
+      case 'charge.dispute.funds_reinstated':
+      case 'charge.dispute.closed': {
+        const eventDispute = event.data.object;
+        const eventChargeId = typeof eventDispute.charge === 'string'
+          ? eventDispute.charge
+          : eventDispute.charge?.id || null;
+        if (!eventDispute?.id || !eventChargeId) {
+          throw new Error('Stripe dispute event is missing exact identifiers');
         }
+        const charge = await stripe.charges.retrieve(eventChargeId);
+        const paymentIntentId = typeof charge?.payment_intent === 'string'
+          ? charge.payment_intent
+          : charge?.payment_intent?.id || null;
+        if (!paymentIntentId || charge.id !== eventChargeId) {
+          throw new Error('Stripe dispute charge does not have an exact PaymentIntent');
+        }
+        webhookPaymentIntentId = paymentIntentId;
+
+        const applicationDispute = await syncEaserApplicationFeeDispute({
+          sb,
+          stripe,
+          event,
+          dispute: eventDispute,
+          charge,
+        });
+        if (applicationDispute.handled) {
+          webhookMetadata = {
+            ...webhookMetadata,
+            reason: 'application-fee-dispute-held',
+            disputeId: eventDispute.id,
+            disputeStatus: applicationDispute.disputeTruth?.latestDispute?.status || eventDispute.status || null,
+            newJobsBlocked: true,
+          };
+          break;
+        }
+
+        const liveDispute = await stripe.disputes.retrieve(eventDispute.id);
+        const liveChargeId = typeof liveDispute?.charge === 'string'
+          ? liveDispute.charge
+          : liveDispute?.charge?.id || null;
+        const liveStatus = String(liveDispute?.status || '').toLowerCase();
+        const liveAmount = Number(liveDispute?.amount);
+        if (liveDispute?.id !== eventDispute.id
+            || liveChargeId !== charge.id
+            || !STRIPE_DISPUTE_STATUSES.has(liveStatus)
+            || liveDispute.currency !== 'usd'
+            || liveDispute.livemode !== charge.livemode
+            || !Number.isInteger(liveAmount)
+            || liveAmount <= 0
+            || liveAmount > Number(charge.amount || 0)) {
+          throw new Error('Fresh Stripe dispute truth is inconsistent with its charge');
+        }
+
+        const { data: disputeBk, error: disputeBookingError } = await sb.from('bookings')
+          .select('id, ref, service, customer_name, customer_email, payout_status, assembler_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id')
+          .or(`stripe_payment_intent_id.eq.${paymentIntentId},stripe_deposit_intent_id.eq.${paymentIntentId},stripe_balance_payment_intent_id.eq.${paymentIntentId}`)
+          .maybeSingle();
+        if (disputeBookingError) throw new Error(`Dispute booking lookup failed: ${disputeBookingError.message}`);
+        if (!disputeBk) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'dispute-payment-owner-not-found', disputeId: liveDispute.id };
+          break;
+        }
+        webhookBookingId = disputeBk.id;
+        const observedAt = event.created
+          ? new Date(Number(event.created) * 1000).toISOString()
+          : new Date().toISOString();
+        const { data: holdRows, error: holdError } = await sb.rpc('hold_booking_stripe_dispute', {
+          p_booking_id: disputeBk.id,
+          p_payment_intent_id: paymentIntentId,
+          p_charge_id: charge.id,
+          p_dispute_id: liveDispute.id,
+          p_dispute_status: liveStatus,
+          p_dispute_amount_cents: liveAmount,
+          p_currency: liveDispute.currency,
+          p_dispute_reason: liveDispute.reason || null,
+          p_livemode: liveDispute.livemode,
+          p_funds_withdrawn: event.type === 'charge.dispute.funds_withdrawn',
+          p_funds_reinstated: event.type === 'charge.dispute.funds_reinstated',
+          p_observed_at: observedAt,
+        });
+        if (holdError) throw new Error(`Stripe dispute payout hold failed: ${holdError.message}`);
+        const hold = Array.isArray(holdRows) ? holdRows[0] : holdRows;
+        if (!hold?.result_action) throw new Error('Stripe dispute payout hold returned no authoritative result');
+        const { error: disputeOfferCancelError } = await sb.from('dispatch_offers')
+          .update({ offer_status: 'cancelled' })
+          .eq('booking_id', disputeBk.id)
+          .eq('offer_status', 'sent');
+        if (disputeOfferCancelError) {
+          throw new Error(`Stripe-disputed booking offer cancellation failed: ${disputeOfferCancelError.message}`);
+        }
+
+        await logActivity(sb, {
+          bookingId: disputeBk.id,
+          eventType: 'stripe_dispute_payout_hold',
+          actorType: 'stripe',
+          actorName: 'Stripe',
+          description: `${disputeBk.ref} dispute ${liveDispute.id} is ${liveStatus}; every Easer payout path remains blocked pending fresh resolution review`,
+          metadata: {
+            stripeEventId: event.id,
+            disputeId: liveDispute.id,
+            disputeStatus: liveStatus,
+            disputeAmountCents: liveAmount,
+            paymentIntentId,
+            chargeId: charge.id,
+            payoutStatus: hold.payout_status || disputeBk.payout_status || null,
+            payoutAlreadyReleased: ['paid', 'transferred'].includes(hold.payout_status || disputeBk.payout_status),
+          },
+        });
+
+        const disputeAmount = `$${(liveAmount / 100).toFixed(2)}`;
+        await sendEmail({
+          to: ownerEmail(),
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: `URGENT: Chargeback Dispute - ${disputeAmount} - ${esc(disputeBk.ref)}`,
+          html: `${buildOwnerDisputeEmail(liveDispute, disputeAmount, disputeBk)}<p><strong>Easer payout hold:</strong> Active. Do not pay externally. ${['paid', 'transferred'].includes(hold.payout_status || disputeBk.payout_status) ? 'Funds may already have left the platform; review recovery immediately.' : 'Use owner dispute resolution only after fresh Stripe truth is resolved and any withdrawn funds are reinstated.'}</p>`,
+          meta: { bookingId: disputeBk.id, notificationType: 'stripe_dispute_owner', recipientType: 'owner' },
+        }).catch(error => console.error('Dispute owner email error:', error?.message || error));
+
+        if (event.type === 'charge.dispute.created' && disputeBk.customer_email) {
+          await sendEmail({
+            to: disputeBk.customer_email,
+            from: 'AssembleAtEase <booking@assembleatease.com>',
+            subject: `Dispute Received - ${esc(disputeBk.ref)}`,
+            html: buildCustomerDisputeEmail(
+              (disputeBk.customer_name || '').split(' ')[0],
+              disputeBk.ref,
+              liveDispute.reason,
+            ),
+            replyTo: ownerEmail(),
+            meta: { bookingId: disputeBk.id, notificationType: 'stripe_dispute_customer', recipientType: 'customer' },
+          }).catch(error => console.error('Customer dispute email error:', error?.message || error));
+        }
+        webhookMetadata = {
+          ...webhookMetadata,
+          reason: 'booking-dispute-payout-held',
+          disputeId: liveDispute.id,
+          disputeStatus: liveStatus,
+          payoutHold: true,
+        };
         break;
       }
 
@@ -499,15 +1293,20 @@ export default async function handler(req, res) {
       case 'customer.subscription.updated': {
         const sub = event.data.object;
         const userId = sub.metadata?.userId;
-        if (!userId) break;
+        if (!userId || sub.metadata?.role !== 'assembler_membership') break;
         const active = sub.status === 'active' || sub.status === 'trialing';
-        await sb.from('profiles').update({
+        const periodEnd = Number(sub.current_period_end);
+        const { error: membershipUpdateError } = await sb.from('profiles').update({
           has_membership: active,
-          membership_expires_at: active ? new Date(sub.current_period_end * 1000).toISOString() : null,
+          membership_expires_at: active && Number.isFinite(periodEnd) ? new Date(periodEnd * 1000).toISOString() : null,
           stripe_subscription_id: sub.id,
           membership_tier: active ? 'member' : null,
-        }).eq('id', userId);
-        if (active) {
+        }).eq('id', userId).eq('role', 'assembler');
+        if (membershipUpdateError) throw membershipUpdateError;
+
+        // Store legacy billing truth even while launch enrollment is disabled,
+        // but never promise priority/discount benefits unless explicitly enabled.
+        if (active && event.type === 'customer.subscription.created' && isEaserMembershipEnabled()) {
           const { data: p } = await sb.from('profiles').select('full_name, email').eq('id', userId).maybeSingle();
           if (p) {
             sendEmail({
@@ -529,30 +1328,34 @@ export default async function handler(req, res) {
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
         const userId = sub.metadata?.userId;
-        if (!userId) break;
-        await sb.from('profiles').update({
+        if (!userId || sub.metadata?.role !== 'assembler_membership') break;
+        const { error: membershipDeleteError } = await sb.from('profiles').update({
           has_membership: false,
           membership_expires_at: null,
           stripe_subscription_id: null,
           membership_tier: null,
-        }).eq('id', userId);
+        }).eq('id', userId).eq('role', 'assembler').eq('stripe_subscription_id', sub.id);
+        if (membershipDeleteError) throw membershipDeleteError;
         break;
       }
 
       // ── Easer Membership: invoice paid (renewal) ──
       case 'invoice.payment_succeeded': {
         const inv = event.data.object;
-        if (inv.subscription && inv.metadata?.role !== 'assembler_membership') {
-          // Try to find by subscription ID
+        if (inv.subscription) {
+          const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY);
+          const sub = await stripe2.subscriptions.retrieve(inv.subscription);
+          if (sub.metadata?.role !== 'assembler_membership' || !sub.metadata?.userId) break;
           const { data: profiles } = await sb.from('profiles')
-            .select('id').eq('stripe_subscription_id', inv.subscription).limit(1);
+            .select('id').eq('id', sub.metadata.userId).eq('role', 'assembler')
+            .eq('stripe_subscription_id', inv.subscription).limit(1);
           if (profiles && profiles[0]) {
-            const stripe2 = new Stripe(process.env.STRIPE_SECRET_KEY);
-            const sub = await stripe2.subscriptions.retrieve(inv.subscription);
-            await sb.from('profiles').update({
+            const periodEnd = Number(sub.current_period_end);
+            const { error: renewalError } = await sb.from('profiles').update({
               has_membership: true,
-              membership_expires_at: new Date(sub.current_period_end * 1000).toISOString(),
-            }).eq('id', profiles[0].id);
+              membership_expires_at: Number.isFinite(periodEnd) ? new Date(periodEnd * 1000).toISOString() : null,
+            }).eq('id', profiles[0].id).eq('role', 'assembler');
+            if (renewalError) throw renewalError;
           }
         }
         break;
@@ -601,7 +1404,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ received: false, error: 'Webhook processing failed and is retryable' });
   }
 
-  await finalizeStripeWebhookEvent(sb, event.id, {
+  const finalized = await finalizeStripeWebhookEvent(sb, event.id, {
     bookingId: webhookBookingId,
     paymentIntentId: webhookPaymentIntentId,
     status: webhookOutcome,
@@ -609,44 +1412,737 @@ export default async function handler(req, res) {
     error: webhookError,
   });
 
+  if (!finalized?.ok) {
+    console.error('Stripe webhook finalization failed:', finalized?.error || 'unknown finalization error');
+    return res.status(503).json({ received: false, error: 'Webhook result could not be durably finalized' });
+  }
+
   if (webhookOutcome === 'failed') {
     return res.status(500).json({ received: false, error: webhookError || 'Webhook processing failed and is retryable' });
   }
   return res.status(200).json({ received: true });
 }
 
-async function syncCapturedCustomerPayment({ sb, pi, event }) {
+async function syncEaserApplicationFeeRefund({
+  sb,
+  stripe,
+  event,
+  paymentIntentId,
+  expectedChargeId = null,
+  forceHold = false,
+  reason,
+}) {
+  const { data: profile, error: profileError } = await sb.from('profiles')
+    .select('id, role, status, application_status, full_name, email, is_available, stripe_customer_id, stripe_payment_intent_id, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at')
+    .eq('role', 'assembler')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (profileError) throw new Error(`Application-fee refund profile lookup failed: ${profileError.message}`);
+  if (!profile) return { handled: false, holdRequired: false, truth: null, result: null };
+  if (!profile.stripe_customer_id) {
+    throw new Error('Application-fee refund profile is missing its Stripe Customer');
+  }
+
+  const observedAt = event?.created
+    ? new Date(Number(event.created) * 1000).toISOString()
+    : new Date().toISOString();
+  const reviewReason = String(reason || 'Stripe application-fee refund activity requires review').slice(0, 1000);
+  let holdResult = null;
+  if (forceHold) {
+    holdResult = await holdEaserApplicationFeeRefund(sb, {
+      assemblerId: profile.id,
+      paymentIntentId,
+      observedAt,
+      reason: reviewReason,
+    });
+  }
+
+  let truth;
+  try {
+    truth = await loadEaserApplicationFeeRefundTruth({
+      stripe,
+      assemblerId: profile.id,
+      paymentIntentId,
+      customerId: profile.stripe_customer_id,
+      expectedChargeId,
+    });
+    if (truth.hasLiveRefundActivity && !forceHold) {
+      holdResult = await holdEaserApplicationFeeRefund(sb, {
+        assemblerId: profile.id,
+        paymentIntentId,
+        observedAt,
+        reason: reviewReason,
+      });
+    }
+  } catch (error) {
+    if (forceHold) {
+      await recordEaserApplicationFeeRefundNotice({
+        sb,
+        event,
+        profile,
+        reason: reviewReason,
+        validationError: error?.message || String(error),
+      }).catch(noticeError => console.error('Application-fee refund review notice failed:', noticeError?.message || noticeError));
+    }
+    throw error;
+  }
+
+  const result = await reconcileEaserApplicationFeeRefund(sb, {
+    assemblerId: profile.id,
+    paymentIntentId,
+    customerId: profile.stripe_customer_id,
+    truth,
+    observedAt,
+    reason: reviewReason,
+  });
+  const holdRequired = truth.hasLiveRefundActivity
+    || Boolean(profile.application_fee_refund_review_required_at)
+    || Boolean(result.review_required_at);
+
+  if (holdRequired) {
+    const { error: offerCancelError } = await sb.from('dispatch_offers')
+      .update({ offer_status: 'cancelled' })
+      .eq('easer_id', profile.id)
+      .eq('offer_status', 'sent');
+    if (offerCancelError) {
+      throw new Error(`Refund-held Easer offer cancellation failed: ${offerCancelError.message}`);
+    }
+  }
+
+  if (holdRequired && (
+    forceHold
+    || holdResult?.result_action === 'held'
+    || result.result_action === 'reconciled'
+  )) {
+    await recordEaserApplicationFeeRefundNotice({
+      sb,
+      event,
+      profile,
+      truth,
+      reason: reviewReason,
+    });
+  }
+
+  return { handled: true, holdRequired, truth, result };
+}
+
+async function syncEaserApplicationFeeDispute({
+  sb,
+  stripe,
+  event,
+  dispute,
+  charge,
+}) {
+  const paymentIntentId = typeof charge?.payment_intent === 'string'
+    ? charge.payment_intent
+    : charge?.payment_intent?.id || null;
+  if (!paymentIntentId) return { handled: false };
+  const { data: profile, error: profileError } = await sb.from('profiles')
+    .select('id, role, status, application_status, full_name, email, stripe_customer_id, stripe_payment_intent_id')
+    .eq('role', 'assembler')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle();
+  if (profileError) throw new Error(`Application-fee dispute profile lookup failed: ${profileError.message}`);
+  if (!profile) return { handled: false };
+
+  const observedAt = event?.created
+    ? new Date(Number(event.created) * 1000).toISOString()
+    : new Date().toISOString();
+  const reason = `Stripe application-fee dispute ${dispute.id || 'unknown'} is ${String(dispute.status || 'unknown')}`;
+  await holdEaserApplicationFeeRefund(sb, {
+    assemblerId: profile.id,
+    paymentIntentId,
+    observedAt,
+    reason,
+  });
+
+  try {
+    const paymentTruth = await loadEaserApplicationFeeRefundTruth({
+      stripe,
+      assemblerId: profile.id,
+      paymentIntentId,
+      customerId: profile.stripe_customer_id,
+      expectedChargeId: charge.id,
+    });
+    const disputeTruth = await loadEaserApplicationFeeDisputeTruth({
+      stripe,
+      paymentTruth,
+      expectedDisputeId: dispute.id,
+    });
+    await reconcileEaserApplicationFeeRefund(sb, {
+      assemblerId: profile.id,
+      paymentIntentId,
+      customerId: profile.stripe_customer_id,
+      truth: paymentTruth,
+      observedAt,
+      reason,
+    });
+    const { error: offerCancelError } = await sb.from('dispatch_offers')
+      .update({ offer_status: 'cancelled' })
+      .eq('easer_id', profile.id)
+      .eq('offer_status', 'sent');
+    if (offerCancelError) throw new Error(`Dispute-held Easer offer cancellation failed: ${offerCancelError.message}`);
+
+    const freshDispute = disputeTruth.disputes.find(candidate => candidate.id === dispute.id)
+      || disputeTruth.latestDispute;
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_application_fee_dispute_hold',
+      actorType: 'stripe',
+      actorId: profile.id,
+      actorName: 'Stripe',
+      description: `Stripe application-fee dispute ${freshDispute?.id || dispute.id} placed ${profile.full_name || profile.id} offline for new work; assigned work remains available`,
+      metadata: {
+        stripeEventId: event?.id || null,
+        paymentIntentId,
+        chargeId: charge.id,
+        disputeId: freshDispute?.id || dispute.id,
+        disputeStatus: freshDispute?.status || dispute.status || null,
+        disputeAmountCents: Number(freshDispute?.amount || dispute.amount || 0),
+        blockingDisputeCount: disputeTruth.blockingDisputes.length,
+        newJobsBlocked: true,
+        assignedWorkPreserved: true,
+      },
+    });
+
+    const ownerNotice = await sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `URGENT: Easer Application Fee Dispute - ${esc(profile.full_name || profile.id)}`,
+      html: `<p>Stripe reports dispute <strong>${esc(freshDispute?.id || dispute.id)}</strong> on the ${EASER_APPLICATION_FEE_DISPLAY} application fee for <strong>${esc(profile.full_name || profile.id)}</strong>.</p><p>Status: <strong>${esc(freshDispute?.status || dispute.status || 'unknown')}</strong>. New offers, assignments, and acceptance are blocked. Existing accepted jobs remain available to finish.</p><p>Review the dispute and PaymentIntent <strong>${esc(paymentIntentId)}</strong> in Stripe. Do not restore availability until the owner reconciliation action proves the dispute is resolved.</p>`,
+      meta: {
+        notificationType: 'easer_application_fee_dispute_owner',
+        recipientType: 'owner',
+        recipientUserId: profile.id,
+        dedupeWindowMin: 5,
+      },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+    const easerNotice = profile.email ? await sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      replyTo: ownerEmail(),
+      subject: 'Application Fee Payment Review - AssembleAtEase',
+      html: '<p>Stripe reported a payment dispute related to your application fee. Your account is offline for new job offers while AssembleAtEase reviews it.</p><p>Any job you already accepted remains available to complete. Reply to this email if you need help.</p>',
+      meta: {
+        notificationType: 'easer_application_fee_dispute_easer',
+        recipientType: 'easer',
+        recipientUserId: profile.id,
+        dedupeWindowMin: 5,
+      },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) })) : null;
+    if (ownerNotice?.ok !== true || (profile.email && easerNotice?.ok !== true)) {
+      await logActivity(sb, {
+        bookingId: null,
+        eventType: 'easer_application_fee_dispute_notification_failed',
+        actorType: 'system',
+        actorId: profile.id,
+        actorName: 'notifications',
+        description: 'Application-fee dispute hold was saved, but one or more notification emails failed',
+        metadata: {
+          stripeEventId: event?.id || null,
+          ownerEmailError: ownerNotice?.ok === true ? null : ownerNotice?.error || 'unknown',
+          easerEmailError: !profile.email || easerNotice?.ok === true ? null : easerNotice?.error || 'unknown',
+        },
+      }).catch(() => {});
+    }
+    return { handled: true, paymentTruth, disputeTruth, profile };
+  } catch (error) {
+    await recordEaserApplicationFeeRefundNotice({
+      sb,
+      event,
+      profile,
+      reason,
+      validationError: error?.message || String(error),
+    }).catch(() => {});
+    throw error;
+  }
+}
+
+async function recordEaserApplicationFeeRefundNotice({
+  sb,
+  event,
+  profile,
+  truth = null,
+  reason,
+  validationError = null,
+}) {
+  const refundedCents = Number(truth?.succeededRefundedCents || 0);
+  const pendingCents = Number(truth?.pendingRefundCents || 0);
+  const remainingCents = Math.max(0, EASER_APPLICATION_FEE_CENTS - refundedCents);
+  const amount = cents => `$${(Number(cents || 0) / 100).toFixed(2)}`;
+  const eventType = validationError
+    ? 'easer_application_fee_refund_review_required'
+    : 'easer_application_fee_refund_synchronized';
+  const description = validationError
+    ? `Stripe application-fee refund activity for ${profile.full_name || profile.id} could not be fully validated; new jobs remain blocked for owner review`
+    : `Stripe application-fee refund truth synchronized for ${profile.full_name || profile.id}: ${amount(refundedCents)} succeeded, ${amount(pendingCents)} pending; new jobs blocked`;
+
+  await logActivity(sb, {
+    bookingId: null,
+    eventType,
+    actorType: 'stripe',
+    actorId: profile.id,
+    actorName: 'Stripe',
+    description,
+    metadata: {
+      stripeEventId: event?.id || null,
+      paymentIntentId: profile.stripe_payment_intent_id,
+      reason,
+      validationError,
+      applicationFeeCents: EASER_APPLICATION_FEE_CENTS,
+      refundedCents,
+      pendingRefundCents: pendingCents,
+      remainingCents,
+      fullyRefunded: truth?.fullyRefunded === true,
+      newJobsBlocked: true,
+      assignedWorkPreserved: true,
+    },
+  });
+
+  const ownerNotice = await sendEmail({
+    to: ownerEmail(),
+    from: 'AssembleAtEase <booking@assembleatease.com>',
+    subject: `Owner Action Required - Easer Application Fee Refund - ${esc(profile.full_name || profile.id)}`,
+    html: validationError
+      ? `<p>Stripe reported application-fee refund activity for <strong>${esc(profile.full_name || profile.id)}</strong>, but the complete Stripe payment/refund truth could not be validated.</p><p>The Easer is offline for all new offers and assignments. Existing accepted work remains available to complete. Review PaymentIntent <strong>${esc(profile.stripe_payment_intent_id)}</strong> in Stripe before changing availability.</p><p>Validation error: ${esc(validationError)}</p>`
+      : `<p>Stripe application-fee refund truth changed for <strong>${esc(profile.full_name || profile.id)}</strong>.</p><p>Succeeded refunds: <strong>${amount(refundedCents)}</strong><br/>Pending refunds: <strong>${amount(pendingCents)}</strong><br/>Unrefunded fee amount: <strong>${amount(remainingCents)}</strong></p><p>New offers, assignments, and acceptance are blocked. Existing accepted jobs remain available to finish. Review the Easer and PaymentIntent <strong>${esc(profile.stripe_payment_intent_id)}</strong>.</p>`,
+    meta: {
+      notificationType: 'easer_application_fee_refund_owner',
+      recipientType: 'owner',
+      recipientUserId: profile.id,
+      dedupeWindowMin: 5,
+    },
+  }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+
+  const easerNotice = profile.email ? await sendEmail({
+    to: profile.email,
+    from: 'AssembleAtEase <booking@assembleatease.com>',
+    replyTo: ownerEmail(),
+    subject: 'Application Fee Refund Review - AssembleAtEase',
+    html: validationError
+      ? `<p>Stripe reported refund activity on your ${EASER_APPLICATION_FEE_DISPLAY} application fee. Your account is temporarily offline for new job offers while AssembleAtEase reviews the payment.</p><p>Any job you already accepted remains available to complete. Reply to this email if you need help.</p>`
+      : `<p>Stripe now reports ${amount(refundedCents)} in completed refunds and ${amount(pendingCents)} pending on your ${EASER_APPLICATION_FEE_DISPLAY} application fee.</p><p>Your account is offline for new job offers while AssembleAtEase reviews this change. Any job you already accepted remains available to complete. Reply to this email if you need help.</p>`,
+    meta: {
+      notificationType: 'easer_application_fee_refund_easer',
+      recipientType: 'easer',
+      recipientUserId: profile.id,
+      dedupeWindowMin: 5,
+    },
+  }).catch(error => ({ ok: false, error: error?.message || String(error) })) : null;
+
+  if (ownerNotice?.ok !== true || (profile.email && easerNotice?.ok !== true)) {
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_application_fee_refund_notification_failed',
+      actorType: 'system',
+      actorId: profile.id,
+      actorName: 'notifications',
+      description: 'Application-fee refund truth was saved, but one or more notification emails failed',
+      metadata: {
+        stripeEventId: event?.id || null,
+        ownerEmailError: ownerNotice?.ok === true ? null : ownerNotice?.error || 'unknown',
+        easerEmailError: !profile.email || easerNotice?.ok === true ? null : easerNotice?.error || 'unknown',
+      },
+    }).catch(() => {});
+  }
+}
+
+async function syncAuthorizedCustomerQuote({ sb, stripe, pi, event }) {
+  const eventBookingId = pi.metadata?.bookingId || null;
+  if (!eventBookingId) return { bookingId: null, outcome: 'ignored', error: null, metadata: { reason: 'quote-booking-id-missing' } };
+
+  const liveAuthorization = await stripe.paymentIntents.retrieve(pi.id);
+  if (liveAuthorization.id !== pi.id || liveAuthorization.metadata?.bookingId !== eventBookingId) {
+    return {
+      bookingId: eventBookingId,
+      outcome: 'failed',
+      error: 'Quote authorization no longer matches the event booking',
+      metadata: { reason: 'quote-authorization-live-link-mismatch' },
+    };
+  }
+  pi = liveAuthorization;
+  const bookingId = pi.metadata?.bookingId || null;
+  if (!bookingId) return { bookingId: null, outcome: 'ignored', error: null, metadata: { reason: 'quote-booking-id-missing' } };
+
+  const { data: booking, error: bookingError } = await sb.from('bookings')
+    .select('id, ref, service, status, payment_status, total_price, quote_amount_cents, quote_tax_cents, quote_terms_version, quote_expires_at, quote_approval_started_at, quote_approved_at, quote_token_hash, stripe_payment_intent_id, assembler_id, customer_name, customer_email, financial_operation_key, financial_operation_type')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (bookingError) throw new Error(`Quote authorization lookup failed: ${bookingError.message}`);
+  if (!booking) return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'quote-booking-not-found' } };
+  if (booking.financial_operation_key) {
+    return {
+      bookingId,
+      outcome: 'ignored',
+      error: null,
+      metadata: { reason: 'financial-operation-will-reconcile-quote', financialOperationType: booking.financial_operation_type || null },
+    };
+  }
+
+  if (['captured', 'cancellation_fee_captured', 'partially_refunded', 'refunded'].includes(booking.payment_status)) {
+    return {
+      bookingId,
+      outcome: 'ignored',
+      error: null,
+      metadata: { reason: 'stale-quote-authorization-after-financial-finalization', currentPaymentStatus: booking.payment_status },
+    };
+  }
+  if (pi.status !== 'requires_capture') {
+    return {
+      bookingId,
+      outcome: 'ignored',
+      error: null,
+      metadata: { reason: 'stale-quote-authorization-status', stripeStatus: pi.status || null },
+    };
+  }
+
+  const validation = validateBookingPaymentIntent(booking, pi, {
+    type: 'customer_quote',
+    amountCents: booking.quote_amount_cents,
+  });
+  if (pi.metadata?.quoteTermsVersion !== booking.quote_terms_version) {
+    validation.errors.push('quote_terms_version');
+    validation.ok = false;
+  }
+  if (!validation.ok) {
+    return {
+      bookingId,
+      outcome: 'failed',
+      error: `Quote authorization did not match booking truth: ${validation.errors.join(', ') || pi.status || 'unknown status'}`,
+      metadata: { reason: 'quote-authorization-validation-failed', validationErrors: validation.errors, stripeStatus: pi.status || null },
+    };
+  }
+
+  if (booking.status === 'confirmed' && booking.payment_status === 'authorized' && booking.quote_approved_at) {
+    let dispatchResult = null;
+    if (!booking.assembler_id) dispatchResult = await dispatchBooking(booking.id);
+    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'quote-already-authorized', dispatchResult } };
+  }
+
+  const approvalStartedAt = Date.parse(booking.quote_approval_started_at || '');
+  const expiresAt = Date.parse(booking.quote_expires_at || '');
+  const approvalWasTimely = Number.isFinite(approvalStartedAt)
+    && Number.isFinite(expiresAt)
+    && approvalStartedAt <= expiresAt;
+  const stateIsFinalizable = booking.status === 'pending'
+    && booking.payment_status === 'quote_authorization_pending'
+    && !!booking.quote_token_hash
+    && approvalWasTimely;
+
+  if (!stateIsFinalizable) {
+    let released = false;
+    try {
+      const canceled = await stripe.paymentIntents.cancel(pi.id, {}, {
+        idempotencyKey: `quote-webhook-release-${booking.id}-${pi.id}`,
+      });
+      released = canceled?.status === 'canceled';
+    } catch (cancelError) {
+      console.error('[stripe-webhook] Conflicting quote authorization release failed:', cancelError?.message || cancelError);
+    }
+    if (released && booking.status === 'pending') {
+      await sb.from('bookings').update({
+        stripe_payment_intent_id: null,
+        payment_status: 'quote_pending_approval',
+        quote_approval_started_at: null,
+      })
+        .eq('id', booking.id)
+        .eq('stripe_payment_intent_id', pi.id)
+        .eq('status', 'pending')
+        .is('financial_operation_key', null);
+    }
+    return released
+      ? { bookingId, outcome: 'processed', error: null, metadata: { reason: 'conflicting-quote-authorization-released' } }
+      : { bookingId, outcome: 'failed', error: 'Quote is authorized in Stripe but its booking state is not safely finalizable', metadata: { reason: 'quote-state-conflict' } };
+  }
+
+  const confirmedAt = event.created ? new Date(event.created * 1000).toISOString() : new Date().toISOString();
+  const { data: confirmedRows, error: confirmError } = await sb.from('bookings').update({
+    total_price: booking.quote_amount_cents,
+    tax_amount: booking.quote_tax_cents,
+    payment_status: 'authorized',
+    payment_authorized_at: confirmedAt,
+    status: 'confirmed',
+    confirmed_at: confirmedAt,
+    confirmed_by: 'stripe_quote_webhook',
+    quote_approved_at: confirmedAt,
+    quote_token_hash: null,
+  })
+    .eq('id', booking.id)
+    .eq('status', 'pending')
+    .eq('payment_status', 'quote_authorization_pending')
+    .eq('stripe_payment_intent_id', pi.id)
+    .eq('quote_amount_cents', booking.quote_amount_cents)
+    .is('financial_operation_key', null)
+    .select('id');
+  if (confirmError || !confirmedRows?.length) {
+    const { data: current } = await sb.from('bookings')
+      .select('status, payment_status, stripe_payment_intent_id, assembler_id')
+      .eq('id', booking.id)
+      .maybeSingle();
+    if (current?.status === 'confirmed'
+        && current?.payment_status === 'authorized'
+        && current?.stripe_payment_intent_id === pi.id) {
+      const dispatchResult = current.assembler_id ? null : await dispatchBooking(booking.id);
+      return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'quote-concurrently-finalized', dispatchResult } };
+    }
+    return { bookingId, outcome: 'failed', error: confirmError?.message || 'Quote authorization could not be persisted', metadata: { reason: 'quote-confirmation-persist-failed' } };
+  }
+
+  await logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'quote_authorized',
+    actorType: 'stripe',
+    actorName: 'Stripe',
+    description: `${booking.ref} quote authorization was reconciled and the booking was confirmed`,
+    metadata: { stripeEventId: event.id, paymentIntentId: pi.id, amountCents: booking.quote_amount_cents },
+  });
+
+  const dispatchResult = await dispatchBooking(booking.id);
+  const amountDisplay = `$${(Number(booking.quote_amount_cents || 0) / 100).toFixed(2)}`;
+  await Promise.allSettled([
+    sendEmail({
+      to: booking.customer_email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Quote approved and booking confirmed - ${booking.ref}`,
+      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>Your card is authorized, not charged. Payment is captured only after completed work, except for disclosed cancellation fees.</p>`,
+      replyTo: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'customer' },
+    }),
+    sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Customer approved quote - ${booking.ref} - ${amountDisplay}`,
+      html: `<p><strong>${esc(booking.customer_name)}</strong> approved quote <strong>${esc(booking.ref)}</strong> for ${amountDisplay}. Stripe authorization ${esc(pi.id)} is ready for capture after completion.</p>`,
+      meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'owner' },
+    }),
+  ]);
+
+  return { bookingId, outcome: 'processed', error: null, metadata: { reason: 'quote-authorized', dispatchResult } };
+}
+
+async function syncCapturedCustomerPayment({ sb, stripe, pi, event }) {
   const bookingId = pi.metadata?.bookingId;
   if (!bookingId) return { bookingId: null, outcome: 'ignored', error: null, metadata: { reason: 'missing-booking-id' } };
 
   const { data: current, error: fetchErr } = await sb.from('bookings')
-    .select('id, payment_status, status, amount_charged, customer_name, customer_email, ref, service, date')
+    .select('id, payment_status, status, amount_charged, total_price, deposit_amount, stripe_customer_id, stripe_deposit_intent_id, stripe_payment_intent_id, stripe_balance_payment_intent_id, financial_operation_key, financial_operation_type, customer_name, customer_email, ref, service, date')
     .eq('id', bookingId)
     .maybeSingle();
   if (fetchErr) throw new Error(`Captured payment lookup failed: ${fetchErr.message}`);
   if (!current) return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'booking-not-found', bookingId } };
-  if (current.payment_status === 'refunded') {
+
+  const refundProtectedStatuses = ['refund_pending', 'partially_refunded', 'refunded'];
+  if (refundProtectedStatuses.includes(current.payment_status)) {
     return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'stale-capture-after-refund', bookingId } };
   }
-  if (current.payment_status === 'captured' && Number(current.amount_charged || 0) === Number(pi.amount_received || 0)) {
-    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'already-captured', bookingId } };
+  if (current.financial_operation_key) {
+    return {
+      bookingId,
+      outcome: 'ignored',
+      error: null,
+      metadata: {
+        reason: 'reserved-financial-operation-will-finalize',
+        bookingId,
+        financialOperationType: current.financial_operation_type,
+      },
+    };
   }
 
-  const isPartialCapture = Number(pi.amount_received || 0) < Number(pi.amount || 0);
-  const { error: updateErr } = await sb.from('bookings').update({
-    payment_status: (current.status === 'cancelled' || isPartialCapture) ? 'cancellation_fee_captured' : 'captured',
-    amount_charged: pi.amount_received,
-    payment_captured_at: new Date().toISOString(),
-  }).eq('id', bookingId).neq('payment_status', 'refunded');
-  if (updateErr) throw new Error(`Captured payment sync failed: ${updateErr.message}`);
+  const capturedAt = event.created
+    ? new Date(event.created * 1000).toISOString()
+    : new Date().toISOString();
 
-  logActivity(sb, {
+  if (pi.metadata?.type === 'customer_booking_balance') {
+    const depositCents = Number(current.deposit_amount || 0);
+    const totalCents = Number(current.total_price || 0);
+    const expectedBalanceCents = totalCents - depositCents;
+    const depositIntentId = current.stripe_deposit_intent_id || current.stripe_payment_intent_id;
+    if ((current.stripe_balance_payment_intent_id && current.stripe_balance_payment_intent_id !== pi.id)
+        || !depositIntentId
+        || depositCents <= 0
+        || expectedBalanceCents <= 0
+        || !Number.isInteger(totalCents)
+        || !Number.isInteger(depositCents)) {
+      throw new Error('Balance PaymentIntent does not match the booking deposit split.');
+    }
+
+    const depositIntent = await stripe.paymentIntents.retrieve(depositIntentId, { expand: ['latest_charge.balance_transaction'] });
+    const validDeposit = depositIntent.status === 'succeeded'
+      && depositIntent.currency === 'usd'
+      && Number(depositIntent.amount_received || 0) === depositCents
+      && depositIntent.metadata?.bookingId === bookingId
+      && (!current.stripe_customer_id || depositIntent.customer === current.stripe_customer_id)
+      && ['customer_booking', 'customer_quote', 'customer_booking_deposit'].includes(depositIntent.metadata?.type);
+    if (!validDeposit) throw new Error('Deposit PaymentIntent does not match the booking deposit split.');
+
+    const balanceIntent = await stripe.paymentIntents.retrieve(pi.id, { expand: ['latest_charge.balance_transaction'] });
+    const validBalance = balanceIntent.id === pi.id
+      && balanceIntent.status === 'succeeded'
+      && balanceIntent.currency === 'usd'
+      && Number(balanceIntent.amount || 0) === expectedBalanceCents
+      && Number(balanceIntent.amount_received || 0) === expectedBalanceCents
+      && balanceIntent.metadata?.bookingId === bookingId
+      && balanceIntent.metadata?.type === 'customer_booking_balance'
+      && (!current.stripe_customer_id || balanceIntent.customer === current.stripe_customer_id);
+    if (!validBalance) throw new Error('Balance PaymentIntent does not match the booking deposit split.');
+
+    const depositRefundedCents = Number(depositIntent.latest_charge?.amount_refunded || 0);
+    const balanceRefundedCents = Number(balanceIntent.latest_charge?.amount_refunded || 0);
+    if (depositRefundedCents > 0 || balanceRefundedCents > 0) {
+      return {
+        bookingId,
+        outcome: 'ignored',
+        error: null,
+        metadata: {
+          reason: 'stale-balance-capture-after-stripe-refund',
+          bookingId,
+          depositRefundedCents,
+          balanceRefundedCents,
+        },
+      };
+    }
+
+    const depositFee = depositIntent.latest_charge?.balance_transaction?.fee;
+    const balanceFee = balanceIntent.latest_charge?.balance_transaction?.fee;
+    const combinedStripeFee = typeof depositFee === 'number' && typeof balanceFee === 'number'
+      ? depositFee + balanceFee
+      : null;
+    const combinedAmount = depositCents + Number(pi.amount_received || 0);
+
+    if (current.payment_status === 'captured'
+        && Number(current.amount_charged || 0) === combinedAmount
+        && current.stripe_balance_payment_intent_id === pi.id) {
+      return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'already-captured-deposit-balance', bookingId } };
+    }
+
+    const balanceUpdates = {
+      payment_status: 'captured',
+      amount_charged: combinedAmount,
+      payment_captured_at: capturedAt,
+      stripe_balance_payment_intent_id: pi.id,
+      stripe_balance_amount_captured: Number(pi.amount_received || 0),
+    };
+    if (combinedStripeFee != null) balanceUpdates.stripe_fee = combinedStripeFee;
+    let balanceUpdateQuery = sb.from('bookings')
+      .update(balanceUpdates)
+      .eq('id', bookingId)
+      .eq('payment_status', current.payment_status)
+      .eq('total_price', totalCents)
+      .eq('deposit_amount', depositCents)
+      .is('financial_operation_key', null)
+      .not('payment_status', 'in', '(refund_pending,partially_refunded,refunded)');
+    balanceUpdateQuery = current.stripe_payment_intent_id == null
+      ? balanceUpdateQuery.is('stripe_payment_intent_id', null)
+      : balanceUpdateQuery.eq('stripe_payment_intent_id', current.stripe_payment_intent_id);
+    balanceUpdateQuery = current.stripe_deposit_intent_id == null
+      ? balanceUpdateQuery.is('stripe_deposit_intent_id', null)
+      : balanceUpdateQuery.eq('stripe_deposit_intent_id', current.stripe_deposit_intent_id);
+    balanceUpdateQuery = current.stripe_balance_payment_intent_id
+      ? balanceUpdateQuery.eq('stripe_balance_payment_intent_id', pi.id)
+      : balanceUpdateQuery.is('stripe_balance_payment_intent_id', null);
+    const { error: balanceUpdateError, data: balanceRows } = await balanceUpdateQuery.select('id');
+    if (balanceUpdateError) throw new Error(`Balance payment sync failed: ${balanceUpdateError.message}`);
+    if (!balanceRows?.length) {
+      return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'balance-capture-state-changed', bookingId } };
+    }
+
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'balance_captured_recovery',
+      actorType: 'system',
+      actorName: 'stripe_webhook',
+      description: `Stripe recovered deposit plus balance payment truth: $${(combinedAmount / 100).toFixed(2)}`,
+      metadata: { stripeEventId: event.id, depositIntentId, balanceIntentId: pi.id, amountCharged: combinedAmount },
+    });
+
+    await sendEmail({
+      to: ownerEmail(),
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Owner review: balance captured before completion finalized - ${esc(current.ref)}`,
+      html: `<p>Stripe captured the remaining balance for booking <strong>${esc(current.ref)}</strong>. Combined deposit and balance: <strong>$${(combinedAmount / 100).toFixed(2)}</strong>.</p><p>The booking still needs completion reconciliation. Do not charge the customer again.</p>`,
+      meta: { bookingId, notificationType: 'balance_capture_recovery_owner', recipientType: 'owner', disableDedupe: true },
+    }).catch(() => ({ ok: false }));
+
+    return {
+      bookingId,
+      outcome: 'processed',
+      error: null,
+      metadata: { amountCharged: combinedAmount, captureType: 'deposit_plus_balance_recovery' },
+    };
+  }
+
+  if (current.stripe_payment_intent_id !== pi.id) {
+    return {
+      bookingId,
+      outcome: 'ignored',
+      error: null,
+      metadata: { reason: 'stale-capture-payment-intent', bookingId, currentPaymentIntentId: current.stripe_payment_intent_id },
+    };
+  }
+
+  const capturedIntent = await stripe.paymentIntents.retrieve(pi.id, { expand: ['latest_charge.balance_transaction'] });
+  const allowedPrimaryType = ['customer_booking', 'customer_quote'].includes(capturedIntent.metadata?.type)
+    || (capturedIntent.metadata?.type === 'reauth' && capturedIntent.id === current.stripe_payment_intent_id);
+  const totalCents = Number(current.total_price || 0);
+  const capturedCents = Number(capturedIntent.amount_received || 0);
+  const validPrimaryCapture = capturedIntent.status === 'succeeded'
+    && capturedIntent.capture_method === 'manual'
+    && capturedIntent.currency === 'usd'
+    && Number.isInteger(totalCents)
+    && totalCents > 0
+    && Number(capturedIntent.amount || 0) === totalCents
+    && Number.isInteger(capturedCents)
+    && capturedCents > 0
+    && capturedCents <= totalCents
+    && capturedIntent.metadata?.bookingId === bookingId
+    && (!current.stripe_customer_id || capturedIntent.customer === current.stripe_customer_id)
+    && allowedPrimaryType;
+  if (!validPrimaryCapture) {
+    throw new Error('Captured PaymentIntent does not match current booking truth.');
+  }
+
+  const stripeRefundedCents = Number(capturedIntent.latest_charge?.amount_refunded || 0);
+  if (stripeRefundedCents > 0) {
+    return {
+      bookingId,
+      outcome: 'ignored',
+      error: null,
+      metadata: { reason: 'stale-capture-after-stripe-refund', bookingId, stripeRefundedCents },
+    };
+  }
+
+  if (current.payment_status === 'captured' && Number(current.amount_charged || 0) === capturedCents) {
+    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'already-captured', bookingId } };
+  }
+  if (Number(current.amount_charged || 0) > capturedCents) {
+    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'stale-lower-capture-amount', bookingId } };
+  }
+
+  const isPartialCapture = capturedCents < Number(capturedIntent.amount || 0);
+  const { error: updateErr, data: captureRows } = await sb.from('bookings').update({
+    payment_status: (current.status === 'cancelled' || isPartialCapture) ? 'cancellation_fee_captured' : 'captured',
+    amount_charged: capturedCents,
+    payment_captured_at: capturedAt,
+  })
+    .eq('id', bookingId)
+    .eq('payment_status', current.payment_status)
+    .eq('stripe_payment_intent_id', pi.id)
+    .eq('total_price', totalCents)
+    .not('payment_status', 'in', '(refund_pending,partially_refunded,refunded)')
+    .is('financial_operation_key', null)
+    .select('id');
+  if (updateErr) throw new Error(`Captured payment sync failed: ${updateErr.message}`);
+  if (!captureRows?.length) {
+    return { bookingId, outcome: 'ignored', error: null, metadata: { reason: 'financial-operation-reserved-during-webhook', bookingId } };
+  }
+
+  await logActivity(sb, {
     bookingId,
     eventType: 'captured',
     actorType: 'system',
     actorName: 'stripe_webhook',
-    description: `Stripe webhook captured payment: $${((pi.amount_received || 0) / 100).toFixed(2)}`,
-    metadata: { stripeEventId: event.id, paymentIntentId: pi.id, amountCharged: pi.amount_received || 0 },
+    description: `Stripe webhook captured payment: $${(capturedCents / 100).toFixed(2)}`,
+    metadata: { stripeEventId: event.id, paymentIntentId: pi.id, amountCharged: capturedCents },
   });
 
   if (isPartialCapture) {
@@ -654,11 +2150,11 @@ async function syncCapturedCustomerPayment({ sb, pi, event }) {
       bookingId,
       outcome: 'processed',
       error: null,
-      metadata: { amountCharged: pi.amount_received || 0, captureType: 'cancellation_fee' },
+      metadata: { amountCharged: capturedCents, captureType: 'cancellation_fee' },
     };
   }
 
-  const amountDisplay = pi.amount_received ? `$${(pi.amount_received / 100).toFixed(2)}` : null;
+  const amountDisplay = `$${(capturedCents / 100).toFixed(2)}`;
   await Promise.allSettled([
     sendEmail({
       to: current.customer_email,
@@ -677,7 +2173,7 @@ async function syncCapturedCustomerPayment({ sb, pi, event }) {
     }),
   ]);
 
-  return { bookingId, outcome: 'processed', error: null, metadata: { amountCharged: pi.amount_received || 0 } };
+  return { bookingId, outcome: 'processed', error: null, metadata: { amountCharged: capturedCents } };
 }
 
 function buildCustomerReceiptEmail(booking, amountDisplay) {
@@ -778,7 +2274,7 @@ function buildOwnerDisputeEmail(dispute, amountDisplay, booking) {
   </tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;margin-bottom:20px"><tr><td style="padding:16px 18px">
-      <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#dc2626">&#9888; Chargeback Dispute Opened</p>
+      <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#dc2626">Chargeback Dispute Opened</p>
       <p style="margin:0;font-size:13px;color:#991b1b;line-height:1.6">A customer has filed a chargeback for <strong>${amountDisplay}</strong>. You have 7–21 days to respond in Stripe.</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
@@ -870,7 +2366,7 @@ function buildAssemblerFailEmail(firstName, reason, resumeUrl) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Action required, ${esc(firstName)}</p>
     <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Your identity verification could not be completed. Reason: <strong>${esc(reason)}</strong></p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Use the secure AssembleAtEase link below to retry. If the Stripe page expires or you switch devices, use this same link again.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">Use the time-limited AssembleAtEase link below to retry. If another attempt is required, use the newest link sent to you.</p>
     <table cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${esc(resumeUrl)}" style="display:inline-block;padding:12px 28px;color:#001f2b;font-size:14px;font-weight:800;text-decoration:none;border-radius:8px">Retry Identity Verification</a></td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
@@ -882,7 +2378,7 @@ function buildPaymentFailEmail(firstName, reason) {
 <div style="max-width:520px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a">Payment issue, ${esc(firstName)}</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We were unable to process your $30 application fee. Reason: <strong>${esc(reason)}</strong></p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6">We were unable to process your ${EASER_APPLICATION_FEE_DISPLAY} application fee. Reason: <strong>${esc(reason)}</strong></p>
     <p style="margin:0 0 0;font-size:14px;color:#52525b;line-height:1.6">Please contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> to retry.</p>
   </td></tr></table>
 </div></body></html>`;

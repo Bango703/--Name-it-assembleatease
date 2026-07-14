@@ -65,15 +65,16 @@
     body.theme-pro .modal-overlay.open { opacity: 1; pointer-events: all; }
     body.theme-pro .modal-box {
       background: var(--pro-surface);
-      border-radius: 18px 18px 0 0; padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem);
+      border-radius: 18px 18px 0 0; padding: 1.5rem 1.5rem max(1.5rem, env(safe-area-inset-bottom));
       width: 100%; max-width: 640px;
-      max-height: 90vh; max-height: 90dvh; overflow-y: auto; position: relative;
+      max-height: calc(100dvh - var(--e-safe-top) - 1rem); overflow-y: auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; position: relative;
       transform: translateY(100%); transition: transform 0.25s ease;
     }
     body.theme-pro .modal-overlay.open .modal-box { transform: translateY(0); }
     body:has(.modal-overlay.open) { overflow: hidden; }
     body.theme-pro .modal-close {
       position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+      width:44px; height:44px; display:flex; align-items:center; justify-content:center;
       font-size: 1.3rem; color: var(--pro-muted); cursor: pointer; line-height: 1;
     }
     body.theme-pro .modal-close:hover { color: var(--pro-text); }
@@ -294,6 +295,17 @@
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  function formatMoneyCents(cents) {
+    const amount = Number(cents);
+    if (!Number.isFinite(amount)) return null;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount / 100);
+  }
+
   function timeAgo(str) {
     if (!str) return '';
     const diff = Date.now() - new Date(str).getTime();
@@ -359,6 +371,8 @@
     confirmed:   { cls: 'bk-accepted',    label: 'Accepted' },
   };
 
+  var renderScopeSection = function() { return ''; };
+
   function renderAssignments(list) {
     const el = document.getElementById('assignments-list');
     if (!list || !list.length) {
@@ -379,7 +393,7 @@
     return p[0] + (p.length > 1 ? ' ' + p[p.length-1][0].toUpperCase() + '.' : '');
   }
 
-  function renderScopeSection(scopeGroups) {
+  renderScopeSection = function(scopeGroups) {
     if (!Array.isArray(scopeGroups) || !scopeGroups.length) return '';
 
     var groupsHtml = scopeGroups.map(function(group) {
@@ -412,14 +426,16 @@
       + '<div style="font-size:0.8rem;font-weight:800;color:var(--pro-text);margin-bottom:0.55rem">What the customer booked</div>'
       + '<div style="display:grid;gap:0.65rem">' + groupsHtml + '</div>'
       + '</div>';
-  }
+  };
 
     function cardHtml(b) {
       const isPendingOffer = b._is_pending_offer || (!b.assembler_accepted_at && (b._offer_token || b.assignment_token));
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
       const isCompleted = b.status === 'completed';
       const customerName = maskName(b.customer_name);
-      const payStr = b._pay_estimate_lo ? '$' + Math.round(b._pay_estimate_lo/100) : (b.assembler_due ? '$' + Math.round(b.assembler_due/100) : '');
+      const payStr = b._pay_estimate_lo != null
+        ? formatMoneyCents(b._pay_estimate_lo)
+        : (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : '');
       const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
 
       return '<div class="e-job-card" data-bid="' + b.id + '">' +
@@ -435,11 +451,10 @@
         (isPendingOffer && b._offer_expires_at ? '<div class="e-job-card-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="cc-' + b.id + '">—</span> remaining</div>' : '') +
         (isLive ? renderPipeline5(b) : '') +
         (isLive ? '<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="card-help-btn" data-bid="' + b.id + '" style="font-size:0.75rem;color:var(--pro-teal);background:none;border:1px solid rgba(0,191,255,0.35);border-radius:6px;padding:3px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent">Help</button></div>' : '') +
-        (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned $' + (b.assembler_due/100).toFixed(2) : '') + '</div>' : '') +
+        (isCompleted && b.completed_at ? '<div class="e-job-card-row" style="margin-top:6px">Completed ' + timeAgo(b.completed_at) + (b.assembler_due ? ' &bull; Earned ' + formatMoneyCents(b.assembler_due) : '') + '</div>' : '') +
         (isPendingOffer ? 
           '<div class="e-job-card-actions">' +
-            '<button class="e-job-card-accept card-accept-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token || b.assignment_token) + '">Accept</button>' +
-            (b._offer_token ? '<button class="e-job-card-decline card-decline-btn" data-bid="' + b.id + '" data-token="' + esc(b._offer_token) + '">Decline</button>' : '<div></div>') +
+            '<button class="e-job-card-accept card-review-btn" data-bid="' + b.id + '">Review offer</button>' +
           '</div>' : '') +
       '</div>';
     }
@@ -541,6 +556,7 @@
 
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
+      if (window.APP && typeof APP.clearPrivateSessionData === 'function') APP.clearPrivateSessionData();
       await supabaseClient.auth.signOut();
       window.location.href = '/auth/login.html';
     });
@@ -591,7 +607,7 @@
       updateFilterCounts(allAssignments);
     } catch (err) {
       document.getElementById('assignments-list').innerHTML =
-        '<div class="pro-error">&#9888; Could not load assignments. Please refresh.</div>';
+        '<div class="pro-error">Could not load assignments. Please refresh.</div>';
     }
 
     // Keep assignment list current with periodic polling (manual-refresh architecture).
@@ -620,44 +636,13 @@
 
     window.addEventListener('beforeunload', () => clearInterval(assignmentsPoll));
 
-    // Card-level Accept / Decline event delegation
+    // Pending offers must be reviewed before acceptance so the Easer sees the
+    // appointment, work scope, service area, and payout estimate first.
     document.getElementById('assignments-list').addEventListener('click', async function(e) {
-      const acceptBtn = e.target.closest('.card-accept-btn');
-      const declineBtn = e.target.closest('.card-decline-btn');
-
-      if (acceptBtn && !acceptBtn.disabled) {
+      const reviewBtn = e.target.closest('.card-review-btn');
+      if (reviewBtn) {
         e.stopPropagation();
-        const bid   = acceptBtn.dataset.bid;
-        const token = acceptBtn.dataset.token;
-        acceptBtn.disabled = true; acceptBtn.innerHTML = 'Accepting&#8230;';
-        try {
-          const r = await fetch('/api/booking/accept-dispatch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-            body: JSON.stringify({ bookingId: bid, token }),
-          });
-          const d = await r.json();
-          if (!r.ok || d.error) {
-            const msg = r.status === 409
-              ? 'This job was just accepted by another Easer.'
-              : (d.error || 'Could not accept — job may already be taken');
-            APP.showAlert('page-alert', msg, 'error');
-            acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
-            return;
-          }
-          APP.showAlert('page-alert', '&#10003; Job accepted! Open the job card to see details.', 'success');
-          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-          if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all'; renderAssignments(filterList(allAssignments, cf)); updateFilterCounts(allAssignments); }
-        } catch {
-          APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
-          acceptBtn.disabled = false; acceptBtn.innerHTML = '&#10003; Accept';
-        }
-      }
-
-      if (declineBtn && !declineBtn.disabled) {
-        e.stopPropagation();
-        openDetail(declineBtn.dataset.bid);
-        document.getElementById('decline-sheet').classList.add('open');
+        openDetail(reviewBtn.dataset.bid);
         return;
       }
 
@@ -825,7 +810,7 @@
         }
         // Success — hide the hold banner, update payout note, update local state
         document.getElementById('evidence-request-section').style.display = 'none';
-        document.getElementById('payout-info-note').textContent = 'Payout pending — typically 2–3 business days.';
+        document.getElementById('payout-info-note').textContent = 'Payout pending — typically within 7 business days after customer payment capture.';
         var bk = allAssignments.find(function(x) { return x.id === _evidenceReqBookingId; });
         if (bk) bk._evidence_uploaded = true;
         APP.showAlert('page-alert', 'Evidence uploaded — your payout hold has been released.', 'success');
@@ -1039,17 +1024,28 @@
           body: JSON.stringify({ bookingId: selectedBookingId, body, sender: 'assembler' }),
         });
         const d = await r.json();
-        if (!d.success) { alert(d.error || 'Failed to send message'); input.value = body; }
-        else { refreshThread(selectedBookingId); }
+        if (!r.ok || !d.success) {
+          APP.showAlert('page-alert', d.error || 'Failed to send message.', 'error');
+          input.value = body;
+        } else {
+          if (d.warning || d.notification?.delivered === false) {
+            APP.showAlert('page-alert', d.warning || 'Message saved, but the owner notification failed. The message remains in the booking thread.', 'error');
+          }
+          refreshThread(selectedBookingId);
+        }
       } catch { alert('Failed to send message'); input.value = body; }
     }
   });
 
-  function refreshThread(bId) {
-    supabaseClient.from('messages').select('*').eq('booking_id', bId).order('created_at', { ascending: true })
-      .then(function(r) {
-        var msgs = (r.error ? [] : r.data) || [];
-        var thread = document.getElementById('asgn-msg-thread');
+  async function refreshThread(bId) {
+    var thread = document.getElementById('asgn-msg-thread');
+    try {
+        var response = await fetch('/api/booking/message?bookingId=' + encodeURIComponent(bId), {
+          headers: { 'Authorization': 'Bearer ' + (await getToken()) },
+        });
+        var data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load messages.');
+        var msgs = Array.isArray(data.messages) ? data.messages : [];
         if (!msgs.length) {
           thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
         } else {
@@ -1061,8 +1057,9 @@
           }).join('');
           thread.scrollTop = thread.scrollHeight;
         }
-      })
-      .catch(function() { document.getElementById('asgn-msg-thread').innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>'; });
+    } catch (error) {
+      thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>';
+    }
   }
 
   window.openDetail = function(bookingId) {
@@ -1075,12 +1072,12 @@
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
     const scopeHtml = renderScopeSection(b._booking_items || []);
     const payEst = (b.status === 'completed')
-      ? (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null)
-      : (b._pay_estimate_lo
+      ? (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null)
+      : (b._pay_estimate_lo != null
         ? (b._pay_estimate_lo === b._pay_estimate_hi
-          ? '$' + Math.round(b._pay_estimate_lo/100)
-          : '$' + Math.round(b._pay_estimate_lo/100) + '–$' + Math.round(b._pay_estimate_hi/100))
-        : (b.assembler_due ? '$' + (b.assembler_due/100).toFixed(2) : null));
+          ? formatMoneyCents(b._pay_estimate_lo)
+          : formatMoneyCents(b._pay_estimate_lo) + '–' + formatMoneyCents(b._pay_estimate_hi))
+        : (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null));
 
     document.getElementById('asgn-modal-body').innerHTML = [
       // Header row: service title + status badge
@@ -1098,6 +1095,7 @@
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
         b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
+        !accepted && b._offer_location ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">Service area: ' + esc(b._offer_location) + '</span></div>' : '',
         accepted && b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
         accepted && b.customer_name ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="color:var(--pro-text)">' + esc(b.customer_name) + '</span></div>' : '',
         accepted && !isCompleted && b.customer_phone ? '<div style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.82h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.92 22z"/></svg><a href="tel:' + esc(b.customer_phone) + '" style="color:var(--pro-teal);font-weight:500;text-decoration:none">' + esc(fmtPhone(b.customer_phone)) + '</a></div>' : '',
@@ -1185,7 +1183,7 @@
     if (b.status === 'completed') {
       payoutSection.style.display = 'block';
       var dueCents = b.assembler_due || 0;
-      document.getElementById('payout-info-amount').textContent = dueCents > 0 ? '$' + (dueCents / 100).toFixed(2) : '$0.00';
+      document.getElementById('payout-info-amount').textContent = formatMoneyCents(dueCents);
       var payoutNote;
       if (b.payout_status === 'paid') {
         payoutNote = b.paid_out_at ? 'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
@@ -1398,7 +1396,6 @@
     refreshThread(bookingId);
   };
 </script>
-<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 
 <nav class="easer-nav">
   <a href="/assembler/" class="easer-nav-item">

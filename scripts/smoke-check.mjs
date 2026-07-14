@@ -358,8 +358,16 @@ for (const serviceSchema of pricingWebPageSchema.mainEntity || []) {
     throw new Error(`Pricing JSON-LD mismatch for ${serviceName}: schema ${schemaPrice}, booking starts at ${serviceStartPrices[serviceName]}`);
   }
 }
-if (!pricingPage.includes('"priceRange":"$$"')) {
-  throw new Error('Pricing LocalBusiness priceRange should be $$');
+if (pricingJsonBlocks.some((block) => {
+  const types = Array.isArray(block['@type']) ? block['@type'] : [block['@type']];
+  return types.includes('LocalBusiness') || types.includes('HomeAndConstructionBusiness');
+})) {
+  throw new Error('Pricing page must not create a duplicate LocalBusiness entity');
+}
+for (const serviceSchema of pricingWebPageSchema.mainEntity || []) {
+  if (serviceSchema.provider?.['@id'] !== 'https://www.assembleatease.com/#organization') {
+    throw new Error(`Pricing Service must use the shared Organization provider: ${serviceSchema.name}`);
+  }
 }
 
 const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/www\.assembleatease\.com\/(.*?)<\/loc>/g)].map((match) => match[1] || '');

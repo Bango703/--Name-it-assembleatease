@@ -18,7 +18,7 @@
 <meta name="twitter:description" content="Smart home installation in Austin, TX for locks, cameras, thermostats, and doorbells. Installed, connected, and tested before we leave."/>
 <meta name="twitter:image" content="https://www.assembleatease.com/images/service-smart-home.jpg"/>
 <meta name="twitter:image:alt" content="Assembler installing a smart video doorbell at a front entry"/>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":["LocalBusiness","HomeAndConstructionBusiness"],"name":"AssembleAtEase — Smart Home Installation in Austin","image":"https://www.assembleatease.com/images/service-smart-home.jpg","url":"https://www.assembleatease.com/smart-home-installation-austin-tx","telephone":"+17372906129","email":"service@assembleatease.com","address":{"@type":"PostalAddress","streetAddress":"1910 W Braker Ln","addressLocality":"Austin","addressRegion":"TX","postalCode":"78701","addressCountry":"US"},"areaServed":{"@type":"City","name":"Austin","containedInPlace":{"@type":"State","name":"Texas"}},"priceRange":"$$","hasOfferCatalog":{"@type":"OfferCatalog","name":"Smart Home Installation","itemListElement":[{"@type":"Offer","position":1,"name":"Smart plug install + setup (per 2 plugs)","description":"$69"},{"@type":"Offer","position":2,"name":"Smart Thermostat (Nest, Ecobee)","description":"$99"},{"@type":"Offer","position":3,"name":"Smart Doorbell — wireless","description":"$89"},{"@type":"Offer","position":4,"name":"Camera System (4 cameras)","description":"$249"}]}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Service","@id":"https://www.assembleatease.com/smart-home-installation-austin-tx#service","name":"AssembleAtEase — Smart Home Setup in Austin","serviceType":"Smart Home Setup","image":"https://www.assembleatease.com/images/real-smarthome-doorbell-vivint.png","url":"https://www.assembleatease.com/smart-home-installation-austin-tx","provider":{"@type":"Organization","@id":"https://www.assembleatease.com/#organization","name":"AssembleAtEase","url":"https://www.assembleatease.com","telephone":"+17372906129","email":"service@assembleatease.com"},"areaServed":{"@type":"City","name":"Austin","containedInPlace":{"@type":"State","name":"Texas"}},"hasOfferCatalog":{"@type":"OfferCatalog","name":"Smart Home Setup","itemListElement":[{"@type":"Offer","position":1,"name":"Smart plug install + setup (per 2 plugs)","description":"$69"},{"@type":"Offer","position":2,"name":"Smart Thermostat (Nest, Ecobee)","description":"$99"},{"@type":"Offer","position":3,"name":"Smart Doorbell — wireless","description":"$89"},{"@type":"Offer","position":4,"name":"Camera System (4 cameras)","description":"$249"}]}}</script>
 <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -141,24 +141,23 @@
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture>
-      <div class="nav-logo-text">AssembleAtEase</div>
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
+      <div class="nav-logo-text">AssembleAtEase<div class="nav-logo-sub">Furniture Assembly &bull; TV Mounting</div></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
+      <li><a href="/locations">Locations</a></li>
       <li><a href="/#how-it-works">How it works</a></li>
       <li><a href="/pricing">Pricing</a></li>
     </ul>
-    <a href="/book" class="btn btn-cyan" style="padding:0.5rem 1.25rem;font-size:0.875rem">Book Now &rarr;</a>
-    <div class="nav-easer-link">
-      <a href="/assembler/apply" style="font-size:0.875rem;font-weight:500;color:var(--ink-soft);text-decoration:none">Become an Easer</a>
-    </div>
+    <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </div>
 </nav>
 <div class="nav-mobile" id="mobileNav">
+  <a href="/locations">Locations</a>
   <a href="/book?service=Furniture+Assembly">Furniture Assembly</a>
   <a href="/book?service=Mounting+%26+Hanging">TV Mounting</a>
   <a href="/book?service=Fitness+Equipment">Fitness Equipment</a>
@@ -297,7 +296,7 @@
     </div>
     <div class="fa-faq-item">
       <button class="fa-faq-q" onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fa-chev').style.transform=a.style.display==='block'?'rotate(180deg)':'rotate(0)'">Do you serve Round Rock too? <span class="fa-chev">&#8964;</span></button>
-      <div class="fa-faq-a">Yes &mdash; in addition to Austin, we cover Round Rock, Cedar Park, Pflugerville, Lakeway, and the entire Austin metro. Book online and we&rsquo;ll follow up quickly to confirm the details.</div>
+      <div class="fa-faq-a">Yes &mdash; we currently serve participating ZIP codes in Round Rock, Cedar Park, Pflugerville, and Lakeway. Enter the service address during booking to confirm current availability.</div>
     </div>
   </div>
 </section>
@@ -378,7 +377,7 @@ function aaeCopyShareLink(link){
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services across Austin and the surrounding metro.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="tel:+17372906129">737-290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
         <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>
@@ -392,13 +391,13 @@ function aaeCopyShareLink(link){
         <li><a href="/fitness-equipment-assembly-austin-tx">Fitness Equipment</a></li>
         <li><a href="/office-furniture-assembly-austin-tx">Office Furniture</a></li>
         <li><a href="/playset-assembly-austin-tx">Outdoor / Playsets</a></li>
-        <li><a href="/business">Business &amp; Custom Quotes</a></li>
       </ul>
     </div>
     <div>
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
+        <li><a href="/locations">Locations</a></li>
         <li><a href="/pricing">Pricing</a></li>
         <li><a href="/blog/">Guides</a></li>
         <li><a href="/business">Business Services</a></li>

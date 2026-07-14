@@ -118,6 +118,13 @@
     body.theme-pro .payout-empty h4 { font-size:0.9rem; font-weight:500; color:var(--pro-text); margin-bottom:0.35rem; font-family:var(--font-body); }
     body.theme-pro .payout-empty p { font-size:0.78rem; color:var(--pro-muted); margin-bottom:0.85rem; line-height:1.55; }
 
+    body.theme-pro .account-status-notice { display:none; border:1px solid rgba(220,38,38,0.2); background:rgba(220,38,38,0.06); color:#7f1d1d; border-radius:12px; padding:0.9rem 1rem; margin-bottom:1rem; font-size:0.84rem; line-height:1.55; }
+    body.theme-pro .account-status-notice.show { display:block; }
+    body.theme-pro .account-status-notice strong { display:block; color:#b91c1c; margin-bottom:0.2rem; }
+    body.theme-pro .review-state { padding:0.75rem 0; line-height:1.55; }
+    body.theme-pro .review-state p { margin:0; }
+    body.theme-pro .review-retry { margin-top:0.75rem; }
+
     body.theme-pro .danger-zone { border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); }
     body.theme-pro .danger-zone .form-section-title { color:#f87171; border-color:rgba(239,68,68,0.15); }
     body.theme-pro .danger-text { font-size:0.875rem; color:#f87171; margin-bottom:1rem; line-height:1.6; }
@@ -151,6 +158,7 @@
 <div class="easer-page">
     <div class="profile-wrap">
       <div id="page-alert" class="alert hidden"></div>
+      <div id="account-status-notice" class="account-status-notice" role="status"></div>
 
       <!-- Profile hero card -->
       <div id="profile-id-card" style="background:#fff;border:1px solid var(--pro-border);border-radius:16px;padding:1.5rem 1.25rem 1.25rem;margin-bottom:1rem">
@@ -216,7 +224,7 @@
               </div>
               <div class="form-group">
                 <label for="phone">Phone number</label>
-                <input type="tel" id="phone" class="form-control" placeholder="e.g. (512) 555-0123" />
+                <input type="tel" id="phone" class="form-control" inputmode="tel" autocomplete="tel" placeholder="512-555-0123" maxlength="12" />
                 <span class="field-error" id="phone-error"></span>
               </div>
               <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:0.75rem" class="location-grid">
@@ -263,41 +271,23 @@
         <div class="info-row"><span class="info-label">Identity verified</span><span class="info-value" id="identity-value">—</span></div>
         <!-- Shown when not yet verified -->
         <div id="identity-verify-section" style="display:none;margin-top:1.25rem;padding:1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:10px">
-          <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5">&#9888; Your identity verification is pending. You will be notified by email once complete.</p>
-          <p style="font-size:0.8rem;color:#92400e;margin:0">Need help Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
+          <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5"><strong>Identity verification pending.</strong> You will be notified by email once complete.</p>
+          <p style="font-size:0.8rem;color:#92400e;margin:0">Need help? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
         </div>
       </div>
 
-      <!-- Membership — hidden until launched -->
+      <!-- Billing escape hatch for an accidental/legacy subscription only. -->
       <div class="form-section" id="membership-section" style="display:none;border-color:rgba(0,191,255,0.3);background:linear-gradient(135deg,rgba(0,191,255,0.04),rgba(0,131,143,0.06))">
-        <div class="form-section-title" style="color:#00BFFF">Priority Membership</div>
-        <div id="membership-active" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
-            <span style="font-size:1.5rem">&#10003;</span>
-            <div>
-              <div style="font-size:0.9rem;font-weight:600;color:var(--pro-text)">Membership Active</div>
-              <div style="font-size:0.8rem;color:var(--pro-muted)" id="membership-expires">Renews automatically</div>
-            </div>
-          </div>
-          <p style="font-size:0.83rem;color:var(--pro-soft);line-height:1.6;margin-bottom:1rem">You have priority access to jobs. You're notified first — before non-members of the same tier.</p>
-          <button id="membership-portal-btn" class="btn" style="font-size:0.82rem">Manage Billing</button>
-        </div>
-        <div id="membership-inactive">
-          <p style="font-size:0.875rem;color:var(--pro-soft);line-height:1.65;margin-bottom:0.75rem"><strong>Get priority job dispatch.</strong> Members are notified first for every job in their area — before non-members, regardless of tier.</p>
-          <ul style="font-size:0.83rem;color:var(--pro-soft);line-height:1.8;margin:0 0 1.25rem 1.25rem">
-            <li>First access to every job offer</li>
-            <li>Priority over non-members of the same tier</li>
-            <li>Cancel anytime — no long-term commitment</li>
-          </ul>
-          <button id="membership-subscribe-btn" class="btn btn-teal" style="width:100%;font-size:0.9rem;padding:0.75rem">Become a Member — $29/mo</button>
-          <p id="membership-price-note" style="text-align:center;font-size:0.75rem;color:var(--pro-muted);margin-top:0.5rem">Monthly · Cancel anytime · Secure checkout via Stripe</p>
-        </div>
+        <div class="form-section-title" style="color:#00BFFF">Legacy Membership Billing</div>
+        <p style="font-size:0.83rem;color:var(--pro-soft);line-height:1.6;margin-bottom:0.5rem">Easer membership is not offered at launch. A prior billing record is attached to this account; use the billing portal to review or cancel it.</p>
+        <div style="font-size:0.8rem;color:var(--pro-muted);margin-bottom:1rem" id="membership-expires">Current billing period is on file.</div>
+        <button id="membership-portal-btn" class="btn" style="font-size:0.82rem">Manage Legacy Billing</button>
       </div>
 
       <!-- My Reviews -->
       <div class="form-section">
         <div class="form-section-title">My Reviews <span id="review-count-label" style="font-weight:400;font-size:0.82rem;color:var(--pro-muted)"></span></div>
-        <div id="my-reviews-list" style="font-size:0.875rem;color:var(--pro-muted)">Loading reviews...</div>
+        <div id="my-reviews-list" class="review-state" style="font-size:0.875rem;color:var(--pro-muted)" aria-live="polite">Loading reviews...</div>
       </div>
 
       <!-- Sign out -->
@@ -336,6 +326,12 @@
 <script>
   let photoBase64 = null;
   let currentUserId = null;  // set after auth; lets the photo picker save immediately
+  const usdFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+  function formatCents(value) {
+    var cents = Number(value);
+    return usdFormatter.format(Number.isFinite(cents) ? cents / 100 : 0);
+  }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value)
@@ -348,9 +344,24 @@
     return /^(https:\/\/[^"'<>\s]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+)$/i.test(photo) ? photo : '';
   }
 
+  function normalizeUsPhone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+    return /^\d{10}$/.test(digits) ? '+1' + digits : null;
+  }
+
+  function formatUsPhone(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+    digits = digits.slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return digits.slice(0, 3) + '-' + digits.slice(3);
+    return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
+  }
+
   function collapseBasicSection() {
     var name  = document.getElementById('full-name').value.trim();
-    var phone = document.getElementById('phone').value.trim();
+    var phone = formatUsPhone(document.getElementById('phone').value.trim());
     var city  = document.getElementById('city').value.trim();
     var state = document.getElementById('state').value.trim();
     var zip   = document.getElementById('zip').value.trim();
@@ -374,7 +385,7 @@
     const hasPhoto = !!photoBase64 || !!(document.getElementById('profile-id-avatar') && document.getElementById('profile-id-avatar').querySelector('img'));
     const checks = [
       { label: 'Name',        ok: !!(document.getElementById('full-name').value.trim()) },
-      { label: 'Phone',       ok: !!(document.getElementById('phone').value.trim()) },
+      { label: 'Phone',       ok: normalizeUsPhone(document.getElementById('phone').value.trim()) !== null },
       { label: 'City',        ok: !!(document.getElementById('city').value.trim()) },
       { label: 'ZIP',         ok: !!(document.getElementById('zip').value.trim()) },
       { label: 'Photo',       ok: hasPhoto },
@@ -393,9 +404,8 @@
         cl.innerHTML = '';
       } else {
         cl.style.display = 'flex';
-        cl.innerHTML = checks.map(function(c) {
-          return '<span style="color:' + (c.ok ? '#64748b' : '#94a3b8') + '">'
-            + (c.ok ? '&#10003; ' : '&#9675; ') + c.label + '</span>';
+        cl.innerHTML = checks.filter(function(c) { return !c.ok; }).map(function(c) {
+          return '<span style="color:#64748b">Needed: ' + escapeHtml(c.label) + '</span>';
         }).join('');
       }
     }
@@ -412,6 +422,10 @@
 
   ['full-name','phone','city','state','zip'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateCompletion);
+  });
+  document.getElementById('phone').addEventListener('input', function() {
+    var formatted = formatUsPhone(this.value);
+    if (this.value !== formatted) this.value = formatted;
   });
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -457,16 +471,65 @@
     });
   });
 
+  var reviewsLoading = false;
+  async function loadReviews() {
+    if (reviewsLoading) return;
+    reviewsLoading = true;
+    var list = document.getElementById('my-reviews-list');
+    var countLabel = document.getElementById('review-count-label');
+    list.textContent = 'Loading reviews...';
+    try {
+      const { data: reviews, error: reviewsError } = await API.getReviews(currentUserId);
+      if (reviewsError) throw reviewsError;
+      const reviewList = Array.isArray(reviews) ? reviews : [];
+      if (reviewList.length) {
+        countLabel.textContent = '(' + reviewList.length + ')';
+        list.innerHTML = reviewList.map(function(r) {
+          var name = escapeHtml((r.reviewer.full_name || 'Customer').split(' ')[0]);
+          var ratingLabel = Number(r.rating || 0).toFixed(1) + ' / 5';
+          var date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          return '<div style="padding:0.85rem 0;border-bottom:1px solid var(--pro-border)">'
+            + '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.3rem">'
+            + '<span style="font-weight:500;color:var(--pro-text)">' + name + '</span>'
+            + '<span style="color:#b45309;font-size:0.85rem;white-space:nowrap">' + ratingLabel + '</span>'
+            + '</div>'
+            + '<div style="color:var(--pro-soft);line-height:1.6">' + escapeHtml(r.comment || 'No written comment.') + '</div>'
+            + (r.customer_would_rehire ? '<div style="display:inline-flex;font-size:0.72rem;color:#0369a1;background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,191,255,0.15)">Would hire again</div>' : '')
+            + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
+            + '</div>';
+        }).join('');
+      } else {
+        countLabel.textContent = '';
+        list.innerHTML = '<p>No customer reviews yet. Approved reviews will appear here after completed jobs.</p>';
+      }
+    } catch (error) {
+      countLabel.textContent = '';
+      list.innerHTML = '<p>Reviews could not be loaded.</p><button type="button" class="btn btn-outline btn-sm review-retry" onclick="loadReviews()">Retry</button>';
+    } finally {
+      reviewsLoading = false;
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['assembler']);
     if (!auth) return;
     document.body.style.visibility = 'visible';
     const { user, profile } = auth;
     currentUserId = user.id;  // enable immediate photo auto-save
-    if (['requested', 'reviewing'].includes(profile.account_closure_status)) {
+    var closureStatus = String(profile.account_closure_status || '').trim().toLowerCase();
+    if (['requested', 'reviewing', 'completed'].includes(closureStatus)) {
       const closureButton = document.getElementById('delete-account-btn');
       closureButton.disabled = true;
-      closureButton.textContent = 'Closure requested';
+      closureButton.textContent = closureStatus === 'completed' ? 'Account closed' : 'Closure requested';
+      var closureNotice = document.getElementById('account-status-notice');
+      closureNotice.classList.add('show');
+      if (closureStatus === 'completed') {
+        closureNotice.innerHTML = '<strong>Easer account closed</strong>New offers and availability are disabled. Contact support for questions about payout records or retained account information.';
+      } else if (closureStatus === 'reviewing') {
+        closureNotice.innerHTML = '<strong>Account closure review in progress</strong>You remain Offline while support reviews payout, tax, and retention obligations.';
+      } else {
+        closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
+      }
     }
 
     // Offline / online detection
@@ -487,12 +550,13 @@
 
     document.getElementById('sidebar-logout').addEventListener('click', async (e) => {
       e.preventDefault();
+      if (window.APP && typeof APP.clearPrivateSessionData === 'function') APP.clearPrivateSessionData();
       await supabaseClient.auth.signOut();
       window.location.href='/auth/login.html';
     });
 
     document.getElementById('full-name').value   = profile.full_name   || '';
-    document.getElementById('phone').value       = profile.phone       || '';
+    document.getElementById('phone').value       = formatUsPhone(profile.phone || '');
     document.getElementById('city').value        = profile.city        || '';
     document.getElementById('state').value       = profile.state       || '';
     document.getElementById('zip').value         = profile.zip         || '';
@@ -543,16 +607,16 @@
     }
     document.getElementById('jobs-done').textContent      = profile.completed_jobs || 0;
     document.getElementById('rating-display').textContent = profile.rating
-      ? Number(profile.rating).toFixed(1) + ' \u2605' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
+      ? Number(profile.rating).toFixed(1) + ' / 5' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
       : 'New';
-    document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = '$' + ((profile.total_earned || 0) / 100).toFixed(2));
+    document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = formatCents(profile.total_earned));
     // Hero card stats
     var statJobs = document.getElementById('prof-stat-jobs');
     if (statJobs) statJobs.textContent = profile.completed_jobs || 0;
     var statRating = document.getElementById('prof-stat-rating');
     if (statRating) statRating.textContent = profile.rating ? Number(profile.rating).toFixed(1) : '\u2014';
     var statEarned = document.getElementById('prof-stat-earned');
-    if (statEarned) statEarned.textContent = profile.total_earned ? '$' + (Number(profile.total_earned) / 100).toFixed(2) : '$0.00';
+    if (statEarned) statEarned.textContent = formatCents(profile.total_earned);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
@@ -567,7 +631,7 @@
       accountTypeEl.textContent = accountTypeMap[profile.tier] || (profile.tier ? 'Easer — ' + profile.tier : 'Easer');
     }
     document.getElementById('identity-value').innerHTML = profile.identity_verified
-      ? '<span style="display:inline-flex;align-items:center;gap:6px;color:#166534;font-weight:600"><span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:#ecfdf3;border:1px solid #bbf7d0;font-size:0.72rem">&#10003;</span>Verified</span>'
+      ? '<span style="display:inline-flex;align-items:center;color:#166534;font-weight:600;background:#ecfdf3;border:1px solid #bbf7d0;border-radius:999px;padding:0.18rem 0.55rem">Verified</span>'
       : profile.stripe_verification_id
         ? '<span style="color:#92400e;font-weight:600">In progress</span>'
         : '<span style="color:#64748b">Not started</span>';
@@ -576,83 +640,49 @@
       document.getElementById('identity-verify-section').style.display = '';
     }
 
-    // ── Membership UI ──────────────────────────────────────────────────
+    // Easer membership enrollment is disabled. This request exists only to
+    // expose a billing escape hatch if a legacy subscription is actually found.
     (async function() {
       try {
         const { data: { session: ms } } = await supabaseClient.auth.getSession();
-        const mToken = ms.access_token || auth.session.access_token;
-        const mHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mToken };
-
-        var mResp = await fetch('/api/assembler/membership', {
+        const mToken = ms?.access_token || auth.session.access_token;
+        const mResp = await fetch('/api/assembler/membership', {
           method: 'POST',
-          headers: mHeaders,
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mToken },
           body: JSON.stringify({ action: 'status' }),
         });
-        var mData = await mResp.json();
-        if (mData.active) {
-          document.getElementById('membership-active').style.display = '';
-          document.getElementById('membership-inactive').style.display = 'none';
-          if (mData.expiresAt) {
-            document.getElementById('membership-expires').textContent =
-              'Renews ' + new Date(mData.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-          }
-          document.getElementById('membership-portal-btn').addEventListener('click', async function() {
-            var btn = this;
-            btn.disabled = true; btn.textContent = 'Opening…';
-            try {
-              const { data: { session: ps } } = await supabaseClient.auth.getSession();
-              var r = await fetch('/api/assembler/membership', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ps.access_token || mToken) },
-                body: JSON.stringify({ action: 'portal' }),
-              });
-              var d = await r.json();
-              if (d.url) window.location.href = d.url;
-              else { btn.disabled = false; btn.textContent = 'Manage Billing'; }
-            } catch(err) {
-              btn.disabled = false; btn.textContent = 'Manage Billing';
-            }
-          });
-        } else {
-          document.getElementById('membership-active').style.display = 'none';
-          document.getElementById('membership-inactive').style.display = '';
-          document.getElementById('membership-subscribe-btn').addEventListener('click', async function() {
-            var btn = this;
-            btn.disabled = true; btn.textContent = 'Loading…';
-            try {
-              const { data: { session: ss } } = await supabaseClient.auth.getSession();
-              var r = await fetch('/api/assembler/membership', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ss.access_token || mToken) },
-                body: JSON.stringify({ action: 'subscribe' }),
-              });
-              var d = await r.json();
-              if (d.url) {
-                window.location.href = d.url;
-              } else {
-                btn.disabled = false; btn.textContent = 'Become a Member';
-                APP.showAlert('page-alert', d.error || 'Could not start checkout. Please try again.', 'error');
-              }
-            } catch(err) {
-              btn.disabled = false; btn.textContent = 'Become a Member';
-              APP.showAlert('page-alert', 'Could not connect to membership service. Please try again.', 'error');
-            }
-          });
+        const mData = await mResp.json();
+        if (!mResp.ok || !mData.active) return;
+
+        document.getElementById('membership-section').style.display = '';
+        if (mData.expiresAt) {
+          document.getElementById('membership-expires').textContent =
+            'Current period through ' + new Date(mData.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) + '.';
         }
-      } catch(e) {
-        console.warn('Membership status error:', e);
-        // On network/server error, show unavailable state rather than broken UI
-        document.getElementById('membership-inactive').innerHTML =
-          '<div style="background:var(--pro-elevated);border-radius:10px;padding:1rem 1.25rem;text-align:center">'
-          + '<p style="font-size:0.875rem;font-weight:600;color:var(--pro-text);margin:0 0 0.4rem">Membership Unavailable</p>'
-          + '<p style="font-size:0.82rem;color:var(--pro-muted);margin:0;line-height:1.6">Could not load membership status. Please refresh or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">support</a>.</p>'
-          + '</div>';
+        document.getElementById('membership-portal-btn').addEventListener('click', async function() {
+          const btn = this;
+          btn.disabled = true;
+          btn.textContent = 'Opening...';
+          try {
+            const { data: { session: ps } } = await supabaseClient.auth.getSession();
+            const response = await fetch('/api/assembler/membership', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ps?.access_token || mToken) },
+              body: JSON.stringify({ action: 'portal' }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.url) throw new Error(data.error || 'Billing portal is unavailable.');
+            window.location.href = data.url;
+          } catch (error) {
+            btn.disabled = false;
+            btn.textContent = 'Manage Legacy Billing';
+            APP.showAlert('page-alert', error.message || 'Billing portal is unavailable. Contact support.', 'error');
+          }
+        });
+      } catch (error) {
+        console.warn('Legacy membership status could not be checked:', error);
       }
     })();
-
-    if (profile.profile_photo) {
-      document.getElementById('profile-id-avatar').innerHTML = `<img src="${profile.profile_photo}" alt="Profile" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
-    }
 
     updateCompletion();
     // Auto-collapse sections on load if data already exists
@@ -663,10 +693,11 @@
       APP.hideAlert('page-alert');
       const fullNameEl = document.getElementById('full-name');
       const fullName   = fullNameEl.value.trim();
-      const phone      = document.getElementById('phone').value.trim();
+      const phoneRaw   = document.getElementById('phone').value.trim();
+      const phone      = phoneRaw ? normalizeUsPhone(phoneRaw) : null;
       let hasError = false;
       if (!fullNameEl.readOnly && !fullName) { APP.fieldError('full-name', 'Full name is required.'); hasError = true; }
-      if (phone && !/^\+[\d\s\-(). ]{7,}$/.test(phone)) { APP.fieldError('phone', 'Enter a valid phone number.'); hasError = true; }
+      if (phoneRaw && !phone) { APP.fieldError('phone', 'Enter a valid 10-digit U.S. phone number.'); hasError = true; }
       if (hasError) return;
 
       APP.setLoading('save-btn', true, 'Saving...');
@@ -694,6 +725,7 @@
           throw new Error('Profile could not be saved. You may need to sign out and back in.');
         }
         photoBase64 = null;
+        document.getElementById('phone').value = formatUsPhone(phoneRaw);
         collapseBasicSection();
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -740,42 +772,16 @@
           : 'Account closure requested. You are offline and support will review the request.', data.warning ? 'error' : 'success');
         document.getElementById('delete-account-btn').disabled = true;
         document.getElementById('delete-account-btn').textContent = 'Closure requested';
+        var closureNotice = document.getElementById('account-status-notice');
+        closureNotice.classList.add('show');
+        closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
       } catch (err) {
         APP.showAlert('page-alert', err.message || 'Failed to request account closure.', 'error');
         APP.setLoading('delete-account-btn', false, 'Request account closure');
       }
     });
 
-    // Load reviews for this assembler
-    try {
-      const { data: reviews, error: reviewsError } = await API.getReviews(user.id);
-      if (reviewsError) throw reviewsError;
-      const list = document.getElementById('my-reviews-list');
-      const countLabel = document.getElementById('review-count-label');
-      const reviewList = Array.isArray(reviews) ? reviews : [];
-      if (reviewList.length) {
-        countLabel.textContent = '(' + reviewList.length + ')';
-        list.innerHTML = reviewList.map(function(r) {
-          var name = escapeHtml((r.reviewer.full_name || 'Customer').split(' ')[0]);
-          var ratingLabel = Number(r.rating || 0).toFixed(1) + ' / 5';
-          var date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-          return '<div style="padding:0.85rem 0;border-bottom:1px solid var(--pro-border)">'
-            + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem">'
-            + '<span style="font-weight:500;color:var(--pro-text)">' + name + '</span>'
-            + '<span style="color:#f59e0b;font-size:0.85rem">' + ratingLabel + '</span>'
-            + '</div>'
-            + '<div style="color:var(--pro-soft);line-height:1.6">' + escapeHtml(r.comment || 'No comment.') + '</div>'
-            + (r.customer_would_rehire ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:var(--pro-teal);background:var(--pro-teal-glow);border-radius:999px;padding:0.15rem 0.6rem;margin-top:0.35rem;border:1px solid rgba(0,191,255,0.15)">&#10003; Would hire again</div>' : '')
-            + '<div style="font-size:0.72rem;color:var(--pro-muted);margin-top:0.3rem">' + date + '</div>'
-            + '</div>';
-        }).join('');
-      } else {
-        countLabel.textContent = '';
-        list.innerHTML = '<p style="padding:0.5rem 0">No reviews yet. Complete jobs and build your reputation!</p>';
-      }
-    } catch (e) {
-      document.getElementById('my-reviews-list').innerHTML = '<p>Reviews are temporarily unavailable. Please try again shortly.</p>';
-    }
+    await loadReviews();
   });
 </script>
 <div class="sheet-overlay" id="delete-sheet">
@@ -790,7 +796,6 @@
     </div>
   </div>
 </div>
-<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
 

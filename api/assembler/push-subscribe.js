@@ -3,12 +3,15 @@ import { getSupabase } from '../_supabase.js';
 export default async function handler(req, res) {
   try {
   if (req.method === 'GET') {
-    const key = process.env.VAPID_PUBLIC_KEY;
-    if (!key) return res.status(500).json({ error: 'VAPID_PUBLIC_KEY not set in environment' });
-    return res.status(200).json({ publicKey: key, ok: true });
+    const key = String(process.env.VAPID_PUBLIC_KEY || '').trim();
+    const enabled = Boolean(key && String(process.env.VAPID_PRIVATE_KEY || '').trim());
+    return res.status(200).json({ enabled, publicKey: enabled ? key : null, ok: true });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!String(process.env.VAPID_PUBLIC_KEY || '').trim() || !String(process.env.VAPID_PRIVATE_KEY || '').trim()) {
+    return res.status(409).json({ error: 'Push notifications are not enabled.', code: 'PUSH_DISABLED' });
+  }
 
   // Require Bearer JWT — userId from token, never from body
   const authHeader = req.headers['authorization'] || '';

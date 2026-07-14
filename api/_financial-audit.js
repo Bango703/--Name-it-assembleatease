@@ -11,10 +11,10 @@ export async function writeFinancialAudit(sb, {
   metadata = null,
   error = null,
 }) {
-  if (!sb || !eventType) return;
+  if (!sb || !eventType) return { ok: false, error: 'Financial audit input is incomplete' };
 
   try {
-    await sb.from('financial_event_audit').insert({
+    const { error: insertError } = await sb.from('financial_event_audit').insert({
       stripe_event_id: stripeEventId,
       booking_id: bookingId,
       payment_intent_id: paymentIntentId,
@@ -28,13 +28,29 @@ export async function writeFinancialAudit(sb, {
       metadata,
       error,
     });
+    if (insertError) {
+      console.warn('Financial audit insert skipped:', insertError.message || insertError);
+      return { ok: false, error: insertError.message || String(insertError) };
+    }
+    return { ok: true };
   } catch (e) {
     console.warn('Financial audit insert skipped:', e?.message || e);
+    return { ok: false, error: e?.message || String(e) };
   }
 }
 
+export async function writeFinancialAuditRequired(sb, payload) {
+  const result = await writeFinancialAudit(sb, payload);
+  if (!result.ok) {
+    const error = new Error(`Financial audit could not be persisted: ${result.error || 'unknown audit error'}`);
+    error.code = 'FINANCIAL_AUDIT_PERSISTENCE_REQUIRED';
+    throw error;
+  }
+  return result;
+}
+
 export async function claimStripeWebhookEvent(sb, event) {
-  if (!sb || !event?.id) return { duplicate: false, claimed: false, reason: 'invalid-event' };
+  if (!sb || !event?.id) return { duplicate: false, claimed: false, reason: 'invalid-event', error: 'Invalid webhook event claim input' };
 
   try {
     const { error } = await sb.from('financial_event_audit').insert({
@@ -51,13 +67,13 @@ export async function claimStripeWebhookEvent(sb, event) {
         return { duplicate: true, claimed: false, reason: 'already-processed' };
       }
       console.warn('Webhook event claim skipped:', error.message || error);
-      return { duplicate: false, claimed: false, reason: 'claim-error' };
+      return { duplicate: false, claimed: false, reason: 'claim-error', error: error.message || String(error) };
     }
 
     return { duplicate: false, claimed: true, reason: 'claimed' };
   } catch (e) {
     console.warn('Webhook event claim failed:', e?.message || e);
-    return { duplicate: false, claimed: false, reason: 'claim-exception' };
+    return { duplicate: false, claimed: false, reason: 'claim-exception', error: e?.message || String(e) };
   }
 }
 
@@ -68,10 +84,10 @@ export async function finalizeStripeWebhookEvent(sb, eventId, {
   metadata = null,
   error = null,
 } = {}) {
-  if (!sb || !eventId) return;
+  if (!sb || !eventId) return { ok: false, error: 'Invalid webhook finalization input' };
 
   try {
-    await sb.from('financial_event_audit')
+    const { data, error: updateError } = await sb.from('financial_event_audit')
       .update({
         booking_id: bookingId,
         payment_intent_id: paymentIntentId,
@@ -80,8 +96,16 @@ export async function finalizeStripeWebhookEvent(sb, eventId, {
         metadata,
         error,
       })
-      .eq('stripe_event_id', eventId);
+      .eq('stripe_event_id', eventId)
+      .select('id');
+    if (updateError || !data?.length) {
+      const error = updateError?.message || 'Webhook claim row was not finalized';
+      console.warn('Webhook event finalize failed:', error);
+      return { ok: false, error };
+    }
+    return { ok: true };
   } catch (e) {
     console.warn('Webhook event finalize skipped:', e?.message || e);
+    return { ok: false, error: e?.message || String(e) };
   }
 }

@@ -28,7 +28,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/css/style.css" />
-  <script src="https://js.stripe.com/v3/"></script>
   <script src="/assets/js/app.js" defer></script>
   <style>
     :root {
@@ -795,6 +794,7 @@
       .radio-option { min-height: 64px; }
       .success-wrap { width: min(100% - 1rem, 720px); }
       .success-box { padding: 1.4rem; }
+      .form-control { font-size:16px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -847,12 +847,18 @@
           <h2>Apply to join</h2>
           <p>This takes a few minutes. Use accurate contact info because your phone number is required for dispatch after approval.</p>
         </div>
-        <div class="form-pill">Founding Easer: fee waived</div>
+        <div class="form-pill" id="fee-status-pill">Checking application fee</div>
       </div>
 
       <div id="alert" class="alert hidden"></div>
       <div id="invite-banner" class="alert alert-success hidden" style="display:none">You have been invited to join AssembleAtEase. Complete your application below.</div>
       <div id="invite-error" class="alert alert-error hidden" style="display:none"></div>
+      <div id="market-waitlist" class="alert alert-error hidden" style="display:none">
+        <strong>Easer applications are not active in this ZIP yet.</strong>
+        <div style="margin-top:0.35rem">No account or payment was created. You can join the national Easer waitlist and we will contact you before opening applications in your area.</div>
+        <button type="button" id="join-waitlist-btn" style="margin-top:0.75rem;border:0;border-radius:8px;background:#001f2b;color:#fff;font:inherit;font-weight:800;padding:0.65rem 1rem;cursor:pointer">Join Easer Waitlist</button>
+        <div id="market-waitlist-status" style="margin-top:0.5rem"></div>
+      </div>
 
       <form id="apply-form">
         <div class="section">
@@ -878,7 +884,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="phone">Phone number *</label>
-              <input type="tel" id="phone" class="form-control" placeholder="(737) 290-6129" autocomplete="tel" required />
+              <input type="tel" id="phone" class="form-control" placeholder="737-290-6129" autocomplete="tel" required />
               <span class="field-hint">Required for dispatch, job updates, and urgent coordination.</span>
               <span class="field-error" id="phone-error"></span>
             </div>
@@ -895,8 +901,15 @@
               <span class="field-error" id="city-error"></span>
             </div>
             <div class="form-group">
+              <label for="state">US state *</label>
+              <select id="state" class="form-control" autocomplete="address-level1" required><option value="">Select a state</option><option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="DC">District of Columbia</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option></select>
+              <span class="field-error" id="state-error"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
               <label for="zip">ZIP code *</label>
-              <input type="text" id="zip" class="form-control" placeholder="78701" autocomplete="postal-code" maxlength="10" required />
+              <input type="text" id="zip" class="form-control" placeholder="78701" autocomplete="postal-code" inputmode="numeric" maxlength="5" required />
               <span class="field-error" id="zip-error"></span>
             </div>
           </div>
@@ -1038,16 +1051,25 @@
           <div class="fee-callout" style="margin-top:1rem">
             <div class="fee-row">
               <span class="fee-dot">$</span>
-              <div><strong>Founding Easer Program.</strong> The application fee is waived for the first launch group while we build Austin supply.</div>
+              <div id="fee-program-copy"><strong>Checking application fee.</strong> Please wait while current launch-program availability is verified.</div>
             </div>
-            <div class="fee-row warning">
+            <div class="fee-row warning" id="fee-charge-row">
               <span class="fee-dot">!</span>
-              <div><strong>No payment collected today.</strong> Identity verification and owner review are still required before any jobs are offered.</div>
+              <div id="fee-charge-copy"><strong>Do not submit yet.</strong> The current fee must load before you can review and authorize the application.</div>
             </div>
+            <div class="fee-note" id="fee-refund-copy" style="margin-top:0.75rem">Refund terms will appear here before any payment can be authorized.</div>
           </div>
 
+          <div class="conduct-check" id="fee-consent-section" style="display:none;margin-bottom:0.75rem">
+            <input type="checkbox" id="fee-consent" />
+            <div class="conduct-check-text" id="fee-consent-copy">
+              I authorize AssembleAtEase to charge a one-time $30.00 Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and owner approval are separate, and work is not guaranteed.
+            </div>
+          </div>
+          <span class="field-error" id="fee-consent-error"></span>
+
           <div class="form-group" id="card-section" style="display:none">
-            <label>Card details *</label>
+            <label id="card-label">Card details for the $30.00 application fee *</label>
             <div id="card-element" class="card-element-wrap"></div>
             <span class="card-error" id="card-error"></span>
             <span class="fee-note">Payments are processed securely by Stripe. AssembleAtEase does not store card details.</span>
@@ -1056,7 +1078,7 @@
 
         <input type="hidden" id="invite-token" value="" />
         <div class="submit-pad">
-          <button type="submit" class="btn-apply" id="submit-btn">Submit Founding Easer Application</button>
+          <button type="submit" class="btn-apply" id="submit-btn" disabled>Checking application fee...</button>
         </div>
       </form>
     </section>
@@ -1068,7 +1090,7 @@
         <p>Submitting this application does not guarantee work. Approved Easers are matched to jobs based on service fit, availability, and operational readiness.</p>
         <div class="step-list">
           <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service categories, and launch-program status.</span></div></div>
-          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the secure AssembleAtEase link sent after submission. If Stripe expires or you switch devices, that same link reopens verification.</span></div></div>
+          <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the time-limited secure AssembleAtEase link sent after submission. If another attempt is required, use the newest link emailed to you.</span></div></div>
           <div class="mini-step"><div class="mini-num">3</div><div><strong>Owner review</strong><span>We review your application after identity verification is submitted.</span></div></div>
         </div>
       </div>
@@ -1083,7 +1105,7 @@
       <div class="aside-card">
         <div class="aside-eyebrow">Questions</div>
         <h3>Need help applying</h3>
-        <p>Email <a href="mailto:service@assembleatease.com" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">(737) 290-6129</a>.</p>
+        <p>Email <a href="mailto:service@assembleatease.com" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:var(--apply-cyan-dark);font-weight:800;text-decoration:none">737-290-6129</a>.</p>
       </div>
     </aside>
   </div>
@@ -1093,30 +1115,172 @@
   <div class="success-box">
     <div class="success-icon">&#10003;</div>
     <h2 id="success-heading">Application submitted</h2>
-    <p id="success-msg">Thank you for applying. No application fee was collected today, and a confirmation has been sent to your email.</p>
-    <div id="identity-section" class="verify-card">
-      <p>Complete identity verification through your secure AssembleAtEase onboarding link.</p>
-      <a id="verify-btn" href="#" class="btn-apply">Continue Identity Verification &rarr;</a>
-      <p style="font-size:0.8rem;margin-top:0.75rem">If you switch devices or the Stripe page expires, use this same link again and we will reopen it securely.</p>
-    </div>
+    <p id="success-msg">Thank you for applying. Check your email for the time-limited secure identity-verification link and next steps.</p>
     <div id="verification-complete-section" class="verification-complete">Verification submitted. Our team will review your application and email you when a decision is made.</div>
   </div>
 </div>
 
 <script>
 (function() {
-  // -- Founding Easer launch setup --
-  // The first launch group is fee-waived; Stripe Identity is created server-side when configured.
-  var FOUNDING_EASER_FEE_WAIVED = true;
+  var feeState = null;
   var stripe = null;
   var cardElement = null;
+  var stripeReadyPromise = null;
+  var cardComplete = false;
+  var feeContinuation = null;
+  var feePaymentConfirmed = false;
+  var lastApplicationData = null;
+  var applicationAttemptId = getApplicationAttemptId();
+  var US_STATE_CODES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
 
-  var cardWrap = document.getElementById('card-element');
-  var cardErrEl = document.getElementById('card-error');
-
-  if (cardWrap) {
-    cardWrap.innerHTML = '<div style="font-size:0.875rem;color:#166534;padding:0.75rem 0">No card required for Founding Easer applications.</div>';
+  function getApplicationAttemptId() {
+    var storageKey = 'aae_easer_application_attempt';
+    try {
+      var existing = sessionStorage.getItem(storageKey) || '';
+      if (/^[A-Za-z0-9_-]{32,128}$/.test(existing)) return existing;
+      var value = '';
+      if (window.crypto && window.crypto.getRandomValues) {
+        var bytes = new Uint8Array(32);
+        window.crypto.getRandomValues(bytes);
+        var binary = '';
+        bytes.forEach(function(byte) { binary += String.fromCharCode(byte); });
+        value = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      } else if (window.crypto && window.crypto.randomUUID) {
+        value = (window.crypto.randomUUID() + window.crypto.randomUUID()).replace(/-/g, '');
+      }
+      if (!/^[A-Za-z0-9_-]{32,128}$/.test(value)) throw new Error('Secure browser randomness unavailable');
+      sessionStorage.setItem(storageKey, value);
+      return value;
+    } catch (error) {
+      return '';
+    }
   }
+
+  function clearApplicationAttempt() {
+    try { sessionStorage.removeItem('aae_easer_application_attempt'); } catch (error) {}
+  }
+
+  function loadStripeJs() {
+    if (window.Stripe) return Promise.resolve();
+    return new Promise(function(resolve, reject) {
+      var prior = document.getElementById('stripe-js');
+      if (prior) {
+        prior.addEventListener('load', resolve, { once: true });
+        prior.addEventListener('error', function() { reject(new Error('Stripe.js failed to load')); }, { once: true });
+        return;
+      }
+      var script = document.createElement('script');
+      script.id = 'stripe-js';
+      script.src = 'https://js.stripe.com/v3/';
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = function() { reject(new Error('Stripe.js failed to load')); };
+      document.head.appendChild(script);
+    });
+  }
+
+  function ensureStripeReady() {
+    if (stripe && cardElement) return Promise.resolve();
+    if (stripeReadyPromise) return stripeReadyPromise;
+    stripeReadyPromise = fetch('/api/config/public-key', { cache: 'no-store' })
+      .then(function(response) {
+        return response.json().then(function(data) {
+          if (!response.ok || !/^pk_/.test(String(data.publishableKey || ''))) {
+            throw new Error(data.error || 'Secure card entry is unavailable');
+          }
+          return data.publishableKey;
+        });
+      })
+      .then(function(publishableKey) {
+        return loadStripeJs().then(function() { return publishableKey; });
+      })
+      .then(function(publishableKey) {
+        stripe = window.Stripe(publishableKey);
+        var elements = stripe.elements();
+        cardElement = elements.create('card', {
+          hidePostalCode: true,
+          style: {
+            base: { fontSize: '16px', color: '#001f2b', '::placeholder': { color: '#94a3b8' } },
+            invalid: { color: '#b91c1c' },
+          },
+        });
+        cardElement.mount('#card-element');
+        cardElement.on('change', function(event) {
+          cardComplete = event.complete === true;
+          document.getElementById('card-error').textContent = event.error ? event.error.message : '';
+        });
+        document.getElementById('card-section').style.display = '';
+      })
+      .catch(function(error) {
+        stripeReadyPromise = null;
+        throw error;
+      });
+    return stripeReadyPromise;
+  }
+
+  function validateFeePayload(applicationFee) {
+    return applicationFee
+      && Number.isInteger(Number(applicationFee.amountCents))
+      && Number.isInteger(Number(applicationFee.standardAmountCents || applicationFee.amountCents))
+      && applicationFee.currency === 'usd'
+      && typeof (applicationFee.standardAmountDisplay || applicationFee.amountDisplay) === 'string';
+  }
+
+  function renderFeeState(applicationFee) {
+    if (!validateFeePayload(applicationFee)) throw new Error('Application fee response was invalid');
+    feeState = applicationFee;
+    var paidRequired = applicationFee.waiverAvailable === false || Number(applicationFee.amountCents) > 0;
+    var amountDisplay = applicationFee.standardAmountDisplay || applicationFee.amountDisplay;
+    var pill = document.getElementById('fee-status-pill');
+    var programCopy = document.getElementById('fee-program-copy');
+    var chargeCopy = document.getElementById('fee-charge-copy');
+    var refundCopy = document.getElementById('fee-refund-copy');
+    var consentSection = document.getElementById('fee-consent-section');
+    var cardSection = document.getElementById('card-section');
+    var button = document.getElementById('submit-btn');
+
+    if (paidRequired) {
+      pill.textContent = 'Application fee: ' + amountDisplay;
+      programCopy.innerHTML = '<strong>One-time Easer application fee: ' + amountDisplay + '.</strong> This exact amount is set and verified by the AssembleAtEase server.';
+      chargeCopy.innerHTML = '<strong>Payment is collected only after your authorization.</strong> Identity verification and owner approval remain required, and submitting does not guarantee work.';
+      refundCopy.textContent = 'Refund terms: if AssembleAtEase rejects your application, the full application fee is returned to the original payment method. Applicant-withdrawal, duplicate-charge, and payment-error requests are reviewed by service@assembleatease.com; no other refund is guaranteed.';
+      document.getElementById('fee-consent-copy').textContent = 'I authorize AssembleAtEase to charge a one-time ' + amountDisplay + ' Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and owner approval are separate, and work is not guaranteed.';
+      document.getElementById('card-label').textContent = 'Card details for the ' + amountDisplay + ' application fee *';
+      consentSection.style.display = '';
+      button.textContent = 'Continue to ' + amountDisplay + ' Secure Payment';
+    } else {
+      pill.textContent = 'Founding Easer: fee waived';
+      programCopy.innerHTML = '<strong>Founding Easer Program.</strong> The server currently confirms that no application fee is required for this launch spot.';
+      chargeCopy.innerHTML = '<strong>No payment collected.</strong> Identity verification and owner review are still required before any jobs are offered.';
+      refundCopy.textContent = 'This Founding Easer application has no application charge, so no application-fee refund applies.';
+      consentSection.style.display = 'none';
+      document.getElementById('fee-consent').checked = false;
+      cardSection.style.display = 'none';
+      button.textContent = 'Submit Founding Easer Application';
+    }
+    button.disabled = false;
+  }
+
+  async function fetchApplicationPreflight(state, zip) {
+    var query = '';
+    if (state || zip) {
+      query = '?state=' + encodeURIComponent(state || '') + '&zip=' + encodeURIComponent(zip || '');
+    }
+    var response = await fetch('/api/assembler/application-fee-status' + query, { cache: 'no-store' });
+    var data = await response.json();
+    if (!response.ok || !validateFeePayload(data.applicationFee)) {
+      throw new Error(data.error || 'Application fee status is unavailable');
+    }
+    renderFeeState(data.applicationFee);
+    return data;
+  }
+
+  fetchApplicationPreflight('', '').catch(function(error) {
+    showAlert('error', error.message || 'Application fee status is unavailable. Refresh before submitting.');
+    var button = document.getElementById('submit-btn');
+    button.disabled = true;
+    button.textContent = 'Application fee unavailable';
+  });
 
   // -- Handle verification=complete return from Stripe Identity --
   var params = new URLSearchParams(window.location.search);
@@ -1130,6 +1294,27 @@
     document.getElementById('verification-complete-section').style.display = 'block';
   }
 
+  function formatUsPhoneForDisplay(value) {
+    var original = String(value || '').trim();
+    var digits = original.replace(/\D/g, '');
+    if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+    if (digits.length !== 10) return original;
+    return digits.slice(0, 3) + '-' + digits.slice(3, 6) + '-' + digits.slice(6);
+  }
+
+  function isValidUsPhoneForApplication(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
+    return /^\d{10}$/.test(digits);
+  }
+
+  var applicationPhoneInput = document.getElementById('phone');
+  if (applicationPhoneInput) {
+    applicationPhoneInput.addEventListener('blur', function() {
+      this.value = formatUsPhoneForDisplay(this.value);
+    });
+  }
+
   // -- Invite token detection and pre-fill --
   var inviteToken = params.get('invite');
   if (inviteToken) {
@@ -1141,8 +1326,9 @@
           var d = res.data;
           if (d.name) document.getElementById('full-name').value = d.name;
           if (d.email) document.getElementById('email').value = d.email;
-          if (d.phone) document.getElementById('phone').value = d.phone;
+          if (d.phone) document.getElementById('phone').value = formatUsPhoneForDisplay(d.phone);
           if (d.city) document.getElementById('city').value = d.city;
+          if (d.state) document.getElementById('state').value = String(d.state).toUpperCase();
           var banner = document.getElementById('invite-banner');
           banner.style.display = '';
           banner.classList.remove('hidden');
@@ -1193,23 +1379,11 @@
     document.querySelectorAll('.field-error').forEach(function(el) { el.textContent = ''; });
     document.querySelectorAll('.form-control').forEach(function(el) { el.classList.remove('error'); });
     document.getElementById('card-error').textContent = '';
+    document.getElementById('fee-consent-error').textContent = '';
     document.getElementById('alert').className = 'alert hidden';
   }
 
-  document.getElementById('apply-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    clearErrors();
-
-    var fullName = document.getElementById('full-name').value.trim();
-    var email = document.getElementById('email').value.trim();
-    var phone = document.getElementById('phone').value.trim();
-    var city = document.getElementById('city').value.trim();
-    var zip = document.getElementById('zip').value.trim();
-    var years = document.getElementById('years').value;
-    var bio = document.getElementById('bio').value.trim();
-    var contractorAgreed = document.getElementById('contractor-agree').checked;
-    var conduct = document.getElementById('conduct').checked;
-
+  function collectApplicationData() {
     var services = [];
     document.querySelectorAll('#services-grid input:checked').forEach(function(cb) {
       services.push(cb.value);
@@ -1223,79 +1397,352 @@
     var toolsVal = toolsChecked ? toolsChecked.value : (toolsHidden ? 'yes' : '');
     var transportVal = transportChecked ? transportChecked.value : '';
 
-    // Validate
+    return {
+      fullName: document.getElementById('full-name').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      city: document.getElementById('city').value.trim(),
+      state: document.getElementById('state').value.trim().toUpperCase(),
+      zip: document.getElementById('zip').value.trim(),
+      years: document.getElementById('years').value,
+      bio: document.getElementById('bio').value.trim(),
+      contractorAgreed: document.getElementById('contractor-agree').checked,
+      conduct: document.getElementById('conduct').checked,
+      services: services,
+      toolsHidden: toolsHidden,
+      toolsVal: toolsVal,
+      transportVal: transportVal,
+    };
+  }
+
+  function validateApplicationData(data) {
     var hasErr = false;
-    if (!fullName) { fieldError('full-name', 'Required'); hasErr = true; }
-    else if (fullName.split(/\s+/).filter(Boolean).length < 2) { fieldError('full-name', 'Enter your first and last name'); hasErr = true; }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Valid email required'); hasErr = true; }
-    if (!phone || !/^\+?[\d\s().-]{7,}$/.test(phone)) { fieldError('phone', 'Enter a valid phone number'); hasErr = true; }
-    if (!city) { fieldError('city', 'Required'); hasErr = true; }
-    if (!zip) { fieldError('zip', 'Required'); hasErr = true; }
-    if (!years || parseInt(years) < 0) { fieldError('years', 'Required'); hasErr = true; }
-    if (!services.length) { fieldError('services', 'Select at least one service'); hasErr = true; }
-    if (!toolsHidden && !toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
-    if (!transportVal) { fieldError('transport', 'Required'); hasErr = true; }
-    if (!contractorAgreed) { fieldError('contractor', 'You must read and sign the Contractor Agreement to continue'); hasErr = true; }
-    if (!conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
-    if (hasErr) return;
+    var parsedYears = Number(data.years);
+    if (!data.fullName) { fieldError('full-name', 'Required'); hasErr = true; }
+    else if (data.fullName.split(/\s+/).filter(Boolean).length < 2) { fieldError('full-name', 'Enter your first and last name'); hasErr = true; }
+    if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) { fieldError('email', 'Valid email required'); hasErr = true; }
+    if (!isValidUsPhoneForApplication(data.phone)) { fieldError('phone', 'Enter a valid 10-digit U.S. phone number'); hasErr = true; }
+    if (!data.city) { fieldError('city', 'Required'); hasErr = true; }
+    if (US_STATE_CODES.indexOf(data.state) === -1) { fieldError('state', 'Enter a valid two-letter US state code'); hasErr = true; }
+    if (!/^\d{5}$/.test(data.zip)) { fieldError('zip', 'Enter a valid 5-digit ZIP code'); hasErr = true; }
+    if (!Number.isInteger(parsedYears) || parsedYears < 0 || parsedYears > 80) { fieldError('years', 'Enter 0 to 80 years'); hasErr = true; }
+    if (!data.services.length) { fieldError('services', 'Select at least one service'); hasErr = true; }
+    if (!data.toolsHidden && !data.toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
+    if (!data.transportVal) { fieldError('transport', 'Required'); hasErr = true; }
+    if (!data.contractorAgreed) { fieldError('contractor', 'You must read and sign the Contractor Agreement to continue'); hasErr = true; }
+    if (!data.conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
+    if (!applicationAttemptId) {
+      showAlert('error', 'This browser could not create a secure application attempt. Refresh in a modern browser and try again.');
+      hasErr = true;
+    }
+    return !hasErr;
+  }
 
-    var btn = document.getElementById('submit-btn');
-    btn.disabled = true;
-    btn.textContent = 'Submitting application...';
+  function validateMarketLocation(data) {
+    var valid = true;
+    if (US_STATE_CODES.indexOf(data.state) === -1) {
+      fieldError('state', 'Enter a valid two-letter US state code');
+      valid = false;
+    }
+    if (!/^\d{5}$/.test(data.zip)) {
+      fieldError('zip', 'Enter a valid 5-digit ZIP code');
+      valid = false;
+    }
+    return valid;
+  }
 
-    btn.textContent = 'Submitting...';
+  function isPaidFeeRequired() {
+    return feeState && (feeState.waiverAvailable === false || Number(feeState.amountCents) > 0);
+  }
 
+  function setSubmitReady() {
+    var button = document.getElementById('submit-btn');
+    button.disabled = false;
+    if (!feeState) {
+      button.textContent = 'Check Application Area';
+      return;
+    }
+    var display = feeState && (feeState.standardAmountDisplay || feeState.amountDisplay);
+    button.textContent = isPaidFeeRequired()
+      ? 'Pay ' + display + ' and Submit Application'
+      : 'Submit Founding Easer Application';
+  }
+
+  function showMarketWaitlist(data) {
+    lastApplicationData = data;
+    var panel = document.getElementById('market-waitlist');
+    panel.style.display = '';
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var button = document.getElementById('submit-btn');
+    button.disabled = false;
+    button.textContent = 'Check Application Area Again';
+  }
+
+  document.getElementById('join-waitlist-btn').addEventListener('click', async function() {
+    var data = collectApplicationData();
+    var button = this;
+    var status = document.getElementById('market-waitlist-status');
+    button.disabled = true;
+    status.textContent = 'Joining waitlist...';
     try {
-      var resp = await fetch('/api/assembler/apply', {
+      if (!data.fullName
+          || !data.email
+          || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
+          || !isValidUsPhoneForApplication(data.phone)
+          || !data.city
+          || US_STATE_CODES.indexOf(data.state) === -1) {
+        throw new Error('Complete your name, email, phone, city, and state before joining the waitlist.');
+      }
+      var response = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: fullName,
-          email: email,
-          phone: phone,
-          city: city,
-          zip: zip,
-          servicesOffered: services,
-          hasTools: toolsVal === 'yes',
-          hasTransport: transportVal === 'yes',
-          yearsExperience: parseInt(years, 10),
-          bio: bio || null,
-          codeOfConduct: true,
-          contractorAgreementSigned: true,
-          paymentMethodId: FOUNDING_EASER_FEE_WAIVED ? null : undefined,
-          inviteToken: document.getElementById('invite-token').value || null,
+          name: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          city: data.city,
+          state: data.state,
         }),
       });
+      var result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not join the waitlist');
+      status.textContent = 'You are on the Easer waitlist. We will contact you before applications open in your area.';
+      button.style.display = 'none';
+    } catch (error) {
+      status.textContent = error.message || 'Could not join the waitlist. Please try again.';
+      button.disabled = false;
+    }
+  });
 
-      var data = await resp.json();
+  ['state', 'zip'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() {
+      var waitlist = document.getElementById('market-waitlist');
+      waitlist.style.display = 'none';
+      waitlist.classList.add('hidden');
+      lastApplicationData = null;
+      if (!feeState) {
+        var state = document.getElementById('state').value.trim().toUpperCase();
+        var zip = document.getElementById('zip').value.trim();
+        if (US_STATE_CODES.indexOf(state) !== -1 && /^\d{5}$/.test(zip)) {
+          var submitButton = document.getElementById('submit-btn');
+          submitButton.disabled = false;
+          submitButton.textContent = 'Check Application Area';
+        }
+      }
+    });
+  });
 
-      if (!resp.ok) {
-        showAlert('error', data.error || 'Something went wrong. Please try again.');
-        btn.disabled = false;
-        btn.textContent = 'Submit Founding Easer Application';
+  async function postApplication(data) {
+    var response = await fetch('/api/assembler/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        servicesOffered: data.services,
+        hasTools: data.toolsVal === 'yes',
+        hasTransport: data.transportVal === 'yes',
+        yearsExperience: Number(data.years),
+        bio: data.bio || null,
+        codeOfConduct: true,
+        contractorAgreementSigned: true,
+        applicationAttemptId: applicationAttemptId,
+        applicationFeeConsent: document.getElementById('fee-consent').checked,
+        inviteToken: document.getElementById('invite-token').value || null,
+      }),
+    });
+    var result = await response.json();
+    if (response.status === 202 && result.paymentRequired) {
+      if (!result.feeContinuationToken
+          || (!result.clientSecret && result.consentRequired !== true)
+          || !validateFeePayload(result.applicationFee)) {
+        throw new Error('Secure payment continuation was incomplete. Retry this same application.');
+      }
+      feeContinuation = result;
+      feePaymentConfirmed = result.paymentStatus === 'succeeded';
+      renderFeeState({
+        amountCents: result.applicationFee.amountCents,
+        standardAmountCents: result.applicationFee.amountCents,
+        currency: result.applicationFee.currency,
+        amountDisplay: result.applicationFee.amountDisplay,
+        standardAmountDisplay: result.applicationFee.amountDisplay,
+        waiverAvailable: false,
+      });
+      await ensureStripeReady();
+      return { paymentRequired: true, data: result };
+    }
+    if (!response.ok) {
+      var error = new Error(result.error || 'Something went wrong. Please try again.');
+      error.code = result.code;
+      error.response = result;
+      throw error;
+    }
+    return { paymentRequired: false, data: result };
+  }
+
+  async function finalizeApplicationFee(data) {
+    var response = await fetch('/api/assembler/application-fee-finalize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feeContinuationToken: feeContinuation.feeContinuationToken }),
+    });
+    var result = await response.json();
+    if (!response.ok) {
+      if (result.code === 'APPLICATION_FEE_CONTINUATION_INVALID') {
+        feeContinuation = null;
+        feePaymentConfirmed = false;
+        return postApplication(data).then(function(recovered) {
+          if (recovered.paymentRequired) throw new Error('Payment was received, but final confirmation is still processing. Try again shortly.');
+          return recovered.data;
+        });
+      }
+      var error = new Error(result.error || 'Payment finalization could not be completed. Retry safely.');
+      error.code = result.code;
+      throw error;
+    }
+    return result;
+  }
+
+  async function confirmApplicationFee(data) {
+    if (!feeContinuation) throw new Error('Secure payment continuation is missing. Retry this same application.');
+    if (feePaymentConfirmed || ['processing', 'succeeded'].indexOf(feeContinuation.paymentStatus) !== -1) {
+      return finalizeApplicationFee(data);
+    }
+    if (!document.getElementById('fee-consent').checked) {
+      fieldError('fee-consent', 'You must authorize the exact application fee before payment');
+      throw new Error('Review and authorize the application fee before continuing.');
+    }
+    if (!feeContinuation.clientSecret) {
+      var consented = await postApplication(data);
+      if (!consented.paymentRequired) return consented.data;
+      if (!feeContinuation.clientSecret) {
+        throw new Error('The application-fee authorization could not be recorded. Retry this same application before payment.');
+      }
+    }
+    await ensureStripeReady();
+    if (!cardComplete && feeContinuation.paymentStatus !== 'requires_action') {
+      document.getElementById('card-error').textContent = 'Enter complete card details.';
+      throw new Error('Enter complete card details before continuing.');
+    }
+
+    var confirmationOptions = feeContinuation.paymentStatus === 'requires_action'
+      ? undefined
+      : {
+          payment_method: {
+            card: cardElement,
+            billing_details: { name: data.fullName, email: data.email },
+          },
+        };
+    var confirmation = await stripe.confirmCardPayment(
+      feeContinuation.clientSecret,
+      confirmationOptions,
+    );
+    if (confirmation.error) {
+      document.getElementById('card-error').textContent = confirmation.error.message || 'Card payment could not be completed.';
+      feeContinuation.paymentStatus = confirmation.paymentIntent?.status
+        || confirmation.error.payment_intent?.status
+        || 'requires_payment_method';
+      throw new Error(confirmation.error.message || 'Card payment could not be completed.');
+    }
+    if (confirmation.paymentIntent?.status !== 'succeeded') {
+      feeContinuation.paymentStatus = confirmation.paymentIntent?.status || 'processing';
+      throw new Error('Stripe is still processing the application fee. Wait a moment and try final confirmation again.');
+    }
+    feePaymentConfirmed = true;
+    return finalizeApplicationFee(data);
+  }
+
+  function showApplicationSuccess(result) {
+    clearApplicationAttempt();
+    feeContinuation = null;
+    document.getElementById('application-panel').style.display = 'none';
+    var successEl = document.getElementById('success-state');
+    successEl.style.display = 'block';
+    var message = result.feeWaived
+      ? 'Thank you for applying. Your Founding Easer application was submitted with no application fee collected.'
+      : 'Thank you for applying. Stripe confirmed the exact ' + (result.applicationFee?.amountDisplay || '$30.00') + ' application fee.';
+    message += ' Check your email for the time-limited secure identity-verification link and next steps.';
+    if (result.warning) message += ' ' + result.warning;
+    document.getElementById('success-msg').textContent = message;
+    successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  document.getElementById('apply-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    clearErrors();
+    var data = collectApplicationData();
+
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = feeContinuation ? 'Confirming secure payment...' : 'Verifying application details...';
+
+    try {
+      if (feeContinuation) {
+        if (!validateApplicationData(data)) {
+          setSubmitReady();
+          return;
+        }
+        var continuedResult = await confirmApplicationFee(data);
+        showApplicationSuccess(continuedResult);
         return;
       }
 
-      // Show success state
-      document.getElementById('application-panel').style.display = 'none';
-      var successEl = document.getElementById('success-state');
-      successEl.style.display = 'block';
-      if (data.feeWaived) {
-        document.getElementById('success-msg').textContent = 'Thank you for applying. Your Founding Easer application was submitted with no application fee collected today.';
+      if (!validateMarketLocation(data)) {
+        setSubmitReady();
+        return;
       }
-      successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      // Show reusable verification button if URL was returned
-      var verificationLink = data.verificationResumeUrl || data.verificationUrl;
-      if (verificationLink) {
-        document.getElementById('identity-section').style.display = 'block';
-        document.getElementById('verify-btn').href = verificationLink;
+      var preflight = await fetchApplicationPreflight(data.state, data.zip);
+      if (!preflight.market || preflight.market.active !== true) {
+        showMarketWaitlist(data);
+        return;
+      }
+      if (!validateApplicationData(data)) {
+        setSubmitReady();
+        return;
+      }
+      if (isPaidFeeRequired()) {
+        await ensureStripeReady();
+        if (!document.getElementById('fee-consent').checked) {
+          fieldError('fee-consent', 'Review and authorize the exact application fee');
+          showAlert('error', 'Review the exact application fee and authorize it before continuing.');
+          setSubmitReady();
+          return;
+        }
+        if (!cardComplete) {
+          document.getElementById('card-error').textContent = 'Enter complete card details.';
+          showAlert('error', 'Enter complete card details before continuing.');
+          setSubmitReady();
+          return;
+        }
       }
 
+      var submitted = await postApplication(data);
+      if (!submitted.paymentRequired) {
+        showApplicationSuccess(submitted.data);
+        return;
+      }
+      // A waiver may be consumed between preflight and the atomic server claim.
+      // The server creates no charge automatically. Require a fresh visible
+      // authorization/card step when that race occurs.
+      if (!document.getElementById('fee-consent').checked || !cardComplete) {
+        showAlert('error', 'The founding waiver filled before submission. No charge was made. Review and authorize the exact application fee below to continue this same application.');
+        setSubmitReady();
+        return;
+      }
+      var paidResult = await confirmApplicationFee(data);
+      showApplicationSuccess(paidResult);
     } catch (err) {
-      showAlert('error', 'Connection error. Please try again.');
-      btn.disabled = false;
-      btn.textContent = 'Submit Founding Easer Application';
+      if (err.code === 'EASER_MARKET_NOT_ACTIVE') {
+        showMarketWaitlist(data);
+      } else {
+        showAlert('error', err.message || 'Connection error. Retry this same application.');
+        setSubmitReady();
+      }
     }
   });
 })();
@@ -1303,7 +1750,7 @@
 
 <footer class="apply-footer">
   <div class="apply-footer-links">
-    <a href="tel:+17372906129">(737) 290-6129</a>
+    <a href="tel:+17372906129">737-290-6129</a>
     <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
     <a href="../privacy">Privacy Policy</a>
     <a href="../terms">Terms of Service</a>

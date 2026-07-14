@@ -57,6 +57,7 @@
     body.theme-pro .e-earn-split {
       border-top:1px solid var(--pro-border);
       padding-top:0.9rem;
+      grid-template-columns:repeat(4,minmax(0,1fr)) !important;
     }
     body.theme-pro .e-earn-split-item strong { color:var(--pro-text) !important; }
     body.theme-pro .e-earn-split-item span { color:var(--pro-muted) !important; }
@@ -82,11 +83,62 @@
     .earn-tx-status { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
     .earn-tx-status.paid    { color: #059669; }
     .earn-tx-status.pending { color: #d97706; }
-    .payout-note {
-      margin-top: 1rem;
-      text-align: center;
-      font-size: 0.76rem;
-      color: var(--pro-muted);
+    .payout-process-card {
+      margin: 1rem 0;
+      padding: 1rem 1.1rem;
+      background: #fff;
+      border: 1px solid var(--pro-border);
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(15,23,42,0.04);
+    }
+    .payout-process-title { font-size:0.9rem; font-weight:700; color:var(--pro-text); margin-bottom:0.45rem; }
+    .payout-process-copy { font-size:0.78rem; line-height:1.6; color:var(--pro-muted); margin:0; }
+    .payout-preference-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0.6rem; align-items:end; margin-top:1rem; }
+    .payout-preference-row label { display:block; font-size:0.75rem; font-weight:600; color:var(--pro-soft); margin-bottom:0.35rem; }
+    .payout-preference-row select { width:100%; min-height:44px; border:1px solid var(--pro-border-md); border-radius:9px; background:#fff; color:var(--pro-text); padding:0.6rem 0.75rem; font:inherit; }
+    .payout-preference-row button { min-height:44px; }
+    .payout-preference-help { font-size:0.7rem; color:var(--pro-muted); line-height:1.5; margin-top:0.55rem; }
+    .payout-preference-status { display:none; font-size:0.73rem; line-height:1.45; margin-top:0.6rem; }
+    .payout-preference-status.show { display:block; }
+    .payout-preference-status.success { color:#047857; }
+    .payout-preference-status.error { color:#b91c1c; }
+    .payout-closure-note { display:none; margin-bottom:1rem; border:1px solid rgba(220,38,38,0.2); background:rgba(220,38,38,0.06); color:#7f1d1d; border-radius:12px; padding:0.85rem 1rem; font-size:0.78rem; line-height:1.55; }
+    .payout-closure-note.show { display:block; }
+    .earn-tx-status.review { color:#b45309; }
+    .earn-tx-status.processing { color:#0369a1; }
+    .earn-tx-icon.processing { background:rgba(2,132,199,0.1); color:#0369a1; }
+    .earn-tx-icon.review { background:rgba(180,83,9,0.1); color:#b45309; }
+    @media (max-width: 430px) {
+      body.theme-pro .e-earn-split { grid-template-columns:repeat(2,minmax(0,1fr)) !important; row-gap:0.9rem; }
+      .earn-tx-row {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        align-items: start;
+        column-gap: 0.875rem;
+        row-gap: 0.65rem;
+      }
+      .earn-tx-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.35;
+      }
+      .earn-tx-right {
+        grid-column: 2;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-width: 0;
+        text-align: left;
+      }
+      .earn-tx-status {
+        margin-top: 0;
+        text-align: right;
+        line-height: 1.3;
+      }
+      .payout-preference-row { grid-template-columns:1fr; }
+      .payout-preference-row button { width:100%; }
     }
   </style>
 </head>
@@ -115,6 +167,7 @@
 <div class="easer-page">
   <a href="#" id="sidebar-logout" style="display:none"></a>
   <div id="page-alert" class="alert hidden"></div>
+  <div id="payout-closure-note" class="payout-closure-note" role="status"></div>
 
   <div class="e-period-tabs" id="period-tabs">
     <button class="e-period-tab active" data-period="all">All Time</button>
@@ -128,11 +181,30 @@
     <div class="e-earn-split" id="earn-split">
       <div class="e-earn-split-item"><strong>—</strong><span>Jobs</span></div>
       <div class="e-earn-split-item"><strong>—</strong><span>Paid Out</span></div>
-      <div class="e-earn-split-item"><strong>—</strong><span>Pending</span></div>
+      <div class="e-earn-split-item"><strong>—</strong><span>Awaiting Payout</span></div>
+      <div class="e-earn-split-item"><strong>—</strong><span>On Hold</span></div>
     </div>
   </div>
 
-  <div class="payout-note">Manual payouts are typically issued within 7 business days after completion and customer payment capture. Stripe Connect timing is shown separately when Connect is enabled.</div>
+  <section class="payout-process-card" aria-labelledby="payout-process-title">
+    <div class="payout-process-title" id="payout-process-title">How launch payouts work</div>
+    <p class="payout-process-copy">Customers pay AssembleAtEase. After a job is completed and the customer payment is captured, the owner sends your payout outside this dashboard, with a current target of within 7 business days. This dashboard records payout status; it does not send funds.</p>
+    <div class="payout-preference-row">
+      <div>
+        <label for="payout-preference">Preferred manual payout method</label>
+        <select id="payout-preference">
+          <option value="">Choose a method</option>
+          <option value="ach">ACH bank transfer</option>
+          <option value="zelle">Zelle</option>
+          <option value="paypal">PayPal</option>
+          <option value="check">Check</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-teal" id="save-payout-preference">Save preference</button>
+    </div>
+    <div class="payout-preference-help">This saves only your preferred method. Do not enter bank, card, Zelle, or PayPal credentials here. AssembleAtEase will separately confirm the details needed before the first payout.</div>
+    <div id="payout-preference-status" class="payout-preference-status" role="status" aria-live="polite"></div>
+  </section>
 
   <div id="payouts-list">
     <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
@@ -160,11 +232,14 @@
 </nav>
 
 <script>
-  var allCompleted = [];
+  var allEarnings = [];
 
   function fmt(cents) {
     if (!cents && cents !== 0) return '—';
-    return '$' + (cents / 100).toFixed(2);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cents / 100);
   }
   function esc(s) {
     if (!s) return '';
@@ -175,59 +250,97 @@
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  function earningAmount(booking) {
+    return Number(booking.status === 'cancelled'
+      ? booking.cancellation_easer_due_cents
+      : booking.assembler_due) || 0;
+  }
+
+  function earningPayoutStatus(booking) {
+    return booking.status === 'cancelled'
+      ? (booking.cancellation_easer_payout_status || booking.payout_status || 'pending')
+      : (booking.payout_status || 'pending');
+  }
+
+  function earningEventDate(booking) {
+    return booking.status === 'cancelled' ? booking.cancelled_at : booking.completed_at;
+  }
+
+  function earningDisposition(booking) {
+    var status = earningPayoutStatus(booking);
+    if (status === 'paid') return 'paid';
+    if (status === 'transferred') return 'transferred';
+    var refundAffected = ['partially_refunded', 'refunded'].includes(booking.payment_status)
+      || Number(booking.refund_amount || 0) > 0;
+    if (refundAffected && booking.payout_review_status !== 'approved_full') return 'review';
+    return 'pending';
+  }
+
   function filterByPeriod(list, period) {
     if (period === 'all') return list;
     var now = new Date();
     if (period === 'week') {
       var cutoff = new Date(now - 7 * 86400000);
-      return list.filter(function(b){ return b.completed_at && new Date(b.completed_at) >= cutoff; });
+      return list.filter(function(b){ var date = earningEventDate(b); return date && new Date(date) >= cutoff; });
     }
     if (period === 'month') {
       var cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
-      return list.filter(function(b){ return b.completed_at && new Date(b.completed_at) >= cutoff; });
+      return list.filter(function(b){ var date = earningEventDate(b); return date && new Date(date) >= cutoff; });
     }
     return list;
   }
 
   function renderEarnings(list) {
-    var totalEarned  = list.reduce(function(s, b){ return s + (b.assembler_due || 0); }, 0);
-    var totalPaid    = list.filter(function(b){ return b.payout_status === 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
-    var totalPending = list.filter(function(b){ return b.payout_status !== 'paid'; }).reduce(function(s,b){ return s + (b.assembler_due||0); }, 0);
+    var totalEarned  = list.reduce(function(s, b){ return s + earningAmount(b); }, 0);
+    var totalPaid    = list.filter(function(b){ return earningDisposition(b) === 'paid'; }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
+    var totalPending = list.filter(function(b){ return ['pending', 'transferred'].includes(earningDisposition(b)); }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
+    var totalHeld    = list.filter(function(b){ return earningDisposition(b) === 'review'; }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
+    var completedJobs = list.filter(function(b){ return b.status === 'completed'; }).length;
 
     document.getElementById('earn-total-val').textContent = fmt(totalEarned);
     document.getElementById('earn-split').innerHTML =
-      '<div class="e-earn-split-item"><strong>' + list.length + '</strong><span>Jobs</span></div>' +
+      '<div class="e-earn-split-item"><strong>' + completedJobs + '</strong><span>Completed Jobs</span></div>' +
       '<div class="e-earn-split-item"><strong>' + fmt(totalPaid) + '</strong><span>Paid Out</span></div>' +
-      '<div class="e-earn-split-item"><strong>' + fmt(totalPending) + '</strong><span>Pending</span></div>';
+      '<div class="e-earn-split-item"><strong>' + fmt(totalPending) + '</strong><span>Awaiting Payout</span></div>' +
+      '<div class="e-earn-split-item"><strong>' + fmt(totalHeld) + '</strong><span>On Hold</span></div>';
 
     var el = document.getElementById('payouts-list');
     if (!list.length) {
-      el.innerHTML = '<div class="e-empty"><div class="e-empty-title">No earnings in this period</div><div class="e-empty-desc">Complete a job to see your earnings here.</div></div>';
+      el.innerHTML = '<div class="e-empty"><div class="e-empty-title">No earnings in this period</div><div class="e-empty-desc">Completed-job and eligible cancellation earnings will appear here.</div></div>';
       return;
     }
 
     var checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
     var clockIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
 
-    var rows = list.slice().reverse().map(function(b) {
-      var isPaid = b.payout_status === 'paid';
-      var isTransferred = b.payout_status === 'transferred';
-      var isZero = !b.assembler_due;
+    var rows = list.slice().sort(function(a, b) {
+      return new Date(earningEventDate(b) || 0) - new Date(earningEventDate(a) || 0);
+    }).map(function(b) {
+      var payoutStatus = earningPayoutStatus(b);
+      var disposition = earningDisposition(b);
+      var amount = earningAmount(b);
+      var isCancellation = b.status === 'cancelled';
+      var isPaid = payoutStatus === 'paid';
+      var isTransferred = payoutStatus === 'transferred';
+      var needsReview = disposition === 'review';
+      var isZero = !amount;
       var dateLabel = (isPaid && b.paid_out_at)
         ? ('Paid ' + fmtDate(b.paid_out_at))
-        : (isTransferred
+        : (needsReview
+            ? ('Customer refund recorded ' + fmtDate(b.refunded_at || earningEventDate(b)) + ' · Easer earnings under owner review')
+            : isTransferred
             ? ('Transferred to Stripe balance ' + fmtDate(b.stripe_transfer_created_at) + ' · Bank payout not yet verified')
-            : ('Completed ' + fmtDate(b.completed_at) + ' · Awaiting manual payout'));
+            : ((isCancellation ? 'Cancellation earnings ' : 'Completed ') + fmtDate(earningEventDate(b)) + ' · Awaiting manual payout'));
       return '<div class="earn-tx-row">' +
-        '<div class="earn-tx-icon ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
+        '<div class="earn-tx-icon ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
-          '<div class="earn-tx-name">' + esc(b.service || 'Service') + '</div>' +
+          '<div class="earn-tx-name">' + (isCancellation ? 'Cancellation trip earnings — ' : '') + esc(b.service || 'Service') + '</div>' +
           '<div class="earn-tx-date">' + dateLabel + '</div>' +
           ((isZero && !isPaid) ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Amount pending confirmation — our team will update this shortly.</div>' : '') +
         '</div>' +
         '<div class="earn-tx-right">' +
-          '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(b.assembler_due) + '</div>' +
-          '<div class="earn-tx-status ' + (isPaid ? 'paid' : 'pending') + '">' + (isPaid ? 'Paid' : (isTransferred ? 'Bank Payout Pending' : 'Awaiting Manual Payout')) + '</div>' +
+          '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(amount) + '</div>' +
+          '<div class="earn-tx-status ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + (isPaid ? 'Paid' : (needsReview ? 'Owner Review Required' : (isTransferred ? 'Bank Payout Pending' : 'Awaiting Manual Payout'))) + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -255,6 +368,63 @@
       return session.access_token;
     }
 
+    var closureStatus = String(auth.profile && auth.profile.account_closure_status || '').trim().toLowerCase();
+    if (['requested', 'reviewing', 'completed'].includes(closureStatus)) {
+      var closureNote = document.getElementById('payout-closure-note');
+      closureNote.classList.add('show');
+      closureNote.textContent = closureStatus === 'completed'
+        ? 'This Easer account is closed. Existing earnings and recorded payouts remain visible for reconciliation.'
+        : 'Account closure is in progress. You cannot receive new offers, but existing earnings remain visible and any valid unpaid amount still must be reconciled.';
+    }
+
+    function showPreferenceStatus(type, message) {
+      var status = document.getElementById('payout-preference-status');
+      status.className = 'payout-preference-status show ' + type;
+      status.textContent = message;
+    }
+
+    async function loadPayoutPreference(token) {
+      try {
+        var response = await fetch('/api/assembler/payout-preference', {
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+        var data = await response.json().catch(function(){ return {}; });
+        if (!response.ok) throw new Error(data.error || 'Payout preference could not be loaded.');
+        document.getElementById('payout-preference').value = data.preference || '';
+      } catch (error) {
+        showPreferenceStatus('error', error.message || 'Payout preference could not be loaded.');
+      }
+    }
+
+    document.getElementById('save-payout-preference').addEventListener('click', async function() {
+      var button = this;
+      var preference = document.getElementById('payout-preference').value;
+      if (!preference) {
+        showPreferenceStatus('error', 'Choose ACH, Zelle, PayPal, or check.');
+        return;
+      }
+      button.disabled = true;
+      var originalText = button.textContent;
+      button.textContent = 'Saving...';
+      try {
+        var token = await getToken();
+        if (!token) throw new Error('Sign in again to save your payout preference.');
+        var response = await fetch('/api/assembler/payout-preference', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preference: preference }),
+        });
+        var data = await response.json().catch(function(){ return {}; });
+        if (!response.ok) throw new Error(data.error || 'Payout preference could not be saved.');
+        showPreferenceStatus('success', 'Preferred payout method saved. AssembleAtEase will confirm the payment details separately.');
+      } catch (error) {
+        showPreferenceStatus('error', error.message || 'Payout preference could not be saved.');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
+
     var offlineBanner = document.getElementById('e-offline');
     window.addEventListener('offline', function() { if (offlineBanner) offlineBanner.classList.add('show'); });
     window.addEventListener('online',  function() { if (offlineBanner) offlineBanner.classList.remove('show'); });
@@ -272,6 +442,7 @@
 
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
+      if (window.APP && typeof APP.clearPrivateSessionData === 'function') APP.clearPrivateSessionData();
       await supabaseClient.auth.signOut();
       window.location.href = '/auth/login.html';
     });
@@ -282,12 +453,14 @@
       if (!tab) return;
       document.querySelectorAll('.e-period-tab').forEach(function(t){ t.classList.remove('active'); });
       tab.classList.add('active');
-      renderEarnings(filterByPeriod(allCompleted, tab.dataset.period));
+      renderEarnings(filterByPeriod(allEarnings, tab.dataset.period));
     });
 
     try {
       let token = await getToken();
       if (!token) { window.location.href = '/auth/login.html'; return; }
+
+      loadPayoutPreference(token);
 
       let resp = await fetch('/api/booking/my-assignments', {
         headers: { 'Authorization': 'Bearer ' + token },
@@ -305,14 +478,16 @@
       }
       if (!resp.ok) throw new Error('Failed to load');
       const data = await resp.json();
-      allCompleted = (data.bookings || []).filter(function(b){ return b.status === 'completed'; });
-      renderEarnings(allCompleted);
+      allEarnings = (data.bookings || []).filter(function(b){
+        return b.status === 'completed'
+          || (b.status === 'cancelled' && Number(b.cancellation_easer_due_cents || 0) > 0);
+      });
+      renderEarnings(allEarnings);
     } catch (err) {
       document.getElementById('payouts-list').innerHTML =
         '<div class="e-alert error show">Could not load earnings history. Please refresh.</div>';
     }
   });
 </script>
-<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>

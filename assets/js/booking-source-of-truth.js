@@ -6,8 +6,13 @@ window.AAE_BOOKING_SOURCE = {
   serviceArea: {
     city: 'Austin',
     state: 'TX',
-    zipPrefixMin: 786,
-    zipPrefixMax: 788,
+    label: 'Austin and participating Central Texas communities',
+    zipPrefixes: ['787'],
+    zipCodes: [
+      '78610', '78613', '78626', '78628', '78630', '78633', '78634',
+      '78640', '78641', '78645', '78646', '78653', '78660', '78664',
+      '78665', '78680', '78681', '78682', '78683', '78691',
+    ],
   },
   // Room-Ready bundles — curated OUTCOMES built from existing catalog items.
   // Each `included`/`optionalAddons` entry references a real {service, name} in

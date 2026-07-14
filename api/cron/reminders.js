@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
   const { data: bookings, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, date, time, address')
+    .select('id, ref, service, customer_name, customer_email, date, time, address, status, reminder_sent')
     .eq('status', 'confirmed')
     .eq('reminder_sent', false)
     .gte('date', todayStr)
@@ -97,12 +97,26 @@ export default async function handler(req, res) {
 
       // Mark only after Resend accepted the message, or a prior confirmed send
       // caused deduplication after an earlier flag-write failure.
-      const { error: flagErr } = await sb
+      let reminderFlagQuery = sb
         .from('bookings')
         .update({ reminder_sent: true })
-        .eq('id', booking.id);
+        .eq('id', booking.id)
+        .eq('status', booking.status)
+        .eq('date', booking.date)
+        .eq('reminder_sent', false);
+      reminderFlagQuery = booking.time == null
+        ? reminderFlagQuery.is('time', null)
+        : reminderFlagQuery.eq('time', booking.time);
+      const { error: flagErr, data: flaggedRows } = await reminderFlagQuery.select('id');
       if (flagErr) {
         errors.push({ ref: booking.ref, error: 'Reminder delivered but sent flag failed: ' + flagErr.message });
+        continue;
+      }
+      if (!flaggedRows?.length) {
+        errors.push({
+          ref: booking.ref,
+          error: 'Reminder was delivered for the prior appointment state; the booking changed before its reminder flag was saved.',
+        });
         continue;
       }
 

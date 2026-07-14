@@ -1,9 +1,19 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { reserveBookingFinancialOperation } from '../booking/_financial-operation.js';
 import { logCron } from './_cron-logger.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
+const REAUTH_OPERATION_TYPE = 'reauth_payment';
+const REAUTH_RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const CANCELABLE_PAYMENT_INTENT_STATUSES = new Set([
+  'requires_payment_method',
+  'requires_confirmation',
+  'requires_action',
+  'processing',
+  'requires_capture',
+]);
 
 /**
  * GET /api/cron/reauth-payments
@@ -13,11 +23,11 @@ const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
  * confirmed bookings whose appointment is exactly 5 days away (leaving 2 days
  * buffer before the auth window closes) and silently re-authorizes the card:
  *
- *   1. Retrieve the existing PaymentIntent to get the saved payment_method.
- *   2. Cancel the old PaymentIntent.
- *   3. Create a new PaymentIntent (off_session) and confirm it server-side.
- *   4. Update stripe_payment_intent_id in Supabase.
- *   5. Send the customer a reassurance email.
+ *   1. Reserve the booking's central financial-operation lock.
+ *   2. Retrieve and validate the existing PaymentIntent and saved method.
+ *   3. Create and validate a new off-session manual-capture authorization.
+ *   4. Link the new PaymentIntent using an exact booking/lock CAS.
+ *   5. Release the old hold, then clear the exact lock and notify the customer.
  *
  * This works because booking.js sets setup_future_usage: 'off_session' on the
  * original PI, which saves the payment method to the Stripe Customer and enables
@@ -43,10 +53,13 @@ export default async function handler(req, res) {
 
   const { data: bookings, error: queryErr } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, date, time, address, total_price, stripe_payment_intent_id, stripe_customer_id')
+    // The reservation RPC compares the complete financial snapshot. Include
+    // locked prior attempts even after the calendar moves past the target day
+    // so a crash after linking can still release the old hold idempotently.
+    .select('*')
     .eq('status', 'confirmed')
     .eq('payment_status', 'authorized')
-    .eq('date', targetStr)
+    .or(`date.eq.${targetStr},financial_operation_type.eq.${REAUTH_OPERATION_TYPE}`)
     .limit(50);
 
   if (queryErr) {
@@ -63,151 +76,62 @@ export default async function handler(req, res) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return res.status(500).json({ error: 'STRIPE_SECRET_KEY not configured' });
   }
+  const expectedLivemode = stripeLivemodeForSecret(process.env.STRIPE_SECRET_KEY);
+  if (expectedLivemode == null) {
+    return res.status(500).json({ error: 'STRIPE_SECRET_KEY mode could not be verified' });
+  }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   let reauthed = 0;
+  let recovered = 0;
   const errors = [];
 
   for (const booking of bookings) {
     try {
-      if (!booking.stripe_payment_intent_id) {
-        console.warn('reauth-payments: no PI id for booking', booking.ref);
-        errors.push({ ref: booking.ref, reason: 'no_pi_id' });
-        continue;
-      }
-
-      // 1. Retrieve the existing PI to get the payment method
-      let oldPi;
-      try {
-        oldPi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-      } catch (retrieveErr) {
-        console.error(`reauth-payments: failed to retrieve PI for ${booking.ref}:`, retrieveErr.message);
-        errors.push({ ref: booking.ref, reason: 'retrieve_failed' });
-        continue;
-      }
-
-      const paymentMethod = oldPi.payment_method;
-      const customer = oldPi.customer || booking.stripe_customer_id;
-
-      if (!paymentMethod || !customer) {
-        console.warn(`reauth-payments: missing payment_method or customer for ${booking.ref}`);
-        errors.push({ ref: booking.ref, reason: 'missing_payment_method' });
-        continue;
-      }
-
-      const amount = booking.total_price || oldPi.amount;
-      if (!amount || amount <= 0) {
-        console.warn(`reauth-payments: zero amount for ${booking.ref} — skipping`);
-        continue;
-      }
-
-      // 2. Create the new PI first (before canceling the old one)
-      //    If this fails, the old auth remains in place.
-      let newPi;
-      try {
-        newPi = await stripe.paymentIntents.create({
-          amount,
-          currency: 'usd',
-          customer,
-          payment_method: paymentMethod,
-          capture_method: 'manual',
-          confirm: true,
-          off_session: true,
-          metadata: {
-            bookingRef: booking.ref,
-            bookingId: booking.id,
-            type: 'reauth',
-          },
-          description: `${booking.service} — ${booking.customer_name} (re-auth)`,
-        }, { idempotencyKey: `booking-reauth-${booking.id}-${targetStr}` });
-        if (newPi.status !== 'requires_capture'
-            || newPi.capture_method !== 'manual'
-            || newPi.amount !== amount
-            || newPi.metadata?.bookingId !== booking.id) {
-          throw new Error(`New authorization returned unexpected state: ${newPi.status}`);
-        }
-      } catch (piErr) {
-        // Card declined, 3DS required, or other Stripe error — leave old PI untouched
-        console.error(`reauth-payments: new PI creation failed for ${booking.ref}:`, piErr.message);
-        const failReason = piErr.code || 'pi_create_failed';
-        errors.push({ ref: booking.ref, reason: failReason });
-        // Alert owner when 3DS is required — auth will expire without manual intervention
-        if (piErr.code === 'authentication_required') {
-          try {
-            await sendEmail({
-              to: ownerEmail(),
-              from: 'AssembleAtEase <booking@assembleatease.com>',
-              subject: `ACTION REQUIRED: Card re-auth failed for ${booking.ref} — 3DS required`,
-              html: `<p>The payment re-authorization for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.customer_name)}, ${esc(booking.service)}, ${esc(booking.date)}) failed because the card requires 3D Secure authentication.</p><p>The original authorization will expire within 2 days. Please contact the customer to update their payment method before the appointment.</p><p>Customer email: <a href="mailto:${esc(booking.customer_email)}">${esc(booking.customer_email)}</a></p>`,
-              replyTo: 'service@assembleatease.com',
-            });
-          } catch (alertErr) {
-            console.error(`reauth-payments: owner alert email failed for ${booking.ref}:`, alertErr.message);
-          }
-        }
-        continue;
-      }
-
-      // 3. Persist the new PI before releasing the old hold. The create call is
-      // idempotent, so a DB failure is recovered by rerunning this cron: Stripe
-      // returns the same new authorization and the database link is retried.
-      const { error: updateErr, data: updatedRows } = await sb
-        .from('bookings')
-        .update({ stripe_payment_intent_id: newPi.id, payment_authorized_at: new Date().toISOString() })
-        .eq('id', booking.id)
-        .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
-        .select('id');
-
-      if (updateErr || !updatedRows?.length) {
-        console.error(`reauth-payments: DB update failed for ${booking.ref}:`, updateErr);
-        await sendEmail({
-          to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
-          subject: `ACTION REQUIRED: Re-auth database link failed — ${booking.ref}`,
-          html: `<p>Stripe authorization <strong>${esc(newPi.id)}</strong> succeeded, but the booking still points to <strong>${esc(booking.stripe_payment_intent_id)}</strong>.</p><p>Rerun the reauthorization cron to reuse the same idempotent PaymentIntent and finish the database link before releasing the old hold.</p>`,
-        });
-        errors.push({ ref: booking.ref, reason: 'db_update_failed' });
-        continue;
-      }
-
-      // 4. Release the old hold only after the new authorization is durable.
-      let oldReleaseFailed = false;
-      try {
-        if (oldPi.status === 'requires_capture' || oldPi.status === 'requires_confirmation') {
-          await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id, {}, {
-            idempotencyKey: `booking-reauth-release-old-${booking.id}-${targetStr}`,
+      const outcome = await processBookingReauthorization({
+        sb,
+        stripe,
+        booking,
+        expectedLivemode,
+        nowIso: new Date().toISOString(),
+      });
+      if (!outcome.ok) {
+        errors.push({ ref: booking.ref, reason: outcome.reason });
+        if (outcome.ownerActionRequired) {
+          await sendReauthOwnerAlert(booking, outcome).catch(alertErr => {
+            console.error(`reauth-payments: owner alert email failed for ${booking.ref}:`, alertErr?.message || alertErr);
+          });
+        } else if (outcome.authenticationRequired) {
+          await sendAuthenticationRequiredAlert(booking).catch(alertErr => {
+            console.error(`reauth-payments: owner authentication alert failed for ${booking.ref}:`, alertErr?.message || alertErr);
           });
         }
-      } catch (cancelErr) {
-        oldReleaseFailed = true;
-        console.error(`reauth-payments: old authorization still open for ${booking.ref}:`, cancelErr.message);
-        errors.push({ ref: booking.ref, reason: 'old_authorization_release_failed' });
-        await sendEmail({
-          to: ownerEmail(),
-          from: 'AssembleAtEase <booking@assembleatease.com>',
-          subject: `ACTION REQUIRED: Old card hold still open — ${booking.ref}`,
-          html: `<p>A new authorization <strong>${esc(newPi.id)}</strong> was saved for ${esc(booking.ref)}, but old authorization <strong>${esc(booking.stripe_payment_intent_id)}</strong> could not be released.</p><p>Review both PaymentIntents in Stripe and release only the old hold.</p>`,
-        });
+        continue;
       }
 
-      // 5. Send customer reassurance email (non-blocking)
-      if (!oldReleaseFailed) {
+      if (outcome.changed) reauthed++;
+      else if (outcome.recovered) recovered++;
+
+      // Customer email is notification only and follows confirmed Stripe + DB
+      // finalization. A delivery failure never changes financial truth.
+      if (outcome.changed || outcome.recovered) {
         try {
-          const html = buildReauthEmail(booking);
           await sendEmail({
             to: booking.customer_email,
             from: 'AssembleAtEase <booking@assembleatease.com>',
             subject: `Your upcoming appointment is confirmed — ${booking.ref}`,
-            html,
+            html: buildReauthEmail(booking),
             replyTo: 'service@assembleatease.com',
+            meta: {
+              bookingId: booking.id,
+              notificationType: 'payment_reauthorized',
+              recipientType: 'customer',
+            },
           });
         } catch (emailErr) {
-          console.error(`reauth-payments: email failed for ${booking.ref}:`, emailErr.message);
-          // Non-fatal — re-auth succeeded even if email failed
+          console.error(`reauth-payments: email failed for ${booking.ref}:`, emailErr?.message || emailErr);
         }
       }
-
-      reauthed++;
     } catch (err) {
       console.error(`reauth-payments: unexpected error for ${booking.ref}:`, err);
       errors.push({ ref: booking.ref, reason: 'unexpected' });
@@ -218,8 +142,742 @@ export default async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     reauthed,
+    recovered,
     skipped: errors.length,
     errors: errors.length ? errors : undefined,
+  });
+}
+
+export async function processBookingReauthorization({ sb, stripe, booking, expectedLivemode, nowIso }) {
+  const operationKey = `reauth:${booking.id}`;
+  const hadReauthLock = booking.financial_operation_key === operationKey
+    && booking.financial_operation_type === REAUTH_OPERATION_TYPE;
+
+  try {
+    await reserveBookingFinancialOperation(sb, {
+      bookingId: booking.id,
+      operationKey,
+      operationType: REAUTH_OPERATION_TYPE,
+      expectedStatuses: ['confirmed'],
+      expectedAssemblerId: booking.assembler_id ?? null,
+      expectedDate: booking.date,
+      expectedTime: booking.time,
+      checkAppointment: true,
+      expectedBooking: booking,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error?.code === 'FINANCIAL_OPERATION_CONFLICT'
+        ? 'financial_operation_conflict'
+        : 'financial_operation_reservation_failed',
+    };
+  }
+
+  let lockedBooking = {
+    ...booking,
+    financial_operation_key: operationKey,
+    financial_operation_type: REAUTH_OPERATION_TYPE,
+  };
+  const reservedState = await loadCurrentReauthBooking(sb, booking.id);
+  const reservationVerified = !reservedState.error
+    && reservedState.booking?.status === 'confirmed'
+    && reservedState.booking?.payment_status === 'authorized'
+    && reservedState.booking?.date === booking.date
+    && reservedState.booking?.time === booking.time
+    && reservedState.booking?.assembler_id === (booking.assembler_id ?? null)
+    && reservedState.booking?.total_price === booking.total_price
+    && reservedState.booking?.stripe_customer_id === booking.stripe_customer_id
+    && reservedState.booking?.stripe_payment_intent_id === booking.stripe_payment_intent_id
+    && reservedState.booking?.financial_operation_key === operationKey
+    && reservedState.booking?.financial_operation_type === REAUTH_OPERATION_TYPE
+    && !!reauthAttemptId(reservedState.booking?.financial_operation_started_at);
+  if (!reservationVerified) {
+    const released = await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: booking.stripe_payment_intent_id,
+    });
+    return {
+      ok: false,
+      reason: released.ok ? 'financial_operation_reservation_unverified' : 'safe_lock_release_failed',
+      ownerActionRequired: !released.ok,
+    };
+  }
+  lockedBooking = { ...lockedBooking, ...reservedState.booking };
+  const operationAttemptId = reauthAttemptId(lockedBooking.financial_operation_started_at);
+  if (!booking.stripe_payment_intent_id) {
+    await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: null,
+    });
+    return { ok: false, reason: 'no_payment_intent' };
+  }
+
+  let currentIntent;
+  try {
+    currentIntent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+  } catch (error) {
+    if (hadReauthLock) {
+      await markReauthReconciliation(sb, {
+        booking: lockedBooking,
+        operationKey,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        reason: 'reauth_current_intent_retrieve_unconfirmed',
+      });
+      return {
+        ok: false,
+        reason: 'reauth_current_intent_retrieve_unconfirmed',
+        ownerActionRequired: true,
+        detail: error?.message || String(error),
+      };
+    }
+    const released = await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: booking.stripe_payment_intent_id,
+    });
+    return {
+      ok: false,
+      reason: released.ok ? 'payment_intent_retrieve_failed' : 'safe_lock_release_failed',
+      ownerActionRequired: !released.ok,
+      detail: error?.message || String(error),
+    };
+  }
+
+  const currentType = originalPaymentType(currentIntent);
+  const currentValidation = validateReauthorizationIntent(currentIntent, {
+    booking,
+    expectedId: booking.stripe_payment_intent_id,
+    expectedType: currentType,
+    expectedLivemode,
+    requireAuthorized: true,
+  });
+  if (!currentValidation.ok || !currentType) {
+    if (hadReauthLock) {
+      await markReauthReconciliation(sb, {
+        booking: lockedBooking,
+        operationKey,
+        paymentIntentId: booking.stripe_payment_intent_id,
+        reason: `reauth_current_intent_invalid:${currentValidation.errors.join(',') || 'type'}`,
+      });
+      return {
+        ok: false,
+        reason: 'reauth_current_intent_invalid',
+        ownerActionRequired: true,
+      };
+    }
+    const released = await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: booking.stripe_payment_intent_id,
+    });
+    return {
+      ok: false,
+      reason: released.ok ? `source_payment_intent_invalid:${currentValidation.errors.join(',') || 'type'}` : 'safe_lock_release_failed',
+      ownerActionRequired: !released.ok,
+    };
+  }
+
+  const authorizationAgeMs = Date.parse(nowIso) - Date.parse(booking.payment_authorized_at);
+  const recentAuthorization = Number.isFinite(authorizationAgeMs)
+    && authorizationAgeMs >= -60_000
+    && authorizationAgeMs <= REAUTH_RECENT_WINDOW_MS;
+  const linkedReauthRecovery = isReauthorizationIntent(currentIntent)
+    && (hadReauthLock || recentAuthorization);
+  if (linkedReauthRecovery) {
+    return finishLinkedReauthorization({
+      sb,
+      stripe,
+      booking: lockedBooking,
+      operationKey,
+      newIntent: currentIntent,
+      oldPaymentIntentId: currentIntent.metadata.replacesPaymentIntentId,
+      expectedType: currentType,
+      expectedLivemode,
+      changed: false,
+      recovered: hadReauthLock,
+    });
+  }
+
+  const amount = Number(booking.total_price);
+  const customerId = stripeObjectId(booking.stripe_customer_id);
+  const paymentMethodId = stripeObjectId(currentIntent.payment_method);
+  if (!Number.isInteger(amount) || amount <= 0 || !customerId || !paymentMethodId) {
+    const released = await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: currentIntent.id,
+    });
+    return {
+      ok: false,
+      reason: released.ok ? 'missing_server_payment_source_truth' : 'safe_lock_release_failed',
+      ownerActionRequired: !released.ok,
+    };
+  }
+
+  const createResult = await createReauthorizationIntent({
+    stripe,
+    booking,
+    oldIntent: currentIntent,
+    amount,
+    customerId,
+    paymentMethodId,
+    originalType: currentType,
+    operationAttemptId,
+  });
+  const newIntent = createResult.paymentIntent;
+  if (!newIntent) {
+    if (createResult.ambiguous) {
+      await markReauthReconciliation(sb, {
+        booking: lockedBooking,
+        operationKey,
+        paymentIntentId: currentIntent.id,
+        reason: 'reauth_create_outcome_unconfirmed',
+      });
+      return {
+        ok: false,
+        reason: 'reauth_create_outcome_unconfirmed',
+        ownerActionRequired: true,
+        detail: createResult.error?.message || null,
+      };
+    }
+    const released = await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: currentIntent.id,
+      clearReconciliation: true,
+    });
+    return {
+      ok: false,
+      reason: released.ok ? (createResult.error?.code || 'reauth_create_failed') : 'safe_lock_release_failed',
+      authenticationRequired: createResult.error?.code === 'authentication_required',
+      ownerActionRequired: !released.ok,
+      detail: createResult.error?.message || null,
+    };
+  }
+
+  const newValidation = validateReauthorizationIntent(newIntent, {
+    booking,
+    expectedType: currentType,
+    expectedLivemode,
+    expectedPaymentMethodId: paymentMethodId,
+    replacesPaymentIntentId: currentIntent.id,
+    requireAuthorized: true,
+    requireReauthorizationMetadata: true,
+  });
+  if (!newValidation.ok) {
+    const cancellation = await cancelAndConfirmPaymentIntent({
+      stripe,
+      paymentIntent: newIntent,
+      expectedLivemode,
+      idempotencyKey: `booking-reauth-invalid-new-${booking.id}-${newIntent.id}`,
+    });
+    if (!cancellation.ok) {
+      await markReauthReconciliation(sb, {
+        booking: lockedBooking,
+        operationKey,
+        paymentIntentId: currentIntent.id,
+        reason: 'reauth_invalid_new_intent_cancellation_unconfirmed',
+      });
+      return {
+        ok: false,
+        reason: 'reauth_invalid_new_intent_cancellation_unconfirmed',
+        ownerActionRequired: true,
+      };
+    }
+    const released = await releaseExactReauthLock(sb, {
+      booking: lockedBooking,
+      operationKey,
+      paymentIntentId: currentIntent.id,
+      clearReconciliation: true,
+    });
+    return {
+      ok: false,
+      reason: released.ok
+        ? (createResult.error?.code || `new_payment_intent_invalid:${newValidation.errors.join(',')}`)
+        : 'safe_lock_release_failed',
+      authenticationRequired: released.ok && createResult.error?.code === 'authentication_required',
+      ownerActionRequired: !released.ok,
+    };
+  }
+
+  const linkResult = await linkNewReauthorization({
+    sb,
+    booking: lockedBooking,
+    operationKey,
+    oldPaymentIntentId: currentIntent.id,
+    newPaymentIntentId: newIntent.id,
+    nowIso,
+  });
+  if (!linkResult.ok) {
+    if (linkResult.ambiguous) {
+      await markReauthReconciliation(sb, {
+        booking: lockedBooking,
+        operationKey,
+        reason: 'reauth_database_link_outcome_unconfirmed',
+      });
+      return {
+        ok: false,
+        reason: 'reauth_database_link_outcome_unconfirmed',
+        ownerActionRequired: true,
+      };
+    }
+
+    if (!linkResult.newIntentLinked) {
+      const cancellation = await cancelAndConfirmPaymentIntent({
+        stripe,
+        paymentIntent: newIntent,
+        expectedLivemode,
+        idempotencyKey: `booking-reauth-unlinked-new-${booking.id}-${newIntent.id}`,
+      });
+      if (!cancellation.ok) {
+        await markReauthReconciliation(sb, {
+          booking: lockedBooking,
+          operationKey,
+          reason: 'reauth_unlinked_new_intent_cancellation_unconfirmed',
+        });
+        return {
+          ok: false,
+          reason: 'reauth_unlinked_new_intent_cancellation_unconfirmed',
+          ownerActionRequired: true,
+        };
+      }
+      const released = await releaseExactReauthLock(sb, {
+        booking: lockedBooking,
+        operationKey,
+        paymentIntentId: currentIntent.id,
+        clearReconciliation: true,
+      });
+      return {
+        ok: false,
+        reason: released.ok ? 'reauth_database_link_conflict' : 'safe_lock_release_failed',
+        ownerActionRequired: !released.ok,
+      };
+    }
+  }
+
+  return finishLinkedReauthorization({
+    sb,
+    stripe,
+    booking: { ...lockedBooking, stripe_payment_intent_id: newIntent.id, payment_authorized_at: nowIso },
+    operationKey,
+    newIntent,
+    oldPaymentIntentId: currentIntent.id,
+    expectedType: currentType,
+    expectedLivemode,
+    changed: true,
+    recovered: false,
+  });
+}
+
+async function finishLinkedReauthorization({
+  sb,
+  stripe,
+  booking,
+  operationKey,
+  newIntent,
+  oldPaymentIntentId,
+  expectedType,
+  expectedLivemode,
+  changed,
+  recovered,
+}) {
+  if (!oldPaymentIntentId || oldPaymentIntentId === newIntent.id) {
+    await markReauthReconciliation(sb, {
+      booking,
+      operationKey,
+      paymentIntentId: newIntent.id,
+      reason: 'reauth_replaced_intent_identity_invalid',
+    });
+    return { ok: false, reason: 'reauth_replaced_intent_identity_invalid', ownerActionRequired: true };
+  }
+
+  const newValidation = validateReauthorizationIntent(newIntent, {
+    booking,
+    expectedId: booking.stripe_payment_intent_id,
+    expectedType,
+    expectedLivemode,
+    replacesPaymentIntentId: oldPaymentIntentId,
+    requireAuthorized: true,
+    requireReauthorizationMetadata: true,
+  });
+  if (!newValidation.ok) {
+    await markReauthReconciliation(sb, {
+      booking,
+      operationKey,
+      paymentIntentId: newIntent.id,
+      reason: `reauth_linked_intent_invalid:${newValidation.errors.join(',')}`,
+    });
+    return { ok: false, reason: 'reauth_linked_intent_invalid', ownerActionRequired: true };
+  }
+
+  let oldIntent;
+  try {
+    oldIntent = await stripe.paymentIntents.retrieve(oldPaymentIntentId);
+  } catch (error) {
+    await markReauthReconciliation(sb, {
+      booking,
+      operationKey,
+      paymentIntentId: newIntent.id,
+      reason: 'reauth_old_intent_retrieve_unconfirmed',
+    });
+    return {
+      ok: false,
+      reason: 'reauth_old_intent_retrieve_unconfirmed',
+      ownerActionRequired: true,
+      detail: error?.message || String(error),
+    };
+  }
+
+  const oldValidation = validateReauthorizationIntent(oldIntent, {
+    booking,
+    expectedId: oldPaymentIntentId,
+    expectedType,
+    expectedLivemode,
+    requireAuthorized: false,
+  });
+  if (!oldValidation.ok) {
+    await markReauthReconciliation(sb, {
+      booking,
+      operationKey,
+      paymentIntentId: newIntent.id,
+      reason: `reauth_old_intent_invalid:${oldValidation.errors.join(',')}`,
+    });
+    return { ok: false, reason: 'reauth_old_intent_invalid', ownerActionRequired: true };
+  }
+
+  const releaseResult = await cancelAndConfirmPaymentIntent({
+    stripe,
+    paymentIntent: oldIntent,
+    expectedLivemode,
+    idempotencyKey: `booking-reauth-release-old-${booking.id}-${oldPaymentIntentId}`,
+  });
+  if (!releaseResult.ok) {
+    await markReauthReconciliation(sb, {
+      booking,
+      operationKey,
+      paymentIntentId: newIntent.id,
+      reason: 'reauth_old_hold_release_unconfirmed',
+    });
+    return {
+      ok: false,
+      reason: 'reauth_old_hold_release_unconfirmed',
+      ownerActionRequired: true,
+      detail: releaseResult.status || null,
+    };
+  }
+
+  const finalized = await releaseExactReauthLock(sb, {
+    booking,
+    operationKey,
+    paymentIntentId: newIntent.id,
+    clearReconciliation: true,
+  });
+  if (!finalized.ok) {
+    if (finalized.alreadyReleased) {
+      return { ok: true, changed, recovered, alreadyComplete: true };
+    }
+    await markReauthReconciliation(sb, {
+      booking,
+      operationKey,
+      paymentIntentId: newIntent.id,
+      reason: 'reauth_finalization_persistence_unconfirmed',
+    });
+    return { ok: false, reason: 'reauth_finalization_persistence_unconfirmed', ownerActionRequired: true };
+  }
+
+  return { ok: true, changed, recovered, alreadyComplete: !changed && !recovered };
+}
+
+async function createReauthorizationIntent({
+  stripe,
+  booking,
+  oldIntent,
+  amount,
+  customerId,
+  paymentMethodId,
+  originalType,
+  operationAttemptId,
+}) {
+  const params = {
+    amount,
+    currency: 'usd',
+    customer: customerId,
+    payment_method: paymentMethodId,
+    capture_method: 'manual',
+    confirm: true,
+    off_session: true,
+    metadata: {
+      bookingRef: booking.ref,
+      bookingId: booking.id,
+      type: originalType,
+      reauthorized: 'true',
+      originalPaymentType: originalType,
+      replacesPaymentIntentId: oldIntent.id,
+    },
+    // Keep every idempotent retry byte-for-byte stable even if non-financial
+    // display fields are edited after an earlier definitive failure.
+    description: `Payment reauthorization - ${booking.ref}`,
+  };
+  const options = { idempotencyKey: `booking-reauth-${booking.id}-${oldIntent.id}-${operationAttemptId}` };
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return { paymentIntent: await stripe.paymentIntents.create(params, options), error: null, ambiguous: false };
+    } catch (error) {
+      const errorIntentId = stripeObjectId(error?.payment_intent || error?.raw?.payment_intent);
+      if (errorIntentId) {
+        try {
+          const paymentIntent = await stripe.paymentIntents.retrieve(errorIntentId);
+          return { paymentIntent, error, ambiguous: false };
+        } catch (retrieveError) {
+          return { paymentIntent: null, error: retrieveError, ambiguous: true };
+        }
+      }
+      const ambiguous = isAmbiguousStripeMutationError(error);
+      if (!ambiguous || attempt === 1) return { paymentIntent: null, error, ambiguous };
+    }
+  }
+  return { paymentIntent: null, error: new Error('Stripe create outcome is unknown'), ambiguous: true };
+}
+
+async function linkNewReauthorization({ sb, booking, operationKey, oldPaymentIntentId, newPaymentIntentId, nowIso }) {
+  let query = sb.from('bookings').update({
+    stripe_payment_intent_id: newPaymentIntentId,
+    payment_authorized_at: nowIso,
+  })
+    .eq('id', booking.id)
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'authorized')
+    .eq('date', booking.date)
+    .eq('stripe_payment_intent_id', oldPaymentIntentId)
+    .eq('financial_operation_key', operationKey)
+    .eq('financial_operation_type', REAUTH_OPERATION_TYPE)
+    .eq('financial_operation_started_at', booking.financial_operation_started_at);
+  query = applyNullableEq(query, 'time', booking.time);
+  query = applyNullableEq(query, 'assembler_id', booking.assembler_id);
+  query = applyNullableEq(query, 'stripe_customer_id', booking.stripe_customer_id);
+  query = applyNullableEq(query, 'total_price', booking.total_price);
+  const { data, error } = await query.select('id');
+  if (!error && data?.length) return { ok: true, newIntentLinked: true, ambiguous: false };
+
+  const current = await loadCurrentReauthBooking(sb, booking.id);
+  if (current.error) return { ok: false, newIntentLinked: false, ambiguous: true };
+  return {
+    ok: current.booking?.stripe_payment_intent_id === newPaymentIntentId,
+    newIntentLinked: current.booking?.stripe_payment_intent_id === newPaymentIntentId,
+    ambiguous: false,
+    current: current.booking,
+  };
+}
+
+async function releaseExactReauthLock(sb, {
+  booking,
+  operationKey,
+  paymentIntentId,
+  clearReconciliation = false,
+}) {
+  const payload = {
+    financial_operation_key: null,
+    financial_operation_type: null,
+    financial_operation_started_at: null,
+  };
+  if (clearReconciliation) {
+    payload.financial_reconciliation_required_at = null;
+    payload.financial_reconciliation_reason = null;
+  }
+
+  let query = sb.from('bookings').update(payload)
+    .eq('id', booking.id)
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'authorized')
+    .eq('date', booking.date)
+    .eq('financial_operation_key', operationKey)
+    .eq('financial_operation_type', REAUTH_OPERATION_TYPE)
+    .eq('financial_operation_started_at', booking.financial_operation_started_at);
+  query = applyNullableEq(query, 'time', booking.time);
+  query = applyNullableEq(query, 'assembler_id', booking.assembler_id);
+  query = applyNullableEq(query, 'stripe_payment_intent_id', paymentIntentId);
+  query = applyNullableEq(query, 'stripe_customer_id', booking.stripe_customer_id);
+  query = applyNullableEq(query, 'total_price', booking.total_price);
+  const { data, error } = await query.select('id');
+  if (!error && data?.length) return { ok: true, alreadyReleased: false };
+
+  const current = await loadCurrentReauthBooking(sb, booking.id);
+  const alreadyReleased = !current.error
+    && current.booking?.status === 'confirmed'
+    && current.booking?.payment_status === 'authorized'
+    && current.booking?.date === booking.date
+    && current.booking?.stripe_payment_intent_id === paymentIntentId
+    && !current.booking?.financial_operation_key
+    && !current.booking?.financial_operation_type;
+  return { ok: alreadyReleased, alreadyReleased, error: error || current.error || null };
+}
+
+async function markReauthReconciliation(sb, {
+  booking,
+  operationKey,
+  paymentIntentId,
+  reason,
+}) {
+  let query = sb.from('bookings').update({
+    financial_reconciliation_required_at: new Date().toISOString(),
+    financial_reconciliation_reason: String(reason || 'reauth_payment_reconciliation_required').slice(0, 500),
+  })
+    .eq('id', booking.id)
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'authorized')
+    .eq('date', booking.date)
+    .eq('financial_operation_key', operationKey)
+    .eq('financial_operation_type', REAUTH_OPERATION_TYPE)
+    .eq('financial_operation_started_at', booking.financial_operation_started_at);
+  query = applyNullableEq(query, 'time', booking.time);
+  if (paymentIntentId !== undefined) query = applyNullableEq(query, 'stripe_payment_intent_id', paymentIntentId);
+  const { data, error } = await query.select('id');
+  if (error || !data?.length) {
+    console.error(`reauth-payments: reconciliation marker failed for ${booking.ref}:`, error?.message || 'booking state changed');
+    return false;
+  }
+  return true;
+}
+
+async function loadCurrentReauthBooking(sb, bookingId) {
+  const { data, error } = await sb.from('bookings')
+    .select('id, status, payment_status, date, time, assembler_id, total_price, stripe_customer_id, stripe_payment_intent_id, payment_authorized_at, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, financial_reconciliation_reason')
+    .eq('id', bookingId)
+    .maybeSingle();
+  return { booking: data || null, error: error || null };
+}
+
+async function cancelAndConfirmPaymentIntent({ stripe, paymentIntent, expectedLivemode, idempotencyKey }) {
+  let current = paymentIntent;
+  if (!current?.id) return { ok: false, ambiguous: true, status: null };
+  if (current.livemode !== expectedLivemode) return { ok: false, ambiguous: false, status: 'livemode_mismatch' };
+  if (current.status === 'canceled') return { ok: true, status: 'canceled' };
+  if (!CANCELABLE_PAYMENT_INTENT_STATUSES.has(current.status)) {
+    return { ok: false, ambiguous: false, status: current.status || 'unknown' };
+  }
+
+  try {
+    const cancelled = await stripe.paymentIntents.cancel(current.id, {}, { idempotencyKey });
+    if (cancelled?.id === current.id && cancelled?.livemode === expectedLivemode && cancelled?.status === 'canceled') {
+      return { ok: true, status: 'canceled' };
+    }
+  } catch (error) {
+    console.error(`reauth-payments: Stripe cancellation needs verification for ${current.id}:`, error?.message || error);
+  }
+
+  try {
+    current = await stripe.paymentIntents.retrieve(current.id);
+    return current?.id === paymentIntent.id
+      && current?.livemode === expectedLivemode
+      && current?.status === 'canceled'
+      ? { ok: true, status: 'canceled' }
+      : { ok: false, ambiguous: false, status: current?.status || 'unknown' };
+  } catch (error) {
+    return { ok: false, ambiguous: true, status: null, error };
+  }
+}
+
+export function validateReauthorizationIntent(intent, {
+  booking,
+  expectedId = null,
+  expectedType = null,
+  expectedLivemode,
+  expectedPaymentMethodId = null,
+  replacesPaymentIntentId = null,
+  requireAuthorized = true,
+  requireReauthorizationMetadata = false,
+} = {}) {
+  const errors = [];
+  const amount = Number(booking?.total_price);
+  const customerId = stripeObjectId(booking?.stripe_customer_id);
+  if (!intent?.id || (expectedId && intent.id !== expectedId)) errors.push('id');
+  if (requireAuthorized && intent?.status !== 'requires_capture') errors.push('status');
+  if (intent?.capture_method !== 'manual') errors.push('capture_method');
+  if (!Number.isInteger(amount) || amount <= 0 || Number(intent?.amount) !== amount) errors.push('amount');
+  if (requireAuthorized && Number(intent?.amount_capturable) !== amount) errors.push('amount_capturable');
+  if (String(intent?.currency || '').toLowerCase() !== 'usd') errors.push('currency');
+  if (!customerId || stripeObjectId(intent?.customer) !== customerId) errors.push('customer');
+  if (intent?.livemode !== expectedLivemode) errors.push('livemode');
+  if (intent?.metadata?.bookingId !== booking?.id) errors.push('metadata_booking_id');
+  if (intent?.metadata?.bookingRef !== booking?.ref) errors.push('metadata_booking_ref');
+  if (!expectedType || intent?.metadata?.type !== expectedType) errors.push('metadata_type');
+  if (expectedPaymentMethodId && stripeObjectId(intent?.payment_method) !== expectedPaymentMethodId) errors.push('payment_method');
+  if (requireReauthorizationMetadata) {
+    if (intent?.metadata?.reauthorized !== 'true') errors.push('metadata_reauthorized');
+    if (intent?.metadata?.originalPaymentType !== expectedType) errors.push('metadata_original_type');
+    if (!replacesPaymentIntentId || intent?.metadata?.replacesPaymentIntentId !== replacesPaymentIntentId) {
+      errors.push('metadata_replaces');
+    }
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+export function stripeLivemodeForSecret(secret) {
+  const value = String(secret || '').trim();
+  if (/^(?:sk|rk)_live_/.test(value)) return true;
+  if (/^(?:sk|rk)_test_/.test(value)) return false;
+  return null;
+}
+
+export function isAmbiguousStripeMutationError(error) {
+  if (!error) return true;
+  if (Number(error.statusCode) >= 500) return true;
+  if (['StripeAPIError', 'StripeConnectionError', 'StripeIdempotencyError', 'StripeRateLimitError'].includes(error.type)) return true;
+  return /(?:ECONNRESET|ETIMEDOUT|EAI_AGAIN|api[_ ]connection|network|timeout)/i.test(String(error.code || error.message || ''));
+}
+
+function originalPaymentType(intent) {
+  const type = intent?.metadata?.type;
+  if (!['customer_booking', 'customer_quote'].includes(type)) return null;
+  if (intent?.metadata?.reauthorized === 'true'
+      && intent?.metadata?.originalPaymentType !== type) return null;
+  return type;
+}
+
+function isReauthorizationIntent(intent) {
+  return intent?.metadata?.reauthorized === 'true'
+    && originalPaymentType(intent)
+    && !!intent?.metadata?.replacesPaymentIntentId;
+}
+
+function stripeObjectId(value) {
+  if (typeof value === 'string') return value.trim() || null;
+  if (value && typeof value.id === 'string') return value.id.trim() || null;
+  return null;
+}
+
+function applyNullableEq(query, field, value) {
+  return value == null ? query.is(field, null) : query.eq(field, value);
+}
+
+function reauthAttemptId(value) {
+  const normalized = String(value || '').replace(/[^a-z0-9]/gi, '');
+  return normalized || null;
+}
+
+async function sendAuthenticationRequiredAlert(booking) {
+  return sendEmail({
+    to: ownerEmail(),
+    from: 'AssembleAtEase <booking@assembleatease.com>',
+    subject: `ACTION REQUIRED: Card re-auth failed for ${booking.ref} — customer authentication required`,
+    html: `<p>The payment re-authorization for booking <strong>${esc(booking.ref)}</strong> (${esc(booking.customer_name)}, ${esc(booking.service)}, ${esc(booking.date)}) requires customer authentication.</p><p>The original authorization remains linked. Contact the customer before it expires.</p>`,
+    replyTo: 'service@assembleatease.com',
+    meta: { bookingId: booking.id, notificationType: 'payment_reauth_authentication_required', recipientType: 'owner' },
+  });
+}
+
+async function sendReauthOwnerAlert(booking, outcome) {
+  return sendEmail({
+    to: ownerEmail(),
+    from: 'AssembleAtEase <booking@assembleatease.com>',
+    subject: `ACTION REQUIRED: Payment re-authorization needs reconciliation — ${booking.ref}`,
+    html: `<p>Booking <strong>${esc(booking.ref)}</strong> is locked against further financial changes because payment re-authorization could not be safely finalized.</p><p>Reason: <strong>${esc(outcome.reason)}</strong></p><p>Review the booking's current and replacement PaymentIntents in Stripe before clearing the financial reconciliation marker.</p>`,
+    replyTo: 'service@assembleatease.com',
+    meta: { bookingId: booking.id, notificationType: 'payment_reauth_reconciliation_required', recipientType: 'owner' },
   });
 }
 

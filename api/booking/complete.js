@@ -8,7 +8,12 @@ import { writeFinancialAudit } from '../_financial-audit.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
-import { earnForBooking as earnAssembleCashForBooking } from '../_assemblecash.js';
+import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
+import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
+import { reserveBookingFinancialOperation } from './_financial-operation.js';
+import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
+import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
+import { captureOrRecoverBookingPayment } from './_stripe-booking-payment.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -25,18 +30,45 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
+  const operationKey = `complete:${booking.id}`;
   if (booking.status === BOOKING_STATUS.COMPLETED) {
+    if (booking.payment_status === 'captured'
+        && booking.financial_operation_key === operationKey
+        && ['completion_owner', 'completion_easer'].includes(booking.financial_operation_type)) {
+      const rewardResult = await finalizeCompletionRewards(sb, {
+        booking,
+        operationKey,
+        amountChargedCents: booking.amount_charged || booking.total_price,
+      });
+      if (!rewardResult.ok) {
+        await surfaceCompletionRewardHold(sb, booking, operationKey, rewardResult, {
+          actorType: 'owner', actorName: 'Owner', eventSource: 'booking_complete_owner_retry',
+        });
+      }
+      return res.status(rewardResult.ok ? 200 : 202).json({
+        success: true,
+        alreadyCompleted: true,
+        reconciliationRequired: !rewardResult.ok,
+        code: rewardResult.ok ? undefined : rewardResult.code,
+        booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
+      });
+    }
     return res.status(400).json({ error: 'Booking already completed. Payment already captured.' });
   }
   const capturedRecovery = booking.payment_status === 'captured';
   const positivePrice = Number(booking.total_price || 0) > 0;
+  if (!positivePrice) {
+    return res.status(409).json({ error: 'Set a positive final price before completing this booking.', code: 'PRICE_NOT_SET' });
+  }
   if (positivePrice && !['authorized', 'deposit_paid', 'captured'].includes(booking.payment_status)) {
     return res.status(409).json({
       error: 'Customer payment is not authorized. The booking was not completed and no Easer earnings were created.',
       code: 'PAYMENT_NOT_AUTHORIZED',
     });
   }
-  if (['authorized', 'captured'].includes(booking.payment_status) && !booking.stripe_payment_intent_id) {
+  if (['authorized', 'captured', 'deposit_paid'].includes(booking.payment_status)
+      && !booking.stripe_payment_intent_id
+      && !booking.stripe_deposit_intent_id) {
     return res.status(409).json({ error: 'Payment state has no Stripe PaymentIntent. Resolve payment before completion.' });
   }
   // Allow completion from any active pipeline state — Easer may have progressed through
@@ -48,10 +80,32 @@ export default async function handler(req, res) {
   if (transitionErr) {
     return res.status(400).json({ error: transitionErr });
   }
+  if (!booking.assembler_id || !booking.assembler_accepted_at) {
+    return res.status(409).json({
+      error: 'The assigned Easer must explicitly accept this job before completion.',
+      code: 'EASER_ACCEPTANCE_REQUIRED',
+    });
+  }
+  const appointmentGate = evaluateEaserAppointmentGate({
+    date: booking.date,
+    time: booking.time,
+    stage: 'completed',
+  });
+  if (!appointmentGate.allowed) return res.status(409).json(appointmentGate);
 
-  // ── Stripe: capture payment (or charge balance for deposit jobs) ──
-  let amountCharged = capturedRecovery ? Number(booking.amount_charged || 0) : 0;
-  let actualStripeFee = null; // actual Stripe fee (cents) from the balance transaction, if captured
+  const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);
+  if (completionEvidenceResult.error) {
+    console.error('Owner completion evidence lookup failed:', completionEvidenceResult.error);
+    return res.status(503).json({ error: 'Completion evidence could not be verified. No payment was captured.' });
+  }
+  const completionEvidence = completionEvidenceResult.evidence;
+  if (!completionEvidence) {
+    return res.status(409).json({
+      error: 'A completion photo from the current assigned Easer, uploaded after work started, is required before completion.',
+      code: 'COMPLETION_EVIDENCE_REQUIRED',
+    });
+  }
+
   const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
   if ((captureRequired || capturedRecovery) && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({
@@ -60,108 +114,52 @@ export default async function handler(req, res) {
     });
   }
 
+  let feeSnapshot;
+  try {
+    feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, booking.assembler_id);
+  } catch (feeError) {
+    console.error('Owner completion fee snapshot error:', feeError);
+    return res.status(503).json({ error: feeError.message, code: feeError.code });
+  }
+
+  // Owner and Easer completion share one deterministic key. If Stripe succeeds
+  // but one caller loses its response, either trusted completion path can safely
+  // reconcile the same charge without creating a second financial operation.
+  try {
+    await reserveBookingFinancialOperation(sb, {
+      bookingId: booking.id,
+      operationKey,
+      operationType: 'completion_owner',
+      expectedStatuses: [BOOKING_STATUS.IN_PROGRESS],
+      expectedAssemblerId: booking.assembler_id,
+      expectedDate: booking.date,
+      expectedTime: booking.time,
+      checkAppointment: true,
+      expectedBooking: booking,
+    });
+  } catch (reservationError) {
+    return res.status(reservationError.code === 'FINANCIAL_OPERATION_CONFLICT' ? 409 : 503).json({
+      error: reservationError.message,
+      code: reservationError.code,
+    });
+  }
+
+  let amountCharged = 0;
+  let actualStripeFee = null;
+  let balancePaymentIntentId = booking.stripe_balance_payment_intent_id || null;
+  let balanceAmountCaptured = booking.stripe_balance_amount_captured ?? null;
   if (process.env.STRIPE_SECRET_KEY) {
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-      if (capturedRecovery) {
-        const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id, { expand: ['latest_charge.balance_transaction'] });
-        const validCapturedIntent = pi.status === 'succeeded'
-          && pi.currency === 'usd'
-          && pi.amount_received === Number(booking.amount_charged || 0)
-          && pi.metadata?.bookingId === booking.id
-          && ['customer_booking', 'customer_quote', 'customer_booking_balance'].includes(pi.metadata?.type);
-        if (!validCapturedIntent) throw new Error('Captured Stripe payment does not match this booking recovery.');
-        amountCharged = pi.amount_received;
-        const recoveryBt = pi.latest_charge && pi.latest_charge.balance_transaction;
-        if (recoveryBt && typeof recoveryBt.fee === 'number') actualStripeFee = recoveryBt.fee;
-      }
-
-      if (booking.stripe_payment_intent_id && booking.payment_status === 'authorized') {
-        const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-        const validIntent = pi.status === 'requires_capture'
-          && pi.capture_method === 'manual'
-          && pi.currency === 'usd'
-          && pi.amount === Number(booking.total_price || 0)
-          && pi.metadata?.bookingId === booking.id
-          && ['customer_booking', 'customer_quote'].includes(pi.metadata?.type);
-        if (!validIntent) {
-          const mismatch = new Error('Stripe authorization is not capturable or does not match this booking.');
-          mismatch.code = 'PAYMENT_INTENT_MISMATCH';
-          throw mismatch;
-        }
-        // Shared with assembler-complete.js so owner/Easer races cannot create
-        // two distinct Stripe capture attempts for the same booking.
-        const idempotencyKey = `booking-complete-capture-${booking.id}`;
-        await writeFinancialAudit(sb, {
-          eventType: 'capture_attempt',
-          eventSource: 'booking_complete_owner',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey,
-          status: 'processing',
-          metadata: { ref: booking.ref },
-        });
-
-        const captured = await stripe.paymentIntents.capture(
-          booking.stripe_payment_intent_id,
-          { expand: ['latest_charge.balance_transaction'] },
-          { idempotencyKey },
-        );
-        amountCharged = captured.amount_received;
-        const _bt = captured.latest_charge && captured.latest_charge.balance_transaction;
-        if (_bt && typeof _bt.fee === 'number') actualStripeFee = _bt.fee;
-
-        await writeFinancialAudit(sb, {
-          eventType: 'capture_attempt',
-          eventSource: 'booking_complete_owner',
-          bookingId: booking.id,
-          paymentIntentId: booking.stripe_payment_intent_id,
-          idempotencyKey,
-          status: 'processed',
-          metadata: { ref: booking.ref, amountCharged: amountCharged || 0 },
-        });
-
-      } else if (booking.payment_status === 'deposit_paid' && booking.stripe_customer_id && booking.stripe_payment_method_id) {
-        // Deposit already taken — charge the remaining 75% off-session
-        const balanceCents = (booking.total_price || 0) - (booking.deposit_amount || 0);
-        if (balanceCents > 0) {
-          const idempotencyKey = `booking-complete-balance-${booking.id}`;
-          await writeFinancialAudit(sb, {
-            eventType: 'capture_recovery_attempt',
-            eventSource: 'booking_complete_owner',
-            bookingId: booking.id,
-            paymentIntentId: booking.stripe_payment_intent_id,
-            idempotencyKey,
-            status: 'processing',
-            metadata: { ref: booking.ref, balanceCents },
-          });
-
-          const balancePI = await stripe.paymentIntents.create({
-            amount: balanceCents,
-            currency: 'usd',
-            customer: booking.stripe_customer_id,
-            payment_method: booking.stripe_payment_method_id,
-            confirm: true,
-            off_session: true,
-            metadata: { bookingRef: booking.ref, bookingId: booking.id, type: 'customer_booking_balance' },
-            description: `Balance — ${booking.service} — ${booking.customer_name}`,
-          }, { idempotencyKey });
-          amountCharged = (booking.deposit_amount || 0) + (balancePI.amount_received || balanceCents);
-
-          await writeFinancialAudit(sb, {
-            eventType: 'capture_recovery_attempt',
-            eventSource: 'booking_complete_owner',
-            bookingId: booking.id,
-            paymentIntentId: balancePI.id,
-            idempotencyKey,
-            status: 'processed',
-            metadata: { ref: booking.ref, amountCharged: amountCharged || 0 },
-          });
-        } else {
-          amountCharged = booking.deposit_amount || 0;
-        }
-      }
+      const paymentResult = await captureOrRecoverBookingPayment({
+        stripe: new Stripe(process.env.STRIPE_SECRET_KEY),
+        sb,
+        booking,
+        eventSource: 'booking_complete_owner',
+      });
+      amountCharged = paymentResult.amountCharged;
+      actualStripeFee = paymentResult.actualStripeFee;
+      balancePaymentIntentId = paymentResult.balancePaymentIntentId;
+      balanceAmountCaptured = paymentResult.balanceAmountCaptured;
     } catch (stripeErr) {
       console.error('Stripe capture error:', stripeErr);
       await writeFinancialAudit(sb, {
@@ -193,7 +191,7 @@ export default async function handler(req, res) {
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #fecaca"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#991b1b">Payment Capture Failed</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">The automatic payment capture for booking <strong>${esc(booking.ref)}</strong> failed. The job has been marked complete but payment was NOT collected. Manual resolution required.</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">The automatic payment capture for booking <strong>${esc(booking.ref)}</strong> failed. The booking was not marked complete and no Easer earnings were created. Manual resolution is required before retrying completion.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px">
       <table width="100%">
         <tr><td style="padding:5px 0;color:#71717a;width:120px">Reference</td><td style="padding:5px 0;font-weight:600">${esc(booking.ref)}</td></tr>
@@ -235,27 +233,10 @@ export default async function handler(req, res) {
   // Canonical money split — tax is a pass-through liability and is EXCLUDED from
   // the fee/payout base. AssembleCash is funded by platform margin, so it must
   // never reduce the Easer's payout basis.
-  let isMember = false;
-  if (booking.assembler_id) {
-    const { data: asmProf } = await sb.from('profiles').select('has_membership').eq('id', booking.assembler_id).single();
-    isMember = asmProf?.has_membership === true;
-  }
-  if (booking.status !== BOOKING_STATUS.IN_PROGRESS) {
-    return res.status(409).json({
-      error: 'Owner completion is available only after the Easer has arrived and started work.',
-      code: 'WORK_NOT_STARTED',
-    });
-  }
-  if (booking.assembler_id && !booking.assembler_accepted_at) {
-    return res.status(409).json({
-      error: 'The assigned Easer has not explicitly accepted this job.',
-      code: 'EASER_ACCEPTANCE_REQUIRED',
-    });
-  }
   const split = computeBookingSplitFromSnapshot({
     amountChargedCents: finalAmountCharged,
     taxCents: booking.tax_amount || 0,
-    isMember,
+    feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
   });
   const PLATFORM_FEE_PCT = split.feePct;
@@ -267,9 +248,7 @@ export default async function handler(req, res) {
   // Atomic guard: only update if not already completed or captured.
   // If another request beat us here (double-click, retry, race with assembler-complete),
   // 0 rows will be updated and we return 400 instead of overwriting.
-  let completionUpdate = sb
-    .from('bookings')
-    .update({
+  const completionPayload = {
       status: BOOKING_STATUS.COMPLETED,
       completed_at: new Date().toISOString(),
       payment_status: 'captured',
@@ -279,10 +258,23 @@ export default async function handler(req, res) {
       platform_fee: platformFee,
       assembler_due: assemblerDue,
       payout_status: payoutStatus,
-    })
+      payout_mode_snapshot: payoutStatus
+        ? (isStripeConnectEnabled() ? 'stripe_connect' : 'manual')
+        : null,
+      payout_review_status: 'not_required',
+      stripe_balance_payment_intent_id: balancePaymentIntentId,
+      stripe_balance_amount_captured: balanceAmountCaptured,
+      financial_reconciliation_required_at: null,
+      financial_reconciliation_reason: null,
+    };
+  if (actualStripeFee != null) completionPayload.stripe_fee = actualStripeFee;
+  const completionUpdate = sb
+    .from('bookings')
+    .update(completionPayload)
     .eq('id', booking.id)
-    .neq('status', BOOKING_STATUS.COMPLETED);
-  if (!capturedRecovery) completionUpdate = completionUpdate.neq('payment_status', 'captured');
+    .eq('status', BOOKING_STATUS.IN_PROGRESS)
+    .eq('assembler_id', booking.assembler_id)
+    .eq('financial_operation_key', operationKey);
   const { error: updateErr, data: updatedRows } = await completionUpdate.select('id');
 
   if (updateErr) {
@@ -292,14 +284,30 @@ export default async function handler(req, res) {
   if (!updatedRows || updatedRows.length === 0) {
     const { data: current } = await sb
       .from('bookings')
-      .select('id, ref, status, payment_status, payout_status, stripe_transfer_id, stripe_destination_account_id')
+      .select('*')
       .eq('id', booking.id)
       .maybeSingle();
 
-    if (current?.status === BOOKING_STATUS.COMPLETED || current?.payment_status === 'captured') {
-      return res.status(200).json({
+    if (current?.status === BOOKING_STATUS.COMPLETED && current?.payment_status === 'captured') {
+      let recoveryResult = { ok: true };
+      if (current.financial_operation_key === operationKey
+          && ['completion_owner', 'completion_easer'].includes(current.financial_operation_type)) {
+        recoveryResult = await finalizeCompletionRewards(sb, {
+          booking: current,
+          operationKey,
+          amountChargedCents: current.amount_charged || current.total_price,
+        });
+        if (!recoveryResult.ok) {
+          await surfaceCompletionRewardHold(sb, current, operationKey, recoveryResult, {
+            actorType: 'owner', actorName: 'Owner', eventSource: 'booking_complete_owner_race_recovery',
+          });
+        }
+      }
+      return res.status(recoveryResult.ok ? 200 : 202).json({
         success: true,
         alreadyCompleted: true,
+        reconciliationRequired: !recoveryResult.ok,
+        code: recoveryResult.ok ? undefined : recoveryResult.code,
         booking: { id: booking.id, ref: booking.ref, status: current.status || BOOKING_STATUS.COMPLETED },
         payout: current.stripe_transfer_id
           ? {
@@ -317,15 +325,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // Store the actual Stripe fee (best-effort, non-fatal — survives a not-yet-applied
-  // migration where the stripe_fee column is missing).
-  if (actualStripeFee != null) {
-    try {
-      const { error: feeErr } = await sb.from('bookings').update({ stripe_fee: actualStripeFee }).eq('id', booking.id);
-      if (feeErr) console.warn('stripe_fee store skipped (run migration 011):', feeErr.message || feeErr);
-    } catch (e) { console.warn('stripe_fee store error:', e && (e.message || e)); }
-  }
-
   // Keep owner-complete aligned with assembler-complete: payouts are held first,
   // then released by cron/manual payout after the review window. This preserves a
   // single payout source of truth and avoids immediate-transfer drift.
@@ -335,39 +334,55 @@ export default async function handler(req, res) {
       : { status: 'pending_manual', reason: 'connect-disabled' };
   }
 
-  if ((captureRequired || capturedRecovery) && amountCharged > 0 && booking.customer_email) {
-    try {
-      const earned = await earnAssembleCashForBooking(sb, {
-        bookingId: booking.id,
-        bookingRef: booking.ref,
-        customerEmail: booking.customer_email,
-        amountChargedCents: finalAmountCharged,
-      });
-      if (earned > 0) await sb.from('bookings').update({ assemblecash_earned_cents: earned }).eq('id', booking.id);
-    } catch (earnErr) {
-      console.warn('AssembleCash earn skipped:', earnErr?.message || earnErr);
-    }
+  // Keep the exact completion reservation until the ledger reward and booking
+  // reward summary are both verified. A refund cannot start while this key is
+  // held. Any ambiguity leaves an owner-visible reconciliation marker.
+  const rewardResult = await finalizeCompletionRewards(sb, {
+    booking: {
+      ...booking,
+      status: BOOKING_STATUS.COMPLETED,
+      payment_status: 'captured',
+      amount_charged: finalAmountCharged,
+    },
+    operationKey,
+    amountChargedCents: finalAmountCharged,
+  });
+  if (!rewardResult.ok) {
+    await surfaceCompletionRewardHold(sb, booking, operationKey, rewardResult, {
+      actorType: 'owner', actorName: 'Owner', eventSource: 'booking_complete_owner',
+    });
   }
 
-  // Increment assembler's completed_jobs atomically via RPC (prevents lost-update race
-  // between simultaneous owner + assembler complete calls).
-  // Requires: CREATE FUNCTION increment_completed_jobs(user_id UUID) in Supabase (see migrations).
+  // Keep the profile display cache aligned with canonical booking earnings.
   if (booking.assembler_id) {
     try {
-      const { error: rpcErr } = await sb.rpc('increment_completed_jobs', { user_id: booking.assembler_id });
-      if (rpcErr) {
-        console.warn('increment_completed_jobs RPC missing — run migration 002 in Supabase.');
-        const { data: prof } = await sb.from('profiles').select('completed_jobs').eq('id', booking.assembler_id).single();
-        await sb.from('profiles').update({ completed_jobs: (prof?.completed_jobs || 0) + 1 }).eq('id', booking.assembler_id);
-      }
+      const { error: rpcErr } = await sb.rpc('increment_profile_counters', {
+        user_id: booking.assembler_id,
+        earned_cents: assemblerDue,
+      });
+      if (rpcErr) console.error('profile counters RPC failed — counter needs reconciliation:', rpcErr.message);
     } catch (countErr) {
-      console.error('completed_jobs increment error:', countErr);
+      console.error('profile counters increment error:', countErr);
     }
     // Job is done — release the Easer's daily slot
     adjustActiveJobs(sb, booking.assembler_id, -1).catch(() => {});
   }
   try {
     const amountDisplay = finalAmountCharged > 0 ? `$${(finalAmountCharged / 100).toFixed(2)}` : null;
+    let photoBlock = '';
+    try {
+      const { data: signed } = await sb.storage
+        .from('booking-evidence')
+        .createSignedUrl(completionEvidence.storage_path, 60 * 60 * 24 * 30);
+      if (signed?.signedUrl) {
+        photoBlock = `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr><td>
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#374151">Here's a photo of the finished work:</p>
+          <img src="${signed.signedUrl}" alt="Completed ${esc(booking.service)}" style="width:100%;max-width:520px;border-radius:10px;border:1px solid #e4e4e7;display:block"/>
+        </td></tr></table>`;
+      }
+    } catch (photoError) {
+      console.error('Owner completion photo signed-url error:', photoError?.message || photoError);
+    }
     const receiptBlock = amountDisplay ? `
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
         <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment Receipt</p>
@@ -390,6 +405,7 @@ export default async function handler(req, res) {
       headline: `Your job is complete!`,
       bodyHtml: `
         <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service has been completed. Thank you for choosing AssembleAtEase!</p>
+        ${photoBlock}
         ${receiptBlock}
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#00BFFF;font-weight:600">book your next service</a> anytime.</p>`,
     });
@@ -415,9 +431,11 @@ export default async function handler(req, res) {
   }
 
   logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((finalAmountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged: finalAmountCharged, platformFee, assemblerDue } });
-  return res.status(200).json({
+  return res.status(rewardResult.ok ? 200 : 202).json({
     success: true,
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
     payout: connectPayout,
+    reconciliationRequired: !rewardResult.ok,
+    code: rewardResult.ok ? undefined : rewardResult.code,
   });
 }

@@ -3,6 +3,7 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { appointmentTimestampMs } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
+import { formatUsPhone } from '../_phone.js';
 
 /**
  * GET /api/cron/ops-alert  — every 30 min.
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
       <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">
         <div style="font-size:14px;font-weight:700;color:#111">${esc(b.ref)} &bull; ${esc(b.service || '')}</div>
         <div style="font-size:13px;color:#52525b;margin-top:2px">${esc(label)}</div>
-        <div style="font-size:12px;color:#71717a;margin-top:2px">${esc(b.customer_name || '')}${b.customer_phone ? ' &bull; <a href="tel:' + esc(b.customer_phone) + '" style="color:#00BFFF">' + esc(b.customer_phone) + '</a>' : ''}</div>
+        <div style="font-size:12px;color:#71717a;margin-top:2px">${esc(b.customer_name || '')}${formatUsPhone(b.customer_phone) ? ' &bull; <a href="tel:' + esc(b.customer_phone) + '" style="color:#00BFFF">' + esc(formatUsPhone(b.customer_phone)) + '</a>' : ''}</div>
       </td>
     </tr>`).join('');
 

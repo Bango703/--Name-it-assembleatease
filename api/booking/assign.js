@@ -3,8 +3,9 @@ import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
+import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -32,59 +33,121 @@ export default async function handler(req, res) {
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
+  if (!isBookingPaymentReadyForDispatch(booking)) {
+    return res.status(409).json({
+      error: 'Payment is not verified for assignment. Reconcile Stripe before assigning an Easer.',
+      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
+    });
+  }
+  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
+    return res.status(409).json({ error: 'A payment, cancellation, or payout operation is in progress. Wait for it to finish before changing the Easer.' });
+  }
   if (booking.assembler_id && !reassign) return res.status(400).json({ error: 'Booking already assigned. Pass reassign:true to override.' });
 
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, status, application_status, tier, has_membership, identity_verified, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, full_name, email, phone, status, application_status, tier, has_membership, identity_verified, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
-    .single();
+    .maybeSingle();
 
-  if (aErr || !assembler) return res.status(404).json({ error: 'Easer not found' });
+  if (aErr) {
+    console.error('Assign Easer profile lookup error:', aErr);
+    return res.status(503).json({ error: 'Easer membership status could not be verified. Assignment was not changed.' });
+  }
+  if (!assembler) return res.status(404).json({ error: 'Easer not found' });
   const readiness = await getEaserReadiness(assembler);
   if (!readiness.isReady) return res.status(400).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
   const assemblerTier = readiness.tier;
 
-  // Cancel any open dispatch offers so Easers don't get a stale offer email
-  await sb.from('dispatch_offers')
-    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
-    .eq('booking_id', bookingId)
-    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
-
   // Generate secure assignment token
   const token = crypto.randomUUID();
+  const assignedAt = new Date().toISOString();
+  let feeSnapshot;
+  try {
+    feeSnapshot = buildEaserFeeSnapshot(booking, assembler, { snapshottedAt: assignedAt });
+  } catch (snapshotError) {
+    console.error('Assign Easer fee snapshot error:', snapshotError);
+    return res.status(503).json({ error: 'Easer membership status could not be verified. Assignment was not changed.' });
+  }
 
-  // Atomic CAS: for new assignments, only proceed if still unassigned
-  const updateQuery = sb.from('bookings').update({
+  // Atomic CAS: assign only if the booking is still confirmed and still has the
+  // exact current assignment state read above. This prevents owner assignment
+  // from reviving a cancelled job or overwriting a competing acceptance.
+  let updateQuery = sb.from('bookings').update({
     assembler_id: assemblerId,
     assembler_name: assembler.full_name,
     assembler_tier: assemblerTier,
-    assigned_at: new Date().toISOString(),
+    assigned_at: assignedAt,
     assignment_token: token,
     assembler_accepted_at: null,
     dispatch_token: null,
     dispatch_status: 'assigned_pending_acceptance',
     dispatch_paused: true,       // pause auto-dispatch once manually assigned
     needs_manual_dispatch: false,
-  }).eq('id', bookingId);
+    ...feeSnapshot.updates,
+  })
+    .eq('id', bookingId)
+    .eq('status', BOOKING_STATUS.CONFIRMED)
+    .eq('payment_status', booking.payment_status)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
 
-  const { error: updateErr } = reassign
-    ? await updateQuery                            // reassign: override any current assignment
-    : await updateQuery.is('assembler_id', null);  // new assign: atomic guard
+  updateQuery = booking.total_price == null
+    ? updateQuery.is('total_price', null)
+    : updateQuery.eq('total_price', booking.total_price);
+  updateQuery = booking.stripe_payment_intent_id == null
+    ? updateQuery.is('stripe_payment_intent_id', null)
+    : updateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+  updateQuery = booking.stripe_deposit_intent_id == null
+    ? updateQuery.is('stripe_deposit_intent_id', null)
+    : updateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
+
+  if (reassign && booking.assembler_id) {
+    updateQuery = updateQuery.eq('assembler_id', booking.assembler_id);
+    updateQuery = booking.assigned_at == null
+      ? updateQuery.is('assigned_at', null)
+      : updateQuery.eq('assigned_at', booking.assigned_at);
+  } else {
+    updateQuery = updateQuery.is('assembler_id', null);
+  }
+
+  const { data: assignedRows, error: updateErr } = await updateQuery.select('id, assembler_id');
 
   if (updateErr) {
     console.error('Assign booking error:', updateErr);
-    return res.status(500).json({ error: 'Failed to assign booking' });
+    const guardConflict = ['23503', '23514', '40001'].includes(updateErr.code)
+      || /Easer|assignment|readiness|eligible|closure|available/i.test(updateErr.message || '');
+    return res.status(guardConflict ? 409 : 500).json({
+      error: guardConflict
+        ? 'The booking or Easer readiness changed before assignment. Refresh and try again.'
+        : 'Failed to assign booking',
+      code: guardConflict ? 'EASER_ASSIGNMENT_READINESS_CHANGED' : 'BOOKING_ASSIGNMENT_FAILED',
+    });
+  }
+  if (!assignedRows?.length) {
+    return res.status(409).json({ error: 'Booking changed before assignment. Refresh and try again.' });
   }
 
-  // Verify the assignment actually landed (for non-reassign CAS check)
-  if (!reassign) {
-    const { data: check } = await sb.from('bookings').select('assembler_id').eq('id', bookingId).single();
-    if (!check || check.assembler_id !== assemblerId) {
-      return res.status(409).json({ error: 'Booking was just assigned to another Easer. Refresh and try again.' });
-    }
+  // Cancel open auto-dispatch offers only after the assignment CAS succeeds. If
+  // the CAS loses, this owner request must not cancel the winning Easer's offer.
+  const { error: offerCleanupError } = await sb.from('dispatch_offers')
+    .update({ offer_status: DISPATCH_OFFER_STATUS.CANCELLED })
+    .eq('booking_id', bookingId)
+    .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
+
+  if (offerCleanupError) {
+    console.error('Assign offer cleanup error:', offerCleanupError);
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'assignment_offer_cleanup_failed',
+      actorType: 'system',
+      actorName: 'dispatch',
+      description: `Booking assigned to ${assembler.full_name}, but open offer cleanup failed`,
+      metadata: { error: offerCleanupError.message || String(offerCleanupError) },
+    });
   }
 
   // Update active_jobs_today counters (best-effort, non-blocking):
@@ -102,14 +165,7 @@ export default async function handler(req, res) {
   const firstName = (assembler.full_name || 'Easer').split(' ')[0];
   const acceptUrl = `${SITE}/assembler/my-assignments?accept=${bookingId}&token=${token}`;
   const declineUrl = `${SITE}/assembler/my-assignments?decline=${bookingId}&token=${token}`;
-  const estimatedPayCents = Number(booking.total_price || 0) > 0
-    ? computeBookingSplitFromSnapshot({
-        totalPriceCents: booking.total_price,
-        taxCents: booking.tax_amount || 0,
-        isMember: assembler.has_membership === true,
-        assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
-      }).assemblerDueCents
-    : 0;
+  const estimatedPayCents = feeSnapshot.estimatedDueCents;
 
   let emailResult = { ok: false, error: 'Missing Easer email' };
   try {
@@ -160,6 +216,8 @@ export default async function handler(req, res) {
       previousAssemblerId: prevEaserId || null,
       previousAssemblerName: booking.assembler_name || null,
       tier: assemblerTier,
+      easerFeePctSnapshot: feeSnapshot.feePct,
+      easerEstimatedDueSnapshot: feeSnapshot.estimatedDueCents,
     },
   });
 
@@ -201,7 +259,10 @@ export default async function handler(req, res) {
       email: emailResult,
       push: pushResult,
     },
-    warning: notificationDelivered ? null : 'Assigned, but the Easer notification needs owner follow-up.',
+    warning: [
+      notificationDelivered ? null : 'Assigned, but the Easer notification needs owner follow-up.',
+      offerCleanupError ? 'Assigned, but stale offer cleanup needs owner follow-up.' : null,
+    ].filter(Boolean).join(' ') || null,
   });
 }
 

@@ -5,6 +5,8 @@ import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { rateLimit } from '../_ratelimit.js';
 import { randomToken, sha256 } from '../_payment-security.js';
+import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
+import { logActivity } from '../booking/_activity.js';
 
 const QUOTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const QUOTE_TERMS_VERSION = '2026-07-cancellation-v1';
@@ -36,6 +38,21 @@ async function prepareQuote(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb.from('bookings').select('*').eq('id', bookingId).single();
   if (error || !booking) return res.status(404).json({ error: 'Booking not found' });
+  if (hasActiveFinancialOperation(booking)) {
+    return res.status(409).json({
+      error: 'Another payment or cancellation operation is in progress. Resolve it before issuing a quote.',
+      code: 'FINANCIAL_OPERATION_IN_PROGRESS',
+    });
+  }
+  if (booking.status !== BOOKING_STATUS.PENDING) {
+    return res.status(409).json({ error: 'Only a pending quote request can be priced. This booking is already closed or active.' });
+  }
+  if (!['card_saved', 'quote_pending_approval'].includes(String(booking.payment_status || ''))) {
+    return res.status(409).json({
+      error: 'This booking is not in a quote-pricing state. Reconcile its payment status before issuing a quote.',
+      code: 'QUOTE_STATE_MISMATCH',
+    });
+  }
   if (!booking.stripe_customer_id || !booking.stripe_payment_method_id) {
     return res.status(400).json({
       error: 'No saved payment method on this booking. Customer must submit a new quote request with a card.',
@@ -59,7 +76,7 @@ async function prepareQuote(req, res) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + QUOTE_TTL_MS);
 
-  const { error: updateErr } = await sb.from('bookings').update({
+  let quoteUpdate = sb.from('bookings').update({
     quote_amount_cents: priceCents,
     quote_subtotal_cents: subtotalCents,
     quote_tax_cents: taxCents,
@@ -71,11 +88,29 @@ async function prepareQuote(req, res) {
     quote_terms_version: QUOTE_TERMS_VERSION,
     stripe_payment_intent_id: null,
     payment_status: 'quote_pending_approval',
-  }).eq('id', booking.id);
+  })
+    .eq('id', booking.id)
+    .eq('status', BOOKING_STATUS.PENDING)
+    .eq('payment_status', booking.payment_status)
+    .is('stripe_payment_intent_id', null)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+  // Repricing leaves payment_status as quote_pending_approval, so that status
+  // alone is not a sufficient compare-and-set guard. Match the prior token as
+  // well so two owner requests cannot both issue different live quote links.
+  quoteUpdate = booking.quote_token_hash
+    ? quoteUpdate.eq('quote_token_hash', booking.quote_token_hash)
+    : quoteUpdate.is('quote_token_hash', null);
+  const { data: quoteRows, error: updateErr } = await quoteUpdate.select('id');
 
-  if (updateErr) {
+  if (updateErr || !quoteRows?.length) {
     console.error('quote prepare update failed:', updateErr);
-    return res.status(500).json({ error: 'Could not save the quote approval request.' });
+    return res.status(updateErr ? 500 : 409).json({
+      error: updateErr
+        ? 'Could not save the quote approval request.'
+        : 'Booking state changed before the quote could be saved. Refresh and review it before retrying.',
+    });
   }
 
   const site = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
@@ -101,16 +136,24 @@ async function prepareQuote(req, res) {
 }
 
 async function renderQuoteApproval(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.setHeader('Referrer-Policy', 'no-referrer');
   const token = String(req.query?.token || '');
   if (!token) return res.status(400).send('Missing quote approval token.');
 
   const sb = getSupabase();
   const { data: booking } = await sb.from('bookings')
-    .select('id, ref, service, customer_name, date, time, quote_amount_cents, quote_subtotal_cents, quote_tax_cents, quote_expires_at, quote_approved_at, quote_token_hash')
+    .select('id, ref, service, status, payment_status, customer_name, date, time, quote_amount_cents, quote_subtotal_cents, quote_tax_cents, quote_expires_at, quote_approved_at, quote_token_hash, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
     .eq('quote_token_hash', sha256(token))
     .maybeSingle();
 
-  if (!booking || booking.quote_approved_at || !booking.quote_amount_cents) {
+  if (!booking
+      || hasActiveFinancialOperation(booking)
+      || booking.status !== BOOKING_STATUS.PENDING
+      || !['quote_pending_approval', 'quote_authorization_pending'].includes(String(booking.payment_status || ''))
+      || booking.quote_approved_at
+      || !booking.quote_amount_cents) {
     return res.status(410).send(buildSimplePage('This quote link is no longer available.', 'Contact AssembleAtEase if you need a new quote.'));
   }
   if (!booking.quote_expires_at || Date.parse(booking.quote_expires_at) <= Date.now()) {
@@ -123,7 +166,6 @@ async function renderQuoteApproval(req, res) {
   }
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
   return res.status(200).send(buildApprovalPage({ booking, token, publishableKey }));
 }
 
@@ -141,11 +183,23 @@ async function authorizeCustomerApprovedQuote(req, res) {
   const token = String(req.body?.token || '');
   const action = String(req.body?.action || 'authorize');
   if (!token) return res.status(400).json({ error: 'Approval token required.' });
+  if (!['authorize', 'finalize'].includes(action)) return res.status(400).json({ error: 'Invalid quote approval action.' });
 
   const tokenHash = sha256(token);
   const sb = getSupabase();
   const { data: booking } = await sb.from('bookings').select('*').eq('quote_token_hash', tokenHash).maybeSingle();
-  if (!booking || booking.quote_approved_at) return res.status(410).json({ error: 'This quote link is no longer available.' });
+  if (!booking
+      || booking.status !== BOOKING_STATUS.PENDING
+      || !['quote_pending_approval', 'quote_authorization_pending'].includes(String(booking.payment_status || ''))
+      || booking.quote_approved_at) {
+    return res.status(410).json({ error: 'This quote link is no longer available.' });
+  }
+  if (hasActiveFinancialOperation(booking)) {
+    return res.status(409).json({
+      error: 'Another payment or cancellation operation is in progress. Try this quote again later.',
+      code: 'FINANCIAL_OPERATION_IN_PROGRESS',
+    });
+  }
   if (!booking.quote_expires_at || Date.parse(booking.quote_expires_at) <= Date.now()) {
     return res.status(410).json({ error: 'This quote has expired. Contact AssembleAtEase for a new quote.' });
   }
@@ -159,6 +213,11 @@ async function authorizeCustomerApprovedQuote(req, res) {
     let pi = null;
     if (booking.stripe_payment_intent_id) {
       pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+      const intentValidation = validateQuotePaymentIntent(booking, pi);
+      if (!intentValidation.ok) {
+        console.error('[quote-approve] Stored PaymentIntent mismatch:', intentValidation.errors);
+        return res.status(409).json({ error: 'Stripe authorization does not match this quote. Contact AssembleAtEase.' });
+      }
       if (pi.status === 'requires_capture') {
         return finalizeQuote({ req, res, sb, stripe, booking, pi, tokenHash });
       }
@@ -184,16 +243,123 @@ async function authorizeCustomerApprovedQuote(req, res) {
         },
       }, { idempotencyKey: `quote-customer-authorize-${booking.id}-${booking.quote_amount_cents}` });
 
-      const { error: linkErr } = await sb.from('bookings').update({
+      const { data: linkRows, error: linkErr } = await sb.from('bookings').update({
         stripe_payment_intent_id: pi.id,
         payment_status: 'quote_authorization_pending',
         quote_approval_started_at: new Date().toISOString(),
-      }).eq('id', booking.id).eq('quote_token_hash', tokenHash);
-      if (linkErr) {
-        return res.status(500).json({
-          error: 'Could not save the secure authorization attempt. Retry this page; the same unconfirmed PaymentIntent will be reused.',
-        });
+      })
+        .eq('id', booking.id)
+        .eq('status', BOOKING_STATUS.PENDING)
+        .eq('payment_status', 'quote_pending_approval')
+        .eq('quote_token_hash', tokenHash)
+        .is('stripe_payment_intent_id', null)
+        .is('financial_operation_key', null)
+        .is('financial_operation_type', null)
+        .is('financial_operation_started_at', null)
+        .select('id');
+      if (linkErr || !linkRows?.length) {
+        const { data: current, error: currentError } = await sb.from('bookings')
+          .select('id, status, payment_status, stripe_payment_intent_id, quote_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at')
+          .eq('id', booking.id)
+          .maybeSingle();
+        if (currentError) {
+          await logActivity(sb, {
+            bookingId: booking.id,
+            eventType: 'quote_payment_linkage_ambiguous',
+            actorType: 'system',
+            actorName: 'quote-approve',
+            description: 'A quote PaymentIntent was created, but its booking linkage could not be verified. It was not cancelled automatically.',
+            metadata: { paymentIntentId: pi.id },
+          }).catch(activityError => console.error('[quote-approve] Ambiguous linkage log failed:', activityError?.message || activityError));
+          return res.status(503).json({
+            error: 'The authorization linkage could not be verified. Contact AssembleAtEase and do not authorize again.',
+            code: 'QUOTE_PAYMENT_LINKAGE_AMBIGUOUS',
+          });
+        }
+        const paymentIntentIsLinked = current?.stripe_payment_intent_id === pi.id;
+        const linkedByConcurrentRequest = current?.status === BOOKING_STATUS.PENDING
+          && current?.payment_status === 'quote_authorization_pending'
+          && paymentIntentIsLinked
+          && current?.quote_token_hash === tokenHash
+          && !hasActiveFinancialOperation(current);
+        let linkedByRecoveryCas = false;
+        const originalLinkStateStillPresent = current?.status === BOOKING_STATUS.PENDING
+          && current?.payment_status === 'quote_pending_approval'
+          && !current?.stripe_payment_intent_id
+          && current?.quote_token_hash === tokenHash
+          && !hasActiveFinancialOperation(current);
+        if (!paymentIntentIsLinked && originalLinkStateStillPresent) {
+          const { data: recoveryRows, error: recoveryError } = await sb.from('bookings').update({
+            stripe_payment_intent_id: pi.id,
+            payment_status: 'quote_authorization_pending',
+            quote_approval_started_at: new Date().toISOString(),
+          })
+            .eq('id', booking.id)
+            .eq('status', BOOKING_STATUS.PENDING)
+            .eq('payment_status', 'quote_pending_approval')
+            .eq('quote_token_hash', tokenHash)
+            .is('stripe_payment_intent_id', null)
+            .is('financial_operation_key', null)
+            .is('financial_operation_type', null)
+            .is('financial_operation_started_at', null)
+            .select('id');
+          linkedByRecoveryCas = !recoveryError && !!recoveryRows?.length;
+          if (!linkedByRecoveryCas) {
+            await logActivity(sb, {
+              bookingId: booking.id,
+              eventType: 'quote_payment_linkage_ambiguous',
+              actorType: 'system',
+              actorName: 'quote-approve',
+              description: 'A concurrent quote authorization may still link this PaymentIntent. It was not cancelled automatically.',
+              metadata: { paymentIntentId: pi.id, recoveryError: recoveryError?.message || null },
+            }).catch(activityError => console.error('[quote-approve] Ambiguous recovery log failed:', activityError?.message || activityError));
+            return res.status(recoveryError ? 503 : 409).json({
+              error: 'The authorization linkage is still being resolved. Reload this quote before trying again.',
+              code: 'QUOTE_PAYMENT_LINKAGE_AMBIGUOUS',
+            });
+          }
+        }
+        if (!linkedByConcurrentRequest && !linkedByRecoveryCas) {
+          if (!paymentIntentIsLinked) {
+            const cancellationConfirmed = await cancelUnlinkedPaymentIntent(stripe, pi.id, 'quote-approve');
+            if (!cancellationConfirmed) {
+              await logActivity(sb, {
+                bookingId: booking.id,
+                eventType: 'quote_payment_reconciliation_required',
+                actorType: 'system',
+                actorName: 'quote-approve',
+                description: 'An unlinked quote PaymentIntent could not be confirmed cancelled and requires owner reconciliation.',
+                metadata: { paymentIntentId: pi.id, quoteTokenMatched: current?.quote_token_hash === tokenHash },
+              }).catch(activityError => console.error('[quote-approve] Reconciliation log failed:', activityError?.message || activityError));
+            }
+          }
+          return res.status(linkErr ? 500 : 409).json({
+            error: 'Could not safely link the authorization attempt to the current quote. No booking confirmation was recorded.',
+            code: 'QUOTE_PAYMENT_LINK_CONFLICT',
+          });
+        }
       }
+      booking.stripe_payment_intent_id = pi.id;
+      booking.payment_status = 'quote_authorization_pending';
+    }
+
+    const intentValidation = validateQuotePaymentIntent(booking, pi);
+    if (!intentValidation.ok) {
+      console.error('[quote-approve] PaymentIntent validation failed:', intentValidation.errors);
+      return res.status(409).json({ error: 'Stripe authorization does not match this quote. Contact AssembleAtEase.' });
+    }
+    if (!pi.client_secret) {
+      return res.status(409).json({ error: 'Stripe did not provide a confirmable authorization secret. Contact AssembleAtEase.' });
+    }
+
+    const stillUnlocked = await quoteAuthorizationStillUnlocked({ sb, booking, paymentIntentId: pi.id, tokenHash });
+    if (!stillUnlocked.ok) {
+      return res.status(stillUnlocked.status).json({
+        error: stillUnlocked.status >= 500
+          ? 'Quote authorization state could not be verified. Please try again.'
+          : 'The quote state changed or another financial operation started. Reload this secure link later.',
+        code: stillUnlocked.status === 409 ? 'QUOTE_AUTHORIZATION_STATE_CONFLICT' : 'QUOTE_AUTHORIZATION_STATE_UNAVAILABLE',
+      });
     }
 
     return res.status(200).json({
@@ -203,20 +369,14 @@ async function authorizeCustomerApprovedQuote(req, res) {
     });
   }
 
-  if (action !== 'finalize') return res.status(400).json({ error: 'Invalid quote approval action.' });
   if (!booking.stripe_payment_intent_id) return res.status(409).json({ error: 'Quote authorization has not started.' });
   const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
   return finalizeQuote({ req, res, sb, stripe, booking, pi, tokenHash });
 }
 
 async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
-  const validIntent = pi.status === 'requires_capture'
-    && pi.capture_method === 'manual'
-    && pi.currency === 'usd'
-    && pi.amount === booking.quote_amount_cents
-    && pi.metadata?.bookingId === booking.id
-    && pi.metadata?.type === 'customer_quote';
-  if (!validIntent) {
+  const intentValidation = validateQuotePaymentIntent(booking, pi);
+  if (!intentValidation.ok || pi.status !== 'requires_capture') {
     return res.status(409).json({
       error: pi.status === 'requires_action'
         ? 'Card verification is not complete yet.'
@@ -235,13 +395,35 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
     confirmed_by: 'customer_quote_approval',
     quote_approved_at: now,
     quote_token_hash: null,
-  }).eq('id', booking.id).eq('quote_token_hash', tokenHash).select('id');
+  })
+    .eq('id', booking.id)
+    .eq('status', BOOKING_STATUS.PENDING)
+    .eq('payment_status', 'quote_authorization_pending')
+    .eq('stripe_payment_intent_id', pi.id)
+    .eq('quote_token_hash', tokenHash)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null)
+    .select('id');
 
   if (updateErr || !rows?.length) {
     console.error('quote finalize persistence failed:', updateErr);
-    return res.status(500).json({
-      error: 'Your card was authorized, but confirmation could not be saved. Please retry this page; you will not be authorized twice.',
-      code: 'QUOTE_CONFIRMATION_PERSIST_FAILED',
+    const { data: current } = await sb.from('bookings')
+      .select('id, status, payment_status, quote_approved_at, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
+      .eq('id', booking.id)
+      .maybeSingle();
+    if (current?.status === BOOKING_STATUS.CONFIRMED
+        && current?.payment_status === 'authorized'
+        && current?.quote_approved_at
+        && current?.stripe_payment_intent_id === pi.id
+        && !hasActiveFinancialOperation(current)) {
+      return res.status(200).json({ ok: true, confirmed: true, alreadyConfirmed: true, paymentIntentId: pi.id, amount: booking.quote_amount_cents });
+    }
+    return res.status(updateErr ? 500 : 409).json({
+      error: updateErr
+        ? 'Your card was authorized, but confirmation could not be saved. Please retry this page; you will not be authorized twice.'
+        : 'Your card was authorized, but the quote state changed before confirmation. Contact AssembleAtEase and do not authorize again.',
+      code: updateErr ? 'QUOTE_CONFIRMATION_PERSIST_FAILED' : 'QUOTE_CONFIRMATION_STATE_CONFLICT',
     });
   }
 
@@ -271,6 +453,56 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
   return res.status(200).json({ ok: true, confirmed: true, paymentIntentId: pi.id, amount: booking.quote_amount_cents });
 }
 
+async function quoteAuthorizationStillUnlocked({ sb, booking, paymentIntentId, tokenHash }) {
+  const { data, error } = await sb.from('bookings')
+    .select('id')
+    .eq('id', booking.id)
+    .eq('status', BOOKING_STATUS.PENDING)
+    .eq('payment_status', 'quote_authorization_pending')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .eq('quote_token_hash', tokenHash)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null)
+    .maybeSingle();
+  if (error) return { ok: false, status: 503 };
+  return data ? { ok: true } : { ok: false, status: 409 };
+}
+
+async function cancelUnlinkedPaymentIntent(stripe, paymentIntentId, context) {
+  try {
+    const latest = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (latest.status === 'canceled') return true;
+    if (latest.status === 'succeeded') return false;
+    const cancelled = await stripe.paymentIntents.cancel(paymentIntentId);
+    return cancelled?.status === 'canceled';
+  } catch (error) {
+    console.error(`[${context}] Unlinked PaymentIntent needs reconciliation:`, error?.message || error);
+    return false;
+  }
+}
+
+function hasActiveFinancialOperation(booking) {
+  return Boolean(
+    booking?.financial_operation_key
+    || booking?.financial_operation_type
+    || booking?.financial_operation_started_at,
+  );
+}
+
+function validateQuotePaymentIntent(booking, paymentIntent) {
+  const validation = validateBookingPaymentIntent(booking, paymentIntent, {
+    type: 'customer_quote',
+    amountCents: booking.quote_amount_cents,
+  });
+  const expectedTermsVersion = booking.quote_terms_version || QUOTE_TERMS_VERSION;
+  if (paymentIntent?.metadata?.quoteTermsVersion !== expectedTermsVersion) {
+    validation.errors.push('quote_terms_version');
+    validation.ok = false;
+  }
+  return validation;
+}
+
 function buildApprovalPage({ booking, token, publishableKey }) {
   const firstName = esc(String(booking.customer_name || 'there').split(' ')[0]);
   const subtotal = (booking.quote_subtotal_cents / 100).toFixed(2);
@@ -284,5 +516,5 @@ function buildQuoteReadyEmail({ booking, subtotalCents, taxCents, priceCents, ap
 }
 
 function buildSimplePage(title, body) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AssembleAtEase</title></head><body style="font-family:Arial,sans-serif;background:#f4f4f5;color:#18181b"><main style="max-width:560px;margin:40px auto;background:#fff;padding:28px;border-radius:12px"><h1>${esc(title)}</h1><p>${esc(body)}</p><p><a href="mailto:service@assembleatease.com">service@assembleatease.com</a> · (737) 290-6129</p></main></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AssembleAtEase</title></head><body style="font-family:Arial,sans-serif;background:#f4f4f5;color:#18181b"><main style="max-width:560px;margin:40px auto;background:#fff;padding:28px;border-radius:12px"><h1>${esc(title)}</h1><p>${esc(body)}</p><p><a href="mailto:service@assembleatease.com">service@assembleatease.com</a> · 737-290-6129</p></main></body></html>`;
 }

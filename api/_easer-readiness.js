@@ -2,6 +2,11 @@ import Stripe from 'stripe';
 import { ACTIVE_EASER_TIERS, normalizeAssemblerTier } from './_assembler-state.js';
 import { CONTRACTOR_AGREEMENT_VERSION } from './_assembler-onboarding.js';
 import { isStripeConnectEnabled } from './_stripe-connect.js';
+import { isApplicationFeeSatisfied } from './_easer-application-fee.js';
+import { isEaserClosureBlocking, normalizeEaserClosureStatus } from './_easer-closure.js';
+import { normalizeUsPhone } from './_phone.js';
+
+export { isApplicationFeeSatisfied } from './_easer-application-fee.js';
 
 function clean(value) {
   return String(value || '').trim().toLowerCase();
@@ -39,6 +44,12 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   const requireAvailability = options.requireAvailability !== false;
   const tier = normalizeAssemblerTier(profile.tier);
   const applicationStatus = clean(profile.application_status);
+  const accountClosureStatus = normalizeEaserClosureStatus(profile);
+  const applicationFeeStatusKnown = [
+    'application_fee_paid',
+    'application_fee_waived',
+    'fee_waived_by_owner',
+  ].some(field => Object.prototype.hasOwnProperty.call(profile, field));
 
   const flags = {
     connectRequired,
@@ -54,7 +65,11 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     ownerApproved: clean(profile.status) === 'active' && applicationStatus === 'approved',
     tierEligible: ACTIVE_EASER_TIERS.includes(tier),
     available: profile.is_available === true,
-    phoneAvailable: !!String(profile.phone || '').trim(),
+    phoneAvailable: normalizeUsPhone(profile.phone) !== null,
+    applicationFeeStatusKnown,
+    applicationFeeSatisfied: isApplicationFeeSatisfied(profile),
+    accountClosureStatus,
+    accountClosureBlocking: isEaserClosureBlocking(accountClosureStatus),
   };
 
   let account = options.stripeAccount;
@@ -81,6 +96,16 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   const missingItems = [];
 
   if (!flags.applicationSubmitted) missingItems.push('Application submitted');
+  if (flags.accountClosureBlocking) {
+    missingItems.push(`Account closure ${flags.accountClosureStatus}`);
+  }
+  // Explicit profile reads (owner approval/readiness) must prove paid-or-waived.
+  // A few legacy dispatch projections do not yet select these columns; the
+  // database transition trigger in migration 034 still blocks new unpaid
+  // profiles from becoming active/approved/available.
+  if (flags.applicationFeeStatusKnown && !flags.applicationFeeSatisfied) {
+    missingItems.push('Application fee paid or explicitly waived');
+  }
   if (!flags.contractorAgreementAccepted) missingItems.push('Contractor agreement accepted');
   if (flags.contractorAgreementAccepted && !flags.agreementCurrent) {
     missingItems.push(`Current contractor agreement accepted (${CONTRACTOR_AGREEMENT_VERSION})`);
@@ -89,7 +114,7 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.identityVerified) missingItems.push('Identity verified');
   if (!flags.ownerApproved) missingItems.push('Owner approved');
   if (!flags.tierEligible) missingItems.push('Valid Easer tier');
-  if (!flags.phoneAvailable) missingItems.push('Phone number on file');
+  if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (requireAvailability && !flags.available) missingItems.push('Online and available');
 
   if (connectRequired) {

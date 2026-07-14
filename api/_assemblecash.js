@@ -87,15 +87,81 @@ export async function getAvailableBalanceCents(sb, email) {
 // Only un-redeemed, still-available earn rows are reversed. Credit a customer
 // already spent is never clawed back here.
 export async function reverseForBooking(sb, bookingId, reason) {
-  if (!sb || !bookingId) return;
+  if (!sb || !bookingId) return { ok: false, error: 'AssembleCash reversal input is incomplete' };
   try {
-    await sb.from('assemblecash_ledger')
+    const { data, error } = await sb.from('assemblecash_ledger')
       .update({ status: 'reversed', reason: reason || 'reverse:refund', updated_at: new Date().toISOString() })
       .eq('booking_id', bookingId)
       .gt('amount_earned_cents', 0)
-      .eq('status', 'available');
+      .eq('status', 'available')
+      .select('id');
+    if (error) {
+      if (isMissingTableError(error)) return { ok: false, unavailable: true, error: error.message || String(error) };
+      throw error;
+    }
+    return { ok: true, reversedCount: data?.length || 0 };
   } catch (e) {
     if (!isMissingTableError(e)) console.warn('AssembleCash reverse error:', e && (e.message || e));
+    return { ok: false, unavailable: isMissingTableError(e), error: e?.message || String(e) };
+  }
+}
+
+// Refund/cancellation reconciliation must serialize against redemption for the
+// same customer. The database RPC uses the same advisory lock as
+// assemblecash_try_redeem, so a refund cannot race a checkout that is spending
+// credit from the refunded source booking.
+export async function reconcileBookingCredits(sb, {
+  bookingId,
+  releaseRedemption = false,
+  reason,
+} = {}) {
+  if (!sb || !bookingId) {
+    return { ok: false, error: 'AssembleCash reconciliation input is incomplete' };
+  }
+  try {
+    const { data, error } = await sb.rpc('assemblecash_reconcile_booking_credits', {
+      p_booking_id: bookingId,
+      p_release_redemption: !!releaseRedemption,
+      p_reason: reason || 'reverse:booking_financial_reversal',
+    });
+    if (error) {
+      if (isMissingTableError(error) || isMissingRpcError(error)) {
+        return { ok: false, unavailable: true, error: error.message || String(error) };
+      }
+      throw error;
+    }
+    const result = Array.isArray(data) ? data[0] : data;
+    const earnedReconciled = result?.earned_reconciled === true;
+    const redemptionReconciled = result?.redemption_reconciled === true;
+    const counts = {
+      reversedEarnCount: Math.max(0, Number(result?.reversed_earn_count || 0)),
+      releasedRedemptionCount: Math.max(0, Number(result?.released_redemption_count || 0)),
+    };
+    if (!earnedReconciled || !redemptionReconciled) {
+      return {
+        ok: false,
+        unavailable: false,
+        error: 'AssembleCash durable ledger truth does not match the booking summary',
+        ...counts,
+        earnedReconciled,
+        redemptionReconciled,
+      };
+    }
+    return {
+      ok: true,
+      ...counts,
+      earnedReconciled,
+      redemptionReconciled,
+    };
+  } catch (error) {
+    if (!isMissingTableError(error)) {
+      console.warn('AssembleCash booking reconciliation error:', error && (error.message || error));
+    }
+    return {
+      ok: false,
+      unavailable: isMissingTableError(error) || isMissingRpcError(error),
+      error: error?.message || String(error),
+    };
   }
 }
 
@@ -185,31 +251,41 @@ export async function attachRedemptionToBooking(sb, { bookingId, bookingRef, cus
 
 export async function releasePendingRedemption(sb, { bookingId, bookingRef, customerEmail, reason }) {
   const email = normalizeEmail(customerEmail);
-  if (!sb || (!bookingId && (!bookingRef || !email))) return;
+  if (!sb || (!bookingId && (!bookingRef || !email))) {
+    return { ok: false, error: 'AssembleCash redemption release input is incomplete' };
+  }
   try {
     const payload = {
       status: 'reversed',
       reason: reason || 'reverse:booking_setup_failed',
       updated_at: new Date().toISOString(),
     };
+    let query;
     if (bookingId) {
-      await sb
+      query = sb
         .from('assemblecash_ledger')
         .update(payload)
         .eq('booking_id', bookingId)
         .eq('status', 'redeemed');
     } else {
-      await sb
+      query = sb
         .from('assemblecash_ledger')
         .update(payload)
         .eq('customer_email', email)
         .eq('booking_ref', bookingRef)
         .eq('status', 'redeemed');
     }
+    const { data, error } = await query.select('id');
+    if (error) {
+      if (isMissingTableError(error)) return { ok: false, unavailable: true, error: error.message || String(error) };
+      throw error;
+    }
+    return { ok: true, releasedCount: data?.length || 0 };
   } catch (error) {
     if (!isMissingTableError(error)) {
       console.warn('AssembleCash releasePendingRedemption error:', error && (error.message || error));
     }
+    return { ok: false, unavailable: isMissingTableError(error), error: error?.message || String(error) };
   }
 }
 

@@ -5,7 +5,8 @@ import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { safeTokenHashMatch, randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
-import { appointmentTimestampMs } from './_appt-date.js';
+import { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } from './_appt-date.js';
+import { bookingEmailMatches } from './_guest-booking-auth.js';
 
 const MAX_RESCHEDULES = 2;
 const TIME_SLOTS = [
@@ -23,9 +24,9 @@ function normalizeSlot(value) {
 }
 
 export function validatePublishedRescheduleSlot(date, time) {
-  const requestedDate = new Date(`${date}T12:00:00Z`);
+  const requestedDate = parseIsoCalendarDate(date);
   const normalizedTime = normalizeSlot(time);
-  if (Number.isNaN(requestedDate.getTime()) || !TIME_SLOTS.includes(normalizedTime)) {
+  if (!requestedDate || !TIME_SLOTS.includes(normalizedTime)) {
     return { ok: false, normalizedTime, error: 'Please choose a valid appointment date and time.' };
   }
   const requestedDay = requestedDate.getUTCDay();
@@ -42,6 +43,10 @@ function deliveryFailed(result) {
   return !result?.ok;
 }
 
+function whereExact(query, column, value) {
+  return value == null ? query.is(column, null) : query.eq(column, value);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -53,11 +58,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Booking access token, email, reference, new date, and new time are required.' });
   }
 
-  const requestedDate = new Date(`${date}T12:00:00Z`);
-  if (Number.isNaN(requestedDate.getTime())) return res.status(400).json({ error: 'Invalid appointment date.' });
+  const requestedDate = parseIsoCalendarDate(date);
+  if (!requestedDate) return res.status(400).json({ error: 'Invalid appointment date.' });
 
-  const windowStart = new Date();
-  windowStart.setUTCHours(12, 0, 0, 0);
+  const windowStart = parseIsoCalendarDate(chicagoTodayIso());
   const windowEnd = new Date(windowStart.getTime() + 6 * 24 * 60 * 60 * 1000);
   if (requestedDate < windowStart || requestedDate > windowEnd) {
     return res.status(400).json({ error: 'New date must be within the next 6 days. For later dates, email service@assembleatease.com.' });
@@ -77,21 +81,20 @@ export default async function handler(req, res) {
     .from('bookings')
     .select('*')
     .eq('ref', String(ref).toUpperCase().trim())
-    .ilike('customer_email', String(email).trim())
     .maybeSingle();
 
   if (fetchErr) {
     console.error('Reschedule lookup error:', fetchErr);
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
+  if (!booking || !bookingEmailMatches(booking, email) || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
     return res.status(403).json({ error: 'This reschedule link is invalid or expired. Open the latest tracking link and try again.' });
   }
 
   if (![BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED].includes(booking.status)) {
     const message = [BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS].includes(booking.status)
-      ? 'Your Easer is already on the way or working. Please call (737) 290-6129 to make changes.'
-      : 'This booking can no longer be rescheduled. Please call (737) 290-6129.';
+      ? 'Your Easer is already on the way or working. Please call 737-290-6129 to make changes.'
+      : 'This booking can no longer be rescheduled. Please call 737-290-6129.';
     return res.status(400).json({ error: message });
   }
 
@@ -99,16 +102,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'That is already your scheduled date and time.' });
   }
 
-  const { count, error: countErr } = await sb
-    .from('activity_logs')
-    .select('id', { count: 'exact', head: true })
-    .eq('booking_id', booking.id)
-    .eq('event_type', 'rescheduled');
-  if (countErr) return res.status(500).json({ error: 'Unable to verify reschedule history. Please try again.' });
-  const priorReschedules = count || 0;
+  const priorReschedules = Number(booking.reschedule_count);
+  if (!Number.isInteger(priorReschedules) || priorReschedules < 0) {
+    return res.status(503).json({
+      error: 'Reschedule history is unavailable. Apply migration 037 before changing this appointment.',
+      code: 'RESCHEDULE_TRUTH_UNAVAILABLE',
+    });
+  }
   if (priorReschedules >= MAX_RESCHEDULES) {
     return res.status(409).json({
-      error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call (737) 290-6129 for further changes.`,
+      error: `This booking has already been rescheduled ${MAX_RESCHEDULES} times. Please call 737-290-6129 for further changes.`,
       code: 'RESCHEDULE_LIMIT_REACHED',
     });
   }
@@ -116,11 +119,33 @@ export default async function handler(req, res) {
   const oldDate = booking.date;
   const oldTime = booking.time;
   const now = new Date().toISOString();
-  const reconfirmationRequired = Boolean(booking.assembler_id && booking.assembler_accepted_at);
+  const reconfirmationRequired = Boolean(booking.assembler_id);
   const assignmentToken = reconfirmationRequired ? randomUUID() : booking.assignment_token;
   const nextGuestMutationToken = randomToken(32);
   const nextGuestMutationTokenHash = sha256(nextGuestMutationToken);
-  const update = { date, time, rescheduled_at: now, guest_mutation_token_hash: nextGuestMutationTokenHash };
+  const currentDispatchAttempt = Number(booking.dispatch_attempt || 0);
+  if (booking.status === BOOKING_STATUS.CONFIRMED
+      && (!Number.isInteger(currentDispatchAttempt) || currentDispatchAttempt < 0)) {
+    return res.status(503).json({
+      error: 'Dispatch state is invalid. The owner must reconcile this booking before it can be rescheduled.',
+      code: 'DISPATCH_TRUTH_UNAVAILABLE',
+    });
+  }
+  const update = {
+    date,
+    time,
+    rescheduled_at: now,
+    reschedule_count: priorReschedules + 1,
+    guest_mutation_token_hash: nextGuestMutationTokenHash,
+    reminder_sent: false,
+  };
+  if (booking.status === BOOKING_STATUS.CONFIRMED) {
+    Object.assign(update, {
+      dispatch_attempt: currentDispatchAttempt + 1,
+      dispatch_token: null,
+      ...(!booking.assembler_id ? { dispatch_status: null } : {}),
+    });
+  }
   if (reconfirmationRequired) {
     Object.assign(update, {
       assembler_accepted_at: null,
@@ -128,22 +153,58 @@ export default async function handler(req, res) {
       assigned_at: now,
       dispatch_status: 'reconfirmation_required',
       pipeline_stage: BOOKING_STATUS.CONFIRMED,
+      dispatch_paused: true,
+      needs_manual_dispatch: false,
       en_route_at: null,
       checked_in_at: null,
       job_started_at: null,
     });
   }
 
-  const { data: updatedRows, error: updateErr } = await sb.from('bookings')
+  let rescheduleQuery = sb.from('bookings')
     .update(update)
     .eq('id', booking.id)
     .eq('status', booking.status)
-    .eq('date', oldDate)
-    .eq('time', oldTime)
-    .select('id');
+    .eq('reschedule_count', priorReschedules)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+  for (const [column, value] of [
+    ['date', oldDate],
+    ['time', oldTime],
+    ['payment_status', booking.payment_status],
+    ['stripe_payment_intent_id', booking.stripe_payment_intent_id],
+    ['stripe_deposit_intent_id', booking.stripe_deposit_intent_id],
+    ['assembler_id', booking.assembler_id],
+    ['assembler_accepted_at', booking.assembler_accepted_at],
+    ['assigned_at', booking.assigned_at],
+    ['assignment_token', booking.assignment_token],
+    ['dispatch_attempt', booking.dispatch_attempt],
+    ['dispatch_status', booking.dispatch_status],
+    ['dispatch_paused', booking.dispatch_paused],
+    ['needs_manual_dispatch', booking.needs_manual_dispatch],
+    ['reminder_sent', booking.reminder_sent],
+    ['guest_mutation_token_hash', booking.guest_mutation_token_hash],
+  ]) {
+    rescheduleQuery = whereExact(rescheduleQuery, column, value);
+  }
+  const { data: updatedRows, error: updateErr } = await rescheduleQuery.select('id');
   if (updateErr || !updatedRows?.length) {
     console.error('Reschedule update failed:', updateErr);
     return res.status(409).json({ error: 'Booking changed before the reschedule could be saved. Refresh and try again.' });
+  }
+
+  // Rotating dispatch_attempt in the booking CAS makes every prior offer stale
+  // immediately. This cleanup is operational bookkeeping; a failure cannot make
+  // an old offer acceptable again because accept_dispatch_offer checks the round.
+  let dispatchOfferCleanupError = null;
+  if (booking.status === BOOKING_STATUS.CONFIRMED) {
+    const { error: offerCleanupError } = await sb.from('dispatch_offers')
+      .update({ offer_status: 'cancelled' })
+      .eq('booking_id', booking.id)
+      .eq('offer_status', 'sent');
+    dispatchOfferCleanupError = offerCleanupError?.message || null;
+    if (offerCleanupError) console.error('Reschedule dispatch offer cleanup failed:', offerCleanupError);
   }
 
   const remaining = MAX_RESCHEDULES - (priorReschedules + 1);
@@ -160,6 +221,9 @@ export default async function handler(req, res) {
       newTime: time,
       rescheduleNumber: priorReschedules + 1,
       easerReconfirmationRequired: reconfirmationRequired,
+      dispatchAttemptFrom: booking.dispatch_attempt ?? null,
+      dispatchAttemptTo: booking.status === BOOKING_STATUS.CONFIRMED ? currentDispatchAttempt + 1 : booking.dispatch_attempt ?? null,
+      dispatchOfferCleanupError,
     },
   });
   if (reconfirmationRequired) {
@@ -174,6 +238,14 @@ export default async function handler(req, res) {
   }
 
   const notifications = [];
+  if (dispatchOfferCleanupError) {
+    notifications.push({
+      recipient: 'dispatch',
+      ok: false,
+      error: 'Old offers are invalid but could not be marked cancelled. Owner review is required.',
+      detail: dispatchOfferCleanupError,
+    });
+  }
   const nextTrackUrl = `${SITE}/track?ref=${encodeURIComponent(booking.ref)}&email=${encodeURIComponent(booking.customer_email)}&token=${encodeURIComponent(nextGuestMutationToken)}`;
   const customerResult = await sendEmail({
     to: booking.customer_email,
@@ -215,7 +287,8 @@ export default async function handler(req, res) {
     replyTo: ownerEmail(),
     html: `<p>Customer rescheduled <strong>${esc(booking.ref)}</strong> (${esc(booking.service)}).</p>
       <p><strong>Old:</strong> ${esc(oldDate)} at ${esc(oldTime)}<br/><strong>New:</strong> ${esc(date)} at ${esc(time)}</p>
-      ${reconfirmationRequired ? `<p><strong>Owner action:</strong> ${esc(booking.assembler_name || 'The assigned Easer')}'s prior acceptance was reset. Confirm they accept the new schedule or reassign the job.</p>` : ''}
+      ${reconfirmationRequired ? `<p><strong>Owner action:</strong> ${esc(booking.assembler_name || 'The assigned Easer')} must accept the new schedule before travel. Confirm their response or reassign the job.</p>` : ''}
+      ${dispatchOfferCleanupError ? '<p><strong>Dispatch action:</strong> Prior offers are technically invalid because the dispatch round changed, but their records could not be marked cancelled. Review dispatch before sending new offers.</p>' : ''}
       <p><a href="${SITE}/owner/">Open Live Ops</a></p>`,
     meta: { bookingId: booking.id, notificationType: 'reschedule_owner', recipientType: 'owner', disableDedupe: true },
   }).catch(err => ({ ok: false, error: err?.message || String(err) }));
@@ -232,7 +305,7 @@ export default async function handler(req, res) {
         replyTo: ownerEmail(),
         html: `<p>Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')},</p>
           <p>The customer moved booking <strong>${esc(booking.ref)}</strong> to <strong>${esc(date)}</strong> at <strong>${esc(time)}</strong>.</p>
-          <p>Your prior acceptance was reset. Review and accept the new schedule before starting travel.</p>
+          <p>Review and accept the new schedule before starting travel. Any prior offer or acceptance no longer authorizes travel for the old appointment.</p>
           <p><a href="${esc(acceptUrl)}">Review and accept the rescheduled job</a></p>`,
         meta: { bookingId: booking.id, notificationType: 'reschedule_easer_reconfirmation', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
       }).catch(err => ({ ok: false, error: err?.message || String(err) }));

@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
-import { deriveAssemblerStatus } from '../_assembler-state.js';
+import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
 
@@ -41,12 +40,46 @@ function matchesMagic(mimeType, buf) {
 }
 
 const VALID_EVIDENCE_TYPES = new Set([
-  'completion_photo', 'before_photo', 'damage_claim', 'customer_confirmation',
+  'completion_photo', 'before_photo', 'damage_claim',
 ]);
 
-const UPLOAD_ALLOWED_STATUSES = new Set(['arrived', 'in_progress', 'completed']);
-
 const MAX_RAW_BYTES = 5 * 1024 * 1024; // 5 MB decoded limit
+
+function evidenceWorkflowError(booking, evidenceType) {
+  if (!booking.assembler_accepted_at) {
+    return { error: 'Accept this assignment before uploading job evidence.', code: 'ASSIGNMENT_NOT_ACCEPTED' };
+  }
+  if (booking.financial_operation_key) {
+    return { error: 'A payment action is in progress. Reload the job before uploading evidence.', code: 'FINANCIAL_OPERATION_ACTIVE' };
+  }
+  if (evidenceType === 'before_photo' && !['arrived', 'in_progress'].includes(booking.status)) {
+    return { error: 'Before photos can only be uploaded after arrival and before completion.', code: 'INVALID_EVIDENCE_WORKFLOW' };
+  }
+  if (evidenceType === 'completion_photo'
+      && (!['in_progress', 'completed'].includes(booking.status) || !booking.job_started_at)) {
+    return { error: 'Start the job before uploading the completion photo.', code: 'WORK_NOT_STARTED' };
+  }
+  if (evidenceType === 'damage_claim'
+      && !['arrived', 'in_progress', 'completed'].includes(booking.status)) {
+    return { error: 'Damage evidence can only be uploaded after arrival or for a completed job.', code: 'INVALID_EVIDENCE_WORKFLOW' };
+  }
+  return null;
+}
+
+async function removeUploadedObject(sb, storagePath) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const { error } = await sb.storage.from(BUCKET).remove([storagePath]);
+      if (!error) return { ok: true };
+      lastError = error;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  console.error(`[upload-evidence] Storage cleanup failed for ${storagePath}:`, lastError);
+  return { ok: false, error: lastError?.message || String(lastError || 'unknown cleanup error') };
+}
 
 /**
  * POST /api/booking/upload-evidence
@@ -64,36 +97,19 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── Auth: Easer JWT ───────────────────────────────────────────────────────
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
-  const token = auth.slice(7);
-
-  const userClient = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
-  );
-  const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid session' });
-
   const sb = getSupabase(); // service key — bypasses RLS for reads/writes
 
   // ── Verify active assembler ───────────────────────────────────────────────
-  const { data: profile, error: profileErr } = await sb
-    .from('profiles')
-    .select('id, role, status')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
-  if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can upload evidence' });
-  if (deriveAssemblerStatus(profile) !== 'active') return res.status(403).json({ error: 'Account is not active' });
+  const access = await requireAssignedWorkEaser(req, { supabase: sb });
+  if (!access.ok) return respondWithEaserAccessError(res, access);
+  const { user } = access;
 
   // ── Validate input ────────────────────────────────────────────────────────
   const payload = req.body && typeof req.body === 'object' ? req.body : {};
   const { bookingId, fileBase64, mimeType, evidenceType = 'completion_photo', notes } = payload;
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
-  if (!fileBase64) return res.status(400).json({ error: 'fileBase64 is required' });
+  if (typeof fileBase64 !== 'string' || !fileBase64) return res.status(400).json({ error: 'fileBase64 is required' });
   if (!mimeType)   return res.status(400).json({ error: 'mimeType is required' });
 
   if (!ALLOWED_MIME.has(mimeType)) {
@@ -114,7 +130,7 @@ export default async function handler(req, res) {
   // ── Verify booking ownership ──────────────────────────────────────────────
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, service, date, time, status, assembler_id, assembler_name')
+    .select('id, ref, service, date, time, status, assembler_id, assembler_name, assembler_accepted_at, job_started_at, financial_operation_key')
     .eq('id', bookingId)
     .eq('assembler_id', user.id)
     .maybeSingle();
@@ -123,11 +139,11 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Booking not found or not assigned to you' });
   }
 
-  if (!UPLOAD_ALLOWED_STATUSES.has(booking.status)) {
-    return res.status(400).json({
-      error: `Evidence can only be uploaded for active or completed jobs. Current status: ${booking.status}`,
-    });
-  }
+  // Complete every assignment/workflow authorization gate before decoding the
+  // customer-supplied base64 or writing anything to storage. The RPC repeats
+  // these checks under a booking row lock to close assignment/payout races.
+  const workflowError = evidenceWorkflowError(booking, evidenceType);
+  if (workflowError) return res.status(409).json(workflowError);
 
   // ── Decode and validate file ──────────────────────────────────────────────
   // Strip data-URL prefix if present: "data:image/jpeg;base64,<data>"
@@ -152,14 +168,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'File content does not match declared MIME type' });
   }
 
-  // ── 5-file limit ─────────────────────────────────────────────────────────
-  const { count: evidenceCount } = await sb
-    .from('booking_evidence')
-    .select('id', { count: 'exact', head: true })
-    .eq('booking_id', bookingId);
-  if (evidenceCount >= 5)
-    return res.status(409).json({ error: 'Maximum 5 evidence files per booking.' });
-
   // ── Generate storage path ─────────────────────────────────────────────────
   // Format: evidence/{bookingId}/{YYYY-MM}/{uuid}.{ext}
   const month       = new Date().toISOString().slice(0, 7);
@@ -181,26 +189,44 @@ export default async function handler(req, res) {
   }
 
   // ── Insert booking_evidence row ───────────────────────────────────────────
-  const { data: evidenceRow, error: insertErr } = await sb
-    .from('booking_evidence')
-    .insert({
-      booking_id:      booking.id,
-      uploaded_by:     user.id,
-      storage_path:    storagePath,
-      evidence_type:   evidenceType,
-      mime_type:       mimeType,
-      file_size_bytes: buf.length,
-      visibility:      'owner',
-      notes:           cleanNotes || null,
-    })
-    .select('id, evidence_type, mime_type, file_size_bytes, created_at')
-    .single();
+  // Record the immutable evidence row and (for a damage report) open its payout
+  // hold in one row-locked database transaction. The RPC also serializes the
+  // five-file limit, so concurrent uploads cannot create a sixth record.
+  const { data: evidenceRows, error: recordError } = await sb.rpc('record_booking_evidence', {
+    p_booking_id: booking.id,
+    p_uploaded_by: user.id,
+    p_storage_path: storagePath,
+    p_evidence_type: evidenceType,
+    p_mime_type: mimeType,
+    p_file_size_bytes: buf.length,
+    p_notes: cleanNotes || null,
+  });
+  const recorded = Array.isArray(evidenceRows) ? evidenceRows[0] : evidenceRows;
 
-  if (insertErr) {
-    // Storage upload succeeded but DB insert failed — log orphaned path for manual cleanup
-    console.error(`[upload-evidence] DB insert failed for ${storagePath}:`, insertErr);
-    return res.status(500).json({ error: 'Evidence recorded in storage but failed to save record. Contact support.' });
+  if (recordError || !recorded) {
+    // No evidence row was committed; remove the just-uploaded private object.
+    const cleanup = await removeUploadedObject(sb, storagePath);
+    console.error(`[upload-evidence] Evidence RPC failed for ${storagePath}:`, recordError || 'no row returned');
+    const conflict = ['22000', '23514', '23505', '55P03'].includes(recordError?.code);
+    const forbidden = recordError?.code === '42501';
+    const notFound = recordError?.code === 'P0002';
+    return res.status(forbidden ? 403 : (notFound ? 404 : (conflict ? 409 : 503))).json({
+      error: conflict
+        ? recordError.message
+        : (cleanup.ok
+            ? 'Evidence could not be saved. The uploaded object was removed; please reload and try again.'
+            : 'Evidence could not be saved and storage cleanup needs support review. Do not upload again yet.'),
+      code: conflict ? 'EVIDENCE_WORKFLOW_CONFLICT' : 'EVIDENCE_RECORD_FAILED',
+      storageCleanupFailed: cleanup.ok ? undefined : true,
+    });
   }
+  const evidenceRow = {
+    id: recorded.evidence_id,
+    evidence_type: recorded.evidence_type,
+    mime_type: recorded.mime_type,
+    file_size_bytes: recorded.file_size_bytes,
+    created_at: recorded.created_at,
+  };
 
   let ownerNotification = null;
   if (evidenceType === 'damage_claim') {
@@ -249,7 +275,6 @@ export default async function handler(req, res) {
       });
     }
   }
-
   return res.status(201).json({
     ok:           true,
     evidenceId:   evidenceRow.id,
@@ -258,6 +283,7 @@ export default async function handler(req, res) {
     mimeType:     evidenceRow.mime_type,
     sizeBytes:    evidenceRow.file_size_bytes,
     createdAt:    evidenceRow.created_at,
+    damageReviewStatus: recorded.damage_review_status,
     ownerNotified: evidenceType === 'damage_claim' ? ownerNotification?.ok === true && !ownerNotification?.suppressed : undefined,
     warning: evidenceType === 'damage_claim' && (!ownerNotification?.ok || ownerNotification?.logged === false)
       ? (ownerNotification?.ok

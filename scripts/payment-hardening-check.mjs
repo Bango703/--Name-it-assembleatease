@@ -8,7 +8,7 @@ const {
   guestMutationTokenHash,
   safeTokenHashMatch,
 } = await import('../api/_payment-security.js');
-const { appointmentTimestampMs } = await import('../api/booking/_appt-date.js');
+const { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } = await import('../api/booking/_appt-date.js');
 
 const booking = { id: '11111111-1111-4111-8111-111111111111', ref: 'AAE-TEST123', customer_email: 'customer@example.com' };
 const token = deriveGuestMutationToken({ bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
@@ -25,6 +25,9 @@ assert.equal(
   '2026-07-13T12:00:00.000Z',
   'Chicago appointment parser must accept an en-dash slot and apply CDT',
 );
+assert.equal(appointmentTimestampMs('2026-02-31', '7:00 AM – 9:00 AM'), null, 'invalid calendar dates must not roll into another day');
+assert.equal(parseIsoCalendarDate('2026-02-31'), null);
+assert.equal(chicagoTodayIso(new Date('2026-07-14T02:00:00.000Z')), '2026-07-13', 'booking windows must follow Austin date, not UTC date');
 
 const savedGuestSecret = process.env.GUEST_ACCESS_TOKEN_SECRET;
 const savedVercelEnv = process.env.VERCEL_ENV;
@@ -64,7 +67,8 @@ assert.doesNotMatch(assemblerCompleteApi, /assembler_accepted_at:\s*booking\.ass
 assert.match(refundApi, /partially_refunded/, 'partial refunds must remain distinct from full refunds');
 assert.match(refundApi, /priorRefundedCents > dbRefundedCents/, 'refund retry must reconcile before issuing money again');
 assert.match(payoutApi, /PAYOUT_AMOUNT_MISMATCH/, 'browser payout override must be rejected');
-assert.match(payoutApi, /Stripe Connect transfers cannot be recorded manually/, 'manual ledger must not impersonate Connect');
+assert.match(payoutApi, /booking\.payout_mode_snapshot !== 'manual'/, 'manual ledger must follow the earning snapshot, not the current Connect flag');
+assert.match(payoutApi, /This earning was assigned to Stripe Connect and cannot be recorded as a manual payout/, 'manual ledger must not impersonate Connect');
 assert.match(webhookApi, /payment_intent\.succeeded/, 'supported PaymentIntent success event must drive capture sync');
 assert.match(webhookApi, /Webhook processing failed and is retryable/, 'webhook processing failures must return retryable errors');
 assert.match(migration, /payment_status NOT IN \('captured', 'partially_refunded'\)/, 'database payout RPC must enforce captured funds');

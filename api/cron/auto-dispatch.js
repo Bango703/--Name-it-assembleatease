@@ -2,6 +2,7 @@
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { logCron } from './_cron-logger.js';
+import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 
 /**
  * GET /api/cron/auto-dispatch
@@ -30,28 +31,41 @@ export default async function handler(req, res) {
   const sb = getSupabase();
 
   // Confirmed, unassigned, not paused, not flagged
-  const { data: candidates } = await sb
+  const { data: candidates, error: candidatesError } = await sb
     .from('bookings')
-    .select('id, ref, service, date')
+    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, stripe_dispute_hold')
     .eq('status', 'confirmed')
+    .in('payment_status', DISPATCH_PAYMENT_STATUSES)
     .is('assembler_id', null)
     .eq('dispatch_paused', false)
     .eq('needs_manual_dispatch', false);
 
-  if (!candidates?.length) {
+  if (candidatesError) {
+    await logCron('auto-dispatch', { records: 0, status: 'error', error: candidatesError.message || String(candidatesError) });
+    return res.status(503).json({ error: 'Automatic dispatch could not verify booking payment state.' });
+  }
+
+  const paymentReadyCandidates = (candidates || []).filter(isBookingPaymentReadyForDispatch);
+
+  if (!paymentReadyCandidates.length) {
     return res.status(200).json({ ok: true, dispatched: 0, message: 'Nothing to dispatch' });
   }
 
   // Filter out bookings that already have open (sent) offers in dispatch_offers table
-  const { data: openOffers } = await sb
+  const { data: openOffers, error: openOffersError } = await sb
     .from('dispatch_offers')
     .select('booking_id')
-    .in('booking_id', candidates.map(b => b.id))
+    .in('booking_id', paymentReadyCandidates.map(b => b.id))
     .eq('offer_status', 'sent')
     .gt('expires_at', new Date().toISOString());
 
+  if (openOffersError) {
+    await logCron('auto-dispatch', { records: 0, status: 'error', error: openOffersError.message || String(openOffersError) });
+    return res.status(503).json({ error: 'Automatic dispatch could not verify existing offers.' });
+  }
+
   const bookingsWithOpenOffers = new Set((openOffers || []).map(o => o.booking_id));
-  const toDispatch = candidates.filter(b => !bookingsWithOpenOffers.has(b.id));
+  const toDispatch = paymentReadyCandidates.filter(b => !bookingsWithOpenOffers.has(b.id));
 
   if (!toDispatch.length) {
     return res.status(200).json({ ok: true, dispatched: 0, message: 'All eligible bookings already have open offers' });
@@ -64,7 +78,7 @@ export default async function handler(req, res) {
     try {
       const result = await dispatchBooking(booking.id);
       results.push({ ref: booking.ref, ...result });
-      if (result.dispatched === 0) failed.push(booking);
+      if (result.dispatched === 0 && result.code !== 'DISPATCH_PAYMENT_NOT_VERIFIED') failed.push(booking);
     } catch (e) {
       console.error('auto-dispatch error for', booking.ref, e.message);
       failed.push(booking);
@@ -77,7 +91,7 @@ export default async function handler(req, res) {
   );
   if (noEaserFailed.length) {
     const list = noEaserFailed.map(b => `• ${b.ref} — ${b.service} on ${b.date}`).join('\n');
-    sendEmail({
+    await sendEmail({
       to:   ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `${noEaserFailed.length} booking(s) need Easer assignment`,

@@ -91,6 +91,7 @@ assert.equal(validatePublishedRescheduleSlot('2026-07-13', '7:00 AM – 9:00 AM'
 assert.equal(validatePublishedRescheduleSlot('2026-07-18', '11:00 AM – 1:00 PM').ok, true, 'Saturday morning slot');
 assert.equal(validatePublishedRescheduleSlot('2026-07-18', '1:00 PM – 3:00 PM').ok, false, 'Saturday afternoon closed');
 assert.equal(validatePublishedRescheduleSlot('2026-07-19', '9:00 AM – 11:00 AM').ok, false, 'Sunday closed');
+assert.equal(validatePublishedRescheduleSlot('2026-02-31', '9:00 AM – 11:00 AM').ok, false, 'rolled-over calendar dates must be rejected');
 
 const [monitorSource, statusSource, assignmentUiSource, evidenceSource] = await Promise.all([
   readFile(new URL('../api/owner/monitor.js', import.meta.url), 'utf8'),

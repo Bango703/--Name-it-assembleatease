@@ -7,8 +7,8 @@ import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-led
  * Owner-only: aggregate revenue and payout stats.
  *
  * Query params:
- *   from  — ISO date string, e.g. 2026-01-01  (filter completed_at >=)
- *   to    — ISO date string, e.g. 2026-12-31  (filter completed_at <=)
+ *   from  — ISO date string, e.g. 2026-01-01  (filter financial event date >=)
+ *   to    — ISO date string, e.g. 2026-12-31  (filter financial event date <=)
  *
  * Response:
  *   completedJobs        — total completed bookings in range
@@ -38,6 +38,7 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     completedJobs: totals.completedJobs,
+    cancellationEarningEvents: totals.cancellationEarningEvents,
     paidOutJobs: totals.paidOutJobs,
     pendingJobs: totals.pendingJobs,
     totalCharged: totals.totalCharged,

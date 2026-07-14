@@ -26,6 +26,7 @@ npm-debug.log*
 
 # Local dev artifacts (browser profiles, screenshots)
 _local_artifacts/
+.tmp-mobile-audit/
 
 # Sensitive files
 config.local.js

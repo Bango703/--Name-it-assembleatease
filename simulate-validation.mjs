@@ -764,16 +764,16 @@ function report() {
   console.log('║   OPERATIONAL VALIDATION REPORT' + ' '.repeat(25) + '║');
   console.log('╚' + '═'.repeat(58) + '╝');
 
-  console.log(`\n  \x1b[32m✓ PASSED (${R.pass.length})\x1b[0m`);
+  console.log(`\n  \x1b[32mPASSED (${R.pass.length})\x1b[0m`);
   R.pass.forEach(r => console.log(`    • ${r.t}${r.d ? ' — '+r.d : ''}`));
 
   if (R.fail.length) {
-    console.log(`\n  \x1b[31m✗ FAILED (${R.fail.length})\x1b[0m`);
+    console.log(`\n  \x1b[31mFAILED (${R.fail.length})\x1b[0m`);
     R.fail.forEach(r => console.log(`    • ${r.t}${r.d ? ' — '+r.d : ''}`));
   }
 
   if (R.warn.length) {
-    console.log(`\n  \x1b[33m⚠ WARNINGS (${R.warn.length})\x1b[0m`);
+    console.log(`\n  \x1b[33mWARNINGS (${R.warn.length})\x1b[0m`);
     R.warn.forEach(r => console.log(`    • ${r.t}${r.d ? ' — '+r.d : ''}`));
   }
 

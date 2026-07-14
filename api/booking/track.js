@@ -2,6 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { rateLimit } from '../_ratelimit.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
+import { bookingEmailMatches } from './_guest-booking-auth.js';
 
 /**
  * POST /api/booking/track
@@ -29,14 +30,13 @@ export default async function handler(req, res) {
     .from('bookings')
     .select('*')
     .eq('ref', ref.toUpperCase().trim())
-    .ilike('customer_email', email.trim())
     .maybeSingle();
 
   if (error) {
     console.error('Track lookup error:', { message: error.message, code: error.code, ref: ref.toUpperCase().trim() });
     return res.status(500).json({ error: 'Unable to look up booking. Please try again.' });
   }
-  if (!booking || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
+  if (!booking || !bookingEmailMatches(booking, email) || !safeTokenHashMatch(token, booking.guest_mutation_token_hash)) {
     return res.status(404).json({
       error: 'This secure booking link is invalid or expired. Request a new link and try again.',
     });
@@ -69,15 +69,14 @@ export default async function handler(req, res) {
 
   // Has this booking been rescheduled? If so, free cancellation is forfeited —
   // the cancel UI must warn about the cancellation fee regardless of the 24h window.
-  let wasRescheduled = false;
-  try {
-    const { count } = await sb
-      .from('activity_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('booking_id', booking.id)
-      .eq('event_type', 'rescheduled');
-    wasRescheduled = (count || 0) > 0;
-  } catch (e) { /* non-fatal: default to false */ }
+  const rescheduleCount = Number(booking.reschedule_count);
+  if (!Number.isInteger(rescheduleCount) || rescheduleCount < 0) {
+    return res.status(503).json({
+      error: 'Booking cancellation terms are temporarily unavailable. Please contact support before changing this appointment.',
+      code: 'CANCELLATION_POLICY_TRUTH_UNAVAILABLE',
+    });
+  }
+  const wasRescheduled = rescheduleCount > 0;
 
   // Pro trust details — photo, rating, jobs done — once a Pro has accepted.
   // Builds confidence before a stranger arrives. First name + these only; no PII.

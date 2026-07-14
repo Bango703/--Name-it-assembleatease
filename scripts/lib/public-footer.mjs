@@ -1,5 +1,8 @@
 import { businessIdentity } from './site-governance.mjs';
 
+// Consumer services only. Business/commercial + custom quotes live once, in the
+// Company column ("Business Services" -> /business), so there is no duplicate
+// /business link across the footer.
 const BOOKING_SERVICE_LINKS = [
   ['/book?service=Furniture+Assembly', 'Furniture Assembly'],
   ['/book?service=Mounting+%26+Hanging', 'TV Mounting'],
@@ -7,7 +10,6 @@ const BOOKING_SERVICE_LINKS = [
   ['/book?service=Fitness+Equipment', 'Fitness Equipment'],
   ['/book?service=Office+Assembly', 'Office Furniture'],
   ['/book?service=Outdoor+%26+Playsets', 'Outdoor / Playsets'],
-  ['/business', 'Business &amp; Custom Quotes'],
 ];
 
 const SERVICE_PAGE_LINKS = [
@@ -17,11 +19,11 @@ const SERVICE_PAGE_LINKS = [
   ['/fitness-equipment-assembly-austin-tx', 'Fitness Equipment'],
   ['/office-furniture-assembly-austin-tx', 'Office Furniture'],
   ['/playset-assembly-austin-tx', 'Outdoor / Playsets'],
-  ['/business', 'Business &amp; Custom Quotes'],
 ];
 
 const COMPANY_LINKS = [
   ['/about', 'About Us'],
+  ['/locations', 'Locations'],
   ['/pricing', 'Pricing'],
   ['/blog/', 'Guides'],
   ['/business', 'Business Services'],
@@ -34,12 +36,14 @@ const SUPPORT_LINKS = [
   ['/assembler/apply', 'Become an Easer'],
 ];
 
+// Each Resources link points to a distinct, real guide (no repeated /blog/
+// placeholders), with a single "All guides" entry to the index.
 const RESOURCES_LINKS = [
-  ['/blog/', 'Home setup guides'],
-  ['/blog/', 'Furniture assembly guides'],
-  ['/blog/', 'TV mounting guides'],
-  ['/blog/', 'Smart home guides'],
-  ['/blog/', 'Move-in checklists'],
+  ['/blog/new-home-setup-checklist-austin', 'New home setup checklist'],
+  ['/blog/ikea-assembly-cost-austin', 'IKEA assembly cost guide'],
+  ['/blog/tv-mounting-costs-austin', 'TV mounting cost guide'],
+  ['/blog/smart-home-installation-austin', 'Smart home setup guide'],
+  ['/blog/best-furniture-assembly-austin', 'Choosing an assembly pro'],
   ['/blog/', 'All guides &rarr;'],
 ];
 
@@ -78,6 +82,7 @@ function renderContact(mode) {
   if (mode === 'email_only') {
     return `      <div class="footer-contact">
         <a href="${businessIdentity.mailtoHref}">${businessIdentity.email}</a>
+        <a href="${businessIdentity.facebookUrl}" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>`;
   }
 
@@ -165,8 +170,6 @@ ${renderFooterInner({
 ${renderFooterInner({
   tagline,
   servicesLinks: SERVICE_PAGE_LINKS,
-  companyLinks: [...COMPANY_LINKS, ...SUPPORT_LINKS],
-  supportLinks: [],
   resourcesTitle: 'Helpful Guides',
   resourcesLinks: BLOG_RESOURCES_LINKS,
   copyrightLabel,

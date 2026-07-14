@@ -85,10 +85,13 @@ const report = {
   changedFileCount: changedFiles.length,
 };
 
-writeReportFile('page-public-footer-sync-report.json', `${JSON.stringify(report, null, 2)}\n`);
-writeReportFile(
-  'page-public-footer-sync-report.md',
-  ['# Public Footer Sync Report', '', `Changed ${changedFiles.length} file(s).`, '', ...changedFiles.map((path) => `- ${path}`)].join('\n') + '\n',
-);
+const shouldWriteReport = !process.argv.includes('--no-report');
+if (shouldWriteReport) {
+  writeReportFile('page-public-footer-sync-report.json', `${JSON.stringify(report, null, 2)}\n`);
+  writeReportFile(
+    'page-public-footer-sync-report.md',
+    ['# Public Footer Sync Report', '', `Changed ${changedFiles.length} file(s).`, '', ...changedFiles.map((path) => `- ${path}`)].join('\n') + '\n',
+  );
+}
 
 console.log(`Synced governed public footers across ${changedFiles.length} file(s).`);

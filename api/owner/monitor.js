@@ -53,6 +53,8 @@ export default async function handler(req, res) {
   }
 
   const financeTotals = summarizeFinanceRows(financeRows);
+  const completedFinanceRows = financeRows.filter(row => row.status === 'completed');
+  const completedGross = completedFinanceRows.reduce((total, row) => total + Number(row.netCharged || 0), 0);
   const gross = financeTotals.totalCharged;
   const pendingPayouts = financeTotals.pendingPayouts;
   const netRevenue = financeTotals.totalPlatformRevenue;
@@ -103,7 +105,7 @@ export default async function handler(req, res) {
       grossRevenueDollars: (gross / 100).toFixed(2),
       stripeFeeDollars: (stripeFees / 100).toFixed(2),
       netRevenueDollars: (netRevenue / 100).toFixed(2),
-      avgJobValueDollars: completed.length ? ((gross / completed.length) / 100).toFixed(2) : 0,
+      avgJobValueDollars: completed.length ? ((completedGross / completed.length) / 100).toFixed(2) : 0,
       completionRate: bookings.length ? Math.round(completed.length / bookings.length * 100) + '%' : '0%',
       financeSource: 'ledger_first',
       legacyRows: financeRecon?.legacyRows ?? null,

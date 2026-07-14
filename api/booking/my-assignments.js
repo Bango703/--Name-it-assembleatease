@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
-import { createClient } from '@supabase/supabase-js';
+import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
+import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import {
   BOOKING_STATUS,
   DISPATCH_OFFER_STATUS,
@@ -7,6 +8,50 @@ import {
   VISIBLE_ASSIGNMENT_STATUSES,
   computeBookingSplitFromSnapshot,
 } from '../_source-of-truth.js';
+
+const SAFE_OFFER_CITIES = new Map([
+  ['austin', 'Austin'],
+  ['bee cave', 'Bee Cave'],
+  ['buda', 'Buda'],
+  ['cedar park', 'Cedar Park'],
+  ['dripping springs', 'Dripping Springs'],
+  ['georgetown', 'Georgetown'],
+  ['hutto', 'Hutto'],
+  ['kyle', 'Kyle'],
+  ['lakeway', 'Lakeway'],
+  ['leander', 'Leander'],
+  ['manor', 'Manor'],
+  ['pflugerville', 'Pflugerville'],
+  ['round rock', 'Round Rock'],
+  ['sunset valley', 'Sunset Valley'],
+  ['west lake hills', 'West Lake Hills'],
+]);
+
+export function deriveOfferLocation(address) {
+  const parts = String(address || '')
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+  if (!parts.length) return 'Austin-area service zone';
+
+  if (/^(?:USA|US|United States)$/i.test(parts.at(-1))) parts.pop();
+
+  let city = '';
+  let zip = '';
+  const stateZip = String(parts.at(-1) || '').match(/^(?:TX|Texas)\s+(\d{5})(?:-\d{4})?$/i);
+  if (stateZip) {
+    city = String(parts.at(-2) || '').trim();
+    zip = stateZip[1];
+  } else if (/^\d{5}(?:-\d{4})?$/.test(String(parts.at(-1) || ''))
+      && /^(?:TX|Texas)$/i.test(String(parts.at(-2) || ''))) {
+    zip = String(parts.at(-1)).slice(0, 5);
+    city = String(parts.at(-3) || '').trim();
+  }
+
+  const safeCity = SAFE_OFFER_CITIES.get(city.toLowerCase());
+  if (!safeCity || !zip) return 'Austin-area service zone';
+  return `${safeCity}, TX ${zip}`;
+}
 
 export function redactAssignmentCustomerData(bookings = []) {
   return bookings.map(booking => {
@@ -34,15 +79,10 @@ export function redactAssignmentCustomerData(bookings = []) {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
-
-  const token = auth.replace('Bearer ', '');
-  const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await userClient.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
-
   const sb = getSupabase();
+  const access = await requireAssignedWorkEaser(req, { supabase: sb });
+  if (!access.ok) return respondWithEaserAccessError(res, access);
+  const { user, profile: easerProfile, applicationFeeRefundHold } = access;
   const warnings = [];
 
   function pushWarning(code, message) {
@@ -53,28 +93,16 @@ export default async function handler(req, res) {
   const ACTIVE_STATUSES  = ACTIVE_BOOKING_STATUSES;
   const VISIBLE_STATUSES = VISIBLE_ASSIGNMENT_STATUSES;
 
-  // Membership status from profile
-  let easerProfile = null;
-  try {
-    const { data, error } = await sb
-      .from('profiles')
-      .select('has_membership')
-      .eq('id', user.id)
-      .single();
-    if (error) throw error;
-    easerProfile = data;
-  } catch (profileError) {
-    console.error('My assignments profile warning:', profileError);
-    pushWarning('profile_lookup_partial_failure', 'Membership status could not be verified for this refresh.');
-  }
-  const easerIsMember = easerProfile?.has_membership === true;
+  // Membership status comes from the same required profile read used for the
+  // active/approved authorization decision, avoiding a second source of truth.
+  const easerIsMember = hasEffectiveEaserMembership(easerProfile);
   // Canonical fee — must match the completion payout (assembler-complete.js) so the
   // dashboard estimate never overstates what the Pro will actually receive.
 
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payout_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -97,7 +125,12 @@ export default async function handler(req, res) {
   // (or set to someone else). Without this, Easer can't see the job unless
   // they still have the email open.
   let openOffers = [];
-  try {
+  if (applicationFeeRefundHold) {
+    pushWarning(
+      'application_fee_refund_hold',
+      'New job offers are paused while the application-fee refund is reviewed. Existing assigned work remains available.',
+    );
+  } else try {
     const { data, error } = await sb
       .from('dispatch_offers')
       .select('booking_id, expires_at, token, dispatch_score')
@@ -121,7 +154,7 @@ export default async function handler(req, res) {
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, ref, service, date, time, status, total_price, tax_amount, assemblecash_redeemed_cents')
+        .select('id, ref, service, date, time, status, total_price, tax_amount, assemblecash_redeemed_cents, address')
         .in('id', unacceptedOfferBookingIds)
         .eq('status', BOOKING_STATUS.CONFIRMED)
         .is('assembler_id', null);
@@ -140,6 +173,8 @@ export default async function handler(req, res) {
   // Enrich offer-only bookings — mark as pending offer, hide customer PII until accepted
   offerBookings.forEach(b => {
     b._is_pending_offer = true;
+    b._offer_location = deriveOfferLocation(b.address);
+    delete b.address;
     b.customer_name  = null;  // hide until accepted
     b.customer_phone = null;
     b.customer_email = null;
@@ -153,6 +188,7 @@ export default async function handler(req, res) {
   // Enrich already-assigned bookings that haven't been accepted yet (legacy path)
   (assignedBookings || []).forEach(b => {
     if (!b.assembler_accepted_at && offerMap[b.id]) {
+      b._offer_location    = deriveOfferLocation(b.address);
       b._offer_expires_at = offerMap[b.id].expires_at;
       b._offer_token      = offerMap[b.id].token;
       b._offer_score      = offerMap[b.id].dispatch_score;
@@ -172,11 +208,21 @@ export default async function handler(req, res) {
 
   if (evidenceRequestedIds.length) {
     try {
-      const { data: evidenceRows } = await sb
+      const { data: evidenceRows, error: evidenceError } = await sb
         .from('booking_evidence')
-        .select('booking_id')
-        .in('booking_id', evidenceRequestedIds);
-      const uploadedSet = new Set((evidenceRows || []).map(r => r.booking_id));
+        .select('booking_id, created_at')
+        .in('booking_id', evidenceRequestedIds)
+        .eq('evidence_type', 'completion_photo')
+        .eq('uploaded_by', user.id);
+      if (evidenceError) throw evidenceError;
+      const bookingById = new Map((assignedBookings || []).map(booking => [booking.id, booking]));
+      const uploadedSet = new Set((evidenceRows || [])
+        .filter(row => {
+          const booking = bookingById.get(row.booking_id);
+          return booking?.job_started_at
+            && new Date(row.created_at).getTime() >= new Date(booking.job_started_at).getTime();
+        })
+        .map(row => row.booking_id));
       (assignedBookings || []).forEach(b => {
         if (b.evidence_requested_at) b._evidence_uploaded = uploadedSet.has(b.id);
       });
@@ -244,6 +290,9 @@ export default async function handler(req, res) {
         totalPriceCents: b.total_price,
         taxCents: b.tax_amount || 0,
         isMember: easerIsMember,
+        feePct: b.easer_fee_snapshot_easer_id === user.id
+          ? b.easer_fee_pct_snapshot
+          : null,
         assemblecashRedeemedCents: b.assemblecash_redeemed_cents || 0,
       });
       b._pay_estimate_lo = split.assemblerDueCents;

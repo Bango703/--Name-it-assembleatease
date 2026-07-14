@@ -1,6 +1,7 @@
 import { getSupabase } from './_supabase.js';
 import { rateLimit } from './_ratelimit.js';
 import { logActivity } from './booking/_activity.js';
+import { verifyReviewToken } from './_review-token.js';
 
 export default async function handler(req, res) {
   const sb = getSupabase();
@@ -19,7 +20,6 @@ export default async function handler(req, res) {
       console.error('Reviews GET error:', error.code, error.message);
       return res.status(500).json({
         error: 'Failed to fetch reviews',
-        detail: error.message, // visible to owner in console, not exposed to public in prod
       });
     }
     return res.status(200).json({ reviews: (data || []).filter(review => !isLikelyInternalTestReview(review)) });
@@ -34,12 +34,15 @@ export default async function handler(req, res) {
   } catch (_) {}
 
   const payload = (req.body && typeof req.body === 'object') ? req.body : {};
-  const { ref, email, rating, body } = payload;
+  const { ref, email, rating, body, token } = payload;
   const normalizedRef = String(ref || '').toUpperCase().trim();
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const parsedRating = parseInt(rating, 10);
   if (!ref || !email || !rating || !body) {
     return res.status(400).json({ error: 'Missing required fields: ref, email, rating, body' });
+  }
+  if (!token) {
+    return res.status(403).json({ error: 'Use the secure review link sent to your booking email.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail)) {
     return res.status(400).json({ error: 'Please provide a valid email address.' });
@@ -69,6 +72,15 @@ export default async function handler(req, res) {
   }
   if (booking.status !== 'completed') {
     return res.status(400).json({ error: 'Reviews can only be left for completed jobs.' });
+  }
+  if (!verifyReviewToken(token, {
+    bookingId: booking.id,
+    ref: booking.ref,
+    email: booking.customer_email,
+  })) {
+    return res.status(403).json({
+      error: 'This secure review link is invalid or expired. Ask AssembleAtEase to send a new review link.',
+    });
   }
 
   // Prevent duplicate reviews — use maybeSingle() so missing row is not an error

@@ -1,9 +1,12 @@
 import { getSupabase } from '../_supabase.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
+import { customerOwnsBooking, normalizeCustomerEmail } from './_customer-booking-auth.js';
 
 /**
  * GET /api/booking/customer-bookings
- * Returns bookings for the authenticated customer (matched by email).
+ * Returns bookings for the authenticated customer. Bound bookings are owned
+ * by customer_id; exact email matching is only a legacy fallback for rows that
+ * have not yet been bound to an account.
  * Requires Authorization: Bearer <supabase-jwt>
  */
 export default async function handler(req, res) {
@@ -23,32 +26,31 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  const email = user.email?.toLowerCase();
+  const email = normalizeCustomerEmail(user.email);
   if (!email) {
     return res.status(400).json({ error: 'No email associated with account' });
   }
 
   const { status } = req.query;
 
-  let query = sb
-    .from('bookings')
-    .select('id, ref, service, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assigned_at, assembler_accepted_at')
-    .ilike('customer_email', email)
-    .order('created_at', { ascending: false });
+  const select = 'id, ref, service, customer_name, customer_email, date, time, address, details, status, created_at, assembler_id, assigned_at, assembler_accepted_at';
+  const applyStatus = query => (status && status !== 'all' ? query.eq('status', status) : query);
+  const [boundResult, legacyResult] = await Promise.all([
+    applyStatus(sb.from('bookings').select(select).eq('customer_id', user.id)),
+    applyStatus(sb.from('bookings').select(select).is('customer_id', null).ilike('customer_email', email)),
+  ]);
 
-  if (status && status !== 'all') {
-    query = query.eq('status', status);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Customer bookings error:', error);
+  if (boundResult.error || legacyResult.error) {
+    console.error('Customer bookings error:', boundResult.error || legacyResult.error);
     return res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 
   // Enrich with assembler names where assigned
-  const bookings = data || [];
+  const bookings = [...new Map([
+    ...(boundResult.data || []),
+    ...(legacyResult.data || []),
+  ].filter(booking => customerOwnsBooking(booking, user)).map(booking => [booking.id, booking])).values()]
+    .sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
   const assemblerIds = [...new Set(bookings.filter(b => b.assembler_id).map(b => b.assembler_id))];
 
   let assemblerMap = {};

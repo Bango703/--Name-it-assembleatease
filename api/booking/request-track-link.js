@@ -1,7 +1,8 @@
 import { getSupabase } from '../_supabase.js';
 import { rateLimit, rateLimitKey } from '../_ratelimit.js';
 import { sendEmail, esc, ownerEmail } from '../_email.js';
-import { deriveGuestMutationToken, guestMutationTokenHash } from '../_payment-security.js';
+import { randomToken, sha256 } from '../_payment-security.js';
+import { bookingEmailMatches } from './_guest-booking-auth.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -23,17 +24,22 @@ export default async function handler(req, res) {
   const { data: booking } = await sb.from('bookings')
     .select('id, ref, customer_email, customer_name, guest_mutation_token_hash')
     .eq('ref', ref)
-    .ilike('customer_email', email)
     .maybeSingle();
 
-  if (booking) {
+  if (booking && bookingEmailMatches(booking, email)) {
     try {
-      const token = deriveGuestMutationToken({ bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
-      const tokenHash = guestMutationTokenHash(booking);
-      const { error: updateError } = await sb.from('bookings')
+      const token = randomToken(32);
+      const tokenHash = sha256(token);
+      let tokenUpdate = sb.from('bookings')
         .update({ guest_mutation_token_hash: tokenHash })
         .eq('id', booking.id);
-      if (updateError) throw updateError;
+      tokenUpdate = booking.guest_mutation_token_hash == null
+        ? tokenUpdate.is('guest_mutation_token_hash', null)
+        : tokenUpdate.eq('guest_mutation_token_hash', booking.guest_mutation_token_hash);
+      const { data: updatedTokenRows, error: updateError } = await tokenUpdate.select('id');
+      if (updateError || !updatedTokenRows?.length) {
+        throw updateError || new Error('The secure booking token changed before a new link could be issued');
+      }
 
       const trackUrl = `${process.env.PUBLIC_SITE_URL || SITE}/track?ref=${encodeURIComponent(booking.ref)}&email=${encodeURIComponent(booking.customer_email)}&token=${encodeURIComponent(token)}`;
       const emailResult = await sendEmail({

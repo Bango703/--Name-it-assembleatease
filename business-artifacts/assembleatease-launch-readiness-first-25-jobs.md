@@ -4,7 +4,7 @@ Use this before accepting real Austin customers. Do not treat the site as self-r
 
 ## Launch Blockers
 
-- Supabase production schema verified for all migrations through `033_launch_compliance_and_schema_state.sql`; the owner readiness endpoint reports `DATABASE_SCHEMA_033: pass`.
+- Supabase production schema verified for all migrations through `037_owner_easer_workflow_completion.sql`; the owner readiness endpoint reports `DATABASE_SCHEMA_037: pass`.
 - `record_booking_payout` RPC accepts `p_payout_method`.
 - `booking_evidence`, `booking_items`, `financial_event_audit`, `notification_log`, `payout_ledger`, and `dispatch_offers` exist.
 - `profiles` includes agreement evidence fields: `contractor_agreement_signed_at`, `code_of_conduct_agreed_at`, `contractor_agreement_version`, `contractor_agreement_ip`, `contractor_agreement_user_agent`, `contractor_agreement_signed_name`.
@@ -15,9 +15,11 @@ Use this before accepting real Austin customers. Do not treat the site as self-r
 - The exposed owner password is rotated in hosting, local snapshots, and the password manager; repository history is treated as compromised.
 - `OWNER_SESSION_SECRET` is a separate random secret of at least 32 characters, legacy production password headers are disabled, and Upstash rate-limit credentials are configured.
 - A Texas tax professional has approved service taxability and address sourcing; only then is `TEXAS_TAX_CONFIGURATION_APPROVED=true` set in production.
-- The current contractor agreement version is `2026-07-12`; active Easers have reaccepted it before receiving offers.
+- The current contractor agreement version is `2026-07-13`; active Easers have reaccepted it before receiving offers.
 - W-9 status is recorded for every paid Easer. Raw forms, SSNs, and EINs are retained only in an approved secure tax-document system, never in dashboard notes.
 - Stripe Connect stays disabled unless every active Easer has completed Connect onboarding and a test transfer has reconciled.
+- Easer membership remains disabled for launch. No priority-dispatch or reduced-fee benefit is active unless the feature is deliberately enabled and fully tested later.
+- Instant booking is limited to ZIP codes in the shared server/browser service-area source of truth. Do not advertise or accept instant bookings in a new market until its tax, pricing, Easer supply, dispatch, and support checks pass.
 
 ## Daily Owner Checklist
 

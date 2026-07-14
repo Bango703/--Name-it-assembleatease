@@ -1,3 +1,20 @@
+export function parseIsoCalendarDate(dateStr) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return null;
+  const parsed = new Date(`${dateStr}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dateStr) return null;
+  return parsed;
+}
+
+export function chicagoTodayIso(now = new Date()) {
+  const values = {};
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now).forEach((part) => {
+    if (part.type !== 'literal') values[part.type] = part.value;
+  });
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 /**
  * Compute the UTC timestamp (ms) for a booking appointment in America/Chicago time.
  * Handles CDT (UTC-5, mid-Mar → early Nov) and CST (UTC-6, rest of year) automatically
@@ -8,7 +25,7 @@
  * @returns {number|null}  — UTC ms timestamp, or null if input is unparseable
  */
 export function appointmentTimestampMs(dateStr, timeStr) {
-  if (!dateStr) return null;
+  if (!parseIsoCalendarDate(dateStr)) return null;
 
   // ── Parse appointment hour/minute ──────────────────────────────────────────
   let h = 12, m = 0; // default noon local — conservative, avoids edge-case misfire

@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   const sb = getSupabase();
-  const { status, limit, offset } = req.query;
+  const { status, limit, offset, bookingId, ref } = req.query;
   const safeLimit  = Math.min(Math.max(parseInt(limit, 10) || 25, 1), 100);
   const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
@@ -17,6 +17,8 @@ export default async function handler(req, res) {
     .order('created_at', { ascending: false });
 
   if (status && status !== 'all') query = query.eq('status', status);
+  if (bookingId) query = query.eq('id', String(bookingId));
+  if (ref) query = query.eq('ref', String(ref).trim());
   query = query.range(safeOffset, safeOffset + safeLimit - 1);
 
   const { data, error, count } = await query;
@@ -44,7 +46,7 @@ export default async function handler(req, res) {
     if (aIds.length) {
       const { data: profiles } = await sb
         .from('profiles')
-        .select('id, full_name, tier, rating, completed_jobs, phone')
+        .select('id, full_name, tier, rating, completed_jobs, phone, payout_method_preference')
         .in('id', aIds);
       if (profiles) {
         const pm = {};
@@ -56,22 +58,48 @@ export default async function handler(req, res) {
             b.assembler_rating= pm[b.assembler_id].rating;
             b.assembler_jobs  = pm[b.assembler_id].completed_jobs;
             b.assembler_phone = pm[b.assembler_id].phone || null;
+            b.assembler_payout_method_preference = pm[b.assembler_id].payout_method_preference || null;
           }
         });
       }
     }
 
-    // Flag bookings with unread Easer support messages so the owner card can show a red dot
+    // Recipient truth, not sender labels, determines what is unread for the
+    // owner. Customer and Easer messages are both operationally important.
     const bIds = data.map(b => b.id);
-    const { data: unreadMsgs } = await sb
+    const { data: unreadMsgs, error: unreadError } = await sb
       .from('messages')
-      .select('booking_id')
+      .select('booking_id, sender')
       .in('booking_id', bIds)
-      .eq('sender', 'assembler')
+      .eq('recipient_type', 'owner')
       .is('read_at', null);
+    if (unreadError) {
+      console.error('Unread booking messages lookup error:', unreadError);
+      return res.status(503).json({
+        error: 'Bookings loaded, but owner message notifications could not be verified. Apply migration 037 and retry.',
+        code: 'MESSAGE_NOTIFICATION_TRUTH_UNAVAILABLE',
+      });
+    }
     if (unreadMsgs && unreadMsgs.length) {
-      const unreadSet = new Set(unreadMsgs.map(m => m.booking_id));
-      data.forEach(b => { if (unreadSet.has(b.id)) b.has_unread_easer_msg = true; });
+      const unreadByBooking = new Map();
+      unreadMsgs.forEach(message => {
+        const current = unreadByBooking.get(message.booking_id) || {
+          count: 0,
+          customer: false,
+          assembler: false,
+        };
+        current.count += 1;
+        if (message.sender === 'customer') current.customer = true;
+        if (message.sender === 'assembler') current.assembler = true;
+        unreadByBooking.set(message.booking_id, current);
+      });
+      data.forEach(booking => {
+        const unread = unreadByBooking.get(booking.id);
+        if (!unread) return;
+        booking.unread_message_count = unread.count;
+        booking.has_unread_customer_msg = unread.customer;
+        booking.has_unread_easer_msg = unread.assembler;
+      });
     }
   }
 

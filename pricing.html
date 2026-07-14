@@ -84,7 +84,7 @@
 
 /* ===== PRICING REFRESH ===== */
 body.pricing-page{background:#f6fbfd}
-.pricing-page .nav{position:relative}
+.pricing-page .nav{position:relative;height:auto;padding:0;display:block}
 .pricing-page .page-hero{position:relative;min-height:520px;padding:0 2rem;text-align:left;display:grid;align-items:end;overflow:hidden;background:#eaf8fc}
 .pricing-page .page-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,92,112,0.9) 0%,rgba(0,137,170,0.76) 38%,rgba(255,255,255,0.2) 72%,rgba(255,255,255,0.05) 100%),url('/images/pricing-estimate-review.jpg?v=pricing-photo-1') center 44%/cover no-repeat;transform:scale(1.01)}
 .pricing-page .page-hero-inner{position:relative;z-index:1;width:min(1120px,100%);max-width:1120px;margin:0 auto;padding:5.25rem 0 4.25rem}
@@ -127,7 +127,7 @@ body.pricing-page{background:#f6fbfd}
 .price-card-cta{padding:1.1rem 1.35rem 1.25rem;border-top:1px solid #edf2f5;margin-top:auto}
 .price-swipe-dots{display:none;align-items:center;justify-content:center;gap:6px;margin:-0.2rem 0 0.9rem}
 .price-swipe-dots span{width:7px;height:7px;border-radius:999px;background:var(--cyan-mid)}
-.price-swipe-dots span:first-child{width:18px;background:var(--cyan)}
+.price-swipe-dots span.active{width:18px;background:var(--cyan)}
 .bundle-panel{margin-top:1.2rem;background:linear-gradient(135deg,#006477 0%,#0099CC 70%,#00BFFF 160%);color:#fff;border-radius:20px;padding:1.5rem;display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:center;box-shadow:0 20px 50px rgba(0,45,56,0.13)}
 .bundle-panel h3{font-family:var(--font-display);font-size:1.8rem;line-height:1.05;margin-bottom:0.45rem;letter-spacing:0;color:#fff}
 .bundle-panel p{font-size:0.9rem;color:rgba(255,255,255,0.78);line-height:1.65;max-width:700px}
@@ -139,6 +139,9 @@ body.pricing-page{background:#f6fbfd}
 .pricing-faq-head h2{font-family:var(--font-display);font-size:clamp(1.9rem,3vw,2.7rem);line-height:1;color:var(--ink);letter-spacing:0}
 .pricing-page .cta-section{background:linear-gradient(135deg,#007f95 0%,#0099CC 62%,#00BFFF 160%);padding:4.5rem 2rem}
 .pricing-page #cookie-banner>span{min-width:0}
+@media(max-width:899px){
+  .pricing-page .nav-links{display:none}
+}
 @media(max-width:980px){
   .pricing-intro-grid,.price-menu-grid{grid-template-columns:1fr 1fr}
   .pricing-proof{grid-template-columns:1fr}
@@ -178,21 +181,20 @@ body.pricing-page{background:#f6fbfd}
 {
   "@context": "https://schema.org",
   "@type": "WebPage",
-  "name": "Service Pricing &mdash; AssembleAtEase",
+  "name": "Service Pricing — AssembleAtEase",
   "description": "Clear starting prices for furniture assembly, TV mounting, smart home installation, fitness equipment, outdoor projects, and office assembly. Service-call fee and taxes are shown before checkout.",
   "url": "https://www.assembleatease.com/pricing",
   "isPartOf": {"@type": "WebSite", "name": "AssembleAtEase", "url": "https://www.assembleatease.com"},
   "mainEntity": [
-    {"@type": "Service", "name": "Furniture Assembly", "description": "Professional furniture assembly for IKEA, Wayfair, Amazon and more.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69", "priceSpecification": {"@type": "UnitPriceSpecification", "price": "69", "priceCurrency": "USD", "name": "Starting price"}}},
-    {"@type": "Service", "name": "Mounting &amp; Hanging", "description": "TV wall mounting for any size TV and any wall type.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "79"}},
-    {"@type": "Service", "name": "Smart Home Installation", "description": "Installation of smart thermostats, doorbells, locks, cameras and more.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69"}},
-    {"@type": "Service", "name": "Fitness Equipment Assembly", "description": "Treadmill, bike, rack, bench, and home gym assembly.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "119"}},
-    {"@type": "Service", "name": "Outdoor and Playset Assembly", "description": "Playset, trampoline, basketball hoop, shed, gazebo, and outdoor structure assembly.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "89"}},
-    {"@type": "Service", "name": "Office Assembly", "description": "Office chair, desk, shelving, file cabinet, workstation, and conference table assembly.", "provider": {"@type": "LocalBusiness", "name": "AssembleAtEase"}, "areaServed": "Austin, TX", "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "89"}}
+    {"@type": "Service", "name": "Furniture Assembly", "description": "Professional furniture assembly for IKEA, Wayfair, Amazon and more.", "provider": {"@id": "https://www.assembleatease.com/#organization"}, "areaServed": {"@type":"AdministrativeArea","name":"Current Central Texas service area"}, "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69", "priceSpecification": {"@type": "UnitPriceSpecification", "price": "69", "priceCurrency": "USD", "name": "Starting price"}}},
+    {"@type": "Service", "name": "Mounting & Hanging", "description": "TV wall mounting for any size TV and any wall type.", "provider": {"@id": "https://www.assembleatease.com/#organization"}, "areaServed": {"@type":"AdministrativeArea","name":"Current Central Texas service area"}, "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "79"}},
+    {"@type": "Service", "name": "Smart Home Installation", "description": "Installation of smart thermostats, doorbells, locks, cameras and more.", "provider": {"@id": "https://www.assembleatease.com/#organization"}, "areaServed": {"@type":"AdministrativeArea","name":"Current Central Texas service area"}, "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "69"}},
+    {"@type": "Service", "name": "Fitness Equipment Assembly", "description": "Treadmill, bike, rack, bench, and home gym assembly.", "provider": {"@id": "https://www.assembleatease.com/#organization"}, "areaServed": {"@type":"AdministrativeArea","name":"Current Central Texas service area"}, "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "119"}},
+    {"@type": "Service", "name": "Outdoor and Playset Assembly", "description": "Playset, trampoline, basketball hoop, shed, gazebo, and outdoor structure assembly.", "provider": {"@id": "https://www.assembleatease.com/#organization"}, "areaServed": {"@type":"AdministrativeArea","name":"Current Central Texas service area"}, "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "89"}},
+    {"@type": "Service", "name": "Office Assembly", "description": "Office chair, desk, shelving, file cabinet, workstation, and conference table assembly.", "provider": {"@id": "https://www.assembleatease.com/#organization"}, "areaServed": {"@type":"AdministrativeArea","name":"Current Central Texas service area"}, "offers": {"@type": "Offer", "priceCurrency": "USD", "price": "89"}}
   ]
 }
 </script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":["LocalBusiness","HomeAndConstructionBusiness"],"name":"AssembleAtEase","legalName":"AssembleAtEase LLC","image":"https://www.assembleatease.com/images/logo.jpg","url":"https://www.assembleatease.com/pricing","telephone":"+17372906129","email":"service@assembleatease.com","address":{"@type":"PostalAddress","streetAddress":"1910 W Braker Ln","addressLocality":"Austin","addressRegion":"TX","postalCode":"78701","addressCountry":"US"},"geo":{"@type":"GeoCoordinates","latitude":"30.4140535","longitude":"-97.7491735"},"areaServed":{"@type":"City","name":"Austin","containedInPlace":{"@type":"State","name":"Texas"}},"priceRange":"$$","sameAs":["https://www.google.com/maps?cid=7847022131459448801","https://www.facebook.com/people/Assembleatease/61572042722009/"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"11","bestRating":"5"},"potentialAction":{"@type":"ReserveAction","target":{"@type":"EntryPoint","urlTemplate":"https://www.assembleatease.com/book"},"result":{"@type":"Reservation","name":"Book Assembly Service"}}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.assembleatease.com"},{"@type":"ListItem","position":2,"name":"Service Pricing","item":"https://www.assembleatease.com/pricing"}]}</script>
 </head>
 <body class="pricing-page">
@@ -201,16 +203,17 @@ body.pricing-page{background:#f6fbfd}
   <div class="nav-inner">
     <a href="/" class="nav-logo">
       <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
-      <div class="nav-logo-text">Assemble<span>AtEase</span></div>
+      <div class="nav-logo-text">AssembleAtEase<div class="nav-logo-sub">Furniture Assembly &bull; TV Mounting</div></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
+      <li><a href="/locations">Locations</a></li>
       <li><a href="/bundles">Bundles</a></li>
       <li><a href="/pricing" style="color:var(--cyan)">Pricing</a></li>
       <li><a href="/track">Track My Booking</a></li>
       <li><a href="/about">About Us</a></li>
     </ul>
-    <a href="/book" class="nav-book-pill">Book Now &rarr;</a>
+    <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
@@ -218,6 +221,7 @@ body.pricing-page{background:#f6fbfd}
 </nav>
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services-hdr">Services</a>
+  <a href="/locations">Locations</a>
   <a href="/bundles">Bundles</a>
   <a href="/pricing">Pricing</a>
   <a href="/track">Track My Booking</a>
@@ -277,7 +281,7 @@ body.pricing-page{background:#f6fbfd}
     </div>
     <p>Common starting prices. Checkout shows item pricing, service-call fee, taxes, and the final total before you confirm.</p>
   </div>
-  <div class="price-swipe-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="price-swipe-dots" aria-hidden="true"><span class="active"></span><span></span><span></span><span></span><span></span><span></span></div>
 
   <section class="price-menu-grid" aria-label="Service pricing menu">
     <article class="price-card">
@@ -466,7 +470,7 @@ body.pricing-page{background:#f6fbfd}
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="tel:+17372906129">737-290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
         <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>
@@ -480,13 +484,13 @@ body.pricing-page{background:#f6fbfd}
         <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
         <li><a href="/book?service=Office+Assembly">Office Furniture</a></li>
         <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
-        <li><a href="/business">Business &amp; Custom Quotes</a></li>
       </ul>
     </div>
     <div>
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
+        <li><a href="/locations">Locations</a></li>
         <li><a href="/pricing">Pricing</a></li>
         <li><a href="/blog/">Guides</a></li>
         <li><a href="/business">Business Services</a></li>
@@ -504,11 +508,11 @@ body.pricing-page{background:#f6fbfd}
     <div style="grid-column:1 / -1">
       <div class="footer-col-title">Resources</div>
       <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
-        <li><a href="/blog/">Home setup guides</a></li>
-        <li><a href="/blog/">Furniture assembly guides</a></li>
-        <li><a href="/blog/">TV mounting guides</a></li>
-        <li><a href="/blog/">Smart home guides</a></li>
-        <li><a href="/blog/">Move-in checklists</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New home setup checklist</a></li>
+        <li><a href="/blog/ikea-assembly-cost-austin">IKEA assembly cost guide</a></li>
+        <li><a href="/blog/tv-mounting-costs-austin">TV mounting cost guide</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart home setup guide</a></li>
+        <li><a href="/blog/best-furniture-assembly-austin">Choosing an assembly pro</a></li>
         <li><a href="/blog/">All guides &rarr;</a></li>
       </ul>
     </div>
@@ -523,11 +527,6 @@ body.pricing-page{background:#f6fbfd}
 </div>
 
 <script>
-  // Cookie banner
-  if(localStorage.getItem('cookie-consent')!=='accepted') {
-    document.getElementById('cookie-banner').classList.remove('hidden');
-  }
-
   // FAQ accordion — accessible
   document.querySelectorAll('.faq-item').forEach(function(item) {
     item.setAttribute('role', 'button');
@@ -553,29 +552,32 @@ body.pricing-page{background:#f6fbfd}
   // Footer year
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // Mobile pricing cards — auto-scroll + touch pause
+  // Mobile pricing cards — keep the indicator aligned with the visible card.
   (function(){
-    if(window.innerWidth >= 768) return;
-    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var grid = document.querySelector('.price-menu-grid');
-    if(!grid) return;
-    var paused = false, resumeTimer, speed = 0.22, dir = 1, edgePause = 0;
-    function tick(){
-      if(!paused && edgePause <= 0){
-        var max = grid.scrollWidth - grid.clientWidth;
-        if(max > 0){
-          grid.scrollLeft += speed * dir;
-          if(grid.scrollLeft >= max - 1){ dir = -1; edgePause = 120; }
-          if(grid.scrollLeft <= 1){ dir = 1; edgePause = 90; }
-        }
-      } else if(edgePause > 0){ edgePause--; }
-      requestAnimationFrame(tick);
+    var cards = grid ? Array.prototype.slice.call(grid.querySelectorAll('.price-card')) : [];
+    var dots = Array.prototype.slice.call(document.querySelectorAll('.price-swipe-dots span'));
+    if(!grid || !cards.length || cards.length !== dots.length) return;
+    var frame = 0;
+    function syncDots(){
+      frame = 0;
+      var rail = grid.getBoundingClientRect();
+      var center = rail.left + rail.width / 2;
+      var active = 0;
+      var distance = Infinity;
+      cards.forEach(function(card, index){
+        var rect = card.getBoundingClientRect();
+        var nextDistance = Math.abs((rect.left + rect.width / 2) - center);
+        if(nextDistance < distance){ distance = nextDistance; active = index; }
+      });
+      dots.forEach(function(dot, index){ dot.classList.toggle('active', index === active); });
     }
-    grid.addEventListener('touchstart', function(){ paused = true; clearTimeout(resumeTimer); }, {passive:true});
-    grid.addEventListener('touchend', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 5000); }, {passive:true});
-    grid.addEventListener('pointerenter', function(){ paused = true; clearTimeout(resumeTimer); });
-    grid.addEventListener('pointerleave', function(){ clearTimeout(resumeTimer); resumeTimer = setTimeout(function(){ paused = false; }, 1200); });
-    requestAnimationFrame(tick);
+    function scheduleSync(){
+      if(!frame) frame = requestAnimationFrame(syncDots);
+    }
+    grid.addEventListener('scroll', scheduleSync, {passive:true});
+    window.addEventListener('resize', scheduleSync, {passive:true});
+    syncDots();
   })();
 </script>
 

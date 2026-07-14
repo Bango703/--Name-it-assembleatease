@@ -21,6 +21,37 @@ export const DISPATCH_OFFER_STATUS = Object.freeze({
   SUPERSEDED: 'superseded',
 });
 
+// A booking may enter automatic or owner-triggered dispatch only when the
+// customer payment is protected. Captured is intentionally excluded: capture
+// belongs after completion, so a non-terminal captured booking needs review.
+export const DISPATCH_PAYMENT_STATUSES = Object.freeze([
+  'authorized',
+  'deposit_paid',
+]);
+
+export function isBookingPaymentReadyForDispatch(booking = {}, {
+  vercelEnv = process.env.VERCEL_ENV,
+} = {}) {
+  if (booking.stripe_dispute_hold === true) return false;
+  const totalCents = Number(booking.total_price || 0);
+  if (!Number.isInteger(totalCents) || totalCents <= 0) {
+    return totalCents === 0
+      && vercelEnv !== 'production'
+      && booking.confirmed_by === 'owner_zero_dollar_simulation';
+  }
+
+  const paymentStatus = String(booking.payment_status || '');
+  if (!DISPATCH_PAYMENT_STATUSES.includes(paymentStatus)) return false;
+  if (paymentStatus === 'authorized') return !!booking.stripe_payment_intent_id;
+
+  const depositCents = Number(booking.deposit_amount || 0);
+  return paymentStatus === 'deposit_paid'
+    && Number.isInteger(depositCents)
+    && depositCents > 0
+    && depositCents <= totalCents
+    && !!(booking.stripe_deposit_intent_id || booking.stripe_payment_intent_id);
+}
+
 export const ACTIVE_BOOKING_STATUSES = Object.freeze([
   BOOKING_STATUS.CONFIRMED,
   BOOKING_STATUS.EN_ROUTE,
@@ -71,6 +102,13 @@ export function getPlatformFeePct(isMember) {
   return isMember ? MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER : MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER;
 }
 
+export function normalizePlatformFeePct(feePct, isMember = false) {
+  const parsed = Number(feePct);
+  return parsed === MEMBERSHIP_PLATFORM_FEE_PCT.MEMBER || parsed === MEMBERSHIP_PLATFORM_FEE_PCT.NON_MEMBER
+    ? parsed
+    : getPlatformFeePct(isMember);
+}
+
 // ── Sales tax ────────────────────────────────────────────────────────────────
 // Texas sales tax rate (8.25%). Tax is a PASS-THROUGH LIABILITY owed to the state —
 // it is NEVER platform revenue and must be excluded from the platform fee and the
@@ -111,6 +149,22 @@ export function computeBookingSplit(totalInclusiveCents, isMember, { taxCents = 
   };
 }
 
+export function computeBookingSplitAtFeePct(totalInclusiveCents, feePct, { taxCents = 0 } = {}) {
+  const total = Math.max(0, Math.round(Number(totalInclusiveCents) || 0));
+  const tax = Math.min(total, Math.max(0, Math.round(Number(taxCents) || 0)));
+  const revenueBase = total - tax;
+  const canonicalFeePct = normalizePlatformFeePct(feePct);
+  const platformFee = Math.round(revenueBase * canonicalFeePct / 100);
+  return {
+    totalCents: total,
+    taxCents: tax,
+    revenueBaseCents: revenueBase,
+    feePct: canonicalFeePct,
+    platformFeeCents: platformFee,
+    assemblerDueCents: revenueBase - platformFee,
+  };
+}
+
 /**
  * Compute the payout split from a stored booking snapshot. Use this when a
  * platform-funded credit (for example AssembleCash) reduced what the customer
@@ -121,6 +175,7 @@ export function computeBookingSplit(totalInclusiveCents, isMember, { taxCents = 
  *   totalPriceCents?: number|null,
  *   taxCents?: number,
  *   isMember?: boolean,
+ *   feePct?: number|null,
  *   assemblecashRedeemedCents?: number,
  * }} args
  * @returns {{
@@ -140,6 +195,7 @@ export function computeBookingSplitFromSnapshot({
   totalPriceCents = null,
   taxCents = 0,
   isMember = false,
+  feePct = null,
   assemblecashRedeemedCents = 0,
 } = {}) {
   const chargedRaw = amountChargedCents != null ? amountChargedCents : totalPriceCents;
@@ -148,8 +204,8 @@ export function computeBookingSplitFromSnapshot({
   const redeemed = Math.max(0, Math.round(Number(assemblecashRedeemedCents) || 0));
   const pretaxCollected = total - tax;
   const payoutBase = pretaxCollected + redeemed;
-  const feePct = getPlatformFeePct(isMember);
-  const protectedPlatformFee = Math.round(payoutBase * feePct / 100);
+  const canonicalFeePct = normalizePlatformFeePct(feePct, isMember);
+  const protectedPlatformFee = Math.round(payoutBase * canonicalFeePct / 100);
   const assemblerDue = payoutBase - protectedPlatformFee;
   const platformFee = pretaxCollected - assemblerDue;
 
@@ -158,7 +214,7 @@ export function computeBookingSplitFromSnapshot({
     taxCents: tax,
     pretaxCollectedCents: pretaxCollected,
     payoutBaseCents: payoutBase,
-    feePct,
+    feePct: canonicalFeePct,
     protectedPlatformFeeCents: protectedPlatformFee,
     platformFeeCents: platformFee,
     assemblerDueCents: assemblerDue,
@@ -258,12 +314,28 @@ export function computeBookingFinancialSummary({
   };
 }
 
-// Service-call fee — FLAT $25 across all served zones (covers Easer dispatch, travel, setup).
-// Zone is still detected by 3-digit ZIP prefix for service-area validation. Server always recalculates.
+// Instant booking is deliberately narrower than a broad 786xx/787xx/788xx
+// prefix range. This protects launch operations from accepting jobs hundreds of
+// miles outside the cities where Easer coverage has actually been prepared.
+export const ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES = Object.freeze(['787']);
+export const ACTIVE_INSTANT_BOOKING_ZIPS = Object.freeze([
+  '78610', '78613', '78626', '78628', '78630', '78633', '78634',
+  '78640', '78641', '78645', '78646', '78653', '78660', '78664',
+  '78665', '78680', '78681', '78682', '78683', '78691',
+]);
+
+export function isActiveInstantBookingZip(zip) {
+  const normalized = String(zip || '').trim();
+  if (!/^\d{5}$/.test(normalized)) return false;
+  return ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES.includes(normalized.slice(0, 3))
+    || ACTIVE_INSTANT_BOOKING_ZIPS.includes(normalized);
+}
+
+// Service-call fee — FLAT $25 across all currently served zones (covers Easer dispatch, travel, setup).
+// Server classification remains authoritative; the browser check is convenience only.
 export const SERVICE_CALL_ZONES = Object.freeze({
   austin_core:  { label: 'Austin core',    fee: 2500 },  // 787xx — Austin proper, Bee Cave, Lakeway
-  near_suburb:  { label: 'Near suburbs',   fee: 2500 },  // 786xx — Round Rock, Cedar Park, Georgetown, Pflugerville, Kyle, Buda, Leander, Manor, Hutto
-  far_suburb:   { label: 'Far suburbs',    fee: 2500 },  // 788xx — Bastrop, Lockhart
+  near_suburb:  { label: 'Participating Central Texas communities', fee: 2500 },
 });
 
 // Launch profit guardrails. These are pre-tax service-revenue floors, so sales
@@ -271,7 +343,6 @@ export const SERVICE_CALL_ZONES = Object.freeze({
 export const MIN_PRETAX_BOOKING_BY_ZONE = Object.freeze({
   austin_core: 12900,
   near_suburb: 14900,
-  far_suburb: 16900,
 });
 
 export function getMinimumPretaxBookingCents(zone) {
@@ -279,10 +350,10 @@ export function getMinimumPretaxBookingCents(zone) {
 }
 
 export function getServiceCallZone(zip) {
-  const prefix = String(zip || '').slice(0, 3);
+  if (!isActiveInstantBookingZip(zip)) return null;
+  const prefix = String(zip || '').trim().slice(0, 3);
   if (prefix === '787') return 'austin_core';
   if (prefix === '786') return 'near_suburb';
-  if (prefix === '788') return 'far_suburb';
   return null;
 }
 

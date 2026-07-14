@@ -2,9 +2,11 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
+import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { logActivity } from './_activity.js';
+import { DISPATCH_HISTORY_EXCLUSION_STATUSES } from './_dispatch-safety.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -28,6 +30,17 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     .from('bookings').select('*').eq('id', bookingId).single();
   if (bErr || !booking) return { dispatched: 0, message: 'Booking not found' };
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return { dispatched: 0, message: `Booking not confirmed (status: ${booking.status})` };
+  if (!isBookingPaymentReadyForDispatch(booking)) {
+    return {
+      dispatched: 0,
+      message: `Payment is not verified for dispatch (payment status: ${booking.payment_status || 'missing'})`,
+      blocked: true,
+      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
+    };
+  }
+  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
+    return { dispatched: 0, message: 'Booking locked by a financial operation' };
+  }
   if (booking.assembler_id) return { dispatched: 0, message: 'Already assigned' };
   if (booking.dispatch_paused) return { dispatched: 0, message: 'Dispatch paused by owner' };
   if (booking.needs_manual_dispatch) return { dispatched: 0, message: 'Flagged for manual dispatch' };
@@ -37,11 +50,16 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // Deduplication via dispatch_offers table: check for open (sent) offers
   if (!dryRun) {
-    const { data: openOffers } = await sb
+    const { data: openOffers, error: openOffersError } = await sb
       .from('dispatch_offers')
       .select('id, expires_at')
       .eq('booking_id', bookingId)
       .eq('offer_status', DISPATCH_OFFER_STATUS.SENT);
+
+    if (openOffersError) {
+      console.error('dispatch open-offer lookup error:', openOffersError);
+      return { dispatched: 0, message: 'Could not verify current dispatch offers' };
+    }
 
     const stillOpen = (openOffers || []).filter(o => new Date(o.expires_at) > new Date());
     if (stillOpen.length > 0) {
@@ -56,11 +74,12 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   // ── Easer eligibility query ───────────────────────────────────────────────
   const { data: easers } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, full_name, email, phone, city, zip, status, application_status, tier, rating, completed_jobs, has_membership, is_available, identity_verified, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, last_assigned_at, acceptance_rate, active_jobs_today, last_dispatch_declined_at, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('role', 'assembler')
     .eq('status', 'active')
     .eq('identity_verified', true)
     .in('tier', ['starter', 'professional', 'elite'])
+    .or('account_closure_status.is.null,account_closure_status.eq.cancelled')
     .not('phone', 'is', null);
 
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
@@ -80,8 +99,8 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // When re-dispatching a job a Pro just dropped, don't bounce it straight back
     // to them — it should go to OTHER online Pros (per the drop-and-rematch flow).
     if (excludeEaserId && easer.id === excludeEaserId) return false;
-    // No hard city filter. The booking already passed the service-area (ZIP 786–788)
-    // check at creation, and every Pro serves the one Austin metro. City NAME matching
+    // No hard city filter. The booking already passed the exact active-ZIP check
+    // at creation, and every launch Easer serves the one Central Texas market. City-name matching
     // wrongly excludes Pros whose profile city differs from the booking's (e.g. an
     // "Austin" Pro on a Pflugerville job, or a mistyped city) — which silently chokes
     // dispatch. Proximity is rewarded in scoring (ZIP-match bonus) instead.
@@ -117,18 +136,24 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     }
   }
 
-  // Filter out Easers who already have an open offer for this booking
-  const easerIdsWithOpenOffers = new Set();
+  // Never automatically re-offer the same booking to an Easer who already
+  // received it. Repeated declined/expired/cancelled offers confuse Easers and
+  // can loop forever without reaching manual dispatch.
+  const easerIdsWithOfferHistory = new Set();
   if (!dryRun) {
-    const { data: existingOffers } = await sb
+    const { data: existingOffers, error: existingOffersError } = await sb
       .from('dispatch_offers')
       .select('easer_id')
       .eq('booking_id', bookingId)
-      .in('offer_status', [DISPATCH_OFFER_STATUS.SENT, DISPATCH_OFFER_STATUS.ACCEPTED, DISPATCH_OFFER_STATUS.SUPERSEDED]);
-    (existingOffers || []).forEach(o => easerIdsWithOpenOffers.add(o.easer_id));
+      .in('offer_status', DISPATCH_HISTORY_EXCLUSION_STATUSES);
+    if (existingOffersError) {
+      console.error('dispatch offer-history lookup error:', existingOffersError);
+      return { dispatched: 0, message: 'Could not verify prior dispatch recipients' };
+    }
+    (existingOffers || []).forEach(o => easerIdsWithOfferHistory.add(o.easer_id));
   }
 
-  const scoreable = eligible.filter(e => !easerIdsWithOpenOffers.has(e.id));
+  const scoreable = eligible.filter(e => !easerIdsWithOfferHistory.has(e.id));
   if (!scoreable.length) return { dispatched: 0, message: 'All eligible Easers already received offers' };
 
   // ── Enhanced scoring ──────────────────────────────────────────────────────
@@ -140,7 +165,7 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
     // High-value job: penalize starter Easers
     if (isHighValue && e.tier === 'starter') score -= 100;
 
-    if (e.has_membership) score += 150;
+    if (hasEffectiveEaserMembership(e)) score += 150;
     if (bookingZip && e.zip && e.zip === bookingZip) score += 75;
 
     // Rating bonus (0–75)
@@ -216,7 +241,12 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   if (offerErr) {
     console.error('dispatch_offers insert error:', offerErr);
-    return { dispatched: 0, message: 'Failed to create offer records' };
+    return {
+      dispatched: 0,
+      message: offerErr.code === '23505'
+        ? 'Another dispatch request already created active offers'
+        : 'Failed to create offer records',
+    };
   }
 
   // Build token map: easer_id → token
@@ -225,13 +255,45 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
 
   // ── Atomic booking update ────────────────────────────────────────────────
   // Single update — atomic guard: only proceed if still unassigned
-  const { data: updatedBookings, error: bookingUpdateErr } = await sb.from('bookings').update({
+  let bookingUpdateQuery = sb.from('bookings').update({
     dispatch_attempt:    attemptNumber,
     dispatch_offered_at: now,
     dispatch_status:     'offered',
     dispatch_offered_to: top.map(e => e.id), // keep for backwards compat
     needs_manual_dispatch: false,             // clear manual flag on retry
-  }).eq('id', bookingId).is('assembler_id', null).eq('status', BOOKING_STATUS.CONFIRMED).select('id');
+  })
+    .eq('id', bookingId)
+    .is('assembler_id', null)
+    .eq('status', BOOKING_STATUS.CONFIRMED)
+    .eq('payment_status', booking.payment_status)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+
+  bookingUpdateQuery = booking.total_price == null
+    ? bookingUpdateQuery.is('total_price', null)
+    : bookingUpdateQuery.eq('total_price', booking.total_price);
+  bookingUpdateQuery = booking.stripe_payment_intent_id == null
+    ? bookingUpdateQuery.is('stripe_payment_intent_id', null)
+    : bookingUpdateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+  bookingUpdateQuery = booking.stripe_deposit_intent_id == null
+    ? bookingUpdateQuery.is('stripe_deposit_intent_id', null)
+    : bookingUpdateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
+
+  bookingUpdateQuery = booking.dispatch_paused == null
+    ? bookingUpdateQuery.is('dispatch_paused', null)
+    : bookingUpdateQuery.eq('dispatch_paused', false);
+  bookingUpdateQuery = booking.needs_manual_dispatch == null
+    ? bookingUpdateQuery.is('needs_manual_dispatch', null)
+    : bookingUpdateQuery.eq('needs_manual_dispatch', false);
+
+  // Serialize competing dispatch rounds against the exact attempt snapshot
+  // read above. Only one request can advance the attempt counter.
+  bookingUpdateQuery = booking.dispatch_attempt == null
+    ? bookingUpdateQuery.is('dispatch_attempt', null)
+    : bookingUpdateQuery.eq('dispatch_attempt', booking.dispatch_attempt);
+
+  const { data: updatedBookings, error: bookingUpdateErr } = await bookingUpdateQuery.select('id');
 
   if (bookingUpdateErr || !updatedBookings?.length) {
     // Booking was just assigned — cancel the offers we just created
@@ -256,11 +318,18 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
       ? computeBookingSplitFromSnapshot({
           totalPriceCents: booking.total_price,
           taxCents: booking.tax_amount || 0,
-          isMember: easer.has_membership === true,
+          isMember: hasEffectiveEaserMembership(easer),
           assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
         }).assemblerDueCents
       : 0;
-    const pushPay = estPayCents > 0 ? '$' + Math.round(estPayCents / 100) + ' pay · ' : '';
+    const pushPay = estPayCents > 0
+      ? new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(estPayCents / 100) + ' estimated earnings · '
+      : '';
     const pushResult = await sendPushToUser(easer.id, {
       title: 'New Job Available',
       body:  `${booking.service || 'Service'} · ${pushPay}${booking.date || ''}${booking.time ? ' at ' + booking.time : ''} · Tap to review`,
@@ -396,7 +465,7 @@ function buildOfferEmail(easer, booking, city, offerUrl, expiresAt) {
   const split = computeBookingSplitFromSnapshot({
     totalPriceCents: booking.total_price || 0,
     taxCents: booking.tax_amount || 0,
-    isMember: easer.has_membership === true,
+    isMember: hasEffectiveEaserMembership(easer),
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
   });
   const payEstimate = booking.total_price > 0

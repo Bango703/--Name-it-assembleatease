@@ -1,6 +1,6 @@
 # Public Nav Sync Report
 
-Changed 98 file(s).
+Changed 104 file(s).
 
 - 404.html
 - about.html
@@ -8,6 +8,7 @@ Changed 98 file(s).
 - blog/bed-frame-assembly-austin.html
 - blog/best-furniture-assembly-austin.html
 - blog/crate-and-barrel-furniture-assembly-austin.html
+- blog/furniture-assembly-steiner-ranch-austin-tx.html
 - blog/garage-shelving-installation-austin.html
 - blog/ikea-assembly-cost-austin.html
 - blog/ikea-pax-wardrobe-assembly.html
@@ -17,11 +18,14 @@ Changed 98 file(s).
 - blog/same-day-handyman-austin.html
 - blog/smart-home-installation-austin.html
 - blog/tv-mounting-costs-austin.html
+- blog/tv-mounting-in-apartment-austin-texas.html
 - blog/tv-mounting-tips-austin.html
 - blog/tv-wall-mount-installation-cost-austin.html
 - blog/wayfair-furniture-assembly-austin.html
 - blog/why-hire-handyman-austin.html
 - bundles.html
+- business.html
+- contact.html
 - fitness-equipment-assembly-austin-tx.html
 - fitness-equipment-assembly-bee-cave-tx.html
 - fitness-equipment-assembly-buda-tx.html
@@ -47,6 +51,7 @@ Changed 98 file(s).
 - furniture-assembly-pflugerville-tx.html
 - furniture-assembly-round-rock-tx.html
 - index.html
+- locations.html
 - office-furniture-assembly-austin-tx.html
 - office-furniture-assembly-bee-cave-tx.html
 - office-furniture-assembly-buda-tx.html
@@ -71,6 +76,7 @@ Changed 98 file(s).
 - playset-assembly-manor-tx.html
 - playset-assembly-pflugerville-tx.html
 - playset-assembly-round-rock-tx.html
+- pricing.html
 - privacy.html
 - review.html
 - setup-club.html

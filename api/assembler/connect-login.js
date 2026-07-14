@@ -8,6 +8,7 @@ import {
   normalizeStripeConnectAccountId,
 } from '../_stripe-connect.js';
 import { deriveAssemblerStatus } from '../_assembler-state.js';
+import { isEaserClosureBlocking, normalizeEaserClosureStatus } from '../_easer-closure.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -30,12 +31,19 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: profile, error: profileErr } = await sb
     .from('profiles')
-    .select('id, role, status, stripe_connect_account_id')
+    .select('id, role, status, stripe_connect_account_id, account_closure_status')
     .eq('id', user.id)
     .maybeSingle();
 
   if (profileErr || !profile) return res.status(404).json({ error: 'Profile not found' });
   if (profile.role !== 'assembler') return res.status(403).json({ error: 'Only Easers can use this endpoint' });
+  if (isEaserClosureBlocking(profile)) {
+    return res.status(409).json({
+      error: 'Resolve your account closure request before opening payout management.',
+      code: 'ACCOUNT_CLOSURE_BLOCKS_PAYOUT_SETUP',
+      closureStatus: normalizeEaserClosureStatus(profile),
+    });
+  }
   if (deriveAssemblerStatus(profile) !== 'active') return res.status(403).json({ error: 'Your account must be active to manage payouts.' });
   const accountId = normalizeStripeConnectAccountId(profile.stripe_connect_account_id);
   if (!accountId) {

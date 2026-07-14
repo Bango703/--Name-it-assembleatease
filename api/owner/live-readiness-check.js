@@ -2,6 +2,7 @@ import { verifyOwner } from '../_email.js';
 import { getSupabase } from '../_supabase.js';
 
 const MIN_SECRET_LENGTH = 24;
+const REQUIRED_SCHEMA_MIGRATION = 37;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -22,17 +23,17 @@ export default async function handler(req, res) {
 
     checkStripeKey('STRIPE_SECRET_KEY', 'secret', target),
     checkStripeKey('STRIPE_PUBLISHABLE_KEY', 'publishable', target),
-    checkWebhookSecret('STRIPE_WEBHOOK_SECRET', { required: true }),
-    checkWebhookSecret('STRIPE_IDENTITY_WEBHOOK_SECRET', { required: true }),
+    checkWebhookSecret('STRIPE_WEBHOOK_SECRET', { required: true, target }),
+    checkWebhookSecret('STRIPE_IDENTITY_WEBHOOK_SECRET', { required: true, target }),
     checkRequiredApproval(
       'TEXAS_TAX_CONFIGURATION_APPROVED',
       'A Texas tax professional must approve the launch service classifications and address-sourcing configuration before live charging.',
     ),
 
     checkConnectMode(),
-    checkOptionalSecret('AAE_EASER_MEMBERSHIP', 'Required only if Easer membership checkout is enabled.'),
-    checkOptionalSecret('VAPID_PUBLIC_KEY', 'Required only if push notifications are enabled.'),
-    checkOptionalSecret('VAPID_PRIVATE_KEY', 'Required only if push notifications are enabled.'),
+    checkEaserMembershipMode(),
+    checkContentPublishingMode(),
+    checkPushMode(),
   ];
 
   const stripeModeCheck = checkStripeModePair(target);
@@ -58,14 +59,22 @@ async function checkSchemaState() {
   try {
     const { data, error } = await getSupabase().from('platform_schema_state')
       .select('migration_number, migration_name, applied_at')
-      .eq('migration_number', 33)
+      .eq('migration_number', REQUIRED_SCHEMA_MIGRATION)
       .maybeSingle();
     if (error || !data) {
-      return fail('DATABASE_SCHEMA_033', 'Launch migration 033 is not verified in this environment.', 'Apply migrations 031-033 and rerun readiness.');
+      return fail(
+        'DATABASE_SCHEMA_037',
+        `Launch migration ${REQUIRED_SCHEMA_MIGRATION} is not verified in this environment.`,
+        'Apply migrations 034-037 in order and rerun readiness.',
+      );
     }
-    return pass('DATABASE_SCHEMA_033', `Launch schema ${data.migration_number} is applied.`);
+    return pass('DATABASE_SCHEMA_037', `Launch schema ${data.migration_number} is applied.`);
   } catch (error) {
-    return fail('DATABASE_SCHEMA_033', 'Could not verify the launch database schema.', 'Confirm Supabase connectivity and apply migrations 031-033.');
+    return fail(
+      'DATABASE_SCHEMA_037',
+      'Could not verify the launch database schema.',
+      'Confirm Supabase connectivity and apply migrations 034-037 in order.',
+    );
   }
 }
 
@@ -100,6 +109,18 @@ function checkOptionalSecret(name, note) {
   return pass(name, `${name} is set.`);
 }
 
+function checkPushMode() {
+  const publicKey = cleanEnv('VAPID_PUBLIC_KEY');
+  const privateKey = cleanEnv('VAPID_PRIVATE_KEY');
+  if (!publicKey && !privateKey) {
+    return pass('PUSH_NOTIFICATIONS', 'Push notifications are disabled; Easer email notifications remain active.');
+  }
+  if (!publicKey || !privateKey || looksPlaceholder(publicKey) || looksPlaceholder(privateKey)) {
+    return fail('PUSH_NOTIFICATIONS', 'Push notification configuration is incomplete.', 'Set both VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or remove both to keep push disabled.');
+  }
+  return pass('PUSH_NOTIFICATIONS', 'Push notifications are configured.');
+}
+
 function checkStripeKey(name, kind, target) {
   const value = cleanEnv(name);
   if (!value) return fail(name, `${name} is missing.`, `Set ${name} using a ${target} Stripe ${kind} key.`);
@@ -120,9 +141,9 @@ function checkStripeKey(name, kind, target) {
   return pass(name, `${name} is a ${target} ${kind} key.`);
 }
 
-function checkWebhookSecret(name, { required }) {
+function checkWebhookSecret(name, { required, target }) {
   const value = cleanEnv(name);
-  if (!value) return requiredCheck(name, required, `Set ${name} from the Stripe live webhook endpoint signing secret.`);
+  if (!value) return requiredCheck(name, required, `Set ${name} from the Stripe ${target} webhook endpoint signing secret.`);
   if (looksPlaceholder(value) || !value.startsWith('whsec_')) {
     return fail(name, `${name} must be a Stripe webhook signing secret.`, `Paste the whsec_ value for ${name}.`);
   }
@@ -155,6 +176,39 @@ function checkConnectMode() {
     return fail('STRIPE_CONNECT_LIVE_VALIDATED', 'Stripe Connect is enabled without recorded live end-to-end validation.', 'Disable Stripe Connect or complete connected-account, transfer, and bank-payout reconciliation tests, then set STRIPE_CONNECT_LIVE_VALIDATED=true.');
   }
   return pass('STRIPE_CONNECT_LIVE_VALIDATED', 'Stripe Connect live validation is recorded for this environment.');
+}
+
+function checkEaserMembershipMode() {
+  const enabled = cleanEnv('EASER_MEMBERSHIP_ENABLED').toLowerCase() === 'true';
+  if (!enabled) {
+    return pass('EASER_MEMBERSHIP_ENABLED', 'Easer membership enrollment, fee discounts, and dispatch priority are disabled for launch.');
+  }
+  const priceId = cleanEnv('AAE_EASER_MEMBERSHIP');
+  if (!priceId || looksPlaceholder(priceId) || !priceId.startsWith('price_')) {
+    return fail(
+      'AAE_EASER_MEMBERSHIP',
+      'Easer membership is enabled without a valid Stripe recurring price.',
+      'Disable EASER_MEMBERSHIP_ENABLED or set a validated Stripe price and complete billing tests.',
+    );
+  }
+  return warning(
+    'EASER_MEMBERSHIP_ENABLED',
+    'Easer membership is enabled. Confirm updated contractor terms and end-to-end billing before launch.',
+    'Validate enrollment, webhook renewal/cancellation, dispatch priority, and fee snapshots.',
+  );
+}
+
+function checkContentPublishingMode() {
+  const blogEnabled = cleanEnv('AUTO_BLOG_PUBLISH_ENABLED').toLowerCase() === 'true';
+  const socialEnabled = cleanEnv('SOCIAL_AUTO_PUBLISH').toLowerCase() === 'true';
+  if (!blogEnabled && !socialEnabled) {
+    return pass('AUTOMATIC_CONTENT_PUBLISHING', 'Automatic website and Buffer publishing are disabled for launch.');
+  }
+  return warning(
+    'AUTOMATIC_CONTENT_PUBLISHING',
+    'Automatic content publishing is enabled in this environment.',
+    'Disable AUTO_BLOG_PUBLISH_ENABLED and SOCIAL_AUTO_PUBLISH until owner-reviewed blog and Buffer queue tests pass.',
+  );
 }
 
 function checkRequiredApproval(name, note) {

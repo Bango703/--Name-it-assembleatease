@@ -1,13 +1,25 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import {
+  ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES,
+  ACTIVE_INSTANT_BOOKING_ZIPS,
+  isActiveInstantBookingZip,
+} from '../_source-of-truth.js';
+
+const ACTIVE_CENTRAL_TEXAS_CITIES = Object.freeze([
+  'Austin', 'Bee Cave', 'Buda', 'Cedar Park', 'Georgetown', 'Hutto',
+  'Kyle', 'Lakeway', 'Leander', 'Manor', 'Pflugerville', 'Round Rock',
+]);
 
 const ACTIVE_MARKETS = [
   {
     key: 'austin-tx',
-    label: 'Austin Metro',
+    label: 'Austin and Central Texas',
     city: 'Austin',
     state: 'TX',
-    zips: ['786', '787', '788'],
+    cities: ACTIVE_CENTRAL_TEXAS_CITIES,
+    zipPrefixes: ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES,
+    zips: ACTIVE_INSTANT_BOOKING_ZIPS,
   },
 ];
 
@@ -19,7 +31,7 @@ export default async function handler(req, res) {
 
   const [requestsRes, easersRes, waitlistRes] = await Promise.all([
     sb.from('market_requests').select('*').order('created_at', { ascending: false }).limit(500),
-    sb.from('profiles').select('id, full_name, city, zip, status, tier, application_status, role, created_at').eq('role', 'assembler'),
+    sb.from('profiles').select('id, full_name, city, state, zip, status, tier, application_status, role, created_at').eq('role', 'assembler'),
     sb.from('assembler_waitlist').select('id, city, state, status, created_at'),
   ]);
 
@@ -138,7 +150,7 @@ function buildSupplyByMarket(easers, waitlist) {
 
   for (const easer of easers) {
     const city = cleanMarketCity(easer.city);
-    const state = inferState(easer.zip);
+    const state = cleanState(easer.state) || inferState(easer.zip);
     if (!city || !state) continue;
     const key = marketKey(city, state);
     const current = map.get(key) || emptySupply(city, state);
@@ -149,7 +161,7 @@ function buildSupplyByMarket(easers, waitlist) {
 
   for (const row of waitlist) {
     const city = cleanMarketCity(row.city);
-    const state = cleanState(row.state) || 'TX';
+    const state = cleanState(row.state);
     if (!city || !state) continue;
     const key = marketKey(city, state);
     const current = map.get(key) || emptySupply(city, state);
@@ -219,14 +231,16 @@ function isApprovedEaser(easer) {
 }
 
 function isActiveMarket(city, state) {
-  const key = marketKey(city, state);
-  return ACTIVE_MARKETS.some(m => marketKey(m.city, m.state) === key);
+  const normalizedCity = cleanMarketCity(city);
+  const normalizedState = cleanState(state);
+  return ACTIVE_MARKETS.some(m =>
+    normalizedState === m.state
+    && (m.cities || [m.city]).some(activeCity => cleanMarketCity(activeCity) === normalizedCity)
+  );
 }
 
 function inferState(zip) {
-  const z = String(zip || '').slice(0, 3);
-  if (['786', '787', '788'].includes(z)) return 'TX';
-  return 'TX';
+  return isActiveInstantBookingZip(zip) ? 'TX' : '';
 }
 
 function marketKey(city, state) {

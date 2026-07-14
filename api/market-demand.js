@@ -1,10 +1,16 @@
+import { randomUUID } from 'crypto';
 import { getSupabase } from './_supabase.js';
 import { upsertContact, addNote } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
+import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const ZIP_RE = /^\d{5}$/;
+const US_STATE_CODES = new Set([
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]);
+const ALLOWED_SOURCES = new Set(['booking_out_of_market', 'homepage_zip_checker', 'locations_page']);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -19,7 +25,7 @@ export default async function handler(req, res) {
   if (validationError) return res.status(400).json({ error: validationError });
 
   const sb = getSupabase();
-  const requestRef = 'MR-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+  const requestRef = 'MR-' + Date.now().toString(36).toUpperCase() + '-' + randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 
   const row = {
     request_ref: requestRef,
@@ -78,9 +84,7 @@ function normalizeRequest(body) {
   const zip = clean(body.zip || body.zipCode, 5);
   const name = clean(body.name, 120);
   const email = clean(body.email, 180).toLowerCase();
-  const phone = clean(body.phone, 40);
-  const totalCents = Math.max(parseInt(body.totalCents, 10) || 0, 0);
-
+  const phone = normalizeUsPhone(clean(body.phone, 40));
   return {
     name,
     email,
@@ -94,18 +98,20 @@ function normalizeRequest(body) {
     details: clean(body.details, 2000),
     requestedService,
     services,
-    items: body.items && typeof body.items === 'object' ? body.items : {},
-    estimatedRevenue: totalCents,
-    source: clean(body.source, 80) || 'booking_out_of_market',
+    items: sanitizeItems(body.items),
+    // A market request is not a priced booking. Browser totals are never
+    // accepted as finance truth or owner forecasting data.
+    estimatedRevenue: 0,
+    source: ALLOWED_SOURCES.has(clean(body.source, 80)) ? clean(body.source, 80) : 'locations_page',
   };
 }
 
 function validateRequest(payload) {
   if (!payload.name) return 'Name is required.';
   if (!EMAIL_RE.test(payload.email)) return 'Valid email is required.';
-  if (!payload.phone) return 'Phone number is required.';
+  if (!payload.phone) return 'Valid 10-digit US phone number is required.';
   if (!payload.city) return 'City is required.';
-  if (!payload.state || payload.state.length !== 2) return 'Two-letter state is required.';
+  if (!US_STATE_CODES.has(payload.state)) return 'Valid U.S. state abbreviation is required.';
   if (!ZIP_RE.test(payload.zip)) return 'Valid 5-digit ZIP code is required.';
   if (!payload.requestedService) return 'Requested service is required.';
   return null;
@@ -175,7 +181,7 @@ function buildOwnerEmail(row) {
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
         ${emailRow('Customer', row.customer_name)}
         ${emailRow('Email', row.customer_email)}
-        ${emailRow('Phone', row.customer_phone)}
+        ${emailRow('Phone', formatUsPhone(row.customer_phone) || 'Unavailable')}
         ${emailRow('Service', row.requested_service)}
         ${emailRow('Desired date', row.requested_date || 'Not provided')}
         ${emailRow('Desired time', row.desired_time || 'Not provided')}
@@ -220,4 +226,19 @@ function emailRow(label, value) {
 
 function clean(value, maxLength) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, maxLength);
+}
+
+function sanitizeItems(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const result = {};
+  Object.entries(raw).slice(0, 12).forEach(([service, items]) => {
+    if (!Array.isArray(items)) return;
+    const safeService = clean(service, 120);
+    if (!safeService) return;
+    result[safeService] = items.slice(0, 30).map(item => ({
+      name: clean(item?.name, 160),
+      quantity: Math.min(99, Math.max(1, Number.parseInt(item?.qty ?? item?.quantity ?? 1, 10) || 1)),
+    })).filter(item => item.name);
+  });
+  return result;
 }

@@ -45,7 +45,7 @@
 .offer-bar-cta:hover{background:#53d3ff;transform:translateY(-1px);box-shadow:0 16px 30px rgba(0,191,255,0.22)}
 .offer-marquee{display:none;overflow:hidden;flex:1}
 .offer-marquee-track{display:flex;gap:2rem;min-width:max-content;white-space:nowrap;font-size:0.84rem;font-weight:700}
-.nav-book-cta{display:inline-flex;align-items:center;gap:6px;background:var(--cyan);color:#fff;padding:0.55rem 1.35rem;border-radius:6px;font-size:0.875rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
+.nav-book-cta{display:inline-flex;align-items:center;gap:6px;min-height:44px;background:var(--cyan);color:#fff;padding:0.55rem 1.35rem;border-radius:6px;font-size:0.875rem;font-weight:700;text-decoration:none;transition:all 0.18s;white-space:nowrap}
 .nav-book-cta:hover{background:var(--cyan-dark);box-shadow:0 3px 12px rgba(0,188,212,0.35);transform:translateY(-1px)}
 .nav-book-cta:active{background:var(--cyan-dark);transform:none;box-shadow:none}
 .nav-logo-sub{white-space:nowrap}
@@ -53,7 +53,7 @@
 .nav-mobile a{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 0.25rem;border-bottom:1px solid var(--border);color:var(--ink);font-size:1rem;font-weight:500}
 .nav-mobile a svg{stroke:var(--cyan)}
 .nav-mobile a[style*="color:#00BFFF"]{color:var(--cyan)!important}
-.nav-mobile .btn{margin-top:16px;justify-content:center;min-height:38px;border-radius:999px;background:var(--cyan);color:#001f2b;font-weight:600;border-bottom:none;box-shadow:none}
+.nav-mobile .btn{margin-top:16px;justify-content:center;min-height:44px;border-radius:999px;background:var(--cyan);color:#001f2b;font-weight:600;border-bottom:none;box-shadow:none}
 .nav{background:linear-gradient(180deg,rgba(251,249,245,0.97) 0%,rgba(247,246,242,0.94) 100%);border-bottom:1px solid rgba(199,214,223,0.42);box-shadow:0 10px 28px rgba(15,23,42,0.035)}
 /* -----------------------------------------------------
    DESKTOP HERO V2 (=1024px only)
@@ -441,7 +441,7 @@ section#service-area{display:block}
 .faq-item.open .faq-chevron{transform:rotate(180deg)}
 .faq-a{max-height:0;overflow:hidden;transition:max-height 0.25s ease,padding 0.2s;padding:0 1.1rem;font-size:0.85rem;color:var(--muted);line-height:1.75}
 .faq-item.open .faq-a{max-height:200px;padding:0 1.1rem 0.9rem}
-.faq-toggle-btn{display:block;margin:1rem auto 0;background:none;border:1.5px solid var(--border);border-radius:999px;padding:0.45rem 1.5rem;font-family:var(--font-body);font-size:0.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s}
+.faq-toggle-btn{display:block;min-height:44px;margin:1rem auto 0;background:none;border:1.5px solid var(--border);border-radius:999px;padding:0.45rem 1.5rem;font-family:var(--font-body);font-size:0.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s}
 .faq-toggle-btn:hover{border-color:var(--cyan);color:var(--cyan-dark)}
 
 /* -----------------------------------------------------
@@ -488,7 +488,6 @@ section#service-area{display:block}
   .offer-marquee-track{animation:offerTicker 18s linear infinite}
   .offer-bar-cta{min-height:38px;padding:0.6rem 0.9rem;font-size:0.78rem}
   /* Nav */
-  body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px) + 8px)}
   .nav-inner{padding:0 0.9rem;height:52px}
   .nav-logo img{width:34px;height:34px}
   .nav-logo{gap:8px}
@@ -548,6 +547,7 @@ section#service-area{display:block}
 @media(max-width:390px){
   .nav-logo-sub{display:none}
   .nav-logo-text{font-size:0.98rem}
+  .svc-list-heading{align-items:flex-start;flex-direction:column;gap:0.35rem}
 }
 
 /* Mobile: the page scrolls normally and always rests at the very top on load.
@@ -579,9 +579,11 @@ section#service-area{display:block}
 </style>
 <!-- DESKTOP-ONLY styles &mdash; cannot affect mobile (loaded via media attribute) -->
 <style media="(min-width:1024px)">
-/* -- NAV (homepage centered layout) -- */
-.nav-inner{position:relative}
-.nav-links{position:absolute;left:50%;transform:translateX(-50%);gap:2.25rem}
+/* -- NAV: wide container + flex-centered links (matches marketing-desktop.css) -- */
+.nav-inner{max-width:1500px;padding-left:clamp(1.5rem,3vw,3rem);padding-right:clamp(1.5rem,3vw,3rem)}
+.nav-logo,.nav-book-cta{flex-shrink:0}
+.nav-links{flex:1;justify-content:center;gap:clamp(1.5rem,2.2vw,2.75rem)}
+.nav-links a{white-space:nowrap}
 /* -- SHOW desktop sections -- */
 .hero-v2{display:block!important}
 .hero-v2-shell{grid-template-columns:minmax(540px,1.05fr) minmax(500px,0.95fr);max-width:min(1500px,calc(100vw - 96px));align-items:stretch}
@@ -617,8 +619,8 @@ section#service-area{display:block}
 .trust-strip{display:none!important}
 .how-section{display:none!important}
 </style>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"AssembleAtEase","description":"Professional furniture assembly and handyman services in Austin, Texas.","url":"https://www.assembleatease.com","email":"service@assembleatease.com","telephone":"+17372906129","address":{"@type":"PostalAddress","addressLocality":"Austin","addressRegion":"TX","addressCountry":"US"},"geo":{"@type":"GeoCoordinates","latitude":"30.4140535","longitude":"-97.7491735"},"areaServed":{"@type":"City","name":"Austin","addressRegion":"TX"},"priceRange":"$$","openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"07:00","closes":"17:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"07:00","closes":"13:00"}],"serviceType":["Furniture Assembly","TV Mounting","Smart Home Installation"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"11","bestRating":"5"},"sameAs":["https://www.google.com/maps?cid=7847022131459448801","https://www.facebook.com/people/Assembleatease/61572042722009/"],"potentialAction":{"@type":"ReserveAction","target":{"@type":"EntryPoint","urlTemplate":"https://www.assembleatease.com/book"},"result":{"@type":"Reservation","name":"Book Assembly Service"}}}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"AssembleAtEase","url":"https://www.assembleatease.com","potentialAction":{"@type":"SearchAction","target":"https://www.assembleatease.com/book?q={search_term_string}","query-input":"required name=search_term_string"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://www.assembleatease.com/#organization","name":"AssembleAtEase","legalName":"AssembleAtEase LLC","url":"https://www.assembleatease.com","logo":{"@type":"ImageObject","url":"https://www.assembleatease.com/images/logo.jpg"},"email":"service@assembleatease.com","telephone":"+17372906129","foundingLocation":{"@type":"City","name":"Austin","addressRegion":"TX","addressCountry":"US"},"sameAs":["https://www.google.com/maps?cid=7847022131459448801","https://www.facebook.com/people/Assembleatease/61572042722009/"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","@id":"https://www.assembleatease.com/#website","name":"AssembleAtEase","url":"https://www.assembleatease.com","publisher":{"@id":"https://www.assembleatease.com/#organization"}}</script>
 <script src="/assets/js/site-promo.js" defer></script>
 <script src="/assets/js/booking-source-of-truth.js" defer></script>
 </head>
@@ -630,17 +632,18 @@ section#service-area{display:block}
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" fetchpriority="high" width="36" height="36" style="border-radius:50%;object-fit:cover"/></picture>
+      <picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="42" height="42"/></picture>
       <div class="nav-logo-text">AssembleAtEase<div class="nav-logo-sub">Furniture Assembly &bull; TV Mounting</div></div>
     </a>
     <ul class="nav-links">
       <li><a href="/#services-hdr">Services</a></li>
+      <li><a href="/locations">Locations</a></li>
       <li><a href="/bundles">Bundles</a></li>
       <li><a href="/pricing">Pricing</a></li>
       <li><a href="/track">Track My Booking</a></li>
       <li><a href="/about">About Us</a></li>
     </ul>
-    <div style="display:flex;align-items:center;gap:0.75rem"><a href="/book" class="nav-book-cta">Book Now &rarr;</a></div>
+    <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
@@ -648,6 +651,7 @@ section#service-area{display:block}
 </nav>
 <div class="nav-mobile" id="mobileNav">
   <a href="/#services-hdr">Services</a>
+  <a href="/locations">Locations</a>
   <a href="/bundles">Bundles</a>
   <a href="/pricing">Pricing</a>
   <a href="/track">Track My Booking</a>
@@ -658,6 +662,7 @@ section#service-area{display:block}
 </div>
 <script src="/assets/js/mobile-nav.js" defer></script>
 <main id="main-content">
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">A clearer way to get the job done.</h1>
 
 <!-- -----------------------------------------------
      DESKTOP HERO V2 (shown =1024px via CSS)
@@ -666,18 +671,18 @@ section#service-area{display:block}
   <div class="hero-v2-shell">
     <div class="hv2-left">
       <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in a home" width="1536" height="1024" fetchpriority="high" decoding="sync"/>
-      <div class="hv2-photo-badge">Real jobs in real spaces every week</div>
+      <div class="hv2-photo-badge">Real jobs in real spaces</div>
       <div class="hv2-review-card" aria-label="Customer review">
         <div class="hv2-review-copy">
           <span class="hv2-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
           <strong>&ldquo;Mounted a 75-inch TV and assembled a bed. Great job.&rdquo;</strong>
-          <p>Erin B. &middot; Verified Google review</p>
+          <p>Erin B. &middot; Google review</p>
         </div>
       </div>
     </div>
     <div class="hv2-right" id="hv2Right">
       <div class="hv2-eyebrow">Assembly, mounting, setup, and more</div>
-      <h1 class="hv2-h1">A clearer way to get the job done.</h1>
+      <div class="hv2-h1" aria-hidden="true">A clearer way to get the job done.</div>
       <p class="hv2-desc">AssembleAtEase gives customers one clean place to book assembly, mounting, and setup work with upfront pricing, reviewed local pros, booking tracking, and payment after completion.</p>
       <div class="hv2-actions">
         <a href="#rr-section" class="hv2-btn-book">See room-ready bundles &rarr;</a>
@@ -694,7 +699,7 @@ section#service-area{display:block}
 
   <!-- Heading - mobile app-style hero -->
   <div class="m-hero m-hero-refresh">
-    <h1 class="m-hero-title">A clearer way to get the job done.</h1>
+    <div class="m-hero-title" aria-hidden="true">A clearer way to get the job done.</div>
     <p class="m-hero-copy">Book assembly, mounting, and setup work with upfront pricing, reviewed local pros, and payment after completion.</p>
     <div class="m-hero-photo">
       <img src="/images/hero-pro-optimized.jpg" alt="AssembleAtEase pro assembling furniture in a home" width="1536" height="1024" fetchpriority="high" decoding="sync">
@@ -881,8 +886,8 @@ section#service-area{display:block}
     </a>
     <a class="svc5-card" href="/book?service=Mounting+%26+Hanging">
       <div class="svc5-photo"><img src="/images/service-tv-mounting.jpg?v=service-photos-1" alt="Professional measuring a TV wall bracket in a living room" loading="eager" width="1536" height="1024"><span class="svc5-tag">Same-day</span></div>
-      <div class="svc5-name">TV Mounting</div>
-      <div class="svc5-desc">Any TV, any wall &mdash; cords hidden</div>
+      <div class="svc5-name">Mounting &amp; Hanging</div>
+      <div class="svc5-desc">TVs, mirrors, shelves &amp; more</div>
       <div class="svc5-cardfoot"><div class="svc5-price">From $79</div><span class="svc5-link">See options &rarr;</span></div>
     </a>
     <a class="svc5-card" href="/book?service=Fitness+Equipment">
@@ -893,7 +898,7 @@ section#service-area{display:block}
     </a>
     <a class="svc5-card" href="/book?service=Outdoor+%26+Playsets">
       <div class="svc5-photo"><img src="/images/service-outdoor-playsets.jpg?v=service-photos-1" alt="Professional assembling an outdoor playset in a backyard" loading="eager" width="1536" height="1024"></div>
-      <div class="svc5-name">Outdoor / Playsets</div>
+      <div class="svc5-name">Outdoor Assembly &amp; Playsets</div>
       <div class="svc5-desc">Playsets, patios &amp; outdoor builds</div>
       <div class="svc5-cardfoot"><div class="svc5-price">From $89</div><span class="svc5-link">See options &rarr;</span></div>
     </a>
@@ -1171,17 +1176,17 @@ section#service-area{display:block}
   var G='<svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>';
   var COLORS=["#00BFFF","#0099CC","#006a7e","#4dd0e1","#0077a8","#003b47"];
   var DATA=[
-    {b:"Had my bed and dressers assembled. Very professional, fast and the price was right. Will definitely use this company again. I highly recommend AssembleAtEase.",n:"Brenda Mitchell",d:"Verified review"},
-    {b:"He put together 9 beds and 9 dressers at amazing speed and they all look great! Five stars hands down.",n:"Omotola A.",d:"Verified review"},
-    {b:"Travis has come out to our place several times and each time the job was WELL DONE. Thanks Travis!",n:"Mika H.",d:"Verified review"},
-    {b:"AssembleAtEase was prompt and on point. Mounted a 75-inch TV and assembled a bed. Great job, very efficient!",n:"Erin B.",d:"Verified review"},
-    {b:"Very flexible, professional, and can put together anything for a reasonable price. Would recommend to anyone.",n:"Shelby M.",d:"Verified review"},
-    {b:"Fast and friendly service. Will definitely use again when needed.",n:"Rochelle L.",d:"Verified review"},
-    {b:"Mounted TV, great experience. I would recommend.",n:"Austin P.",d:"Verified review"},
-    {b:"Super handy and gets the job done fast!",n:"Emmanuel",d:"Verified review"},
-    {b:"Fantastic customer service! I highly recommend!",n:"Sue S.",d:"Verified review"},
-    {b:"This company does an amazing job. If you want a well done job, this is the guy!",n:"Lashantae H.",d:"Verified review"},
-    {b:"Excellent",n:"Krispercs Focus",d:"Verified review"}
+    {b:"Had my bed and dressers assembled. Very professional, fast and the price was right. Will definitely use this company again. I highly recommend AssembleAtEase.",n:"Brenda Mitchell",d:"Google review"},
+    {b:"He put together 9 beds and 9 dressers at amazing speed and they all look great! Five stars hands down.",n:"Omotola A.",d:"Google review"},
+    {b:"Travis has come out to our place several times and each time the job was WELL DONE. Thanks Travis!",n:"Mika H.",d:"Google review"},
+    {b:"AssembleAtEase was prompt and on point. Mounted a 75-inch TV and assembled a bed. Great job, very efficient!",n:"Erin B.",d:"Google review"},
+    {b:"Very flexible, professional, and can put together anything for a reasonable price. Would recommend to anyone.",n:"Shelby M.",d:"Google review"},
+    {b:"Fast and friendly service. Will definitely use again when needed.",n:"Rochelle L.",d:"Google review"},
+    {b:"Mounted TV, great experience. I would recommend.",n:"Austin P.",d:"Google review"},
+    {b:"Super handy and gets the job done fast!",n:"Emmanuel",d:"Google review"},
+    {b:"Fantastic customer service! I highly recommend!",n:"Sue S.",d:"Google review"},
+    {b:"This company does an amazing job. If you want a well done job, this is the guy!",n:"Lashantae H.",d:"Google review"},
+    {b:"Excellent",n:"Krispercs Focus",d:"Google review"}
   ];
   function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
   function ini(n){return(n||"?").split(" ").map(function(w){return w[0]||"";}).join("").slice(0,2).toUpperCase();}
@@ -1276,11 +1281,13 @@ section#service-area{display:block}
     var wlForm=document.getElementById('waitlist-form');
     var wlMsg=document.getElementById('wl-msg');
     var EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    // Served metros — keep in sync with assets/js/booking-source-of-truth.js serviceArea
-    // and assets/js/aae-location.js when a new market goes live.
+    // Homepage availability reads the same browser source used by booking.
+    // The booking API performs the final authoritative server validation.
     function servedCity(zip){
-      var p=zip.slice(0,3);
-      if(p==='786'||p==='787'||p==='788') return 'Austin';
+      var area=(window.AAE_BOOKING_SOURCE||{}).serviceArea||{};
+      var prefixes=Array.isArray(area.zipPrefixes)?area.zipPrefixes:[];
+      var exact=Array.isArray(area.zipCodes)?area.zipCodes:[];
+      if(prefixes.indexOf(zip.slice(0,3))!==-1||exact.indexOf(zip)!==-1) return area.label||'Austin and Central Texas';
       return null;
     }
     function val(id){var el=document.getElementById(id);return el?String(el.value||'').trim():'';}
@@ -1391,7 +1398,7 @@ section#service-area{display:block}
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo" width="38" height="38"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and custom setup services.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="tel:+17372906129">737-290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
         <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow us on Facebook</a>
       </div>
@@ -1405,13 +1412,13 @@ section#service-area{display:block}
         <li><a href="/book?service=Fitness+Equipment">Fitness Equipment</a></li>
         <li><a href="/book?service=Office+Assembly">Office Furniture</a></li>
         <li><a href="/book?service=Outdoor+%26+Playsets">Outdoor / Playsets</a></li>
-        <li><a href="/business">Business &amp; Custom Quotes</a></li>
       </ul>
     </div>
     <div>
       <div class="footer-col-title">Company</div>
       <ul class="footer-links">
         <li><a href="/about">About Us</a></li>
+        <li><a href="/locations">Locations</a></li>
         <li><a href="/pricing">Pricing</a></li>
         <li><a href="/blog/">Guides</a></li>
         <li><a href="/business">Business Services</a></li>
@@ -1429,11 +1436,11 @@ section#service-area{display:block}
     <div style="grid-column:1 / -1">
       <div class="footer-col-title">Resources</div>
       <ul class="footer-links" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem">
-        <li><a href="/blog/">Home setup guides</a></li>
-        <li><a href="/blog/">Furniture assembly guides</a></li>
-        <li><a href="/blog/">TV mounting guides</a></li>
-        <li><a href="/blog/">Smart home guides</a></li>
-        <li><a href="/blog/">Move-in checklists</a></li>
+        <li><a href="/blog/new-home-setup-checklist-austin">New home setup checklist</a></li>
+        <li><a href="/blog/ikea-assembly-cost-austin">IKEA assembly cost guide</a></li>
+        <li><a href="/blog/tv-mounting-costs-austin">TV mounting cost guide</a></li>
+        <li><a href="/blog/smart-home-installation-austin">Smart home setup guide</a></li>
+        <li><a href="/blog/best-furniture-assembly-austin">Choosing an assembly pro</a></li>
         <li><a href="/blog/">All guides &rarr;</a></li>
       </ul>
     </div>
@@ -1573,11 +1580,17 @@ function toggleFaqMore(btn) { var more = document.getElementById('faq-more'); if
 </script>
 <script src="/assets/js/aae-location.js" defer></script>
 <script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
+<div id="cookie-banner" class="hidden" data-cookie-banner>
+  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
+  <div class="cookie-btns">
+    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
+    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
+  </div>
+</div>
 <!-- AAE Help Chat — Sora (live AI) -->
 <style>
 #aae-chat-btn{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px));z-index:9990;width:62px;height:62px;border-radius:50%;background:#fff;border:2px solid rgba(0,191,255,0.35);cursor:pointer;box-shadow:0 10px 28px rgba(2,32,43,0.2);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s}
 #aae-chat-btn.aae-chat-hidden{display:none}
-#aae-chat-btn.aae-chat-intro-hidden{display:none}
 #aae-chat-btn:hover{transform:scale(1.04);box-shadow:0 14px 30px rgba(0,153,204,0.24);border-color:rgba(0,153,204,0.5)}
 .aae-chat-avatar{width:100%;height:100%;object-fit:cover;display:block}
 .aae-chat-badge{position:absolute;right:2px;bottom:2px;width:21px;height:21px;border-radius:999px;background:#00BFFF;border:2px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,191,255,0.3)}
@@ -1628,7 +1641,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
   #aae-chat-teaser:after{display:none}
   #aae-chat-overlay{background:rgba(2,32,43,0.4)}
   #aae-chat-panel{left:0;right:0;bottom:var(--aae-chat-keyboard-offset,0px);width:auto;height:min(520px,calc(var(--aae-chat-vvh,100svh) - 8px));max-height:calc(var(--aae-chat-vvh,100svh) - 8px);border-radius:20px 20px 0 0;border-bottom:none}
-  #cookie-banner:not(.hidden) ~ #aae-chat-btn,
+  #cookie-banner:not(.hidden) ~ #aae-chat-btn{display:flex}
   #cookie-banner:not(.hidden) ~ #aae-chat-teaser{display:none}
   #cookie-banner:not(.hidden) ~ #aae-chat-btn{bottom:calc(116px + env(safe-area-inset-bottom,0px))}
   #cookie-banner:not(.hidden) ~ #aae-chat-teaser{bottom:calc(186px + env(safe-area-inset-bottom,0px) + var(--aae-chat-keyboard-offset,0px))}
@@ -1687,18 +1700,9 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
     var path=window.location.pathname||'/';
     return path==='/' && (window.innerWidth >= 1024 || (window.innerWidth <= 560 && window.scrollY < 1300));
   }
-  function shouldHideHomeMobileChat(){
-    var path=window.location.pathname||'/';
-    return path==='/' && window.innerWidth <= 560 && window.scrollY < 1300 && !panelEl.classList.contains('open');
-  }
   function syncHomeMobileChat(){
     if(!btnEl) return;
-    if(shouldHideHomeMobileChat()){
-      btnEl.classList.add('aae-chat-intro-hidden');
-      hideTeaser(false);
-    }else{
-      btnEl.classList.remove('aae-chat-intro-hidden');
-    }
+    btnEl.classList.remove('aae-chat-intro-hidden');
   }
   function shouldAutoFocus(){return window.innerWidth > 700 && window.matchMedia('(pointer:fine)').matches;}
   function randomChatId(prefix){
@@ -1798,7 +1802,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
     h=h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
     h=h.replace(/(^|[\s(>])(\/(?:book|pricing|blog|about|contact|track)[A-Za-z0-9_%?=&;+.\/-]*)/g,'$1<a href="$2">$2</a>');
     h=h.replace(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g,'<a href="mailto:$1">$1</a>');
-    h=h.replace(/\(737\)\s?290-6129/g,'<a href="tel:+17372906129">(737) 290-6129</a>');
+    h=h.replace(/(?:\(737\)\s?|737-)290-6129/g,'<a href="tel:+17372906129">737-290-6129</a>');
     return h;
   }
   function bubble(cls,html){var d=document.createElement('div');d.className='aae-msg '+cls;d.innerHTML=html;bodyEl.appendChild(d);bodyEl.scrollTop=bodyEl.scrollHeight;return d;}
@@ -1820,7 +1824,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
       .then(function(r){return r.json().catch(function(){return {};});})
       .then(function(data){
         t.remove();
-        var reply=(data&&data.reply)?data.reply:"I'm having trouble right now. You can email service@assembleatease.com or call (737) 290-6129, or book at /book.";
+        var reply=(data&&data.reply)?data.reply:"I'm having trouble right now. You can email service@assembleatease.com or call 737-290-6129, or book at /book.";
         bot(reply);
         hist.push({role:'assistant',content:reply});
         if(hist.length>12)hist=hist.slice(-12);
@@ -1829,7 +1833,7 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
       })
       .catch(function(){
         t.remove();
-        bot("I'm having trouble connecting. Please email service@assembleatease.com or call (737) 290-6129, or book at /book.");
+        bot("I'm having trouble connecting. Please email service@assembleatease.com or call 737-290-6129, or book at /book.");
         setBusy(false);
       });
   }
@@ -1878,13 +1882,6 @@ html.aae-chat-open,body.aae-chat-open{overflow:hidden;overscroll-behavior:none}
 })();
 </script>
 <!-- /AAE Help Chat -->
-<div id="cookie-banner" class="hidden" data-cookie-banner>
-  <span>We use cookies to improve your experience and track site analytics. See our <a href="/privacy">Privacy Policy</a>.</span>
-  <div class="cookie-btns">
-    <button type="button" class="cookie-btn cookie-decline" data-cookie-decline>Decline</button>
-    <button type="button" class="cookie-btn cookie-accept" data-cookie-accept>Accept</button>
-  </div>
-</div>
 <script src="/assets/js/cookie-consent.js" defer></script>
 </body>
 </html>

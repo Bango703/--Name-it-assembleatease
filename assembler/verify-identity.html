@@ -305,7 +305,7 @@
 <body>
   <main class="shell">
     <section class="hero">
-      <div class="eyebrow">Easer Onboarding</div>
+      <div class="eyebrow" id="hero-eyebrow">Easer Onboarding</div>
       <h1 id="hero-title">Continue your identity verification</h1>
       <p class="hero-copy" id="hero-copy">Use this secure AssembleAtEase page to start or reopen Stripe identity verification. If you switch devices or the Stripe page expires, come back to this link and we will reopen it securely.</p>
     </section>
@@ -313,10 +313,10 @@
     <section class="card stack">
       <div id="page-alert" class="alert"></div>
 
-      <div>
-        <p class="section-title">What happens here</p>
-        <p class="section-copy">We use Stripe Identity to confirm every Easer before approval. This page keeps the process clear: agreement first if needed, then secure identity verification, then owner review.</p>
-        <div class="steps">
+      <div id="process-section">
+        <p class="section-title" id="process-title">What happens here</p>
+        <p class="section-copy" id="process-copy">We use Stripe Identity to confirm every Easer before approval. This page keeps the process clear: agreement first if needed, then secure identity verification, then owner review.</p>
+        <div class="steps" id="process-steps">
           <div class="step">
             <div class="step-num">1</div>
             <div><strong>Review your onboarding details</strong><span>If your contractor agreement is not already on file, we will ask you to confirm it here before sending you to Stripe.</span></div>
@@ -334,8 +334,8 @@
 
       <div id="agreement-box" class="agreement-box">
         <div>
-          <p class="section-title">Agreement confirmation required</p>
-          <p class="section-copy">Before we can continue, we need your contractor agreement and code-of-conduct acceptance on file.</p>
+          <p class="section-title" id="agreement-title">Agreement confirmation required</p>
+          <p class="section-copy" id="agreement-copy">Before we can continue, we need your contractor agreement and code-of-conduct acceptance on file.</p>
         </div>
         <div>
           <label for="full-name">Full legal name</label>
@@ -343,16 +343,17 @@
         </div>
         <label class="check">
           <input id="contractor-agree" type="checkbox" />
-          <span>I have read the <a href="/assembler/contractor-agreement" target="_blank" rel="noopener">Independent Contractor Agreement</a> in full and agree to be legally bound by its terms.</span>
+          <span>I have read the <a id="agreement-link" href="/assembler/contractor-agreement" target="_blank" rel="noopener">Independent Contractor Agreement</a> in full and agree to be legally bound by its terms.</span>
         </label>
         <label class="check">
           <input id="conduct-agree" type="checkbox" />
-          <span>I agree to the AssembleAtEase <a href="/terms" target="_blank" rel="noopener">Code of Conduct and Terms of Service</a>, and I understand identity verification is required before I can receive jobs.</span>
+          <span id="conduct-copy">I agree to the AssembleAtEase <a href="/terms" target="_blank" rel="noopener">Code of Conduct and Terms of Service</a>, and I understand identity verification is required before I can receive jobs.</span>
         </label>
       </div>
 
       <div class="cta-row">
         <button id="continue-btn" class="btn btn-primary" type="button">Continue to secure verification</button>
+        <a id="dashboard-link" href="/assembler/" class="btn btn-secondary" style="display:none">Return to Easer dashboard</a>
         <a href="mailto:service@assembleatease.com" class="btn btn-secondary">Contact support</a>
       </div>
 
@@ -367,13 +368,23 @@
       var verificationComplete = params.get('verification') === 'complete';
       var authToken = null;
       var requiresAgreement = false;
+      var establishedEaser = false;
 
       var alertEl = document.getElementById('page-alert');
+      var heroEyebrow = document.getElementById('hero-eyebrow');
       var heroTitle = document.getElementById('hero-title');
       var heroCopy = document.getElementById('hero-copy');
+      var processTitle = document.getElementById('process-title');
+      var processCopy = document.getElementById('process-copy');
+      var processSteps = document.getElementById('process-steps');
       var helperCopy = document.getElementById('helper-copy');
       var agreementBox = document.getElementById('agreement-box');
+      var agreementTitle = document.getElementById('agreement-title');
+      var agreementCopy = document.getElementById('agreement-copy');
+      var agreementLink = document.getElementById('agreement-link');
+      var conductCopy = document.getElementById('conduct-copy');
       var continueBtn = document.getElementById('continue-btn');
+      var dashboardLink = document.getElementById('dashboard-link');
       var fullNameInput = document.getElementById('full-name');
       var contractorAgree = document.getElementById('contractor-agree');
       var conductAgree = document.getElementById('conduct-agree');
@@ -386,6 +397,25 @@
       function clearAlert() {
         alertEl.className = 'alert';
         alertEl.textContent = '';
+      }
+
+      function showDashboardLink() {
+        dashboardLink.style.display = 'inline-flex';
+      }
+
+      function establishedProcessSteps(needsIdentity) {
+        var identityStep = needsIdentity
+          ? '<div class="step"><div class="step-num">2</div><div><strong>Complete secure ID verification</strong><span>Stripe will confirm your identity. Your existing account history and owner approval remain on file.</span></div></div>'
+          : '';
+        processSteps.innerHTML = '<div class="step"><div class="step-num">1</div><div><strong>Review the current agreement</strong><span>Acknowledge the latest contractor agreement and Code of Conduct for your existing Easer account.</span></div></div>'
+          + identityStep
+          + '<div class="step"><div class="step-num">' + (needsIdentity ? '3' : '2') + '</div><div><strong>Return to your dashboard</strong><span>Once the required step is saved, your Easer dashboard will show the updated readiness status.</span></div></div>';
+      }
+
+      function resetContinueLabel() {
+        continueBtn.textContent = establishedEaser && requiresAgreement
+          ? 'Acknowledge updated agreement'
+          : 'Continue to secure verification';
       }
 
       async function getAuthToken() {
@@ -424,24 +454,47 @@
           return;
         }
 
+        establishedEaser = data.establishedEaser === true;
+        if (establishedEaser) {
+          heroEyebrow.textContent = 'Easer Account Update';
+          processTitle.textContent = 'Keep your account ready for jobs';
+          processCopy.textContent = 'Your Easer account already exists. Complete only the account requirement shown below; you are not submitting a new application.';
+          agreementLink.href = '/assembler/contractor-agreement?context=update';
+          showDashboardLink();
+        }
+
         if (data.identityVerified) {
           if (data.agreementPendingOnly) {
             requiresAgreement = true;
             agreementBox.classList.add('show');
             fullNameInput.value = data.fullName || '';
-            heroTitle.textContent = 'Agreement confirmation required';
-            heroCopy.textContent = 'Your identity verification is already complete, but your agreement acceptance is still missing. Finish that step here so your application can move forward.';
-            helperCopy.textContent = 'After you save your agreement acceptance, AssembleAtEase can continue reviewing your application.';
-            continueBtn.textContent = 'Save agreement and finish onboarding';
-            showAlert('warn', 'Identity is verified, but we still need your contractor agreement and code-of-conduct acceptance on file.');
+            if (establishedEaser) {
+              establishedProcessSteps(false);
+              agreementTitle.textContent = 'Updated agreement acknowledgment';
+              agreementCopy.textContent = 'Your identity verification and owner approval remain on file. Review and acknowledge the current agreement and Code of Conduct to keep receiving new offers.';
+              conductCopy.innerHTML = 'I agree to the current AssembleAtEase <a href="/terms" target="_blank" rel="noopener">Code of Conduct and Terms of Service</a> for my existing Easer account.';
+              heroTitle.textContent = 'Review the updated contractor agreement';
+              heroCopy.textContent = 'You are already an approved Easer. This is an account update, not a new application, and you do not need to repeat identity verification.';
+              helperCopy.textContent = 'After the acknowledgment is saved, return to your Easer dashboard to confirm your readiness status.';
+              continueBtn.textContent = 'Acknowledge updated agreement';
+              showAlert('warn', 'Your existing Easer account needs the current agreement acknowledgment before new offers can be sent.');
+            } else {
+              heroTitle.textContent = 'Agreement confirmation required';
+              heroCopy.textContent = 'Your identity verification is already complete, but your agreement acceptance is still missing. Finish that step here so your application can move forward.';
+              helperCopy.textContent = 'After you save your agreement acceptance, AssembleAtEase can continue reviewing your application.';
+              continueBtn.textContent = 'Save agreement and finish onboarding';
+              showAlert('warn', 'Identity is verified, but we still need your contractor agreement and code-of-conduct acceptance on file.');
+            }
             return;
           }
 
-          heroTitle.textContent = 'Identity verification already completed';
-          heroCopy.textContent = 'Stripe identity verification is already on file for this application. AssembleAtEase will email you once the review is complete.';
+          heroTitle.textContent = establishedEaser ? 'Your Easer account is up to date' : 'Identity verification already completed';
+          heroCopy.textContent = establishedEaser
+            ? 'Your current agreement acknowledgment and Stripe identity verification are already on file. No new application or verification step is required.'
+            : 'Stripe identity verification is already on file for this application. AssembleAtEase will email you once the review is complete.';
           continueBtn.style.display = 'none';
-          helperCopy.textContent = 'If you still need help, contact service@assembleatease.com.';
-          showAlert('success', 'Your identity verification is already marked complete.');
+          helperCopy.textContent = establishedEaser ? 'Return to your Easer dashboard to manage availability and jobs.' : 'If you still need help, contact service@assembleatease.com.';
+          showAlert('success', establishedEaser ? 'Your account requirements are current.' : 'Your identity verification is already marked complete.');
           return;
         }
 
@@ -449,6 +502,15 @@
         if (requiresAgreement) {
           agreementBox.classList.add('show');
           fullNameInput.value = data.fullName || '';
+        }
+        if (establishedEaser) {
+          establishedProcessSteps(true);
+          heroTitle.textContent = verificationComplete ? 'Identity verification submitted' : 'Complete an account verification requirement';
+          heroCopy.textContent = verificationComplete
+            ? 'Stripe received the verification update for your existing Easer account. Your prior account history and owner approval remain on file.'
+            : 'This verification step applies to your existing Easer account. You are not starting a new application.';
+          helperCopy.textContent = 'Return to this secure page if Stripe requests more information, or use your Easer dashboard to check readiness.';
+          if (verificationComplete) showAlert('success', 'Verification submitted for your existing Easer account.');
         }
       }
 
@@ -483,19 +545,25 @@
           if (!response.ok) {
             showAlert('error', data.error || 'Could not open verification right now.');
             continueBtn.disabled = false;
-            continueBtn.textContent = 'Continue to secure verification';
+            resetContinueLabel();
             return;
           }
 
           if (data.alreadyVerified) {
-            heroTitle.textContent = 'Identity verification already completed';
-            heroCopy.textContent = data.agreementRecorded
-              ? 'Your agreement acceptance is now on file and your identity verification is already complete. AssembleAtEase will email you once the review is finished.'
-              : 'Stripe identity verification is already on file for this application. AssembleAtEase will email you once the review is complete.';
+            establishedEaser = establishedEaser || data.establishedEaser === true;
+            heroTitle.textContent = establishedEaser && data.agreementRecorded ? 'Agreement updated' : 'Identity verification already completed';
+            heroCopy.textContent = establishedEaser && data.agreementRecorded
+              ? 'Your current agreement acknowledgment is saved. Your identity verification, approval, and existing Easer account remain on file.'
+              : data.agreementRecorded
+                ? 'Your agreement acceptance is now on file and your identity verification is already complete. AssembleAtEase will email you once the review is finished.'
+                : 'Stripe identity verification is already on file for this account.';
             continueBtn.style.display = 'none';
-            showAlert('success', data.agreementRecorded
-              ? 'Agreement saved. Your onboarding file is now complete for review.'
-              : 'Your identity verification is already marked complete.');
+            if (establishedEaser) showDashboardLink();
+            showAlert('success', establishedEaser && data.agreementRecorded
+              ? 'Updated agreement saved. Return to your Easer dashboard.'
+              : data.agreementRecorded
+                ? 'Agreement saved. Your onboarding file is now complete for review.'
+                : 'Your identity verification is already marked complete.');
             return;
           }
 
@@ -506,25 +574,26 @@
 
           showAlert('error', 'Verification could not be started. Please try again.');
           continueBtn.disabled = false;
-          continueBtn.textContent = 'Continue to secure verification';
+          resetContinueLabel();
         } catch (err) {
           showAlert('error', 'Connection error. Please try again.');
           continueBtn.disabled = false;
-          continueBtn.textContent = 'Continue to secure verification';
+          resetContinueLabel();
         }
       }
 
       continueBtn.addEventListener('click', continueToStripe);
 
       window.addEventListener('load', function () {
-        if (verificationComplete) {
-          heroTitle.textContent = 'Verification submitted';
-          heroCopy.textContent = 'Stripe has received your identity verification. AssembleAtEase will review your application after Stripe finishes processing it.';
-          helperCopy.textContent = 'If Stripe later asks for more information or you need to retry, use this same AssembleAtEase link again.';
-          showAlert('success', 'Verification submitted successfully. We will contact you after review.');
-          continueBtn.textContent = 'Reopen verification if needed';
-        }
-        requestContext().catch(function () {
+        requestContext().then(function () {
+          if (verificationComplete && !establishedEaser) {
+            heroTitle.textContent = 'Verification submitted';
+            heroCopy.textContent = 'Stripe has received your identity verification. AssembleAtEase will review your application after Stripe finishes processing it.';
+            helperCopy.textContent = 'If Stripe later asks for more information or you need to retry, use this same AssembleAtEase link again.';
+            showAlert('success', 'Verification submitted successfully. We will contact you after review.');
+            continueBtn.textContent = 'Reopen verification if needed';
+          }
+        }).catch(function () {
           continueBtn.disabled = true;
           showAlert('error', 'Could not load verification details right now.');
         });

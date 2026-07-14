@@ -99,6 +99,7 @@ body {
 /* Availability pill inside header */
 .avail-row {
   display: flex; align-items: center; gap: 6px;
+  min-height: 44px;
   cursor: pointer; user-select: none; -webkit-user-select: none;
 }
 .avail-pill {
@@ -668,8 +669,8 @@ body {
 .e-job-card-pay small { display: block; font-size: 0.65rem; font-weight: 500; color: var(--e-muted); text-align: right; }
 .e-job-card-row { font-size: 0.8rem; color: var(--e-muted); display: flex; align-items: center; gap: 5px; margin-top: 4px; }
 .e-job-card-timer { font-size: 0.78rem; color: #92400e; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 4px; margin-top: 0.5rem; }
-.e-job-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--e-border); }
-.e-job-card-accept { background: var(--e-teal); color: white; border: none; border-radius: 10px; padding: 0.6rem; font-size: 0.875rem; font-weight: 600; font-family: var(--e-font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.e-job-card-actions { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--e-border); }
+.e-job-card-accept { background: var(--e-teal); color: white; border: none; border-radius: 10px; padding: 0.6rem; min-height: 44px; font-size: 0.875rem; font-weight: 600; font-family: var(--e-font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .e-job-card-decline { background: rgba(239,68,68,0.06); color: #dc2626; border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 0.6rem; font-size: 0.875rem; font-weight: 600; font-family: var(--e-font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 /* 5-step pipeline track */
@@ -795,7 +796,7 @@ textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.55; 
 /* ── Bottom sheet (shared: complete job, decline, confirm actions) ───── */
 .sheet-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.55); display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .sheet-overlay.open { opacity: 1; pointer-events: all; }
-.sheet-box { background: #fff; border-radius: 18px 18px 0 0; padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem); width: 100%; max-width: 540px; transform: translateY(100%); transition: transform 0.25s ease; }
+.sheet-box { background: #fff; border-radius: 18px 18px 0 0; padding: 1.5rem 1.5rem max(1.5rem, env(safe-area-inset-bottom)); width: 100%; max-width: 540px; max-height: calc(100dvh - var(--e-safe-top) - 1rem); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; transform: translateY(100%); transition: transform 0.25s ease; }
 .sheet-overlay.open .sheet-box { transform: translateY(0); }
 .sheet-title { font-size: 1.05rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem; }
 .sheet-body  { font-size: 0.875rem; color: #6b7280; line-height: 1.65; margin-bottom: 1.25rem; }
@@ -804,3 +805,50 @@ textarea.form-control { resize: vertical; min-height: 100px; line-height: 1.55; 
 .sheet-btn-primary { background: #00BFFF; color: #fff; border: none; border-radius: 999px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%; }
 .sheet-btn-danger  { background: #ef4444; color: #fff; border: none; border-radius: 999px; padding: 0.9rem 1rem; font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; width: 100%; }
 .sheet-btn-cancel  { background: none; border: 1px solid #e5e7eb; border-radius: 999px; padding: 0.75rem 1rem; font-size: 0.9rem; color: #6b7280; font-family: inherit; cursor: pointer; width: 100%; }
+
+/* Notification tray follows the shared safe-area-aware header. */
+#notif-panel,
+#notif-backdrop { top: calc(var(--e-header-h) + var(--e-safe-top)) !important; }
+#notif-panel { max-height: calc(100dvh - var(--e-header-h) - var(--e-safe-top)); overflow-y: auto; }
+#notif-panel button { min-width: 44px; min-height: 44px; }
+
+/* Prevent iOS Safari from zooming into workforce forms. */
+@media (max-width: 899px) {
+  .e-input,
+  .form-control,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea { font-size: 16px !important; }
+
+  .e-btn,
+  .btn,
+  .e-filter-pill,
+  .e-period-tab,
+  .sheet-btn-primary,
+  .sheet-btn-danger,
+  .sheet-btn-cancel { min-height: 44px; }
+
+  .card-help-btn,
+  #basic-edit-btn,
+  #avail-toggle.eh-avail-pill { min-width: 44px; min-height: 44px; }
+
+  button[aria-label="Change photo"] {
+    width: 44px !important;
+    height: 44px !important;
+    right: -10px !important;
+    bottom: -10px !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  button[aria-label="Change photo"]::before {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--e-teal);
+  }
+
+  button[aria-label="Change photo"] svg { position: relative; z-index: 1; }
+}

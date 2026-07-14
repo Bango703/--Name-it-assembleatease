@@ -59,6 +59,7 @@
     .ica-logo span { color: #00BFFF; }
     .ica-nav-cta {
       display: inline-flex; align-items: center; gap: 0.4rem;
+      min-height: 44px;
       background: #00BFFF; color: #001f2b;
       font-size: 0.82rem; font-weight: 800;
       padding: 0.5rem 1rem; border-radius: 999px;
@@ -156,6 +157,16 @@
     }
     @media (max-width: 640px) {
       .ica-doc { padding: 1.5rem 1.25rem; }
+    }
+    @media (max-width: 480px) {
+      .ica-nav { padding:0.75rem; gap:0.5rem; }
+      .ica-logo { font-size:1rem; gap:0.4rem; min-width:0; }
+      .ica-logo-mark { width:30px; height:30px; }
+      .ica-nav-cta { padding:0.55rem 0.7rem; font-size:0; min-height:44px; }
+      .ica-nav-cta::after { content:"Application"; font-size:0.78rem; }
+      .ica-hero { padding:2rem 1rem 2.5rem; }
+      .ica-wrap { padding:1.5rem 0.75rem 4rem; }
+      .ica-doc { padding:1.25rem 1rem; }
     }
 
     .ica-doc-header {
@@ -358,6 +369,15 @@
       font-size: 0.8rem;
       color: #94a3b8;
     }
+    @media (max-width: 480px) {
+      .fee-table { table-layout:fixed; font-size:0.75rem; }
+      .fee-table th,
+      .fee-table td { padding:0.55rem 0.35rem; overflow-wrap:anywhere; vertical-align:top; }
+      .fee-table th { font-size:0.65rem; letter-spacing:0.02em; }
+      .sig-block { padding:1.25rem; }
+      .sig-cta { white-space:normal; text-align:center; }
+    }
+
     @media print {
       .ica-nav, .sig-cta { display: none !important; }
       body { background: #fff; }
@@ -369,13 +389,13 @@
 
 <!-- Navigation -->
 <nav class="ica-nav">
-  <a href="/assembler/apply" class="ica-logo">
+  <a href="/assembler/apply" class="ica-logo" id="agreement-home-link">
     <span class="ica-logo-mark"><img src="/images/logo.jpg" alt="AssembleAtEase" /></span>
     AssembleAtEase
   </a>
-  <a href="/assembler/apply" class="ica-nav-cta">
+  <a href="/assembler/apply" class="ica-nav-cta" id="agreement-return-link">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    Back to Application
+    <span id="agreement-return-label">Back to Application</span>
   </a>
 </nav>
 
@@ -383,7 +403,7 @@
 <div class="ica-hero">
   <div class="ica-hero-eyebrow">Legal Document</div>
   <h1>Independent Contractor Agreement</h1>
-  <p>Read this agreement carefully before submitting your Easer application. By checking the agreement box, you are entering into a binding legal contract.</p>
+  <p id="agreement-hero-copy">Read this agreement carefully before accepting it for your Easer application or acknowledging an updated version for an existing Easer account. Acceptance creates a binding legal contract.</p>
   <div class="ica-meta-row">
     <span class="ica-meta-chip">Governed by Texas Law</span>
     <span class="ica-meta-chip">Travis County Jurisdiction</span>
@@ -500,7 +520,7 @@
 
       <div class="ica-clause">
         <span class="clause-num">2.4</span>
-        <span class="clause-body"><strong>Service Area.</strong> All services are performed for customers located in the Austin, Texas metropolitan area, including ZIP codes 786xx through 788xx. The Company may expand or modify the service area at any time with notice to the Contractor.</span>
+        <span class="clause-body"><strong>Service Area.</strong> Launch services are performed only at customer addresses inside the active Austin and Central Texas service ZIPs published in the booking flow. The Company may activate additional verified markets over time and will notify the Contractor before offering work in a new service area.</span>
       </div>
 
       <div class="ica-clause">
@@ -534,14 +554,9 @@
         </thead>
         <tbody>
           <tr>
-            <td>Standard (No Membership)</td>
+            <td>Current Launch Terms</td>
             <td>30%</td>
             <td>70% of Contractor Compensation Base</td>
-          </tr>
-          <tr>
-            <td>Membership Contractor</td>
-            <td>25%</td>
-            <td>75% of Contractor Compensation Base</td>
           </tr>
         </tbody>
       </table>
@@ -553,7 +568,7 @@
 
       <div class="ica-clause">
         <span class="clause-num">3.4</span>
-        <span class="clause-body"><strong>Membership.</strong> Contractors may optionally purchase a platform membership to reduce their platform fee. Membership fees are non-refundable except as required by applicable law. Membership status may affect dispatch priority in addition to fee rates.</span>
+        <span class="clause-body"><strong>No Easer Membership at Launch.</strong> AssembleAtEase does not currently offer or charge Contractors for an Easer membership. The standard platform fee above applies to all newly accepted jobs. If the Company introduces an optional Contractor membership later, it will provide the price, benefits, fee effect, and updated terms before enrollment; no Contractor will be enrolled automatically.</span>
       </div>
 
       <div class="ica-clause">
@@ -1025,13 +1040,13 @@
 
       <hr />
 
-      <p style="font-size:0.85rem;color:#64748b;line-height:1.7;margin:0"><em>If you have questions about this Agreement before signing, please contact us at <a href="mailto:service@assembleatease.com" style="color:#0099cc">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:#0099cc">(737) 290-6129</a>. We recommend consulting with a licensed Texas attorney if you have legal questions about your rights and obligations as an independent contractor.</em></p>
+      <p style="font-size:0.85rem;color:#64748b;line-height:1.7;margin:0"><em>If you have questions about this Agreement before signing, please contact us at <a href="mailto:service@assembleatease.com" style="color:#0099cc">service@assembleatease.com</a> or call <a href="tel:+17372906129" style="color:#0099cc">737-290-6129</a>. We recommend consulting with a licensed Texas attorney if you have legal questions about your rights and obligations as an independent contractor.</em></p>
     </div>
 
     <!-- Signature Block -->
     <div class="sig-block" id="accept">
       <h2>Acknowledgment &amp; Electronic Signature</h2>
-      <p>To complete your application, you must accept this Agreement by checking the box below in the application form. By doing so, you confirm all of the following:</p>
+      <p id="agreement-signature-copy">To accept this Agreement, return to the secure application or account-update workflow and check the required acknowledgment box. By doing so, you confirm all of the following:</p>
       <ul class="sig-checklist">
         <li><span class="sig-check">&#10003;</span> I have read this entire Independent Contractor Agreement and understand its terms.</li>
         <li><span class="sig-check">&#10003;</span> I agree to be legally bound by this Agreement as an independent contractor.</li>
@@ -1041,17 +1056,34 @@
         <li><span class="sig-check">&#10003;</span> I accept the platform fee structure and payment terms described in Section 3.</li>
         <li><span class="sig-check">&#10003;</span> I acknowledge the application fee policy shown at submission, including any Founding Easer waiver if applicable.</li>
       </ul>
-      <a href="/assembler/apply#contractor-agreement" class="sig-cta">
+      <a href="/assembler/apply#contractor-agreement" class="sig-cta" id="agreement-sign-cta">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Return to Application &amp; Sign
+        <span id="agreement-sign-label">Return to Application &amp; Sign</span>
       </a>
     </div>
 
-    <p class="print-notice">Last updated: July 12, 2026. AssembleAtEase reserves the right to update this Agreement with 30 days' written notice. <a href="javascript:window.print()" style="color:#0099cc">Print this Agreement</a></p>
+    <p class="print-notice">Last updated: July 13, 2026. AssembleAtEase reserves the right to update this Agreement with 30 days' written notice. <a href="javascript:window.print()" style="color:#0099cc">Print this Agreement</a></p>
 
   </div><!-- /ica-doc -->
 </div><!-- /ica-wrap -->
 
+<script>
+  (function () {
+    if (new URLSearchParams(window.location.search).get('context') !== 'update') return;
+    var homeLink = document.getElementById('agreement-home-link');
+    var returnLink = document.getElementById('agreement-return-link');
+    var returnLabel = document.getElementById('agreement-return-label');
+    var signatureCopy = document.getElementById('agreement-signature-copy');
+    var signCta = document.getElementById('agreement-sign-cta');
+    var signLabel = document.getElementById('agreement-sign-label');
+    if (homeLink) homeLink.href = '/assembler/';
+    if (returnLink) returnLink.href = '/assembler/verify-identity';
+    if (returnLabel) returnLabel.textContent = 'Back to Account Update';
+    if (signatureCopy) signatureCopy.textContent = 'To acknowledge this updated Agreement for your existing Easer account, return to the secure account-update page and check the required acknowledgment box.';
+    if (signCta) signCta.href = '/assembler/verify-identity';
+    if (signLabel) signLabel.textContent = 'Return to Account Update';
+  })();
+</script>
 </body>
 </html>
 

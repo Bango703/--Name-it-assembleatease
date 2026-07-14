@@ -28,10 +28,15 @@
     'bee cave': 'Bee Cave', 'manor': 'Manor', 'leander': 'Leander', 'hutto': 'Hutto'
   };
 
-  // ZIP prefix -> served display city (matches the backend service area: 786/787/788).
+  var SERVED_ZIPS = [
+    '78610','78613','78626','78628','78630','78633','78634','78640','78641','78645',
+    '78646','78653','78660','78664','78665','78680','78681','78682','78683','78691'
+  ];
+
+  // ZIP -> served display city. The backend remains authoritative.
   function zipCity(zip) {
-    var p = String(zip || '').replace(/\D/g, '').slice(0, 3);
-    if (p === '787' || p === '786' || p === '788') return 'Austin';
+    var normalized = String(zip || '').replace(/\D/g, '').slice(0, 5);
+    if (normalized.length === 5 && (normalized.slice(0,3) === '787' || SERVED_ZIPS.indexOf(normalized) !== -1)) return 'Austin';
     return null;
   }
 

@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { generateContentKit, renderContentKitEmailHtml } from '../_content-kit.js';
 import { publishContentKit } from '../_social-publisher.js';
+import { logCron } from './_cron-logger.js';
 
 const REPO_OWNER = 'Bango703';
 const REPO_NAME  = '--Name-it-assembleatease';
@@ -149,6 +150,21 @@ const TOPIC_POOL = [
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const startedAt = Date.now();
+  const cronSecret = String(process.env.CRON_SECRET || '');
+  if (!cronSecret || req.headers.authorization !== 'Bearer ' + cronSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (String(process.env.AUTO_BLOG_PUBLISH_ENABLED || '').toLowerCase() !== 'true') {
+    await logCron('auto-blog', { status: 'ok', records: 0, duration: Date.now() - startedAt });
+    return res.status(200).json({
+      success: true,
+      disabled: true,
+      reason: 'AUTO_BLOG_PUBLISH_ENABLED is not enabled.',
+    });
   }
 
   const githubToken   = process.env.GITHUB_TOKEN;
@@ -552,7 +568,7 @@ ${body}
       <div class="footer-logo"><picture><source srcset="/images/logo.webp" type="image/webp"><img src="/images/logo.jpg" alt="AssembleAtEase Logo"/></picture><div class="footer-logo-text">Assemble<span>AtEase</span></div></div>
       <p class="footer-tagline">Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services with clear pricing and careful work.</p>
       <div class="footer-contact">
-        <a href="tel:+17372906129">(737) 290-6129</a>
+        <a href="tel:+17372906129">737-290-6129</a>
         <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>
         <a href="https://www.facebook.com/people/Assembleatease/61572042722009/" target="_blank" rel="noopener">Follow our project updates</a>
       </div>

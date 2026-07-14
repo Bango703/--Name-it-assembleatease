@@ -34,7 +34,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load financial dashboard data' });
   }
 
-  const rows = finance.rows || [];
+  const financeRows = finance.rows || [];
+  const rows = financeRows.filter(row => row.status === 'completed');
+  const cancellationRows = financeRows.filter(row => row.cancellationEarnings);
   const bookingIds = rows.map(row => row.bookingId).filter(Boolean);
   const issueBookingIds = await loadIssueBookingIds(sb, bookingIds);
   const itemMetrics = await loadBookingItemMetrics(sb, bookingIds);
@@ -42,18 +44,26 @@ export default async function handler(req, res) {
   const clawbacks = await loadOpenClawbacks(sb);
   const assemblecashMetrics = await loadAssembleCashMetrics(sb, range);
   const completedJobs = rows.length;
-  const grossCustomerRevenue = sum(rows, row => row.charged);
-  const refunds = sum(rows, row => row.refund);
+  const grossCustomerRevenue = sum(financeRows, row => row.charged);
+  const refunds = sum(financeRows, row => row.refund);
+  const cancellationRefunds = sum(cancellationRows, row => row.refund);
   const refundedJobs = rows.filter(row => Number(row.refund || 0) > 0 || row.isRefunded).length;
   for (const row of rows) {
     if ((Number(row.refund || 0) > 0 || row.isRefunded) && row.bookingId) issueBookingIds.add(row.bookingId);
   }
-  const customerRevenue = sum(rows, row => row.netCharged);
-  const salesTaxCollected = sum(rows, row => row.taxCollected); // pass-through liability — never profit
-  const processingFees = sum(rows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
-  const easerPayouts = sum(rows, row => payoutForProfit(row));
+  const customerRevenue = sum(financeRows, row => row.netCharged);
+  const completedCustomerRevenue = sum(rows, row => row.netCharged);
+  const cancellationCustomerRevenue = sum(cancellationRows, row => row.netCharged);
+  const cancellationEaserEarnings = sum(cancellationRows, row => payoutForProfit(row));
+  const salesTaxCollected = sum(financeRows, row => row.taxCollected); // pass-through liability — never profit
+  const processingFees = sum(financeRows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
+  const easerPayouts = sum(financeRows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
-  const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
+  const completedPlatformGrossProfit = sum(rows, row => Number(row.netCharged || 0)
+    - Number(row.taxCollected || 0)
+    - Number(row.stripeFee || 0)
+    - payoutForProfit(row));
+  const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
   const operatingExpenses = periodOperatingExpenses(period, annualOpexCents);
   const estimatedNetOperatingProfit = platformGrossProfit - reworkRefundReserve - operatingExpenses - cacCents;
 
@@ -69,8 +79,8 @@ export default async function handler(req, res) {
     console.warn('Financial dashboard active Easer count skipped:', error?.message || error);
   }
 
-  const grossProfitPerJob = completedJobs ? Math.round(platformGrossProfit / completedJobs) : 0;
-  const averageJobValue = completedJobs ? Math.round(customerRevenue / completedJobs) : 0;
+  const grossProfitPerJob = completedJobs ? Math.round(completedPlatformGrossProfit / completedJobs) : 0;
+  const averageJobValue = completedJobs ? Math.round(completedCustomerRevenue / completedJobs) : 0;
   const grossMarginPct = customerRevenue > 0 ? platformGrossProfit / customerRevenue : 0;
   const netProfitPct = customerRevenue > 0 ? estimatedNetOperatingProfit / customerRevenue : 0;
   const revenuePerActiveEaser = activeEasers > 0 ? Math.round(customerRevenue / activeEasers) : 0;
@@ -89,12 +99,12 @@ export default async function handler(req, res) {
     ? Math.round(sum(rows.filter(row => !!row.bundleSlug), row => row.netCharged) / bundledJobs)
     : 0;
   const serviceProfitability = buildServiceProfitability(rows, itemMetrics);
-  const expansionRows = period === 'all' ? rows : await loadExpansionRows(sb);
+  const expansionRows = period === 'all' ? financeRows : await loadExpansionRows(sb);
   const expansionReadiness = await buildExpansionReadiness(sb, expansionRows, activeEasers);
 
-  const ledger = rows
+  const ledger = financeRows
     .slice()
-    .sort((a, b) => String(b.completedAt || b.date || '').localeCompare(String(a.completedAt || a.date || '')))
+    .sort((a, b) => String(b.eventAt || b.date || '').localeCompare(String(a.eventAt || a.date || '')))
     .slice(0, 100)
     .map(row => {
       const processingFee = Number(row.stripeFee || 0); // actual fee (migration 011) or canonical estimate — same source as the aggregate
@@ -103,8 +113,12 @@ export default async function handler(req, res) {
       const salesTax = Number(row.taxCollected || 0); // pass-through liability — excluded from profit
       return {
         bookingId: row.bookingId,
+        status: row.status,
+        eventType: row.eventType,
+        eventAt: row.eventAt,
         ref: row.ref,
         completedAt: row.completedAt,
+        cancelledAt: row.cancelledAt,
         date: row.date,
         service: row.service || 'Other',
         customerName: row.customerName || null,
@@ -147,6 +161,7 @@ export default async function handler(req, res) {
       bundleAttachRate: 'actual_completed_bookings_with_bundle_slug',
       refundReworkRate: 'actual_refunds_plus_damage_claims_when_evidence_exists',
       easerPayouts: 'actual_or_pending_due',
+      cancellationEaserEarnings: 'actual_or_pending_due_from_captured_cancellation_fees',
       assemblecashLiability: assemblecashMetrics.available ? 'actual_rewards_ledger' : 'missing_data',
       processingFees: 'estimated',
       platformGrossProfit: 'estimated',
@@ -157,6 +172,10 @@ export default async function handler(req, res) {
     },
     summary: {
       completedJobs,
+      cancellationEarningEvents: cancellationRows.length,
+      cancellationCustomerRevenue,
+      cancellationEaserEarnings,
+      cancellationRefunds,
       grossCustomerRevenue,
       refunds,
       refundedJobs,
@@ -193,6 +212,9 @@ export default async function handler(req, res) {
       platformGrossProfitPerCompletedJob: grossProfitPerJob,
       totalCustomerRevenue: customerRevenue,
       completedJobs,
+      cancellationEarningEvents: cancellationRows.length,
+      cancellationCustomerRevenue,
+      cancellationEaserEarnings,
       averageJobValue,
       platformGrossProfit,
       estimatedNetOperatingProfit,
@@ -343,16 +365,19 @@ async function loadExpansionRows(sb) {
 }
 
 async function buildExpansionReadiness(sb, rows, activeEasers) {
-  const completedJobs = rows.length;
-  const bookingIds = rows.map(row => row.bookingId).filter(Boolean);
+  const financeRows = rows || [];
+  const completedRows = financeRows.filter(row => row.status === 'completed');
+  const completedJobs = completedRows.length;
+  const bookingIds = completedRows.map(row => row.bookingId).filter(Boolean);
   const damageClaimBookingIds = await loadIssueBookingIds(sb, bookingIds);
-  const refundedJobs = rows.filter(row => Number(row.refund || 0) > 0 || row.isRefunded).length;
-  const customerRevenue = sum(rows, row => row.netCharged);
-  const salesTaxCollected = sum(rows, row => row.taxCollected); // pass-through liability — never profit
-  const processingFees = sum(rows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
-  const easerPayouts = sum(rows, row => payoutForProfit(row));
+  const refundedJobs = completedRows.filter(row => Number(row.refund || 0) > 0 || row.isRefunded).length;
+  const customerRevenue = sum(financeRows, row => row.netCharged);
+  const completedCustomerRevenue = sum(completedRows, row => row.netCharged);
+  const salesTaxCollected = sum(financeRows, row => row.taxCollected); // pass-through liability — never profit
+  const processingFees = sum(financeRows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
+  const easerPayouts = sum(financeRows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
-  const reworkRefundReserve = Math.round(customerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
+  const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
   const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve - periodOperatingExpenses('all');
   const refundRate = completedJobs > 0 ? refundedJobs / completedJobs : 0;
   const reworkRate = completedJobs > 0 ? damageClaimBookingIds.size / completedJobs : 0;
@@ -831,8 +856,10 @@ function recommendServiceAction({ serviceName, completedJobs, averageTicket, pla
 
 function payoutForProfit(row) {
   if (row.paidOut) return Number(row.payoutAmount || 0);
-  if (!row.isRefunded) return Number(row.owed || 0);
-  return 0;
+  // A refund hold does not erase contractor earnings. Until the owner reviews
+  // the job, the canonical amount remains a potential liability and must stay
+  // in profitability and reserve calculations.
+  return Number(row.owed || 0);
 }
 
 function dollarsToCents(value) {

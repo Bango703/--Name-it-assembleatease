@@ -25,6 +25,12 @@ export default async function handler(req, res) {
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CONFIRMED);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
+  if (booking.financial_operation_key || booking.financial_operation_type) {
+    return res.status(409).json({
+      error: 'A cancellation or payment action is already being reconciled. Refresh before confirming this booking.',
+      code: 'BOOKING_FINANCIAL_OPERATION_IN_PROGRESS',
+    });
+  }
 
   if (['quote_pending_approval', 'quote_authorization_pending', 'card_saved'].includes(booking.payment_status)
       || (booking.quote_amount_cents && !booking.quote_approved_at)) {
@@ -73,16 +79,31 @@ export default async function handler(req, res) {
   }
 
   // Update status
-  const { error: updateErr, data: updatedRows } = await sb
+  let confirmUpdate = sb
     .from('bookings')
     .update({ status: BOOKING_STATUS.CONFIRMED, confirmed_at: new Date().toISOString(), confirmed_by: confirmedBy })
     .eq('id', booking.id)
     .eq('status', BOOKING_STATUS.PENDING)
-    .select('id');
+    .eq('payment_status', booking.payment_status)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null);
+  confirmUpdate = booking.total_price == null
+    ? confirmUpdate.is('total_price', null)
+    : confirmUpdate.eq('total_price', booking.total_price);
+  confirmUpdate = booking.stripe_payment_intent_id == null
+    ? confirmUpdate.is('stripe_payment_intent_id', null)
+    : confirmUpdate.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+  const { error: updateErr, data: updatedRows } = await confirmUpdate.select('id');
 
-  if (updateErr || !updatedRows?.length) {
+  if (updateErr) {
     console.error('Confirm update error:', updateErr);
     return res.status(500).json({ error: 'Failed to update booking' });
+  }
+  if (!updatedRows?.length) {
+    return res.status(409).json({
+      error: 'Booking or payment state changed before confirmation. Refresh before trying again.',
+      code: 'CONFIRMATION_STATE_RACE',
+    });
   }
 
   // Send confirmation email to customer

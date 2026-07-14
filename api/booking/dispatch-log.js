@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 
 /**
  * GET /api/booking/dispatch-log?bookingId={id}
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
       easer_tier:      p.tier || '—',
       easer_rating:    p.rating || null,
       easer_jobs:      p.completed_jobs || 0,
-      easer_member:    p.has_membership || false,
+      easer_member:    hasEffectiveEaserMembership(p),
       dispatch_score:  o.dispatch_score,
       offer_status:    o.offer_status,
       notification_sent: o.notification_sent,

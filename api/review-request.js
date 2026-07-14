@@ -1,5 +1,6 @@
 ﻿import { getSupabase } from './_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from './_email.js';
+import { issueReviewToken } from './_review-token.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 
@@ -21,7 +22,14 @@ export default async function handler(req, res) {
   if (b.status !== 'completed') return res.status(400).json({ error: 'Booking must be completed before requesting a review' });
   if (!b.customer_email) return res.status(400).json({ error: 'No customer email on this booking' });
 
-  const reviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}`;
+  let reviewToken;
+  try {
+    reviewToken = issueReviewToken({ bookingId: b.id, ref: b.ref, email: b.customer_email });
+  } catch (tokenError) {
+    console.error('Review request token error:', tokenError?.message || tokenError);
+    return res.status(503).json({ error: 'Secure review links are not configured. No review email was sent.' });
+  }
+  const reviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}&token=${encodeURIComponent(reviewToken)}`;
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -33,7 +41,7 @@ export default async function handler(req, res) {
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience?</p>
     <p style="margin:0 0 8px;font-size:15px;color:#52525b;line-height:1.7">We hope you loved your <strong>${esc(b.service)}</strong> service!</p>
     <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your booking is already filled in — just click below, pick your stars, and write a couple words. Takes less than a minute.</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${reviewUrl}" style="display:inline-block;padding:16px 40px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px">Leave Your Review &#11088;</a></td></tr></table>
+    <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${reviewUrl}" style="display:inline-block;padding:16px 40px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px">Leave Your Review</a></td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6;text-align:center">Thank you for choosing AssembleAtEase — it means the world to a small local business.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">

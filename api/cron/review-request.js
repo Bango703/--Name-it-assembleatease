@@ -1,5 +1,6 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { issueReviewToken } from '../_review-token.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const REVIEW_DELAY_DAYS = 2; // days after completion to send review request
@@ -39,7 +40,9 @@ export default async function handler(req, res) {
 
   for (const b of bookings) {
     try {
-      const internalReviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}`;
+      if (!b.customer_email) throw new Error('Booking has no customer email');
+      const reviewToken = issueReviewToken({ bookingId: b.id, ref: b.ref, email: b.customer_email });
+      const internalReviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}&token=${encodeURIComponent(reviewToken)}`;
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -49,7 +52,7 @@ export default async function handler(req, res) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience?</p>
     <p style="margin:0 0 20px;font-size:14px;color:#52525b;line-height:1.6">We hope you loved your <strong>${esc(b.service)}</strong> service! A quick Google review takes 60 seconds and makes a huge difference for a small local business like ours.</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 0 16px;width:100%"><tr><td style="background:#00BFFF;border-radius:8px;padding:0;text-align:center"><a href="${googleReviewUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">&#11088; Leave a Google Review</a></td></tr></table>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 16px;width:100%"><tr><td style="background:#00BFFF;border-radius:8px;padding:0;text-align:center"><a href="${googleReviewUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px">Leave a Google Review</a></td></tr></table>
     <p style="margin:0 0 16px;font-size:12px;color:#a1a1aa;text-align:center;line-height:1.5">Prefer to rate directly on our site? <a href="${internalReviewUrl}" style="color:#00BFFF;text-decoration:none">Rate your Pro here</a>.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin:0 0 16px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
       Not happy with something? Just reply to this email within 48 hours and we&rsquo;ll make it right.
@@ -61,7 +64,7 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`;
 
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: b.customer_email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: 'How was your experience? Leave a review!',
@@ -73,12 +76,14 @@ export default async function handler(req, res) {
           recipientType: 'customer',
         },
       });
+      if (!emailResult?.ok) throw new Error(emailResult?.error || 'Review email delivery failed');
 
       // Mark as sent
-      await sb
+      const { error: timestampError } = await sb
         .from('bookings')
         .update({ review_requested_at: new Date().toISOString() })
         .eq('id', b.id);
+      if (timestampError) throw timestampError;
 
       sent++;
     } catch (err) {

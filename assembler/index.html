@@ -51,6 +51,9 @@
     .eh-banner.identity{background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.15)}
     .eh-banner.identity .eh-banner-title{color:#3b82f6}
     .eh-banner.identity .eh-banner-sub{color:rgba(59,130,246,0.7)}
+    .eh-banner.closure{background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2)}
+    .eh-banner.closure .eh-banner-title{color:#b91c1c}
+    .eh-banner.closure .eh-banner-sub{color:#7f1d1d}
     .eh-banner-btn{display:inline-flex;align-items:center;gap:6px;padding:0.4rem 1rem;border-radius:999px;font-family:var(--e-font);font-size:0.78rem;font-weight:500;cursor:pointer;border:none;background:var(--e-teal);color:#fff;text-decoration:none;white-space:nowrap;flex-shrink:0}
 
     /* Section labels */
@@ -111,7 +114,7 @@
     .eh-offer-payout{text-align:right;flex-shrink:0}
     .eh-offer-amount{font-size:1.5rem;font-weight:800;color:var(--e-teal);line-height:1}
     .eh-offer-est{font-size:0.65rem;color:var(--e-muted);margin-top:3px}
-    .eh-offer-actions{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
+    .eh-offer-actions{display:grid;grid-template-columns:1fr;gap:0.5rem}
     .eh-offer-accept{background:var(--e-teal);color:white;border:none;border-radius:10px;padding:0.75rem;font-family:var(--e-font);font-size:0.9rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity 0.15s}
     .eh-offer-accept:active{opacity:0.85}
     .eh-offer-accept:disabled{opacity:0.5;cursor:not-allowed}
@@ -165,6 +168,7 @@
 </div>
 
 <div class="easer-page">
+  <div id="page-alert" class="alert hidden" role="status" aria-live="polite"></div>
 
   <!-- Hidden compat elements kept for JS -->
   <span id="sidebar-earnings" style="display:none">$0</span>
@@ -194,16 +198,23 @@
     </button>
   </div>
 
-  <!-- Onboarding checklist (shown until all steps complete) -->
+  <!-- Only unresolved account actions are shown here. -->
   <div id="onboarding-checklist" style="display:none;background:#fff;border:1.5px solid rgba(0,191,255,0.25);border-radius:14px;padding:1rem 1.25rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,191,255,0.08)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
-      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--e-teal)">Get Dispatch Ready</div>
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--e-teal)">Account Action Needed</div>
       <div id="onboarding-progress-text" style="font-size:0.72rem;color:var(--e-muted);font-weight:600"></div>
     </div>
     <div id="onboarding-steps" style="display:flex;flex-direction:column;gap:0.5rem"></div>
   </div>
 
   <!-- Account status banners -->
+  <div id="closure-status-banner" class="eh-banner closure hidden" role="status">
+    <div>
+      <div class="eh-banner-title" id="closure-status-title"></div>
+      <div class="eh-banner-sub" id="closure-status-sub"></div>
+    </div>
+    <a href="/assembler/profile" class="eh-banner-btn">View Account</a>
+  </div>
   <div id="tier-status-banner" class="eh-banner hidden">
     <div>
       <div class="eh-banner-title" id="tier-status-title"></div>
@@ -309,18 +320,22 @@
 
 <script>
   function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+  function hasValidUsPhone(value){var digits=String(value||'').replace(/\D/g,'');if(digits.length===11&&digits.charAt(0)==='1')digits=digits.slice(1);return /^\d{10}$/.test(digits);}
   function fmtTime(ts){if(!ts)return'';return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});}
-  function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(d);var now=new Date();var diff=Math.round((dt-new Date(now.toDateString()))/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
-  function fmtPay(cents){if(!cents)return'$0';return'$'+(cents/100).toFixed(0);}
+  function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(String(d).includes('T')?d:d+'T12:00:00');var now=new Date();var today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12);var diff=Math.round((dt-today)/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
+  function fmtPay(cents){var amount=Number(cents);if(!Number.isFinite(amount))return null;return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(amount/100);}
 
-  var DASHBOARD_CACHE_KEY = 'easer_dashboard_cache_v1';
+  var DASHBOARD_CACHE_KEY_PREFIX = 'easer_dashboard_cache_v1:';
   var DASHBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
   var DASHBOARD_CACHE_STALE_MS = 60 * 60 * 1000;
 
   var available = false;
   var currentUserId = null;
   var currentProfile = null;
+  var currentReadiness = null;
+  var currentReadinessError = null;
   var currentEffectiveStatus = 'pending';
+  var currentClosureStatus = null;
   var freshTok = null;
   var tosInterval = null;
   var offerTimerInterval = null;
@@ -350,10 +365,11 @@
 
   function readDashboardCache() {
     try {
-      var raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY);
+      if (!currentUserId) return null;
+      var raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY_PREFIX + currentUserId);
       if (!raw) return null;
       var parsed = JSON.parse(raw);
-      if (!parsed || !Array.isArray(parsed.bookings) || !parsed.savedAt) return null;
+      if (!parsed || parsed.userId !== currentUserId || !Array.isArray(parsed.bookings) || !parsed.savedAt) return null;
       return parsed;
     } catch {
       return null;
@@ -362,7 +378,9 @@
 
   function writeDashboardCache(bookings, meta) {
     try {
-      sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+      if (!currentUserId) return;
+      sessionStorage.setItem(DASHBOARD_CACHE_KEY_PREFIX + currentUserId, JSON.stringify({
+        userId: currentUserId,
         savedAt: new Date().toISOString(),
         bookings: bookings || [],
         meta: meta || null,
@@ -371,7 +389,11 @@
   }
 
   function clearDashboardCache() {
-    try { sessionStorage.removeItem(DASHBOARD_CACHE_KEY); } catch {}
+    try {
+      if (currentUserId) sessionStorage.removeItem(DASHBOARD_CACHE_KEY_PREFIX + currentUserId);
+      sessionStorage.removeItem('easer_dashboard_cache_v1');
+      if (window.APP && typeof APP.clearPrivateSessionData === 'function') APP.clearPrivateSessionData();
+    } catch {}
   }
 
   function getDashboardCachedAgeMs(cache) {
@@ -670,12 +692,27 @@
   // Availability toggle — immediate when going online, confirmation sheet when going offline
   document.getElementById('avail-toggle').addEventListener('click', async function(){
     if (!currentUserId) return;
+    if (isClosureHeld()) {
+      APP.showAlert('page-alert', closureAvailabilityMessage(), 'error');
+      return;
+    }
     if (available) {
       // Going offline — ask for confirmation
       document.getElementById('go-offline-sheet').classList.add('open');
       return;
     }
     // Going online — immediate
+    if (!currentReadiness) {
+      var readinessLoaded = await loadEaserReadinessStatus(freshTok);
+      if (!readinessLoaded) {
+        APP.showAlert('page-alert', 'Job readiness could not be verified. Retry before going Online.', 'error');
+        return;
+      }
+    }
+    if (currentReadiness.isReady !== true) {
+      APP.showAlert('page-alert', 'Complete your readiness actions before going Online: ' + (currentReadiness.missingItems || []).join(', '), 'error');
+      return;
+    }
     available = true;
     setAvailUI(true);
     try {
@@ -689,12 +726,19 @@
   });
 
   function setAvailUI(on) {
+    if (isClosureHeld()) on = false;
     if (currentProfile) currentProfile.is_available = !!on;
     document.getElementById('avail-pill').classList.toggle('on', on);
     document.getElementById('avail-toggle').classList.toggle('on', on);
     document.getElementById('avail-label').textContent = on ? 'Online' : 'Offline';
     document.getElementById('eh-online-dot').classList.toggle('online', on);
-    document.getElementById('eh-greeting-sub-text').textContent = on ? "You're online and available" : "You're currently offline";
+    document.getElementById('eh-greeting-sub-text').textContent = isClosureHeld()
+      ? closureGreetingMessage()
+      : (on ? "You're online and available" : "You're currently offline");
+    var toggle = document.getElementById('avail-toggle');
+    toggle.disabled = isClosureHeld();
+    toggle.setAttribute('aria-disabled', isClosureHeld() ? 'true' : 'false');
+    toggle.title = isClosureHeld() ? closureAvailabilityMessage() : '';
     var cardTitle = document.getElementById('avail-card-title');
     var cardSub   = document.getElementById('avail-card-sub');
     if (cardTitle) cardTitle.textContent = on ? "You're Online" : "You're Offline";
@@ -717,7 +761,7 @@
     var progEl = document.getElementById('onboarding-progress-text');
     if (!checklist || !listEl || !progEl) return;
 
-    if (!currentProfile || currentEffectiveStatus !== 'active') {
+    if (!currentProfile || currentEffectiveStatus !== 'active' || isClosureHeld()) {
       checklist.dataset.completed = 'false';
       checklist.style.display = 'none';
       listEl.innerHTML = '';
@@ -725,38 +769,33 @@
       return;
     }
 
+    var currentAgreementAccepted = !!(currentReadiness && currentReadiness.agreementCurrent && currentReadiness.codeOfConductAccepted);
     var onbSteps = [
       {
         key:'agreement',
-        done: !!currentProfile.contractor_agreement_signed_at && currentProfile.contractor_agreement_version === '2026-07-12' && !!currentProfile.code_of_conduct_agreed_at,
-        label:'Accept the current contractor agreement',
-        desc: currentProfile.contractor_agreement_version === '2026-07-12' ? 'Current agreement and code of conduct accepted.' : 'Review and accept the current terms before receiving offers.',
-        action: currentProfile.contractor_agreement_version !== '2026-07-12' ? { href:'/assembler/verify-identity', label:'Review' } : null,
+        done: currentAgreementAccepted,
+        label: currentProfile.contractor_agreement_signed_at ? 'Review the updated contractor agreement' : 'Accept the contractor agreement',
+        desc: currentReadinessError
+          ? 'Agreement status could not be verified. Open the secure account-update page or retry the dashboard.'
+          : 'A current agreement acknowledgment is required before new offers can be sent.',
+        action: !currentAgreementAccepted ? { href:'/assembler/verify-identity', label:'Review' } : null,
       },
       {
         key:'identity',
         done: currentProfile.identity_verified===true,
         label:'Verify your identity',
-        desc: currentProfile.identity_verified ? 'Identity verified.' : 'Required to receive job offers.',
+        desc: 'Identity verification is required before new offers can be sent.',
         action: !currentProfile.identity_verified ? { href:'/assembler/verify-identity', label:'Continue' } : null,
       },
       {
         key:'phone',
-        done: !!currentProfile.phone,
+        done: hasValidUsPhone(currentProfile.phone),
         label:'Add your phone number',
-        desc: currentProfile.phone ? 'Phone number on file.' : 'Required for dispatch notifications.',
-        action: !currentProfile.phone ? { href:'/assembler/profile', label:'Add Phone' } : null,
+        desc: 'Add a phone number for dispatch and job notifications.',
+        action: !hasValidUsPhone(currentProfile.phone) ? { href:'/assembler/profile', label:'Add Phone' } : null,
       },
-      {
-        key:'online',
-        done: available,
-        label:'Go Online to receive jobs',
-        desc: available ? 'You are online and accepting offers.' : 'Toggle the Online/Offline button above to start receiving jobs.',
-        action: null,
-      },
-    ];
-    var doneCnt = onbSteps.filter(function(s){ return s.done; }).length;
-    var allDone = doneCnt === onbSteps.length;
+    ].filter(function(step){ return !step.done; });
+    var allDone = onbSteps.length === 0;
 
     checklist.dataset.deferWhenBusy = 'true';
     checklist.dataset.completed = allDone ? 'true' : 'false';
@@ -768,18 +807,16 @@
       return;
     }
 
-    progEl.textContent = doneCnt + '/' + onbSteps.length + ' complete';
+    progEl.textContent = onbSteps.length + (onbSteps.length === 1 ? ' action remaining' : ' actions remaining');
     listEl.innerHTML = onbSteps.map(function(s){
-      var iconSvg = s.done
-        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
-        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
-      var actionHtml = s.action && !s.done
+      var iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+      var actionHtml = s.action
         ? '<a href="' + s.action.href + '" style="flex-shrink:0;display:inline-flex;align-items:center;padding:0.28rem 0.7rem;background:var(--e-teal);color:#fff;border-radius:999px;font-size:0.7rem;font-weight:700;text-decoration:none">' + s.action.label + '</a>'
         : '';
       return '<div style="display:flex;align-items:center;gap:0.625rem;padding:0.45rem 0;border-bottom:1px solid var(--e-border)">'
         + '<span style="flex-shrink:0">' + iconSvg + '</span>'
         + '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:0.82rem;font-weight:' + (s.done ? '500' : '600') + ';color:' + (s.done ? 'var(--e-muted)' : 'var(--e-text)') + (s.done ? ';text-decoration:line-through' : '') + ' ">' + esc(s.label) + '</div>'
+          + '<div style="font-size:0.82rem;font-weight:600;color:var(--e-text)">' + esc(s.label) + '</div>'
           + '<div style="font-size:0.7rem;color:var(--e-muted);margin-top:1px">' + esc(s.desc) + '</div>'
         + '</div>'
         + actionHtml
@@ -790,6 +827,68 @@
     if (lastItem) lastItem.style.borderBottom = 'none';
 
     setHomePriorityMode(hasUrgentDashboardWork());
+  }
+
+  async function loadEaserReadinessStatus(token) {
+    currentReadinessError = null;
+    try {
+      var response = await fetch('/api/assembler/readiness', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.readiness) throw new Error(data.error || 'Readiness status unavailable');
+      currentReadiness = data.readiness;
+      renderOnboardingChecklist();
+      return true;
+    } catch (error) {
+      currentReadiness = null;
+      currentReadinessError = error && error.message ? error.message : 'Readiness status unavailable';
+      renderOnboardingChecklist();
+      return false;
+    }
+  }
+
+  function normalizeClosureStatus(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isClosureHeld() {
+    return ['requested', 'reviewing', 'completed'].includes(currentClosureStatus);
+  }
+
+  function closureGreetingMessage() {
+    if (currentClosureStatus === 'completed') return 'This Easer account is closed';
+    if (currentClosureStatus === 'reviewing') return 'Account closure is being reviewed';
+    return 'Account closure has been requested';
+  }
+
+  function closureAvailabilityMessage() {
+    if (currentClosureStatus === 'completed') return 'A closed account cannot go Online or receive offers.';
+    return 'Availability stays Offline while the account closure request is under review.';
+  }
+
+  function applyClosureState() {
+    var banner = document.getElementById('closure-status-banner');
+    if (!banner || !isClosureHeld()) return;
+    banner.classList.remove('hidden');
+    var title = document.getElementById('closure-status-title');
+    var sub = document.getElementById('closure-status-sub');
+    if (currentClosureStatus === 'completed') {
+      title.textContent = 'Easer account closed';
+      sub.textContent = 'New offers and availability are disabled. Contact support if you need help with a payout record or retained account information.';
+    } else if (currentClosureStatus === 'reviewing') {
+      title.textContent = 'Account closure review in progress';
+      sub.textContent = 'You are Offline and cannot receive new offers. Support is reviewing payout, tax, and retention obligations.';
+    } else {
+      title.textContent = 'Account closure requested';
+      sub.textContent = 'You are Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
+    }
+    var jobsLink = document.querySelector('.easer-nav-item[href="/assembler/my-assignments"]');
+    if (jobsLink) {
+      jobsLink.style.opacity = '0.4';
+      jobsLink.style.pointerEvents = 'none';
+      jobsLink.setAttribute('aria-disabled', 'true');
+    }
   }
 
   // Build 4-step pipeline HTML
@@ -941,9 +1040,8 @@
       // Use the server's canonical estimate (_pay_estimate_lo, computed with the real
       // platform fee for THIS Pro) so the home card matches the offer push/email and the
       // My Assignments detail exactly. Never re-derive pay with a hardcoded rate here.
-      var pay = b.assembler_due ? fmtPay(b.assembler_due)
-        : (b._pay_estimate_lo ? fmtPay(b._pay_estimate_lo)
-        : (b.total_price ? fmtPay(Math.round(b.total_price*0.70)) : '—'));
+      var pay = b._pay_estimate_lo != null ? fmtPay(b._pay_estimate_lo)
+        : (b.assembler_due != null ? fmtPay(b.assembler_due) : 'Estimate pending');
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
       return '<div class="eh-offer-card">'
         +'<div class="eh-offer-card-top">'
@@ -953,7 +1051,7 @@
           +'<div class="eh-offer-info">'
             +'<div class="eh-offer-title">'+esc(b.service||'Service Job')+'</div>'
             +(b.description ? '<div class="eh-offer-spec">'+esc(b.description.substring(0,50))+'</div>' : '')
-            +(b.address ? '<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'+esc(b.address)+'</div>' : '')
+            +(b._offer_location ? '<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Service area: '+esc(b._offer_location)+'</div>' : '')
             +(expiresAt ? '<div class="eh-offer-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-expires-at="'+esc(expiresAt)+'">—</span></div>' : '')
           +'</div>'
           +'<div class="eh-offer-payout">'
@@ -962,12 +1060,7 @@
           +'</div>'
         +'</div>'
         +'<div class="eh-offer-actions">'
-          +'<button class="eh-offer-accept" id="accept-btn-'+b.id+'" onclick="acceptOffer(\''+b.id+'\',\''+esc(b._offer_token||b.dispatch_token||'')+'\')">'
-            +'Accept'
-          +'</button>'
-          +'<button class="eh-offer-decline" id="decline-btn-'+b.id+'" onclick="declineOffer(\''+b.id+'\',\''+esc(b._offer_token||b.dispatch_token||'')+'\')">'
-            +'Decline'
-          +'</button>'
+          +'<a class="eh-offer-accept" href="/assembler/my-assignments?offer='+encodeURIComponent(b.id)+'" style="display:block;text-align:center;text-decoration:none">Review offer</a>'
         +'</div>'
       +'</div>';
     }).join('');
@@ -987,48 +1080,6 @@
     offerTimerInterval=setInterval(updateTimers,1000);
   }
 
-  async function acceptOffer(bookingId, token) {
-    var btn=document.getElementById('accept-btn-'+bookingId);
-    if(btn){btn.disabled=true;btn.textContent='Accepting…';}
-    try {
-      var r=await fetch('/api/booking/accept-dispatch',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
-        body:JSON.stringify({bookingId,token}),
-      });
-      var d=await r.json();
-      if(!r.ok||d.error){
-        alert(d.error||'Could not accept. Please try again.');
-        if(btn){btn.disabled=false;btn.textContent='Accept';}
-        return;
-      }
-      window.location.reload();
-    } catch{if(btn){btn.disabled=false;btn.textContent='Accept';}}
-  }
-
-  async function declineOffer(bookingId, token) {
-    var btn=document.getElementById('decline-btn-'+bookingId);
-    if(btn){btn.disabled=true;btn.textContent='Declining…';}
-    try {
-      var r=await fetch('/api/booking/decline-dispatch',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},
-        body:JSON.stringify({bookingId,token,reason:'unavailable'}),
-      });
-      var d=await r.json();
-      if(!r.ok||d.error){
-        if(btn){btn.disabled=false;btn.textContent='Decline';}
-        return;
-      }
-      // Remove this offer card from the DOM instead of full reload
-      var card=btn.closest('.eh-offer-card');
-      if(card) card.remove();
-      // If no more offers, hide the section
-      var remaining=document.querySelectorAll('.eh-offer-card');
-      if(!remaining.length) document.getElementById('offers-section').style.display='none';
-    } catch{if(btn){btn.disabled=false;btn.textContent='Decline';}}
-  }
-
   document.addEventListener('DOMContentLoaded', async function(){
     var auth=await APP.requireAuth(['assembler']);
     if(!auth) return;
@@ -1036,6 +1087,7 @@
     var user=auth.user, session=auth.session, profile=auth.profile;
     currentUserId=user.id;
     currentProfile=profile;
+    currentClosureStatus=normalizeClosureStatus(profile.account_closure_status);
 
     // Notification bell toggle
     var _notifPanel=document.getElementById('notif-panel');
@@ -1049,8 +1101,9 @@
     document.addEventListener('click',function(){ if(_notifPanel&&_notifPanel.style.display!=='none') hideNotif(); });
 
     // Availability
-    available=profile.is_available||false;
+    available=isClosureHeld() ? false : (profile.is_available||false);
     setAvailUI(available);
+    applyClosureState();
 
     // Avatar
     var avatarEl=document.getElementById('eh-avatar');
@@ -1075,13 +1128,18 @@
       document.getElementById('stat-rating').textContent=ratingVal;
       document.getElementById('stat-jobs').textContent=profile.completed_jobs||'0';
       var earnedCents=profile.total_earned||0;
-      document.getElementById('stat-earned').textContent=earnedCents>0 ? '$'+Math.round(earnedCents/100) : '$0';
+      document.getElementById('stat-earned').textContent=fmtPay(earnedCents)||'$0.00';
     }
 
     // Offline banner
     var offlineBanner=document.getElementById('e-offline');
     window.addEventListener('offline',function(){offlineBanner&&offlineBanner.classList.add('show');});
-    window.addEventListener('online', function(){offlineBanner&&offlineBanner.classList.remove('show'); dashboardLoadState.retryCount = 0; loadDashboardData('reconnect');});
+    window.addEventListener('online', function(){
+      offlineBanner&&offlineBanner.classList.remove('show');
+      if (isClosureHeld()) return;
+      dashboardLoadState.retryCount = 0;
+      loadDashboardData('reconnect');
+    });
 
     window.addEventListener('beforeunload',function(){
       clearDashboardRetryTimer();
@@ -1103,6 +1161,7 @@
     // alert instantly; this keeps the open dashboard in sync.
     setInterval(function() {
       if (document.visibilityState !== 'visible') return;
+      if (isClosureHeld()) return;
       if (dashboardLoadState.inFlight) return;
       var sheet = document.getElementById('home-complete-sheet');
       if (sheet && sheet.classList.contains('open')) return; // don't disrupt job completion
@@ -1115,6 +1174,7 @@
     // successful load was more than 60s ago so Easers don't see stale job state.
     window.addEventListener('pageshow', function(event) {
       if (!event.persisted) return; // normal load — already handled by DOMContentLoaded
+      if (isClosureHeld()) return;
       if (dashboardLoadState.inFlight) return; // fetch already in progress
       var lastSuccess = dashboardLoadState.lastSuccessAt ? new Date(dashboardLoadState.lastSuccessAt).getTime() : 0;
       if (Date.now() - lastSuccess < 60000) return; // fresh enough — skip
@@ -1174,10 +1234,13 @@
         try{
           var base64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res((e.target.result+'').split(',')[1]||e.target.result);};r.onerror=rej;r.readAsDataURL(_homePhotoFile);});
           var up=await fetch('/api/booking/upload-evidence',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+freshTok},body:JSON.stringify({bookingId:bookingId,fileBase64:base64,mimeType:_homePhotoFile.type,evidenceType:'completion_photo'})});
-          if(up.ok) _homePhotoUploaded=true;
+          var uploadBody={};
+          try{uploadBody=await up.json();}catch(parseErr){}
+          if(!up.ok||uploadBody.error) throw new Error(uploadBody.error||'Photo upload failed');
+          _homePhotoUploaded=true;
         }catch(upErr){
           if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-          alert('Photo upload failed — please try again.');
+          alert((upErr&&upErr.message)||'Photo upload failed — please try again.');
           _pendingCompleteBookingId=bookingId;
           return;
         }
@@ -1247,7 +1310,7 @@
       if(vBtn) vBtn.style.display='';
     }
 
-    if(!profile.phone){
+    if(!hasValidUsPhone(profile.phone)){
       var pb=document.getElementById('profile-banner');
       pb.dataset.deferWhenBusy='false';
       pb.classList.remove('hidden');
@@ -1259,6 +1322,14 @@
     } else if(!profile.city){
       document.getElementById('profile-banner').dataset.deferWhenBusy='true';
       document.getElementById('profile-banner').classList.remove('hidden');
+    }
+
+    if (isClosureHeld()) {
+      document.getElementById('active-section').style.display = 'none';
+      document.getElementById('offers-section').style.display = 'none';
+      document.getElementById('upcoming-section').style.display = 'none';
+      document.getElementById('waiting-state').style.display = 'none';
+      return;
     }
 
     // Verification gate
@@ -1284,6 +1355,8 @@
         }
       }
     }catch(e){}
+
+    await loadEaserReadinessStatus(freshTok);
 
     // Load assignments
     var cache = readDashboardCache();
@@ -1334,7 +1407,7 @@
 <script>
 (function(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
-  var _swReg=null, _userId=null, _swToken=null;
+  var _swReg=null, _userId=null, _swToken=null, _pushPublicKey=null;
 
   navigator.serviceWorker.register('/sw.js',{scope:'/assembler/'}).then(function(reg){
     _swReg=reg;
@@ -1343,6 +1416,11 @@
 
   async function initPush(){
     try{
+      var configResponse=await fetch('/api/assembler/push-subscribe');
+      if(!configResponse.ok) return;
+      var config=await configResponse.json();
+      if(!config.enabled||!config.publicKey) return;
+      _pushPublicKey=config.publicKey;
       var result=await window.supabaseClient.auth.getSession();
       var session=result.data&&result.data.session;
       if(!session) return;
@@ -1374,13 +1452,9 @@
   }
 
   async function subscribePush(){
-    if(!_swReg||!_swToken) return;
+    if(!_swReg||!_swToken||!_pushPublicKey) return;
     try{
-      var r=await fetch('/api/assembler/push-subscribe');
-      if(!r.ok) return;
-      var d=await r.json();
-      if(!d.publicKey) return;
-      var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(d.publicKey)});
+      var sub=await _swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(_pushPublicKey)});
       await fetch('/api/assembler/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_swToken},body:JSON.stringify({subscription:sub.toJSON()})});
     }catch(e){console.warn('Push:',e);}
   }
@@ -1394,7 +1468,6 @@
   }
 })();
 </script>
-<script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
 

@@ -16,37 +16,42 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { bookingId } = req.body || {};
+  const bookingId = String(req.body?.bookingId || '').trim();
   if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
 
   const sb = getSupabase();
-
-  const { data: booking, error: fetchErr } = await sb
-    .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, service, date, evidence_requested_at')
-    .eq('id', bookingId)
-    .single();
-
-  if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== 'completed') {
-    return res.status(400).json({ error: 'Evidence can only be requested for completed jobs' });
+  const { data: requestedRows, error: requestError } = await sb.rpc('request_booking_evidence_hold', {
+    p_booking_id: bookingId,
+  });
+  if (requestError) {
+    console.error('request-evidence reservation error:', requestError);
+    const status = requestError.code === 'P0002'
+      ? 404
+      : (['23505', '23514', '55P03', '22000'].includes(requestError.code) ? 409 : 503);
+    return res.status(status).json({
+      error: status === 503
+        ? 'Evidence request safety checks could not be verified. No payout hold was changed.'
+        : requestError.message,
+      code: status === 503 ? 'EVIDENCE_REQUEST_RESERVATION_FAILED' : 'EVIDENCE_REQUEST_CONFLICT',
+    });
   }
-  if (!booking.assembler_id) {
-    return res.status(400).json({ error: 'No Easer is assigned to this booking' });
+  const requested = Array.isArray(requestedRows) ? requestedRows[0] : requestedRows;
+  if (!requested) {
+    return res.status(503).json({
+      error: 'Evidence request safety checks returned no booking. No notification was sent.',
+      code: 'EVIDENCE_REQUEST_RESERVATION_FAILED',
+    });
   }
-  if (booking.evidence_requested_at) {
-    return res.status(409).json({ error: 'Evidence has already been requested for this booking' });
-  }
-
-  const { error: updateErr } = await sb
-    .from('bookings')
-    .update({ evidence_requested_at: new Date().toISOString() })
-    .eq('id', bookingId);
-
-  if (updateErr) {
-    console.error('request-evidence update error:', updateErr);
-    return res.status(500).json({ error: 'Failed to record evidence request' });
-  }
+  const booking = {
+    id: requested.booking_id,
+    ref: requested.booking_ref,
+    status: requested.booking_status,
+    assembler_id: requested.assembler_id,
+    assembler_name: requested.assembler_name,
+    service: requested.service,
+    date: requested.booking_date,
+    evidence_requested_at: requested.evidence_requested_at,
+  };
 
   // Load Easer profile for email + push
   const { data: profile } = await sb
@@ -79,13 +84,13 @@ export default async function handler(req, res) {
         body: `Please upload photos for your completed job (${booking.ref}). Your payout is on hold until received.`,
         url: '/assembler/my-assignments.html',
       },
-      { bookingId, notificationType: 'evidence_request', recipientType: 'easer' }
+      { bookingId: booking.id, notificationType: 'evidence_request', recipientType: 'easer' }
     );
   } catch (e) {
     console.error('request-evidence push error:', e);
   }
 
-  logActivity(sb, {
+  await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'evidence_requested',
     actorType: 'owner',
@@ -94,7 +99,11 @@ export default async function handler(req, res) {
     metadata: { assemblerName: booking.assembler_name, ref: booking.ref },
   });
 
-  return res.status(200).json({ success: true, ref: booking.ref });
+  return res.status(200).json({
+    success: true,
+    ref: booking.ref,
+    evidenceRequestedAt: booking.evidence_requested_at,
+  });
 }
 
 function buildEvidenceRequestEmail({ firstName, ref, service, date }) {

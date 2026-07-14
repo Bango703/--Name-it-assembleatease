@@ -3,6 +3,7 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { appointmentTimestampMs } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
+import { formatUsPhone } from '../_phone.js';
 
 /**
  * GET /api/cron/no-show-check  — runs every 30 min.
@@ -86,7 +87,9 @@ export default async function handler(req, res) {
 
     const minsLate = Math.round((now - apptMs) / 60000);
     const easer = esc(b.assembler_name || 'the assigned Easer');
-    const easerPhone = assemblerPhonesById[b.assembler_id] ? esc(assemblerPhonesById[b.assembler_id]) : null;
+    const easerPhoneRaw = assemblerPhonesById[b.assembler_id] || null;
+    const easerPhone = formatUsPhone(easerPhoneRaw);
+    const customerPhone = formatUsPhone(b.customer_phone);
 
     try {
       await sendEmail({
@@ -102,8 +105,8 @@ export default async function handler(req, res) {
       <strong>${easer}</strong> accepted this job but it is still <strong>${esc(b.status)}</strong> &mdash; not marked arrived or in progress &mdash; about <strong>${minsLate} minutes</strong> past the appointment start. The customer may be waiting.
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;font-size:14px;margin-bottom:18px"><tr><td style="padding:14px 18px">
-      <table width="100%"><tr><td style="padding:4px 0;color:#71717a;width:90px">Customer</td><td style="padding:4px 0">${esc(b.customer_name || '')}${b.customer_phone ? ' &bull; <a href="tel:' + esc(b.customer_phone) + '" style="color:#00BFFF">' + esc(b.customer_phone) + '</a>' : ''}</td></tr>
-        <tr><td style="padding:4px 0;color:#71717a">Easer</td><td style="padding:4px 0">${easer}${easerPhone ? ' &bull; <a href="tel:' + easerPhone + '" style="color:#00BFFF">' + easerPhone + '</a>' : ''}</td></tr>
+      <table width="100%"><tr><td style="padding:4px 0;color:#71717a;width:90px">Customer</td><td style="padding:4px 0">${esc(b.customer_name || '')}${customerPhone ? ' &bull; <a href="tel:' + esc(b.customer_phone) + '" style="color:#00BFFF">' + esc(customerPhone) + '</a>' : ''}</td></tr>
+        <tr><td style="padding:4px 0;color:#71717a">Easer</td><td style="padding:4px 0">${easer}${easerPhone ? ' &bull; <a href="tel:' + esc(easerPhoneRaw) + '" style="color:#00BFFF">' + esc(easerPhone) + '</a>' : ''}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">When</td><td style="padding:4px 0">${esc(b.date)} at ${esc(b.time)}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">Address</td><td style="padding:4px 0">${esc(b.address || '')}</td></tr>
       </table>

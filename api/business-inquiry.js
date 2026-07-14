@@ -1,5 +1,6 @@
 import { upsertContact, addNote } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
+import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 
 /**
  * POST /api/business-inquiry
@@ -18,10 +19,15 @@ export default async function handler(req, res) {
   } catch (rlErr) { /* fail open if Redis down */ }
 
   const { name, company, email, phone, location, timeline, type, frequency, details } = req.body || {};
-  const cleanPhone = typeof phone === 'string' ? phone.trim() : '';
+  const rawPhone = typeof phone === 'string' ? phone.trim() : '';
+  const cleanPhone = rawPhone ? normalizeUsPhone(rawPhone) : null;
   if (!name || !company || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !type || !details) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+  if (rawPhone && !cleanPhone) {
+    return res.status(400).json({ error: 'Enter a valid 10-digit U.S. phone number', code: 'INVALID_PHONE' });
+  }
+  const displayPhone = formatUsPhone(cleanPhone);
 
   const KEY = process.env.RESEND_API_KEY;
   const TO  = process.env.NOTIFY_EMAIL || 'service@assembleatease.com';
@@ -45,7 +51,7 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:18px">
       ${row('Contact', name)}
       ${row('Email', email).replace(esc(email), `<a href="mailto:${esc(email)}" style="color:#00BFFF;text-decoration:none">${esc(email)}</a>`)}
-      ${cleanPhone ? row('Phone', cleanPhone).replace(esc(cleanPhone), `<a href="tel:${esc(cleanPhone)}" style="color:#00BFFF;text-decoration:none">${esc(cleanPhone)}</a>`) : ''}
+      ${cleanPhone ? row('Phone', displayPhone).replace(esc(displayPhone), `<a href="tel:${esc(cleanPhone)}" style="color:#00BFFF;text-decoration:none">${esc(displayPhone)}</a>`) : ''}
       ${row('Location', location)}
       ${row('Type of work', type)}
       ${row('Frequency', frequency)}
@@ -128,7 +134,7 @@ export default async function handler(req, res) {
             `Timeline: ${esc(timeline || 'n/a')}`,
             `Location: ${esc(location || 'n/a')}`,
           ];
-          if (cleanPhone) noteLines.push(`Phone: ${esc(cleanPhone)}`);
+          if (displayPhone) noteLines.push(`Phone: ${esc(displayPhone)}`);
           noteLines.push('', esc(details));
           await addNote({ contactId, body: noteLines.join('<br>') });
         }

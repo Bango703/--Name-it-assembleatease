@@ -1,8 +1,8 @@
 # First Bookings Playbook — How to get the first 25 jobs
 
-**The diagnosis:** The site, booking flow, analytics, Google Ads conversion tracking, Google Business
-Profile, and landing pages are all built and working. The only thing missing is **demand** — nothing is
-sending customers to the site. This file is the demand engine. Work it top to bottom.
+**The diagnosis:** This is the demand plan for the first verified market. Use it only after the launch
+readiness checklist passes; advertising must never outrun Easer coverage, tax configuration, dispatch,
+or customer support. Work it top to bottom and review results after each completed job.
 
 Business facts to use everywhere below:
 - Site: https://www.assembleatease.com  •  Book: https://www.assembleatease.com/book
@@ -10,7 +10,7 @@ Business facts to use everywhere below:
 - Services: TV mounting, furniture assembly (incl. IKEA), fitness equipment, smart home, office, outdoor/playsets
 - Pricing model: flat upfront price + $25 service-call fee + tax, **full total shown before you confirm**
 - TV mounting from $79 (pictures/mirrors), TVs from $99. Furniture assembly: see /book for live total.
-- Area: Austin metro (786xx–788xx): Austin, Round Rock, Cedar Park, Pflugerville, Lakeway, Leander, etc.
+- Area: only the Central Texas ZIP codes currently accepted by the booking availability checker. Do not target all 786xx–788xx ZIPs.
 
 ---
 
