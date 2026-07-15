@@ -5,6 +5,7 @@ import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
+import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -60,9 +61,12 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Easer membership status could not be verified. Assignment was not changed.' });
   }
   if (!assembler) return res.status(404).json({ error: 'Easer not found' });
-  const readiness = await getEaserReadiness(assembler);
-  if (!readiness.isReady) return res.status(400).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
-  const assemblerTier = readiness.tier;
+  let assemblerTier = normalizeAssemblerTier(assembler.tier) || 'starter';
+  if (!recordOnlyOwnerManualCompleted) {
+    const readiness = await getEaserReadiness(assembler);
+    if (!readiness.isReady) return res.status(400).json({ error: readinessError(readiness), missingItems: readiness.missingItems });
+    assemblerTier = readiness.tier;
+  }
 
   // Generate secure assignment token
   const assignedAt = new Date().toISOString();
