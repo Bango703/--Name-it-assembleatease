@@ -48,6 +48,7 @@ export default async function handler(req, res) {
   const paymentReadyCandidates = (candidates || []).filter(isBookingPaymentReadyForDispatch);
 
   if (!paymentReadyCandidates.length) {
+    await logCron('auto-dispatch', { status: 'ok', records: 0 });
     return res.status(200).json({ ok: true, dispatched: 0, message: 'Nothing to dispatch' });
   }
 
@@ -68,6 +69,7 @@ export default async function handler(req, res) {
   const toDispatch = paymentReadyCandidates.filter(b => !bookingsWithOpenOffers.has(b.id));
 
   if (!toDispatch.length) {
+    await logCron('auto-dispatch', { status: 'ok', records: 0 });
     return res.status(200).json({ ok: true, dispatched: 0, message: 'All eligible bookings already have open offers' });
   }
 

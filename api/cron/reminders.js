@@ -49,6 +49,7 @@ export default async function handler(req, res) {
   }
 
   if (!bookings || bookings.length === 0) {
+    await logCron('reminders', { status: 'ok', records: 0, duration: Date.now() - t });
     return res.status(200).json({ ok: true, sent: 0 });
   }
 
