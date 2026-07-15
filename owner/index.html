@@ -661,7 +661,7 @@
               <div id="tab-evidence" style="display:none">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
                   <div class="detail-section-title" style="margin:0">Completion Evidence</div>
-                  <button id="evidence-refresh-btn" onclick="loadEvidence(selectedId, true)" style="font-size:0.75rem;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit">Refresh</button>
+                  <button id="evidence-refresh-btn" onclick="window.loadEvidence&&window.loadEvidence(window._ownerSelectedId, true)" style="font-size:0.75rem;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit">Refresh</button>
                 </div>
                 <div id="evidence-content" style="font-size:0.85rem;color:var(--muted)">Loading…</div>
               </div>
@@ -1749,6 +1749,7 @@ window.intelQuick = intelQuick;
   let ownerSessionToken = '';
   let allBookings = [];
   let selectedId = null;
+  window._ownerSelectedId = null;
   let _msgTarget = 'customer';
   let _messageSending = false;
   let currentStatus = 'all';
@@ -2308,6 +2309,7 @@ window.intelQuick = intelQuick;
       if (result.error) { toast(result.error, 'error'); return; }
 
       selectedId = null;
+      window._ownerSelectedId = null;
       await loadBookings();
       if (currentView === 'reviews') await loadReviews();
       if (currentView === 'marketing') await loadMarketing();
@@ -2589,6 +2591,7 @@ window.intelQuick = intelQuick;
 
   async function selectBooking(id) {
     selectedId = id;
+    window._ownerSelectedId = id;
     renderList();
     var b = allBookings.find(function(x){return x.id === id});
     if (!b) return;
@@ -3968,6 +3971,7 @@ window.intelQuick = intelQuick;
     $detail.classList.remove('open');
     $detailPh.style.display = '';
     selectedId = null;
+    window._ownerSelectedId = null;
     renderList();
   });
 
