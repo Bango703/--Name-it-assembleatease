@@ -274,6 +274,8 @@ assert.match(
 assert.ok(assignCompact.includes('assembler_due: split.assemblerDueCents'), 'a linked Easer must be credited the canonical amount due');
 assert.ok(assignCompact.includes('platform_fee: split.platformFeeCents'), 'the platform fee must come from the same canonical split');
 assert.ok(assignCompact.includes("payout_status: split.assemblerDueCents > 0 ? 'pending' : null"), 'earned money must open a payout owed');
+assert.ok(assignCompact.includes("isStripeConnectEnabled() ? 'stripe_connect' : 'manual'"), 'the linked earnings must snapshot the active payout rail');
+assert.ok(assignCompact.includes("payout_review_status: 'not_required'"), 'new linked earnings must start with no payout review hold');
 assert.ok(!/assembler_due:\s*0\b/.test(assignCompact), 'an assigned Easer must never be recorded as earning zero');
 
 // The status is pinned on both branches. A record-only owner-manual link may

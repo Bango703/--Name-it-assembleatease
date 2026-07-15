@@ -7,6 +7,7 @@ import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -126,6 +127,10 @@ export default async function handler(req, res) {
       platform_fee: split.platformFeeCents,
       assembler_due: split.assemblerDueCents,
       payout_status: split.assemblerDueCents > 0 ? 'pending' : null,
+      payout_mode_snapshot: split.assemblerDueCents > 0
+        ? (isStripeConnectEnabled() ? 'stripe_connect' : 'manual')
+        : null,
+      payout_review_status: 'not_required',
       // Only claim a $0 processor fee on rails that genuinely have none. A card
       // charged outside the platform carries a fee we cannot see from here, so
       // its stripe_fee stays unknown rather than being asserted as zero.
