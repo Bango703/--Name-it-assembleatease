@@ -3141,7 +3141,14 @@ function intelQuick(msg) {
 
       closeOwnerCreateBookingModal();
       if (Array.isArray(d.warnings) && d.warnings.length) {
-        toast('Booking created (' + (d.ref || 'no ref') + ') with warnings: ' + d.warnings.join(', '), 'error');
+        var warningText = d.warnings.map(function(code) {
+          if (code === 'owner_manual_compat_mode') {
+            return 'stored as pending compatibility record because migration 038 is not applied';
+          }
+          if (code === 'confirmation_email_failed') return 'customer confirmation email failed';
+          return code;
+        }).join('; ');
+        toast('Booking created (' + (d.ref || 'no ref') + ') with warnings: ' + warningText, 'error');
       } else {
         toast('Owner booking created: ' + (d.ref || 'saved'), 'success');
       }
@@ -3265,6 +3272,8 @@ function intelQuick(msg) {
       }
       if (b.review_requested_at) {
         btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Review Requested</button>');
+      } else if (b.customer_email) {
+        btns.push('<button class="btn btn-teal" data-action="request-review" data-id="' + b.id + '">Request Review</button>');
       }
       if (b.assembler_id && !b.evidence_requested_at) {
         btns.push('<button class="btn btn-amber" data-action="request-evidence" data-id="' + b.id + '">Request Evidence</button>');
@@ -3433,6 +3442,27 @@ function intelQuick(msg) {
       doAction('/confirm', { bookingId: id }, 'Booking confirmed');
     } else if (action === 'complete') {
       doAction('/complete', { bookingId: id }, 'Marked as complete');
+    } else if (action === 'request-review') {
+      btn.disabled = true;
+      var originalReviewText = btn.textContent;
+      btn.textContent = 'Sending...';
+      try {
+        var reviewRes = await fetch('/api/review-request', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ bookingId: id }),
+        });
+        var reviewData = await reviewRes.json().catch(function(){ return {}; });
+        if (!reviewRes.ok || reviewData.error) throw new Error(reviewData.error || 'Review request could not be sent');
+        toast('Review request sent to customer', 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+      } catch (reviewErr) {
+        toast(reviewErr.message || 'Review request could not be sent', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalReviewText;
+      }
     } else if (action === 'collect-payment') {
       btn.disabled = true;
       var originalCollectText = btn.textContent;
@@ -4276,6 +4306,16 @@ function intelQuick(msg) {
   var _bookingsTimer = null;
   var _bookingsLoading = false;
 
+  function syncPrimaryOwnerAction(view) {
+    if (!$newBookingBtn) return;
+    var show = view === 'bookings' || view === 'customers';
+    $newBookingBtn.style.display = show ? '' : 'none';
+    $newBookingBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg> ' + (view === 'customers' ? 'Add Customer + Booking' : 'Create Booking');
+    $newBookingBtn.title = view === 'customers'
+      ? 'Add customer details and create an owner booking record'
+      : 'Create owner manual booking';
+  }
+
   // Expose headers globally so scripts outside IIFE can use it
   window._ownerHeaders = function() { return headers(); };
 
@@ -4292,7 +4332,7 @@ function intelQuick(msg) {
       document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.remove('active'); });
       link.classList.add('active');
       hideAllViews();
-      $newBookingBtn.style.display = view === 'bookings' ? '' : 'none';
+      syncPrimaryOwnerAction(view);
       if ($cleanupTestBtn2) $cleanupTestBtn2.style.display = view === 'bookings' ? '' : 'none';
       if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
@@ -4308,6 +4348,8 @@ function intelQuick(msg) {
       else if (view === 'intelligence')  { $intelligenceView.style.display='';  $topbarTitle.textContent='AI Intelligence'; loadSiteChatInbox(); }
     });
   });
+
+  syncPrimaryOwnerAction(currentView);
 
   // ─── LIVE OPS ─────────────────────────────────────────────────────────────
   function startLiveOps() {
