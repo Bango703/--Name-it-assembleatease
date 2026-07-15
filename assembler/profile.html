@@ -300,6 +300,7 @@
         <div class="form-section-title">Close account</div>
         <p class="danger-text">Request account closure and stop receiving offers. AssembleAtEase will review active jobs, payouts, tax records, and legally required retention before removing access.</p>
         <button class="btn btn-danger" id="delete-account-btn" type="button">Request account closure</button>
+        <button class="btn btn-outline" id="cancel-closure-btn" type="button" style="display:none;margin-top:0.55rem">Cancel closure request</button>
       </div>
     </div>
 </div><!-- /easer-page -->
@@ -517,12 +518,14 @@
     const { user, profile } = auth;
     currentUserId = user.id;  // enable immediate photo auto-save
     var closureStatus = String(profile.account_closure_status || '').trim().toLowerCase();
+    var closureButton = document.getElementById('delete-account-btn');
+    var cancelClosureButton = document.getElementById('cancel-closure-btn');
+    var closureNotice = document.getElementById('account-status-notice');
     if (['requested', 'reviewing', 'completed'].includes(closureStatus)) {
-      const closureButton = document.getElementById('delete-account-btn');
       closureButton.disabled = true;
       closureButton.textContent = closureStatus === 'completed' ? 'Account closed' : 'Closure requested';
-      var closureNotice = document.getElementById('account-status-notice');
       closureNotice.classList.add('show');
+      if (cancelClosureButton) cancelClosureButton.style.display = (closureStatus === 'requested' || closureStatus === 'reviewing') ? '' : 'none';
       if (closureStatus === 'completed') {
         closureNotice.innerHTML = '<strong>Easer account closed</strong>New offers and availability are disabled. Contact support for questions about payout records or retained account information.';
       } else if (closureStatus === 'reviewing') {
@@ -530,6 +533,8 @@
       } else {
         closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
       }
+    } else if (cancelClosureButton) {
+      cancelClosureButton.style.display = 'none';
     }
 
     // Offline / online detection
@@ -772,7 +777,7 @@
           : 'Account closure requested. You are offline and support will review the request.', data.warning ? 'error' : 'success');
         document.getElementById('delete-account-btn').disabled = true;
         document.getElementById('delete-account-btn').textContent = 'Closure requested';
-        var closureNotice = document.getElementById('account-status-notice');
+        if (cancelClosureButton) cancelClosureButton.style.display = '';
         closureNotice.classList.add('show');
         closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
       } catch (err) {
@@ -780,6 +785,39 @@
         APP.setLoading('delete-account-btn', false, 'Request account closure');
       }
     });
+
+    if (cancelClosureButton) {
+      cancelClosureButton.addEventListener('click', async () => {
+        APP.setLoading('cancel-closure-btn', true, 'Cancelling...');
+        APP.hideAlert('page-alert');
+        try {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          if (!session?.access_token) throw new Error('Please sign in again.');
+          const response = await fetch('/api/assembler/cancel-account-closure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+            body: JSON.stringify({}),
+          });
+          const data = await response.json();
+          if (!response.ok || data.error) throw new Error(data.error || 'Could not cancel account closure request.');
+
+          closureStatus = 'cancelled';
+          closureButton.disabled = false;
+          closureButton.textContent = 'Request account closure';
+          cancelClosureButton.style.display = 'none';
+          closureNotice.classList.remove('show');
+          closureNotice.innerHTML = '';
+
+          APP.showAlert('page-alert', data.warning
+            ? 'Closure request cancelled, but support notification failed. You can continue using your account.'
+            : 'Closure request cancelled. Your account remains offline until you choose to go online again.', data.warning ? 'error' : 'success');
+        } catch (err) {
+          APP.showAlert('page-alert', err.message || 'Failed to cancel account closure request.', 'error');
+        } finally {
+          APP.setLoading('cancel-closure-btn', false, 'Cancel closure request');
+        }
+      });
+    }
 
     await loadReviews();
   });

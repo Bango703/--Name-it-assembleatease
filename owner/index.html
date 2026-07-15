@@ -1617,6 +1617,10 @@ function intelQuick(msg) {
       <input type="checkbox" id="ocb-send-confirmation" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
       Email confirmation to customer if email is provided
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.35rem">
+      <input type="checkbox" id="ocb-already-completed" style="width:15px;height:15px;accent-color:var(--teal)"/>
+      Job already completed - create as completed and send the completion email instead of the booking confirmation
+    </label>
     <div class="modal-error" id="ocb-error" style="display:none;margin-top:0.75rem"></div>
     <div class="modal-actions" style="margin-top:1.2rem">
       <button class="btn" id="ocb-cancel">Cancel</button>
@@ -3070,6 +3074,8 @@ function intelQuick(msg) {
     if (methodInput) methodInput.value = '';
     var sendConfirmation = document.getElementById('ocb-send-confirmation');
     if (sendConfirmation) sendConfirmation.checked = true;
+    var alreadyCompleted = document.getElementById('ocb-already-completed');
+    if (alreadyCompleted) alreadyCompleted.checked = false;
     var errEl = document.getElementById('ocb-error');
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
     updateOwnerCreateTaxPreview();
@@ -3089,6 +3095,16 @@ function intelQuick(msg) {
     if (e.target === this) closeOwnerCreateBookingModal();
   });
   document.getElementById('ocb-final').addEventListener('input', updateOwnerCreateTaxPreview);
+  document.getElementById('ocb-already-completed').addEventListener('change', function() {
+    var sendConfirmation = document.getElementById('ocb-send-confirmation');
+    if (!sendConfirmation) return;
+    if (this.checked) {
+      sendConfirmation.checked = false;
+      sendConfirmation.disabled = true;
+    } else {
+      sendConfirmation.disabled = false;
+    }
+  });
 
   document.getElementById('ocb-submit').addEventListener('click', async function() {
     var btn = this;
@@ -3110,6 +3126,7 @@ function intelQuick(msg) {
     }
 
     var standardPriceCents = centsFromDollarsInput(document.getElementById('ocb-standard').value);
+    var alreadyCompleted = !!document.getElementById('ocb-already-completed').checked;
     var payload = {
       service: service,
       firstName: firstName,
@@ -3125,6 +3142,7 @@ function intelQuick(msg) {
       paymentMethod: (document.getElementById('ocb-payment-method').value || '') || null,
       note: (document.getElementById('ocb-note').value || '').trim() || null,
       sendConfirmation: !!(document.getElementById('ocb-send-confirmation').checked),
+      alreadyCompleted: alreadyCompleted,
     };
 
     btn.disabled = true;

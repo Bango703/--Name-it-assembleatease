@@ -43,6 +43,7 @@ export default async function handler(req, res) {
     paymentMethod,
     note,
     sendConfirmation,
+    alreadyCompleted,
   } = req.body || {};
 
   // ── Service (free text so the owner can log the exact job) ──
@@ -102,6 +103,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unsupported price-override reason.' });
   }
   const cleanNote = String(note || '').trim().slice(0, 2000) || null;
+  const isAlreadyCompleted = !!alreadyCompleted;
 
   const sb = getSupabase();
   const ref = 'AAE-' + randomToken(8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
@@ -117,12 +119,16 @@ export default async function handler(req, res) {
     date: cleanDate,
     time: cleanTime,
     details: null,
-    status: 'confirmed',
+    status: isAlreadyCompleted ? 'completed' : 'confirmed',
     payment_status: 'offline_recorded',
     confirmed_by: 'owner_manual',
     confirmed_at: now,
+    completed_at: isAlreadyCompleted ? now : null,
     total_price: finalCents,
     tax_amount: taxCents,
+    payment_collected: isAlreadyCompleted,
+    payment_collected_at: isAlreadyCompleted ? now : null,
+    payment_collected_by: isAlreadyCompleted ? 'owner' : null,
     source: 'owner_manual',
     payment_method: method,
     price_override_reason: reason,
@@ -132,6 +138,7 @@ export default async function handler(req, res) {
 
   const { data: saved, error: insertErr } = await sb
     .from('bookings').insert(insertPayload).select('id').single();
+
   if (insertErr || !saved) {
     console.error('Owner create-booking insert error:', insertErr);
     if (insertErr && /column .* does not exist|source|payment_method|price_override_reason/i.test(String(insertErr.message || ''))) {
@@ -184,7 +191,7 @@ export default async function handler(req, res) {
 
   // Customer confirmation (only if we have an email and it wasn't opted out)
   let confirmationEmailed = false;
-  if (cleanEmail && sendConfirmation !== false) {
+  if (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false) {
     const paymentLine = method
       ? `Payment will be handled directly with AssembleAtEase — ${esc(PAYMENT_METHOD_LABELS[method])}. You will not be charged online.`
       : 'Payment will be arranged directly with AssembleAtEase after the job is completed.';
@@ -218,6 +225,34 @@ export default async function handler(req, res) {
     confirmationEmailed = !!emailResult?.ok;
   }
 
+  let completionEmailed = false;
+  if (isAlreadyCompleted && cleanEmail) {
+    const completionResult = await sendEmail({
+      to: cleanEmail,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Your job is complete — ${ref}`,
+      html: buildStatusEmail({
+        customerName,
+        ref,
+        status: 'COMPLETED',
+        statusColor: '#065f46',
+        statusBg: '#d1fae5',
+        headline: 'Your job is complete',
+        bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(cleanService)}</strong> service is complete. Thank you for choosing AssembleAtEase.</p>
+          <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
+      }),
+      replyTo: ownerEmail(),
+      meta: { bookingId, notificationType: 'completion', recipientType: 'customer' },
+    });
+    completionEmailed = !!completionResult?.ok;
+  }
+
+  const warnings = (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false && !confirmationEmailed)
+    ? ['confirmation_email_failed']
+    : (isAlreadyCompleted && cleanEmail && !completionEmailed)
+      ? ['completion_email_failed']
+    : [];
+
   return res.status(200).json({
     ok: true,
     bookingId,
@@ -226,6 +261,7 @@ export default async function handler(req, res) {
     taxCents,
     totalCents: finalCents,
     confirmationEmailed,
-    warnings: (cleanEmail && sendConfirmation !== false && !confirmationEmailed) ? ['confirmation_email_failed'] : [],
+    completionEmailed,
+    warnings,
   });
 }
