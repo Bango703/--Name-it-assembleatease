@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   // Confirmed, unassigned, not paused, not flagged
   const { data: candidates, error: candidatesError } = await sb
     .from('bookings')
-    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, stripe_dispute_hold')
+    .select('id, ref, service, date, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by')
     .eq('status', 'confirmed')
     .in('payment_status', DISPATCH_PAYMENT_STATUSES)
     .is('assembler_id', null)
