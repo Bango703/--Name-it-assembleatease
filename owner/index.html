@@ -1749,6 +1749,7 @@ window.intelQuick = intelQuick;
   let ownerSessionToken = '';
   let allBookings = [];
   let selectedId = null;
+  window.selectedId = null;
   window._ownerSelectedId = null;
   let _msgTarget = 'customer';
   let _messageSending = false;
@@ -2309,6 +2310,7 @@ window.intelQuick = intelQuick;
       if (result.error) { toast(result.error, 'error'); return; }
 
       selectedId = null;
+      window.selectedId = null;
       window._ownerSelectedId = null;
       await loadBookings();
       if (currentView === 'reviews') await loadReviews();
@@ -2591,6 +2593,7 @@ window.intelQuick = intelQuick;
 
   async function selectBooking(id) {
     selectedId = id;
+    window.selectedId = id;
     window._ownerSelectedId = id;
     renderList();
     var b = allBookings.find(function(x){return x.id === id});
@@ -3971,6 +3974,7 @@ window.intelQuick = intelQuick;
     $detail.classList.remove('open');
     $detailPh.style.display = '';
     selectedId = null;
+    window.selectedId = null;
     window._ownerSelectedId = null;
     renderList();
   });
