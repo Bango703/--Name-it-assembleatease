@@ -26,8 +26,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await sb
       .from('bookings')
-      .select('id, ref, tax_amount, amount_charged, total_price, payment_status, payment_captured_at, refunded_at, refund_amount')
-      .not('payment_captured_at', 'is', null)
+      .select('id, ref, source, status, tax_amount, amount_charged, total_price, payment_status, payment_captured_at, completed_at, refunded_at, refund_amount')
       .limit(5000);
     if (error) throw error;
     bookings = data || [];
@@ -51,9 +50,13 @@ export default async function handler(req, res) {
   };
 
   for (const b of bookings) {
+    const isOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
+    const taxEventAt = isOwnerManualCompleted ? (b.completed_at || b.payment_captured_at) : b.payment_captured_at;
+    if (!taxEventAt) continue;
+
     const tax = Math.max(0, Number(b.tax_amount || 0));
     const charged = Number(b.amount_charged || b.total_price || 0);
-    const ck = periodKey(b.payment_captured_at);
+    const ck = periodKey(taxEventAt);
     if (ck) {
       const row = bucket(ck);
       row.taxCollectedCents += tax;

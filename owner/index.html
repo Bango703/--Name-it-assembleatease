@@ -476,7 +476,7 @@
       </div>
       <div class="topbar-right">
         <button class="btn" id="export-csv-btn" style="font-size:0.78rem">Financial Report</button>
-        <a class="btn btn-teal" id="new-booking-btn" href="/book" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg> Customer Booking Form</a>
+        <button class="btn btn-teal" id="new-booking-btn" type="button"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg> Create Booking</button>
         <button class="btn" id="refresh-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh</button>
       </div>
     </div>
@@ -1536,6 +1536,95 @@ function intelQuick(msg) {
   </div>
 </div>
 
+<!-- ─── Owner Create Booking Modal (record-only offline lane) ─── -->
+<div class="modal-overlay" id="owner-create-booking-modal">
+  <div class="modal" style="max-width:560px">
+    <h3>Create Owner Booking</h3>
+    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.1rem">For phone/text jobs not booked on the website. Stored as owner manual, tax-inclusive pricing.</p>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Customer First Name *</label>
+        <input type="text" class="modal-input" id="ocb-first" placeholder="Gupta"/>
+      </div>
+      <div>
+        <label class="modal-label">Customer Last Name</label>
+        <input type="text" class="modal-input" id="ocb-last" placeholder="Optional"/>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Phone</label>
+        <input type="tel" class="modal-input" id="ocb-phone" placeholder="737-000-0000" inputmode="tel"/>
+      </div>
+      <div>
+        <label class="modal-label">Email</label>
+        <input type="email" class="modal-input" id="ocb-email" placeholder="Optional"/>
+      </div>
+    </div>
+    <label class="modal-label">Service *</label>
+    <input type="text" class="modal-input" id="ocb-service" placeholder="King Bed Frame Assembly"/>
+    <label class="modal-label">Address *</label>
+    <input type="text" class="modal-input" id="ocb-address" placeholder="124 Blue Hibiscus Dr, Georgetown, TX 78642"/>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Date *</label>
+        <input type="date" class="modal-input" id="ocb-date"/>
+      </div>
+      <div>
+        <label class="modal-label">Time (optional)</label>
+        <input type="text" class="modal-input" id="ocb-time" placeholder="10:00 AM - 12:00 PM"/>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Standard Price ($)</label>
+        <input type="number" class="modal-input" id="ocb-standard" placeholder="139.00" min="0" step="0.01"/>
+      </div>
+      <div>
+        <label class="modal-label">Final Price ($) *</label>
+        <input type="number" class="modal-input" id="ocb-final" placeholder="110.00" min="1" step="0.01"/>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div>
+        <label class="modal-label">Override Reason</label>
+        <select class="modal-input" id="ocb-reason">
+          <option value="">None</option>
+          <option value="price_match">Price match</option>
+          <option value="repeat_customer">Repeat customer</option>
+          <option value="goodwill">Goodwill</option>
+          <option value="bundle">Bundle</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="modal-label">Payment Method</label>
+        <select class="modal-input" id="ocb-payment-method">
+          <option value="">To be collected</option>
+          <option value="stripe_manual">Card (manual)</option>
+          <option value="cash">Cash</option>
+          <option value="zelle">Zelle</option>
+          <option value="cashapp">Cash App</option>
+          <option value="card_on_site">Card on-site</option>
+          <option value="invoice">Invoice</option>
+        </select>
+      </div>
+    </div>
+    <div id="ocb-tax-preview" style="font-size:0.78rem;color:var(--muted);margin:0.15rem 0 0.75rem">Final price is tax-inclusive. Enter a final price to preview subtotal + tax.</div>
+    <label class="modal-label">Owner Note</label>
+    <textarea class="modal-input" id="ocb-note" placeholder="Optional internal note" rows="2" style="resize:vertical"></textarea>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer">
+      <input type="checkbox" id="ocb-send-confirmation" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
+      Email confirmation to customer if email is provided
+    </label>
+    <div class="modal-error" id="ocb-error" style="display:none;margin-top:0.75rem"></div>
+    <div class="modal-actions" style="margin-top:1.2rem">
+      <button class="btn" id="ocb-cancel">Cancel</button>
+      <button class="btn btn-teal" id="ocb-submit">Create Booking</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Add Easer (Fee Waived) Modal ─── -->
 <div class="modal-overlay" id="add-easer-modal">
   <div class="modal" style="max-width:520px">
@@ -2515,7 +2604,7 @@ function intelQuick(msg) {
       field('Address', b.address || '—'),
       field('Details', b.details || '—'),
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
-      field('Source', b.source === 'manual' ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
+      field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
     renderActions(b);
@@ -2939,6 +3028,136 @@ function intelQuick(msg) {
     finally { btn.disabled = false; btn.textContent = 'Send for Customer Approval'; }
   });
 
+  // ─── Owner create-booking modal ───
+  function centsFromDollarsInput(v) {
+    var n = parseFloat(String(v || '').trim());
+    if (!isFinite(n)) return null;
+    return Math.round(n * 100);
+  }
+
+  function updateOwnerCreateTaxPreview() {
+    var preview = document.getElementById('ocb-tax-preview');
+    if (!preview) return;
+    var finalCents = centsFromDollarsInput(document.getElementById('ocb-final') && document.getElementById('ocb-final').value);
+    if (!(finalCents > 0)) {
+      preview.textContent = 'Final price is tax-inclusive. Enter a final price to preview subtotal + tax.';
+      return;
+    }
+    var subtotal = Math.round(finalCents / 1.0825);
+    var tax = finalCents - subtotal;
+    preview.textContent = 'Tax-inclusive split: ' + fmt$(finalCents) + ' = ' + fmt$(subtotal) + ' subtotal + ' + fmt$(tax) + ' tax.';
+  }
+
+  function closeOwnerCreateBookingModal() {
+    var modal = document.getElementById('owner-create-booking-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function openOwnerCreateBookingModal() {
+    var modal = document.getElementById('owner-create-booking-modal');
+    if (!modal) return;
+    var today = new Date().toISOString().slice(0, 10);
+    var ids = ['ocb-first','ocb-last','ocb-phone','ocb-email','ocb-service','ocb-address','ocb-time','ocb-standard','ocb-final','ocb-note'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var dateInput = document.getElementById('ocb-date');
+    if (dateInput) dateInput.value = today;
+    var reasonInput = document.getElementById('ocb-reason');
+    if (reasonInput) reasonInput.value = '';
+    var methodInput = document.getElementById('ocb-payment-method');
+    if (methodInput) methodInput.value = '';
+    var sendConfirmation = document.getElementById('ocb-send-confirmation');
+    if (sendConfirmation) sendConfirmation.checked = true;
+    var errEl = document.getElementById('ocb-error');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    updateOwnerCreateTaxPreview();
+    modal.classList.add('open');
+    setTimeout(function(){ var f = document.getElementById('ocb-first'); if (f) f.focus(); }, 50);
+  }
+
+  var $newBookingBtn = document.getElementById('new-booking-btn');
+  if ($newBookingBtn) {
+    $newBookingBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openOwnerCreateBookingModal();
+    });
+  }
+  document.getElementById('ocb-cancel').addEventListener('click', closeOwnerCreateBookingModal);
+  document.getElementById('owner-create-booking-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeOwnerCreateBookingModal();
+  });
+  document.getElementById('ocb-final').addEventListener('input', updateOwnerCreateTaxPreview);
+
+  document.getElementById('ocb-submit').addEventListener('click', async function() {
+    var btn = this;
+    var errEl = document.getElementById('ocb-error');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    var firstName = (document.getElementById('ocb-first').value || '').trim();
+    var service = (document.getElementById('ocb-service').value || '').trim();
+    var address = (document.getElementById('ocb-address').value || '').trim();
+    var date = (document.getElementById('ocb-date').value || '').trim();
+    var finalPriceCents = centsFromDollarsInput(document.getElementById('ocb-final').value);
+
+    if (!firstName || !service || !address || !date || !(finalPriceCents > 0)) {
+      if (errEl) {
+        errEl.textContent = 'First name, service, address, date, and a valid final price are required.';
+        errEl.style.display = '';
+      }
+      return;
+    }
+
+    var standardPriceCents = centsFromDollarsInput(document.getElementById('ocb-standard').value);
+    var payload = {
+      service: service,
+      firstName: firstName,
+      lastName: (document.getElementById('ocb-last').value || '').trim() || null,
+      phone: (document.getElementById('ocb-phone').value || '').trim() || null,
+      email: (document.getElementById('ocb-email').value || '').trim() || null,
+      address: address,
+      date: date,
+      time: (document.getElementById('ocb-time').value || '').trim() || null,
+      standardPriceCents: standardPriceCents,
+      finalPriceCents: finalPriceCents,
+      priceOverrideReason: (document.getElementById('ocb-reason').value || '') || null,
+      paymentMethod: (document.getElementById('ocb-payment-method').value || '') || null,
+      note: (document.getElementById('ocb-note').value || '').trim() || null,
+      sendConfirmation: !!(document.getElementById('ocb-send-confirmation').checked),
+    };
+
+    btn.disabled = true;
+    var originalText = btn.textContent;
+    btn.textContent = 'Creating...';
+    try {
+      var r = await fetch('/api/owner/create-booking', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(payload),
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok || d.error) throw new Error(d.error || 'Create booking failed');
+
+      closeOwnerCreateBookingModal();
+      if (Array.isArray(d.warnings) && d.warnings.length) {
+        toast('Booking created (' + (d.ref || 'no ref') + ') with warnings: ' + d.warnings.join(', '), 'error');
+      } else {
+        toast('Owner booking created: ' + (d.ref || 'saved'), 'success');
+      }
+      await loadBookings();
+      if (d.bookingId) selectBooking(d.bookingId);
+    } catch (createError) {
+      if (errEl) {
+        errEl.textContent = createError.message || 'Create booking failed.';
+        errEl.style.display = '';
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
   function field(label, value) {
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
   }
@@ -2946,6 +3165,29 @@ function intelQuick(msg) {
   function renderActions(b) {
     var btns = [];
     var notices = [];
+    var isOwnerManual = b.source === 'owner_manual' || b.source === 'manual';
+
+    if (isOwnerManual) {
+      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Owner manual booking:</strong> this is a record-only offline flow and is excluded from Stripe authorization/dispatch requirements.</div>');
+      if (b.status === 'confirmed') {
+        btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
+        btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
+        btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
+      } else if (b.status === 'completed') {
+        if (b.payment_collected) {
+          btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Payment Collected</button>');
+        } else {
+          btns.push('<button class="btn btn-teal" data-action="collect-payment" data-id="' + b.id + '">Mark Payment Collected</button>');
+        }
+      }
+      if (b.customer_email) {
+        btns.push('<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(b.customer_email) + '\')" style="font-size:0.75rem">Reset Customer Password</button>');
+      }
+      $detailAct.innerHTML = notices.concat(btns).join('');
+      $detailAct.style.display = notices.length || btns.length ? '' : 'none';
+      return;
+    }
+
     var cancellationRecovery = ['cancel_owner','cancel_customer','cancel_guest'].includes(b.financial_operation_type)
       && b.cancellation_reconciliation_required_at;
     var genericFinancialHold = (b.financial_operation_key || b.financial_reconciliation_required_at) && !cancellationRecovery;
@@ -3191,6 +3433,27 @@ function intelQuick(msg) {
       doAction('/confirm', { bookingId: id }, 'Booking confirmed');
     } else if (action === 'complete') {
       doAction('/complete', { bookingId: id }, 'Marked as complete');
+    } else if (action === 'collect-payment') {
+      btn.disabled = true;
+      var originalCollectText = btn.textContent;
+      btn.textContent = 'Saving...';
+      try {
+        var collectRes = await fetch('/api/owner/mark-payment-collected', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ bookingId: id }),
+        });
+        var collectData = await collectRes.json().catch(function(){ return {}; });
+        if (!collectRes.ok || collectData.error) throw new Error(collectData.error || 'Payment collection could not be recorded');
+        toast(collectData.alreadyCollected ? 'Payment was already marked as collected' : 'Payment collection recorded', 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+      } catch (collectErr) {
+        toast(collectErr.message || 'Payment collection could not be recorded', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalCollectText;
+      }
     } else if (action === 'refund') {
       $reasonText.style.display = '';
       pendingAction = { path: '/refund', id: id, type: 'refund' };

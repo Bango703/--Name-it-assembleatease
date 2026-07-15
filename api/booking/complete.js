@@ -30,6 +30,14 @@ export default async function handler(req, res) {
   const { data: booking, error: fetchErr } = await query.single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
+
+  // Owner-created manual (offline) bookings are record-only: the owner fulfilled
+  // the job and takes payment directly. No Stripe capture, no Easer, no payout,
+  // no evidence — just mark the sale complete so it counts in analytics/tax.
+  if (booking.source === 'owner_manual') {
+    return completeOwnerManualBooking(sb, res, booking);
+  }
+
   const operationKey = `complete:${booking.id}`;
   if (booking.status === BOOKING_STATUS.COMPLETED) {
     if (booking.payment_status === 'captured'
@@ -437,5 +445,98 @@ export default async function handler(req, res) {
     payout: connectPayout,
     reconciliationRequired: !rewardResult.ok,
     code: rewardResult.ok ? undefined : rewardResult.code,
+  });
+}
+
+// Record-only completion for owner-created offline bookings. No Stripe capture,
+// no Easer payout (the owner did the work), no completion evidence. Sets the
+// sale figures so revenue + tax count, with a zero Stripe fee and zero Easer due.
+async function completeOwnerManualBooking(sb, res, booking) {
+  if (booking.status === BOOKING_STATUS.COMPLETED) {
+    return res.status(200).json({
+      success: true, alreadyCompleted: true, offline: true,
+      booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
+    });
+  }
+  if (booking.status !== BOOKING_STATUS.CONFIRMED) {
+    return res.status(409).json({ error: `Only a confirmed owner booking can be completed. Current status: ${booking.status}` });
+  }
+  if (booking.assembler_id) {
+    return res.status(409).json({
+      error: 'This owner booking has an Easer assignment and must be completed through the standard flow.',
+      code: 'OWNER_MANUAL_HAS_ASSIGNMENT',
+    });
+  }
+  const totalCents = Number(booking.total_price || 0);
+  if (!(totalCents > 0)) {
+    return res.status(409).json({ error: 'Set a positive final price before completing this booking.', code: 'PRICE_NOT_SET' });
+  }
+
+  const now = new Date().toISOString();
+  const { data: rows, error: updateErr } = await sb.from('bookings').update({
+    status: BOOKING_STATUS.COMPLETED,
+    completed_at: now,
+    amount_charged: totalCents,
+    stripe_fee: 0,
+    platform_fee_pct: 0,
+    platform_fee: 0,
+    assembler_due: 0,
+    payout_status: null,
+    payout_mode_snapshot: null,
+  })
+    .eq('id', booking.id)
+    .eq('status', BOOKING_STATUS.CONFIRMED)
+    .eq('source', 'owner_manual')
+    .is('assembler_id', null)
+    .is('financial_operation_key', null)
+    .select('id');
+
+  if (updateErr) {
+    console.error('Owner-manual complete error:', updateErr);
+    return res.status(500).json({ error: 'Failed to complete the booking.' });
+  }
+  if (!rows?.length) {
+    const { data: current } = await sb.from('bookings').select('status').eq('id', booking.id).maybeSingle();
+    if (current?.status === BOOKING_STATUS.COMPLETED) {
+      return res.status(200).json({
+        success: true, alreadyCompleted: true, offline: true,
+        booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
+      });
+    }
+    return res.status(409).json({ error: 'Booking state changed before completion. Refresh and retry.' });
+  }
+
+  logActivity(sb, {
+    bookingId: booking.id,
+    eventType: 'completed',
+    actorType: 'owner',
+    actorName: 'Owner',
+    description: `Owner-created job marked complete (offline). Amount: $${(totalCents / 100).toFixed(2)}.`,
+    metadata: { source: 'owner_manual', amountCharged: totalCents },
+  }).catch(e => console.warn('Owner-manual completion activity log skipped:', e?.message || e));
+
+  if (booking.customer_email) {
+    sendEmail({
+      to: booking.customer_email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: `Your job is complete — ${booking.ref}`,
+      html: buildStatusEmail({
+        customerName: booking.customer_name,
+        ref: booking.ref,
+        status: 'COMPLETED',
+        statusColor: '#065f46',
+        statusBg: '#d1fae5',
+        headline: 'Your job is complete!',
+        bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service is complete. Thank you for choosing AssembleAtEase!</p>
+          <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
+      }),
+      replyTo: ownerEmail(),
+      meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'customer' },
+    }).catch(e => console.error('Owner-manual completion email error:', e?.message || e));
+  }
+
+  return res.status(200).json({
+    success: true, offline: true,
+    booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
   });
 }
