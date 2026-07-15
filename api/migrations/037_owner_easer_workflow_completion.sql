@@ -12,12 +12,34 @@
 
 BEGIN;
 
+-- This migration's data backfills UPDATE profiles directly. The profile
+-- ownership guard (migration 031, trigger profiles_guard_self_update) bypasses
+-- for the service role via auth.role(); the Supabase SQL editor has no auth
+-- context, so establish a service-role claims context for this transaction.
+-- Transaction-local (the `true` third arg), so it resets automatically at COMMIT.
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
+SELECT set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS previous_tier TEXT,
   ADD COLUMN IF NOT EXISTS payout_method_preference TEXT,
   ADD COLUMN IF NOT EXISTS account_closure_reviewed_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS account_closure_completed_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS account_closure_completed_by TEXT;
+  ADD COLUMN IF NOT EXISTS account_closure_completed_by TEXT,
+  -- Application-decision and fee-refund columns are added here (before any
+  -- function references them). A later section re-declares them IF NOT EXISTS
+  -- as a no-op and keeps its dependent backfills/constraints.
+  ADD COLUMN IF NOT EXISTS application_decision_key TEXT,
+  ADD COLUMN IF NOT EXISTS application_decision_type TEXT,
+  ADD COLUMN IF NOT EXISTS application_decision_started_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
+  ADD COLUMN IF NOT EXISTS application_fee_refunded_cents INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS application_fee_refund_pending_cents INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS application_fee_refund_review_required_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS application_fee_refund_review_reason TEXT,
+  ADD COLUMN IF NOT EXISTS application_fee_refund_synced_at TIMESTAMPTZ;
 
 ALTER TABLE public.profiles
   DROP CONSTRAINT IF EXISTS profiles_previous_tier_check;
