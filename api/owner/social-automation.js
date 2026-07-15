@@ -1,5 +1,5 @@
 import { verifyOwner } from '../_email.js';
-import { getSocialAutomationSnapshot } from '../_social-publisher.js';
+import { getSocialAutomationSnapshot, getSocialAutomationStatus } from '../_social-publisher.js';
 import { runSocialQueueTopUp } from '../_social-automation.js';
 
 export default async function handler(req, res) {
@@ -10,7 +10,13 @@ export default async function handler(req, res) {
       const snapshot = await getSocialAutomationSnapshot();
       return res.status(200).json({ success: true, snapshot });
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to load social automation snapshot', detail: error?.message || String(error) });
+      const snapshot = {
+        ...getSocialAutomationStatus(),
+        fetchedAt: new Date().toISOString(),
+        error: error?.message || String(error),
+        enabled: false,
+      };
+      return res.status(200).json({ success: true, snapshot, warning: 'Social automation snapshot loaded with a fallback because Buffer could not be reached.' });
     }
   }
 

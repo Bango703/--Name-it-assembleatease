@@ -228,44 +228,15 @@ export async function getSocialAutomationSnapshot({ recentDays = 21, scheduledFi
     };
   }
 
-  const organizationId = await resolveOrganizationId(cfg);
-  if (!organizationId) {
-    return {
-      ...status,
-      organizationId: '',
-      fetchedAt: new Date().toISOString(),
-      totals: { configured: cfg.channels.length, ready: readyChannels.length, queued: 0, targetQueued: readyChannels.reduce((sum, channel) => sum + (channel.targetQueued || 0), 0), belowTarget: readyChannels.length, paused: 0, recentErrors: 0 },
-      channels: readyChannels.map((channel) => ({
-        key: channel.key,
-        label: channel.label,
-        lane: channel.lane,
-        targetQueued: channel.targetQueued,
-        maxPerRun: channel.maxPerRun,
-        attachImage: channel.attachImage,
-        provider: 'buffer',
-        ready: channel.ready,
-        channelId: channel.channelId || null,
-        missing: [...channel.missing],
-        queuePaused: false,
-        queuedCount: 0,
-        nextDueAt: null,
-        recentSentCount: 0,
-        recentErrorCount: 0,
-        deficit: channel.targetQueued || 0,
-        descriptor: '',
-        displayName: channel.label,
-        service: channel.key,
-        postingSlotsPerWeek: 0,
-        externalLink: null,
-      })),
-      scheduledPosts: [],
-      recentPosts: [],
-    };
-  }
+  try {
+    const organizationId = await resolveOrganizationId(cfg);
+    if (!organizationId) {
+      return buildFallbackSocialSnapshot(cfg, status, readyChannels, 'Buffer organization could not be resolved from the configured channel IDs.');
+    }
 
-  const recentStart = new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000).toISOString();
-  const channelIds = readyChannels.map((channel) => channel.channelId);
-  const query = `
+    const recentStart = new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000).toISOString();
+    const channelIds = readyChannels.map((channel) => channel.channelId);
+    const query = `
     query SocialAutomationSnapshot(
       $organizationId: OrganizationId!,
       $channelIds: [ChannelId!],
@@ -331,73 +302,122 @@ export async function getSocialAutomationSnapshot({ recentDays = 21, scheduledFi
     }
   `;
 
-  const json = await bufferRequest(cfg.apiKey, query, {
-    organizationId,
-    channelIds,
-    recentStart,
-    scheduledFirst,
-    recentFirst,
-  });
+    const json = await bufferRequest(cfg.apiKey, query, {
+      organizationId,
+      channelIds,
+      recentStart,
+      scheduledFirst,
+      recentFirst,
+    });
 
-  const liveChannels = Array.isArray(json?.data?.channels) ? json.data.channels : [];
-  const scheduledPosts = ((json?.data?.scheduled?.edges) || []).map((edge) => edge.node).filter(Boolean);
-  const recentPosts = ((json?.data?.recent?.edges) || []).map((edge) => edge.node).filter(Boolean);
-  const liveById = new Map(liveChannels.map((channel) => [channel.id, channel]));
+    const liveChannels = Array.isArray(json?.data?.channels) ? json.data.channels : [];
+    const scheduledPosts = ((json?.data?.scheduled?.edges) || []).map((edge) => edge.node).filter(Boolean);
+    const recentPosts = ((json?.data?.recent?.edges) || []).map((edge) => edge.node).filter(Boolean);
+    const liveById = new Map(liveChannels.map((channel) => [channel.id, channel]));
 
-  const channels = cfg.channels.map((channel) => {
-    const live = liveById.get(channel.channelId) || null;
-    const queued = scheduledPosts.filter((post) => post.channelId === channel.channelId);
-    const recent = recentPosts.filter((post) => post.channelId === channel.channelId);
-    const recentErrors = recent.filter((post) => post.status === 'error');
-    const nextDueAt = queued[0]?.dueAt || null;
-    const postingSlotsPerWeek = Array.isArray(live?.postingSchedule)
-      ? live.postingSchedule.reduce((sum, row) => sum + (row?.paused ? 0 : (Array.isArray(row?.times) ? row.times.length : 0)), 0)
-      : 0;
-    const deficit = channel.ready && !live?.isQueuePaused
-      ? Math.max(0, (channel.targetQueued || 0) - queued.length)
-      : 0;
+    const channels = cfg.channels.map((channel) => {
+      const live = liveById.get(channel.channelId) || null;
+      const queued = scheduledPosts.filter((post) => post.channelId === channel.channelId);
+      const recent = recentPosts.filter((post) => post.channelId === channel.channelId);
+      const recentErrors = recent.filter((post) => post.status === 'error');
+      const nextDueAt = queued[0]?.dueAt || null;
+      const postingSlotsPerWeek = Array.isArray(live?.postingSchedule)
+        ? live.postingSchedule.reduce((sum, row) => sum + (row?.paused ? 0 : (Array.isArray(row?.times) ? row.times.length : 0)), 0)
+        : 0;
+      const deficit = channel.ready && !live?.isQueuePaused
+        ? Math.max(0, (channel.targetQueued || 0) - queued.length)
+        : 0;
+
+      return {
+        key: channel.key,
+        label: channel.label,
+        lane: channel.lane,
+        targetQueued: channel.targetQueued,
+        maxPerRun: channel.maxPerRun,
+        attachImage: channel.attachImage,
+        provider: 'buffer',
+        ready: channel.ready,
+        channelId: channel.channelId || null,
+        missing: [...channel.missing],
+        queuePaused: !!live?.isQueuePaused,
+        queuedCount: queued.length,
+        nextDueAt,
+        recentSentCount: recent.filter((post) => post.status === 'sent').length,
+        recentErrorCount: recentErrors.length,
+        deficit,
+        descriptor: live?.descriptor || '',
+        displayName: live?.displayName || live?.name || channel.label,
+        service: live?.service || channel.key,
+        postingSlotsPerWeek,
+        externalLink: live?.externalLink || null,
+      };
+    });
 
     return {
-      key: channel.key,
-      label: channel.label,
-      lane: channel.lane,
-      targetQueued: channel.targetQueued,
-      maxPerRun: channel.maxPerRun,
-      attachImage: channel.attachImage,
-      provider: 'buffer',
-      ready: channel.ready,
-      channelId: channel.channelId || null,
-      missing: [...channel.missing],
-      queuePaused: !!live?.isQueuePaused,
-      queuedCount: queued.length,
-      nextDueAt,
-      recentSentCount: recent.filter((post) => post.status === 'sent').length,
-      recentErrorCount: recentErrors.length,
-      deficit,
-      descriptor: live?.descriptor || '',
-      displayName: live?.displayName || live?.name || channel.label,
-      service: live?.service || channel.key,
-      postingSlotsPerWeek,
-      externalLink: live?.externalLink || null,
+      ...status,
+      organizationId,
+      fetchedAt: new Date().toISOString(),
+      totals: {
+        configured: cfg.channels.length,
+        ready: channels.filter((channel) => channel.ready).length,
+        queued: channels.reduce((sum, channel) => sum + channel.queuedCount, 0),
+        targetQueued: channels.filter((channel) => channel.ready).reduce((sum, channel) => sum + (channel.targetQueued || 0), 0),
+        belowTarget: channels.filter((channel) => channel.ready && channel.deficit > 0).length,
+        paused: channels.filter((channel) => channel.queuePaused).length,
+        recentErrors: channels.reduce((sum, channel) => sum + channel.recentErrorCount, 0),
+      },
+      channels,
+      scheduledPosts,
+      recentPosts,
     };
-  });
+  } catch (error) {
+    return buildFallbackSocialSnapshot(cfg, status, readyChannels, error?.message || String(error));
+  }
+}
+
+function buildFallbackSocialSnapshot(cfg, status, channels, errorMessage) {
+  const nextChannels = cfg.channels.map((channel) => ({
+    key: channel.key,
+    label: channel.label,
+    lane: channel.lane,
+    targetQueued: channel.targetQueued,
+    maxPerRun: channel.maxPerRun,
+    attachImage: channel.attachImage,
+    provider: 'buffer',
+    ready: channel.ready,
+    channelId: channel.channelId || null,
+    missing: [...channel.missing],
+    queuePaused: false,
+    queuedCount: 0,
+    nextDueAt: null,
+    recentSentCount: 0,
+    recentErrorCount: 0,
+    deficit: channel.ready ? (channel.targetQueued || 0) : 0,
+    descriptor: '',
+    displayName: channel.label,
+    service: channel.key,
+    postingSlotsPerWeek: 0,
+    externalLink: null,
+  }));
 
   return {
     ...status,
-    organizationId,
+    organizationId: '',
     fetchedAt: new Date().toISOString(),
+    enabled: false,
+    error: errorMessage || 'Social automation snapshot could not be loaded.',
     totals: {
       configured: cfg.channels.length,
-      ready: channels.filter((channel) => channel.ready).length,
-      queued: channels.reduce((sum, channel) => sum + channel.queuedCount, 0),
-      targetQueued: channels.filter((channel) => channel.ready).reduce((sum, channel) => sum + (channel.targetQueued || 0), 0),
-      belowTarget: channels.filter((channel) => channel.ready && channel.deficit > 0).length,
-      paused: channels.filter((channel) => channel.queuePaused).length,
-      recentErrors: channels.reduce((sum, channel) => sum + channel.recentErrorCount, 0),
+      ready: nextChannels.filter((channel) => channel.ready).length,
+      queued: 0,
+      targetQueued: nextChannels.filter((channel) => channel.ready).reduce((sum, channel) => sum + (channel.targetQueued || 0), 0),
+      belowTarget: nextChannels.filter((channel) => channel.ready).length,
+      paused: 0,
+      recentErrors: 0,
     },
-    channels,
-    scheduledPosts,
-    recentPosts,
+    channels: nextChannels,
+    scheduledPosts: [],
+    recentPosts: [],
   };
 }
 
