@@ -3,13 +3,17 @@ import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
-import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
+
+// Offline rails with no card processor behind them, so the platform truly pays
+// no Stripe fee on the job.
+const NO_PROCESSOR_FEE_METHODS = new Set(['cash', 'zelle', 'cashapp']);
 
 /**
  * POST /api/booking/assign
@@ -99,6 +103,17 @@ export default async function handler(req, res) {
       needs_manual_dispatch: false,
     });
   } else {
+    // The job is already finished and its price is final, so the snapshot taken
+    // above IS the earnings truth. Promote it to the same money columns the
+    // normal completion path writes — otherwise the Easer who did the work sees
+    // $0 earned and no payout is ever owed.
+    const split = computeBookingSplitFromSnapshot({
+      amountChargedCents: booking.amount_charged,
+      totalPriceCents: booking.total_price,
+      taxCents: booking.tax_amount || 0,
+      feePct: feeSnapshot.feePct,
+      assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
+    });
     Object.assign(baseUpdates, {
       assembler_accepted_at: booking.completed_at || assignedAt,
       dispatch_token: null,
@@ -106,6 +121,15 @@ export default async function handler(req, res) {
       dispatch_paused: true,
       needs_manual_dispatch: false,
       assignment_token: booking.assignment_token || null,
+      amount_charged: split.totalCents,
+      platform_fee_pct: split.feePct,
+      platform_fee: split.platformFeeCents,
+      assembler_due: split.assemblerDueCents,
+      payout_status: split.assemblerDueCents > 0 ? 'pending' : null,
+      // Only claim a $0 processor fee on rails that genuinely have none. A card
+      // charged outside the platform carries a fee we cannot see from here, so
+      // its stripe_fee stays unknown rather than being asserted as zero.
+      ...(NO_PROCESSOR_FEE_METHODS.has(booking.payment_method) ? { stripe_fee: 0 } : {}),
     });
   }
 

@@ -264,6 +264,18 @@ assert.ok(workflowMigrationSource.includes("NEW.status IN ('confirmed', 'en_rout
 
 // Owner assignment must lose cleanly if cancellation/acceptance/reassignment
 // changed the exact booking snapshot after the owner loaded it.
+// An Easer credited with a finished offline job must be paid the canonical
+// split, never $0, and sales tax must never enter the payout base.
+assert.match(
+  assignSource,
+  /computeBookingSplitFromSnapshot\(\{[\s\S]{0,240}?taxCents: booking\.tax_amount \|\| 0,[\s\S]{0,120}?feePct: feeSnapshot\.feePct/,
+  'the record-only link must derive earnings from the canonical snapshot split with tax excluded',
+);
+assert.ok(assignCompact.includes('assembler_due: split.assemblerDueCents'), 'a linked Easer must be credited the canonical amount due');
+assert.ok(assignCompact.includes('platform_fee: split.platformFeeCents'), 'the platform fee must come from the same canonical split');
+assert.ok(assignCompact.includes("payout_status: split.assemblerDueCents > 0 ? 'pending' : null"), 'earned money must open a payout owed');
+assert.ok(!/assembler_due:\s*0\b/.test(assignCompact), 'an assigned Easer must never be recorded as earning zero');
+
 // The status is pinned on both branches. A record-only owner-manual link may
 // only land on an already-COMPLETED offline job; every other assignment still
 // requires CONFIRMED, so a live booking can never be assigned off a stale read.
