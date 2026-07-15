@@ -4674,10 +4674,11 @@ window.intelQuick = intelQuick;
     var btn = document.getElementById('ops-dispatch-all-btn');
     btn.disabled = true; btn.textContent = 'Dispatching…';
     try {
-      var r = await fetch('/api/cron/auto-dispatch', { method:'GET', headers:headers() });
+      var r = await fetch('/api/owner/dispatch-all', { method:'POST', headers:headers() });
       var d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || 'Dispatch request failed');
       toast('Dispatched ' + (d.dispatched||0) + ' booking(s)', 'success');
-    } catch { toast('Dispatch failed', 'error'); }
+    } catch (e) { toast((e && e.message) || 'Dispatch failed', 'error'); }
     finally { btn.disabled = false; btn.textContent = 'Dispatch All'; loadLiveOps(); }
   };
 
