@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   const { data: booking } = await sb
     .from('bookings')
-    .select('id, ref, status, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, assembler_id, dispatch_attempt, dispatch_paused, needs_manual_dispatch, stripe_dispute_hold, financial_operation_key, financial_operation_type, financial_operation_started_at')
+    .select('id, ref, status, payment_status, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, confirmed_by, assembler_id, dispatch_attempt, dispatch_paused, needs_manual_dispatch, financial_operation_key, financial_operation_type, financial_operation_started_at, stripe_dispute_id, stripe_dispute_status')
     .eq('id', bookingId)
     .single();
 

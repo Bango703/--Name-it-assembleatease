@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error: fetchError } = await sb
     .from('bookings')
-    .select('id, ref, status, payment_status, refund_amount, assembler_id, assembler_name, assembler_due, payout_status, stripe_transfer_id, payout_mode_snapshot, payout_review_status, financial_operation_key, financial_reconciliation_required_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_dispute_hold, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents')
+    .select('id, ref, status, payment_status, refund_amount, assembler_id, assembler_name, assembler_due, payout_status, stripe_transfer_id, payout_mode_snapshot, payout_review_status, financial_operation_key, financial_reconciliation_required_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents')
     .eq('id', bookingId)
     .maybeSingle();
   if (fetchError) return res.status(500).json({ error: 'Could not verify the payout review state.' });
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     return resolveStripeDispute({ sb, res, booking, notes });
   }
 
-  if (booking.stripe_dispute_hold === true) {
+  if (booking.stripe_dispute_status && !['won', 'warning_closed', 'prevented'].includes(String(booking.stripe_dispute_status).toLowerCase())) {
     return res.status(409).json({
       error: 'The Stripe dispute hold must be resolved from fresh Stripe truth before Easer earnings can be approved.',
       code: 'STRIPE_DISPUTE_PAYOUT_HOLD',
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
 }
 
 async function resolveStripeDispute({ sb, res, booking, notes }) {
-  if (booking.stripe_dispute_hold !== true || !booking.stripe_dispute_id) {
+  if (!booking.stripe_dispute_id || !booking.stripe_dispute_status || ['won', 'warning_closed', 'prevented'].includes(String(booking.stripe_dispute_status).toLowerCase())) {
     return res.status(409).json({ error: 'This booking does not have an open Stripe dispute hold.' });
   }
   if (booking.financial_operation_key || booking.stripe_transfer_id

@@ -33,7 +33,7 @@ const CONNECT_PAYOUT_RECHECK_FIELDS = [
   'id', 'status', 'assembler_id', 'assembler_due',
   'cancellation_easer_due_cents', 'cancellation_easer_payout_status',
   'payment_status', 'payout_status', 'payout_mode_snapshot',
-  'stripe_dispute_hold', 'stripe_dispute_id', 'stripe_dispute_status',
+  'stripe_dispute_id', 'stripe_dispute_status',
   'payout_review_status', 'payout_reviewed_at', 'payout_reviewed_by', 'payout_review_notes',
   'paid_out_at', 'stripe_transfer_id', 'evidence_requested_at', 'job_started_at',
   'damage_review_status', 'damage_claim_opened_at', 'damage_reviewed_at',
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
   const { data: pendingRows, error } = await sb
     .from('bookings')
-    .select('id, ref, status, assembler_id, assembler_name, assembler_due, cancellation_easer_due_cents, cancellation_easer_payout_status, completed_at, cancelled_at, payment_status, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, stripe_dispute_hold, stripe_dispute_id, stripe_dispute_status, paid_out_at, total_price, tax_amount, service_call_fee, amount_charged, refund_amount, is_deposit, deposit_amount, cancellation_fee, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_balance_amount_captured, stripe_transfer_id, assemblecash_redeemed_cents, reschedule_count, rescheduled_at, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, evidence_requested_at, job_started_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes')
+    .select('id, ref, status, assembler_id, assembler_name, assembler_due, cancellation_easer_due_cents, cancellation_easer_payout_status, completed_at, cancelled_at, payment_status, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, stripe_dispute_id, stripe_dispute_status, paid_out_at, total_price, tax_amount, service_call_fee, amount_charged, refund_amount, is_deposit, deposit_amount, cancellation_fee, stripe_customer_id, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, stripe_balance_amount_captured, stripe_transfer_id, assemblecash_redeemed_cents, reschedule_count, rescheduled_at, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, evidence_requested_at, job_started_at, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes')
     .in('status', ['completed', 'cancelled'])
     .eq('payout_status', 'pending')
     .eq('payout_mode_snapshot', 'stripe_connect')
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       );
     return dueCents > 0
       && paymentReady
-      && booking.stripe_dispute_hold !== true
+      && !(booking.stripe_dispute_id && !['won', 'warning_closed', 'prevented'].includes(String(booking.stripe_dispute_status || '').toLowerCase()))
       && booking.damage_review_status !== 'review_required'
       && eventAt
       && eventAt < cutoff;
@@ -194,7 +194,6 @@ export default async function handler(req, res) {
         .eq('financial_operation_key', operationKey)
         .eq('financial_operation_type', 'payout_connect')
         .eq('assembler_id', b.assembler_id)
-        .eq('stripe_dispute_hold', false)
         .select('id');
       if (transferStateErr || !transferredRows?.length) {
         throw new Error(`Transfer created but booking state failed: ${transferStateErr?.message || 'reservation changed'}`);
@@ -259,7 +258,7 @@ export async function verifyConnectPayoutReleaseState(sb, expected, operationKey
   if (!['not_required', 'resolved'].includes(current.damage_review_status)) {
     return { ok: false, reason: 'damage_review_hold' };
   }
-  if (current.stripe_dispute_hold === true) {
+  if (current.stripe_dispute_id && !['won', 'warning_closed', 'prevented'].includes(String(current.stripe_dispute_status || '').toLowerCase())) {
     return { ok: false, reason: 'stripe_dispute_payout_hold' };
   }
   if (current.damage_review_status === 'resolved'

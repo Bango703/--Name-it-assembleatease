@@ -47,7 +47,8 @@ export default async function handler(req, res) {
   if (booking.stripe_transfer_id) {
     return res.status(409).json({ error: 'A Stripe transfer already exists for this booking. Reconcile Stripe instead of recording a manual payout.' });
   }
-  if (booking.stripe_dispute_hold === true) {
+  const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
+  if (booking.stripe_dispute_id && !['won', 'warning_closed', 'prevented'].includes(disputeStatus)) {
     return res.status(409).json({
       error: 'Payout is blocked because Stripe reports a customer dispute on these funds. Resolve the dispute and financial review before paying the Easer.',
       code: 'STRIPE_DISPUTE_PAYOUT_HOLD',
