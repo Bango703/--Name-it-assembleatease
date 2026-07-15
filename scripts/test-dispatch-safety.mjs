@@ -151,6 +151,7 @@ const [
   expireSource,
   migrationSource,
   workflowMigrationSource,
+  migrationSource040,
 ] = await Promise.all([
   readFile(new URL('../api/booking/accept-dispatch.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/assign.js', import.meta.url), 'utf8'),
@@ -164,6 +165,7 @@ const [
   readFile(new URL('../api/cron/expire-offers.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/036_dispatch_state_safety.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/037_owner_easer_workflow_completion.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../api/migrations/040_owner_manual_easer_record_link.sql', import.meta.url), 'utf8'),
 ]);
 
 const compact = (value) => value.replace(/\s+/g, ' ');
@@ -205,7 +207,26 @@ for (const field of [
 assert.ok(acceptSource.includes('buildEaserFeeSnapshot(booking, easer'));
 assert.ok(assignSource.includes('buildEaserFeeSnapshot(booking, assembler'));
 assert.ok((acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) || []).length >= 2, 'both offer and legacy acceptance paths must preflight payment truth');
-assert.ok(assignSource.includes('if (!isBookingPaymentReadyForDispatch(booking))'));
+// Assignment still fails closed on payment truth. The ONLY exemption is a
+// record-only link onto an already-completed owner-manual (offline) job, which
+// implies no dispatch and no Stripe money. Lock that bypass to exactly that
+// shape so it can never silently widen to live or online bookings.
+assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !isBookingPaymentReadyForDispatch(booking)'));
+assert.match(
+  assignSource,
+  /recordOnlyOwnerManualCompleted = booking\.source === 'owner_manual' && booking\.status === BOOKING_STATUS\.COMPLETED/,
+  'the assignment payment bypass must require BOTH owner_manual source and completed status',
+);
+assert.match(
+  migrationSource040,
+  /v_record_only_owner_manual := COALESCE\(NEW\.source, 'online'\) = 'owner_manual'[\s\S]*AND NEW\.status = 'completed'/,
+  'migration 040 must scope the trigger bypass to completed owner-manual bookings only',
+);
+assert.match(
+  migrationSource040,
+  /RAISE EXCEPTION 'Customer payment must be verified before assignment or acceptance'/,
+  'migration 040 must keep the payment guard for every non-record-only assignment',
+);
 assert.ok(assignCompact.includes(".eq('payment_status', booking.payment_status)"));
 assert.ok(acceptCompact.includes(".eq('payment_status', booking.payment_status)"));
 assert.ok(acceptSource.includes('p_easer_fee_pct_snapshot: feeSnapshot.feePct'));
@@ -243,7 +264,21 @@ assert.ok(workflowMigrationSource.includes("NEW.status IN ('confirmed', 'en_rout
 
 // Owner assignment must lose cleanly if cancellation/acceptance/reassignment
 // changed the exact booking snapshot after the owner loaded it.
-assert.ok(assignCompact.includes(".eq('status', BOOKING_STATUS.CONFIRMED)"));
+// The status is pinned on both branches. A record-only owner-manual link may
+// only land on an already-COMPLETED offline job; every other assignment still
+// requires CONFIRMED, so a live booking can never be assigned off a stale read.
+assert.ok(assignCompact.includes(".eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)"));
+// The money snapshot (payment status, price, PaymentIntents) is only released
+// from the CAS for the record-only owner-manual link, where no Stripe money
+// exists to race against. Every real assignment still pins it.
+const assignMoneyCas = assignCompact.slice(
+  assignCompact.indexOf('if (!recordOnlyOwnerManualCompleted) { updateQuery = updateQuery.eq('),
+  assignCompact.indexOf('if (reassign && booking.assembler_id)'),
+);
+assert.ok(assignMoneyCas.length > 0, 'the assignment money CAS block must remain scoped to non-record-only assignments');
+for (const moneyColumn of ['payment_status', 'total_price', 'stripe_payment_intent_id', 'stripe_deposit_intent_id']) {
+  assert.ok(assignMoneyCas.includes(`'${moneyColumn}'`), `assignment must CAS ${moneyColumn} on every real assignment`);
+}
 assert.ok(assignCompact.includes("updateQuery.eq('assembler_id', booking.assembler_id)"));
 assert.ok(assignCompact.includes("updateQuery.eq('assigned_at', booking.assigned_at)"));
 assert.ok(assignCompact.includes("updateQuery.is('assembler_id', null)"));

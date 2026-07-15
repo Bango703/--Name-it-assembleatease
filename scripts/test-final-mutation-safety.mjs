@@ -46,7 +46,15 @@ assert.match(ownerEdit, /\['en_route', 'arrived', 'in_progress'\]/);
 assert.match(ownerEdit, /code: 'BOOKING_SCOPE_LOCKED'/);
 assert.match(ownerEdit, /hasBookingPaymentState\(booking\) \|\| assignmentExists/);
 assert.match(ownerEdit, /updates\.reminder_sent = false/);
-assert.match(ownerEdit, /easerReconfirmationRequired = Boolean\(scheduleChanged && booking\.assembler_id\)/);
+// A schedule change still forces Easer reconfirmation on every real assigned
+// job. The only exemption is a record-only owner-manual (offline) booking,
+// where the owner performed the work and no live Easer must be re-notified.
+assert.match(ownerEdit, /easerReconfirmationRequired = Boolean\(!recordOnlyOwnerManual && scheduleChanged && booking\.assembler_id\)/);
+assert.match(
+  ownerEdit,
+  /recordOnlyOwnerManual\s*=\s*[\s\S]{0,160}?'owner_manual'/,
+  'the owner-edit reconfirmation bypass must be scoped to owner_manual bookings',
+);
 assert.match(ownerEdit, /notificationType: 'owner_edit_easer_reconfirmation'/);
 assert.match(ownerEdit, /\.update\(\{ offer_status: 'cancelled' \}\)/);
 assertNullFinancialLockTuple(ownerEdit, 'owner booking edit mutation');
