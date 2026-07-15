@@ -11,7 +11,7 @@ import { logActivity } from '../booking/_activity.js';
 const PAYMENT_METHODS = ['stripe_manual', 'cash', 'zelle', 'cashapp', 'card_on_site', 'invoice'];
 const OVERRIDE_REASONS = ['price_match', 'repeat_customer', 'goodwill', 'bundle', 'other'];
 const PAYMENT_METHOD_LABELS = {
-  stripe_manual: 'card (charged directly with AssembleAtEase)',
+  stripe_manual: 'Manual Stripe payment (charged directly with AssembleAtEase)',
   cash: 'cash on completion',
   zelle: 'Zelle on completion',
   cashapp: 'Cash App on completion',

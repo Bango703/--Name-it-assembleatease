@@ -1601,7 +1601,7 @@ function intelQuick(msg) {
         <label class="modal-label">Payment Method</label>
         <select class="modal-input" id="ocb-payment-method">
           <option value="">To be collected</option>
-          <option value="stripe_manual">Card (manual)</option>
+          <option value="stripe_manual">Manual Stripe payment</option>
           <option value="cash">Cash</option>
           <option value="zelle">Zelle</option>
           <option value="cashapp">Cash App</option>
@@ -3205,9 +3205,6 @@ function intelQuick(msg) {
           btns.push('<button class="btn btn-teal" data-action="collect-payment" data-id="' + b.id + '">Mark Payment Collected</button>');
         }
       }
-      if (b.customer_email) {
-        btns.push('<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(b.customer_email) + '\')" style="font-size:0.75rem">Reset Customer Password</button>');
-      }
       $detailAct.innerHTML = notices.concat(btns).join('');
       $detailAct.style.display = notices.length || btns.length ? '' : 'none';
       return;
@@ -3338,10 +3335,6 @@ function intelQuick(msg) {
           : []);
     } else if (cancellationRecovery) {
       btns = btns.filter(function(buttonHtml) { return buttonHtml.indexOf('data-action="cancel"') !== -1; });
-    }
-    // Always show password reset for customer on any booking
-    if (b.customer_email && !genericFinancialHold && !cancellationRecovery) {
-      btns.push('<button class="btn btn-outline" onclick="sendResetPassword(\'' + esc(b.customer_email) + '\')" style="font-size:0.75rem">Reset Customer Password</button>');
     }
     $detailAct.innerHTML = notices.concat(btns).join('');
     $detailAct.style.display = notices.length || btns.length ? '' : 'none';
