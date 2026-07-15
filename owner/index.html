@@ -2448,16 +2448,16 @@ window.intelQuick = intelQuick;
       var statusColor = {completed:'#065f46',confirmed:'#0369a1',pending:'#92400e',cancelled:'#475569',declined:'#be123c',refunded:'#c2410c',en_route:'#1d4ed8',in_progress:'#059669'}[b.status]||'#374151';
       var statusBg = {completed:'#d1fae5',confirmed:'#e0f2fe',pending:'#fef3c7',cancelled:'#f1f5f9',declined:'#fff1f2',refunded:'#fff7ed',en_route:'#dbeafe',in_progress:'#d1fae5'}[b.status]||'#f4f4f5';
       return '<tr>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:11px;color:#6b7280">'+b.ref+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+b.customer_name+'</div><div style="color:#9ca3af;font-size:10px">'+b.service+'</div></td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+fmtDate(b.date)+(b.time ? '<br><span style="color:#9ca3af">'+b.time+'</span>' : '')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+(b.assembler_name||'Owner')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:11px;color:#6b7280">'+esc(b.ref)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+esc(b.customer_name)+'</div><div style="color:#9ca3af;font-size:10px">'+esc(b.service)+'</div></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+esc(fmtDate(b.date))+(b.time ? '<br><span style="color:#9ca3af">'+esc(b.time)+'</span>' : '')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+esc(b.assembler_name||'Owner')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g ? dollars(g) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#ef4444">'+(f ? '-'+dollars(f) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n ? dollars(n) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(p ? '-'+dollars(p) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0 ? '#065f46' : '#ef4444')+'">'+(g ? dollars(profit) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+b.status+'</span></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+esc(b.status)+'</span></td>'
         +'</tr>';
     }).join('');
 
