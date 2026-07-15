@@ -486,7 +486,8 @@
       if (reviewList.length) {
         countLabel.textContent = '(' + reviewList.length + ')';
         list.innerHTML = reviewList.map(function(r) {
-          var name = escapeHtml((r.reviewer.full_name || 'Customer').split(' ')[0]);
+          var reviewerName = ((r && r.reviewer && r.reviewer.full_name) || 'Customer').toString();
+          var name = escapeHtml(reviewerName.split(' ')[0]);
           var ratingLabel = Number(r.rating || 0).toFixed(1) + ' / 5';
           var date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
           return '<div style="padding:0.85rem 0;border-bottom:1px solid var(--pro-border)">'
@@ -501,11 +502,11 @@
         }).join('');
       } else {
         countLabel.textContent = '';
-        list.innerHTML = '<p>No customer reviews yet. Approved reviews will appear here after completed jobs.</p>';
+        list.innerHTML = '<p>No customer reviews yet for this Easer. Approved reviews will appear here after completed jobs.</p>';
       }
     } catch (error) {
       countLabel.textContent = '';
-      list.innerHTML = '<p>Reviews could not be loaded.</p><button type="button" class="btn btn-outline btn-sm review-retry" onclick="loadReviews()">Retry</button>';
+      list.innerHTML = '<p>Reviews could not be loaded right now. If this Easer has no reviews yet, that is normal.</p><button type="button" class="btn btn-outline btn-sm review-retry" onclick="loadReviews()">Retry</button>';
     } finally {
       reviewsLoading = false;
     }

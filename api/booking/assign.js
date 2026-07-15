@@ -108,20 +108,23 @@ export default async function handler(req, res) {
   let updateQuery = sb.from('bookings').update(baseUpdates)
     .eq('id', bookingId)
     .eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)
-    .eq('payment_status', booking.payment_status)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
     .is('financial_operation_started_at', null);
 
-  updateQuery = booking.total_price == null
-    ? updateQuery.is('total_price', null)
-    : updateQuery.eq('total_price', booking.total_price);
-  updateQuery = booking.stripe_payment_intent_id == null
-    ? updateQuery.is('stripe_payment_intent_id', null)
-    : updateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
-  updateQuery = booking.stripe_deposit_intent_id == null
-    ? updateQuery.is('stripe_deposit_intent_id', null)
-    : updateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
+  if (!recordOnlyOwnerManualCompleted) {
+    updateQuery = updateQuery.eq('payment_status', booking.payment_status);
+
+    updateQuery = booking.total_price == null
+      ? updateQuery.is('total_price', null)
+      : updateQuery.eq('total_price', booking.total_price);
+    updateQuery = booking.stripe_payment_intent_id == null
+      ? updateQuery.is('stripe_payment_intent_id', null)
+      : updateQuery.eq('stripe_payment_intent_id', booking.stripe_payment_intent_id);
+    updateQuery = booking.stripe_deposit_intent_id == null
+      ? updateQuery.is('stripe_deposit_intent_id', null)
+      : updateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
+  }
 
   if (reassign && booking.assembler_id) {
     updateQuery = updateQuery.eq('assembler_id', booking.assembler_id);
@@ -140,13 +143,19 @@ export default async function handler(req, res) {
       || /Easer|assignment|readiness|eligible|closure|available/i.test(updateErr.message || '');
     return res.status(guardConflict ? 409 : 500).json({
       error: guardConflict
-        ? 'The booking or Easer readiness changed before assignment. Refresh and try again.'
+        ? (recordOnlyOwnerManualCompleted
+          ? 'The completed owner booking changed before linking. Refresh and try again.'
+          : 'The booking or Easer readiness changed before assignment. Refresh and try again.')
         : 'Failed to assign booking',
       code: guardConflict ? 'EASER_ASSIGNMENT_READINESS_CHANGED' : 'BOOKING_ASSIGNMENT_FAILED',
     });
   }
   if (!assignedRows?.length) {
-    return res.status(409).json({ error: 'Booking changed before assignment. Refresh and try again.' });
+    return res.status(409).json({
+      error: recordOnlyOwnerManualCompleted
+        ? 'The completed owner booking changed before linking. Refresh and try again.'
+        : 'Booking changed before assignment. Refresh and try again.',
+    });
   }
 
   if (recordOnlyOwnerManualCompleted) {
