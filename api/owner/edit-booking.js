@@ -32,8 +32,12 @@ export default async function handler(req, res) {
     .from('bookings').select('*').eq('id', bookingId).single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (['completed', 'cancelled', 'declined', 'refunded'].includes(booking.status)) {
+  const recordOnlyOwnerManual = booking.source === 'owner_manual' && booking.status === 'completed';
+  if (['cancelled', 'declined', 'refunded'].includes(booking.status)) {
     return res.status(400).json({ error: 'Cannot edit a ' + booking.status + ' booking' });
+  }
+  if (booking.status === 'completed' && !recordOnlyOwnerManual) {
+    return res.status(400).json({ error: 'Cannot edit a completed booking' });
   }
   if (['en_route', 'arrived', 'in_progress'].includes(booking.status)) {
     return res.status(409).json({
@@ -65,7 +69,7 @@ export default async function handler(req, res) {
   const serviceChanged = Boolean(service && service !== booking.service);
   const addressChanged = Boolean(address && address !== booking.address);
   const assignmentExists = Boolean(booking.assembler_id || booking.assigned_at || booking.assembler_accepted_at);
-  if ((serviceChanged || addressChanged) && (hasBookingPaymentState(booking) || assignmentExists)) {
+  if (!recordOnlyOwnerManual && (serviceChanged || addressChanged) && (hasBookingPaymentState(booking) || assignmentExists)) {
     return res.status(409).json({
       error: 'Service and address are locked after payment or Easer assignment. Use the customer-approved quote or replacement-booking workflow for scope changes.',
       code: 'BOOKING_SCOPE_LOCKED',
@@ -84,14 +88,14 @@ export default async function handler(req, res) {
     (date && date !== booking.date)
     || (time && time !== booking.time),
   );
-  const easerReconfirmationRequired = Boolean(scheduleChanged && booking.assembler_id);
+  const easerReconfirmationRequired = Boolean(!recordOnlyOwnerManual && scheduleChanged && booking.assembler_id);
   const nextAssignmentToken = easerReconfirmationRequired ? randomUUID() : booking.assignment_token;
   const currentDispatchAttempt = Number(booking.dispatch_attempt || 0);
-  if (scheduleChanged && booking.status === 'confirmed'
+  if (!recordOnlyOwnerManual && scheduleChanged && booking.status === 'confirmed'
       && (!Number.isInteger(currentDispatchAttempt) || currentDispatchAttempt < 0)) {
     return res.status(503).json({ error: 'Dispatch state is invalid. Reconcile this booking before changing its schedule.' });
   }
-  if (scheduleChanged) {
+  if (!recordOnlyOwnerManual && scheduleChanged) {
     updates.reminder_sent = false;
     if (booking.status === 'confirmed') {
       updates.dispatch_attempt = currentDispatchAttempt + 1;
@@ -148,7 +152,7 @@ export default async function handler(req, res) {
   }
 
   let dispatchOfferCleanupFailed = false;
-  if (scheduleChanged && booking.status === 'confirmed') {
+  if (!recordOnlyOwnerManual && scheduleChanged && booking.status === 'confirmed') {
     const { error: offerCleanupError } = await sb.from('dispatch_offers')
       .update({ offer_status: 'cancelled' })
       .eq('booking_id', booking.id)
@@ -174,7 +178,7 @@ export default async function handler(req, res) {
 
   // Schedule changes always notify the customer; optional notifications remain
   // available for safe pre-payment service/address corrections.
-  if ((notifyCustomer || scheduleChanged) && booking.customer_email) {
+  if (!recordOnlyOwnerManual && (notifyCustomer || scheduleChanged) && booking.customer_email) {
     try {
       // Quote notification — when a price is being set for the first time
       const isQuote = typeof totalPrice === 'number' && totalPrice > 0 && (!booking.total_price || booking.total_price === 0);
@@ -245,11 +249,11 @@ export default async function handler(req, res) {
       console.error('Edit booking notify error:', e);
       notificationFailures.push({ recipient: 'customer', error: e?.message || String(e) });
     }
-  } else if (scheduleChanged && !booking.customer_email) {
+  } else if (!recordOnlyOwnerManual && scheduleChanged && !booking.customer_email) {
     notificationFailures.push({ recipient: 'customer', error: 'Customer email is missing' });
   }
 
-  if (easerReconfirmationRequired) {
+  if (!recordOnlyOwnerManual && easerReconfirmationRequired) {
     const { data: easer, error: easerLookupError } = await sb.from('profiles')
       .select('email, full_name')
       .eq('id', booking.assembler_id)
@@ -293,5 +297,6 @@ export default async function handler(req, res) {
     easerReconfirmationRequired,
     dispatchOfferCleanupFailed,
     notificationFailures,
+    recordOnlyOwnerManual,
   });
 }

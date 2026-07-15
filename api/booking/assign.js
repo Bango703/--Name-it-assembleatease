@@ -13,6 +13,8 @@ const SITE = 'https://www.assembleatease.com';
 /**
  * POST /api/booking/assign
  * Owner assigns a confirmed booking to an assembler.
+ * Completed owner-manual bookings may also be linked to an assembler record
+ * for payout/history purposes without reopening the job.
  * Body: { bookingId, assemblerId }
  */
 export default async function handler(req, res) {
@@ -32,8 +34,9 @@ export default async function handler(req, res) {
     .single();
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
-  if (!isBookingPaymentReadyForDispatch(booking)) {
+  const recordOnlyOwnerManualCompleted = booking.source === 'owner_manual' && booking.status === BOOKING_STATUS.COMPLETED;
+  if (booking.status !== BOOKING_STATUS.CONFIRMED && !recordOnlyOwnerManualCompleted) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
+  if (!recordOnlyOwnerManualCompleted && !isBookingPaymentReadyForDispatch(booking)) {
     return res.status(409).json({
       error: 'Payment is not verified for assignment. Reconcile Stripe before assigning an Easer.',
       code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
@@ -62,7 +65,6 @@ export default async function handler(req, res) {
   const assemblerTier = readiness.tier;
 
   // Generate secure assignment token
-  const token = crypto.randomUUID();
   const assignedAt = new Date().toISOString();
   let feeSnapshot;
   try {
@@ -75,21 +77,37 @@ export default async function handler(req, res) {
   // Atomic CAS: assign only if the booking is still confirmed and still has the
   // exact current assignment state read above. This prevents owner assignment
   // from reviving a cancelled job or overwriting a competing acceptance.
-  let updateQuery = sb.from('bookings').update({
+  const baseUpdates = {
     assembler_id: assemblerId,
     assembler_name: assembler.full_name,
     assembler_tier: assemblerTier,
     assigned_at: assignedAt,
-    assignment_token: token,
-    assembler_accepted_at: null,
-    dispatch_token: null,
-    dispatch_status: 'assigned_pending_acceptance',
-    dispatch_paused: true,       // pause auto-dispatch once manually assigned
-    needs_manual_dispatch: false,
     ...feeSnapshot.updates,
-  })
+  };
+  if (!recordOnlyOwnerManualCompleted) {
+    const token = crypto.randomUUID();
+    Object.assign(baseUpdates, {
+      assignment_token: token,
+      assembler_accepted_at: null,
+      dispatch_token: null,
+      dispatch_status: 'assigned_pending_acceptance',
+      dispatch_paused: true,
+      needs_manual_dispatch: false,
+    });
+  } else {
+    Object.assign(baseUpdates, {
+      assembler_accepted_at: booking.completed_at || assignedAt,
+      dispatch_token: null,
+      dispatch_status: 'accepted',
+      dispatch_paused: true,
+      needs_manual_dispatch: false,
+      assignment_token: booking.assignment_token || null,
+    });
+  }
+
+  let updateQuery = sb.from('bookings').update(baseUpdates)
     .eq('id', bookingId)
-    .eq('status', BOOKING_STATUS.CONFIRMED)
+    .eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)
     .eq('payment_status', booking.payment_status)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
@@ -129,6 +147,35 @@ export default async function handler(req, res) {
   }
   if (!assignedRows?.length) {
     return res.status(409).json({ error: 'Booking changed before assignment. Refresh and try again.' });
+  }
+
+  if (recordOnlyOwnerManualCompleted) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'assigned',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: `Completed owner booking linked to ${assembler.full_name} for payout/history tracking`,
+      metadata: {
+        newAssemblerId: assembler.id,
+        newAssemblerName: assembler.full_name,
+        tier: assemblerTier,
+        easerFeePctSnapshot: feeSnapshot.feePct,
+        easerEstimatedDueSnapshot: feeSnapshot.estimatedDueCents,
+        recordOnlyOwnerManualCompleted: true,
+      },
+    });
+
+    return res.status(200).json({
+      ok: true,
+      bookingId: booking.id,
+      assignedTo: assembler.full_name,
+      recordOnlyOwnerManualCompleted: true,
+      feeSnapshot: {
+        feePct: feeSnapshot.feePct,
+        estimatedDueCents: feeSnapshot.estimatedDueCents,
+      },
+    });
   }
 
   // Cancel open auto-dispatch offers only after the assignment CAS succeeds. If

@@ -3199,6 +3199,7 @@ function intelQuick(msg) {
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
       } else if (b.status === 'completed') {
+        btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit / Add Easer</button>');
         if (b.payment_collected) {
           btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Payment Collected</button>');
         } else {
@@ -3373,11 +3374,22 @@ function intelQuick(msg) {
     } else if (action === 'edit') {
       var bEdit = allBookings.find(function(x){ return x.id == id; });
       if (!bEdit) return;
+      if (bEdit.source === 'owner_manual' && bEdit.status === 'completed') {
+        var ok = confirm('You are about to edit a completed owner-created job. Use this to correct the record or add your Easer account for payout tracking. This does not reopen the job. Continue?');
+        if (!ok) return;
+      }
       document.getElementById('eb-id').value = id;
       document.getElementById('eb-date').value = bEdit.date || '';
       document.getElementById('eb-time').value = bEdit.time || '';
       document.getElementById('eb-service').value = bEdit.service || '';
       document.getElementById('eb-address').value = bEdit.address || '';
+      document.getElementById('edit-booking-modal').querySelector('h3').textContent = (bEdit.source === 'owner_manual' && bEdit.status === 'completed') ? 'Edit Completed Owner Booking' : 'Edit Booking';
+      var editDesc = document.getElementById('edit-booking-modal').querySelector('p');
+      if (editDesc) {
+        editDesc.textContent = (bEdit.source === 'owner_manual' && bEdit.status === 'completed')
+          ? 'You are editing a completed owner-created job. Changes are treated as record corrections and do not reopen the job.'
+          : 'Changes are saved immediately. Optionally notify the customer.';
+      }
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
     } else if (action === 'request-evidence') {
@@ -4243,7 +4255,8 @@ function intelQuick(msg) {
     var status   = document.getElementById('assign-status');
     var controls = document.getElementById('assign-controls');
     var select   = document.getElementById('assign-select');
-    if (b.status !== 'confirmed') { section.style.display = 'none'; return; }
+    var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
+    if (b.status !== 'confirmed' && !allowOwnerManualCompleted) { section.style.display = 'none'; return; }
     section.style.display = '';
     if (b.assembler_id) {
       var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; });
@@ -4256,7 +4269,9 @@ function intelQuick(msg) {
       status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted + ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>';
       controls.style.display = 'none';
     } else {
-      status.textContent = 'No Easer assigned yet.';
+      status.textContent = allowOwnerManualCompleted
+        ? 'Completed owner booking — add an Easer account for payout tracking.'
+        : 'No Easer assigned yet.';
       controls.style.display = 'flex';
       select.innerHTML = '<option value="">Select an Easer...</option>';
       eligibleAssemblers.forEach(function(a) {
