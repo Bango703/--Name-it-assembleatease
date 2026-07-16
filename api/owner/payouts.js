@@ -90,6 +90,7 @@ export default async function handler(req, res) {
         review_status: b.payoutReviewStatus,
         review_notes: b.payoutReviewNotes,
         payout_mode: b.payoutMode,
+        hold_reasons: b.payoutHoldReasons || [],
         age_days: ageDays,
         source: b.legacyDerived ? 'legacy' : 'ledger',
       });

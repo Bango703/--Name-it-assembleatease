@@ -1,11 +1,80 @@
 import { computeBookingFinancialSummary } from '../_source-of-truth.js';
+import { isCurrentCompletionEvidence } from '../booking/_completion-evidence.js';
+
+const RESOLVED_DISPUTE_STATUSES = new Set(['won', 'warning_closed', 'prevented']);
+
+export function deriveManualPayoutReadiness(booking, {
+  paidOut = false,
+  owed = 0,
+  hasCurrentCompletionEvidence = false,
+} = {}) {
+  if (paidOut) return { disposition: 'paid', holdReasons: [] };
+  if (Number(owed || 0) <= 0) return { disposition: 'not_payable', holdReasons: [] };
+
+  const holdReasons = [];
+  const isCancellationEarning = booking.status === 'cancelled';
+  const payoutStatus = String(booking.payout_status || '').toLowerCase();
+  const paymentStatus = String(booking.payment_status || '').toLowerCase();
+  const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
+
+  if (!booking.assembler_id) holdReasons.push('No Easer is assigned to this earning.');
+  if (payoutStatus !== 'pending') holdReasons.push('Payout state must be reconciled to pending.');
+  if (booking.stripe_transfer_id) holdReasons.push('A Stripe Connect transfer already exists.');
+  if (booking.payout_mode_snapshot !== 'manual') {
+    holdReasons.push(booking.payout_mode_snapshot === 'stripe_connect'
+      ? 'This earning belongs to the Stripe Connect payout path.'
+      : 'Manual payout mode is missing; apply migration 037 and reconcile the booking.');
+  }
+
+  if (isCancellationEarning) {
+    if (paymentStatus !== 'cancellation_fee_captured') {
+      holdReasons.push('The customer cancellation fee is not captured.');
+    }
+  } else if (paymentStatus === 'captured') {
+    // Standard completed-job payout path.
+  } else if (['partially_refunded', 'refunded'].includes(paymentStatus)) {
+    const reviewComplete = booking.payout_review_status === 'approved_full'
+      && !!booking.payout_reviewed_at
+      && String(booking.payout_reviewed_by || '').trim().length > 0
+      && String(booking.payout_review_notes || '').trim().length >= 10;
+    if (!reviewComplete) holdReasons.push('Refund-affected Easer earnings require a completed owner review.');
+  } else {
+    holdReasons.push('Customer funds are not captured.');
+  }
+
+  if (booking.damage_review_status === 'review_required') {
+    holdReasons.push('The damage payout review is still open.');
+  } else if (booking.damage_review_status === 'resolved') {
+    const damageReviewComplete = !!booking.damage_claim_opened_at
+      && !!booking.damage_reviewed_at
+      && String(booking.damage_reviewed_by || '').trim().length > 0
+      && String(booking.damage_review_notes || '').trim().length >= 10;
+    if (!damageReviewComplete) holdReasons.push('The damage review record is incomplete.');
+  }
+
+  if (booking.stripe_dispute_hold === true
+      || (booking.stripe_dispute_id && !RESOLVED_DISPUTE_STATUSES.has(disputeStatus))) {
+    holdReasons.push('Stripe reports an unresolved customer dispute on these funds.');
+  }
+  if (booking.financial_operation_key || booking.financial_reconciliation_required_at) {
+    holdReasons.push('A financial operation or reconciliation hold is still open.');
+  }
+  if (!isCancellationEarning && booking.evidence_requested_at && !hasCurrentCompletionEvidence) {
+    holdReasons.push('The requested current-Easer completion photo is missing.');
+  }
+
+  return {
+    disposition: holdReasons.length ? 'on_hold' : 'pending',
+    holdReasons,
+  };
+}
 
 export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
   let bookings = null;
 
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_review_notes, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
+    .select('id, ref, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
     .in('status', ['completed', 'cancelled']);
 
   const firstAttempt = await bookingsQuery;
@@ -22,6 +91,26 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
 
   const financeBookings = bookings || [];
   const bookingIds = financeBookings.map(b => b.id).filter(Boolean);
+
+  const evidenceRequiredBookings = financeBookings.filter(booking =>
+    booking.status === 'completed' && booking.evidence_requested_at);
+  const currentEvidenceBookingIds = new Set();
+  if (evidenceRequiredBookings.length) {
+    const evidenceBookingIds = evidenceRequiredBookings.map(booking => booking.id);
+    const evidenceBookingById = new Map(evidenceRequiredBookings.map(booking => [booking.id, booking]));
+    const { data: evidenceRows, error: evidenceError } = await sb
+      .from('booking_evidence')
+      .select('booking_id, evidence_type, uploaded_by, created_at')
+      .in('booking_id', evidenceBookingIds)
+      .eq('evidence_type', 'completion_photo');
+    if (evidenceError) throw evidenceError;
+    for (const evidence of evidenceRows || []) {
+      const booking = evidenceBookingById.get(evidence.booking_id);
+      if (booking && isCurrentCompletionEvidence(evidence, booking)) {
+        currentEvidenceBookingIds.add(evidence.booking_id);
+      }
+    }
+  }
 
   let ledgerRows = [];
   if (bookingIds.length) {
@@ -69,13 +158,12 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       : canonicalDue;
 
     const isRefunded = ['refunded', 'partially_refunded'].includes(b.payment_status) || refund > 0;
-    const payoutDisposition = paidOut
-      ? 'paid'
-      : owed <= 0
-        ? 'not_payable'
-        : isRefunded && b.payout_review_status !== 'approved_full'
-          ? 'on_hold'
-          : 'pending';
+    const payoutReadiness = deriveManualPayoutReadiness(b, {
+      paidOut,
+      owed,
+      hasCurrentCompletionEvidence: !b.evidence_requested_at || currentEvidenceBookingIds.has(b.id),
+    });
+    const payoutDisposition = payoutReadiness.disposition;
     const legacyDerived = !ledger;
 
     // Sales tax is a pass-through liability owed to the state — NOT platform revenue.
@@ -113,6 +201,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       payoutReviewedAt: b.payout_reviewed_at || null,
       payoutReviewNotes: b.payout_review_notes || null,
       payoutDisposition,
+      payoutHoldReasons: payoutReadiness.holdReasons,
       cancellationEarnings: isCancellationEarning,
       bundleSlug: b.bundle_slug || null,
       assemblecashEarnedCents: Number(b.assemblecash_earned_cents || 0),

@@ -701,15 +701,19 @@ async function configureContext(context) {
 
   await context.route('**/api/**', async (route) => {
     const request = route.request();
-    const pathname = new URL(request.url()).pathname;
+    const requestUrl = new URL(request.url());
+    const pathname = requestUrl.pathname;
     let payload = { ok: true };
     let explicitMock = true;
 
     if (pathname === '/api/booking/my-assignments') {
       payload = { bookings: mockBookings, meta: { warnings: [] } };
     } else if (pathname === '/api/booking/list') {
+      const requestedBookingId = requestUrl.searchParams.get('bookingId');
       payload = {
-        bookings: mockOwnerBookings.map((booking) => {
+        bookings: mockOwnerBookings
+          .filter((booking) => !requestedBookingId || booking.id === requestedBookingId)
+          .map((booking) => {
           let current = booking;
           if (resolvedDamageReviewBookingIds.has(booking.id)) {
             current = {
@@ -801,6 +805,23 @@ async function configureContext(context) {
       } else {
         payload = { error: 'Mock refund recovery request must contain only the server-owned booking identifier' };
       }
+    } else if (pathname === '/api/booking/payout' && request.method() === 'POST') {
+      const submitted = request.postDataJSON() || {};
+      const exactPayoutRecord = submitted.bookingId === 'owner-completed-payable'
+        && submitted.method === 'ach'
+        && submitted.notes === 'ACH confirmation AAE-AUDIT-7113'
+        && !Object.prototype.hasOwnProperty.call(submitted, 'amount')
+        && Object.keys(submitted).length === 3;
+      payload = exactPayoutRecord
+        ? {
+            success: true,
+            bookingRef: 'AAE-250701',
+            payoutAmount: 14300,
+            platformRevenue: 5355,
+            amountCharged: 22000,
+            hasEvidence: false,
+          }
+        : { error: 'Mock payout record must contain only bookingId, method, and external confirmation reference' };
     } else if (pathname === '/api/owner/session') {
       payload = { token: 'mock-owner-session-token', expiresIn: 3600 };
     } else if (pathname === '/api/owner/live-ops') {
@@ -1094,6 +1115,95 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
   }
 
   if (spec.group === 'owner-auth') {
+    if (spec.id === 'owner-analytics') {
+      try {
+        const payoutButton = page.locator('[data-payout-booking-id="owner-completed-payable"]');
+        await payoutButton.waitFor({ state: 'visible', timeout: 5000 });
+        const initialLabel = (await payoutButton.textContent() || '').trim();
+        await payoutButton.click();
+        await page.locator('#reason-modal.open').waitFor({ state: 'visible', timeout: 5000 });
+
+        const modalState = await page.evaluate(() => ({
+          title: document.getElementById('reason-modal-title')?.textContent?.trim() || '',
+          description: document.getElementById('reason-modal-desc')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+          method: document.getElementById('payout-method')?.value || '',
+          referenceVisible: (() => {
+            const element = document.getElementById('payout-reference');
+            if (!element) return false;
+            const rect = element.getBoundingClientRect();
+            return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.height > 0;
+          })(),
+        }));
+
+        await page.locator('#payout-reference').fill('ACH confirmation forced audit failure');
+        const failedPayoutResponsePromise = page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return candidate.request().method() === 'POST' && url.pathname === '/api/booking/payout';
+        }, { timeout: 5000 });
+        await page.locator('#reason-confirm').click();
+        await failedPayoutResponsePromise;
+        await page.waitForFunction(() => /Mock payout record must contain only/i.test(
+          document.getElementById('toast')?.textContent || '',
+        ), null, { timeout: 5000 });
+        const failureState = await page.evaluate(() => ({
+          modalOpen: document.getElementById('reason-modal')?.classList.contains('open') || false,
+          reference: document.getElementById('payout-reference')?.value || '',
+          confirmEnabled: !document.getElementById('reason-confirm')?.disabled,
+        }));
+
+        await page.locator('#payout-reference').fill('ACH confirmation AAE-AUDIT-7113');
+        const payoutResponsePromise = page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return candidate.request().method() === 'POST' && url.pathname === '/api/booking/payout';
+        }, { timeout: 5000 });
+        await page.locator('#reason-confirm').click();
+        const payoutResponse = await payoutResponsePromise;
+        const submitted = payoutResponse.request().postDataJSON() || {};
+        await page.locator('#toast').waitFor({ state: 'visible', timeout: 5000 });
+        const toastText = (await page.locator('#toast').textContent() || '').trim();
+
+        const analyticsResponses = (ownerViewEndpoints.analytics || []).map((endpoint) => page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return candidate.request().method() === 'GET' && url.pathname === endpoint;
+        }, { timeout: 5000 }).catch(() => null));
+        await page.evaluate(() => document.querySelector('.sidebar-nav a[data-view="analytics"]')?.click());
+        await Promise.all(analyticsResponses);
+        await page.locator('#analytics-view').waitFor({ state: 'visible', timeout: 5000 });
+
+        checks.manualPayoutRecordWorkflow = {
+          required: true,
+          pass: /^Record\s+AAE-250701$/i.test(initialLabel)
+            && modalState.title === 'Record External Easer Payout'
+            && /Canonical Easer due: \$143\.00/i.test(modalState.description)
+            && /does not send funds/i.test(modalState.description)
+            && modalState.method === 'ach'
+            && modalState.referenceVisible
+            && failureState.modalOpen
+            && failureState.reference === 'ACH confirmation forced audit failure'
+            && failureState.confirmEnabled
+            && payoutResponse.status() === 200
+            && payoutResponse.headers()['x-aae-audit-mock'] === 'explicit'
+            && submitted.bookingId === 'owner-completed-payable'
+            && submitted.method === 'ach'
+            && submitted.notes === 'ACH confirmation AAE-AUDIT-7113'
+            && !Object.prototype.hasOwnProperty.call(submitted, 'amount')
+            && toastText === 'Payout recorded',
+          initialLabel,
+          modalState,
+          failureState,
+          submittedKeys: Object.keys(submitted).sort(),
+          payoutStatus: payoutResponse.status(),
+          toastText,
+        };
+      } catch (error) {
+        checks.manualPayoutRecordWorkflow = {
+          required: true,
+          pass: false,
+          error: error.message,
+        };
+      }
+    }
+
     if (spec.ownerDamageReviewBooking) {
       try {
         const paymentRecoveryBaseline = await page.evaluate(() => {
@@ -1630,8 +1740,8 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
           && state.unreadEaserMessageVisible
       : spec.ownerView === 'customers'
         ? state.customerSpendHasExactCents && state.customerAverageHasExactCents && state.formattedPhoneVisible
-        : spec.ownerView === 'analytics'
-          ? state.financialGrossRendered
+      : spec.ownerView === 'analytics'
+          ? state.financialGrossRendered && checks.manualPayoutRecordWorkflow?.pass
           : true;
     checks.ownerDashboard = {
       required: true,

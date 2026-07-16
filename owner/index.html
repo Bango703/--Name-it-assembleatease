@@ -3228,6 +3228,13 @@ window.intelQuick = intelQuick;
       && ['cancel_owner','cancel_customer','cancel_guest'].includes(b.financial_operation_type)
       && b.financial_reconciliation_reason === 'AssembleCash cancellation reconciliation did not complete. Do not retry payment, refund, or payout actions until reviewed.';
     var refundRecovery = genericFinancialHold && b.financial_operation_type === 'refund_owner';
+    var disputeStatus = String(b.stripe_dispute_status || '').toLowerCase();
+    var disputeResolved = ['won', 'warning_closed', 'prevented'].includes(disputeStatus);
+    var stripeDisputeHold = b.stripe_dispute_hold === true || (b.stripe_dispute_id && !disputeResolved);
+    if (stripeDisputeHold) {
+      var disputeAmount = Number(b.stripe_dispute_amount_cents || 0);
+      notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Stripe dispute payout hold:</strong> Stripe status is ' + esc(disputeStatus || 'unverified') + (disputeAmount > 0 ? ' for ' + fmt$(disputeAmount) : '') + '. Do not dispatch, refund, or pay the Easer from this booking until fresh Stripe truth clears the hold.</div>');
+    }
     if (cancellationRecovery) {
       notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Cancellation payment hold:</strong> Stripe or the booking update needs reconciliation. Dispatch is blocked. Retry Cancel Booking from this record after the five-minute recovery window; do not start a separate refund or payment action.</div>');
     }
@@ -3346,6 +3353,18 @@ window.intelQuick = intelQuick;
           : []);
     } else if (cancellationRecovery) {
       btns = btns.filter(function(buttonHtml) { return buttonHtml.indexOf('data-action="cancel"') !== -1; });
+    }
+    if (stripeDisputeHold) {
+      btns = btns.filter(function(buttonHtml) {
+        return !/data-action="(?:payout|payout-review|refund|refund-recovery|dispatch|reconcile-payment|complete|cancel)"/.test(buttonHtml);
+      });
+      if (!['paid', 'transferred'].includes(b.payout_status)
+          && !b.stripe_transfer_id
+          && !b.financial_operation_key) {
+        btns.push('<button class="btn btn-amber" data-action="stripe-dispute-review" data-id="' + b.id + '">Recheck Stripe Dispute</button>');
+      } else if (['paid', 'transferred'].includes(b.payout_status) || b.stripe_transfer_id) {
+        notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--red)">An Easer payment already exists. Review the financial timeline and any clawback requirement; do not attempt another payment.</div>');
+      }
     }
     $detailAct.innerHTML = notices.concat(btns).join('');
     $detailAct.style.display = notices.length || btns.length ? '' : 'none';
@@ -3556,6 +3575,16 @@ window.intelQuick = intelQuick;
       document.getElementById('reason-confirm').textContent = 'Approve Full Earnings';
       document.getElementById('reason-confirm').className = 'btn btn-amber';
       $reasonModal.classList.add('open');
+    } else if (action === 'stripe-dispute-review') {
+      var bDispute = allBookings.find(function(item){ return item.id == id; });
+      if (!bDispute) return;
+      pendingAction = { id: id, type: 'stripe-dispute-review' };
+      document.getElementById('reason-modal-title').textContent = 'Recheck Stripe Dispute Hold';
+      document.getElementById('reason-modal-desc').textContent = 'The server will load fresh, complete Stripe dispute truth. It will clear the payout hold only when every linked dispute is safely resolved. This action does not refund the customer or send an Easer payout.';
+      $reasonText.placeholder = 'Required review note (what you verified in Stripe)';
+      document.getElementById('reason-confirm').textContent = 'Recheck Stripe Dispute';
+      document.getElementById('reason-confirm').className = 'btn btn-amber';
+      $reasonModal.classList.add('open');
     } else if (action === 'payout') {
       var bPayout = allBookings.find(function(bk){ return bk.id == id; });
       var assemblerDueCents = bPayout
@@ -3726,28 +3755,64 @@ window.intelQuick = intelQuick;
       return;
     }
 
+    if (pendingAction.type === 'stripe-dispute-review') {
+      if (reason.length < 10) {
+        toast('Enter a Stripe dispute review note of at least 10 characters', 'error');
+        return;
+      }
+      var disputeBookingId = pendingAction.id;
+      var disputeButton = this;
+      disputeButton.disabled = true;
+      disputeButton.textContent = 'Checking Stripe...';
+      try {
+        var disputeResponse = await fetch('/api/booking/payout-review', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ bookingId: disputeBookingId, decision: 'resolve_stripe_dispute', notes: reason }),
+        });
+        var disputeData = await disputeResponse.json().catch(function(){ return {}; });
+        if (!disputeResponse.ok || disputeData.error) {
+          throw new Error(disputeData.error || 'Stripe dispute hold could not be verified');
+        }
+        closeReasonModal();
+        toast('Stripe dispute hold cleared; no payout was sent', 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+      } catch (disputeError) {
+        toast(disputeError.message || 'Stripe dispute hold remains open', 'error');
+      } finally {
+        disputeButton.disabled = false;
+        disputeButton.textContent = 'Recheck Stripe Dispute';
+      }
+      return;
+    }
+
     if (pendingAction.type === 'payout') {
       if (!pendingAction.assemblerDueCents || pendingAction.assemblerDueCents <= 0) { toast('No canonical payout amount is available', 'error'); return; }
       var payoutMethod = ($payoutMethod && $payoutMethod.value) || 'ach';
       var payoutReference = ($payoutReference && $payoutReference.value.trim()) || '';
       if (!payoutReference) { toast('Enter the external payment confirmation or bank reference', 'error'); return; }
-      $reasonModal.classList.remove('open');
       var bIdPay = pendingAction.id;
-      pendingAction = null;
-      $reasonText.placeholder = '';
-      $reasonText.style.display = '';
-      setPayoutFieldsVisible(false);
+      var payoutRecordButton = this;
+      payoutRecordButton.disabled = true;
+      payoutRecordButton.textContent = 'Recording...';
       try {
         var pr = await fetch('/api/booking/payout', {
           method: 'POST', headers: headers(),
           body: JSON.stringify({ bookingId: bIdPay, method: payoutMethod, notes: payoutReference }),
         });
-        var pd = await pr.json();
-        if (pd.error) { toast(pd.error, 'error'); return; }
+        var pd = await pr.json().catch(function(){ return {}; });
+        if (!pr.ok || pd.error) throw new Error(pd.error || 'Payout record could not be verified');
+        closeReasonModal();
         toast('Payout recorded', 'success');
         await loadBookings();
         if (selectedId) selectBooking(selectedId);
-      } catch { toast('Payout failed', 'error'); }
+      } catch (payoutError) {
+        toast(payoutError.message || 'Payout record failed. Keep the external confirmation and retry only after reviewing the booking.', 'error');
+      } finally {
+        payoutRecordButton.disabled = false;
+        payoutRecordButton.textContent = 'Record Payout';
+      }
       return;
     }
 
@@ -5711,9 +5776,15 @@ window.intelQuick = intelQuick;
         var preferredMethod = methodLabels[e.payout_method_preference] || 'Not selected';
         var jobsNeedingAction = e.unpaid_jobs || [];
         var actionButtons = jobsNeedingAction.slice(0, 3).map(function(job) {
-          var tone = job.disposition === 'on_hold' ? 'btn-amber' : 'btn-teal';
-          var label = job.disposition === 'on_hold' ? 'Review ' : 'Pay ';
-          return '<button class="btn ' + tone + '" type="button" onclick="openPayoutBooking(\'' + esc(job.id) + '\',\'' + esc(job.ref) + '\')" style="font-size:0.68rem;padding:0.2rem 0.45rem;margin:0 0.2rem 0.2rem 0">' + label + esc(job.ref) + '</button>';
+          var isHeld = job.disposition === 'on_hold';
+          var tone = isHeld ? 'btn-amber' : 'btn-teal';
+          var label = isHeld ? 'Review ' : 'Record ';
+          var holdReasons = Array.isArray(job.hold_reasons) ? job.hold_reasons.filter(Boolean) : [];
+          var title = isHeld && holdReasons.length
+            ? holdReasons.join(' ')
+            : (isHeld ? 'Review this booking before sending funds.' : 'Open the external payout recording form. This does not send money.');
+          return '<button class="btn ' + tone + '" type="button" data-payout-booking-id="' + esc(job.id) + '" data-payout-booking-ref="' + esc(job.ref) + '" data-payout-intent="' + (isHeld ? 'review' : 'record') + '" title="' + esc(title) + '" style="font-size:0.68rem;padding:0.2rem 0.45rem;margin:0 0.2rem 0.2rem 0">' + label + esc(job.ref) + '</button>'
+            + (isHeld && holdReasons.length ? '<div style="font-size:0.66rem;line-height:1.35;color:#92400e;margin:0 0.2rem 0.3rem">' + esc(holdReasons[0]) + '</div>' : '');
         }).join('');
         if (jobsNeedingAction.length > 3) actionButtons += '<div style="font-size:0.68rem;color:var(--muted)">+' + (jobsNeedingAction.length - 3) + ' more</div>';
         var contact = '<div style="font-size:0.69rem;color:var(--muted);font-weight:400;margin-top:0.2rem">'
@@ -5742,14 +5813,37 @@ window.intelQuick = intelQuick;
     }
   }
 
-  window.openPayoutBooking = async function(bookingId, ref) {
+  var payoutLedgerBody = document.getElementById('an-payout-body');
+  if (payoutLedgerBody) payoutLedgerBody.addEventListener('click', async function(event) {
+    var button = event.target.closest('[data-payout-booking-id]');
+    if (!button) return;
+    var originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Opening...';
+    try {
+      await window.openPayoutBooking(
+        button.dataset.payoutBookingId,
+        button.dataset.payoutBookingRef,
+        button.dataset.payoutIntent
+      );
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
+
+  window.openPayoutBooking = async function(bookingId, ref, intent) {
     try {
       var booking = allBookings.find(function(item){ return item.id == bookingId; });
-      if (!booking) {
+      // Always refresh before showing a form that tells the owner to send
+      // external money. A stale Financials row must never authorize a payout.
+      if (!booking || intent === 'record') {
         var data = await apiGet('/list?limit=1&bookingId=' + encodeURIComponent(bookingId));
         booking = (data.bookings || [])[0];
         if (!booking) throw new Error('Booking ' + ref + ' was not found');
-        allBookings.unshift(booking);
+        var existingIndex = allBookings.findIndex(function(item){ return item.id == booking.id; });
+        if (existingIndex >= 0) allBookings[existingIndex] = booking;
+        else allBookings.unshift(booking);
       }
       currentStatus = 'all';
       searchQuery = '';
@@ -5759,8 +5853,19 @@ window.intelQuick = intelQuick;
       if (currentView !== 'bookings') document.querySelector('.sidebar-nav a[data-view="bookings"]').click();
       renderList();
       await selectBooking(booking.id);
+      if (intent === 'record') {
+        var payoutButton = Array.from($detailAct.querySelectorAll('[data-action="payout"]')).find(function(candidate) {
+          return String(candidate.dataset.id) === String(booking.id);
+        });
+        if (!payoutButton) {
+          throw new Error('This earning is not currently ready to record. Review the payout hold shown on the booking before sending funds.');
+        }
+        payoutButton.click();
+      }
+      return true;
     } catch (error) {
       toast(error.message || 'Booking could not be opened', 'error');
+      return false;
     }
   };
 
