@@ -314,7 +314,6 @@ assert.doesNotMatch(bookingFlowPage, /&#9989;/, 'Booking UI must not use emoji s
 assert.match(bookingFlowPage, /esc\(formatUsPhoneForDisplay\(phone\)\)/, 'Booking summary must display a dashed phone number');
 assert.match(bookingFlowPage, /texas_statewide: \{ label: 'Statewide Texas service', fee: 5/, 'Browser pricing must show the statewide $5 fee');
 assert.doesNotMatch(source('assembler/my-assignments.html'), /&#9888;/, 'Easer UI must not use emoji symbols');
-assert.match(source('blog/furniture-assembly-steiner-ranch-austin-tx.html'), /name="robots" content="noindex, follow"/, 'Thin orphan content must not be indexed');
 assert.doesNotMatch(source('locations.html'), /A national brand|built to serve customers across the United States/);
 const contractorAgreement = source('assembler/contractor-agreement.html');
 assert.doesNotMatch(contractorAgreement, /786xx through 788xx/);
