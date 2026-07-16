@@ -13,7 +13,7 @@ import { governanceConfig } from './lib/site-governance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const TODAY = '2026-07-13';
+const TODAY = '2026-07-16';
 const FLAGSHIP_AUSTIN_PAGES = new Set(governanceConfig.services.flagshipAustinPages || []);
 const MAX_COMMON_JOBS = 4;
 function esc(str) {
@@ -330,7 +330,7 @@ const STATEWIDE_MARKETS = [
   },
   {
     name: 'League City', slug: 'league-city', nearby: ['Houston', 'Pasadena', 'Pearland', 'Baytown'],
-    bookingGuidance: 'For League City appointments, provide community access, parking, stairs, item location, and product dimensions. Outdoor projects should include surface and weather-sensitive scheduling information.',
+    bookingGuidance: 'For League City appointments, provide community access, parking, stairs, item location, and product dimensions. Outdoor projects should include surface and weather-sensitive scheduling information. For multi-item home or office setups, include exact quantities and final room placement.',
   },
   {
     name: 'Allen', slug: 'allen', nearby: ['Plano', 'McKinney', 'Frisco', 'Dallas'],
@@ -338,7 +338,7 @@ const STATEWIDE_MARKETS = [
   },
   {
     name: 'Edinburg', slug: 'edinburg', nearby: ['McAllen', 'Mission', 'Pharr', 'Brownsville'],
-    bookingGuidance: 'For Edinburg appointments, share apartment, campus, or community access, parking, stairs, and item location. Outdoor bookings should include surface and covered-work-area details.',
+    bookingGuidance: 'For Edinburg appointments, share apartment, campus, or community access, parking, stairs, and item location. Outdoor bookings should include surface and covered-work-area details. Multi-item move-ins should list every product, package count, and final room assignment.',
   },
   {
     name: 'Conroe', slug: 'conroe', nearby: ['The Woodlands', 'Houston', 'College Station', 'Huntsville'],
@@ -358,11 +358,11 @@ const STATEWIDE_MARKETS = [
   },
   {
     name: 'Bryan', slug: 'bryan', nearby: ['College Station', 'Waco', 'Temple', 'Houston'],
-    bookingGuidance: 'For Bryan bookings, include apartment, campus, or community access, parking, stairs, and unit details. Multi-item move-ins should list every product and final room placement.',
+    bookingGuidance: 'For Bryan bookings, include apartment, campus, or community access, parking, stairs, and unit details. Multi-item move-ins should list every product and final room placement. Add model numbers and package locations when available so the full project scope can be reviewed.',
   },
   {
     name: 'Baytown', slug: 'baytown', nearby: ['Houston', 'Pasadena', 'League City', 'Beaumont'],
-    bookingGuidance: 'For Baytown appointments, provide gate or building access, parking, stairs, and item locations. Outdoor bookings should include surface, covered-area, and weather-sensitive scheduling details.',
+    bookingGuidance: 'For Baytown appointments, provide gate or building access, parking, stairs, and item locations. Outdoor bookings should include surface, covered-area, and weather-sensitive scheduling details. For larger or multi-item projects, list every product, package location, and final setup area.',
   },
   {
     name: 'The Woodlands', slug: 'the-woodlands', nearby: ['Houston', 'Conroe', 'Sugar Land', 'College Station'],

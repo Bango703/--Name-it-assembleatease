@@ -15,6 +15,10 @@ import { pathToFileURL } from 'node:url';
 const AUSTIN = {
   name: 'Austin',
   citySlug: 'austin',
+  linksAreNearby: true,
+  bio: 'Austin combines downtown apartments, established neighborhoods, new construction, student housing, and growing office districts, so assembly visits can have very different access and setup requirements.',
+  landmark: 'Barton Springs Pool and South Congress Avenue',
+  bookingGuidance: 'Include the item count, parking or building access, stairs, room location, and any scheduling constraints so the appointment can be reviewed accurately.',
   nearby: [
     { slug: 'round-rock', name: 'Round Rock' },
     { slug: 'cedar-park', name: 'Cedar Park' },
@@ -23,6 +27,47 @@ const AUSTIN = {
   ],
 };
 const MAX_COMMON_JOBS = 4;
+
+const SERVICE_PLANNING = {
+  'furniture-assembly': {
+    heading: 'Furniture assembly planning',
+    summary: 'Common requests include flat-pack furniture, IKEA pieces, beds, dressers, desks, dining tables, shelving, and multi-item move-in setups. Share the brand or model, item count, box location, and final room for each piece so the appointment reflects the actual build.',
+    requestTypes: 'Furniture assembly service, furniture installation, IKEA assembly, bed assembly, crib assembly, dresser assembly, wardrobe assembly, sofa assembly, and desk assembly are all handled through the same item-based booking catalog.',
+  },
+  'tv-mounting': {
+    heading: 'TV mounting planning',
+    summary: 'TV installation details should include the screen size, mount style, wall material, mounting height, outlet location, and any soundbar or cable-management work. Fireplace, brick, concrete, tile, and steel-stud installations need to be identified before the visit.',
+    requestTypes: 'TV mounting service requests can include TV wall mounting, standard TV installation, above-fireplace mounting, soundbar mounting, in-wall cord concealment, mirror hanging, shelves, and curtain rod installation.',
+  },
+  'smart-home-installation': {
+    heading: 'Smart home installation planning',
+    summary: 'Helpful details include the device brand and model, installation location, existing wiring or power, Wi-Fi availability, and the number of devices. Doorbells, cameras, locks, thermostats, hubs, and lighting each require different setup and testing steps.',
+    requestTypes: 'Smart home installation service and setup requests include video doorbell installation, smart thermostat installation, security camera setup, smart lock installation, Wi-Fi and hub setup, plugs, and connected lighting.',
+  },
+  'fitness-equipment-assembly': {
+    heading: 'Fitness equipment assembly planning',
+    summary: 'For treadmills, bikes, benches, racks, and home gyms, include the model, box location, final room, stairs, doorway clearance, and floor surface. Large or heavy equipment may require extra handling space or more than one person.',
+    requestTypes: 'Fitness equipment assembly service and gym equipment assembly include treadmill assembly, exercise bike setup, elliptical assembly, rowing machine assembly, benches, squat rack assembly, power cages, and multi-station home gyms.',
+  },
+  'office-furniture-assembly': {
+    heading: 'Office furniture assembly planning',
+    summary: 'List the quantity and model of every desk, chair, cabinet, bookcase, or workstation, along with loading access, elevators, suite details, and the intended room layout. Complete counts are especially important for office moves and multi-station setups.',
+    requestTypes: 'Office furniture assembly service and installation can cover desk and standing desk assembly, chairs, filing cabinets, conference table assembly, shelving, cubicle installation, and complete workstation setups.',
+  },
+  'playset-assembly': {
+    heading: 'Playset and outdoor assembly planning',
+    summary: 'For playsets, swing sets, trampolines, gazebos, pergolas, and patio pieces, share the product model, package count, finished dimensions, work-surface type, access path, and available clearance. Site photos help identify leveling, anchoring, and weather-sensitive setup needs.',
+    requestTypes: 'Playset assembly service and outdoor installation requests include playset installation, swing set assembly, trampoline assembly, playground assembly, gazebo and pergola kits, shed assembly, basketball hoop assembly, and outdoor furniture assembly.',
+  },
+};
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
 
 // Derive the per-city page slug from the service prefix, e.g.
 // furniture-assembly + dallas -> furniture-assembly-dallas-tx.
@@ -40,17 +85,30 @@ function splitHeroTitle(heroTitle) {
   return { lead: match[1], tail: match[2] };
 }
 
-// The "do you serve nearby" FAQ is the one FAQ that is city-specific. Build it
-// from the city's real neighbors so it is accurate everywhere and never stuffs
-// an unrelated city. FAQ is an allowed place for the city name.
-function nearbyFaq(city) {
+// The location FAQ is city-specific. Some statewide markets have roster-backed
+// neighbors while others link to major Texas markets for crawl discovery; the
+// wording must distinguish those cases instead of calling distant cities nearby.
+function locationFaq(city) {
   const names = city.nearby.map((c) => c.name);
   const list = names.length > 1
     ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
     : names[0] || 'the surrounding area';
+  if (!city.linksAreNearby) {
+    return {
+      q: 'Do you serve other Texas cities too?',
+      a: `Yes &mdash; customers can also request appointments in ${list}. Enter your service address during booking to confirm current availability.`,
+    };
+  }
   return {
     q: 'Do you serve nearby cities too?',
     a: `Yes &mdash; beyond ${city.name}, we cover ${list} and the surrounding area. Enter your service address during booking to confirm current availability.`,
+  };
+}
+
+function costFaq(cfg, city) {
+  return {
+    q: `What does ${cfg.faqNoun} cost in ${city.name}?`,
+    a: `Common ${cfg.faqNoun} pricing starts at ${cfg.fromPrice}. The page shows typical jobs and price ranges; choose the matching service and add the exact item, installation, access, and site details so the scope can be confirmed before the appointment.`,
   };
 }
 
@@ -66,8 +124,7 @@ function neutralizeNote(noteStrong, city) {
 // Austin keeps its exact approved FAQs (the reference pages are never modified);
 // every other city swaps the 4th FAQ for its own real neighbors.
 function serviceFaqs(cfg, city) {
-  if (city.name === 'Austin') return cfg.faqs;
-  return [...cfg.faqs.slice(0, 3), nearbyFaq(city)];
+  return [...cfg.faqs.slice(0, 3), costFaq(cfg, city), locationFaq(city)];
 }
 
 function decodeHtmlText(value) {
@@ -128,6 +185,25 @@ function buildFaqSchema(cfg, city) {
       acceptedAnswer: { '@type': 'Answer', text: decodeHtmlText(f.a) },
     })),
   }).replace(/<\//g, '<\\/')}</script>`;
+}
+
+function buildBreadcrumbSchema(cfg, city) {
+  const url = `https://www.assembleatease.com/${pageSlug(cfg, city)}`;
+  return `<script type="application/ld+json">${JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.assembleatease.com' },
+      { '@type': 'ListItem', position: 2, name: 'Texas service areas', item: 'https://www.assembleatease.com/locations' },
+      { '@type': 'ListItem', position: 3, name: `${cfg.linkLabel} in ${city.name}, TX`, item: url },
+    ],
+  }).replace(/<\//g, '<\\/')}</script>`;
+}
+
+function upsertJsonLdSchema(html, type, schema) {
+  const pattern = new RegExp(`<script type="application\\/ld\\+json">(?:(?!<\\/script>)[\\s\\S])*?"@type"\\s*:\\s*"${type}"(?:(?!<\\/script>)[\\s\\S])*?<\\/script>`);
+  if (pattern.test(html)) return html.replace(pattern, () => schema);
+  return html.replace('</head>', `${schema}\n</head>`);
 }
 
 function parseStartingPrice(label) {
@@ -319,7 +395,23 @@ function buildBody(cfg, city) {
       <div class="fa-faq-a">${f.a}</div>
     </div>`).join('\n');
   const nearby = city.nearby.map((c) => `      <a href="/${cfg.prefix}-${c.slug}-tx">${c.name}</a>`).join('\n');
+  const otherServices = SERVICES
+    .filter((service) => service.prefix !== cfg.prefix)
+    .map((service) => `      <a href="/${service.prefix}-${city.citySlug}-tx">${service.linkLabel}</a>`)
+    .join('\n');
   const processId = `process-${pageSlug(cfg, city)}`;
+  const projectLabel = city.name === 'Austin' ? 'Completed Austin project' : 'Example completed project';
+  const locationLinksKicker = city.linksAreNearby ? 'Nearby cities' : 'Other Texas service areas';
+  const locationLinksHeading = city.linksAreNearby
+    ? `${cfg.linkLabel} outside ${city.name}`
+    : `${cfg.linkLabel} across Texas`;
+  const bookingGuidance = city.bookingGuidance
+    || `Include the item count, access details, stairs, room location, and scheduling constraints when booking in ${city.name}.`;
+  const servicePlanning = SERVICE_PLANNING[cfg.prefix];
+  if (!servicePlanning) throw new Error(`Missing service planning content for ${cfg.prefix}.`);
+  const marketContext = city.bio
+    ? `${city.bio}${city.landmark ? ` Addresses around ${city.landmark} can have different parking, entry, and item-move requirements.` : ''}`
+    : bookingGuidance;
 
   return `<!-- HERO -->
 <section class="fa-hero">
@@ -335,7 +427,7 @@ function buildBody(cfg, city) {
     </div>
     <div class="fa-hero-media">
       <img src="/images/${cfg.heroPhoto}" alt="${cfg.heroAlt}" loading="eager" fetchpriority="high"/>
-      <div class="fa-media-chip">Done in ${city.name}</div>
+      <div class="fa-media-chip">${projectLabel}</div>
     </div>
   </div>
 </section>
@@ -397,8 +489,11 @@ ${menu}
 <section class="fa-section" style="background:var(--off-white);border-bottom:1px solid var(--border)">
   <div class="fa-wrap" style="max-width:900px">
     <div class="fa-head fa-head--center" style="margin-bottom:1.5rem">
-      <div class="fa-kicker">Booking notes</div>
-      <h2 class="fa-h2">Before you book.</h2>
+      <div class="fa-kicker">${escapeHtml(city.name)} service guide</div>
+      <h2 class="fa-h2">${escapeHtml(servicePlanning.heading)} in ${escapeHtml(city.name)}</h2>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.summary)}</p>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.requestTypes)}</p>
+      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>
     </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">${city.name === 'Austin' ? 'Reviewed local pro' : 'Screened Easers'}</strong><span>Assigned and confirmed before the visit.</span></div>
@@ -419,15 +514,22 @@ ${faqs}
   </div>
 </section>
 
-<!-- NEARBY CITIES -->
+<!-- LOCATION AND SERVICE LINKS -->
 <section class="fa-section" style="background:var(--off-white);border-bottom:1px solid var(--border)">
   <div class="fa-wrap" style="max-width:760px;text-align:center">
     <div class="fa-head fa-head--center" style="margin-bottom:1.6rem">
-      <div class="fa-kicker">Nearby cities</div>
-      <h2 class="fa-h2">${cfg.linkLabel} outside ${city.name}</h2>
+      <div class="fa-kicker">${locationLinksKicker}</div>
+      <h2 class="fa-h2">${locationLinksHeading}</h2>
     </div>
     <div class="fa-citylinks">
 ${nearby}
+    </div>
+    <div class="fa-head fa-head--center" style="margin:2.2rem auto 1.2rem">
+      <div class="fa-kicker">More ways we can help</div>
+      <h2 class="fa-h2">Other services in ${city.name}</h2>
+    </div>
+    <div class="fa-citylinks">
+${otherServices}
     </div>
   </div>
 </section>
@@ -648,10 +750,10 @@ const SERVICES = [
 
 // Transform one existing page in place: keep its <head> SEO (title, canonical,
 // meta, breadcrumb schema), inject the flagship CSS, swap the visible body, and
-// point social + Service schema at the real hero. On city pages that carry a
-// FAQPage schema, resync it to the visible FAQs so structured data never
-// disagrees with the page. This is the ONE code path for Austin and every city.
-export function applyFlagshipToPage(html, cfg, city, { replaceFaqSchema = false } = {}) {
+// point social media at the real hero, and resync Service, BreadcrumbList, and
+// FAQPage schema to the visible page. This is the ONE code path for Austin and
+// every city.
+export function applyFlagshipToPage(html, cfg, city) {
   html = html.replace(FLAGSHIP_STYLE_RE, '');
   html = html.replace(CITY_TEMPLATE_STYLE_RE, '');
   html = html.replace('</head>', `${FA_STYLE}\n</head>`);
@@ -674,15 +776,8 @@ export function applyFlagshipToPage(html, cfg, city, { replaceFaqSchema = false 
     /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
     () => buildServiceSchema(cfg, city),
   );
-
-  if (replaceFaqSchema) {
-    // Tempered match so it stays inside the single FAQPage block and never
-    // swallows the Service or Breadcrumb blocks between them.
-    const faqRe = /<script type="application\/ld\+json">(?:(?!<\/script>)[\s\S])*?"@type":"FAQPage"(?:(?!<\/script>)[\s\S])*?<\/script>/;
-    if (faqRe.test(html)) {
-      html = html.replace(faqRe, () => buildFaqSchema(cfg, city));
-    }
-  }
+  html = upsertJsonLdSchema(html, 'BreadcrumbList', buildBreadcrumbSchema(cfg, city));
+  html = upsertJsonLdSchema(html, 'FAQPage', buildFaqSchema(cfg, city));
   return html;
 }
 
@@ -701,7 +796,7 @@ function generateAustinFlagshipPages() {
   console.log(`Done: ${count} pages.`);
 }
 
-export { SERVICES, AUSTIN, FA_STYLE, buildBody, buildServiceSchema, buildFaqSchema, assertVisibleStartPrice, pageSlug };
+export { SERVICES, AUSTIN, FA_STYLE, buildBody, buildServiceSchema, buildBreadcrumbSchema, buildFaqSchema, assertVisibleStartPrice, pageSlug };
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   generateAustinFlagshipPages();

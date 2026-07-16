@@ -36,10 +36,8 @@ function loadCities() {
 const CITIES = loadCities();
 const slugByName = new Map(CITIES.map((c) => [c.name, c.slug]));
 
-// Major metros used to top up the nearby links when a city's real neighbors are
-// not in the roster (e.g. far-west/panhandle/border cities). Keeps every page's
-// internal linking useful and never leaves the section empty. All are cities we
-// serve statewide, so the links are truthful.
+// Major metros used only when none of a city's actual nearby markets have pages.
+// The template labels these as other Texas service areas, never nearby cities.
 const METRO_TOPUP = [
   ['austin', 'Austin'], ['san-antonio', 'San Antonio'], ['houston', 'Houston'],
   ['dallas', 'Dallas'], ['fort-worth', 'Fort Worth'],
@@ -48,17 +46,19 @@ const METRO_TOPUP = [
 // Resolve a city's neighbor names to {slug,name}, keeping only neighbors that
 // actually have generated pages (so nearby links never 404). Top up to 4 with
 // major metros (excluding the city itself and any already listed).
-function nearbyFor(city) {
+function locationLinksFor(city) {
   const out = (city.nearby || [])
     .map((name) => ({ name, slug: slugByName.get(name) }))
     .filter((n) => n.slug)
     .slice(0, 4);
+  if (out.length) return { links: out, linksAreNearby: true };
+
   const have = new Set([city.slug, ...out.map((n) => n.slug)]);
   for (const [slug, name] of METRO_TOPUP) {
     if (out.length >= 4) break;
     if (!have.has(slug)) { out.push({ slug, name }); have.add(slug); }
   }
-  return out;
+  return { links: out, linksAreNearby: false };
 }
 
 const requested = new Set(process.argv.slice(2).map((s) => s.toLowerCase()));
@@ -74,11 +74,20 @@ for (const cfg of SERVICES) assertVisibleStartPrice(cfg);
 let built = 0;
 let missing = 0;
 for (const city of targets) {
-  const ctx = { name: city.name, citySlug: city.slug, nearby: nearbyFor(city) };
+  const locationLinks = locationLinksFor(city);
+  const ctx = {
+    name: city.name,
+    citySlug: city.slug,
+    nearby: locationLinks.links,
+    linksAreNearby: locationLinks.linksAreNearby,
+    bio: city.bio,
+    landmark: city.landmark,
+    bookingGuidance: city.bookingGuidance,
+  };
   for (const cfg of SERVICES) {
     const file = join(ROOT, `${cfg.prefix}-${city.slug}-tx.html`);
     if (!existsSync(file)) { missing += 1; console.warn(`  skip (missing): ${cfg.prefix}-${city.slug}-tx.html`); continue; }
-    const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, ctx, { replaceFaqSchema: true });
+    const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, ctx);
     writeFileSync(file, html);
     built += 1;
   }

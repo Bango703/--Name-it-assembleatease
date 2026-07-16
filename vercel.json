@@ -8,16 +8,6 @@
       "permanent": true
     },
     {
-      "source": "/repairs",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/junk",
-      "destination": "/",
-      "permanent": true
-    },
-    {
       "source": "/furniture",
       "destination": "/furniture-assembly-austin-tx",
       "permanent": true
@@ -65,16 +55,6 @@
     {
       "source": "/assembler/earn",
       "destination": "/assembler/apply",
-      "permanent": true
-    },
-    {
-      "source": "/blog/junk-removal-cost-austin",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/blog/home-repairs-diy-vs-hire-austin",
-      "destination": "/",
       "permanent": true
     }
   ],
