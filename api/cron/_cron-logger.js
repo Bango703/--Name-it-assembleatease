@@ -11,15 +11,16 @@ import { buildRequestId, getDeploymentMetadata, insertOperationalEventFailOpen }
  *   await logCron('expire-offers', { status:'ok', records:5, duration: Date.now()-t });
  *   await logCron('expire-offers', { status:'error', error: err.message });
  */
-export async function logCron(cronName, { status = 'ok', records = 0, error = null, duration = null } = {}) {
+export async function logCron(cronName, { status = 'ok', records = 0, error = null, errorText = null, duration = null } = {}) {
   const finalStatus = error ? 'error' : status;
+  const finalErrorText = error || errorText || null;
   try {
     const sb = getSupabase();
     await sb.from('cron_log').insert({
       cron_name:         cronName,
       status:            finalStatus,
       records_processed: records,
-      error_text:        error || null,
+      error_text:        finalErrorText,
       duration_ms:       duration || null,
     });
 
@@ -47,7 +48,7 @@ export async function logCron(cronName, { status = 'ok', records = 0, error = nu
           status: finalStatus,
           records_processed: Number(records) || 0,
           duration_ms: duration || null,
-          error_text: error || null,
+          error_text: finalErrorText,
         },
         ...getDeploymentMetadata(),
       });

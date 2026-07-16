@@ -4,6 +4,75 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 
+export function classifyRuntimeFailures(rows = [], activeAfter) {
+  const activeAfterMs = new Date(activeAfter).getTime();
+  const history = [...rows]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map(row => {
+    const active = new Date(row.created_at).getTime() >= activeAfterMs;
+    return {
+      kind: 'runtime',
+      title: 'Customer-side page error',
+      detail: row.reason_detail || 'Unknown browser error',
+      meta: [row.route, row.stage].filter(Boolean).join(' • '),
+      when: row.created_at,
+      severity: 'high',
+      state: active ? 'active' : 'historical',
+      resolution: active ? null : 'No repeat in the last two hours.',
+    };
+    });
+  return { history, active: history.filter(row => row.state === 'active') };
+}
+
+export function classifyCronFailures(rows = []) {
+  const history = [...rows].sort((a, b) => new Date(b.ran_at).getTime() - new Date(a.ran_at).getTime());
+  const latestByName = new Map();
+  for (const row of history) {
+    if (row.cron_name && !latestByName.has(row.cron_name)) latestByName.set(row.cron_name, row);
+  }
+
+  const active = Array.from(latestByName.entries())
+    .filter(([, row]) => row.status !== 'ok')
+    .map(([cronName, row]) => {
+      const previousDetailedFailure = history.find(candidate => candidate.cron_name === cronName
+        && candidate !== row
+        && candidate.status !== 'ok'
+        && candidate.error_text);
+      const detail = row.error_text
+        || (previousDetailedFailure
+          ? `Latest cron run completed ${row.status || 'with errors'}. Previous recorded error: ${previousDetailedFailure.error_text}`
+          : (row.status === 'partial' ? 'Latest cron run completed partially' : 'Cron run failed'));
+      return {
+        kind: 'cron',
+        title: (row.cron_name || 'cron') + ' ' + (row.status || 'error'),
+        detail,
+        meta: 'Background job',
+        when: row.ran_at,
+        severity: row.status === 'error' ? 'high' : 'medium',
+        state: 'active',
+        resolution: null,
+      };
+    });
+  const resolved = Array.from(latestByName.entries()).flatMap(([cronName, latest]) => {
+    if (latest.status !== 'ok') return [];
+    const priorFailure = history.find(row => row.cron_name === cronName && row.status !== 'ok');
+    if (!priorFailure) return [];
+    return [{
+      kind: 'cron',
+      title: `${cronName} ${priorFailure.status || 'error'}`,
+      detail: priorFailure.error_text || 'Earlier cron run failed',
+      meta: 'Background job',
+      when: priorFailure.ran_at,
+      severity: 'low',
+      state: 'resolved',
+      resolvedAt: latest.ran_at,
+      resolution: `A later ${cronName} run succeeded.`,
+    }];
+  });
+
+  return { active, resolved };
+}
+
 /**
  * GET /api/owner/live-ops
  * Real-time operational snapshot for the Live Ops command center.
@@ -51,10 +120,9 @@ export default async function handler(req, res) {
       .limit(8),
     sb.from('cron_log')
       .select('id, cron_name, status, error_text, ran_at')
-      .neq('status', 'ok')
       .gte('ran_at', twentyFourHoursAgo)
       .order('ran_at', { ascending: false })
-      .limit(8),
+      .limit(100),
     sb.from('activity_logs')
       .select('id, booking_id, description, metadata, created_at')
       .eq('event_type', 'damage_claim_reported')
@@ -100,14 +168,7 @@ export default async function handler(req, res) {
   const activeOfferBookingIds = new Set(activeOffers.map(o => o.booking_id));
   const isDispatchPaymentReady = booking => DISPATCH_PAYMENT_STATUSES.includes(String(booking.payment_status || ''));
   const assignedIds = new Set(operationalBookings.filter(booking => booking.assembler_id).map(booking => booking.assembler_id));
-  const runtimeErrors = (runtimeErrorsRes.data || []).map(row => ({
-    kind: 'runtime',
-    title: 'Customer-side page error',
-    detail: row.reason_detail || 'Unknown browser error',
-    meta: [row.route, row.stage].filter(Boolean).join(' • '),
-    when: row.created_at,
-    severity: 'high',
-  }));
+  const { history: runtimeHistory, active: runtimeErrors } = classifyRuntimeFailures(runtimeErrorsRes.data, twoHoursAgo);
   const failedNotifications = (failedNotificationsRes.data || []).map(row => ({
     kind: 'notification',
     title: (row.channel || 'notification') + ' failed',
@@ -122,14 +183,7 @@ export default async function handler(req, res) {
     notificationType: row.notification_type || null,
     ownerAction: 'Review the booking timeline and contact the recipient using the booking record. Do not assume delivery.',
   }));
-  const cronErrors = (cronErrorsRes.data || []).map(row => ({
-    kind: 'cron',
-    title: (row.cron_name || 'cron') + ' ' + (row.status || 'error'),
-    detail: row.error_text || 'Cron run failed',
-    meta: 'Background job',
-    when: row.ran_at,
-    severity: row.status === 'error' ? 'high' : 'medium',
-  }));
+  const { active: cronErrors, resolved: resolvedCronErrors } = classifyCronFailures(cronErrorsRes.data);
   const damageReports = (damageReportsRes.data || []).map(row => ({
     id: row.id,
     bookingId: row.booking_id,
@@ -527,8 +581,16 @@ export default async function handler(req, res) {
       booking_stage: assemblerStageMap[e.id] || null,
     })),
     offlineCount: offlineEasers.length,
-    recentFailures: runtimeErrors.concat(failedNotifications, cronErrors)
-      .sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime())
+    recentFailures: runtimeHistory.concat(failedNotifications, cronErrors, resolvedCronErrors)
+      .filter((item, index, rows) => item.kind !== 'runtime'
+        || rows.findIndex(candidate => candidate.kind === 'runtime'
+          && candidate.detail === item.detail
+          && candidate.meta === item.meta) === index)
+      .sort((a, b) => {
+        const stateOrder = { active: 0, historical: 1, resolved: 2 };
+        const stateDiff = (stateOrder[a.state || 'active'] ?? 0) - (stateOrder[b.state || 'active'] ?? 0);
+        return stateDiff || new Date(b.when).getTime() - new Date(a.when).getTime();
+      })
       .slice(0, 12),
     damageReports,
     partial: optionalErrors.length > 0,

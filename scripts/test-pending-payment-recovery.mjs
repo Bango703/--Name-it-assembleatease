@@ -8,6 +8,8 @@ import {
   isStandardRecoveryBooking,
   validateBookingPaymentIntent,
 } from '../api/booking/_pending-payment-recovery.js';
+import { classifyCronFailures, classifyRuntimeFailures } from '../api/owner/live-ops.js';
+import { summarizeSocialErrors } from '../api/cron/auto-social.js';
 
 const booking = {
   id: 'booking-recovery-1',
@@ -216,5 +218,35 @@ assert.match(liveOps, /const pendingConfirm = pendingPayment/);
 assert.match(liveOps, /payment_state_mismatch/);
 assert.match(liveOps, /isBookingPaymentReadyForDispatch/);
 assert.match(liveOps, /do not treat zero as confirmed/);
+
+const runtimeFailures = classifyRuntimeFailures([
+  { route: '/owner', stage: 'window_error', reason_detail: 'selectedId is not defined', created_at: '2026-07-15T20:01:00.000Z' },
+  { route: '/owner', stage: 'window_error', reason_detail: 'selectedId is not defined', created_at: '2026-07-15T21:45:00.000Z' },
+  { route: '/owner', stage: 'window_error', reason_detail: 'new failure', created_at: '2026-07-15T21:30:00.000Z' },
+], '2026-07-15T21:00:00.000Z');
+assert.equal(runtimeFailures.active.length, 2, 'stale browser errors must not count as active');
+assert.equal(runtimeFailures.history[0].when, '2026-07-15T21:45:00.000Z', 'newest browser failure must lead history');
+assert.equal(runtimeFailures.history[0].state, 'active');
+assert.equal(runtimeFailures.history[2].state, 'historical');
+
+const cronFailures = classifyCronFailures([
+  { cron_name: 'auto-dispatch', status: 'error', error_text: 'stale schema error', ran_at: '2026-07-15T14:01:00.000Z' },
+  { cron_name: 'auto-social', status: 'error', error_text: 'Access token is not valid', ran_at: '2026-07-15T14:00:00.000Z' },
+  { cron_name: 'auto-social', status: 'partial', error_text: null, ran_at: '2026-07-15T20:01:00.000Z' },
+  { cron_name: 'auto-dispatch', status: 'ok', error_text: null, ran_at: '2026-07-16T00:00:00.000Z' },
+]);
+assert.deepEqual(cronFailures.active.map(row => row.title), ['auto-social partial']);
+assert.match(cronFailures.active[0].detail, /Previous recorded error: Access token is not valid/);
+assert.deepEqual(cronFailures.resolved.map(row => row.title), ['auto-dispatch error']);
+assert.equal(cronFailures.resolved[0].state, 'resolved');
+
+assert.equal(summarizeSocialErrors({
+  summary: { errors: 2 },
+  posts: [
+    { status: 'error', error: 'Access token is not valid' },
+    { status: 'error', error: 'Access token is not valid' },
+  ],
+}), 'Access token is not valid');
+assert.equal(summarizeSocialErrors({ summary: { errors: 1 }, posts: [] }), '1 social post failed without a provider error message.');
 
 console.log('Pending payment recovery, quote expiry, and Live Ops fail-closed checks passed.');
