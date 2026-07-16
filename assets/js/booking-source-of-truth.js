@@ -4,9 +4,10 @@
 
 window.AAE_BOOKING_SOURCE = {
   serviceArea: {
-    city: 'Austin',
+    city: 'Texas',
     state: 'TX',
-    label: 'Austin and participating Central Texas communities',
+    label: 'Statewide Texas service',
+    statewideTexas: true,
     zipPrefixes: ['787'],
     zipCodes: [
       '78610', '78613', '78626', '78628', '78630', '78633', '78634',

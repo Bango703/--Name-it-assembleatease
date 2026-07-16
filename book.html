@@ -2915,7 +2915,7 @@
 
                 <div class="schedule-card-title">Service address</div>
 
-                <div class="schedule-card-sub">Tell us where the work will happen so we can confirm coverage and arrival details.</div>
+                <div class="schedule-card-sub">Tell us where the work will happen so we can match the job with an eligible Texas Easer.</div>
 
               </div>
 
@@ -2960,7 +2960,7 @@
 
                 <label class="form-label" for="s3-state">State</label>
 
-                <input type="text" class="form-input" id="s3-state" name="address-level1" placeholder="TX" value="TX" maxlength="2" autocomplete="address-level1" />
+                <input type="text" class="form-input" id="s3-state" name="address-level1" value="TX" maxlength="2" readonly aria-readonly="true" />
 
               </div>
 
@@ -2976,7 +2976,7 @@
 
             </div>
 
-            <div class="svc-area-ok" id="svc-area-ok">&#10003; We service your area</div>
+            <div class="svc-area-ok" id="svc-area-ok">&#10003; Online booking is available in this Texas ZIP</div>
 
             <div class="svc-area-lead" id="svc-area-lead">We are not actively booking this ZIP yet. You can still submit a service request; no payment is collected and no appointment is guaranteed until coverage is available.</div>
 
@@ -3388,14 +3388,15 @@ var AAE_BOOKING_SOURCE = window.AAE_BOOKING_SOURCE || {};
 
 var SUBCATS = AAE_BOOKING_SOURCE.subcategories || {};
 
-var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city:'Austin', state:'TX', label:'Austin service area', zipPrefixes:['787'], zipCodes:[] };
+var SERVICE_AREA = AAE_BOOKING_SOURCE.serviceArea || { city:'Texas', state:'TX', label:'Statewide Texas service', statewideTexas:true, zipPrefixes:['787'], zipCodes:[] };
 
 var SERVICE_CALL_ZONES = {
-  '787': { label: 'Austin core', fee: 25, minPretax: 129 },
-  '786': { label: 'Participating Central Texas communities', fee: 25, minPretax: 149 }
+  austin_core: { label: 'Austin core', fee: 5, minPretax: 129 },
+  central_texas: { label: 'Participating Central Texas communities', fee: 5, minPretax: 149 },
+  texas_statewide: { label: 'Statewide Texas service', fee: 5, minPretax: 149 }
 };
 
-var ACTIVE_MARKET_LABEL = 'Current instant-booking coverage';
+var ACTIVE_MARKET_LABEL = 'Statewide Texas booking coverage';
 
 
 (function() {
@@ -3435,7 +3436,7 @@ var BOOK = {
 
   address: '',
 
-  city: 'Austin',
+  city: '',
 
   state: 'TX',
 
@@ -3620,6 +3621,13 @@ function isValidZip(zip) {
   return !!zip && zip.length === 5 && /^\d{5}$/.test(zip);
 }
 
+function isTexasZip(zip) {
+  if (!isValidZip(zip)) return false;
+  var prefix = String(zip).slice(0, 3);
+  var numericPrefix = Number(prefix);
+  return prefix === '733' || prefix === '885' || (numericPrefix >= 750 && numericPrefix <= 799);
+}
+
 function isValidUsPhone(phone) {
   var digits = String(phone || '').replace(/\D/g, '');
   if (digits.length === 11 && digits.charAt(0) === '1') digits = digits.slice(1);
@@ -3635,7 +3643,11 @@ function formatUsPhoneForDisplay(phone) {
 }
 
 function isActiveServiceZip(zip) {
-  if (!isValidZip(zip)) return false;
+  return isTexasZip(zip);
+}
+
+function isAutomaticDispatchZip(zip) {
+  if (!isTexasZip(zip)) return false;
   var normalized = String(zip);
   var prefixes = Array.isArray(SERVICE_AREA.zipPrefixes) ? SERVICE_AREA.zipPrefixes : [];
   var exact = Array.isArray(SERVICE_AREA.zipCodes) ? SERVICE_AREA.zipCodes : [];
@@ -3643,13 +3655,15 @@ function isActiveServiceZip(zip) {
 }
 
 function getServiceCallFee(zip) {
-  var prefix = String(zip || '').slice(0, 3);
-  return SERVICE_CALL_ZONES[prefix] ? SERVICE_CALL_ZONES[prefix].fee : 0;
+  var zone = getServiceCallZoneInfo(zip);
+  return zone ? zone.fee : 0;
 }
 
 function getServiceCallZoneInfo(zip) {
-  var prefix = String(zip || '').slice(0, 3);
-  return SERVICE_CALL_ZONES[prefix] || null;
+  if (!isTexasZip(zip)) return null;
+  if (String(zip).slice(0, 3) === '787') return SERVICE_CALL_ZONES.austin_core;
+  if (isAutomaticDispatchZip(zip)) return SERVICE_CALL_ZONES.central_texas;
+  return SERVICE_CALL_ZONES.texas_statewide;
 }
 
 var USD_FORMATTER = new Intl.NumberFormat('en-US', {
@@ -6489,7 +6503,7 @@ function saveContactEdit() {
       var a = r.address || {};
       var street = [a.house_number, a.road].filter(Boolean).join(' ').trim();
       if (!street) return null;
-      var city = a.city || a.town || a.village || a.suburb || 'Austin';
+      var city = a.city || a.town || a.village || a.suburb || '';
       var state = txState(a.state_code || a.state);
       var zip = String(a.postcode || '').slice(0, 5);
       var label = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
@@ -6501,7 +6515,7 @@ function saveContactEdit() {
     return (results || []).map(function(r) {
       var street = String(r.street || '').trim();
       if (!street) return null;
-      var city = r.city || 'Austin';
+      var city = r.city || '';
       var state = txState(r.state || 'TX');
       var zip = String(r.zip || '').slice(0, 5);
       var label = r.label || [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
@@ -6562,7 +6576,7 @@ function saveContactEdit() {
   }
 
   function lookupOpenStreetMapAddress(q, key, token) {
-    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=us&addressdetails=1&limit=5&viewbox=-98.2,31.0,-97.1,29.7&bounded=0&q=' + encodeURIComponent(q + ', TX');
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=us&addressdetails=1&limit=5&viewbox=-106.65,36.50,-93.51,25.84&bounded=1&q=' + encodeURIComponent(q + ', TX');
 
     fetch(url)
       .then(function(r) { return r.ok ? r.json() : []; })

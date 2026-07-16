@@ -4,7 +4,11 @@ import {
   computeBookingFinancialSummary,
   computeBookingSplitFromSnapshot,
   computeCancellationFee,
+  getServiceCallFeeCents,
+  getServiceCallZone,
   isActiveInstantBookingZip,
+  isAutomaticDispatchZip,
+  isTexasZip,
 } from '../api/_source-of-truth.js';
 import { hasEffectiveEaserMembership } from '../api/_easer-membership.js';
 import { getEaserReadiness } from '../api/_easer-readiness.js';
@@ -38,8 +42,24 @@ assert.equal(customerOwnsBooking({ customer_id: null, customer_email: 'other@exa
 
 assert.equal(isActiveInstantBookingZip('78701'), true);
 assert.equal(isActiveInstantBookingZip('78664'), true);
-assert.equal(isActiveInstantBookingZip('78801'), false, 'A broad Texas prefix must not create a far-away instant booking');
-assert.equal(isActiveInstantBookingZip('78601'), false, 'Only verified Central Texas ZIPs may book instantly');
+assert.equal(isActiveInstantBookingZip('78801'), true, 'Every valid Texas ZIP must support instant booking');
+assert.equal(isActiveInstantBookingZip('78601'), true, 'Texas ZIPs outside the original market must support instant booking');
+assert.equal(isTexasZip('78701'), true, 'Austin ZIPs must be recognized as Texas');
+assert.equal(isTexasZip('75201'), true, 'Dallas ZIPs must be recognized as Texas');
+assert.equal(isTexasZip('77002'), true, 'Houston ZIPs must be recognized as Texas');
+assert.equal(isTexasZip('79901'), true, 'El Paso ZIPs must be recognized as Texas');
+assert.equal(isTexasZip('88510'), true, 'El Paso 885 ZIPs must be recognized as Texas');
+assert.equal(isTexasZip('90210'), false, 'Non-Texas ZIPs must not enter statewide Texas intake');
+assert.equal(isAutomaticDispatchZip('78701'), true, 'Austin ZIPs may use automatic dispatch');
+assert.equal(isAutomaticDispatchZip('78664'), true, 'Verified Central Texas ZIPs may use automatic dispatch');
+assert.equal(isAutomaticDispatchZip('75201'), false, 'Dallas bookings must wait for owner-managed assignment');
+assert.equal(isAutomaticDispatchZip('77002'), false, 'Houston bookings must wait for owner-managed assignment');
+assert.equal(isAutomaticDispatchZip('79901'), false, 'El Paso bookings must wait for owner-managed assignment');
+for (const zip of ['78701', '78664', '75201', '77002', '79901', '88510']) {
+  assert.equal(getServiceCallFeeCents(zip), 500, `${zip} must use the statewide $5 service-call fee`);
+  assert.ok(getServiceCallZone(zip), `${zip} must have a server pricing zone`);
+}
+assert.equal(getServiceCallFeeCents('90210'), null, 'Non-Texas ZIPs must not receive Texas pricing');
 
 process.env.EASER_MEMBERSHIP_ENABLED = 'false';
 assert.equal(hasEffectiveEaserMembership({ has_membership: true }), false, 'A stale database flag must not grant launch discounts or priority');
@@ -189,6 +209,12 @@ const bookingApi = source('api/booking.js');
 assert.match(bookingApi, /isActiveInstantBookingZip/);
 assert.match(bookingApi, /MARKET_NOT_ACTIVE/);
 assert.match(bookingApi, /formatUsPhone\(phone\)/);
+assert.match(bookingApi, /requiresOwnerAssignment = !isAutomaticDispatchZip\(zip\)/, 'Bookings outside established Central Texas dispatch must require owner assignment');
+assert.match(bookingApi, /needs_manual_dispatch: requiresOwnerAssignment/, 'Booking creation must persist statewide manual-dispatch truth');
+const bookingConfirmedApi = source('api/booking-confirmed.js');
+assert.match(bookingConfirmedApi, /booking\.needs_manual_dispatch\) return/, 'Payment confirmation must not auto-dispatch owner-assigned statewide jobs');
+assert.match(bookingConfirmedApi, /booking\.call_zone === 'texas_statewide'/, 'Payment-hold recovery must preserve statewide manual assignment');
+assert.match(bookingConfirmedApi, /booking\.needs_manual_dispatch = updatePayload\.needs_manual_dispatch/, 'Recovered dispatch truth must update the current request before dispatch runs');
 const homePage = source('index.html');
 assert.doesNotMatch(homePage, /p===['"]788['"]|786xx through 788xx/);
 assert.equal((homePage.match(/<h1\b/gi) || []).length, 1, 'Homepage must expose one semantic H1 across responsive layouts');
@@ -197,6 +223,7 @@ const bookingFlowPage = source('book.html');
 assert.equal((bookingFlowPage.match(/<h1\b/gi) || []).length, 1, 'Booking flow must expose one semantic H1');
 assert.doesNotMatch(bookingFlowPage, /&#9989;/, 'Booking UI must not use emoji symbols');
 assert.match(bookingFlowPage, /esc\(formatUsPhoneForDisplay\(phone\)\)/, 'Booking summary must display a dashed phone number');
+assert.match(bookingFlowPage, /texas_statewide: \{ label: 'Statewide Texas service', fee: 5/, 'Browser pricing must show the statewide $5 fee');
 assert.doesNotMatch(source('assembler/my-assignments.html'), /&#9888;/, 'Easer UI must not use emoji symbols');
 assert.match(source('blog/furniture-assembly-steiner-ranch-austin-tx.html'), /name="robots" content="noindex, follow"/, 'Thin orphan content must not be indexed');
 assert.doesNotMatch(source('locations.html'), /A national brand|built to serve customers across the United States/);

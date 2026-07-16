@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type')
     .eq('id', bookingId)
     .single();
 
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   }
 
   async function ensureDispatch() {
-    if (booking.status !== 'confirmed' || booking.assembler_id) return;
+    if (booking.status !== 'confirmed' || booking.assembler_id || booking.dispatch_paused || booking.needs_manual_dispatch) return;
     try {
       await dispatchBooking(bookingId);
     } catch (dispatchErr) {
@@ -108,9 +108,10 @@ export default async function handler(req, res) {
     confirmed_by: 'payment',
   };
   if (booking.dispatch_status === 'payment_hold') {
+    const requiresOwnerAssignment = booking.call_zone === 'texas_statewide';
     updatePayload.dispatch_status = null;
     updatePayload.dispatch_paused = false;
-    updatePayload.needs_manual_dispatch = false;
+    updatePayload.needs_manual_dispatch = requiresOwnerAssignment;
   }
   if (verifiedPaymentMethodId) updatePayload.stripe_payment_method_id = verifiedPaymentMethodId;
 
@@ -152,6 +153,12 @@ export default async function handler(req, res) {
 
   booking.payment_status = 'authorized';
   booking.status = 'confirmed';
+  if (Object.prototype.hasOwnProperty.call(updatePayload, 'dispatch_paused')) {
+    booking.dispatch_paused = updatePayload.dispatch_paused;
+  }
+  if (Object.prototype.hasOwnProperty.call(updatePayload, 'needs_manual_dispatch')) {
+    booking.needs_manual_dispatch = updatePayload.needs_manual_dispatch;
+  }
 
   await ensureDispatch();
 
@@ -176,6 +183,12 @@ export default async function handler(req, res) {
   const paymentLine = amount > 0
     ? `Your payment method has been verified securely for $${(amount / 100).toFixed(2)}. Payment is processed after the job is complete.`
     : `No payment has been collected for this request.`;
+  const assignmentLine = booking.needs_manual_dispatch
+    ? `Our team is reviewing local Easer availability for your requested appointment. We&rsquo;ll email you as soon as an Easer accepts the job; the appointment is not assigned until then.`
+    : `We&rsquo;re matching you with a verified Easer and will email you again once they accept the job.`;
+  const ownerActionLine = booking.needs_manual_dispatch
+    ? `This statewide booking requires owner assignment. Secure an eligible Easer near the service address, then confirm the appointment with <strong>${esc(name)}</strong>.`
+    : `Monitor Easer acceptance and contact <strong>${esc(name)}</strong> if appointment details need clarification.`;
 
   const customerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
@@ -185,7 +198,7 @@ export default async function handler(req, res) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">Request received, ${sName}!</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your payment method has been verified securely and the full total is on record. We process payment after the job is complete. We&rsquo;re matching you with a verified local pro now and will email you again once they&rsquo;re assigned.</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your payment method has been verified securely and the full total is on record. We process payment after the job is complete. ${assignmentLine}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
@@ -202,12 +215,12 @@ export default async function handler(req, res) {
     </table>
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What Happens Next</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
-      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We match you with a pro</strong> — A verified local pro accepts your job. You'll get a confirmation email the moment they're assigned.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
+      <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We match you with an Easer</strong> — We review availability for your address. You'll get a confirmation email when an eligible Easer accepts the job.</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your Easer arrives</strong> — Once assigned, a reviewed Easer arrives on the confirmed date with the tools needed for the job.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card authorized — charged after completion</strong> — ${paymentLine}</td></tr>
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
-      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your appointment at no charge. Inside 24 hours, a late-cancel fee may apply because a pro has already reserved the time.
+      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your requested appointment at no charge. Inside 24 hours, a late-cancel fee may apply under the cancellation policy.
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
       <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage your booking</a>
@@ -267,7 +280,7 @@ export default async function handler(req, res) {
     </table>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Action Required</p>
-      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">Contact <strong>${esc(name)}</strong> to confirm appointment details.</p>
+      <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${ownerActionLine}</p>
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">

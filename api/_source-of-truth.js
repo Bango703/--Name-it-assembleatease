@@ -318,25 +318,48 @@ export function computeBookingFinancialSummary({
 // Instant booking is deliberately narrower than a broad 786xx/787xx/788xx
 // prefix range. This protects launch operations from accepting jobs hundreds of
 // miles outside the cities where Easer coverage has actually been prepared.
-export const ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES = Object.freeze(['787']);
-export const ACTIVE_INSTANT_BOOKING_ZIPS = Object.freeze([
+export const TEXAS_ZIP_PREFIXES = Object.freeze(['733', '885']);
+export const TEXAS_ZIP_PREFIX_RANGE = Object.freeze({ min: 750, max: 799 });
+
+export function isTexasZip(zip) {
+  const normalized = String(zip || '').trim();
+  if (!/^\d{5}$/.test(normalized)) return false;
+  const prefix = normalized.slice(0, 3);
+  const numericPrefix = Number(prefix);
+  return TEXAS_ZIP_PREFIXES.includes(prefix)
+    || (numericPrefix >= TEXAS_ZIP_PREFIX_RANGE.min && numericPrefix <= TEXAS_ZIP_PREFIX_RANGE.max);
+}
+
+export const AUTOMATIC_DISPATCH_ZIP_PREFIXES = Object.freeze(['787']);
+export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
   '78610', '78613', '78626', '78628', '78630', '78633', '78634',
   '78640', '78641', '78645', '78646', '78653', '78660', '78664',
   '78665', '78680', '78681', '78682', '78683', '78691',
 ]);
+export const ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES = Object.freeze([
+  '733',
+  ...Array.from({ length: 50 }, (_, index) => String(750 + index)),
+  '885',
+]);
+export const ACTIVE_INSTANT_BOOKING_ZIPS = Object.freeze([]);
 
 export function isActiveInstantBookingZip(zip) {
-  const normalized = String(zip || '').trim();
-  if (!/^\d{5}$/.test(normalized)) return false;
-  return ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES.includes(normalized.slice(0, 3))
-    || ACTIVE_INSTANT_BOOKING_ZIPS.includes(normalized);
+  return isTexasZip(zip);
 }
 
-// Service-call fee — FLAT $25 across all currently served zones (covers Easer dispatch, travel, setup).
+export function isAutomaticDispatchZip(zip) {
+  const normalized = String(zip || '').trim();
+  if (!/^\d{5}$/.test(normalized)) return false;
+  return AUTOMATIC_DISPATCH_ZIP_PREFIXES.includes(normalized.slice(0, 3))
+    || AUTOMATIC_DISPATCH_ZIPS.includes(normalized);
+}
+
+// Service-call fee — FLAT $5 across all Texas booking zones.
 // Server classification remains authoritative; the browser check is convenience only.
 export const SERVICE_CALL_ZONES = Object.freeze({
-  austin_core:  { label: 'Austin core',    fee: 2500 },  // 787xx — Austin proper, Bee Cave, Lakeway
-  near_suburb:  { label: 'Participating Central Texas communities', fee: 2500 },
+  austin_core:    { label: 'Austin core', fee: 500 },
+  near_suburb:    { label: 'Participating Central Texas communities', fee: 500 },
+  texas_statewide: { label: 'Statewide Texas service', fee: 500 },
 });
 
 // Launch profit guardrails. These are pre-tax service-revenue floors, so sales
@@ -344,6 +367,7 @@ export const SERVICE_CALL_ZONES = Object.freeze({
 export const MIN_PRETAX_BOOKING_BY_ZONE = Object.freeze({
   austin_core: 12900,
   near_suburb: 14900,
+  texas_statewide: 14900,
 });
 
 export function getMinimumPretaxBookingCents(zone) {
@@ -351,11 +375,11 @@ export function getMinimumPretaxBookingCents(zone) {
 }
 
 export function getServiceCallZone(zip) {
-  if (!isActiveInstantBookingZip(zip)) return null;
+  if (!isTexasZip(zip)) return null;
   const prefix = String(zip || '').trim().slice(0, 3);
   if (prefix === '787') return 'austin_core';
-  if (prefix === '786') return 'near_suburb';
-  return null;
+  if (isAutomaticDispatchZip(zip)) return 'near_suburb';
+  return 'texas_statewide';
 }
 
 export function getServiceCallFeeCents(zip) {

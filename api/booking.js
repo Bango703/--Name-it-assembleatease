@@ -4,7 +4,7 @@ import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
-import { getMinimumPretaxBookingCents, isActiveInstantBookingZip } from './_source-of-truth.js';
+import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip } from './_source-of-truth.js';
 import {
   applyPromotionToPricing,
   isMissingColumnError,
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
     email,
     address,
     city,
+    state,
     zip,
     date,
     time,
@@ -67,11 +68,13 @@ export default async function handler(req, res) {
   if (!/^\d{5}$/.test(String(zip).trim())) {
     return res.status(400).json({ error: 'Enter a valid 5-digit ZIP code.', code: 'INVALID_ZIP' });
   }
+  if (String(state || 'TX').trim().toUpperCase() !== 'TX') {
+    return res.status(409).json({ error: 'Online booking is currently available for Texas addresses only.', code: 'STATE_NOT_ACTIVE' });
+  }
   if (!isActiveInstantBookingZip(zip)) {
     return res.status(409).json({
-      error: 'Online booking is not active for this ZIP yet. Submit a market request and no payment will be collected.',
+      error: 'Online booking is currently available for Texas addresses only.',
       code: 'MARKET_NOT_ACTIVE',
-      marketRequestUrl: '/locations#request-market',
     });
   }
 
@@ -321,6 +324,7 @@ export default async function handler(req, res) {
 
   const isDeposit = false;
   const depositAmountCents = null;
+  const requiresOwnerAssignment = !isAutomaticDispatchZip(zip);
 
   const bookingInsertPayload = {
     ref,
@@ -338,6 +342,8 @@ export default async function handler(req, res) {
     tax_amount: taxCents,
     service_call_fee: serviceCallFeeCents,
     call_zone: pricingWithPromo.callZone,
+    dispatch_paused: false,
+    needs_manual_dispatch: requiresOwnerAssignment,
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
     promo_code: promo.applied ? promo.appliedCode : null,

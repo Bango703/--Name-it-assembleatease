@@ -1,25 +1,14 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
-import {
-  ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES,
-  ACTIVE_INSTANT_BOOKING_ZIPS,
-  isActiveInstantBookingZip,
-} from '../_source-of-truth.js';
-
-const ACTIVE_CENTRAL_TEXAS_CITIES = Object.freeze([
-  'Austin', 'Bee Cave', 'Buda', 'Cedar Park', 'Georgetown', 'Hutto',
-  'Kyle', 'Lakeway', 'Leander', 'Manor', 'Pflugerville', 'Round Rock',
-]);
+import { isActiveInstantBookingZip } from '../_source-of-truth.js';
 
 const ACTIVE_MARKETS = [
   {
-    key: 'austin-tx',
-    label: 'Austin and Central Texas',
-    city: 'Austin',
+    key: 'texas-statewide',
+    label: 'Statewide Texas',
+    city: 'Texas',
     state: 'TX',
-    cities: ACTIVE_CENTRAL_TEXAS_CITIES,
-    zipPrefixes: ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES,
-    zips: ACTIVE_INSTANT_BOOKING_ZIPS,
+    coverage: 'All valid Texas ZIP codes',
   },
 ];
 
@@ -231,12 +220,8 @@ function isApprovedEaser(easer) {
 }
 
 function isActiveMarket(city, state) {
-  const normalizedCity = cleanMarketCity(city);
   const normalizedState = cleanState(state);
-  return ACTIVE_MARKETS.some(m =>
-    normalizedState === m.state
-    && (m.cities || [m.city]).some(activeCity => cleanMarketCity(activeCity) === normalizedCity)
-  );
+  return ACTIVE_MARKETS.some(m => normalizedState === m.state);
 }
 
 function inferState(zip) {

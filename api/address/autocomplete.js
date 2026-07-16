@@ -20,8 +20,8 @@ export default async function handler(req, res) {
     apiKey,
     limit: '6',
     lang: 'en',
-    filter: 'rect:-98.3,29.65,-97.0,31.0|countrycode:us',
-    bias: 'proximity:-97.7431,30.2672',
+    filter: 'rect:-106.65,25.84,-93.51,36.50',
+    bias: 'proximity:-99.9018,31.9686',
   });
 
   try {
@@ -52,7 +52,7 @@ function normalizeGeoapifyFeature(feature) {
   const street = p.address_line1 || [p.housenumber, p.street || p.name].filter(Boolean).join(' ').trim();
   if (!street) return null;
 
-  const city = p.city || p.town || p.village || p.suburb || p.county || 'Austin';
+  const city = p.city || p.town || p.village || p.suburb || p.county || '';
   const state = stateCode(p.state_code || p.state);
   const zip = String(p.postcode || '').slice(0, 5);
   const label = p.formatted || [street, city, state + (zip ? ` ${zip}` : '')].filter(Boolean).join(', ');

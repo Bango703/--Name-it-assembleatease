@@ -8,7 +8,7 @@ Business facts to use everywhere below:
 - Site: https://www.assembleatease.com  •  Book: https://www.assembleatease.com/book
 - Phone / text: (737) 290-6129  •  Email: service@assembleatease.com
 - Services: TV mounting, furniture assembly (incl. IKEA), fitness equipment, smart home, office, outdoor/playsets
-- Pricing model: flat upfront price + $25 service-call fee + tax, **full total shown before you confirm**
+- Pricing model: flat upfront price + $5 service-call fee + tax, **full total shown before you confirm**
 - TV mounting from $79 (pictures/mirrors), TVs from $99. Furniture assembly: see /book for live total.
 - Area: only the Central Texas ZIP codes currently accepted by the booking availability checker. Do not target all 786xx–788xx ZIPs.
 

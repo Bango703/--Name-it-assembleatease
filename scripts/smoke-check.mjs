@@ -500,9 +500,9 @@ const fakePricing = {
   discountedItemSubtotalCents: 12900,
   itemSubtotalCents: 12900,
   discountCents: 0,
-  serviceCallFeeCents: 2500,
-  taxCents: 1271,
-  totalCents: 16671,
+  serviceCallFeeCents: 500,
+  taxCents: 1106,
+  totalCents: 14506,
   hasPricedBaseItem: true,
 };
 
@@ -558,7 +558,7 @@ if (!promo.applied || promo.discountCents !== 2500) {
 }
 
 const adjusted = applyPromotionToPricing(fakePricing, promo);
-if (adjusted.totalCents !== 13964 || adjusted.promoDiscountCents !== 2500) {
+if (adjusted.totalCents !== 11799 || adjusted.promoDiscountCents !== 2500) {
   throw new Error(`Promo pricing mismatch; got ${JSON.stringify(adjusted)}`);
 }
 
