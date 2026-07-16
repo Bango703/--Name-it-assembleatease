@@ -369,7 +369,11 @@ for (const file of servicePages) {
     assert.doesNotMatch(html, /11 Google reviews/);
     assert.doesNotMatch(html, /&#9733;/);
     assert.match(html, /Screened Easers/);
-    assert.equal(serviceEntity.provider?.areaServed?.name, 'Texas', `${file} must identify truthful statewide booking coverage`);
+    // Truthful Texas coverage may be declared either on the provider (statewide)
+    // or as the specific city market contained within Texas (flagship city page).
+    const declaresTexasCoverage = serviceEntity.provider?.areaServed?.name === 'Texas'
+      || serviceEntity.areaServed?.containedInPlace?.name === 'Texas';
+    assert.ok(declaresTexasCoverage, `${file} must identify truthful Texas booking coverage`);
     assert.ok(jsonLdBlocks.some((entry) => entry?.['@type'] === 'BreadcrumbList'), `${file} must include breadcrumb schema`);
     assert.ok(jsonLdBlocks.some((entry) => entry?.['@type'] === 'FAQPage'), `${file} must include FAQ schema matching visible content`);
     assert.doesNotMatch(html, /Central Texas|local pro|local Easer|fast local/i);

@@ -7,9 +7,68 @@
 //   4. normalizes the page entity to a Service supplied by one Organization
 // Copy is location-NEUTRAL except the SEO spots (eyebrow, service-area, FAQ, links).
 import { readFileSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
-const CITY = 'Austin';
+// Austin is the reference market. Every other Texas city reuses this exact
+// template through the same builders (see scripts/generate-location-pages.js),
+// so there is ONE flagship layout and copy source for all city/service pages.
+const AUSTIN = {
+  name: 'Austin',
+  citySlug: 'austin',
+  nearby: [
+    { slug: 'round-rock', name: 'Round Rock' },
+    { slug: 'cedar-park', name: 'Cedar Park' },
+    { slug: 'pflugerville', name: 'Pflugerville' },
+    { slug: 'lakeway', name: 'Lakeway' },
+  ],
+};
 const MAX_COMMON_JOBS = 4;
+
+// Derive the per-city page slug from the service prefix, e.g.
+// furniture-assembly + dallas -> furniture-assembly-dallas-tx.
+function pageSlug(cfg, city) {
+  return `${cfg.prefix}-${city.citySlug}-tx`;
+}
+
+// The service headline is stored Austin-form ("X in Austin,<br><em>Y</em>").
+// Split it so the same selling promise (Y) travels to every city while only the
+// "in {City}" label changes. Parsing (not editing the data) keeps Austin output
+// byte-identical after this refactor.
+function splitHeroTitle(heroTitle) {
+  const match = String(heroTitle).match(/^(.*?) in Austin,<br><em>(.*?)<\/em>$/);
+  if (!match) throw new Error(`Unexpected heroTitle shape: ${heroTitle}`);
+  return { lead: match[1], tail: match[2] };
+}
+
+// The "do you serve nearby" FAQ is the one FAQ that is city-specific. Build it
+// from the city's real neighbors so it is accurate everywhere and never stuffs
+// an unrelated city. FAQ is an allowed place for the city name.
+function nearbyFaq(city) {
+  const names = city.nearby.map((c) => c.name);
+  const list = names.length > 1
+    ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    : names[0] || 'the surrounding area';
+  return {
+    q: 'Do you serve nearby cities too?',
+    a: `Yes &mdash; beyond ${city.name}, we cover ${list} and the surrounding area. Enter your service address during booking to confirm current availability.`,
+  };
+}
+
+// The service copy carries an Austin-specific work caption on one service; keep
+// it for Austin, neutralize it elsewhere (captions are brand copy, not an
+// allowed city-name slot).
+function neutralizeNote(noteStrong, city) {
+  if (city.name === 'Austin') return noteStrong;
+  return noteStrong.replace(' around Austin', '');
+}
+
+// Service FAQs = the neutral service questions plus the city nearby question.
+// Austin keeps its exact approved FAQs (the reference pages are never modified);
+// every other city swaps the 4th FAQ for its own real neighbors.
+function serviceFaqs(cfg, city) {
+  if (city.name === 'Austin') return cfg.faqs;
+  return [...cfg.faqs.slice(0, 3), nearbyFaq(city)];
+}
 
 function decodeHtmlText(value) {
   return String(value || '')
@@ -21,13 +80,13 @@ function decodeHtmlText(value) {
     .replaceAll('&#39;', "'");
 }
 
-function buildServiceSchema(cfg) {
-  const url = `https://www.assembleatease.com/${cfg.slug}`;
+function buildServiceSchema(cfg, city) {
+  const url = `https://www.assembleatease.com/${pageSlug(cfg, city)}`;
   return `<script type="application/ld+json">${JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Service',
     '@id': `${url}#service`,
-    name: `AssembleAtEase — ${cfg.eyebrow} in ${CITY}`,
+    name: `AssembleAtEase — ${cfg.eyebrow} in ${city.name}`,
     serviceType: cfg.eyebrow,
     image: `https://www.assembleatease.com/images/${cfg.heroPhoto}`,
     url,
@@ -41,7 +100,7 @@ function buildServiceSchema(cfg) {
     },
     areaServed: {
       '@type': 'City',
-      name: CITY,
+      name: city.name,
       containedInPlace: { '@type': 'State', name: 'Texas' },
     },
     hasOfferCatalog: {
@@ -54,6 +113,20 @@ function buildServiceSchema(cfg) {
         description: decodeHtmlText(offer.p),
       })),
     },
+  }).replace(/<\//g, '<\\/')}</script>`;
+}
+
+// FAQPage schema built from the SAME faqs the visible body renders, so the
+// structured data and the page never disagree (an SEO consistency requirement).
+function buildFaqSchema(cfg, city) {
+  return `<script type="application/ld+json">${JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: serviceFaqs(cfg, city).map((f) => ({
+      '@type': 'Question',
+      name: decodeHtmlText(f.q),
+      acceptedAnswer: { '@type': 'Answer', text: decodeHtmlText(f.a) },
+    })),
   }).replace(/<\//g, '<\\/')}</script>`;
 }
 
@@ -205,21 +278,22 @@ const NEAR_CITIES = [
 const FLAGSHIP_STYLE_RE = /<style>\s*\/\* ===== Flagship[\s\S]*?<\/style>\s*/g;
 const CITY_TEMPLATE_STYLE_RE = /<style>\s*\.pricing-shell\{[\s\S]*?#m-svc-bar\{display:none\}[\s\S]*?<\/style>\s*/g;
 
-function gallerySection(cfg) {
+function gallerySection(cfg, city) {
+  const noteStrong = neutralizeNote(cfg.noteStrong, city);
   const header = `    <div class="fa-head">
       <div class="fa-kicker">Recent work</div>
       <h2 class="fa-h2">${cfg.workHeadline}</h2>
       <p class="fa-lead">Recent job photos for this service.</p>
     </div>`;
   const shot = (g) => `      <figure class="fa-shot"><div class="frame"><img src="/images/${g.src}" alt="${g.alt}" loading="lazy"${g.pos ? ` style="object-position:${g.pos}"` : ''}/></div><figcaption class="cap">${g.cap}<small>${g.sub}</small></figcaption></figure>`;
-  const noteCell = `      <div class="fa-note"><strong>${cfg.noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
+  const noteCell = `      <div class="fa-note"><strong>${noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
   let inner;
   if (cfg.gallery.length >= 2) {
     inner = `    <div class="fa-gallery">\n${cfg.gallery.slice(0, 2).map(shot).join('\n')}\n    </div>`;
   } else if (cfg.gallery.length === 1) {
     inner = `    <div class="fa-gallery">\n${shot(cfg.gallery[0])}\n${noteCell}\n    </div>`;
   } else {
-    inner = `    <div class="fa-note"><strong>${cfg.noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
+    inner = `    <div class="fa-note"><strong>${noteStrong}</strong><p>${cfg.noteSpan}</p></div>`;
   }
   return `<section class="fa-section" style="background:var(--white)">
   <div class="fa-wrap">
@@ -229,28 +303,30 @@ ${inner}
 </section>`;
 }
 
-function buildBody(cfg) {
+function buildBody(cfg, city) {
   const bk = `/book?service=${cfg.bookingParam}`;
-  const pageUrl = `https://www.assembleatease.com/${cfg.slug}`;
+  const pageUrl = `https://www.assembleatease.com/${pageSlug(cfg, city)}`;
   const facebookShare = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
   const linkedinShare = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
+  const { lead, tail } = splitHeroTitle(cfg.heroTitle);
+  const heroTitle = `${lead} in ${city.name},<br><em>${tail}</em>`;
   const menu = cfg.offers
     .slice(0, MAX_COMMON_JOBS)
     .map((o) => `      <div class="fa-menu-row"><span class="nm">${o.n}${o.popular ? ' <span class="tag">Popular</span>' : ''}</span><span class="pr">${o.p}</span></div>`)
     .join('\n');
-  const faqs = cfg.faqs.map((f) => `    <div class="fa-faq-item">
+  const faqs = serviceFaqs(cfg, city).map((f) => `    <div class="fa-faq-item">
       <button class="fa-faq-q" onclick="var a=this.nextElementSibling;a.style.display=a.style.display==='block'?'none':'block';this.querySelector('.fa-chev').style.transform=a.style.display==='block'?'rotate(180deg)':'rotate(0)'">${f.q} <span class="fa-chev">&#8964;</span></button>
       <div class="fa-faq-a">${f.a}</div>
     </div>`).join('\n');
-  const nearby = NEAR_CITIES.map((c) => `      <a href="/${cfg.prefix}-${c.slug}-tx">${c.name}</a>`).join('\n');
-  const processId = `process-${cfg.slug}`;
+  const nearby = city.nearby.map((c) => `      <a href="/${cfg.prefix}-${c.slug}-tx">${c.name}</a>`).join('\n');
+  const processId = `process-${pageSlug(cfg, city)}`;
 
   return `<!-- HERO -->
 <section class="fa-hero">
   <div class="fa-hero-grid">
     <div class="fa-hero-copy">
-      <span class="fa-eyebrow">${CITY}, TX &middot; ${cfg.eyebrow}</span>
-      <h1 class="fa-title">${cfg.heroTitle}</h1>
+      <span class="fa-eyebrow">${city.name}, TX &middot; ${cfg.eyebrow}</span>
+      <h1 class="fa-title">${heroTitle}</h1>
       <p class="fa-sub">${cfg.heroSub}</p>
       <div class="fa-cta-row">
         <a class="fa-btn-primary" href="${bk}">${cfg.ctaVerb} &rarr;</a>
@@ -259,13 +335,13 @@ function buildBody(cfg) {
     </div>
     <div class="fa-hero-media">
       <img src="/images/${cfg.heroPhoto}" alt="${cfg.heroAlt}" loading="eager" fetchpriority="high"/>
-      <div class="fa-media-chip">Done in ${CITY}</div>
+      <div class="fa-media-chip">Done in ${city.name}</div>
     </div>
   </div>
 </section>
 
 <!-- OUR WORK -->
-${gallerySection(cfg)}
+${gallerySection(cfg, city)}
 
 <!-- PRICING -->
 <section class="fa-section" id="fa-pricing" style="background:var(--off-white);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
@@ -325,7 +401,7 @@ ${menu}
       <h2 class="fa-h2">Before you book.</h2>
     </div>
     <div class="fa-mini-facts">
-      <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Reviewed local pro</strong><span>Assigned and confirmed before the visit.</span></div>
+      <div class="fa-mini-fact"><strong class="fa-mini-fact-title">${city.name === 'Austin' ? 'Reviewed local pro' : 'Screened Easers'}</strong><span>Assigned and confirmed before the visit.</span></div>
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Careful setup</strong><span>Built, mounted, or installed with the finish details checked.</span></div>
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">Ready to use</strong><span>We leave the space clean and the job ready for the next step.</span></div>
     </div>
@@ -337,7 +413,7 @@ ${menu}
   <div class="fa-wrap" style="max-width:700px">
     <div class="fa-head fa-head--center" style="margin-bottom:2.4rem">
       <div class="fa-kicker">FAQ</div>
-      <h2 class="fa-h2">Common questions about ${cfg.faqNoun} in ${CITY}</h2>
+      <h2 class="fa-h2">Common questions about ${cfg.faqNoun} in ${city.name}</h2>
     </div>
 ${faqs}
   </div>
@@ -348,7 +424,7 @@ ${faqs}
   <div class="fa-wrap" style="max-width:760px;text-align:center">
     <div class="fa-head fa-head--center" style="margin-bottom:1.6rem">
       <div class="fa-kicker">Nearby cities</div>
-      <h2 class="fa-h2">${cfg.linkLabel} outside Austin</h2>
+      <h2 class="fa-h2">${cfg.linkLabel} outside ${city.name}</h2>
     </div>
     <div class="fa-citylinks">
 ${nearby}
@@ -570,42 +646,63 @@ const SERVICES = [
   },
 ];
 
-let count = 0;
-for (const cfg of SERVICES) {
-  assertVisibleStartPrice(cfg);
-}
-for (const cfg of SERVICES) {
-  const file = `${cfg.slug}.html`;
-  let html = readFileSync(file, 'utf8');
-
-  // 1. replace any previous flagship CSS block so regenerated pages stay clean.
+// Transform one existing page in place: keep its <head> SEO (title, canonical,
+// meta, breadcrumb schema), inject the flagship CSS, swap the visible body, and
+// point social + Service schema at the real hero. On city pages that carry a
+// FAQPage schema, resync it to the visible FAQs so structured data never
+// disagrees with the page. This is the ONE code path for Austin and every city.
+export function applyFlagshipToPage(html, cfg, city, { replaceFaqSchema = false } = {}) {
   html = html.replace(FLAGSHIP_STYLE_RE, '');
   html = html.replace(CITY_TEMPLATE_STYLE_RE, '');
   html = html.replace('</head>', `${FA_STYLE}\n</head>`);
 
-  // 2. swap visible body
   const start = html.indexOf('<!-- HERO -->');
   const end = html.indexOf('<footer class="footer">');
   if (start === -1 || end === -1 || end < start) {
-    throw new Error(`Body markers not found in ${file}`);
+    throw new Error('Body markers (<!-- HERO --> / <footer class="footer">) not found');
   }
-  html = html.slice(0, start) + buildBody(cfg) + html.slice(end);
+  html = html.slice(0, start) + buildBody(cfg, city) + html.slice(end);
 
-  // 3. point social image at the real hero photo
   const heroUrl = `https://www.assembleatease.com/images/${cfg.heroPhoto}`;
   html = html.replace('<meta property="og:image" content="https://www.assembleatease.com/images/logo.jpg"/>', `<meta property="og:image" content="${heroUrl}"/>`);
   html = html.replace('<meta name="twitter:card" content="summary"/>', '<meta name="twitter:card" content="summary_large_image"/>');
   html = html.replace('<meta name="twitter:image" content="https://www.assembleatease.com/images/logo.jpg"/>', `<meta name="twitter:image" content="${heroUrl}"/>`);
 
-  // One Organization is the business identity; each location landing page
-  // describes the specific service supplied in that verified market.
+  // Replace the FIRST ld+json (the Service block on both Austin and city pages).
+  // Function replacement so literal "$69" prices are never read as $-patterns.
   html = html.replace(
     /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
-    buildServiceSchema(cfg),
+    () => buildServiceSchema(cfg, city),
   );
 
-  writeFileSync(file, html);
-  count += 1;
-  console.log(`built ${file}`);
+  if (replaceFaqSchema) {
+    // Tempered match so it stays inside the single FAQPage block and never
+    // swallows the Service or Breadcrumb blocks between them.
+    const faqRe = /<script type="application\/ld\+json">(?:(?!<\/script>)[\s\S])*?"@type":"FAQPage"(?:(?!<\/script>)[\s\S])*?<\/script>/;
+    if (faqRe.test(html)) {
+      html = html.replace(faqRe, () => buildFaqSchema(cfg, city));
+    }
+  }
+  return html;
 }
-console.log(`Done: ${count} pages.`);
+
+// Direct run = regenerate the 6 Austin flagship pages. Importing this module
+// (from the city generator) reuses the builders WITHOUT running this loop.
+function generateAustinFlagshipPages() {
+  for (const cfg of SERVICES) assertVisibleStartPrice(cfg);
+  let count = 0;
+  for (const cfg of SERVICES) {
+    const file = `${cfg.slug}.html`;
+    const html = applyFlagshipToPage(readFileSync(file, 'utf8'), cfg, AUSTIN);
+    writeFileSync(file, html);
+    count += 1;
+    console.log(`built ${file}`);
+  }
+  console.log(`Done: ${count} pages.`);
+}
+
+export { SERVICES, AUSTIN, FA_STYLE, buildBody, buildServiceSchema, buildFaqSchema, assertVisibleStartPrice, pageSlug };
+
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+  generateAustinFlagshipPages();
+}
