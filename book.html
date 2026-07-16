@@ -3643,18 +3643,11 @@ function formatUsPhoneForDisplay(phone) {
 }
 
 function isActiveServiceZip(zip) {
-  // Instant booking runs only where an Easer can actually work the job. Every
-  // other Texas ZIP still gets the site and the lead-capture path (svc-area-lead)
-  // instead of a card hold. The server check in api/_source-of-truth.js is
-  // authoritative; this only decides which UI the customer sees.
-  if (!isTexasZip(zip)) return false;
-  var normalized = String(zip);
-  var instantPrefixes = Array.isArray(SERVICE_AREA.instantBookingZipPrefixes)
-    ? SERVICE_AREA.instantBookingZipPrefixes
-    : [];
-  var exact = Array.isArray(SERVICE_AREA.zipCodes) ? SERVICE_AREA.zipCodes : [];
-  return instantPrefixes.indexOf(normalized.slice(0, 3)) !== -1
-    || exact.indexOf(normalized) !== -1;
+  // Booking is open statewide (any Texas ZIP). This is safe because a booking
+  // outside the Austin auto-dispatch area is flagged needs_manual_dispatch on
+  // the server and never auto-offers to a far Easer; it waits for the owner to
+  // assign. The server check in api/_source-of-truth.js is authoritative.
+  return isTexasZip(zip);
 }
 
 function isAutomaticDispatchZip(zip) {

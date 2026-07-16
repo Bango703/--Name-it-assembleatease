@@ -8,13 +8,9 @@ window.AAE_BOOKING_SOURCE = {
     state: 'TX',
     label: 'Statewide Texas service',
     statewideTexas: true,
-    // Instant online booking runs only where an Easer can actually work the job.
-    // Mirrors ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES in api/_source-of-truth.js —
-    // the server check is authoritative; this only picks which UI the customer
-    // sees (book now vs. join the list for their city). Every other Texas ZIP
-    // still reaches the site and is captured as demand instead of being charged.
-    instantBookingZipPrefixes: ['787', '782'],
-    // Auto-dispatch area. Anything booked outside it needs owner assignment.
+    // zipPrefixes/zipCodes describe the Austin AUTO-DISPATCH area, not who may
+    // book. Booking is open statewide (see isActiveServiceZip); anything outside
+    // this area books but needs owner assignment.
     zipPrefixes: ['787'],
     zipCodes: [
       '78610', '78613', '78626', '78628', '78630', '78633', '78634',

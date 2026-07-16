@@ -40,28 +40,31 @@ assert.equal(customerOwnsBooking({ customer_id: 'customer-2', customer_email: 's
 assert.equal(customerOwnsBooking({ customer_id: null, customer_email: ' Legacy@Example.com ' }, { id: 'customer-1', email: 'legacy@example.com' }), true, 'Legacy unbound bookings may use exact normalized email ownership');
 assert.equal(customerOwnsBooking({ customer_id: null, customer_email: 'other@example.com' }, { id: 'customer-1', email: 'legacy@example.com' }), false);
 
-assert.equal(isActiveInstantBookingZip('78701'), true);
-assert.equal(isActiveInstantBookingZip('78664'), true);
-assert.equal(isActiveInstantBookingZip('78205'), true, 'San Antonio books instantly');
-// Instant booking is limited to metros with real Easer coverage. A Texas ZIP we
-// cannot serve must never hold a customer's card for a job nobody can work — it
-// is captured as out-of-market demand instead (api/market-demand.js).
-assert.equal(isActiveInstantBookingZip('75201'), false, 'Dallas has no Easer coverage and must not take a booking');
-assert.equal(isActiveInstantBookingZip('77002'), false, 'Houston has no Easer coverage and must not take a booking');
-assert.equal(isActiveInstantBookingZip('79901'), false, 'El Paso has no Easer coverage and must not take a booking');
-assert.equal(isActiveInstantBookingZip('78801'), false, 'An uncovered Texas ZIP must not take a booking');
+// Booking is open statewide: every valid Texas ZIP may book. This is safe ONLY
+// because auto-dispatch stays narrow (asserted below) - a far-market booking is
+// flagged needs_manual_dispatch and can never auto-offer to an Austin Easer.
+assert.equal(isActiveInstantBookingZip('78701'), true, 'Austin books');
+assert.equal(isActiveInstantBookingZip('78205'), true, 'San Antonio books');
+assert.equal(isActiveInstantBookingZip('75201'), true, 'Dallas books (then waits for owner assignment)');
+assert.equal(isActiveInstantBookingZip('77002'), true, 'Houston books (then waits for owner assignment)');
+assert.equal(isActiveInstantBookingZip('79901'), true, 'El Paso books (then waits for owner assignment)');
+assert.equal(isActiveInstantBookingZip('88510'), true, 'El Paso 885 ZIPs book');
 assert.equal(isActiveInstantBookingZip('90210'), false, 'A non-Texas ZIP must never take a booking');
+// The load-bearing safety guarantee: only Austin auto-dispatches. If this ever
+// widens to match statewide booking, far-market jobs would blast to Austin
+// Easers. Everything outside Austin must require owner-managed assignment.
+assert.equal(isAutomaticDispatchZip('78701'), true, 'Austin auto-dispatches');
+assert.equal(isAutomaticDispatchZip('78664'), true, 'Austin metro list auto-dispatches');
+assert.equal(isAutomaticDispatchZip('78205'), false, 'San Antonio must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('75201'), false, 'Dallas must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('77002'), false, 'Houston must wait for owner assignment');
+assert.equal(isAutomaticDispatchZip('79901'), false, 'El Paso must wait for owner assignment');
 assert.equal(isTexasZip('78701'), true, 'Austin ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('75201'), true, 'Dallas ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('77002'), true, 'Houston ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('79901'), true, 'El Paso ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('88510'), true, 'El Paso 885 ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('90210'), false, 'Non-Texas ZIPs must not enter statewide Texas intake');
-assert.equal(isAutomaticDispatchZip('78701'), true, 'Austin ZIPs may use automatic dispatch');
-assert.equal(isAutomaticDispatchZip('78664'), true, 'Verified Central Texas ZIPs may use automatic dispatch');
-assert.equal(isAutomaticDispatchZip('75201'), false, 'Dallas bookings must wait for owner-managed assignment');
-assert.equal(isAutomaticDispatchZip('77002'), false, 'Houston bookings must wait for owner-managed assignment');
-assert.equal(isAutomaticDispatchZip('79901'), false, 'El Paso bookings must wait for owner-managed assignment');
 for (const zip of ['78701', '78664', '75201', '77002', '79901', '88510']) {
   assert.equal(getServiceCallFeeCents(zip), 500, `${zip} must use the statewide $5 service-call fee`);
   assert.ok(getServiceCallZone(zip), `${zip} must have a server pricing zone`);
