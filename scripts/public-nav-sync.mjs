@@ -28,9 +28,6 @@ function resolveNavOptions(pagePath) {
   if (pagePath === 'about.html') {
     return { variant: 'core', includeSkipNav: true, activeHref: '/about' };
   }
-  if (pagePath === 'locations.html') {
-    return { variant: 'core', includeSkipNav: true, activeHref: '/locations' };
-  }
   return { variant: 'core', includeSkipNav: true };
 }
 
@@ -67,9 +64,11 @@ const report = {
 const shouldWriteReport = !process.argv.includes('--no-report');
 if (shouldWriteReport) {
   writeReportFile('page-public-nav-sync-report.json', `${JSON.stringify(report, null, 2)}\n`);
+  const reportLines = ['# Public Nav Sync Report', '', `Changed ${changedFiles.length} file(s).`];
+  if (changedFiles.length) reportLines.push('', ...changedFiles.map((path) => `- ${path}`));
   writeReportFile(
     'page-public-nav-sync-report.md',
-    ['# Public Nav Sync Report', '', `Changed ${changedFiles.length} file(s).`, '', ...changedFiles.map((path) => `- ${path}`)].join('\n') + '\n',
+    `${reportLines.join('\n')}\n`,
   );
 }
 

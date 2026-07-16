@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/generate-location-pages.js
-// Generates 72 local SEO landing pages (12 cities × 6 services) + updates sitemap.xml
+// Generates governed Texas city/service landing pages + updates sitemap.xml.
 // Run: node scripts/generate-location-pages.js
 
 import { writeFileSync, readFileSync } from 'fs';
@@ -48,24 +48,24 @@ function buildBookingHref(serviceParam, itemName = '') {
 
 function buildMetaDescription(serviceSlug, cityName) {
   if (serviceSlug === 'furniture-assembly') {
-    return `Furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. Clean, careful setup with fast local follow-up.`;
+    return `Book furniture assembly in ${cityName}, TX for beds, dressers, desks, tables, and IKEA builds. View common pricing and choose an appointment online.`;
   }
   if (serviceSlug === 'tv-mounting') {
-    return `TV mounting in ${cityName}, TX for TVs, shelves, mirrors, and wall installs. Clean, level work with fast local confirmation.`;
+    return `Book TV mounting in ${cityName}, TX for TVs, shelves, mirrors, and wall installs. View common pricing and choose an appointment online.`;
   }
   if (serviceSlug === 'smart-home-installation') {
-    return `Smart home installation in ${cityName}, TX for locks, cameras, thermostats, and doorbells. Installed, connected, and tested before we leave.`;
+    return `Book smart home installation in ${cityName}, TX for locks, cameras, thermostats, and doorbells. View common pricing and schedule online.`;
   }
   if (serviceSlug === 'fitness-equipment-assembly') {
-    return `Fitness equipment assembly in ${cityName}, TX for treadmills, bikes, benches, and home gyms. Solid assembly, leveling, and cleanup included.`;
+    return `Book fitness equipment assembly in ${cityName}, TX for treadmills, bikes, benches, and home gyms. View common pricing and schedule online.`;
   }
   if (serviceSlug === 'office-furniture-assembly') {
-    return `Office furniture assembly in ${cityName}, TX for desks, chairs, and workstations. Home-office and commercial setups built square and ready to use.`;
+    return `Book office furniture assembly in ${cityName}, TX for desks, chairs, and workstations. View common pricing and choose an appointment online.`;
   }
   if (serviceSlug === 'playset-assembly') {
-    return `Playset assembly in ${cityName}, TX for trampolines, swing sets, pergolas, and gazebos. Backyard builds assembled safely and checked before we go.`;
+    return `Book playset assembly in ${cityName}, TX for trampolines, swing sets, pergolas, and gazebos. View common pricing and schedule online.`;
   }
-  return `Professional home setup service in ${cityName}, TX with careful work and fast local follow-up.`;
+  return `Book professional assembly and setup service in ${cityName}, TX. View common pricing, share the project details, and choose an appointment online.`;
 }
 
 // ── CITY DATA ──────────────────────────────────────────────────────────────
@@ -79,6 +79,17 @@ const CITIES = [
     nearby: ['Round Rock', 'Cedar Park', 'Pflugerville', 'Lakeway'],
     lat: '30.2672',
     lng: '-97.7431',
+  },
+  {
+    name: 'Dallas',
+    slug: 'dallas',
+    zip: '75201',
+    bio: 'Dallas customers can book furniture assembly online for apartments, single-family homes, offices, and multi-item move-in setups.',
+    bookingGuidance: 'For Dallas apartment and multi-unit bookings, include parking or loading instructions, building access, the floor or elevator details, and where the boxes are located. For multi-item setups, list every item so the appointment can be reviewed and assigned accurately.',
+    landmark: 'Downtown Dallas and the surrounding Dallas-Fort Worth communities',
+    nearby: ['Irving', 'Garland', 'Plano', 'Fort Worth'],
+    lat: '32.7767',
+    lng: '-96.7970',
   },
   {
     name: 'Pflugerville',
@@ -191,6 +202,179 @@ const CITIES = [
     lng: '-97.8772',
   },
 ];
+
+const STATEWIDE_MARKETS = [
+  {
+    name: 'Houston', slug: 'houston', nearby: ['Pasadena', 'Pearland', 'Sugar Land', 'Baytown'],
+    bookingGuidance: 'For Houston appointments, include gate or building access, parking instructions, stairs or elevator details, and whether boxed items are already in the assembly room. For larger home or office setups, list every item so the correct appointment can be assigned.',
+  },
+  {
+    name: 'San Antonio', slug: 'san-antonio', nearby: ['New Braunfels', 'Austin', 'Temple', 'Killeen'],
+    bookingGuidance: 'For San Antonio bookings, include gated-community access, parking details, stairs, and the room where each item is located. Outdoor projects should include the surface type and a clear photo of the assembly area.',
+  },
+  {
+    name: 'Fort Worth', slug: 'fort-worth', nearby: ['Dallas', 'Arlington', 'Grand Prairie', 'Denton'],
+    bookingGuidance: 'For Fort Worth appointments, share apartment or community access instructions, parking or loading details, stairs, and the final room location. Multi-item and office projects should include a complete item count.',
+  },
+  {
+    name: 'El Paso', slug: 'el-paso', nearby: ['Horizon City', 'Socorro', 'San Elizario', 'Canutillo'],
+    bookingGuidance: 'For El Paso appointments, include cross-street or gated-community directions, stairs, parking access, and where the boxes are located. For outdoor assembly, note the surface, shade availability, and any wind-sensitive scheduling concerns.',
+  },
+  {
+    name: 'Arlington', slug: 'arlington', nearby: ['Dallas', 'Fort Worth', 'Grand Prairie', 'Irving'],
+    bookingGuidance: 'For Arlington appointments, include apartment, campus, or gated-community access, parking instructions, stairs, and the room where each item will be assembled. List all items for move-in and multi-room setups.',
+  },
+  {
+    name: 'Corpus Christi', slug: 'corpus-christi', nearby: ['Portland', 'Robstown', 'Kingsville', 'Rockport'],
+    bookingGuidance: 'For Corpus Christi bookings, provide building access, stairs, parking, and the final item location. Outdoor projects should include the surface type, product dimensions, and any coastal wind or covered-work-area considerations.',
+  },
+  {
+    name: 'Plano', slug: 'plano', nearby: ['Dallas', 'Richardson', 'Allen', 'Frisco'],
+    bookingGuidance: 'For Plano appointments, include apartment or gated-community access, parking, stairs, and whether items are already in the correct room. Office and multi-item bookings should include quantities and model details when available.',
+  },
+  {
+    name: 'Lubbock', slug: 'lubbock', nearby: ['Wolfforth', 'Levelland', 'Slaton', 'Plainview'],
+    bookingGuidance: 'For Lubbock appointments, share parking and entry details, stairs, item location, and a complete product list. For outdoor work, include the surface type and any wind-sensitive scheduling or anchoring details from the manufacturer.',
+  },
+  {
+    name: 'Laredo', slug: 'laredo', nearby: ['Rio Bravo', 'El Cenizo', 'Encinal', 'Hebbronville'],
+    bookingGuidance: 'For Laredo bookings, include gate access, parking, stairs, the final assembly room, and clear item photos or model names. Outdoor appointments should identify the work surface and whether a covered area is available.',
+  },
+  {
+    name: 'Irving', slug: 'irving', nearby: ['Dallas', 'Grand Prairie', 'Arlington', 'Richardson'],
+    bookingGuidance: 'For Irving apartment, hotel, or office appointments, include loading or parking instructions, building access, elevator reservations, and suite or unit details. Multi-item projects should include exact quantities.',
+  },
+  {
+    name: 'Garland', slug: 'garland', nearby: ['Dallas', 'Plano', 'Richardson', 'Mesquite'],
+    bookingGuidance: 'For Garland appointments, include gate or unit access, parking, stairs, and where boxes are located. For several rooms or products, provide a full item list so the visit can be reviewed accurately.',
+  },
+  {
+    name: 'Frisco', slug: 'frisco', nearby: ['Plano', 'McKinney', 'Allen', 'Dallas'],
+    bookingGuidance: 'For Frisco bookings, include gated-community or apartment access, parking, stairs, and final room placement. New-home and multi-room setups should list every item and note whether packaging has been moved inside.',
+  },
+  {
+    name: 'McKinney', slug: 'mckinney', nearby: ['Frisco', 'Allen', 'Plano', 'Denton'],
+    bookingGuidance: 'For McKinney appointments, share community access, parking, stairs, item locations, and a complete product list. For new-construction addresses, include any mapping or entry instructions that may not appear in navigation yet.',
+  },
+  {
+    name: 'Amarillo', slug: 'amarillo', nearby: ['Canyon', 'Bushland', 'Panhandle', 'Hereford'],
+    bookingGuidance: 'For Amarillo bookings, provide parking and entry details, stairs, final item placement, and product dimensions for larger equipment. Outdoor work should include surface and wind-sensitive scheduling details.',
+  },
+  {
+    name: 'Grand Prairie', slug: 'grand-prairie', nearby: ['Dallas', 'Arlington', 'Irving', 'Fort Worth'],
+    bookingGuidance: 'For Grand Prairie appointments, include apartment or gated access, parking, stairs, and where each boxed item is located. Multi-item home setups should include quantities and room assignments.',
+  },
+  {
+    name: 'Brownsville', slug: 'brownsville', nearby: ['Harlingen', 'San Benito', 'Edinburg', 'McAllen'],
+    bookingGuidance: 'For Brownsville bookings, include gate access, parking, stairs, item location, and model information when available. Outdoor projects should note the surface, work-area access, and any weather-sensitive scheduling needs.',
+  },
+  {
+    name: 'Killeen', slug: 'killeen', nearby: ['Temple', 'Belton', 'Copperas Cove', 'Waco'],
+    bookingGuidance: 'For Killeen appointments, provide community or installation access instructions, parking, stairs, and the final room location. If access is controlled, confirm that the customer can meet the Easer at the scheduled time.',
+  },
+  {
+    name: 'Pasadena', slug: 'pasadena', nearby: ['Houston', 'Baytown', 'Pearland', 'League City'],
+    bookingGuidance: 'For Pasadena appointments, include parking, gate or unit access, stairs, and where all products are located. For garage, patio, or outdoor projects, provide the surface type and clear work-area photos.',
+  },
+  {
+    name: 'Mesquite', slug: 'mesquite', nearby: ['Dallas', 'Garland', 'Grand Prairie', 'Plano'],
+    bookingGuidance: 'For Mesquite bookings, include apartment or gated-community access, parking, stairs, and final room placement. A complete item list helps multi-room and move-in appointments get reviewed correctly.',
+  },
+  {
+    name: 'McAllen', slug: 'mcallen', nearby: ['Edinburg', 'Mission', 'Pharr', 'Brownsville'],
+    bookingGuidance: 'For McAllen appointments, share community access, parking, stairs, and item location. Outdoor projects should include surface and shade details, while multi-item setups should list quantities and room placement.',
+  },
+  {
+    name: 'Waco', slug: 'waco', nearby: ['Temple', 'Killeen', 'Bryan', 'College Station'],
+    bookingGuidance: 'For Waco appointments, include apartment, campus, or gated-community access, parking, stairs, and item locations. Student housing and multi-item move-ins should include a complete product list.',
+  },
+  {
+    name: 'Midland', slug: 'midland', nearby: ['Odessa', 'Big Spring', 'Andrews', 'San Angelo'],
+    bookingGuidance: 'For Midland bookings, provide gate or building access, parking, stairs, and final room placement. Large fitness, office, and outdoor products should include dimensions and clear access-path details.',
+  },
+  {
+    name: 'Denton', slug: 'denton', nearby: ['Dallas', 'Fort Worth', 'Frisco', 'McKinney'],
+    bookingGuidance: 'For Denton appointments, include apartment or campus access, parking, elevator or stair details, and the unit location. Student move-ins and multi-item bookings should list all products and room assignments.',
+  },
+  {
+    name: 'Abilene', slug: 'abilene', nearby: ['Sweetwater', 'Clyde', 'Baird', 'San Angelo'],
+    bookingGuidance: 'For Abilene appointments, share parking and entry instructions, stairs, item location, and model details for larger products. Outdoor projects should identify the surface and available work area.',
+  },
+  {
+    name: 'Beaumont', slug: 'beaumont', nearby: ['Port Arthur', 'Orange', 'Nederland', 'Houston'],
+    bookingGuidance: 'For Beaumont bookings, include parking, gate or unit access, stairs, and where boxes are stored. Outdoor projects should include surface, covered-area, and weather-sensitive scheduling details.',
+  },
+  {
+    name: 'Odessa', slug: 'odessa', nearby: ['Midland', 'Andrews', 'Monahans', 'Big Spring'],
+    bookingGuidance: 'For Odessa appointments, provide access and parking instructions, stairs, final room location, and dimensions for larger items. For outdoor work, include surface and wind-sensitive scheduling details.',
+  },
+  {
+    name: 'Richardson', slug: 'richardson', nearby: ['Dallas', 'Plano', 'Garland', 'Irving'],
+    bookingGuidance: 'For Richardson home, apartment, or office appointments, include parking or loading details, building access, elevator reservations, and suite or unit information. List exact quantities for workplace setups.',
+  },
+  {
+    name: 'Pearland', slug: 'pearland', nearby: ['Houston', 'Pasadena', 'League City', 'Sugar Land'],
+    bookingGuidance: 'For Pearland bookings, include gated-community access, parking, stairs, and where items are located. New-home and multi-room setups should provide a complete item list and final room placement.',
+  },
+  {
+    name: 'College Station', slug: 'college-station', nearby: ['Bryan', 'Waco', 'Temple', 'Houston'],
+    bookingGuidance: 'For College Station appointments, include campus, apartment, or gated access, parking instructions, stairs, and unit details. Student move-ins should list every product and confirm that boxes are inside before arrival.',
+  },
+  {
+    name: 'Tyler', slug: 'tyler', nearby: ['Longview', 'Lindale', 'Jacksonville', 'Dallas'],
+    bookingGuidance: 'For Tyler appointments, include gate or building access, parking, stairs, and final room placement. For outdoor and multi-item projects, provide the surface type, quantities, and clear work-area photos.',
+  },
+  {
+    name: 'Sugar Land', slug: 'sugar-land', nearby: ['Houston', 'Pearland', 'The Woodlands', 'Pasadena'],
+    bookingGuidance: 'For Sugar Land bookings, include gated-community access, parking, stairs, and where each item is located. Multi-room and new-home setups should list all products and final room assignments.',
+  },
+  {
+    name: 'League City', slug: 'league-city', nearby: ['Houston', 'Pasadena', 'Pearland', 'Baytown'],
+    bookingGuidance: 'For League City appointments, provide community access, parking, stairs, item location, and product dimensions. Outdoor projects should include surface and weather-sensitive scheduling information.',
+  },
+  {
+    name: 'Allen', slug: 'allen', nearby: ['Plano', 'McKinney', 'Frisco', 'Dallas'],
+    bookingGuidance: 'For Allen bookings, include gated or apartment access, parking, stairs, and final room placement. New-home and multi-item appointments should include a full item list and any entry instructions.',
+  },
+  {
+    name: 'Edinburg', slug: 'edinburg', nearby: ['McAllen', 'Mission', 'Pharr', 'Brownsville'],
+    bookingGuidance: 'For Edinburg appointments, share apartment, campus, or community access, parking, stairs, and item location. Outdoor bookings should include surface and covered-work-area details.',
+  },
+  {
+    name: 'Conroe', slug: 'conroe', nearby: ['The Woodlands', 'Houston', 'College Station', 'Huntsville'],
+    bookingGuidance: 'For Conroe bookings, include gate or community access, parking, stairs, and where items are located. Larger outdoor and move-in projects should include product dimensions, quantities, and site photos.',
+  },
+  {
+    name: 'San Angelo', slug: 'san-angelo', nearby: ['Abilene', 'Midland', 'Odessa', 'Sweetwater'],
+    bookingGuidance: 'For San Angelo appointments, provide parking and entry details, stairs, item location, and product dimensions for larger equipment. Outdoor work should include the surface and wind-sensitive scheduling details.',
+  },
+  {
+    name: 'New Braunfels', slug: 'new-braunfels', nearby: ['San Antonio', 'Austin', 'Buda', 'Kyle'],
+    bookingGuidance: 'For New Braunfels bookings, include gated-community or apartment access, parking, stairs, and final room placement. Outdoor projects should identify the surface, product footprint, and clear access path.',
+  },
+  {
+    name: 'Temple', slug: 'temple', nearby: ['Killeen', 'Waco', 'Bryan', 'College Station'],
+    bookingGuidance: 'For Temple appointments, share parking, building or community access, stairs, and where each item is located. Multi-item home and office setups should include exact quantities.',
+  },
+  {
+    name: 'Bryan', slug: 'bryan', nearby: ['College Station', 'Waco', 'Temple', 'Houston'],
+    bookingGuidance: 'For Bryan bookings, include apartment, campus, or community access, parking, stairs, and unit details. Multi-item move-ins should list every product and final room placement.',
+  },
+  {
+    name: 'Baytown', slug: 'baytown', nearby: ['Houston', 'Pasadena', 'League City', 'Beaumont'],
+    bookingGuidance: 'For Baytown appointments, provide gate or building access, parking, stairs, and item locations. Outdoor bookings should include surface, covered-area, and weather-sensitive scheduling details.',
+  },
+  {
+    name: 'The Woodlands', slug: 'the-woodlands', nearby: ['Houston', 'Conroe', 'Sugar Land', 'College Station'],
+    bookingGuidance: 'For The Woodlands bookings, include community or building access, parking, stairs, and final room placement. New-home, office, and multi-room setups should include a complete product list.',
+  },
+];
+
+CITIES.push(...STATEWIDE_MARKETS);
+
+function citySupportsService(city, serviceSlug) {
+  return !city.services || city.services.includes(serviceSlug);
+}
 
 // ── SERVICE DATA ───────────────────────────────────────────────────────────
 const SERVICES = [
@@ -416,7 +600,7 @@ function buildOurWork(slug) {
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Recent Work</div>
       <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">Real jobs, done right.</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">A few recent setups from our team.</p>
+      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Examples from completed AssembleAtEase projects.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem">${figs}
     </div>
@@ -436,6 +620,7 @@ function generatePage(city, service) {
   const titleFromPrice = service.titleFromPrice || service.fromPrice;
   const title = `${serviceDisplayName} in ${city.name}, TX — From ${titleFromPrice} | AssembleAtEase`;
   const metaDesc = buildMetaDescription(service.slug, city.name);
+  const bookingGuidance = city.bookingGuidance || `Include the item count, access details, stairs, room location, and any scheduling constraints when booking in ${city.name}. Complete project notes help us review the appointment and confirm the right assignment.`;
 
   // JSON-LD schema
   const schema = safeJson({
@@ -453,6 +638,8 @@ function generatePage(city, service) {
       'url': 'https://www.assembleatease.com',
       'telephone': '+17372906129',
       'email': 'service@assembleatease.com',
+      'foundingLocation': { '@type': 'City', 'name': 'Austin', 'addressRegion': 'TX', 'addressCountry': 'US' },
+      'areaServed': { '@type': 'State', 'name': 'Texas' },
     },
     'areaServed': {
       '@type': 'City',
@@ -474,10 +661,28 @@ function generatePage(city, service) {
   // City-specific FAQ
   const cityFaq = {
     q: `Do you serve ${city.nearby[0]} too?`,
-    a: `Yes — in addition to ${city.name}, we currently serve participating ZIP codes in ${city.nearby.join(', ')}. Enter the service address during booking to confirm current availability.`,
+    a: `Online booking is available for valid Texas ZIP codes in ${city.name}, ${city.nearby.join(', ')}, and other Texas communities. Easer assignment depends on the exact address and appointment time.`,
   };
 
   const allFaqs = [...service.faqs, cityFaq];
+  const breadcrumbSchema = safeJson({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://www.assembleatease.com' },
+      { '@type': 'ListItem', 'position': 2, 'name': 'Texas service areas', 'item': 'https://www.assembleatease.com/locations' },
+      { '@type': 'ListItem', 'position': 3, 'name': `${serviceDisplayName} in ${city.name}, TX`, 'item': url },
+    ],
+  });
+  const faqSchema = safeJson({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': allFaqs.map((faq) => ({
+      '@type': 'Question',
+      'name': faq.q,
+      'acceptedAnswer': { '@type': 'Answer', 'text': faq.a },
+    })),
+  });
 
   // Pricing cards
   const pricingHighlights = service.pricingHighlights.slice(0, MAX_COMMON_JOBS);
@@ -519,13 +724,15 @@ function generatePage(city, service) {
   // Internal links
   const nearbyCityLinks = city.nearby.slice(0, 4).map(n => {
     const c = CITIES.find(x => x.name === n);
-    return c
+    return c && citySupportsService(c, service.slug)
       ? `<div><a href="/${service.slug}-${c.slug}-tx" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(serviceDisplayName)} in ${esc(c.name)}</a></div>`
       : '';
   }).filter(Boolean).join('\n          ');
+  const serviceAreaLinks = nearbyCityLinks || `<div><a href="${buildBookingHref(service.bookingParam)}" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">Book ${esc(serviceDisplayName)} anywhere in Texas</a></div>`;
+  const serviceAreaLinksTitle = nearbyCityLinks ? `${serviceDisplayName} in Nearby Cities` : 'Statewide Online Booking';
 
   const otherServiceLinks = SERVICES.filter(s => s.slug !== service.slug).slice(0, 4).map(s =>
-    `<div><a href="/${s.slug}-${city.slug}-tx" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(s.displayName || s.name)} in ${esc(city.name)}</a></div>`
+    `<div><a href="${citySupportsService(city, s.slug) ? `/${s.slug}-${city.slug}-tx` : buildBookingHref(s.bookingParam)}" style="color:var(--cyan-dark);text-decoration:none;font-size:0.875rem;font-weight:500">${esc(s.displayName || s.name)} in ${esc(city.name)}</a></div>`
   ).join('\n          ');
 
   return `<!DOCTYPE html>
@@ -549,6 +756,8 @@ function generatePage(city, service) {
 <meta name="twitter:image" content="${esc(heroImageUrl)}"/>
 <meta name="twitter:image:alt" content="${esc(heroAlt)}"/>
 <script type="application/ld+json">${schema}</script>
+<script type="application/ld+json">${breadcrumbSchema}</script>
+<script type="application/ld+json">${faqSchema}</script>
 <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"/>
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -657,9 +866,7 @@ function generatePage(city, service) {
 </head>
 <body>
 
-${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
-
-<main id="main-content">
+${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}<main id="main-content">
 
 <!-- HERO -->
 <section class="city-hero">
@@ -668,11 +875,11 @@ ${buildPublicNavBlock({ variant: 'service', includeSkipNav: true })}
       <div class="city-hero-eyebrow">${esc(city.name)}, TX service area</div>
       <h1 class="city-hero-title">${esc(serviceDisplayName)} in ${esc(city.name)}, TX</h1>
       <p class="city-hero-lead">${esc(service.tagline)}</p>
-      <p class="city-hero-body">${esc(service.heroSummary)} Current availability covers participating ZIP codes in ${esc(city.name)} and nearby Central Texas communities.</p>
+      <p class="city-hero-body">${esc(service.heroSummary)} Online booking is available for valid Texas ZIP codes in ${esc(city.name)} and nearby communities. Assignment is confirmed after an eligible Easer accepts the appointment.</p>
       <div class="city-hero-rating">
-        <strong>Reviewed service pros</strong>
+        <strong>Screened Easers</strong>
         <span style="color:var(--muted)">&bull; Clear pricing before confirmation</span>
-        <span style="color:var(--muted)">&bull; ${esc(city.name)} service-area availability</span>
+        <span style="color:var(--muted)">&bull; Statewide Texas online booking</span>
       </div>
       <div class="city-hero-actions">
         <a href="/book?service=${service.bookingParam}" class="btn btn-cyan btn-lg">Check availability in ${esc(city.name)}</a>
@@ -711,7 +918,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
       <div style="text-align:center;padding:1.5rem 1rem">
         <div style="width:52px;height:52px;border-radius:50%;background:var(--cyan);color:#fff;font-family:var(--font-display);font-size:1.4rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">2</div>
         <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">We confirm the visit</h3>
-        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We follow up quickly to confirm availability and assign a reviewed service pro in ${esc(city.name)}.</p>
+        <p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We review the address and job details, then confirm the assignment after an eligible Easer accepts.</p>
       </div>
       <div style="font-size:1.5rem;color:var(--border);padding-top:2.5rem">&#8594;</div>
       <div style="text-align:center;padding:1.5rem 1rem">
@@ -765,7 +972,8 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:780px;margin:0 auto;text-align:center">
     <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Service Area</div>
     <h2 style="font-family:var(--font-display);font-size:clamp(1.5rem,2.5vw,2rem);color:var(--ink);margin-bottom:0.75rem">${esc(serviceDisplayName)} Near ${esc(city.name)}</h2>
-    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1.75rem">We currently accept online bookings in participating ${esc(city.name)} and Central Texas ZIP codes for assembly, mounting, and setup work.</p>
+    <p style="font-size:0.95rem;color:var(--muted);line-height:1.75;margin-bottom:1rem">We accept online bookings for valid Texas ZIP codes in ${esc(city.name)} and surrounding communities. Easer assignment depends on the exact address and appointment availability.</p>
+    <p style="font-size:0.9rem;color:var(--muted);line-height:1.75;margin:0 auto 1.75rem;max-width:700px"><strong style="color:var(--ink-soft)">Planning a ${esc(city.name)} appointment:</strong> ${esc(bookingGuidance)}</p>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center">
       ${areaChips}
     </div>
@@ -777,14 +985,14 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
   <div style="max-width:960px;margin:0 auto">
     <div style="text-align:center;margin-bottom:2.5rem">
       <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--cyan-dark);font-weight:700;margin-bottom:0.5rem">Why Choose Us</div>
-      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">A clearer way to book ${esc(service.name)} in ${esc(city.name)}.</h2>
-      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Clear scope, reviewed service pros, and status updates from booking through completion.</p>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.6rem,3vw,2.2rem);color:var(--ink)">A clearer way to book ${esc(serviceDisplayName)} in ${esc(city.name)}.</h2>
+      <p style="font-size:0.95rem;color:var(--muted);margin-top:0.5rem;line-height:1.6">Clear scope, screened Easers, and status updates from booking through completion.</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem">
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Reviewed local pros</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">We confirm the visit and match the job with a service pro prepared for the work.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Screened Easers</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Each Easer completes required onboarding before becoming eligible for job assignments.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Careful in-home work</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Floors respected, parts organized, and the setup checked before we leave.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flexible scheduling</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Weekday and weekend openings with quick follow-up after you book.</p></div>
-      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Verified service area</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">The booking flow checks the service ZIP before payment so coverage is clear before you confirm.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Flexible scheduling</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Choose an available time online. Assignment availability varies by address and appointment.</p></div>
+      <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Texas ZIP validation</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">The booking flow checks the Texas ZIP before payment. Easer assignment is confirmed separately.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Clear communication</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">If we need more detail on wall type, item count, or access, you hear from a real person quickly.</p></div>
       <div style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem"><div style="width:34px;height:34px;border-radius:10px;background:var(--cyan-light);border:1px solid var(--cyan-mid);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;color:var(--cyan-dark)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg></div><div class="city-proof-title" style="font-size:0.95rem;font-weight:700;color:var(--ink);margin-bottom:0.5rem">Ready to use when we leave</div><p style="font-size:0.875rem;color:var(--muted);line-height:1.65">Level, square, anchored, or tested as the job requires so the space feels finished.</p></div>
     </div>
@@ -813,9 +1021,9 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2.5rem">
       <div>
-        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:1rem">${esc(serviceDisplayName)} in Nearby Cities</div>
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:1rem">${esc(serviceAreaLinksTitle)}</div>
         <div style="display:flex;flex-direction:column;gap:0.65rem">
-          ${nearbyCityLinks}
+          ${serviceAreaLinks}
         </div>
       </div>
       <div>
@@ -835,7 +1043,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
 <section style="background:linear-gradient(135deg,#0d2b45,#134a72);padding:5rem 2rem;text-align:center">
   <div style="max-width:600px;margin:0 auto">
     <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,2.8rem);color:#fff;margin-bottom:1rem">Ready to get it done in ${esc(city.name)}?</h2>
-    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Tell us what is waiting to get done and we will help you get it on the calendar with a fast local follow-up.</p>
+    <p style="font-size:1rem;color:rgba(255,255,255,0.82);margin-bottom:2rem;line-height:1.75">Tell us what is waiting to get done, choose an appointment, and receive assignment updates after booking.</p>
     <a href="/book?service=${service.bookingParam}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0d2b45;font-family:var(--font-body);font-size:1rem;font-weight:700;padding:1rem 2.5rem;border-radius:999px;text-decoration:none;margin-bottom:1rem">Check availability &rarr;</a>
     <p style="font-size:0.82rem;color:rgba(255,255,255,0.55)"><a href="tel:+17372906129" style="color:rgba(255,255,255,0.7);text-decoration:none">737-290-6129</a> &nbsp;&bull;&nbsp; <a href="mailto:service@assembleatease.com" style="color:rgba(255,255,255,0.7);text-decoration:none">service@assembleatease.com</a></p>
   </div>
@@ -845,7 +1053,7 @@ ${buildOurWork(service.slug)}<!-- HOW IT WORKS -->
 
 ${buildPublicFooterBlock({
   variant: 'service_support',
-  tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services across Austin and the surrounding metro.',
+  tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, and outdoor assembly with online booking across Texas.',
 })}
 ${buildPublicCookieConsentBlock()}
 
@@ -857,7 +1065,10 @@ ${buildPublicCookieConsentBlock()}
 let generated = 0;
 let skippedFlagships = 0;
 const sitemapEntries = [];
-const TOTAL_LOCATION_PAGE_COUNT = CITIES.length * SERVICES.length;
+const TOTAL_LOCATION_PAGE_COUNT = SERVICES.reduce(
+  (count, service) => count + CITIES.filter((city) => citySupportsService(city, service.slug)).length,
+  0,
+);
 const CITY_PAGE_COUNT = TOTAL_LOCATION_PAGE_COUNT - FLAGSHIP_AUSTIN_PAGES.size;
 
 for (const service of SERVICES) {
@@ -866,6 +1077,7 @@ for (const service of SERVICES) {
 
 for (const service of SERVICES) {
   for (const city of CITIES) {
+    if (!citySupportsService(city, service.slug)) continue;
     const pageSlug = `${service.slug}-${city.slug}-tx`;
     const filename = `${pageSlug}.html`;
     sitemapEntries.push(`  <url><loc>https://www.assembleatease.com/${pageSlug}</loc><lastmod>${TODAY}</lastmod><priority>0.8</priority></url>`);
@@ -895,4 +1107,22 @@ sitemap = sitemap.replace('</urlset>', `${sitemapEntries.join('\n')}\n</urlset>`
 
 writeFileSync(sitemapPath, sitemap, 'utf8');
 console.log(`  sitemap.xml updated (+${sitemapEntries.length} entries).`);
-console.log('\nDone. Run: git add -A && git commit -m "feat(seo): 72 local service-area landing pages"');
+
+// Keep the only visible city directory on the footer-linked Locations page.
+const locationsPath = join(ROOT, 'locations.html');
+let locationsHtml = readFileSync(locationsPath, 'utf8');
+const marketLinksPattern = /<!-- TEXAS_MARKET_LINKS:START -->[\s\S]*?<!-- TEXAS_MARKET_LINKS:END -->/;
+if (!marketLinksPattern.test(locationsHtml)) {
+  throw new Error('Could not locate the governed Texas market directory in locations.html.');
+}
+const marketLinks = [...CITIES]
+  .sort((left, right) => left.name.localeCompare(right.name))
+  .map((city) => `              <a href="/furniture-assembly-${city.slug}-tx">Furniture assembly in ${esc(city.name)} <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>`)
+  .join('\n');
+locationsHtml = locationsHtml.replace(
+  marketLinksPattern,
+  `<!-- TEXAS_MARKET_LINKS:START -->\n${marketLinks}\n<!-- TEXAS_MARKET_LINKS:END -->`,
+);
+writeFileSync(locationsPath, locationsHtml, 'utf8');
+console.log(`  locations.html market directory updated (+${CITIES.length} cities).`);
+console.log(`\nDone. Generated ${sitemapEntries.length} governed Texas city/service sitemap entries.`);

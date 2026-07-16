@@ -1,10 +1,10 @@
 # Page Governance Report
 
-Generated from 118 HTML pages.
+Generated from 370 HTML pages.
 
 ## Status Counts
 
-- PASS: 118
+- PASS: 370
 - WARNING: 0
 - FAIL: 0
 
@@ -17,7 +17,7 @@ Generated from 118 HTML pages.
 - blog_index: 1
 - booking: 1
 - business: 1
-- city_service: 66
+- city_service: 318
 - core_marketing: 4
 - flagship_service: 6
 - home: 1

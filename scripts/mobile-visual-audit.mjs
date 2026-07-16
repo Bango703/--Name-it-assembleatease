@@ -124,6 +124,12 @@ const pages = [...(quick ? [
   { id: 'home', path: '/index.html', group: 'customer', menu: true },
   { id: 'book', path: '/book.html', group: 'customer', menu: false },
   { id: 'pricing', path: '/pricing.html', group: 'customer', menu: true },
+  { id: 'locations', path: '/locations.html', group: 'customer', menu: true },
+  { id: 'dallas-furniture', path: '/furniture-assembly-dallas-tx.html', group: 'customer', menu: true },
+  { id: 'houston-furniture', path: '/furniture-assembly-houston-tx.html', group: 'customer', menu: true },
+  { id: 'san-antonio-tv', path: '/tv-mounting-san-antonio-tx.html', group: 'customer', menu: true },
+  { id: 'fort-worth-office', path: '/office-furniture-assembly-fort-worth-tx.html', group: 'customer', menu: true },
+  { id: 'el-paso-fitness', path: '/fitness-equipment-assembly-el-paso-tx.html', group: 'customer', menu: true },
   { id: 'apply', path: '/assembler/apply.html', group: 'easer-public', menu: false },
   { id: 'easer-home', path: '/assembler/index.html', group: 'easer-auth', menu: false },
   { id: 'easer-jobs', path: '/assembler/my-assignments.html', group: 'easer-auth', menu: false },
@@ -144,6 +150,11 @@ const pages = [...(quick ? [
   { id: 'terms', path: '/terms.html', group: 'customer', menu: true },
   { id: 'privacy', path: '/privacy.html', group: 'customer', menu: true },
   { id: 'furniture-service', path: '/furniture-assembly-austin-tx.html', group: 'customer', menu: true },
+  { id: 'dallas-furniture', path: '/furniture-assembly-dallas-tx.html', group: 'customer', menu: true },
+  { id: 'houston-furniture', path: '/furniture-assembly-houston-tx.html', group: 'customer', menu: true },
+  { id: 'san-antonio-tv', path: '/tv-mounting-san-antonio-tx.html', group: 'customer', menu: true },
+  { id: 'fort-worth-office', path: '/office-furniture-assembly-fort-worth-tx.html', group: 'customer', menu: true },
+  { id: 'el-paso-fitness', path: '/fitness-equipment-assembly-el-paso-tx.html', group: 'customer', menu: true },
   { id: 'tv-service', path: '/tv-mounting-austin-tx.html', group: 'customer', menu: true },
   { id: 'fitness-service', path: '/fitness-equipment-assembly-austin-tx.html', group: 'customer', menu: true },
   { id: 'smart-home-service', path: '/smart-home-installation-austin-tx.html', group: 'customer', menu: true },
@@ -1807,7 +1818,7 @@ async function auditPage(context, spec, width) {
   const shouldScreenshot = takeScreenshots && (
     [320, 390, 768, 900].includes(width)
     && (spec.group === 'owner-auth'
-      || ['home', 'book', 'pricing', 'apply', 'login', 'easer-home', 'easer-jobs', 'easer-payouts', 'easer-profile'].includes(spec.id))
+      || ['home', 'book', 'pricing', 'locations', 'dallas-furniture', 'houston-furniture', 'san-antonio-tv', 'fort-worth-office', 'el-paso-fitness', 'apply', 'login', 'easer-home', 'easer-jobs', 'easer-payouts', 'easer-profile'].includes(spec.id))
   );
   let screenshot = null;
   let screenshotError = null;

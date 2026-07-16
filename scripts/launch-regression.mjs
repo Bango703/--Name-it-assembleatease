@@ -295,9 +295,26 @@ for (const file of ['api/booking/complete.js', 'api/booking/assembler-complete.j
 
 // Public pricing pages must continue to agree with the booking catalog after a
 // generator or flagship-page rebuild.
-const servicePagePattern = /^(furniture-assembly|tv-mounting|smart-home-installation|fitness-equipment-assembly|playset-assembly|office-furniture-assembly)-[a-z-]+-tx\.html$/;
+const servicePagePattern = /^(furniture-assembly|tv-mounting|smart-home-installation|fitness-equipment-assembly|playset-assembly|office-furniture-assembly)-([a-z-]+)-tx\.html$/;
 const servicePages = readdirSync('.').filter(file => servicePagePattern.test(file));
-assert.equal(servicePages.length, 72, 'Expected all 72 Austin-area service pages');
+assert.equal(servicePages.length, 324, 'Expected six governed service pages across 54 Texas markets');
+const marketSlugs = new Set(servicePages.map((file) => file.match(servicePagePattern)[2]));
+assert.equal(marketSlugs.size, 54, 'Expected 54 distinct Texas SEO markets');
+for (const marketSlug of ['dallas', 'houston', 'san-antonio', 'fort-worth', 'el-paso']) {
+  assert.equal(
+    servicePages.filter((file) => file.endsWith(`-${marketSlug}-tx.html`)).length,
+    6,
+    `${marketSlug} must have all six governed service pages`,
+  );
+}
+const locationsPage = source('locations.html');
+const marketDirectory = locationsPage.match(/<!-- TEXAS_MARKET_LINKS:START -->([\s\S]*?)<!-- TEXAS_MARKET_LINKS:END -->/);
+assert.ok(marketDirectory, 'Locations must contain the governed Texas market directory');
+assert.equal(
+  [...marketDirectory[1].matchAll(/href="\/furniture-assembly-[a-z-]+-tx"/g)].length,
+  54,
+  'Locations must link one furniture assembly page for every governed Texas market',
+);
 const dresserRange = moneyRange([
   catalogItem('Furniture Assembly', 'Dresser (up to 6 drawers)'),
   catalogItem('Furniture Assembly', 'Dresser (7+ drawers / double)'),
@@ -341,7 +358,11 @@ for (const file of servicePages) {
     assert.doesNotMatch(html, />4\.9</);
     assert.doesNotMatch(html, /11 Google reviews/);
     assert.doesNotMatch(html, /&#9733;/);
-    assert.match(html, /Reviewed service pros/);
+    assert.match(html, /Screened Easers/);
+    assert.equal(serviceEntity.provider?.areaServed?.name, 'Texas', `${file} must identify truthful statewide booking coverage`);
+    assert.ok(jsonLdBlocks.some((entry) => entry?.['@type'] === 'BreadcrumbList'), `${file} must include breadcrumb schema`);
+    assert.ok(jsonLdBlocks.some((entry) => entry?.['@type'] === 'FAQPage'), `${file} must include FAQ schema matching visible content`);
+    assert.doesNotMatch(html, /Central Texas|local pro|local Easer|fast local/i);
   }
   assert.doesNotMatch(html, /1910 W Braker Ln/);
   assert.doesNotMatch(html, /entire Austin metro/i);

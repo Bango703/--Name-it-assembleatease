@@ -12,7 +12,6 @@ function renderMobileLinks(links) {
 
 const CORE_DESKTOP_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/locations', label: 'Locations' },
   { href: '/bundles', label: 'Bundles' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/track', label: 'Track My Booking' },
@@ -21,7 +20,6 @@ const CORE_DESKTOP_LINKS = [
 
 const CORE_MOBILE_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/locations', label: 'Locations' },
   { href: '/bundles', label: 'Bundles' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/track', label: 'Track My Booking' },
@@ -33,7 +31,6 @@ const CORE_MOBILE_LINKS = [
 
 const BLOG_DESKTOP_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/locations', label: 'Locations' },
   { href: '/blog/', label: 'Guides' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/about', label: 'About Us' },
@@ -41,7 +38,6 @@ const BLOG_DESKTOP_LINKS = [
 
 const BLOG_MOBILE_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/locations', label: 'Locations' },
   { href: '/blog/', label: 'Guides' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/track', label: 'Track My Booking' },
@@ -53,13 +49,11 @@ const BLOG_MOBILE_LINKS = [
 
 const SERVICE_DESKTOP_LINKS = [
   { href: '/#services-hdr', label: 'Services' },
-  { href: '/locations', label: 'Locations' },
   { href: '/#how-it-works', label: 'How it works' },
   { href: '/pricing', label: 'Pricing' },
 ];
 
 const SERVICE_MOBILE_LINKS = [
-  { href: '/locations', label: 'Locations' },
   { href: '/book?service=Furniture+Assembly', label: 'Furniture Assembly' },
   { href: '/book?service=Mounting+%26+Hanging', label: 'TV Mounting' },
   { href: '/book?service=Fitness+Equipment', label: 'Fitness Equipment' },
