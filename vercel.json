@@ -3,6 +3,11 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/blog/furniture-assembly-steiner-ranch-austin-tx",
+      "destination": "/furniture-assembly-austin-tx",
+      "permanent": true
+    },
+    {
       "source": "/repairs",
       "destination": "/",
       "permanent": true
