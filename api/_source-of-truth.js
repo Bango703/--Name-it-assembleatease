@@ -315,9 +315,10 @@ export function computeBookingFinancialSummary({
   };
 }
 
-// Instant booking is deliberately narrower than a broad 786xx/787xx/788xx
-// prefix range. This protects launch operations from accepting jobs hundreds of
-// miles outside the cities where Easer coverage has actually been prepared.
+// isTexasZip covers the whole state. It answers "is this Texas?" — used for
+// out-of-market demand capture and service-call zoning, NOT for deciding who may
+// book. Instant booking is gated separately and far more narrowly below, so a
+// job is never sold hundreds of miles from the nearest Easer.
 export const TEXAS_ZIP_PREFIXES = Object.freeze(['733', '885']);
 export const TEXAS_ZIP_PREFIX_RANGE = Object.freeze({ min: 750, max: 799 });
 
@@ -336,15 +337,24 @@ export const AUTOMATIC_DISPATCH_ZIPS = Object.freeze([
   '78640', '78641', '78645', '78646', '78653', '78660', '78664',
   '78665', '78680', '78681', '78682', '78683', '78691',
 ]);
+// Instant booking is limited to the metros where Easer coverage actually
+// exists. Every other Texas ZIP still reaches the site and still converts — as
+// out-of-market demand (api/market-demand.js, source 'booking_out_of_market'),
+// which captures the lead without holding a card for a job nobody can work.
+// Add a metro here only once an Easer can actually serve it.
 export const ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES = Object.freeze([
-  '733',
-  ...Array.from({ length: 50 }, (_, index) => String(750 + index)),
-  '885',
+  '787', // Austin
+  '782', // San Antonio — books, then requires owner assignment (see booking.js)
 ]);
-export const ACTIVE_INSTANT_BOOKING_ZIPS = Object.freeze([]);
+export const ACTIVE_INSTANT_BOOKING_ZIPS = Object.freeze([
+  ...AUTOMATIC_DISPATCH_ZIPS, // Austin metro ZIPs outside the 787 prefix
+]);
 
 export function isActiveInstantBookingZip(zip) {
-  return isTexasZip(zip);
+  const normalized = String(zip || '').trim();
+  if (!isTexasZip(normalized)) return false;
+  return ACTIVE_INSTANT_BOOKING_ZIP_PREFIXES.includes(normalized.slice(0, 3))
+    || ACTIVE_INSTANT_BOOKING_ZIPS.includes(normalized);
 }
 
 export function isAutomaticDispatchZip(zip) {

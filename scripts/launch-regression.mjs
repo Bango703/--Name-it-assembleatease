@@ -42,8 +42,15 @@ assert.equal(customerOwnsBooking({ customer_id: null, customer_email: 'other@exa
 
 assert.equal(isActiveInstantBookingZip('78701'), true);
 assert.equal(isActiveInstantBookingZip('78664'), true);
-assert.equal(isActiveInstantBookingZip('78801'), true, 'Every valid Texas ZIP must support instant booking');
-assert.equal(isActiveInstantBookingZip('78601'), true, 'Texas ZIPs outside the original market must support instant booking');
+assert.equal(isActiveInstantBookingZip('78205'), true, 'San Antonio books instantly');
+// Instant booking is limited to metros with real Easer coverage. A Texas ZIP we
+// cannot serve must never hold a customer's card for a job nobody can work — it
+// is captured as out-of-market demand instead (api/market-demand.js).
+assert.equal(isActiveInstantBookingZip('75201'), false, 'Dallas has no Easer coverage and must not take a booking');
+assert.equal(isActiveInstantBookingZip('77002'), false, 'Houston has no Easer coverage and must not take a booking');
+assert.equal(isActiveInstantBookingZip('79901'), false, 'El Paso has no Easer coverage and must not take a booking');
+assert.equal(isActiveInstantBookingZip('78801'), false, 'An uncovered Texas ZIP must not take a booking');
+assert.equal(isActiveInstantBookingZip('90210'), false, 'A non-Texas ZIP must never take a booking');
 assert.equal(isTexasZip('78701'), true, 'Austin ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('75201'), true, 'Dallas ZIPs must be recognized as Texas');
 assert.equal(isTexasZip('77002'), true, 'Houston ZIPs must be recognized as Texas');
