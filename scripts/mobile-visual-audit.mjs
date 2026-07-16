@@ -1018,6 +1018,44 @@ async function collectLayout(page, width) {
       }
     }
 
+    const sharedNav = [...body.querySelectorAll('.nav-inner')].find(visible) || null;
+    const roundedRect = (element) => {
+      if (!element || !visible(element)) return null;
+      const rect = element.getBoundingClientRect();
+      return {
+        left: Math.round(rect.left * 10) / 10,
+        right: Math.round(rect.right * 10) / 10,
+        top: Math.round(rect.top * 10) / 10,
+        bottom: Math.round(rect.bottom * 10) / 10,
+        width: Math.round(rect.width * 10) / 10,
+        height: Math.round(rect.height * 10) / 10,
+      };
+    };
+    const navGeometry = sharedNav ? {
+      container: roundedRect(sharedNav.closest('.nav')),
+      shell: roundedRect(sharedNav),
+      logo: roundedRect(sharedNav.querySelector(':scope > .nav-logo')),
+      links: roundedRect(sharedNav.querySelector(':scope > .nav-links')),
+      cta: roundedRect(sharedNav.querySelector(':scope > .nav-book-cta')),
+    } : null;
+
+    const footer = body.querySelector('footer.footer');
+    const footerLinks = footer
+      ? [...footer.querySelectorAll('a[href]')].map((link) => ({
+          href: new URL(link.getAttribute('href'), location.origin).pathname
+            + new URL(link.getAttribute('href'), location.origin).search
+            + new URL(link.getAttribute('href'), location.origin).hash,
+          label: (link.textContent || '').replace(/\s+/g, ' ').trim(),
+        }))
+      : [];
+    const footerHrefCounts = footerLinks.reduce((counts, link) => {
+      counts[link.href] = (counts[link.href] || 0) + 1;
+      return counts;
+    }, {});
+    const duplicateFooterLinks = Object.entries(footerHrefCounts)
+      .filter(([, count]) => count > 1)
+      .map(([href, count]) => ({ href, count, labels: footerLinks.filter((link) => link.href === href).map((link) => link.label) }));
+
     return {
       documentWidth: { client: html.clientWidth, scroll: Math.max(html.scrollWidth, body.scrollWidth), overflow: documentOverflow },
       clippedContent,
@@ -1026,6 +1064,8 @@ async function collectLayout(page, width) {
       smallInputFonts,
       oddText,
       navAlignment: navAlignment.slice(0, 20),
+      navGeometry,
+      duplicateFooterLinks,
       title: document.title,
       finalPath: location.pathname + location.search + location.hash,
     };
@@ -1925,10 +1965,12 @@ async function auditPage(context, spec, width) {
 
   const experienceChecks = navigationError ? {} : await collectExperienceChecks(page, spec, width, observedApis);
   const layout = navigationError ? null : await collectLayout(page, width);
+  const mobileEvidencePage = spec.group === 'owner-auth'
+    || ['home', 'book', 'pricing', 'locations', 'dallas-furniture', 'houston-furniture', 'san-antonio-tv', 'fort-worth-office', 'el-paso-fitness', 'apply', 'login', 'easer-home', 'easer-jobs', 'easer-payouts', 'easer-profile'].includes(spec.id);
+  const desktopEvidencePage = ['home', 'pricing', 'business', 'about', 'dallas-furniture'].includes(spec.id);
   const shouldScreenshot = takeScreenshots && (
-    [320, 390, 768, 900].includes(width)
-    && (spec.group === 'owner-auth'
-      || ['home', 'book', 'pricing', 'locations', 'dallas-furniture', 'houston-furniture', 'san-antonio-tv', 'fort-worth-office', 'el-paso-fitness', 'apply', 'login', 'easer-home', 'easer-jobs', 'easer-payouts', 'easer-profile'].includes(spec.id))
+    ([320, 390, 768, 900].includes(width) && mobileEvidencePage)
+    || ([1024, 1440, 1920].includes(width) && desktopEvidencePage)
   );
   let screenshot = null;
   let screenshotError = null;
@@ -1991,6 +2033,8 @@ async function main() {
           + (result.layout?.smallTargets.length || 0)
           + (result.layout?.smallInputFonts.length || 0)
           + (result.layout?.oddText.length || 0)
+          + (result.layout?.navAlignment.length || 0)
+          + (result.layout?.duplicateFooterLinks.length || 0)
           + (result.menu && (!result.menu.open || result.menu.clipped || result.menu.smallLinks?.length) ? 1 : 0)
           + Object.values(result.experienceChecks || {}).filter((check) => check.required && !check.pass).length
           + result.consoleErrors.length
@@ -2017,6 +2061,24 @@ async function main() {
     await browser.close();
   }
 
+  const geometryFields = ['container.left', 'container.right', 'container.top', 'container.height', 'shell.left', 'shell.right', 'shell.height', 'logo.left', 'cta.right'];
+  const readGeometryField = (geometry, field) => field.split('.').reduce((value, key) => value?.[key], geometry);
+  const largeScreenNavConsistency = widths.map((width) => {
+    const candidates = results.filter((result) => result.width === width
+      && result.group === 'customer'
+      && result.layout?.navGeometry?.cta);
+    const spreads = Object.fromEntries(geometryFields.map((field) => {
+      const values = candidates.map((result) => readGeometryField(result.layout.navGeometry, field)).filter(Number.isFinite);
+      return [field, values.length ? Math.round((Math.max(...values) - Math.min(...values)) * 10) / 10 : null];
+    }));
+    return {
+      width,
+      pagesCompared: candidates.length,
+      spreads,
+      pass: width < 1024 || (candidates.length > 1 && Object.values(spreads).every((spread) => spread != null && spread <= 1)),
+    };
+  }).filter((result) => result.width >= 1024);
+
   const summary = {
     generatedAt: new Date().toISOString(),
     baseUrl,
@@ -2030,6 +2092,9 @@ async function main() {
     smallTargets: results.filter((r) => r.layout?.smallTargets.length).length,
     smallInputFonts: results.filter((r) => r.layout?.smallInputFonts.length).length,
     oddText: results.filter((r) => r.layout?.oddText.length).length,
+    navAlignment: results.filter((r) => r.layout?.navAlignment.length).length,
+    duplicateFooterLinks: results.filter((r) => r.layout?.duplicateFooterLinks.length).length,
+    largeScreenNavConsistencyFailures: largeScreenNavConsistency.filter((result) => !result.pass).length,
     menuFailures: results.filter((r) => r.menu && (!r.menu.open || r.menu.clipped || r.menu.smallLinks?.length)).length,
     experienceFailures: results.filter((r) => Object.values(r.experienceChecks || {}).some((check) => check.required && !check.pass)).length,
     consoleErrors: results.filter((r) => r.consoleErrors.length).length,
@@ -2040,7 +2105,7 @@ async function main() {
     screenshotFailures: results.filter((r) => r.screenshotError).length,
   };
 
-  const report = { summary, results };
+  const report = { summary, largeScreenNavConsistency, results };
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
   process.stdout.write(JSON.stringify(summary, null, 2) + '\n');

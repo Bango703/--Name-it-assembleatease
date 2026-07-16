@@ -1,5 +1,3 @@
 # Public Footer Sync Report
 
-Changed 1 file(s).
-
-- business.html
+Changed 0 file(s).

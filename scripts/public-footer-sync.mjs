@@ -41,10 +41,17 @@ function resolveFooterOptions(pagePath) {
     };
   }
 
-  if (pageType === 'flagship_service' || pageType === 'city_service') {
+  if (pageType === 'flagship_service') {
     return {
       variant: 'service_support',
       tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, outdoor assembly, and home services across Austin and the surrounding metro.',
+    };
+  }
+
+  if (pageType === 'city_service') {
+    return {
+      variant: 'service_support',
+      tagline: 'Professional furniture assembly, TV mounting, smart home setup, office assembly, and outdoor assembly with online booking across Texas.',
     };
   }
 

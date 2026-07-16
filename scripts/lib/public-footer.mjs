@@ -36,15 +36,15 @@ const SUPPORT_LINKS = [
   ['/assembler/apply', 'Become an Easer'],
 ];
 
-// Each Resources link points to a distinct, real guide (no repeated /blog/
-// placeholders), with a single "All guides" entry to the index.
+// Each Resources link points to a distinct, real guide. The Company column
+// already owns the single /blog/ index link ("Guides"), so this list never
+// repeats that destination under a second label.
 const RESOURCES_LINKS = [
   ['/blog/new-home-setup-checklist-austin', 'New home setup checklist'],
   ['/blog/ikea-assembly-cost-austin', 'IKEA assembly cost guide'],
   ['/blog/tv-mounting-costs-austin', 'TV mounting cost guide'],
   ['/blog/smart-home-installation-austin', 'Smart home setup guide'],
   ['/blog/best-furniture-assembly-austin', 'Choosing an assembly pro'],
-  ['/blog/', 'All guides &rarr;'],
 ];
 
 const BLOG_RESOURCES_LINKS = [
@@ -53,7 +53,6 @@ const BLOG_RESOURCES_LINKS = [
   ['/blog/best-furniture-assembly-austin', 'Best Assembly Service Austin'],
   ['/blog/new-home-setup-checklist-austin', 'New Home Setup Checklist'],
   ['/blog/smart-home-installation-austin', 'Smart Home Install Austin'],
-  ['/blog/', 'View all guides &rarr;'],
 ];
 
 function renderLinks(links) {

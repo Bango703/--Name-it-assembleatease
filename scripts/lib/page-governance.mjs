@@ -129,6 +129,55 @@ function extractTagValue(html, pattern) {
   return match ? compactWhitespace(match[1]) : '';
 }
 
+function decodeBasicHtml(value) {
+  return String(value || '')
+    .replace(/&amp;/gi, '&')
+    .replace(/&rarr;/gi, '→')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#39;/gi, "'")
+    .replace(/&quot;/gi, '"');
+}
+
+function extractFooterFacts(html) {
+  const footerMatch = html.match(/<footer class="footer">([\s\S]*?)<\/footer>/i);
+  if (!footerMatch) {
+    return {
+      hasSharedFooter: false,
+      footerDuplicateHrefs: [],
+      footerBusinessLinkCount: 0,
+      footerLegacyBusinessCustomCount: 0,
+      footerCompanyLabels: [],
+      footerServiceLabels: [],
+    };
+  }
+
+  const footerHtml = footerMatch[1];
+  const links = [...footerHtml.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].map((match) => ({
+    href: decodeBasicHtml(match[1]).trim(),
+    label: compactWhitespace(decodeBasicHtml(match[2].replace(/<[^>]+>/g, ' '))),
+  }));
+  const hrefCounts = links.reduce((counts, link) => {
+    counts.set(link.href, (counts.get(link.href) || 0) + 1);
+    return counts;
+  }, new Map());
+  const extractColumnLabels = (title) => {
+    const pattern = new RegExp(`<div class="footer-col-title">${title}<\\/div>\\s*<ul class="footer-links"[^>]*>([\\s\\S]*?)<\\/ul>`, 'i');
+    const columnMatch = footerHtml.match(pattern);
+    if (!columnMatch) return [];
+    return [...columnMatch[1].matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)]
+      .map((match) => compactWhitespace(decodeBasicHtml(match[1].replace(/<[^>]+>/g, ' '))));
+  };
+
+  return {
+    hasSharedFooter: true,
+    footerDuplicateHrefs: [...hrefCounts.entries()].filter(([, count]) => count > 1).map(([href]) => href),
+    footerBusinessLinkCount: links.filter((link) => /^\/business(?:[?#]|$)/.test(link.href)).length,
+    footerLegacyBusinessCustomCount: links.filter((link) => /business\s*(?:&|and)\s*custom quotes?/i.test(link.label)).length,
+    footerCompanyLabels: extractColumnLabels('Company'),
+    footerServiceLabels: extractColumnLabels('Services'),
+  };
+}
+
 function extractJsonLdBlocks(html) {
   const matches = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)];
   const blocks = [];
@@ -222,6 +271,7 @@ export function collectPageFacts(pagePath) {
   const jsonLdBlocks = extractJsonLdBlocks(html);
   const jsonLdTypes = [...jsonLdBlocks.reduce((set, block) => collectJsonLdTypes(block, set), new Set())].sort();
   const pageType = classifyPage(pagePath);
+  const footerFacts = extractFooterFacts(html);
 
   const facts = {
     path: toPosixPath(pagePath),
@@ -271,6 +321,9 @@ export function collectPageFacts(pagePath) {
     hasOrganizationSchema: jsonLdTypes.includes('Organization'),
     hasServiceSchema: jsonLdTypes.includes('Service'),
     jsonLdTypes,
+    sharedNavShellCount: (html.match(/<div class="nav-inner">/g) || []).length,
+    usesMarketingDesktopCss: /href="\/assets\/css\/marketing-desktop\.css"/i.test(html),
+    ...footerFacts,
   };
 
   return facts;
@@ -317,6 +370,29 @@ export function auditPageFacts(facts) {
 
   for (const rule of rules.required) evaluateRequiredRule(rule, facts, issues);
   for (const rule of rules.recommended) evaluateRecommendedRule(rule, facts, issues);
+
+  const requiresSharedPublicChrome = rules.visibility.startsWith('public')
+    && !['booking', 'assembler_public'].includes(facts.pageType);
+  if (requiresSharedPublicChrome) {
+    if (facts.sharedNavShellCount !== 1 || !facts.usesMarketingDesktopCss) {
+      addIssue(issues, 'fail', 'inconsistent_public_header', 'Public page must use exactly one shared header shell and the shared desktop layout stylesheet.');
+    }
+    if (!facts.hasSharedFooter) {
+      addIssue(issues, 'fail', 'missing_shared_footer', 'Public page is missing the shared footer.');
+    }
+    if (facts.footerDuplicateHrefs.length) {
+      addIssue(issues, 'fail', 'duplicate_footer_destinations', `Footer repeats destination(s): ${facts.footerDuplicateHrefs.join(', ')}.`);
+    }
+    if (facts.footerBusinessLinkCount !== 1 || facts.footerLegacyBusinessCustomCount) {
+      addIssue(issues, 'fail', 'duplicate_business_footer_path', 'Footer must expose one Business Services destination and no combined Business & Custom Quotes duplicate.');
+    }
+    const expectedCompanyLabels = ['About Us', 'Locations', 'Pricing', 'Guides', 'Business Services'];
+    const expectedServiceLabels = ['Furniture Assembly', 'TV Mounting', 'Smart Home Setup', 'Fitness Equipment', 'Office Furniture', 'Outdoor / Playsets'];
+    if (facts.footerCompanyLabels.join('|') !== expectedCompanyLabels.join('|')
+        || facts.footerServiceLabels.join('|') !== expectedServiceLabels.join('|')) {
+      addIssue(issues, 'fail', 'inconsistent_footer_link_order', 'Footer Services and Company links must use the canonical professional order.');
+    }
+  }
 
   if (facts.oldFacebookLinkCount) {
     addIssue(issues, 'fail', 'legacy_facebook_link', `Legacy Facebook link still appears ${facts.oldFacebookLinkCount} time(s).`);
