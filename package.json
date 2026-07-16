@@ -14,7 +14,8 @@
     "governance:public": "npm run governance:sync && npm run governance:nav && npm run governance:footer && npm run governance:consent",
     "governance:report": "node scripts/page-governance-report.mjs",
     "governance:check": "node scripts/page-governance-check.mjs",
-    "governance:check:strict": "node scripts/page-governance-check.mjs --strict"
+    "governance:check:strict": "node scripts/page-governance-check.mjs --strict",
+    "indexnow": "node scripts/indexnow-submit.mjs"
   },
   "repository": {
     "type": "git",
