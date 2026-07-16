@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import {
   computeBookingFinancialSummary,
   computeBookingSplitFromSnapshot,
@@ -214,6 +215,84 @@ assert.doesNotMatch(browserApi, /\.from\(['"]reviews['"]\)/, 'Review reads and m
 assert.doesNotMatch(browserApi, /\.from\(['"](?:jobs|bids)['"]\)/, 'The retired browser marketplace must not expose direct job or bid mutations');
 assert.match(browserApi, /user\.id !== userId/);
 assert.match(browserApi, /rpc\(['"]update_own_easer_profile['"]/);
+assert.match(browserApi, /fetch\(['"]\/api\/assembler\/reviews['"][\s\S]*?cache:\s*['"]no-store['"]/, 'Easer reviews must bypass browser HTTP caches');
+
+const easerProfileReviewsPage = source('assembler/profile.html');
+const easerHomeApiPage = source('assembler/index.html');
+const easerCriticalAssetVersion = '20260716a';
+const easerApiAssetVersion = (html) => html.match(/assets\/js\/api\.js\?v=([0-9A-Za-z_-]+)/)?.[1] || '';
+assert.equal(easerApiAssetVersion(easerProfileReviewsPage), easerCriticalAssetVersion, 'Easer profile must load the current secured browser API asset');
+assert.equal(easerApiAssetVersion(easerHomeApiPage), easerApiAssetVersion(easerProfileReviewsPage), 'Easer pages must use one browser API asset version');
+for (const file of [
+  'assembler/apply.html',
+  'assembler/contractor-agreement.html',
+  'assembler/my-assignments.html',
+  'assembler/index.html',
+  'assembler/payouts.html',
+  'assembler/profile.html',
+  'assembler/verify-identity.html',
+]) {
+  const criticalAssets = [...source(file).matchAll(/(?:config|assets\/js\/(?:app|api))\.js(?:\?v=([^"']+))?/g)];
+  for (const asset of criticalAssets) {
+    assert.equal(asset[1], easerCriticalAssetVersion, `${file} must bypass stale Easer caches for ${asset[0].split('?')[0]}`);
+  }
+}
+assert.match(source('assets/js/app.js'), /if \(reg\) reg\.update\(\)/, 'Every current Easer route must ask the installed service worker to check for updates');
+const easerServiceWorker = source('sw.js');
+assert.match(easerServiceWorker, /const CACHE = ['"]aae-easer-v6['"]/, 'Easer service-worker cache must invalidate the stale June shell');
+assert.match(easerServiceWorker, /e\.request\.destination === ['"]script['"][\s\S]*?fetch\(e\.request\)[\s\S]*?catch\(function\(\)\s*\{[\s\S]*?caches\.match\(e\.request\)/, 'Critical Easer scripts must be network-first with an offline cache fallback');
+const serviceWorkerListeners = {};
+const cachedScriptResponse = { source: 'cached' };
+const networkScriptResponse = { source: 'network', status: 200, clone() { return this; } };
+let serviceWorkerNetworkFails = false;
+let serviceWorkerCacheMatchCount = 0;
+runInNewContext(easerServiceWorker, {
+  self: {
+    location: { origin: 'https://www.assembleatease.com' },
+    addEventListener(type, handler) { serviceWorkerListeners[type] = handler; },
+    skipWaiting() {},
+    clients: { claim() {} },
+    registration: { showNotification() {} },
+  },
+  caches: {
+    open: async () => ({ addAll: async () => {}, put: async () => {} }),
+    keys: async () => [],
+    delete: async () => true,
+    match: async () => {
+      serviceWorkerCacheMatchCount += 1;
+      return cachedScriptResponse;
+    },
+  },
+  fetch: async () => {
+    if (serviceWorkerNetworkFails) throw new Error('offline');
+    return networkScriptResponse;
+  },
+  URL,
+  Date,
+  Promise,
+});
+async function dispatchServiceWorkerFetch(request) {
+  let responsePromise;
+  serviceWorkerListeners.fetch({ request, respondWith(value) { responsePromise = value; } });
+  return responsePromise ? responsePromise : null;
+}
+const criticalScriptRequest = {
+  url: 'https://www.assembleatease.com/assets/js/api.js?v=20260716a',
+  destination: 'script',
+  mode: 'no-cors',
+};
+const networkFirstScript = await dispatchServiceWorkerFetch(criticalScriptRequest);
+assert.equal((await networkFirstScript).source, 'network', 'Critical Easer scripts must ignore a stale cached response while online');
+assert.equal(serviceWorkerCacheMatchCount, 0, 'Online critical script loading must not consult the stale cache first');
+serviceWorkerNetworkFails = true;
+const offlineScriptFallback = await dispatchServiceWorkerFetch(criticalScriptRequest);
+assert.equal((await offlineScriptFallback).source, 'cached', 'Critical Easer scripts must retain an offline cached fallback');
+let apiIntercepted = false;
+serviceWorkerListeners.fetch({
+  request: { url: 'https://www.assembleatease.com/api/assembler/reviews', destination: '', mode: 'cors' },
+  respondWith() { apiIntercepted = true; },
+});
+assert.equal(apiIntercepted, false, 'Review API requests must bypass the service-worker cache entirely');
 
 const bookingApi = source('api/booking.js');
 assert.match(bookingApi, /isActiveInstantBookingZip/);

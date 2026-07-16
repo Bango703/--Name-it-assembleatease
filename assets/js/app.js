@@ -434,7 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
     try {
       navigator.serviceWorker.getRegistration('/assembler/').then(function (reg) {
-        if (!reg) navigator.serviceWorker.register('/sw.js', { scope: '/assembler/' }).catch(function () {});
+        if (reg) reg.update().catch(function () {});
+        else navigator.serviceWorker.register('/sw.js', { scope: '/assembler/' }).catch(function () {});
       }).catch(function () {});
     } catch (e) {}
   }

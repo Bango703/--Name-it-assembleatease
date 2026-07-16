@@ -22,6 +22,7 @@ const API = {
     try {
       const response = await fetch('/api/assembler/reviews', {
         headers: { Authorization: 'Bearer ' + session.access_token },
+        cache: 'no-store',
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Could not load reviews');

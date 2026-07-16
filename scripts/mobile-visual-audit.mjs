@@ -12,6 +12,7 @@
  *   AAE_AUDIT_OUTPUT=.tmp-mobile-audit/results.json
  *   AAE_AUDIT_SCREENSHOT_DIR=.tmp-mobile-audit/screens
  *   AAE_AUDIT_QUICK=1
+ *   AAE_AUDIT_EMPTY_EASER_REVIEWS=1
  */
 
 import fs from 'node:fs';
@@ -28,6 +29,7 @@ const screenshotSetting = process.env.AAE_AUDIT_SCREENSHOT_DIR || path.join(path
 const screenshotRoot = path.isAbsolute(screenshotSetting) ? screenshotSetting : path.resolve(repoRoot, screenshotSetting);
 const takeScreenshots = process.env.AAE_AUDIT_SCREENSHOTS === '1';
 const quick = process.env.AAE_AUDIT_QUICK === '1';
+const emptyEaserReviews = process.env.AAE_AUDIT_EMPTY_EASER_REVIEWS === '1';
 
 function locatePlaywright() {
   const candidates = [];
@@ -686,7 +688,7 @@ async function configureContext(context) {
     });
   });
 
-  await context.route(`${baseUrl}/config.js`, async (route) => {
+  await context.route(`${baseUrl}/config.js*`, async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/javascript', body: 'window.supabaseClient = window.__AAE_MOCK_CLIENT__; window.supabase = window.supabase || { createClient: function(){ return window.__AAE_MOCK_CLIENT__; } };' });
   });
 
@@ -859,7 +861,7 @@ async function configureContext(context) {
     } else if (pathname === '/api/owner/market-demand') {
       payload = mockOwnerMarketDemand;
     } else if (pathname === '/api/assembler/reviews') {
-      payload = { reviews: [
+      payload = { reviews: emptyEaserReviews ? [] : [
         { rating: 5, comment: 'Clear communication and careful work.', customerWouldRehire: true, createdAt: iso(-20 * 86400000), customerFirstName: 'Taylor' },
         { rating: 5, comment: 'Arrived prepared and completed everything neatly.', customerWouldRehire: true, createdAt: iso(-45 * 86400000), customerFirstName: 'Casey' },
       ] };
@@ -1150,6 +1152,43 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
         && ['ach', 'zelle', 'paypal', 'check'].every((value) => state.availablePreferences.includes(value))
         && state.manualPayoutExplained,
       requestObserved,
+      ...state,
+    };
+  }
+
+  if (spec.id === 'easer-profile') {
+    const state = await page.evaluate(() => {
+      const list = document.getElementById('my-reviews-list');
+      const text = (list?.innerText || '').replace(/\s+/g, ' ').trim();
+      const count = document.getElementById('review-count-label')?.textContent?.trim() || '';
+      return {
+        count,
+        text,
+        hasBothCustomers: /Taylor/i.test(text) && /Casey/i.test(text),
+        hasBothComments: /Clear communication and careful work\./i.test(text)
+          && /Arrived prepared and completed everything neatly\./i.test(text),
+        hasRating: /5\.0\s*\/\s*5/i.test(text),
+        hasRehireLabel: /Would hire again/i.test(text),
+        hasValidDate: /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\b/.test(text),
+        hasEmptyCopy: /No customer reviews yet for this Easer\. Approved reviews will appear here after completed jobs\./i.test(text),
+        hasLoadingOrFailure: /Loading reviews|could not be loaded|Retry|Invalid Date/i.test(text),
+      };
+    });
+    const requestObserved = apiObserved('GET', '/api/assembler/reviews');
+    const populatedStatePasses = state.count === '(2)'
+      && state.hasBothCustomers
+      && state.hasBothComments
+      && state.hasRating
+      && state.hasRehireLabel
+      && state.hasValidDate;
+    const emptyStatePasses = state.count === '' && state.hasEmptyCopy;
+    checks.easerReviews = {
+      required: true,
+      pass: requestObserved
+        && (emptyEaserReviews ? emptyStatePasses : populatedStatePasses)
+        && !state.hasLoadingOrFailure,
+      requestObserved,
+      expectedMode: emptyEaserReviews ? 'empty' : 'populated',
       ...state,
     };
   }

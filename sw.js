@@ -1,5 +1,5 @@
 // AssembleAtEase Easer Service Worker
-const CACHE = 'aae-easer-v5';
+const CACHE = 'aae-easer-v6';
 const OFFLINE_URL = '/assembler/';
 
 // ── Install: cache the core Easer shell ──────────────────────────────
@@ -42,6 +42,26 @@ self.addEventListener('fetch', function(e) {
     e.respondWith(
       fetch(e.request).catch(function() {
         return caches.match(OFFLINE_URL);
+      })
+    );
+    return;
+  }
+  // Critical application code must refresh from the network. A cached fallback
+  // keeps the Easer shell usable offline without pinning old auth or data logic
+  // after a deployment.
+  if (e.request.destination === 'script' || url.pathname === '/config.js') {
+    e.respondWith(
+      fetch(e.request).then(function(resp) {
+        if (resp && resp.status === 200) {
+          var clone = resp.clone();
+          return caches.open(CACHE)
+            .then(function(cache) { return cache.put(e.request, clone); })
+            .catch(function() {})
+            .then(function() { return resp; });
+        }
+        return resp;
+      }).catch(function() {
+        return caches.match(e.request);
       })
     );
     return;
