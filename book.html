@@ -3479,7 +3479,9 @@ var BOOK = {
 
   _stripe: null,
 
-  _cardEl: null
+  _cardEl: null,
+
+  _cardComplete: false
 
 };
 
@@ -6202,8 +6204,7 @@ async function goToStep5Payment() {
 
   goToStep(5);
 
-  var paymentSubmitBtn = document.getElementById('s5-submit');
-  if (paymentSubmitBtn) paymentSubmitBtn.disabled = true;
+  syncPaymentSubmitState();
 
   if (BOOK.isEmergingMarket) {
 
@@ -6269,6 +6270,8 @@ async function goToStep5Payment() {
   var isQuoteFlow = (BOOK._grandTotalCents === 0) || BOOK.wantsQuote || BOOK._hasCustomQuoteItems;
 
   BOOK._isQuoteFlow = isQuoteFlow;
+  if (isQuoteFlow) BOOK._setupIntentSecret = null;
+  syncPaymentSubmitState();
   await refreshPromoPreview({ silentFailure: true });
 
 
@@ -6309,7 +6312,7 @@ async function goToStep5Payment() {
       var siData = await siResp.json();
       if (!siResp.ok) throw new Error(siData.error || 'Could not initialize payment form');
       BOOK._setupIntentSecret = siData.clientSecret;
-      paymentSubmitBtn.disabled = false;
+      syncPaymentSubmitState();
     } catch(siErr) {
       var errElSetup = document.getElementById('s5-err');
       if (errElSetup) { errElSetup.textContent = siErr.message; errElSetup.classList.add('show'); }
@@ -6317,7 +6320,7 @@ async function goToStep5Payment() {
 
   } else {
 
-    if (await initStripe()) paymentSubmitBtn.disabled = false;
+    if (await initStripe()) syncPaymentSubmitState();
 
   }
 
@@ -6971,6 +6974,29 @@ function showStripeLoadError() {
 
 }
 
+function syncPaymentSubmitState() {
+
+  var submitBtn = document.getElementById('s5-submit');
+  if (!submitBtn || BOOK.isEmergingMarket) return;
+
+  var paymentFormReady = !!BOOK._stripe && !!BOOK._cardEl;
+  var quoteSetupReady = !BOOK._isQuoteFlow || !!BOOK._setupIntentSecret;
+  var canSubmit = paymentFormReady && quoteSetupReady && !!BOOK._cardComplete;
+
+  submitBtn.disabled = !canSubmit;
+
+  if (!paymentFormReady || !quoteSetupReady) {
+    submitBtn.textContent = 'Preparing secure checkout...';
+  } else if (!BOOK._cardComplete) {
+    submitBtn.textContent = 'Enter card details to continue';
+  } else {
+    submitBtn.innerHTML = BOOK._isQuoteFlow
+      ? 'Request Custom Quote <span>&#8594;</span>'
+      : 'Complete Booking <span>&#8594;</span>';
+  }
+
+}
+
 async function retryStripeCheckout() {
 
   var wrap = document.getElementById('stripe-card-wrap');
@@ -6979,8 +7005,9 @@ async function retryStripeCheckout() {
   if (BOOK._cardEl) { try { BOOK._cardEl.destroy(); } catch(e){} }
   BOOK._cardEl = null;
   BOOK._stripe = null;
+  BOOK._cardComplete = false;
 
-  if (submitBtn) submitBtn.disabled = true;
+  if (submitBtn) syncPaymentSubmitState();
   if (wrap) {
     wrap.setAttribute('aria-busy', 'true');
     wrap.innerHTML = '<div class="payment-loader" id="payment-loader" role="status">Preparing secure card entry</div><div id="stripe-card-element"></div>';
@@ -7041,6 +7068,7 @@ async function initializeStripe() {
     var paymentLoader = document.getElementById('payment-loader');
     if (paymentLoader) paymentLoader.remove();
     document.getElementById('stripe-card-wrap').setAttribute('aria-busy', 'false');
+    syncPaymentSubmitState();
 
     BOOK._cardEl.on('focus', function() {
       document.getElementById('stripe-card-wrap').classList.add('focused');
@@ -7054,9 +7082,13 @@ async function initializeStripe() {
 
     BOOK._cardEl.on('change', function(evt) {
 
+      BOOK._cardComplete = !!evt.complete;
+
       document.getElementById('stripe-card-wrap').classList.toggle('invalid', !!evt.error);
 
       document.getElementById('card-errors').textContent = evt.error ? evt.error.message : '';
+
+      syncPaymentSubmitState();
 
     });
 
@@ -7135,6 +7167,14 @@ async function submitBooking() {
   if (!BOOK._stripe || !BOOK._cardEl) {
 
     errEl.textContent = 'Payment form not ready. Please refresh and try again.';
+
+    errEl.classList.add('show'); return;
+
+  }
+
+  if (!BOOK._cardComplete) {
+
+    errEl.textContent = 'Complete your card details before continuing.';
 
     errEl.classList.add('show'); return;
 
