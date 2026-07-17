@@ -5,6 +5,7 @@
   var BANNER_ID = 'cookie-banner';
   var STYLE_ID = 'aae-cookie-consent-style';
   var GTAG_SCRIPT_ID = 'aae-gtag-script';
+  var HUBSPOT_SCRIPT_ID = 'hs-script-loader';
   var analyticsLoaded = false;
 
   function injectStyles() {
@@ -51,6 +52,16 @@
     window.gtag('config', ADS_MEASUREMENT_ID);
   }
 
+  function loadHubspot() {
+    if (document.getElementById(HUBSPOT_SCRIPT_ID)) return;
+    var script = document.createElement('script');
+    script.id = HUBSPOT_SCRIPT_ID;
+    script.async = true;
+    script.defer = true;
+    script.src = 'https://js-na2.hs-scripts.com/245917212.js';
+    document.head.appendChild(script);
+  }
+
   function loadAnalytics() {
     if (analyticsLoaded) return;
     analyticsLoaded = true;
@@ -65,6 +76,7 @@
     }
 
     initGtag();
+    loadHubspot();
   }
 
   function setConsent(value) {
