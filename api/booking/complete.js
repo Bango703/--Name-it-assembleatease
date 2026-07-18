@@ -10,6 +10,7 @@ import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
+import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { reserveBookingFinancialOperation } from './_financial-operation.js';
 import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
@@ -478,7 +479,9 @@ async function completeOwnerManualBooking(sb, res, booking) {
     status: BOOKING_STATUS.COMPLETED,
     completed_at: now,
     amount_charged: totalCents,
-    stripe_fee: 0,
+    // Processing fee for how the customer paid (0 for cash/bank, card rate for
+    // card rails). No Easer on this path, so no split — the owner did the work.
+    stripe_fee: offlineMethodFeeCents(booking.payment_method, totalCents),
     platform_fee_pct: 0,
     platform_fee: 0,
     assembler_due: 0,

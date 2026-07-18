@@ -8,7 +8,7 @@ import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
-import { offlineMethodHasNoProcessorFee } from '../owner/_offline-payment.js';
+import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -128,10 +128,10 @@ export default async function handler(req, res) {
         ? (isStripeConnectEnabled() ? 'stripe_connect' : 'manual')
         : null,
       payout_review_status: 'not_required',
-      // Only claim a $0 processor fee on rails that genuinely have none. A card
-      // charged outside the platform carries a fee we cannot see from here, so
-      // its stripe_fee stays unknown rather than being asserted as zero.
-      ...(offlineMethodHasNoProcessorFee(booking.payment_method) ? { stripe_fee: 0 } : {}),
+      // Record the processing fee for how the customer paid this offline job
+      // (0 for cash/bank rails, the card rate for card rails) so platform gross
+      // is accurate — one rule, from _offline-payment.js.
+      stripe_fee: offlineMethodFeeCents(booking.payment_method, split.totalCents),
     });
   }
 
