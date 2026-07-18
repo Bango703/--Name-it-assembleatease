@@ -2,8 +2,12 @@
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { deriveManualPayoutReadiness } from '../api/owner/_finance-ledger.js';
+import {
+  deriveManualPayoutReadiness,
+  hasVerifiedOfflineOwnerPayment,
+} from '../api/owner/_finance-ledger.js';
 import { isCurrentCompletionEvidence } from '../api/booking/_completion-evidence.js';
+import { normalizeOwnerOfflinePaymentMethod } from '../api/owner/_offline-payment.js';
 
 const baseBooking = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -25,9 +29,41 @@ const baseBooking = {
 
 assert.deepEqual(
   deriveManualPayoutReadiness(baseBooking, { owed: 7113 }),
-  { disposition: 'pending', holdReasons: [] },
+  { disposition: 'pending', holdReasons: [], holdCodes: [] },
   'a captured, manual, pending earning must be recordable',
 );
+
+const verifiedOfflineOwnerBooking = {
+  ...baseBooking,
+  source: 'owner_manual',
+  payment_status: 'offline_recorded',
+  payment_collected: true,
+  payment_collected_at: '2026-07-17T14:00:00.000Z',
+  payment_collected_by: 'owner',
+  payment_method: 'card_on_site',
+  amount_charged: 11000,
+};
+assert.equal(hasVerifiedOfflineOwnerPayment(verifiedOfflineOwnerBooking), true);
+assert.equal(normalizeOwnerOfflinePaymentMethod(' CARD_ON_SITE '), 'card_on_site');
+assert.equal(normalizeOwnerOfflinePaymentMethod('browser_supplied_value'), null);
+assert.equal(
+  deriveManualPayoutReadiness(verifiedOfflineOwnerBooking, { owed: 7113 }).disposition,
+  'pending',
+  'audited owner-manual customer collection must release the canonical manual payout lane',
+);
+
+for (const unsafeOfflineBooking of [
+  { ...verifiedOfflineOwnerBooking, payment_collected: false, payment_collected_at: null, payment_collected_by: null },
+  { ...verifiedOfflineOwnerBooking, payment_collected_at: null },
+  { ...verifiedOfflineOwnerBooking, payment_collected_by: null },
+  { ...verifiedOfflineOwnerBooking, payment_method: null },
+  { ...verifiedOfflineOwnerBooking, amount_charged: 0, total_price: 0 },
+  { ...verifiedOfflineOwnerBooking, source: 'online' },
+]) {
+  assert.equal(hasVerifiedOfflineOwnerPayment(unsafeOfflineBooking), false);
+  const unsafeResult = deriveManualPayoutReadiness(unsafeOfflineBooking, { owed: 7113 });
+  assert.equal(unsafeResult.disposition, 'on_hold');
+}
 
 const missingMode = deriveManualPayoutReadiness(
   { ...baseBooking, payout_mode_snapshot: null },
@@ -117,9 +153,13 @@ assert.equal(
   'pending',
 );
 
-const [ownerSource, payoutsSource] = await Promise.all([
+const [ownerSource, payoutsSource, payoutApiSource, collectionApiSource, migrationSource, visualAuditSource] = await Promise.all([
   fs.readFile(new URL('../owner/index.html', import.meta.url), 'utf8'),
   fs.readFile(new URL('../api/owner/payouts.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/payout.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/owner/mark-payment-collected.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/migrations/041_owner_manual_collected_payout.sql', import.meta.url), 'utf8'),
+  fs.readFile(new URL('./mobile-visual-audit.mjs', import.meta.url), 'utf8'),
 ]);
 assert.match(ownerSource, /data-payout-intent="/);
 assert.match(ownerSource, /intent === 'record'/);
@@ -131,5 +171,38 @@ assert.match(ownerSource, /decision: 'resolve_stripe_dispute'/);
 assert.match(ownerSource, /Stripe dispute hold cleared; no payout was sent/);
 assert.doesNotMatch(ownerSource, /var label = job\.disposition === 'on_hold' \? 'Review ' : 'Pay '/);
 assert.match(payoutsSource, /hold_reasons:\s*b\.payoutHoldReasons/);
+assert.match(ownerSource, /Step 1 complete:/);
+assert.match(ownerSource, /Step 2 verified:/);
+assert.match(ownerSource, /Record External Easer Payout/);
+assert.match(ownerSource, /Confirm Offline Customer Payment/);
+assert.match(ownerSource, /collection-confirm-cb/);
+assert.match(ownerSource, /confirmedAmountCents/);
+assert.match(ownerSource, /payoutJobsByBookingId/);
+assert.match(ownerSource, /canonicalPayoutJob\.disposition === 'pending'/);
+assert.match(ownerSource, /Number\.isInteger\(canonicalPayoutCents\)/);
+assert.match(ownerSource, /Number\.isInteger\(assemblerDueCents\)/);
+assert.match(ownerSource, /offlineCustomerTotalCents = Number\(b\.amount_charged \?\? b\.total_price \?\? 0\)/);
+assert.doesNotMatch(ownerSource, /currentPayoutTruth\.owed \|\|[\s\S]{0,160}assembler_due/);
+assert.doesNotMatch(ownerSource, /var offlineDamageReady|var offlineDisputeOpen/);
+assert.match(ownerSource, /loadPayoutLedger\(\);[\s\S]*Nav badge: pending Easer applications/);
+assert.match(payoutApiSource, /hasVerifiedOfflineOwnerPayment\(booking\)/);
+assert.match(payoutApiSource, /deriveManualPayoutReadiness\(booking/);
+assert.match(collectionApiSource, /normalizeOwnerOfflinePaymentMethod\(paymentMethod\)/);
+assert.match(collectionApiSource, /confirmedCents !== canonicalAmountCents/);
+assert.match(collectionApiSource, /booking\.payment_status !== 'offline_recorded'/);
+assert.match(collectionApiSource, /existingMethod !== normalizedMethod/);
+assert.match(visualAuditSource, /owner-manual-uncollected/);
+assert.match(visualAuditSource, /ownerOfflineCollection/);
+assert.match(visualAuditSource, /\/api\/owner\/mark-payment-collected/);
+assert.match(visualAuditSource, /requestCountAfterAcknowledgementBlock === requestCountBeforeAcknowledgement/);
+assert.match(migrationSource, /booking_row\.source = 'owner_manual'/);
+assert.match(migrationSource, /booking_row\.payment_status = 'offline_recorded'/);
+assert.match(migrationSource, /booking_row\.payment_collected IS TRUE/);
+assert.match(migrationSource, /booking_row\.payment_collected_at IS NOT NULL/);
+assert.match(migrationSource, /BTRIM\(booking_row\.payment_collected_by\)/);
+assert.match(migrationSource, /BTRIM\(booking_row\.payment_method\)/);
+assert.match(migrationSource, /COALESCE\(booking_row\.amount_charged, booking_row\.total_price, 0\) > 0/);
+assert.match(migrationSource, /booking_row\.payment_status = 'captured'/);
+assert.match(migrationSource, /Payout state must be pending/);
 
 console.log('Owner manual payout workflow tests: PASS');

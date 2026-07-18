@@ -1,81 +1,113 @@
 import { computeBookingFinancialSummary } from '../_source-of-truth.js';
 import { isCurrentCompletionEvidence } from '../booking/_completion-evidence.js';
+import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
 
 const RESOLVED_DISPUTE_STATUSES = new Set(['won', 'warning_closed', 'prevented']);
+
+export function hasVerifiedOfflineOwnerPayment(booking = {}) {
+  return String(booking.source || '').trim().toLowerCase() === 'owner_manual'
+    && String(booking.payment_status || '').trim().toLowerCase() === 'offline_recorded'
+    && booking.payment_collected === true
+    && Boolean(booking.payment_collected_at)
+    && String(booking.payment_collected_by || '').trim().length > 0
+    && Boolean(normalizeOwnerOfflinePaymentMethod(booking.payment_method))
+    && Number(booking.amount_charged ?? booking.total_price ?? 0) > 0;
+}
 
 export function deriveManualPayoutReadiness(booking, {
   paidOut = false,
   owed = 0,
   hasCurrentCompletionEvidence = false,
 } = {}) {
-  if (paidOut) return { disposition: 'paid', holdReasons: [] };
-  if (Number(owed || 0) <= 0) return { disposition: 'not_payable', holdReasons: [] };
+  if (paidOut) return { disposition: 'paid', holdReasons: [], holdCodes: [] };
+  if (Number(owed || 0) <= 0) {
+    return { disposition: 'not_payable', holdReasons: [], holdCodes: [] };
+  }
 
   const holdReasons = [];
+  const holdCodes = [];
+  const hold = (code, reason) => {
+    holdCodes.push(code);
+    holdReasons.push(reason);
+  };
   const isCancellationEarning = booking.status === 'cancelled';
-  const payoutStatus = String(booking.payout_status || '').toLowerCase();
+  const payoutStatus = String((isCancellationEarning
+    ? (booking.cancellation_easer_payout_status || booking.payout_status)
+    : booking.payout_status) || '').toLowerCase();
   const paymentStatus = String(booking.payment_status || '').toLowerCase();
   const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
 
-  if (!booking.assembler_id) holdReasons.push('No Easer is assigned to this earning.');
-  if (payoutStatus !== 'pending') holdReasons.push('Payout state must be reconciled to pending.');
-  if (booking.stripe_transfer_id) holdReasons.push('A Stripe Connect transfer already exists.');
+  if (!booking.assembler_id) hold('easer_not_assigned', 'No Easer is assigned to this earning.');
+  if (payoutStatus !== 'pending') hold('payout_state_reconciliation', 'Payout state must be reconciled to pending.');
+  if (booking.stripe_transfer_id) hold('stripe_transfer_exists', 'A Stripe Connect transfer already exists.');
   if (booking.payout_mode_snapshot !== 'manual') {
-    holdReasons.push(booking.payout_mode_snapshot === 'stripe_connect'
+    hold(booking.payout_mode_snapshot === 'stripe_connect' ? 'stripe_connect_path' : 'payout_mode_missing', booking.payout_mode_snapshot === 'stripe_connect'
       ? 'This earning belongs to the Stripe Connect payout path.'
       : 'Manual payout mode is missing; apply migration 037 and reconcile the booking.');
   }
 
   if (isCancellationEarning) {
     if (paymentStatus !== 'cancellation_fee_captured') {
-      holdReasons.push('The customer cancellation fee is not captured.');
+      hold('cancellation_payment_uncaptured', 'The customer cancellation fee is not captured.');
     }
   } else if (paymentStatus === 'captured') {
     // Standard completed-job payout path.
+  } else if (hasVerifiedOfflineOwnerPayment(booking)) {
+    // Owner-recorded completed work may be paid only after an audited offline
+    // customer collection exists. This remains distinct from Stripe capture.
   } else if (['partially_refunded', 'refunded'].includes(paymentStatus)) {
     const reviewComplete = booking.payout_review_status === 'approved_full'
       && !!booking.payout_reviewed_at
       && String(booking.payout_reviewed_by || '').trim().length > 0
       && String(booking.payout_review_notes || '').trim().length >= 10;
-    if (!reviewComplete) holdReasons.push('Refund-affected Easer earnings require a completed owner review.');
+    if (!reviewComplete) hold('refund_review_incomplete', 'Refund-affected Easer earnings require a completed owner review.');
+  } else if (String(booking.source || '').trim().toLowerCase() === 'owner_manual'
+      && paymentStatus === 'offline_recorded') {
+    hold(
+      'offline_payment_not_verified',
+      'Record the offline customer payment as collected from the booking before paying the Easer.',
+    );
   } else {
-    holdReasons.push('Customer funds are not captured.');
+    hold('customer_payment_uncaptured', 'Customer funds are not captured.');
   }
 
   if (booking.damage_review_status === 'review_required') {
-    holdReasons.push('The damage payout review is still open.');
+    hold('damage_review_open', 'The damage payout review is still open.');
   } else if (booking.damage_review_status === 'resolved') {
     const damageReviewComplete = !!booking.damage_claim_opened_at
       && !!booking.damage_reviewed_at
       && String(booking.damage_reviewed_by || '').trim().length > 0
       && String(booking.damage_review_notes || '').trim().length >= 10;
-    if (!damageReviewComplete) holdReasons.push('The damage review record is incomplete.');
+    if (!damageReviewComplete) hold('damage_review_incomplete', 'The damage review record is incomplete.');
   }
 
   if (booking.stripe_dispute_hold === true
       || (booking.stripe_dispute_id && !RESOLVED_DISPUTE_STATUSES.has(disputeStatus))) {
-    holdReasons.push('Stripe reports an unresolved customer dispute on these funds.');
+    hold('customer_dispute_open', 'Stripe reports an unresolved customer dispute on these funds.');
   }
   if (booking.financial_operation_key || booking.financial_reconciliation_required_at) {
-    holdReasons.push('A financial operation or reconciliation hold is still open.');
+    hold('financial_reconciliation_open', 'A financial operation or reconciliation hold is still open.');
   }
   if (!isCancellationEarning && booking.evidence_requested_at && !hasCurrentCompletionEvidence) {
-    holdReasons.push('The requested current-Easer completion photo is missing.');
+    hold('completion_evidence_missing', 'The requested current-Easer completion photo is missing.');
   }
 
   return {
     disposition: holdReasons.length ? 'on_hold' : 'pending',
     holdReasons,
+    holdCodes,
   };
 }
 
-export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
+export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } = {}) {
   let bookings = null;
 
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
+    .select('id, ref, source, payment_method, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
     .in('status', ['completed', 'cancelled']);
+
+  if (assemblerId) bookingsQuery = bookingsQuery.eq('assembler_id', assemblerId);
 
   const firstAttempt = await bookingsQuery;
   if (firstAttempt.error) {
@@ -202,6 +234,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       payoutReviewNotes: b.payout_review_notes || null,
       payoutDisposition,
       payoutHoldReasons: payoutReadiness.holdReasons,
+      payoutHoldCodes: payoutReadiness.holdCodes,
       cancellationEarnings: isCancellationEarning,
       bundleSlug: b.bundle_slug || null,
       assemblecashEarnedCents: Number(b.assemblecash_earned_cents || 0),
@@ -212,6 +245,15 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to } = {}) {
       paidOut,
       payoutAmount,
       owed,
+      paidOutAt: b.paid_out_at || ledger?.recorded_at || null,
+      stripeTransferStatus: b.stripe_transfer_status || null,
+      stripeTransferCreatedAt: b.stripe_transfer_created_at || null,
+      stripeBankPayoutStatus: b.stripe_bank_payout_status || null,
+      stripeBankPayoutPaidAt: b.stripe_bank_payout_paid_at || null,
+      source: b.source || null,
+      paymentMethod: b.payment_method || null,
+      paymentCollected: b.payment_collected === true,
+      paymentCollectedAt: b.payment_collected_at || null,
       taxCollected: financial.taxCollectedCents,
       stripeFee: financial.processingFeeCents,
       stripeFeeIsActual: financial.processingFeeIsActual,

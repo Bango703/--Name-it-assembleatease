@@ -4,11 +4,12 @@ import { TX_TAX_RATE } from '../_pricing.js';
 import { randomToken, guestMutationTokenHash } from '../_payment-security.js';
 import { normalizeUsPhone } from '../_phone.js';
 import { logActivity } from '../booking/_activity.js';
+import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
 
-// Record-only owner-created bookings. These never receive an Easer assignment
-// and never touch Stripe capture, so a distinct source + offline_recorded
-// payment status keeps them out of the automated dispatch/capture/payout lanes.
-const PAYMENT_METHODS = ['stripe_manual', 'cash', 'zelle', 'cashapp', 'card_on_site', 'invoice'];
+// Owner-created offline bookings never touch Stripe capture or automated
+// dispatch. A completed record may later be linked to the Easer who performed
+// the work; that creates canonical manual earnings only after offline customer
+// collection is audited.
 const OVERRIDE_REASONS = ['price_match', 'repeat_customer', 'goodwill', 'bundle', 'other'];
 const PAYMENT_METHOD_LABELS = {
   stripe_manual: 'Manual Stripe payment (charged directly with AssembleAtEase)',
@@ -94,8 +95,9 @@ export default async function handler(req, res) {
   const subtotalCents = Math.round(finalCents / (1 + TX_TAX_RATE));
   const taxCents = finalCents - subtotalCents;
 
-  const method = paymentMethod == null || paymentMethod === '' ? null : String(paymentMethod);
-  if (method != null && !PAYMENT_METHODS.includes(method)) {
+  const methodInput = String(paymentMethod || '').trim();
+  const method = methodInput ? normalizeOwnerOfflinePaymentMethod(methodInput) : null;
+  if (methodInput && !method) {
     return res.status(400).json({ error: 'Unsupported payment method.' });
   }
   const reason = priceOverrideReason == null || priceOverrideReason === '' ? null : String(priceOverrideReason);
@@ -104,6 +106,12 @@ export default async function handler(req, res) {
   }
   const cleanNote = String(note || '').trim().slice(0, 2000) || null;
   const isAlreadyCompleted = !!alreadyCompleted;
+  if (isAlreadyCompleted && !method) {
+    return res.status(400).json({
+      error: 'Select how the customer paid before creating an already-completed booking.',
+      code: 'OFFLINE_PAYMENT_METHOD_REQUIRED',
+    });
+  }
 
   const sb = getSupabase();
   const ref = 'AAE-' + randomToken(8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();

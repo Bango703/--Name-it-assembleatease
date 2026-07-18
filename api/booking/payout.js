@@ -2,6 +2,10 @@
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS, computeBookingFinancialSummary } from '../_source-of-truth.js';
+import {
+  deriveManualPayoutReadiness,
+  hasVerifiedOfflineOwnerPayment,
+} from '../owner/_finance-ledger.js';
 import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
 import {
   releaseBookingFinancialOperation,
@@ -60,6 +64,9 @@ export default async function handler(req, res) {
     }
   } else if (booking.payment_status === 'captured') {
     // Standard completed-job payout path.
+  } else if (hasVerifiedOfflineOwnerPayment(booking)) {
+    // A completed owner-entered job has no Stripe capture. Its audited
+    // payment-collected fields are the server-side customer-funds truth.
   } else if (['partially_refunded', 'refunded'].includes(booking.payment_status)) {
     if (booking.payout_review_status !== 'approved_full') {
       return res.status(409).json({
@@ -68,7 +75,14 @@ export default async function handler(req, res) {
       });
     }
   } else {
-    return res.status(409).json({ error: 'Customer funds must be captured before an Easer payout can be recorded.' });
+    const offlineOwnerBooking = booking.source === 'owner_manual'
+      && booking.payment_status === 'offline_recorded';
+    return res.status(409).json({
+      error: offlineOwnerBooking
+        ? 'Record the offline customer payment as collected before recording the Easer payout.'
+        : 'Customer funds must be captured before an Easer payout can be recorded.',
+      code: offlineOwnerBooking ? 'OFFLINE_PAYMENT_COLLECTION_REQUIRED' : 'CUSTOMER_FUNDS_NOT_CAPTURED',
+    });
   }
 
   let hasEvidence = false;
@@ -91,6 +105,17 @@ export default async function handler(req, res) {
     ? Number(booking.cancellation_easer_due_cents || 0)
     : Number(booking.assembler_due || 0);
   if (!derivedDue || derivedDue <= 0) return res.status(409).json({ error: 'Canonical Easer earnings are missing. Reconcile completion before payout.' });
+  const readiness = deriveManualPayoutReadiness(booking, {
+    owed: derivedDue,
+    hasCurrentCompletionEvidence: !booking.evidence_requested_at || hasEvidence,
+  });
+  if (readiness.disposition !== 'pending') {
+    return res.status(409).json({
+      error: readiness.holdReasons[0] || 'This Easer earning is not currently ready for payout.',
+      code: readiness.holdCodes[0] || 'PAYOUT_RECONCILIATION_REQUIRED',
+      holdReasons: readiness.holdReasons,
+    });
+  }
   if (amount != null && Number.parseInt(amount, 10) !== derivedDue) {
     return res.status(409).json({
       error: `Payout amount is server-controlled and must equal $${(derivedDue / 100).toFixed(2)}. Record adjustments separately.`,

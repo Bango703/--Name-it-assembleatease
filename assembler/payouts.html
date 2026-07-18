@@ -187,8 +187,8 @@
   </div>
 
   <section class="payout-process-card" aria-labelledby="payout-process-title">
-    <div class="payout-process-title" id="payout-process-title">How launch payouts work</div>
-    <p class="payout-process-copy">Customers pay AssembleAtEase. After completion, the owner sends your payout manually outside this dashboard, usually within 7 business days. This page shows status only; it does not send funds.</p>
+    <div class="payout-process-title" id="payout-process-title">How payouts work</div>
+    <p class="payout-process-copy">Customers pay AssembleAtEase. Each earning below shows its current payout status. Manual payouts are sent by AssembleAtEase outside this dashboard; Stripe Connect earnings show transfer and verified bank-payout status separately. This page shows status only and does not send funds.</p>
     <div class="payout-preference-row">
       <div>
         <label for="payout-preference">Preferred manual payout method</label>
@@ -250,30 +250,20 @@
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  function earningAmount(booking) {
-    return Number(booking.status === 'cancelled'
-      ? booking.cancellation_easer_due_cents
-      : booking.assembler_due) || 0;
+  function earningAmount(earning) {
+    return Number(earning.amount_cents) || 0;
   }
 
-  function earningPayoutStatus(booking) {
-    return booking.status === 'cancelled'
-      ? (booking.cancellation_easer_payout_status || booking.payout_status || 'pending')
-      : (booking.payout_status || 'pending');
+  function earningPayoutStatus(earning) {
+    return earning && earning.payout ? earning.payout.disposition : 'on_hold';
   }
 
-  function earningEventDate(booking) {
-    return booking.status === 'cancelled' ? booking.cancelled_at : booking.completed_at;
+  function earningEventDate(earning) {
+    return earning.earned_at;
   }
 
-  function earningDisposition(booking) {
-    var status = earningPayoutStatus(booking);
-    if (status === 'paid') return 'paid';
-    if (status === 'transferred') return 'transferred';
-    var refundAffected = ['partially_refunded', 'refunded'].includes(booking.payment_status)
-      || Number(booking.refund_amount || 0) > 0;
-    if (refundAffected && booking.payout_review_status !== 'approved_full') return 'review';
-    return 'pending';
+  function earningDisposition(earning) {
+    return earningPayoutStatus(earning);
   }
 
   function filterByPeriod(list, period) {
@@ -294,8 +284,8 @@
     var totalEarned  = list.reduce(function(s, b){ return s + earningAmount(b); }, 0);
     var totalPaid    = list.filter(function(b){ return earningDisposition(b) === 'paid'; }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
     var totalPending = list.filter(function(b){ return ['pending', 'transferred'].includes(earningDisposition(b)); }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
-    var totalHeld    = list.filter(function(b){ return earningDisposition(b) === 'review'; }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
-    var completedJobs = list.filter(function(b){ return b.status === 'completed'; }).length;
+    var totalHeld    = list.filter(function(b){ return earningDisposition(b) === 'on_hold'; }).reduce(function(s,b){ return s + earningAmount(b); }, 0);
+    var completedJobs = list.filter(function(b){ return b.earning_type === 'completed_job'; }).length;
 
     document.getElementById('earn-total-val').textContent = fmt(totalEarned);
     document.getElementById('earn-split').innerHTML =
@@ -319,18 +309,15 @@
       var payoutStatus = earningPayoutStatus(b);
       var disposition = earningDisposition(b);
       var amount = earningAmount(b);
-      var isCancellation = b.status === 'cancelled';
+      var isCancellation = b.earning_type === 'cancellation_earnings';
       var isPaid = payoutStatus === 'paid';
       var isTransferred = payoutStatus === 'transferred';
-      var needsReview = disposition === 'review';
+      var needsReview = disposition === 'on_hold';
       var isZero = !amount;
-      var dateLabel = (isPaid && b.paid_out_at)
-        ? ('Paid ' + fmtDate(b.paid_out_at))
-        : (needsReview
-            ? ('Customer refund recorded ' + fmtDate(b.refunded_at || earningEventDate(b)) + ' · Easer earnings under owner review')
-            : isTransferred
-            ? ('Transferred to Stripe balance ' + fmtDate(b.stripe_transfer_created_at) + ' · Bank payout not yet verified')
-            : ((isCancellation ? 'Cancellation earnings ' : 'Completed ') + fmtDate(earningEventDate(b)) + ' · Awaiting manual payout'));
+      var payout = b.payout || {};
+      var dateLabel = (isCancellation ? 'Cancellation earnings ' : 'Completed ')
+        + fmtDate(earningEventDate(b))
+        + (payout.status_message ? ' · ' + esc(payout.status_message) : '');
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
@@ -340,7 +327,7 @@
         '</div>' +
         '<div class="earn-tx-right">' +
           '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(amount) + '</div>' +
-          '<div class="earn-tx-status ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + (isPaid ? 'Paid' : (needsReview ? 'Owner Review Required' : (isTransferred ? 'Bank Payout Pending' : 'Awaiting Manual Payout'))) + '</div>' +
+          '<div class="earn-tx-status ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + esc(payout.status_label || 'Payment Review') + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -373,7 +360,7 @@
       var closureNote = document.getElementById('payout-closure-note');
       closureNote.classList.add('show');
       closureNote.textContent = closureStatus === 'completed'
-        ? 'This Easer account is closed. Existing earnings and recorded payouts remain visible for reconciliation.'
+        ? 'This Easer account is closed. Contact AssembleAtEase support for retained payout records.'
         : 'Account closure is in progress. You cannot receive new offers, but existing earnings remain visible and any valid unpaid amount still must be reconciled.';
     }
 
@@ -427,7 +414,10 @@
 
     var offlineBanner = document.getElementById('e-offline');
     window.addEventListener('offline', function() { if (offlineBanner) offlineBanner.classList.add('show'); });
-    window.addEventListener('online',  function() { if (offlineBanner) offlineBanner.classList.remove('show'); });
+    window.addEventListener('online', function() {
+      if (offlineBanner) offlineBanner.classList.remove('show');
+      refreshEarnings(false);
+    });
 
     // Notification bell
     var _notifPanel = document.getElementById('notif-panel');
@@ -456,37 +446,57 @@
       renderEarnings(filterByPeriod(allEarnings, tab.dataset.period));
     });
 
-    try {
-      let token = await getToken();
-      if (!token) { window.location.href = '/auth/login.html'; return; }
-
-      loadPayoutPreference(token);
-
-      let resp = await fetch('/api/booking/my-assignments', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      // On 401: force-refresh once and retry before redirecting
-      if (resp.status === 401) {
+    var earningsRefreshPromise = null;
+    async function refreshEarnings(showError) {
+      if (earningsRefreshPromise) return earningsRefreshPromise;
+      earningsRefreshPromise = (async function() {
         try {
-          const { data: rd } = await supabaseClient.auth.refreshSession();
-          if (rd.session.access_token) {
-            token = rd.session.access_token;
-            resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + token } });
+          let token = await getToken();
+          if (!token) { window.location.href = '/auth/login.html'; return false; }
+          let resp = await fetch('/api/assembler/earnings', {
+            headers: { 'Authorization': 'Bearer ' + token },
+          });
+          // On 401: force-refresh once and retry before redirecting.
+          if (resp.status === 401) {
+            try {
+              const { data: rd } = await supabaseClient.auth.refreshSession();
+              if (rd.session.access_token) {
+                token = rd.session.access_token;
+                resp = await fetch('/api/assembler/earnings', { headers: { 'Authorization': 'Bearer ' + token } });
+              }
+            } catch {}
+            if (resp.status === 401) { window.location.href = '/auth/login.html'; return false; }
           }
-        } catch {}
-        if (resp.status === 401) { window.location.href = '/auth/login.html'; return; }
-      }
-      if (!resp.ok) throw new Error('Failed to load');
-      const data = await resp.json();
-      allEarnings = (data.bookings || []).filter(function(b){
-        return b.status === 'completed'
-          || (b.status === 'cancelled' && Number(b.cancellation_easer_due_cents || 0) > 0);
-      });
-      renderEarnings(allEarnings);
-    } catch (err) {
-      document.getElementById('payouts-list').innerHTML =
-        '<div class="e-alert error show">Could not load earnings history. Please refresh.</div>';
+          if (!resp.ok) throw new Error('Failed to load');
+          const data = await resp.json();
+          allEarnings = data.earnings || [];
+          var activePeriod = document.querySelector('.e-period-tab.active');
+          renderEarnings(filterByPeriod(allEarnings, activePeriod ? activePeriod.dataset.period : 'all'));
+          return true;
+        } catch (err) {
+          if (showError) {
+            document.getElementById('payouts-list').innerHTML =
+              '<div class="e-alert error show">Could not load earnings history. Please refresh.</div>';
+          }
+          return false;
+        } finally {
+          earningsRefreshPromise = null;
+        }
+      })();
+      return earningsRefreshPromise;
     }
+
+    let initialToken = await getToken();
+    if (!initialToken) { window.location.href = '/auth/login.html'; return; }
+    loadPayoutPreference(initialToken);
+    await refreshEarnings(true);
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') refreshEarnings(false);
+    });
+    window.setInterval(function() {
+      if (document.visibilityState === 'visible' && navigator.onLine !== false) refreshEarnings(false);
+    }, 30000);
   });
 </script>
 </body>

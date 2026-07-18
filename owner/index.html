@@ -1602,7 +1602,7 @@ window.intelQuick = intelQuick;
         </select>
       </div>
       <div>
-        <label class="modal-label">Payment Method</label>
+        <label class="modal-label" id="ocb-payment-method-label">Payment Method</label>
         <select class="modal-input" id="ocb-payment-method">
           <option value="">To be collected</option>
           <option value="stripe_manual">Manual Stripe payment</option>
@@ -1716,7 +1716,7 @@ window.intelQuick = intelQuick;
     <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
     <div id="payout-method-row" style="display:none;margin-top:0.75rem">
       <label class="modal-label">Payout method</label>
-      <select id="payout-method" class="modal-input">
+      <select id="payout-method" class="modal-input" style="min-height:44px">
         <option value="ach">ACH / Bank transfer</option>
         <option value="zelle">Zelle</option>
         <option value="paypal">PayPal</option>
@@ -1724,6 +1724,26 @@ window.intelQuick = intelQuick;
       </select>
       <label class="modal-label" style="margin-top:0.5rem">Reference / owner note</label>
       <input id="payout-reference" class="modal-input" placeholder="Confirmation ID, bank memo, or note" />
+    </div>
+    <div id="collection-method-row" style="display:none;margin-top:0.75rem">
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:0.7rem 0.8rem;margin-bottom:0.75rem">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700">Customer payment to verify</div>
+        <div id="collection-amount" style="font-size:1.15rem;font-weight:800;color:var(--text);margin-top:0.2rem">$0.00</div>
+      </div>
+      <label class="modal-label">How the customer paid</label>
+      <select id="collection-method" class="modal-input" style="min-height:44px">
+        <option value="">Select payment method</option>
+        <option value="stripe_manual">Manual Stripe payment</option>
+        <option value="cash">Cash</option>
+        <option value="zelle">Zelle</option>
+        <option value="cashapp">Cash App</option>
+        <option value="card_on_site">Card on-site</option>
+        <option value="invoice">Invoice</option>
+      </select>
+      <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
+        <input type="checkbox" id="collection-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+        <span id="collection-confirm-copy">I confirm this exact amount reached the business outside the online checkout.</span>
+      </label>
     </div>
     <div id="waive-fee-row" style="display:none;margin-top:0.75rem;font-size:0.85rem;color:var(--soft)">
       <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
@@ -1782,6 +1802,11 @@ window.intelQuick = intelQuick;
   const $payoutMethodRow = document.getElementById('payout-method-row');
   const $payoutMethod = document.getElementById('payout-method');
   const $payoutReference = document.getElementById('payout-reference');
+  const $collectionMethodRow = document.getElementById('collection-method-row');
+  const $collectionMethod = document.getElementById('collection-method');
+  const $collectionConfirm = document.getElementById('collection-confirm-cb');
+  const $collectionAmount = document.getElementById('collection-amount');
+  const $collectionConfirmCopy = document.getElementById('collection-confirm-copy');
 
   function setPayoutFieldsVisible(show) {
     if ($payoutMethodRow) $payoutMethodRow.style.display = show ? '' : 'none';
@@ -1789,6 +1814,28 @@ window.intelQuick = intelQuick;
       if ($payoutMethod) $payoutMethod.value = 'ach';
       if ($payoutReference) $payoutReference.value = '';
     }
+  }
+
+  function setCollectionFieldsVisible(show, booking) {
+    if ($collectionMethodRow) $collectionMethodRow.style.display = show ? '' : 'none';
+    if (!show) {
+      if ($collectionMethod) $collectionMethod.value = '';
+      if ($collectionConfirm) $collectionConfirm.checked = false;
+      if ($collectionAmount) $collectionAmount.textContent = '$0.00';
+      return;
+    }
+    var amountCents = Number((booking && (booking.amount_charged ?? booking.total_price)) || 0);
+    if ($collectionAmount) $collectionAmount.textContent = fmt$(amountCents);
+    if ($collectionConfirmCopy) {
+      $collectionConfirmCopy.textContent = 'I confirm ' + fmt$(amountCents) + ' actually reached the business outside the online checkout.';
+    }
+    if ($collectionMethod) {
+      var existingMethod = String((booking && booking.payment_method) || '');
+      $collectionMethod.value = ['stripe_manual','cash','zelle','cashapp','card_on_site','invoice'].includes(existingMethod)
+        ? existingMethod
+        : '';
+    }
+    if ($collectionConfirm) $collectionConfirm.checked = false;
   }
 
   function headers(extra) {
@@ -2132,6 +2179,9 @@ window.intelQuick = intelQuick;
     if (_bookingsTimer) clearInterval(_bookingsTimer);
     _bookingsTimer = setInterval(loadBookings, 60000);
     loadAssemblers();
+    // Surface payable and held Easer earnings immediately. The owner should
+    // not have to discover payout work by opening Financials first.
+    loadPayoutLedger();
     // Nav badge: pending Easer applications
     fetch('/api/assembler/list?tier=pending', { headers: headers() })
       .then(function(r) { return r.json(); })
@@ -3086,6 +3136,8 @@ window.intelQuick = intelQuick;
     if (sendConfirmation) sendConfirmation.checked = true;
     var alreadyCompleted = document.getElementById('ocb-already-completed');
     if (alreadyCompleted) alreadyCompleted.checked = false;
+    var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
+    if (paymentMethodLabel) paymentMethodLabel.textContent = 'Payment Method';
     var errEl = document.getElementById('ocb-error');
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
     updateOwnerCreateTaxPreview();
@@ -3107,6 +3159,8 @@ window.intelQuick = intelQuick;
   document.getElementById('ocb-final').addEventListener('input', updateOwnerCreateTaxPreview);
   document.getElementById('ocb-already-completed').addEventListener('change', function() {
     var sendConfirmation = document.getElementById('ocb-send-confirmation');
+    var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
+    if (paymentMethodLabel) paymentMethodLabel.textContent = this.checked ? 'Payment Method *' : 'Payment Method';
     if (!sendConfirmation) return;
     if (this.checked) {
       sendConfirmation.checked = false;
@@ -3137,6 +3191,14 @@ window.intelQuick = intelQuick;
 
     var standardPriceCents = centsFromDollarsInput(document.getElementById('ocb-standard').value);
     var alreadyCompleted = !!document.getElementById('ocb-already-completed').checked;
+    var ownerBookingPaymentMethod = (document.getElementById('ocb-payment-method').value || '') || null;
+    if (alreadyCompleted && !ownerBookingPaymentMethod) {
+      if (errEl) {
+        errEl.textContent = 'Select how the customer paid before creating an already-completed booking.';
+        errEl.style.display = '';
+      }
+      return;
+    }
     var payload = {
       service: service,
       firstName: firstName,
@@ -3149,7 +3211,7 @@ window.intelQuick = intelQuick;
       standardPriceCents: standardPriceCents,
       finalPriceCents: finalPriceCents,
       priceOverrideReason: (document.getElementById('ocb-reason').value || '') || null,
-      paymentMethod: (document.getElementById('ocb-payment-method').value || '') || null,
+      paymentMethod: ownerBookingPaymentMethod,
       note: (document.getElementById('ocb-note').value || '').trim() || null,
       sendConfirmation: !!(document.getElementById('ocb-send-confirmation').checked),
       alreadyCompleted: alreadyCompleted,
@@ -3203,17 +3265,55 @@ window.intelQuick = intelQuick;
     var isOwnerManual = b.source === 'owner_manual' || b.source === 'manual';
 
     if (isOwnerManual) {
-      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Owner manual booking:</strong> this is a record-only offline flow and is excluded from Stripe authorization/dispatch requirements.</div>');
+      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Offline payment booking:</strong> no AssembleAtEase Stripe charge exists. Customer collection and Easer payout must be recorded as two separate steps.</div>');
       if (b.status === 'confirmed') {
         btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
       } else if (b.status === 'completed') {
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit / Add Easer</button>');
-        if (b.payment_collected) {
-          btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Payment Collected</button>');
+        var offlineCustomerTotalCents = Number(b.amount_charged ?? b.total_price ?? 0);
+        var offlinePaymentVerified = b.source === 'owner_manual'
+          && b.payment_status === 'offline_recorded'
+          && b.payment_collected === true
+          && !!b.payment_collected_at
+          && String(b.payment_collected_by || '').trim().length > 0
+          && ['stripe_manual','cash','zelle','cashapp','card_on_site','invoice'].includes(String(b.payment_method || '').trim().toLowerCase())
+          && Number.isInteger(offlineCustomerTotalCents)
+          && offlineCustomerTotalCents > 0;
+        if (offlinePaymentVerified) {
+          notices.push('<div style="flex-basis:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:0.65rem 0.8rem;color:#065f46;font-size:0.78rem;line-height:1.5"><strong>Step 1 complete:</strong> ' + fmt$(offlineCustomerTotalCents) + ' in offline customer payment is recorded as collected' + (b.payment_method ? ' via ' + esc(String(b.payment_method).replace(/_/g, ' ')) : '') + '.</div>');
+          btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed;font-size:0.78rem">Offline Payment Collected</button>');
         } else {
+          notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Step 1 required:</strong> confirm the customer payment actually reached the business before releasing any Easer money.</div>');
           btns.push('<button class="btn btn-teal" data-action="collect-payment" data-id="' + b.id + '">Mark Payment Collected</button>');
+        }
+        var canonicalPayoutJob = payoutTruthAvailable
+          ? payoutJobsByBookingId.get(String(b.id))
+          : null;
+        var canonicalPayoutCents = Number(canonicalPayoutJob && canonicalPayoutJob.owed);
+        var offlinePayoutReady = canonicalPayoutJob
+          && canonicalPayoutJob.disposition === 'pending'
+          && Number.isInteger(canonicalPayoutCents)
+          && canonicalPayoutCents > 0;
+        if (['paid', 'transferred'].includes(b.payout_status)) {
+          btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed;font-size:0.78rem">Easer Payout Recorded</button>');
+        } else if (offlinePayoutReady) {
+          notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Step 2 verified:</strong> the canonical finance review shows exactly ' + fmt$(canonicalPayoutCents) + ' ready for external payout. Open the record form before sending money so the server can recheck every hold.</div>');
+          btns.push('<button class="btn btn-teal" data-action="payout" data-id="' + b.id + '">Record External Easer Payout</button>');
+        } else if (canonicalPayoutJob && canonicalPayoutJob.disposition === 'pending') {
+          notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payout amount unavailable:</strong> do not send money until Financials returns a positive canonical Easer amount.</div>');
+        } else if (canonicalPayoutJob && canonicalPayoutJob.disposition === 'on_hold') {
+          var canonicalHoldReasons = Array.isArray(canonicalPayoutJob.hold_reasons)
+            ? canonicalPayoutJob.hold_reasons.filter(Boolean)
+            : [];
+          notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Easer payout on hold:</strong> ' + esc(canonicalHoldReasons[0] || 'Open Financials and refresh the canonical payout review before sending money.') + '</div>');
+        } else if (b.assembler_id && Number(b.assembler_due || 0) > 0 && !payoutTruthAvailable) {
+          notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payout status unavailable:</strong> do not send money until Financials loads the canonical payout review.</div>');
+        } else if (b.assembler_id && Number(b.assembler_due || 0) > 0 && offlinePaymentVerified) {
+          notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Easer payout requires review:</strong> open Financials and refresh before sending money.</div>');
+        } else if (!b.assembler_id) {
+          notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--muted)">Add the Easer who completed this work before recording contractor earnings.</div>');
         }
       }
       $detailAct.innerHTML = notices.concat(btns).join('');
@@ -3374,6 +3474,7 @@ window.intelQuick = intelQuick;
 
   function prepareReasonModal() {
     setPayoutFieldsVisible(false);
+    setCollectionFieldsVisible(false);
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -3516,26 +3617,25 @@ window.intelQuick = intelQuick;
         btn.textContent = originalReviewText;
       }
     } else if (action === 'collect-payment') {
-      btn.disabled = true;
-      var originalCollectText = btn.textContent;
-      btn.textContent = 'Saving...';
-      try {
-        var collectRes = await fetch('/api/owner/mark-payment-collected', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ bookingId: id }),
-        });
-        var collectData = await collectRes.json().catch(function(){ return {}; });
-        if (!collectRes.ok || collectData.error) throw new Error(collectData.error || 'Payment collection could not be recorded');
-        toast(collectData.alreadyCollected ? 'Payment was already marked as collected' : 'Payment collection recorded', 'success');
-        await loadBookings();
-        if (selectedId) selectBooking(selectedId);
-      } catch (collectErr) {
-        toast(collectErr.message || 'Payment collection could not be recorded', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalCollectText;
+      var collectionBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!collectionBooking) return;
+      var collectionCents = Number(collectionBooking.amount_charged ?? collectionBooking.total_price ?? 0);
+      if (!Number.isInteger(collectionCents) || collectionCents <= 0) {
+        toast('The customer total is missing. Reconcile this booking before recording collection.', 'error');
+        return;
       }
+      pendingAction = {
+        id: id,
+        type: 'collect-payment',
+        confirmedAmountCents: collectionCents,
+      };
+      document.getElementById('reason-modal-title').textContent = 'Confirm Offline Customer Payment';
+      document.getElementById('reason-modal-desc').textContent = 'Use this only after the customer payment has actually reached AssembleAtEase outside the online checkout. This does not charge a card.';
+      document.getElementById('reason-confirm').textContent = 'Record Payment Collected';
+      document.getElementById('reason-confirm').className = 'btn btn-teal';
+      $reasonText.style.display = 'none';
+      setCollectionFieldsVisible(true, collectionBooking);
+      $reasonModal.classList.add('open');
     } else if (action === 'refund') {
       $reasonText.style.display = '';
       pendingAction = { path: '/refund', id: id, type: 'refund' };
@@ -3586,10 +3686,18 @@ window.intelQuick = intelQuick;
       document.getElementById('reason-confirm').className = 'btn btn-amber';
       $reasonModal.classList.add('open');
     } else if (action === 'payout') {
+      await loadPayoutLedger();
+      var currentPayoutTruth = payoutJobsByBookingId.get(String(id));
+      if (!payoutTruthAvailable || !currentPayoutTruth || currentPayoutTruth.disposition !== 'pending') {
+        toast('The canonical payout review no longer shows this earning as payable. Do not send money; review Financials.', 'error');
+        return;
+      }
       var bPayout = allBookings.find(function(bk){ return bk.id == id; });
-      var assemblerDueCents = bPayout
-        ? Number(bPayout.status === 'cancelled' ? bPayout.cancellation_easer_due_cents : bPayout.assembler_due) || null
-        : null;
+      var assemblerDueCents = Number(currentPayoutTruth.owed);
+      if (!Number.isInteger(assemblerDueCents) || assemblerDueCents <= 0) {
+        toast('The canonical payout amount is unavailable. Do not send money; review Financials.', 'error');
+        return;
+      }
       var assemblerDueDollars = assemblerDueCents ? (assemblerDueCents / 100).toFixed(2) : null;
       pendingAction = { path: '/payout', id: id, type: 'payout', assemblerDueCents: assemblerDueCents };
       document.getElementById('reason-modal-title').textContent = 'Record External Easer Payout';
@@ -3661,6 +3769,47 @@ window.intelQuick = intelQuick;
   document.getElementById('reason-confirm').addEventListener('click', async function() {
     if (!pendingAction) return;
     var reason = $reasonText.value.trim();
+
+    if (pendingAction.type === 'collect-payment') {
+      var collectionMethod = ($collectionMethod && $collectionMethod.value) || '';
+      if (!collectionMethod) {
+        toast('Select how the customer paid', 'error');
+        return;
+      }
+      if (!$collectionConfirm || !$collectionConfirm.checked) {
+        toast('Confirm that the exact customer payment reached the business', 'error');
+        return;
+      }
+      var collectBookingId = pendingAction.id;
+      var confirmedAmountCents = pendingAction.confirmedAmountCents;
+      var collectConfirmButton = this;
+      collectConfirmButton.disabled = true;
+      collectConfirmButton.textContent = 'Recording...';
+      try {
+        var collectRes = await fetch('/api/owner/mark-payment-collected', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: collectBookingId,
+            paymentMethod: collectionMethod,
+            confirmedAmountCents: confirmedAmountCents,
+          }),
+        });
+        var collectData = await collectRes.json().catch(function(){ return {}; });
+        if (!collectRes.ok || collectData.error) throw new Error(collectData.error || 'Payment collection could not be recorded');
+        closeReasonModal();
+        toast(collectData.alreadyCollected ? 'Payment was already recorded as collected' : 'Offline payment collection recorded', 'success');
+        await loadBookings();
+        await loadPayoutLedger();
+        if (selectedId) selectBooking(selectedId);
+      } catch (collectErr) {
+        toast(collectErr.message || 'Payment collection could not be recorded', 'error');
+      } finally {
+        collectConfirmButton.disabled = false;
+        collectConfirmButton.textContent = 'Record Payment Collected';
+      }
+      return;
+    }
 
     if (pendingAction.type === 'damage-review') {
       if (reason.length < 10) {
@@ -3806,6 +3955,7 @@ window.intelQuick = intelQuick;
         closeReasonModal();
         toast('Payout recorded', 'success');
         await loadBookings();
+        await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
       } catch (payoutError) {
         toast(payoutError.message || 'Payout record failed. Keep the external confirmation and retry only after reviewing the booking.', 'error');
@@ -5243,6 +5393,7 @@ window.intelQuick = intelQuick;
   var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'quarter';
   var reserveParts = { tax: 0, payouts: 0, rewards: 0, clawbacks: 0 };
   var payoutTruthAvailable = false;
+  var payoutJobsByBookingId = new Map();
   function stripeFee(cents) { return cents > 0 ? Math.round(cents * 0.029) + 30 : 0; }
   function fmt$(cents) { return '$'+(Number(cents || 0)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtSigned$(cents) {
@@ -5739,6 +5890,13 @@ window.intelQuick = intelQuick;
       if (!r.ok || d.error) throw new Error(d.error || 'Failed to load payout data');
       var easers = d.easers || [];
       var totals = d.totals || {};
+      var nextPayoutJobs = new Map();
+      easers.forEach(function(easer) {
+        (easer.unpaid_jobs || []).forEach(function(job) {
+          if (job && job.id) nextPayoutJobs.set(String(job.id), job);
+        });
+      });
+      payoutJobsByBookingId = nextPayoutJobs;
       payoutTruthAvailable = true;
       reserveParts.payouts = Number(totals.total_pending || 0);
       renderReserveRollup();
@@ -5768,6 +5926,10 @@ window.intelQuick = intelQuick;
 
       if (!easers.length) {
         tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">No completed-job or cancellation earnings with assigned Easers yet.</td></tr>';
+        if (selectedId) {
+          var selectedWithoutEarnings = allBookings.find(function(item){ return item.id == selectedId; });
+          if (selectedWithoutEarnings) renderActions(selectedWithoutEarnings);
+        }
         return;
       }
 
@@ -5803,13 +5965,22 @@ window.intelQuick = intelQuick;
           + '<td style="padding:0.6rem 0.75rem">' + (actionButtons || '<span style="font-size:0.72rem;color:var(--muted)">No action</span>') + '</td>'
         + '</tr>';
       }).join('');
+      if (selectedId) {
+        var selectedWithPayoutTruth = allBookings.find(function(item){ return item.id == selectedId; });
+        if (selectedWithPayoutTruth) renderActions(selectedWithPayoutTruth);
+      }
     } catch(e) {
       payoutTruthAvailable = false;
+      payoutJobsByBookingId = new Map();
       renderReserveRollup();
       if (totalsEl) totalsEl.innerHTML = '<span style="color:var(--red);font-weight:700">Payout totals unavailable - do not rely on reserve totals</span>';
       var payoutNavError = document.getElementById('nav-payouts');
       if (payoutNavError) { payoutNavError.textContent = '!'; payoutNavError.title = 'Payout truth unavailable'; payoutNavError.style.display = ''; }
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Payout data could not be verified. No amounts are being shown as zero. Retry before sending or recording any Easer payment.</td></tr>';
+      if (selectedId) {
+        var selectedWithoutPayoutTruth = allBookings.find(function(item){ return item.id == selectedId; });
+        if (selectedWithoutPayoutTruth) renderActions(selectedWithoutPayoutTruth);
+      }
     }
   }
 
@@ -5834,6 +6005,13 @@ window.intelQuick = intelQuick;
 
   window.openPayoutBooking = async function(bookingId, ref, intent) {
     try {
+      if (intent === 'record') {
+        await loadPayoutLedger();
+        var latestPayoutTruth = payoutJobsByBookingId.get(String(bookingId));
+        if (!payoutTruthAvailable || !latestPayoutTruth || latestPayoutTruth.disposition !== 'pending') {
+          throw new Error('The canonical payout review does not currently show this earning as payable. Do not send money; review the hold in Financials.');
+        }
+      }
       var booking = allBookings.find(function(item){ return item.id == bookingId; });
       // Always refresh before showing a form that tells the owner to send
       // external money. A stale Financials row must never authorize a payout.

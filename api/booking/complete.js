@@ -448,9 +448,10 @@ export default async function handler(req, res) {
   });
 }
 
-// Record-only completion for owner-created offline bookings. No Stripe capture,
-// no Easer payout (the owner did the work), no completion evidence. Sets the
-// sale figures so revenue + tax count, with a zero Stripe fee and zero Easer due.
+// Record-only completion for owner-created offline bookings. No Stripe capture
+// or live Easer assignment occurs here. The completed record may later be
+// linked to the Easer who performed the work, which snapshots separate manual
+// earnings only after the offline customer collection is audited.
 async function completeOwnerManualBooking(sb, res, booking) {
   if (booking.status === BOOKING_STATUS.COMPLETED) {
     return res.status(200).json({

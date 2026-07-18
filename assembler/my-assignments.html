@@ -239,6 +239,8 @@
 
 <script>
   let allAssignments = [];
+  let earningsByBookingId = new Map();
+  let earningsTruthLoaded = false;
   let currentFilter = 'all';
   let sessionToken = null;
   let selectedBookingId = null;
@@ -271,6 +273,25 @@
       if (refreshed.session.access_token) return refreshed.session.access_token;
     } catch {}
     return sessionToken;
+  }
+
+  async function refreshEarningsTruth(token) {
+    try {
+      const response = await fetch('/api/assembler/earnings', {
+        headers: { 'Authorization': 'Bearer ' + (token || await getToken()) },
+      });
+      if (!response.ok) throw new Error('Payout status unavailable');
+      const data = await response.json();
+      earningsByBookingId = new Map((data.earnings || []).map(function(earning) {
+        return [earning.booking_id, earning];
+      }));
+      earningsTruthLoaded = true;
+      return true;
+    } catch (error) {
+      earningsByBookingId = new Map();
+      earningsTruthLoaded = false;
+      return false;
+    }
   }
 
   function esc(str) {
@@ -508,6 +529,7 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
+        await refreshEarningsTruth(tok);
         const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
       } catch {}
@@ -524,6 +546,7 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
+        await refreshEarningsTruth(tok);
         renderAssignments(allAssignments);
       } catch {}
     });
@@ -542,6 +565,7 @@
         if (rf.ok) {
           var rd = await rf.json();
           allAssignments = rd.bookings || [];
+          await refreshEarningsTruth();
           var activePill = document.querySelector('.e-filter-pill.active');
           var cf = activePill ? (activePill.dataset.filter || 'all') : 'all';
           renderAssignments(filterList(allAssignments, cf));
@@ -603,6 +627,7 @@
       if (!resp.ok) throw new Error('Failed to load assignments');
       const data = await resp.json();
       allAssignments = data.bookings || [];
+      await refreshEarningsTruth(token);
       renderAssignments(allAssignments);
       updateFilterCounts(allAssignments);
     } catch (err) {
@@ -619,6 +644,7 @@
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
+        await refreshEarningsTruth();
         const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
         updateFilterCounts(allAssignments);
@@ -808,12 +834,24 @@
           _evidenceReqInFlight = false;
           return;
         }
-        // Success — hide the hold banner, update payout note, update local state
+        // Success — hide the upload prompt, then reload canonical payout truth.
         document.getElementById('evidence-request-section').style.display = 'none';
-        document.getElementById('payout-info-note').textContent = 'Payout pending — typically within 7 business days after customer payment capture.';
         var bk = allAssignments.find(function(x) { return x.id === _evidenceReqBookingId; });
         if (bk) bk._evidence_uploaded = true;
-        APP.showAlert('page-alert', 'Evidence uploaded — your payout hold has been released.', 'success');
+        var payoutTruthRefreshed = await refreshEarningsTruth();
+        var refreshedEarning = payoutTruthRefreshed
+          ? earningsByBookingId.get(_evidenceReqBookingId)
+          : null;
+        document.getElementById('payout-info-note').textContent = refreshedEarning && refreshedEarning.payout
+          ? refreshedEarning.payout.status_label + ' - ' + refreshedEarning.payout.status_message
+          : 'Evidence received. AssembleAtEase is verifying the current payout status.';
+        APP.showAlert(
+          'page-alert',
+          payoutTruthRefreshed
+            ? 'Evidence uploaded. Current payout status refreshed.'
+            : 'Evidence uploaded. Payout status is temporarily unavailable; refresh before relying on it.',
+          payoutTruthRefreshed ? 'success' : 'error'
+        );
       } catch (err) {
         statusEl.textContent = 'Connection error — please try again.';
         uploadBtn.disabled = false;
@@ -990,6 +1028,7 @@
               allAssignments = fd.bookings || [];
             }
           } catch {}
+          await refreshEarningsTruth();
           const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
           renderAssignments(filterList(allAssignments, cf));
           updateFilterCounts(allAssignments);
@@ -1182,19 +1221,16 @@
     var payoutSection = document.getElementById('payout-info-section');
     if (b.status === 'completed') {
       payoutSection.style.display = 'block';
-      var dueCents = b.assembler_due || 0;
+      var earningTruth = earningsTruthLoaded ? earningsByBookingId.get(b.id) : null;
+      var dueCents = earningTruth ? Number(earningTruth.amount_cents || 0) : Number(b.assembler_due || 0);
       document.getElementById('payout-info-amount').textContent = formatMoneyCents(dueCents);
       var payoutNote;
-      if (b.payout_status === 'paid') {
-        payoutNote = b.paid_out_at ? 'Paid out on ' + formatDate(b.paid_out_at) + '.' : 'Paid out.';
-      } else if (b.payout_status === 'transferred') {
-        payoutNote = 'Transferred to your Stripe balance. Bank payout is still pending verification and is not yet marked paid.';
-      } else if (evidenceHeld) {
-        payoutNote = 'Payout on hold — upload photos above to release.';
-      } else if (dueCents > 0) {
-        payoutNote = 'Manual payout pending after customer payment capture — typically within 7 business days.';
+      if (earningTruth && earningTruth.payout) {
+        payoutNote = earningTruth.payout.status_label + ' - ' + earningTruth.payout.status_message;
+      } else if (!earningsTruthLoaded) {
+        payoutNote = 'Payout status is temporarily unavailable. Open Earnings or refresh before relying on a status.';
       } else {
-        payoutNote = 'Payout amount pending — will be confirmed shortly.';
+        payoutNote = 'No payable Easer earning is currently recorded for this completed job.';
       }
       document.getElementById('payout-info-note').textContent = payoutNote;
     } else {

@@ -83,7 +83,7 @@ const widths = requestedWidths.length
 const ownerPages = [
   { id: 'owner-liveops', path: '/owner/index.html', group: 'owner-auth', ownerView: 'liveops', menu: true },
   { id: 'owner-today', path: '/owner/index.html', group: 'owner-auth', ownerView: 'today', menu: true },
-  { id: 'owner-bookings', path: '/owner/index.html', group: 'owner-auth', ownerView: 'bookings', ownerSelectBooking: 'owner-payment-recovery', ownerDamageReviewBooking: 'owner-completed-damage-hold', ownerRefundRecoveryBooking: 'owner-completed-refund-recovery', menu: true },
+  { id: 'owner-bookings', path: '/owner/index.html', group: 'owner-auth', ownerView: 'bookings', ownerSelectBooking: 'owner-payment-recovery', ownerOfflineCollectionBooking: 'owner-manual-uncollected', ownerManualPayoutBooking: 'owner-manual-completed', ownerDamageReviewBooking: 'owner-completed-damage-hold', ownerRefundRecoveryBooking: 'owner-completed-refund-recovery', menu: true },
   { id: 'owner-customers', path: '/owner/index.html', group: 'owner-auth', ownerView: 'customers', menu: true },
   { id: 'owner-market-demand', path: '/owner/index.html', group: 'owner-auth', ownerView: 'market-demand', menu: true },
   { id: 'owner-reviews', path: '/owner/index.html', group: 'owner-auth', ownerView: 'reviews', menu: true },
@@ -218,6 +218,22 @@ const mockBookings = [
   },
 ];
 
+const mockEaserEarnings = {
+  earnings: [
+    {
+      booking_id: 'job-complete-1', booking_ref: 'AAE-240701', service: 'Office Furniture Assembly',
+      earning_type: 'completed_job', earned_at: iso(-10 * 86400000), amount_cents: 18450,
+      payout: { rail: 'manual', disposition: 'paid', status_code: 'paid', status_label: 'Paid', status_message: 'AssembleAtEase recorded this external payout.', action: 'none', recorded_at: iso(-8 * 86400000) },
+    },
+    {
+      booking_id: 'job-cancel-1', booking_ref: 'AAE-240630', service: 'Smart Home Setup',
+      earning_type: 'cancellation_earnings', earned_at: iso(-13 * 86400000), amount_cents: 3500,
+      payout: { rail: 'manual', disposition: 'pending', status_code: 'manual_payout_ready', status_label: 'Ready for Manual Payout', status_message: 'This earning is ready for AssembleAtEase to send through your selected external payout method.', action: 'none', recorded_at: null },
+    },
+  ],
+  summary: { completed_jobs: 1, total_earned_cents: 21950, paid_cents: 18450, awaiting_payout_cents: 3500, on_hold_cents: 0 },
+};
+
 const mockOwnerBookings = [
   {
     id: 'owner-payment-recovery', ref: 'AAE-250714', status: 'pending', service: 'Furniture Assembly',
@@ -257,6 +273,28 @@ const mockOwnerBookings = [
     assembler_accepted_at: iso(-4 * 3600000), en_route_at: iso(-3 * 3600000), checked_in_at: iso(-2 * 3600000),
     job_started_at: iso(-90 * 60000), has_unread_easer_msg: true, unread_message_count: 1,
     messages: [{ count: 1 }], source: 'online', created_at: iso(-2 * 86400000),
+  },
+  {
+    id: 'owner-manual-completed', ref: 'AAE-GOK6T9HBKI', status: 'completed', service: 'King Bed Frame Assembly',
+    description: 'Completed owner-entered offline job', date: dateOnly(-3), time: '1:00 PM',
+    address: 'Austin, TX 78704', customer_name: 'Offline Customer', customer_email: 'offline.customer@example.com',
+    customer_phone: '+15125550111', total_price: 11000, amount_charged: 11000, tax_amount: 0,
+    payment_status: 'offline_recorded', payment_collected: true, payment_collected_at: iso(-3 * 86400000),
+    payment_collected_by: 'owner', payment_method: 'card_on_site', payout_status: 'pending', payout_mode_snapshot: 'manual',
+    assembler_id: 'easer-owner-1', assembler_name: 'Jordan Rivera', assembler_phone: '+15125550192',
+    assembler_tier: 'professional', assembler_rating: 4.9, assembler_due: 7113, completed_at: iso(-3 * 86400000),
+    source: 'owner_manual', created_at: iso(-4 * 86400000), unread_message_count: 0,
+  },
+  {
+    id: 'owner-manual-uncollected', ref: 'AAE-OFFLINE01', status: 'completed', service: 'Furniture Assembly',
+    description: 'Owner-entered job awaiting verified offline collection', date: dateOnly(-2), time: '3:00 PM',
+    address: 'Austin, TX 78745', customer_name: 'Collection Audit Customer', customer_email: 'collection.audit@example.com',
+    customer_phone: '+15125550122', total_price: 9000, amount_charged: 9000, tax_amount: 0,
+    payment_status: 'offline_recorded', payment_collected: false, payment_collected_at: null,
+    payment_collected_by: null, payment_method: 'card_on_site', payout_status: 'pending', payout_mode_snapshot: 'manual',
+    assembler_id: 'easer-owner-1', assembler_name: 'Jordan Rivera', assembler_phone: '+15125550192',
+    assembler_tier: 'professional', assembler_rating: 4.9, assembler_due: 5000, completed_at: iso(-2 * 86400000),
+    source: 'owner_manual', created_at: iso(-3 * 86400000), unread_message_count: 0,
   },
   {
     id: 'owner-completed-payable', ref: 'AAE-250701', status: 'completed', service: 'Office Furniture Assembly',
@@ -483,10 +521,10 @@ const mockOwnerTaxReport = {
 
 const mockOwnerPayouts = {
   easers: [
-    { assembler_id: 'easer-owner-1', assembler_name: 'Jordan Rivera', assembler_tier: 'professional', email: 'jordan.rivera@example.com', phone: '+15125550192', payout_method_preference: 'ach', jobs: 8, total_owed: 82750, total_paid: 68450, total_pending: 14300, total_payable: 14300, total_on_hold: 0, last_earning_date: dateOnly(-9), account_closure_status: null, unpaid_jobs: [{ id: 'owner-completed-payable', ref: 'AAE-250701', disposition: 'payable' }] },
-    { assembler_id: 'easer-owner-2', assembler_name: 'Sam Patel', assembler_tier: 'starter', email: 'sam.patel@example.com', phone: '+15125550163', payout_method_preference: 'zelle', jobs: 4, total_owed: 38480, total_paid: 23100, total_pending: 15380, total_payable: 3500, total_on_hold: 11880, last_earning_date: dateOnly(-15), account_closure_status: null, unpaid_jobs: [{ id: 'owner-cancelled-fee', ref: 'AAE-250626', disposition: 'payable' }, { id: 'owner-completed-refund-hold', ref: 'AAE-250628', disposition: 'on_hold' }] },
+    { assembler_id: 'easer-owner-1', assembler_name: 'Jordan Rivera', assembler_tier: 'professional', email: 'jordan.rivera@example.com', phone: '+15125550192', payout_method_preference: 'ach', jobs: 10, total_owed: 94863, total_paid: 68450, total_pending: 26413, total_payable: 21413, total_on_hold: 5000, last_earning_date: dateOnly(-2), account_closure_status: null, unpaid_jobs: [{ id: 'owner-completed-payable', ref: 'AAE-250701', owed: 14300, disposition: 'pending' }, { id: 'owner-manual-completed', ref: 'AAE-GOK6T9HBKI', owed: 7113, disposition: 'pending' }, { id: 'owner-manual-uncollected', ref: 'AAE-OFFLINE01', owed: 5000, disposition: 'on_hold', hold_reasons: ['Record the offline customer payment as collected from the booking before paying the Easer.'], hold_codes: ['offline_payment_not_verified'] }] },
+    { assembler_id: 'easer-owner-2', assembler_name: 'Sam Patel', assembler_tier: 'starter', email: 'sam.patel@example.com', phone: '+15125550163', payout_method_preference: 'zelle', jobs: 4, total_owed: 38480, total_paid: 23100, total_pending: 15380, total_payable: 3500, total_on_hold: 11880, last_earning_date: dateOnly(-15), account_closure_status: null, unpaid_jobs: [{ id: 'owner-cancelled-fee', ref: 'AAE-250626', disposition: 'pending' }, { id: 'owner-completed-refund-hold', ref: 'AAE-250628', disposition: 'on_hold' }] },
   ],
-  totals: { jobs: 12, cancellation_earnings: 1, total_owed: 121230, total_paid: 91550, total_pending: 29680, total_payable: 17800, total_on_hold: 11880 },
+  totals: { jobs: 14, cancellation_earnings: 1, total_owed: 133343, total_paid: 91550, total_pending: 41793, total_payable: 24913, total_on_hold: 16880 },
 };
 
 const mockOwnerSiteChat = {
@@ -646,6 +684,8 @@ async function configureContext(context) {
   await context.addInitScript(mockBootstrap, mockProfile);
   const resolvedDamageReviewBookingIds = new Set();
   const reconciledRefundBookingIds = new Set();
+  const collectedOfflinePaymentIds = new Set();
+  const offlineCollectionAttempts = new Map();
 
   // Serve repository files directly so the audit is deterministic even when a
   // lightweight development server is slow or does not support clean URLs.
@@ -710,6 +750,8 @@ async function configureContext(context) {
 
     if (pathname === '/api/booking/my-assignments') {
       payload = { bookings: mockBookings, meta: { warnings: [] } };
+    } else if (pathname === '/api/assembler/earnings') {
+      payload = mockEaserEarnings;
     } else if (pathname === '/api/booking/list') {
       const requestedBookingId = requestUrl.searchParams.get('bookingId');
       payload = {
@@ -747,6 +789,15 @@ async function configureContext(context) {
               },
             };
           }
+          if (collectedOfflinePaymentIds.has(booking.id)) {
+            current = {
+              ...current,
+              payment_collected: true,
+              payment_collected_at: iso(0),
+              payment_collected_by: 'owner',
+              payment_method: 'card_on_site',
+            };
+          }
           return current;
         }),
         meta: { warnings: [] },
@@ -770,6 +821,31 @@ async function configureContext(context) {
       payload = { evidence: [], total: 0 };
     } else if (pathname === '/api/booking/dispatch-log') {
       payload = { offers: [] };
+    } else if (pathname === '/api/owner/mark-payment-collected' && request.method() === 'POST') {
+      const submitted = request.postDataJSON() || {};
+      const exactCollectionRecord = submitted.bookingId === 'owner-manual-uncollected'
+        && submitted.paymentMethod === 'card_on_site'
+        && submitted.confirmedAmountCents === 9000
+        && Object.keys(submitted).length === 3;
+      const attempts = (offlineCollectionAttempts.get(submitted.bookingId) || 0) + 1;
+      offlineCollectionAttempts.set(submitted.bookingId, attempts);
+      if (exactCollectionRecord && attempts >= 2) {
+        collectedOfflinePaymentIds.add(submitted.bookingId);
+        payload = {
+          ok: true,
+          collected: true,
+          bookingId: submitted.bookingId,
+          ref: 'AAE-OFFLINE01',
+          paymentMethod: submitted.paymentMethod,
+          amountCents: 9000,
+        };
+      } else {
+        payload = {
+          error: exactCollectionRecord
+            ? 'Mock collection recorder forced a retry before success'
+            : 'Mock collection record requires the exact server booking total and payment method',
+        };
+      }
     } else if (pathname === '/api/booking/payout-review' && request.method() === 'POST') {
       const submitted = request.postDataJSON() || {};
       const damageBookingExists = mockOwnerBookings.some((booking) => booking.id === submitted.bookingId);
@@ -1283,6 +1359,173 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
       }
     }
 
+    if (spec.ownerOfflineCollectionBooking) {
+      try {
+        const bookingId = spec.ownerOfflineCollectionBooking;
+        await page.evaluate(() => document.querySelector('.sidebar-nav a[data-view="bookings"]')?.click());
+        await page.locator(`.booking-card[data-id="${bookingId}"]`).click();
+        const collectAction = page.locator(`[data-action="collect-payment"][data-id="${bookingId}"]`);
+        await collectAction.waitFor({ state: 'visible', timeout: 5000 });
+        await collectAction.click();
+        await page.locator('#reason-modal.open').waitFor({ state: 'visible', timeout: 5000 });
+
+        const initialState = await page.evaluate(() => {
+          const modal = document.getElementById('reason-modal');
+          const method = document.getElementById('collection-method');
+          const checkbox = document.getElementById('collection-confirm-cb');
+          const modalRect = modal?.querySelector('.modal')?.getBoundingClientRect();
+          const methodRect = method?.getBoundingClientRect();
+          return {
+            title: document.getElementById('reason-modal-title')?.textContent?.trim() || '',
+            description: document.getElementById('reason-modal-desc')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+            amount: document.getElementById('collection-amount')?.textContent?.trim() || '',
+            method: method?.value || '',
+            acknowledged: checkbox?.checked === true,
+            collectionFieldsVisible: getComputedStyle(document.getElementById('collection-method-row')).display !== 'none',
+            payoutFieldsHidden: getComputedStyle(document.getElementById('payout-method-row')).display === 'none',
+            reasonHidden: getComputedStyle(document.getElementById('reason-text')).display === 'none',
+            methodHeight: methodRect ? Math.round(methodRect.height * 10) / 10 : 0,
+            modalInViewport: !!modalRect
+              && modalRect.left >= 0 && modalRect.right <= innerWidth
+              && modalRect.top >= 0 && modalRect.bottom <= innerHeight,
+          };
+        });
+
+        const requestCountBeforeAcknowledgement = observedApis.filter((item) =>
+          item.method === 'POST' && item.path === '/api/owner/mark-payment-collected').length;
+        await page.locator('#reason-confirm').click();
+        await page.waitForTimeout(150);
+        const requestCountAfterAcknowledgementBlock = observedApis.filter((item) =>
+          item.method === 'POST' && item.path === '/api/owner/mark-payment-collected').length;
+        const acknowledgementToast = (await page.locator('#toast').textContent() || '').trim();
+
+        await page.locator('#collection-confirm-cb').check();
+        const forcedFailurePromise = page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return candidate.request().method() === 'POST' && url.pathname === '/api/owner/mark-payment-collected';
+        }, { timeout: 5000 });
+        await page.locator('#reason-confirm').click();
+        const forcedFailureResponse = await forcedFailurePromise;
+        await page.waitForFunction(() => /forced a retry before success/i.test(
+          document.getElementById('toast')?.textContent || '',
+        ), null, { timeout: 5000 });
+        const retryState = await page.evaluate(() => ({
+          modalOpen: document.getElementById('reason-modal')?.classList.contains('open') || false,
+          method: document.getElementById('collection-method')?.value || '',
+          acknowledged: document.getElementById('collection-confirm-cb')?.checked === true,
+          confirmEnabled: !document.getElementById('reason-confirm')?.disabled,
+        }));
+
+        const successResponsePromise = page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return candidate.request().method() === 'POST' && url.pathname === '/api/owner/mark-payment-collected';
+        }, { timeout: 5000 });
+        await page.locator('#reason-confirm').click();
+        const successResponse = await successResponsePromise;
+        const submitted = successResponse.request().postDataJSON() || {};
+        await page.locator('#reason-modal').waitFor({ state: 'hidden', timeout: 5000 });
+        const finalState = await page.evaluate(() => ({
+          modalOpen: document.getElementById('reason-modal')?.classList.contains('open') || false,
+          collectionFieldsHidden: getComputedStyle(document.getElementById('collection-method-row')).display === 'none',
+          method: document.getElementById('collection-method')?.value || '',
+          acknowledged: document.getElementById('collection-confirm-cb')?.checked === true,
+          toast: document.getElementById('toast')?.textContent?.trim() || '',
+        }));
+
+        checks.ownerOfflineCollection = {
+          required: true,
+          pass: initialState.title === 'Confirm Offline Customer Payment'
+            && initialState.amount === '$90.00'
+            && initialState.method === 'card_on_site'
+            && !initialState.acknowledged
+            && initialState.collectionFieldsVisible
+            && initialState.payoutFieldsHidden
+            && initialState.reasonHidden
+            && initialState.methodHeight >= 44
+            && initialState.modalInViewport
+            && requestCountAfterAcknowledgementBlock === requestCountBeforeAcknowledgement
+            && /confirm that the exact customer payment reached the business/i.test(acknowledgementToast)
+            && forcedFailureResponse.headers()['x-aae-audit-mock'] === 'explicit'
+            && retryState.modalOpen
+            && retryState.method === 'card_on_site'
+            && retryState.acknowledged
+            && retryState.confirmEnabled
+            && successResponse.status() === 200
+            && successResponse.headers()['x-aae-audit-mock'] === 'explicit'
+            && submitted.bookingId === bookingId
+            && submitted.paymentMethod === 'card_on_site'
+            && submitted.confirmedAmountCents === 9000
+            && Object.keys(submitted).length === 3
+            && !finalState.modalOpen
+            && finalState.collectionFieldsHidden
+            && finalState.method === ''
+            && !finalState.acknowledged
+            && finalState.toast === 'Offline payment collection recorded',
+          initialState,
+          requestCountBeforeAcknowledgement,
+          requestCountAfterAcknowledgementBlock,
+          acknowledgementToast,
+          retryState,
+          submitted,
+          finalState,
+        };
+      } catch (error) {
+        checks.ownerOfflineCollection = { required: true, pass: false, error: error.message };
+      }
+    }
+
+    if (spec.ownerManualPayoutBooking) {
+      try {
+        const bookingId = spec.ownerManualPayoutBooking;
+        await page.evaluate(() => document.querySelector('.sidebar-nav a[data-view="bookings"]')?.click());
+        await page.locator(`.booking-card[data-id="${bookingId}"]`).click();
+        const payoutAction = page.locator(`[data-action="payout"][data-id="${bookingId}"]`);
+        await payoutAction.waitFor({ state: 'visible', timeout: 5000 });
+        const detailState = await page.evaluate(() => {
+          const actions = document.getElementById('detail-actions');
+          const text = (actions?.innerText || '').replace(/\s+/g, ' ').trim();
+          return {
+            text,
+            stepOneComplete: /Step 1 complete:.*\$110\.00.*offline customer payment is recorded as collected/i.test(text),
+            stepTwoReady: /Step 2 verified:.*exactly \$71\.13/i.test(text),
+            payoutButton: actions?.querySelector('[data-action="payout"]')?.textContent?.trim() || '',
+          };
+        });
+        await payoutAction.click();
+        await page.locator('#reason-modal.open').waitFor({ state: 'visible', timeout: 5000 });
+        const modalState = await page.evaluate(() => ({
+          title: document.getElementById('reason-modal-title')?.textContent?.trim() || '',
+          description: document.getElementById('reason-modal-desc')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        }));
+        await page.locator('#reason-cancel').click();
+        if (spec.ownerSelectBooking) {
+          const restoreResponses = (ownerViewEndpoints.bookings || []).map((endpoint) => page.waitForResponse((candidate) => {
+            const url = new URL(candidate.url());
+            return candidate.request().method() === 'GET' && url.pathname === endpoint;
+          }, { timeout: 5000 }).catch(() => null));
+          await page.locator(`.booking-card[data-id="${spec.ownerSelectBooking}"]`).click();
+          await page.locator('#detail-panel').waitFor({ state: 'visible', timeout: 5000 });
+          await Promise.all(restoreResponses);
+          await page.waitForFunction(() => /My card was declined\. Can you send me a secure link/i.test(
+            document.getElementById('detail-panel')?.innerText || '',
+          ), null, { timeout: 5000 });
+        }
+        checks.ownerManualOfflinePayout = {
+          required: true,
+          pass: detailState.stepOneComplete
+            && detailState.stepTwoReady
+            && detailState.payoutButton === 'Record External Easer Payout'
+            && modalState.title === 'Record External Easer Payout'
+            && /Canonical Easer due: \$71\.13/i.test(modalState.description)
+            && /does not send funds/i.test(modalState.description),
+          detailState,
+          modalState,
+        };
+      } catch (error) {
+        checks.ownerManualOfflinePayout = { required: true, pass: false, error: error.message };
+      }
+    }
+
     if (spec.ownerDamageReviewBooking) {
       try {
         const paymentRecoveryBaseline = await page.evaluate(() => {
@@ -1778,7 +2021,9 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
         detailOpen: !!detail && detail.classList.contains('open') && visible(detail),
         bookingCardHasExactCents: [...document.querySelectorAll('#bookings-list .booking-card')].some((card) => /\$189\.50\b/.test(card.innerText || '')),
         customerSpendHasExactCents: /\$409\.50\b/.test(document.getElementById('customers-view')?.innerText || ''),
-        customerAverageHasExactCents: /\$249\.09\b/.test(document.getElementById('customers-view')?.innerText || ''),
+        customerAverageHasExactCents: /^\$\d{1,3}(?:,\d{3})*\.\d{2}$/.test(
+          document.getElementById('cust-ltv')?.textContent?.trim() || '',
+        ),
         financialGrossRendered: /\$4,267\.50\b/.test(document.getElementById('analytics-view')?.innerText || ''),
         formattedPhoneVisible: /\b512-555-0108\b/.test(pageText),
         paymentRecoveryMessageVisible: /My card was declined\. Can you send me a secure link/i.test(pageText),
