@@ -8,13 +8,10 @@ import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
+import { offlineMethodHasNoProcessorFee } from '../owner/_offline-payment.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
-
-// Offline rails with no card processor behind them, so the platform truly pays
-// no Stripe fee on the job.
-const NO_PROCESSOR_FEE_METHODS = new Set(['cash', 'zelle', 'cashapp']);
 
 /**
  * POST /api/booking/assign
@@ -134,7 +131,7 @@ export default async function handler(req, res) {
       // Only claim a $0 processor fee on rails that genuinely have none. A card
       // charged outside the platform carries a fee we cannot see from here, so
       // its stripe_fee stays unknown rather than being asserted as zero.
-      ...(NO_PROCESSOR_FEE_METHODS.has(booking.payment_method) ? { stripe_fee: 0 } : {}),
+      ...(offlineMethodHasNoProcessorFee(booking.payment_method) ? { stripe_fee: 0 } : {}),
     });
   }
 

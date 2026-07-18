@@ -4,7 +4,7 @@ import { TX_TAX_RATE } from '../_pricing.js';
 import { randomToken, guestMutationTokenHash } from '../_payment-security.js';
 import { normalizeUsPhone } from '../_phone.js';
 import { logActivity } from '../booking/_activity.js';
-import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
+import { normalizeOwnerOfflinePaymentMethod, offlineMethodHasNoProcessorFee } from './_offline-payment.js';
 
 // Owner-created offline bookings never touch Stripe capture or automated
 // dispatch. A completed record may later be linked to the Easer who performed
@@ -134,6 +134,11 @@ export default async function handler(req, res) {
     completed_at: isAlreadyCompleted ? now : null,
     total_price: finalCents,
     tax_amount: taxCents,
+    // An already-completed offline job is settled at creation. Record the final
+    // charged amount, and a $0 Stripe fee for no-processor rails (cash/Zelle/
+    // Cash App) so the dashboard never estimates a phantom processor fee on cash.
+    amount_charged: isAlreadyCompleted ? finalCents : null,
+    stripe_fee: isAlreadyCompleted && offlineMethodHasNoProcessorFee(method) ? 0 : null,
     payment_collected: isAlreadyCompleted,
     payment_collected_at: isAlreadyCompleted ? now : null,
     payment_collected_by: isAlreadyCompleted ? 'owner' : null,
