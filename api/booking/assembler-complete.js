@@ -435,7 +435,7 @@ export default async function handler(req, res) {
       await sendEmail({
         to: asmProfile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Job Complete — Payout Summary for ${booking.ref}`,
+        subject: `Job complete — here's what you earned (${booking.ref})`,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">

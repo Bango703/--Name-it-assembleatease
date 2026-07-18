@@ -232,7 +232,9 @@ export default async function handler(req, res) {
       await sendEmail({
         to: assembler.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Payout Recorded — ${booking.ref} — ${payoutDisplay}`,
+        subject: cancellationPayout
+          ? `Your payment is on the way — ${payoutDisplay}`
+          : `Your payment is on the way — ${payoutDisplay} for ${booking.service}`,
         html: buildPayoutEmail({
           firstName: (assembler.full_name || 'there').split(' ')[0],
           ref: booking.ref,
@@ -315,6 +317,11 @@ async function reconcileFailedPayoutWrite(sb, { booking, operationKey }) {
 
 function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes, method, isCancellation = false }) {
   const methodLabel = method && method !== 'manual' ? method : 'manual payout';
+  const howPaid = method && method !== 'manual' ? `by ${esc(method)}` : 'through your selected payout method';
+  const headline = `Your payment is on the way, ${esc(firstName)}.`;
+  const intro = isCancellation
+    ? `Your earnings of ${esc(payoutDisplay)} for the cancelled ${esc(service)} booking are on their way ${howPaid}. They should reach you shortly — if you don't see them, just reply to this email and we'll make it right.`
+    : `Nice work on your ${esc(service)} job. Your payment of ${esc(payoutDisplay)} is on its way ${howPaid} — it should reach you shortly. If you don't see it, just reply to this email and we'll make it right.`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
@@ -322,10 +329,10 @@ function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes,
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">Your payout has been recorded, ${esc(firstName)}.</p>
-    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">AssembleAtEase has recorded a ${esc(methodLabel)} for the following ${isCancellation ? 'eligible cancellation earnings' : 'completed job'}. If you do not receive the funds by the expected timing, reply to this email so we can reconcile it.</p>
+    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">${headline}</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">${intro}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
-      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payout Amount</p>
+      <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#166534">Payment On The Way</p>
       <p style="margin:0;font-size:26px;font-weight:700;color:#065f46">${esc(payoutDisplay)}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:14px">
@@ -337,7 +344,7 @@ function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes,
         ${notes ? `<tr><td style="padding:6px 0;color:#71717a;vertical-align:top">Notes</td><td style="padding:6px 0">${esc(notes)}</td></tr>` : ''}
       </table>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about your payout? Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
+    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about your payment? Reach us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a> — we're happy to help.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>

@@ -259,7 +259,7 @@ export default async function handler(req, res) {
       to: assembler.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
-      subject: `New Job Assignment — ${esc(booking.service)}`,
+      subject: `You've got a new job — ${esc(booking.service)}`,
       html: buildAssignmentEmail({
         firstName,
         service: booking.service,

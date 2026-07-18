@@ -696,7 +696,7 @@ export default async function handler(req, res) {
               await sendEmail({
                 to: currentBooking.customer_email,
                 from: 'AssembleAtEase <booking@assembleatease.com>',
-                subject: `Card Authorization Failed — ${esc(currentBooking.ref)}`,
+                subject: `Action needed: we couldn't confirm your card — ${esc(currentBooking.ref)}`,
                 html: buildCustomerPaymentFailEmail((currentBooking.customer_name || 'Customer').split(' ')[0], currentBooking.ref, reason),
                 replyTo: ownerEmail(),
                 meta: { bookingId, notificationType: 'payment_failed_customer', recipientType: 'customer' },
