@@ -1,6 +1,6 @@
 ﻿import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
@@ -481,13 +481,17 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
       to:   booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your Easer is confirmed — ${esc(booking.ref)}`,
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
-        <h2 style="color:#00BFFF">Your Easer is confirmed!</h2>
-        <p>Hi ${esc((booking.customer_name||'').split(' ')[0])},</p>
-        <p><strong>${esc(easer.full_name || 'Your Easer')}</strong> is confirmed for your job and will arrive on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time||'the scheduled time')}</strong>.</p>
-        <p>You will receive another notification when your Easer is on their way.</p>
-        <p style="color:#6b7280;font-size:0.85rem">Booking ref: ${esc(booking.ref)}</p>
-      </div>`,
+      html: buildStatusEmail({
+        customerName: (booking.customer_name || '').split(' ')[0],
+        ref: booking.ref,
+        status: 'Confirmed',
+        statusColor: '#065f46',
+        statusBg: '#d1fae5',
+        headline: 'Your Easer is confirmed.',
+        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc((booking.customer_name || '').split(' ')[0])}, good news — <strong>${esc(easer.full_name || 'your Easer')}</strong> will be handling your <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time || 'the scheduled time')}</strong>. We'll send another note when they're on the way.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(booking.ref)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>
+        <p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Questions before then? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>`,
+      }),
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: 'job_accepted', recipientType: 'customer' },
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));

@@ -1,6 +1,6 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
-import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import {
@@ -108,19 +108,32 @@ export default async function handler(req, res) {
     meta: { bookingId, notificationType: stage, recipientType: 'owner' },
   }).catch(err => ({ ok: false, error: err?.message || String(err) }));
 
-  // Notify customer at key stages
+  // Notify customer at key stages — same branded template as every other email,
+  // with a Track button and (while the pro is inbound) a way to reach us.
+  const trackUrl = `https://www.assembleatease.com/track?ref=${encodeURIComponent(booking.ref)}`;
+  const trackButton = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${trackUrl}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>`;
+  const reachUs = `<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reach ${esc(easerFirstName)}? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a> and we'll connect you.</p>`;
   const customerMessages = {
     en_route: {
       subject: `Your Easer is on the way — ${esc(booking.ref)}`,
-      body: `${easerFirstName} is heading to you now and should arrive soon at ${esc(booking.time || 'the scheduled time')}.`,
+      statusLabel: 'On the way', statusColor: '#1d4ed8', statusBg: '#dbeafe',
+      headline: 'Your Easer is on the way.',
+      intro: `${esc(easerFirstName)} is heading to you now and should arrive around ${esc(booking.time || 'the scheduled time')}.`,
+      reach: true,
     },
     arrived: {
       subject: `Your Easer has arrived — ${esc(booking.ref)}`,
-      body: `${easerFirstName} has arrived at your location and is ready to get started.`,
+      statusLabel: 'Arrived', statusColor: '#065f46', statusBg: '#d1fae5',
+      headline: 'Your Easer has arrived.',
+      intro: `${esc(easerFirstName)} is at your location and ready to get started.`,
+      reach: true,
     },
     in_progress: {
       subject: `Your job is underway — ${esc(booking.ref)}`,
-      body: `Great news — ${easerFirstName} has started working on your ${esc(booking.service)}.`,
+      statusLabel: 'In progress', statusColor: '#059669', statusBg: '#d1fae5',
+      headline: 'Your job is underway.',
+      intro: `Great news — ${esc(easerFirstName)} has started working on your ${esc(booking.service)}. We'll let you know as soon as it's complete.`,
+      reach: false,
     },
   };
 
@@ -131,7 +144,15 @@ export default async function handler(req, res) {
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: msg.subject,
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">${label}</h2><p>Hi ${esc(customerFirstName)},</p><p>${msg.body}</p><p style="margin-top:1rem;color:#6b7280;font-size:0.85rem">Booking: ${esc(booking.ref)} · Questions? Reply to this email.</p></div>`,
+      html: buildStatusEmail({
+        customerName: customerFirstName,
+        ref: booking.ref,
+        status: msg.statusLabel,
+        statusColor: msg.statusColor,
+        statusBg: msg.statusBg,
+        headline: msg.headline,
+        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc(customerFirstName)}, ${msg.intro}</p>${trackButton}${msg.reach ? reachUs : ''}`,
+      }),
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: stage, recipientType: 'customer' },
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));

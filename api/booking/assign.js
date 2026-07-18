@@ -352,7 +352,7 @@ export default async function handler(req, res) {
   });
 }
 
-function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref }) {
+export function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCents, acceptUrl, declineUrl, ref }) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
@@ -360,8 +360,8 @@ function buildAssignmentEmail({ firstName, service, date, time, estimatedPayCent
       <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
       <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
     </div>
-    <p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1a1a1a;text-align:center">New Job Assignment</p>
-    <p style="margin:0 0 24px;font-size:14px;color:#52525b;text-align:center">Hi ${esc(firstName)}, you've been assigned a new job.</p>
+    <p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1a1a1a;text-align:center">You've got a new job</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#52525b;text-align:center">Hi ${esc(firstName)}, a new job just came in for you. Here are the details.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
         <tr><td style="padding:6px 0;color:#71717a;width:110px">Reference</td><td style="padding:6px 0;font-weight:600">${esc(ref)}</td></tr>

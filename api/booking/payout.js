@@ -315,7 +315,7 @@ async function reconcileFailedPayoutWrite(sb, { booking, operationKey }) {
   return { committed: false, ledger: ledger || null, current: current || null, released: false };
 }
 
-function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes, method, isCancellation = false }) {
+export function buildPayoutEmail({ firstName, ref, service, date, payoutDisplay, notes, method, isCancellation = false }) {
   const methodLabel = method && method !== 'manual' ? method : 'manual payout';
   const howPaid = method && method !== 'manual' ? `by ${esc(method)}` : 'through your selected payout method';
   const headline = `Your payment is on the way, ${esc(firstName)}.`;
