@@ -396,6 +396,10 @@ for (let index = 0; index < sitemapUrls.length; index += 1) {
   if (/name="robots"[^>]+noindex/i.test(page)) {
     throw new Error(`Sitemap should not submit noindex page: ${sitemapFiles[index]}`);
   }
+  const metaDescription = page.match(/<meta name="description" content="([^"]*)"/i)?.[1] || '';
+  if (metaDescription.length < 110) {
+    throw new Error(`Sitemap meta description is too short (${metaDescription.length} characters): ${sitemapFiles[index]}`);
+  }
 }
 if (!robots.includes('Allow: /assembler/apply') || !robots.includes('Disallow: /assembler/')) {
   throw new Error('robots.txt should allow /assembler/apply while blocking private /assembler/ routes');
