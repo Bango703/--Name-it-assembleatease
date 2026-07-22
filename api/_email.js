@@ -169,6 +169,13 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
 
   const body = { from, to: Array.isArray(to) ? to : [to], subject, html };
   if (replyTo) body.reply_to = replyTo;
+  // List-Unsubscribe improves sender trust and satisfies Gmail/Yahoo bulk-sender
+  // rules — mailboxes rank senders who make opting out easy, which helps inbox
+  // placement. Points at the email-preferences path already shown in the footer.
+  body.headers = {
+    'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>',
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
 
   let providerId = null;
   let status = 'sent';
