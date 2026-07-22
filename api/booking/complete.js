@@ -1,6 +1,6 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, buildReviewCta } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
@@ -416,6 +416,7 @@ export default async function handler(req, res) {
         <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service has been completed. Thank you for choosing AssembleAtEase!</p>
         ${photoBlock}
         ${receiptBlock}
+        ${buildReviewCta()}
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#00BFFF;font-weight:600">book your next service</a> anytime.</p>`,
     });
 
@@ -532,6 +533,7 @@ async function completeOwnerManualBooking(sb, res, booking) {
         statusBg: '#d1fae5',
         headline: 'Your job is complete!',
         bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> service is complete. Thank you for choosing AssembleAtEase!</p>
+          ${buildReviewCta()}
           <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
       }),
       replyTo: ownerEmail(),

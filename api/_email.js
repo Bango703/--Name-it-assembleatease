@@ -409,3 +409,12 @@ export function buildStatusEmail({ customerName, ref, status, statusColor, statu
   </td></tr></table>
 </div></body></html>`;
 }
+
+// Google-review call to action for completion emails. Drives customers to the
+// real Google Business Profile (public stars) at the moment the job is done.
+// One place to update the copy or the URL.
+export function buildReviewCta() {
+  const url = process.env.GOOGLE_REVIEW_URL || 'https://g.page/r/CeHfRKINOeZsEBM/review';
+  return `<p style="margin:0 0 12px;font-size:15px;color:#52525b;line-height:1.7">If everything went well, a quick Google review would mean the world — it takes under a minute and helps other local customers find us.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr><td style="text-align:center"><a href="${url}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Leave a Google review</a></td></tr></table>`;
+}

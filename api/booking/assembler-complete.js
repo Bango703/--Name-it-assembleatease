@@ -1,7 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
-import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, buildStatusEmail, ownerEmail, esc, buildReviewCta } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
@@ -422,6 +422,7 @@ export default async function handler(req, res) {
           <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(booking.service)}</strong> has been completed. Thank you for choosing AssembleAtEase!</p>
           ${photoBlock}
           ${receiptBlock}
+          ${buildReviewCta()}
           <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work or receipt? Reply to this email and the owner will follow up.</p>`,
       }),
       replyTo: ownerEmail(),
