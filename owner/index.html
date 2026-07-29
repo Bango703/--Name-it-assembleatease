@@ -1594,6 +1594,7 @@ window.intelQuick = intelQuick;
         <label class="modal-label">Override Reason</label>
         <select class="modal-input" id="ocb-reason">
           <option value="">None</option>
+          <option value="added_scope">Added scope / extra work</option>
           <option value="price_match">Price match</option>
           <option value="repeat_customer">Repeat customer</option>
           <option value="goodwill">Goodwill</option>
@@ -1612,6 +1613,7 @@ window.intelQuick = intelQuick;
           <option value="card_on_site">Card on-site</option>
           <option value="invoice">Invoice</option>
         </select>
+        <p class="modal-hint" style="margin:6px 0 0;font-size:0.78rem;color:var(--muted);line-height:1.5">"To be collected" creates the booking now — come back and <strong>mark payment collected</strong> on the booking once the customer pays.</p>
       </div>
     </div>
     <div id="ocb-tax-preview" style="font-size:0.78rem;color:var(--muted);margin:0.15rem 0 0.75rem">Final price is tax-inclusive. Enter a final price to preview subtotal + tax.</div>
@@ -6527,11 +6529,23 @@ window.intelQuick = intelQuick;
 
     if (!data || !data.readiness) {
       container.innerHTML = '<div style="color:var(--red);font-size:0.8rem">Could not load onboarding readiness.</div>';
+      var unavailableChip = document.getElementById('asm-dispatch-chip');
+      if (unavailableChip) {
+        unavailableChip.style.background = '#fee2e2';
+        unavailableChip.style.color = '#991b1b';
+        unavailableChip.textContent = 'Unverified';
+      }
       return;
     }
 
     var r = data.readiness;
     var ready = r.finalStatus === 'READY FOR JOBS';
+    var authoritativeDispatchChip = document.getElementById('asm-dispatch-chip');
+    if (authoritativeDispatchChip) {
+      authoritativeDispatchChip.style.background = ready ? '#d1fae5' : '#fee2e2';
+      authoritativeDispatchChip.style.color = ready ? '#065f46' : '#991b1b';
+      authoritativeDispatchChip.textContent = ready ? 'Eligible' : 'Ineligible';
+    }
     var statusBg = ready ? '#d1fae5' : '#fee2e2';
     var statusFg = ready ? '#065f46' : '#991b1b';
 
@@ -6588,6 +6602,12 @@ window.intelQuick = intelQuick;
       renderOnboardingReadinessPanel(d);
     } catch (err) {
       container.innerHTML = '<div style="font-size:0.8rem;color:var(--red)">Failed to load onboarding readiness.</div>';
+      var unavailableChip = document.getElementById('asm-dispatch-chip');
+      if (unavailableChip) {
+        unavailableChip.style.background = '#fee2e2';
+        unavailableChip.style.color = '#991b1b';
+        unavailableChip.textContent = 'Unverified';
+      }
     }
   }
 
@@ -6643,14 +6663,11 @@ window.intelQuick = intelQuick;
 
     // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
     var connectReadyForDispatch = !asmConnectRequired || (!!a.stripe_connect_onboarding_complete && !!a.stripe_connect_charges_enabled && !!a.stripe_connect_payouts_enabled);
-    var dispatchEligible = a.status === 'active' && !closureHeld && a.identity_verified && hasValidUsPhone(a.phone) && ['starter','professional','elite'].includes(a.tier) && a.is_available && connectReadyForDispatch;
     var dispatchChip;
     if (a.status !== 'active') {
-      dispatchChip = '<span style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">N/A</span>';
-    } else if (dispatchEligible) {
-      dispatchChip = '<span style="background:#d1fae5;color:#065f46;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Eligible</span>';
+      dispatchChip = '<span id="asm-dispatch-chip" style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">N/A</span>';
     } else {
-      dispatchChip = '<span style="background:#fee2e2;color:#991b1b;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Ineligible</span>';
+      dispatchChip = '<span id="asm-dispatch-chip" style="background:#e4e4e7;color:#71717a;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">Checking...</span>';
     }
 
     // Dispatch readiness checklist (only for active Easers)
@@ -6660,7 +6677,8 @@ window.intelQuick = intelQuick;
       var recentDecline = a.last_dispatch_declined_at && (Date.now() - new Date(a.last_dispatch_declined_at).getTime()) < 7200000;
       var availColor = a.is_available ? '#10b981' : '#71717a';
       dispatchChecklist = '<div style="background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:0.5rem">'
-        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Dispatch Readiness</div>'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px">Operational Snapshot</div>'
+        + '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Informational only. Final dispatch eligibility is verified by the server below.</div>'
         + chk(a.status === 'active', 'Active account')
         + chk(!closureHeld, 'No account closure hold')
         + chk(!!a.identity_verified, 'ID verified')

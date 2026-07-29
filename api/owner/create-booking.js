@@ -10,7 +10,7 @@ import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_of
 // dispatch. A completed record may later be linked to the Easer who performed
 // the work; that creates canonical manual earnings only after offline customer
 // collection is audited.
-const OVERRIDE_REASONS = ['price_match', 'repeat_customer', 'goodwill', 'bundle', 'other'];
+const OVERRIDE_REASONS = ['added_scope', 'price_match', 'repeat_customer', 'goodwill', 'bundle', 'other'];
 const PAYMENT_METHOD_LABELS = {
   stripe_manual: 'Manual Stripe payment (charged directly with AssembleAtEase)',
   cash: 'cash on completion',
