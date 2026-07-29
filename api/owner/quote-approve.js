@@ -28,12 +28,6 @@ async function prepareQuote(req, res) {
   if (!Number.isInteger(priceCents) || priceCents < 100 || priceCents > MAX_QUOTE_CENTS) {
     return res.status(400).json({ error: 'Quote total must be between $1.00 and $25,000.00.' });
   }
-  if (process.env.VERCEL_ENV === 'production' && process.env.TEXAS_TAX_CONFIGURATION_APPROVED !== 'true') {
-    return res.status(503).json({
-      error: 'Quote authorization is paused until the launch tax configuration is approved.',
-      code: 'TAX_CONFIGURATION_REQUIRED',
-    });
-  }
 
   const sb = getSupabase();
   const { data: booking, error } = await sb.from('bookings').select('*').eq('id', bookingId).single();
@@ -173,12 +167,6 @@ async function authorizeCustomerApprovedQuote(req, res) {
   const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many attempts. Please wait and try again.' });
   if (!process.env.STRIPE_SECRET_KEY) return res.status(503).json({ error: 'Stripe is not configured.' });
-  if (process.env.VERCEL_ENV === 'production' && process.env.TEXAS_TAX_CONFIGURATION_APPROVED !== 'true') {
-    return res.status(503).json({
-      error: 'Quote authorization is paused until the launch tax configuration is approved.',
-      code: 'TAX_CONFIGURATION_REQUIRED',
-    });
-  }
 
   const token = String(req.body?.token || '');
   const action = String(req.body?.action || 'authorize');

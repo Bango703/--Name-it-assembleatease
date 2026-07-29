@@ -190,15 +190,6 @@ export default async function handler(req, res) {
     }
   }
 
-  if (amount > 0
-      && process.env.VERCEL_ENV === 'production'
-      && process.env.TEXAS_TAX_CONFIGURATION_APPROVED !== 'true') {
-    return res.status(503).json({
-      error: 'Online paid booking is paused until the launch tax configuration is approved. Please contact AssembleAtEase for assistance.',
-      code: 'TAX_CONFIGURATION_REQUIRED',
-    });
-  }
-
   const previewApplied = promoPreviewApplied === true;
   const previewTotal = Number.isFinite(Number(promoPreviewTotalCents)) ? Math.round(Number(promoPreviewTotalCents)) : null;
   if (String(promoCode || '').trim()) {

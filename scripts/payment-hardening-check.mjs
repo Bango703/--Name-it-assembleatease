@@ -52,7 +52,11 @@ const [bookingApi, confirmationApi, ownerConfirmApi, quoteApi, completeApi, asse
   load('api/migrations/032_payment_truth_and_customer_consent.sql'),
 ]);
 
-assert.match(bookingApi, /TAX_CONFIGURATION_REQUIRED/, 'production tax gate must fail closed');
+// The launch tax-approval gate was intentionally removed (owner decision) so
+// every payment processes. Tax must still be calculated and recorded on every
+// booking — that invariant stays; only the block is gone.
+assert.match(bookingApi, /tax_amount: taxCents/, 'every booking must still record the calculated Texas sales tax');
+assert.doesNotMatch(bookingApi, /TAX_CONFIGURATION_REQUIRED/, 'the launch tax-approval block must not re-block paid bookings');
 assert.match(bookingApi, /GUEST_TOKEN_CONFIGURATION_REQUIRED/, 'production booking must require a dedicated guest token secret');
 assert.match(bookingApi, /INVALID_SERVICE_HOURS/, 'server must enforce published booking hours');
 assert.match(confirmationApi, /PAYMENT_BOOKING_MISMATCH/, 'confirmation must bind Stripe intent to booking');
