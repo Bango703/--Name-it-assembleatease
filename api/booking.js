@@ -3,6 +3,7 @@ import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
+import { guardCustomerFacing } from './_customer-error-alert.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
 import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip } from './_source-of-truth.js';
 import {
@@ -25,6 +26,9 @@ import {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Alert the owner in real time if a customer hits a server/config error here —
+  // a blocked booking is a missed job, and it must never fail silently again.
+  guardCustomerFacing(req, res, 'online booking');
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'booking')) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 

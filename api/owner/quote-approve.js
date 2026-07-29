@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
+import { guardCustomerFacing } from '../_customer-error-alert.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { rateLimit } from '../_ratelimit.js';
@@ -15,6 +16,7 @@ const MAX_QUOTE_CENTS = 2_500_000;
 export default async function handler(req, res) {
   if (req.method === 'GET') return renderQuoteApproval(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  guardCustomerFacing(req, res, 'quote approval');
 
   if (req.body?.token) return authorizeCustomerApprovedQuote(req, res);
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });

@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from './_supabase.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
+import { guardCustomerFacing } from './_customer-error-alert.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
 import { logActivity } from './booking/_activity.js';
@@ -14,6 +15,7 @@ import { safeTokenHashMatch } from './_payment-security.js';
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  guardCustomerFacing(req, res, 'booking confirmation');
 
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   try {
