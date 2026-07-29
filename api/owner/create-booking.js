@@ -219,7 +219,8 @@ export default async function handler(req, res) {
       </table>
       <p>${paymentLine}</p>
       <p><strong>What to expect:</strong> your pro arrives within the scheduled window, confirms the work, completes the assembly, and cleans up. We'll follow up if anything about the appointment changes.</p>
-      <p>Questions? Reply to this email, call <a href="tel:+17372906129">737-290-6129</a>, or write <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`;
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(ref)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>
+      <p style="margin-top:18px">Questions? Reply to this email, call <a href="tel:+17372906129">737-290-6129</a>, or write <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`;
     const emailResult = await sendEmail({
       to: cleanEmail,
       from: 'AssembleAtEase <booking@assembleatease.com>',
