@@ -1,7 +1,10 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
+import {
+  normalizeOwnerOfflinePaymentMethod,
+  offlineMethodFeeCents,
+} from './_offline-payment.js';
 
 // Owner confirms that an owner-created booking was paid outside the platform.
 // Online bookings continue to use Stripe as their payment source of truth.
@@ -19,9 +22,15 @@ export default async function handler(req, res) {
       code: 'OFFLINE_PAYMENT_METHOD_REQUIRED',
     });
   }
+  if (['stripe_manual', 'card_on_site'].includes(normalizedMethod)) {
+    return res.status(409).json({
+      error: 'Stripe card payments must be verified by PaymentIntent through Record Stripe Payment.',
+      code: 'STRIPE_PAYMENT_INTENT_VERIFICATION_REQUIRED',
+    });
+  }
 
   const sb = getSupabase();
-  let query = sb.from('bookings').select('id, ref, source, payment_status, payment_method, payment_collected, payment_collected_at, payment_collected_by, amount_charged, total_price');
+  let query = sb.from('bookings').select('id, ref, source, status, payment_status, payment_method, payment_collected, payment_collected_at, payment_collected_by, amount_charged, total_price, financial_operation_key, financial_operation_type, financial_operation_started_at');
   query = bookingId ? query.eq('id', bookingId) : query.eq('ref', ref);
   const { data: booking, error: fetchErr } = await query.single();
   if (fetchErr || !booking) return res.status(404).json({ error: 'Booking not found' });
@@ -36,6 +45,20 @@ export default async function handler(req, res) {
     return res.status(409).json({
       error: 'This booking is not in the offline payment workflow.',
       code: 'OFFLINE_PAYMENT_STATE_REQUIRED',
+    });
+  }
+  if (!['confirmed', 'en_route', 'arrived', 'in_progress', 'completed'].includes(booking.status)) {
+    return res.status(409).json({
+      error: `Offline customer collection cannot be recorded for a ${booking.status} booking. Reconcile the booking first.`,
+      code: 'OFFLINE_PAYMENT_BOOKING_STATE_INVALID',
+    });
+  }
+  if (booking.financial_operation_key
+      || booking.financial_operation_type
+      || booking.financial_operation_started_at) {
+    return res.status(409).json({
+      error: 'A completion, cancellation, or payout action is in progress. Wait for it to finish before recording customer collection.',
+      code: 'FINANCIAL_OPERATION_IN_PROGRESS',
     });
   }
 
@@ -77,11 +100,19 @@ export default async function handler(req, res) {
     payment_collected_at: booking.payment_collected_at || now,
     payment_collected_by: booking.payment_collected_by || 'owner',
     payment_method: normalizedMethod,
+    // This is the final server-side payment-method truth. Recompute the fee here
+    // so a booking created as "to be collected" cannot retain a false $0 fee
+    // when the customer ultimately pays by card.
+    stripe_fee: offlineMethodFeeCents(normalizedMethod, canonicalAmountCents),
   };
   let updateQuery = sb.from('bookings').update(updatePayload)
     .eq('id', booking.id)
+    .eq('status', booking.status)
     .eq('source', 'owner_manual')
-    .eq('payment_status', 'offline_recorded');
+    .eq('payment_status', 'offline_recorded')
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
   if (booking.amount_charged == null) {
     updateQuery = updateQuery.is('amount_charged', null).eq('total_price', booking.total_price);
   } else {

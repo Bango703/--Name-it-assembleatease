@@ -6,6 +6,15 @@ import {
   isApplicationFeeSatisfied,
 } from './_easer-application-fee.js';
 import { isEaserClosureBlocking } from './_easer-closure.js';
+import { CONTRACTOR_AGREEMENT_VERSION } from './_assembler-onboarding.js';
+
+export function hasCurrentEaserAgreement(profile = {}) {
+  return Boolean(
+    profile.contractor_agreement_signed_at
+    && profile.code_of_conduct_agreed_at
+    && profile.contractor_agreement_version === CONTRACTOR_AGREEMENT_VERSION
+  );
+}
 
 function bearerToken(req) {
   const authorization = String(req?.headers?.authorization || '');
@@ -27,13 +36,17 @@ function hasActiveApprovedWorkCredentials(profile = {}) {
 
 export function isActiveApprovedEaserProfile(profile = {}) {
   return hasActiveApprovedWorkCredentials(profile)
+    && hasCurrentEaserAgreement(profile)
     && isApplicationFeeSatisfied(profile);
 }
 
 /**
- * A refund-held Easer may finish only work that is already assigned to them.
- * Every route using this predicate must separately prove booking.assembler_id.
- * It never grants offer, acceptance, membership, or new-job access.
+ * Assigned-work access preserves already accepted customer work when a new
+ * agreement version is published. A historical agreement plus all other active
+ * account credentials is sufficient only for routes that separately prove
+ * booking.assembler_id. This predicate also lets a consistently refund-held
+ * Easer finish assigned work; it never grants offers, acceptance, membership,
+ * availability, or any other new-job access.
  */
 export function isAssignedWorkEaserProfile(profile = {}) {
   const paidRefundHold = profile.application_fee_paid === true
@@ -69,7 +82,7 @@ export async function authenticateBearerUser(req, options = {}) {
  * Availability is intentionally not required: an Easer who goes offline must
  * still be able to safely finish or review an already assigned job.
  */
-const EASER_ACCESS_PROFILE_PROJECTION = 'id, role, status, application_status, tier, has_membership, identity_verified, contractor_agreement_signed_at, code_of_conduct_agreed_at, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status';
+const EASER_ACCESS_PROFILE_PROJECTION = 'id, role, status, application_status, tier, has_membership, identity_verified, is_owner, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, payment_confirmed, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status';
 
 async function requireEaserProfile(req, options, predicate, deniedMessage) {
   const authenticated = await authenticateBearerUser(req, options);

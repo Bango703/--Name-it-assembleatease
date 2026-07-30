@@ -55,6 +55,12 @@ export default async function handler(req, res) {
   if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return res.status(409).json({ error: 'This job is already in progress — please contact support to be released.' });
   }
+  if (booking.source === 'owner_manual' && booking.payment_status === 'offline_recorded') {
+    return res.status(409).json({
+      error: 'Owner-created offline jobs cannot enter automatic redispatch. Manage this assignment from the owner dashboard.',
+      code: 'OWNER_MANUAL_REDISPATCH_BLOCKED',
+    });
+  }
   if (booking.financial_operation_key) {
     return res.status(409).json({ error: 'This job is temporarily locked while a financial operation finishes. Contact support before dropping it.' });
   }

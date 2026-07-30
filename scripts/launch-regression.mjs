@@ -204,7 +204,9 @@ assert.match(ownerPage, /<label[^>]*for="ae-phone"[^>]*>Phone \*<\/label>/);
 assert.match(ownerPage, /id="ae-phone"[^>]*required/);
 assert.match(ownerPage, /phoneDigits\.length !== 10/);
 assert.match(ownerPage, /function hasValidUsPhone\(value\)/);
-assert.match(ownerPage, /dispatchEligible[^;]*hasValidUsPhone\(a\.phone\)/);
+assert.doesNotMatch(ownerPage, /var dispatchEligible =/,
+  'owner dashboard must use server-authoritative Easer readiness');
+assert.match(ownerPage, /authoritativeDispatchChip\.textContent = ready \? 'Eligible' : 'Ineligible'/);
 assert.match(ownerPage, /chk\(hasValidUsPhone\(a\.phone\), 'Valid U\.S\. phone on file'\)/);
 assert.match(ownerPage, /hasValidUsPhone\(w\.phone\)/);
 assert.match(ownerPage, /Number\(d\.failed \|\| 0\) > 0 \? 'error' : 'success'/);

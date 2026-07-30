@@ -7,9 +7,10 @@ import { logActivity } from '../booking/_activity.js';
 import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_offline-payment.js';
 
 // Owner-created offline bookings never touch Stripe capture or automated
-// dispatch. A completed record may later be linked to the Easer who performed
-// the work; that creates canonical manual earnings only after offline customer
-// collection is audited.
+// dispatch. They can remain unassigned for the owner's direct completion path,
+// be linked to the singular owner-Easer after completion for recordkeeping, or
+// be explicitly assigned to that same account for the live status/evidence flow.
+// Every payout remains manual and blocked until offline collection is audited.
 const OVERRIDE_REASONS = ['added_scope', 'price_match', 'repeat_customer', 'goodwill', 'bundle', 'other'];
 const PAYMENT_METHOD_LABELS = {
   stripe_manual: 'Manual Stripe payment (charged directly with AssembleAtEase)',
@@ -112,6 +113,12 @@ export default async function handler(req, res) {
       code: 'OFFLINE_PAYMENT_METHOD_REQUIRED',
     });
   }
+  if (isAlreadyCompleted && ['stripe_manual', 'card_on_site'].includes(method)) {
+    return res.status(409).json({
+      error: 'Create the booking as open, then use Record Stripe Payment with the exact PaymentIntent before completion.',
+      code: 'STRIPE_PAYMENT_INTENT_VERIFICATION_REQUIRED',
+    });
+  }
 
   const sb = getSupabase();
   const ref = 'AAE-' + randomToken(8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
@@ -190,8 +197,46 @@ export default async function handler(req, res) {
     },
   }).catch(e => console.warn('Owner booking activity log skipped:', e?.message || e));
 
+  await logActivity(sb, {
+    bookingId,
+    eventType: 'confirmed',
+    actorType: 'owner',
+    actorName: 'Owner',
+    description: isAlreadyCompleted
+      ? 'Owner recorded the offline booking as confirmed before importing its completed state.'
+      : 'Owner confirmed the offline booking. Automatic marketplace dispatch remains disabled.',
+    metadata: {
+      source: 'owner_manual',
+      paymentStatus: 'offline_recorded',
+    },
+  }).catch(e => console.warn('Owner booking confirmation activity skipped:', e?.message || e));
+
+  if (isAlreadyCompleted) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'completed',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: 'Owner imported this offline booking as already completed.',
+      metadata: { source: 'owner_manual', importedCompleted: true },
+    }).catch(e => console.warn('Owner booking completion activity skipped:', e?.message || e));
+
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'payment_collected',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: `Owner recorded ${money(finalCents)} collected via ${PAYMENT_METHOD_LABELS[method]}.`,
+      metadata: {
+        source: 'owner_manual',
+        amountCollectedCents: finalCents,
+        paymentMethod: method,
+      },
+    }).catch(e => console.warn('Owner booking payment activity skipped:', e?.message || e));
+  }
+
   // Owner notice
-  sendEmail({
+  await sendEmail({
     to: ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Owner booking created — ${ref} — ${money(finalCents)}`,
@@ -199,12 +244,13 @@ export default async function handler(req, res) {
       <p>${esc(cleanService)} · ${esc(cleanDate)}${cleanTime ? ` · ${esc(cleanTime)}` : ''}<br>${esc(cleanAddress)}</p>
       <p>Total ${money(finalCents)} (subtotal ${money(subtotalCents)} + tax ${money(taxCents)}). Payment: ${method ? esc(PAYMENT_METHOD_LABELS[method]) : 'to be collected'}.</p>
       ${cleanNote ? `<p><em>${esc(cleanNote)}</em></p>` : ''}
-      <p>Mark it completed and payment collected from the booking record after the job.</p>`,
+      <p>If you are using your owner-Easer account, assign and complete it through the Easer dashboard. Otherwise use Mark Complete here. Record the customer payment separately once the funds are actually collected.</p>`,
     meta: { bookingId, notificationType: 'owner_booking_created_notice', recipientType: 'owner', disableDedupe: true },
   }).catch(e => console.warn('Owner booking owner-notice email skipped:', e?.message || e));
 
   // Customer confirmation (only if we have an email and it wasn't opted out)
   let confirmationEmailed = false;
+  let confirmationEmailError = null;
   if (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false) {
     const paymentLine = method
       ? `Payment will be handled directly with AssembleAtEase — ${esc(PAYMENT_METHOD_LABELS[method])}. You will not be charged online.`
@@ -221,45 +267,62 @@ export default async function handler(req, res) {
       <p><strong>What to expect:</strong> your pro arrives within the scheduled window, confirms the work, completes the assembly, and cleans up. We'll follow up if anything about the appointment changes.</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(ref)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>
       <p style="margin-top:18px">Questions? Reply to this email, call <a href="tel:+17372906129">737-290-6129</a>, or write <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`;
-    const emailResult = await sendEmail({
-      to: cleanEmail,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `Booking confirmed — ${cleanService} — ${ref}`,
-      html: buildStatusEmail({
-        customerName,
-        ref,
-        status: 'Confirmed',
-        statusColor: '#0369a1',
-        statusBg: '#e0f2fe',
-        headline: 'Your booking is confirmed',
-        bodyHtml,
-      }),
-      replyTo: ownerEmail(),
-      meta: { bookingId, notificationType: 'owner_booking_confirmation', recipientType: 'customer' },
-    });
-    confirmationEmailed = !!emailResult?.ok;
+    try {
+      const emailResult = await sendEmail({
+        to: cleanEmail,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `Booking confirmed — ${cleanService} — ${ref}`,
+        html: buildStatusEmail({
+          customerName,
+          ref,
+          status: 'Confirmed',
+          statusColor: '#0369a1',
+          statusBg: '#e0f2fe',
+          headline: 'Your booking is confirmed',
+          bodyHtml,
+        }),
+        replyTo: ownerEmail(),
+        meta: { bookingId, notificationType: 'owner_booking_confirmation', recipientType: 'customer' },
+      });
+      confirmationEmailed = emailResult?.ok === true && !emailResult?.suppressed;
+      if (!confirmationEmailed) {
+        confirmationEmailError = emailResult?.error || emailResult?.reason || 'Confirmation was not delivered';
+      }
+    } catch (emailError) {
+      confirmationEmailError = emailError?.message || String(emailError);
+      console.error('Owner booking customer confirmation failed after booking save:', confirmationEmailError);
+    }
   }
 
   let completionEmailed = false;
+  let completionEmailError = null;
   if (isAlreadyCompleted && cleanEmail) {
-    const completionResult = await sendEmail({
-      to: cleanEmail,
-      from: 'AssembleAtEase <booking@assembleatease.com>',
-      subject: `Your job is complete — ${ref}`,
-      html: buildStatusEmail({
-        customerName,
-        ref,
-        status: 'COMPLETED',
-        statusColor: '#065f46',
-        statusBg: '#d1fae5',
-        headline: 'Your job is complete',
-        bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(cleanService)}</strong> service is complete. Thank you for choosing AssembleAtEase.</p>
-          <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
-      }),
-      replyTo: ownerEmail(),
-      meta: { bookingId, notificationType: 'completion', recipientType: 'customer' },
-    });
-    completionEmailed = !!completionResult?.ok;
+    try {
+      const completionResult = await sendEmail({
+        to: cleanEmail,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: `Your job is complete — ${ref}`,
+        html: buildStatusEmail({
+          customerName,
+          ref,
+          status: 'COMPLETED',
+          statusColor: '#065f46',
+          statusBg: '#d1fae5',
+          headline: 'Your job is complete',
+          bodyHtml: `<p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(cleanService)}</strong> service is complete. Thank you for choosing AssembleAtEase.</p>
+            <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Questions? Reply here, call <a href="tel:+17372906129">737-290-6129</a>, or email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`,
+        }),
+        replyTo: ownerEmail(),
+        meta: { bookingId, notificationType: 'completion', recipientType: 'customer' },
+      });
+      completionEmailed = completionResult?.ok === true && !completionResult?.suppressed;
+      if (!completionEmailed) {
+        completionEmailError = completionResult?.error || completionResult?.reason || 'Completion notice was not delivered';
+      }
+    } catch (emailError) {
+      completionEmailError = emailError?.message || String(emailError);
+      console.error('Owner booking completion email failed after booking save:', completionEmailError);
+    }
   }
 
   const warnings = (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false && !confirmationEmailed)
@@ -276,7 +339,9 @@ export default async function handler(req, res) {
     taxCents,
     totalCents: finalCents,
     confirmationEmailed,
+    confirmationEmailError,
     completionEmailed,
+    completionEmailError,
     warnings,
   });
 }

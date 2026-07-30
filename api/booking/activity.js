@@ -80,6 +80,9 @@ function formatNotifDescription(n) {
   const typeLabels = {
     booking_created:          'Booking created',
     booking_confirmed:        'Booking confirmation email',
+    owner_booking_confirmation: 'Owner booking confirmation email',
+    owner_booking_created_notice: 'Owner booking operations notice',
+    return_visit_customer:      'Return visit confirmation email',
     dispatch_offer:           'Job offer sent to Easer',
     assignment_confirmation:  'Assignment confirmation to Easer',
     job_accepted:             'Easer confirmed — customer notified',

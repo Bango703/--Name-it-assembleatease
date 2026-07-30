@@ -392,8 +392,8 @@ const SERVICES = [
       { name: 'Side / end table', price: '$69', popular: false },
       { name: 'Nightstand (single)', price: '$79', popular: false },
       { name: 'Bed Frame (Queen)', price: '$119', popular: true },
-      { name: 'Dresser / Chest of Drawers', price: '$109–$129', popular: false },
-      { name: 'IKEA PAX Wardrobe', price: '$169', popular: false },
+      { name: 'Dresser / Chest of Drawers', price: '$109–$149', popular: false },
+      { name: 'IKEA PAX Wardrobe', price: '$199', popular: false },
     ],
     faqs: [
       { q: 'How long does furniture assembly take?', a: 'Most single items take 30–90 minutes. A full bedroom set (bed + dresser + desk) typically takes 2–3 hours. We\'ll give you a time estimate when confirming your booking.' },
@@ -420,7 +420,7 @@ const SERVICES = [
       { name: 'Single framed picture / mirror', price: '$79', popular: false },
       { name: 'TV up to 40" (standard wall)', price: '$99', popular: false },
       { name: 'TV 41"–55" (standard wall)', price: '$119', popular: true },
-      { name: 'In-wall cord concealment', price: '$189', popular: false },
+      { name: 'In-wall cord concealment', price: '$199', popular: false },
     ],
     faqs: [
       { q: 'Do you supply the TV mount?', a: 'No — you provide the TV mount and hardware; our pros bring the tools and do the install. Not sure what fits your TV and wall? Coordinate with your pro after booking.' },
@@ -445,7 +445,7 @@ const SERVICES = [
       { name: 'Smart plug install + setup (per 2 plugs)', price: '$69', popular: false },
       { name: 'Smart Thermostat (Nest, Ecobee)', price: '$99', popular: true },
       { name: 'Smart Doorbell — wireless', price: '$89', popular: false },
-      { name: 'Camera System (4 cameras)', price: '$249', popular: false },
+      { name: 'Camera System (4 cameras)', price: '$279', popular: false },
     ],
     faqs: [
       { q: 'Do I need WiFi set up before the appointment?', a: 'Yes — a working WiFi network is required. We handle all device pairing, configuration, and app setup during the visit.' },
@@ -470,7 +470,7 @@ const SERVICES = [
       { name: 'Inversion Table', price: '$119', popular: false },
       { name: 'Treadmill Assembly', price: '$189', popular: true },
       { name: 'Elliptical Machine', price: '$209', popular: false },
-      { name: 'Squat Rack / Power Cage', price: '$219', popular: false },
+      { name: 'Squat Rack / Power Cage', price: '$239', popular: false },
     ],
     faqs: [
       { q: 'Do you move the equipment to the right room?', a: 'Yes — same-floor equipment moves can be added during booking. Heavy or stair moves may need a custom quote.' },

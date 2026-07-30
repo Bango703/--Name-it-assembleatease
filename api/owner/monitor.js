@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { verifyOwner } from '../_email.js';
 import { getSupabase } from '../_supabase.js';
 import { loadLedgerFirstFinanceRows, summarizeFinanceRows } from './_finance-ledger.js';
+import { chicagoTodayIso } from '../booking/_appt-date.js';
+import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -11,13 +13,26 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = chicagoTodayIso(now);
 
   // ── Pull all platform data ───────────────────────────────────────
   const [bookingsRes, reviewsRes] = await Promise.all([
     sb.from('bookings').select('*').order('created_at', { ascending: false }),
     sb.from('reviews').select('*').order('created_at', { ascending: false }),
   ]);
+  const unavailableSources = [
+    ['bookings', bookingsRes.error],
+    ['reviews', reviewsRes.error],
+  ].filter(([, error]) => error);
+  if (unavailableSources.length) {
+    console.error('Owner monitor source load failed:', unavailableSources
+      .map(([source, error]) => `${source}: ${error.message || error}`)
+      .join('; '));
+    return res.status(503).json({
+      error: 'The platform health check could not verify all required owner data. No zero-value report was generated.',
+      unavailable: unavailableSources.map(([source]) => source),
+    });
+  }
 
   const bookings = bookingsRes.data || [];
   const reviews  = reviewsRes.data || [];
@@ -27,7 +42,17 @@ export default async function handler(req, res) {
   const confirmed = bookings.filter(b => b.status === 'confirmed');
   const completed = bookings.filter(b => b.status === 'completed');
   const cancelled = bookings.filter(b => b.status === 'cancelled');
-  const today     = bookings.filter(b => b.date === todayStr);
+  const operationalDate = booking => booking.return_visit_required
+    ? booking.return_visit_date
+    : booking.date;
+  const operationalTime = booking => booking.return_visit_required
+    ? booking.return_visit_time
+    : booking.time;
+  const today = bookings.filter(b => operationalDate(b) === todayStr);
+  const returnVisits = bookings.filter(b =>
+    b.return_visit_required
+    && !['completed', 'cancelled', 'declined'].includes(b.status)
+  );
 
   // Stale pending — older than 2 hours with no action
   const stale = pending.filter(b => {
@@ -36,7 +61,14 @@ export default async function handler(req, res) {
   });
 
   // Missed jobs — confirmed but date already passed, not completed
-  const missed = confirmed.filter(b => b.date && b.date < todayStr);
+  const missed = bookings.filter(b =>
+    !['completed', 'cancelled', 'declined'].includes(b.status)
+    && operationalDate(b)
+    && operationalDate(b) < todayStr
+  );
+  const ownerManualNeedsAssignment = confirmed.filter(b =>
+    isOwnerManualOfflineBooking(b) && !b.assembler_id
+  );
 
   // Completed jobs with no review request sent
   const needsReview = completed.filter(b => !b.review_requested_at && b.customer_email);
@@ -50,6 +82,10 @@ export default async function handler(req, res) {
     financeRecon = finance.reconciliation || null;
   } catch (financeErr) {
     console.error('Monitor finance ledger-first load error:', financeErr);
+    return res.status(503).json({
+      error: 'The platform health check could not verify ledger-first financial data. No financial summary was generated.',
+      unavailable: ['financials'],
+    });
   }
 
   const financeTotals = summarizeFinanceRows(financeRows);
@@ -76,8 +112,10 @@ export default async function handler(req, res) {
 
   // Today's schedule
   const todayJobs = today.map(b => ({
-    time: b.time, service: b.service, status: b.status,
+    time: operationalTime(b), service: b.service, status: b.status,
     customer: b.customer_name, address: b.address,
+    returnVisit: b.return_visit_required === true,
+    remainingScope: b.return_visit_required ? b.return_visit_remaining_scope : null,
   }));
 
   // Services breakdown
@@ -97,9 +135,13 @@ export default async function handler(req, res) {
       stalePendingCount: stale.length,
       stalePendingRefs: stale.map(b => b.ref).join(', ') || 'none',
       missedJobsCount: missed.length,
-      missedJobRefs: missed.map(b => b.ref + ' (' + b.date + ')').join(', ') || 'none',
+      missedJobRefs: missed.map(b => b.ref + ' (' + operationalDate(b) + ')').join(', ') || 'none',
       needsReviewCount: needsReview.length,
       pendingPayoutsDollars: (pendingPayouts / 100).toFixed(2),
+      ownerManualNeedsAssignmentCount: ownerManualNeedsAssignment.length,
+      ownerManualNeedsAssignmentRefs: ownerManualNeedsAssignment.map(b => b.ref).join(', ') || 'none',
+      returnVisitsOpenCount: returnVisits.length,
+      returnVisitsOpenRefs: returnVisits.map(b => b.ref).join(', ') || 'none',
     },
     financials: {
       grossRevenueDollars: (gross / 100).toFixed(2),
@@ -155,7 +197,7 @@ CRITICAL FORMATTING RULES — you must follow these exactly:
     : `Today is ${todayStr}. Run a full platform health check.
 
 Give me:
-1. URGENT — anything that needs attention right now (stale pending, missed jobs, uncontacted customers)
+1. URGENT — anything that needs attention right now (stale pending, missed jobs, uncontacted customers, owner-manual jobs awaiting assignment)
 2. REVENUE — snapshot of money in/out, pending payouts
 3. TODAY — what's on the schedule today
 4. GROWTH — booking trend, what's working
@@ -183,6 +225,7 @@ Use the actual numbers from the data. Be direct.`;
       'URGENT:',
       `1. Stale pending bookings: ${platformData.alerts.stalePendingCount}`,
       `2. Missed jobs: ${platformData.alerts.missedJobsCount}`,
+      `3. Owner-manual jobs awaiting assignment: ${platformData.alerts.ownerManualNeedsAssignmentCount}`,
       '',
       'REVENUE:',
       `1. Gross: $${platformData.financials.grossRevenueDollars}`,

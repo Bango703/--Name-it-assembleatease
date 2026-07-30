@@ -30,7 +30,45 @@ export default async function handler(req, res) {
 
   // Enrich with assembler name/tier/rating — separate query avoids FK constraint uncertainty
   if (data && data.length) {
+    const bookingIds = data.map(booking => booking.id);
+    const { data: manualPaymentEvents, error: manualPaymentEventsError } = await sb
+      .from('owner_manual_payment_events')
+      .select('id, booking_id, amount_cents, payment_method, processing_fee_cents, stripe_payment_intent_id, stripe_charge_id, stripe_created_at, booking_total_before_cents, booking_total_after_cents, discount_cents, adjustment_note, payment_note, created_at')
+      .in('booking_id', bookingIds)
+      .order('created_at', { ascending: true });
+    if (manualPaymentEventsError && data.some(booking => booking.source === 'owner_manual')) {
+      console.error('Owner manual payment ledger lookup error:', manualPaymentEventsError);
+      return res.status(503).json({
+        error: 'Owner-manual payment balances cannot be verified. Apply migration 044 and retry.',
+        code: 'OWNER_MANUAL_PAYMENT_LEDGER_UNAVAILABLE',
+      });
+    }
+
+    const paymentsByBookingId = new Map();
+    (manualPaymentEvents || []).forEach(event => {
+      if (!paymentsByBookingId.has(event.booking_id)) paymentsByBookingId.set(event.booking_id, []);
+      paymentsByBookingId.get(event.booking_id).push(event);
+    });
+
     data.forEach(booking => {
+      const paymentEvents = paymentsByBookingId.get(booking.id) || [];
+      const ledgerCollectedCents = paymentEvents.reduce(
+        (sum, event) => sum + Number(event.amount_cents || 0),
+        0,
+      );
+      const legacyCollectedCents = booking.source === 'owner_manual'
+        && booking.payment_collected === true
+        && paymentEvents.length === 0
+        ? Number(booking.amount_charged ?? booking.total_price ?? 0)
+        : 0;
+      const amountCollectedCents = ledgerCollectedCents || legacyCollectedCents;
+      booking.payment_events = paymentEvents;
+      booking.amount_collected_cents = amountCollectedCents;
+      booking.remaining_balance_cents = Math.max(
+        0,
+        Number(booking.total_price || 0) - amountCollectedCents,
+      );
+      booking.payment_ledger_legacy = legacyCollectedCents > 0;
       booking.financial_summary = computeBookingFinancialSummary({
         amountChargedCents: booking.amount_charged,
         totalPriceCents: booking.total_price,
@@ -66,7 +104,7 @@ export default async function handler(req, res) {
 
     // Recipient truth, not sender labels, determines what is unread for the
     // owner. Customer and Easer messages are both operationally important.
-    const bIds = data.map(b => b.id);
+    const bIds = bookingIds;
     const { data: unreadMsgs, error: unreadError } = await sb
       .from('messages')
       .select('booking_id, sender')

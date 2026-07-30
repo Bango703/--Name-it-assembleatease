@@ -1,5 +1,9 @@
 import { getSupabase } from '../_supabase.js';
-import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
+import {
+  hasCurrentEaserAgreement,
+  requireAssignedWorkEaser,
+  respondWithEaserAccessError,
+} from '../_easer-access.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import {
   BOOKING_STATUS,
@@ -8,6 +12,7 @@ import {
   VISIBLE_ASSIGNMENT_STATUSES,
   computeBookingSplitFromSnapshot,
 } from '../_source-of-truth.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const SAFE_OFFER_CITIES = new Map([
   ['austin', 'Austin'],
@@ -83,6 +88,7 @@ export default async function handler(req, res) {
   const access = await requireAssignedWorkEaser(req, { supabase: sb });
   if (!access.ok) return respondWithEaserAccessError(res, access);
   const { user, profile: easerProfile, applicationFeeRefundHold } = access;
+  const agreementCurrent = hasCurrentEaserAgreement(easerProfile);
   const warnings = [];
 
   function pushWarning(code, message) {
@@ -102,7 +108,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, date, time, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot')
+    .select('id, ref, source, service, customer_name, customer_phone, customer_email, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -125,7 +131,12 @@ export default async function handler(req, res) {
   // (or set to someone else). Without this, Easer can't see the job unless
   // they still have the email open.
   let openOffers = [];
-  if (applicationFeeRefundHold) {
+  if (!agreementCurrent) {
+    pushWarning(
+      'current_agreement_required',
+      'Review and accept the current contractor agreement before viewing or receiving new job offers.',
+    );
+  } else if (applicationFeeRefundHold) {
     pushWarning(
       'application_fee_refund_hold',
       'New job offers are paused while the application-fee refund is reviewed. Existing assigned work remains available.',
@@ -233,6 +244,10 @@ export default async function handler(req, res) {
 
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
+  allBookings.forEach(booking => {
+    booking._owner_manual_live_flow = isOwnerManualLiveFlow(booking, easerProfile);
+    delete booking.source;
+  });
 
   const bookingIds = allBookings.map(b => b.id).filter(Boolean);
   if (bookingIds.length) {
@@ -303,7 +318,13 @@ export default async function handler(req, res) {
     }
   });
 
-  const response = { bookings: allBookings };
+  const response = {
+    bookings: allBookings,
+    access: {
+      agreementCurrent,
+      newOffersAllowed: agreementCurrent && !applicationFeeRefundHold,
+    },
+  };
   if (warnings.length > 0) {
     response.meta = {
       partial: true,

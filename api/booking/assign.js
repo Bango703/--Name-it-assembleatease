@@ -7,8 +7,8 @@ import { BOOKING_STATUS, DISPATCH_OFFER_STATUS, isBookingPaymentReadyForDispatch
 import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
-import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
@@ -16,8 +16,8 @@ const SITE = 'https://www.assembleatease.com';
 /**
  * POST /api/booking/assign
  * Owner assigns a confirmed booking to an assembler.
- * Completed owner-manual bookings may also be linked to an assembler record
- * for payout/history purposes without reopening the job.
+ * Completed owner-manual bookings may also be linked to the singular owner-Easer
+ * record for payout/history purposes without reopening the job.
  * Body: { bookingId, assemblerId }
  */
 export default async function handler(req, res) {
@@ -37,14 +37,14 @@ export default async function handler(req, res) {
     .single();
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
-  const recordOnlyOwnerManualCompleted = booking.source === 'owner_manual' && booking.status === BOOKING_STATUS.COMPLETED;
+  const recordOnlyOwnerManualCompleted = booking.source === 'owner_manual'
+    && booking.status === BOOKING_STATUS.COMPLETED
+    && booking.payment_status === 'offline_recorded';
+  const ownerManualConfirmed = booking.source === 'owner_manual' && booking.status === BOOKING_STATUS.CONFIRMED;
   if (booking.status !== BOOKING_STATUS.CONFIRMED && !recordOnlyOwnerManualCompleted) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
-  if (!recordOnlyOwnerManualCompleted && !isBookingPaymentReadyForDispatch(booking)) {
-    return res.status(409).json({
-      error: 'Payment is not verified for assignment. Reconcile Stripe before assigning an Easer.',
-      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
-    });
-  }
+  // The Stripe payment gate is enforced below, AFTER the Easer profile is loaded,
+  // because the owner's own Easer account is the one exception (offline job whose
+  // payment the owner collects directly). See isOwnerManualLiveFlow.
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
     return res.status(409).json({ error: 'A payment, cancellation, or payout operation is in progress. Wait for it to finish before changing the Easer.' });
   }
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb
     .from('profiles')
-    .select('id, full_name, email, phone, status, application_status, tier, has_membership, identity_verified, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
+    .select('id, role, full_name, email, phone, status, application_status, tier, has_membership, identity_verified, is_owner, is_available, contractor_agreement_signed_at, contractor_agreement_version, code_of_conduct_agreed_at, application_fee_paid, application_fee_waived, fee_waived_by_owner, application_fee_refunded, application_fee_refunded_cents, application_fee_refund_pending_cents, application_fee_refund_review_required_at, application_fee_refund_review_reason, account_closure_status, stripe_connect_account_id, stripe_connect_onboarding_complete, stripe_connect_charges_enabled, stripe_connect_payouts_enabled')
     .eq('id', assemblerId)
     .eq('role', 'assembler')
     .maybeSingle();
@@ -63,6 +63,26 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Easer membership status could not be verified. Assignment was not changed.' });
   }
   if (!assembler) return res.status(404).json({ error: 'Easer not found' });
+
+  const ownerEaserManual = isOwnerManualLiveFlow(booking, assembler);
+  if (recordOnlyOwnerManualCompleted && !ownerEaserManual) {
+    return res.status(409).json({
+      error: 'Only the configured owner-Easer account may be linked to an owner-created offline booking.',
+      code: 'OWNER_EASER_REQUIRED',
+    });
+  }
+
+  // The owner's own Easer account may work a CONFIRMED offline (owner_manual)
+  // booking — the customer's payment is collected by the owner offline, so the
+  // Stripe payment gate does not apply. Everyone else, and every online booking,
+  // still requires verified payment before assignment.
+  const ownerEaserLiveManual = ownerManualConfirmed && ownerEaserManual;
+  if (!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
+    return res.status(409).json({
+      error: 'Payment is not verified for assignment. Reconcile Stripe before assigning an Easer.',
+      code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
+    });
+  }
   let assemblerTier = normalizeAssemblerTier(assembler.tier) || 'starter';
   if (!recordOnlyOwnerManualCompleted) {
     const readiness = await getEaserReadiness(assembler);
@@ -124,9 +144,10 @@ export default async function handler(req, res) {
       platform_fee: split.platformFeeCents,
       assembler_due: split.assemblerDueCents,
       payout_status: split.assemblerDueCents > 0 ? 'pending' : null,
-      payout_mode_snapshot: split.assemblerDueCents > 0
-        ? (isStripeConnectEnabled() ? 'stripe_connect' : 'manual')
-        : null,
+      // Customer funds for owner-manual jobs never sit in the platform Stripe
+      // balance. Their Easer payout must therefore remain an externally recorded
+      // manual payout even if Connect is enabled for online jobs.
+      payout_mode_snapshot: split.assemblerDueCents > 0 ? 'manual' : null,
       payout_review_status: 'not_required',
       // Record the processing fee for how the customer paid this offline job
       // (0 for cash/bank rails, the card rate for card rails) so platform gross
@@ -138,6 +159,7 @@ export default async function handler(req, res) {
   let updateQuery = sb.from('bookings').update(baseUpdates)
     .eq('id', bookingId)
     .eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)
+    .eq('source', booking.source)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
     .is('financial_operation_started_at', null);
@@ -154,6 +176,22 @@ export default async function handler(req, res) {
     updateQuery = booking.stripe_deposit_intent_id == null
       ? updateQuery.is('stripe_deposit_intent_id', null)
       : updateQuery.eq('stripe_deposit_intent_id', booking.stripe_deposit_intent_id);
+  } else {
+    // Completed offline jobs still carry real customer-collection and payout
+    // truth. Pin every input used for the split/fee so a simultaneous collection
+    // confirmation or owner edit cannot create stale contractor earnings.
+    updateQuery = updateQuery.eq('payment_status', booking.payment_status)
+      .eq('total_price', booking.total_price)
+      .eq('payment_collected', booking.payment_collected === true);
+    updateQuery = booking.amount_charged == null
+      ? updateQuery.is('amount_charged', null)
+      : updateQuery.eq('amount_charged', booking.amount_charged);
+    updateQuery = booking.tax_amount == null
+      ? updateQuery.is('tax_amount', null)
+      : updateQuery.eq('tax_amount', booking.tax_amount);
+    updateQuery = booking.payment_method == null
+      ? updateQuery.is('payment_method', null)
+      : updateQuery.eq('payment_method', booking.payment_method);
   }
 
   if (reassign && booking.assembler_id) {

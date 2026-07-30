@@ -10,6 +10,7 @@ import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { isLegacyAssignmentTokenFresh } from './_dispatch-safety.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const SITE = 'https://www.assembleatease.com';
 
@@ -212,7 +213,7 @@ export default async function handler(req, res) {
   // mutate dispatch state. Full readiness is checked again before acceptance.
   const { data: actorProfile, error: actorProfileError } = await sb
     .from('profiles')
-    .select('id, role')
+    .select('id, role, is_owner')
     .eq('id', assemblerId)
     .maybeSingle();
   if (actorProfileError) {
@@ -358,7 +359,11 @@ export default async function handler(req, res) {
 
   if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
   if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
-  if (!isBookingPaymentReadyForDispatch(booking)) {
+  // Exception: the owner's own Easer account accepting the offline job it was
+  // assigned to (payment collected offline). Everyone else needs verified payment.
+  const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, actorProfile)
+    && booking.assembler_id === assemblerId;
+  if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
     return res.status(409).json({ error: 'This booking is on payment hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
   }
 
@@ -474,6 +479,12 @@ export default async function handler(req, res) {
 async function sendNotifications(sb, booking, easer, assemblerId) {
   const bookingId = booking.id;
   const results = [];
+  const easerFirstName = String(easer.full_name || 'your Easer').trim().split(/\s+/)[0];
+  const appointmentDate = booking.return_visit_required ? booking.return_visit_date : booking.date;
+  const appointmentTime = booking.return_visit_required ? booking.return_visit_time : booking.time;
+  const appointmentDescription = booking.return_visit_required
+    ? `your return appointment to complete ${booking.return_visit_remaining_scope || 'the remaining work'}`
+    : `your ${booking.service}`;
 
   // Customer: "Your Easer is confirmed"
   if (booking.customer_email) {
@@ -488,7 +499,7 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
         statusColor: '#065f46',
         statusBg: '#d1fae5',
         headline: 'Your Easer is confirmed.',
-        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc((booking.customer_name || '').split(' ')[0])}, good news — <strong>${esc(easer.full_name || 'your Easer')}</strong> will be handling your <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time || 'the scheduled time')}</strong>. We'll send another note when they're on the way.</p>
+        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc((booking.customer_name || '').split(' ')[0])}, good news — <strong>${esc(easerFirstName)}</strong> will be handling ${esc(appointmentDescription)} on <strong>${esc(appointmentDate)}</strong> at <strong>${esc(appointmentTime || 'the scheduled time')}</strong>. We'll send another note when they're on the way.</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(booking.ref)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>
         <p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Questions before then? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>`,
       }),
@@ -507,7 +518,7 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
       <h2 style="color:#00BFFF">Job Accepted</h2>
       <p><strong>${esc(easer.full_name)}</strong> (${esc(easer.tier)}${hasEffectiveEaserMembership(easer) ? ' · Member' : ''}) accepted booking <strong>${esc(booking.ref)}</strong>.</p>
       <p><strong>Service:</strong> ${esc(booking.service)}<br>
-      <strong>Date:</strong> ${esc(booking.date)} at ${esc(booking.time||'TBD')}<br>
+      <strong>${booking.return_visit_required ? 'Return date' : 'Date'}:</strong> ${esc(appointmentDate)} at ${esc(appointmentTime||'TBD')}<br>
       <strong>Customer:</strong> ${esc(booking.customer_name)}</p>
       <p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
     </div>`,

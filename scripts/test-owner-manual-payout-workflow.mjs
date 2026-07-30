@@ -8,6 +8,33 @@ import {
 } from '../api/owner/_finance-ledger.js';
 import { isCurrentCompletionEvidence } from '../api/booking/_completion-evidence.js';
 import { normalizeOwnerOfflinePaymentMethod } from '../api/owner/_offline-payment.js';
+import {
+  isOwnerEaserProfile,
+  isOwnerManualLiveFlow,
+  isOwnerManualOfflineBooking,
+} from '../api/_owner-easer.js';
+
+const ownerOfflineBooking = {
+  source: 'owner_manual',
+  payment_status: 'offline_recorded',
+};
+const ownerEaserProfile = { role: 'assembler', is_owner: true };
+assert.equal(isOwnerManualOfflineBooking(ownerOfflineBooking), true);
+assert.equal(isOwnerEaserProfile(ownerEaserProfile), true);
+assert.equal(isOwnerManualLiveFlow(ownerOfflineBooking, ownerEaserProfile), true);
+for (const [unsafeBooking, unsafeProfile] of [
+  [{ ...ownerOfflineBooking, source: 'online' }, ownerEaserProfile],
+  [{ ...ownerOfflineBooking, payment_status: 'authorized' }, ownerEaserProfile],
+  [ownerOfflineBooking, { role: 'assembler', is_owner: false }],
+  [ownerOfflineBooking, { role: 'customer', is_owner: true }],
+  [ownerOfflineBooking, { role: 'assembler', is_owner: 'true' }],
+]) {
+  assert.equal(
+    isOwnerManualLiveFlow(unsafeBooking, unsafeProfile),
+    false,
+    'the live offline exception must require exact owner source, payment truth, role, and boolean identity',
+  );
+}
 
 const baseBooking = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -153,13 +180,44 @@ assert.equal(
   'pending',
 );
 
-const [ownerSource, payoutsSource, payoutApiSource, collectionApiSource, migrationSource, visualAuditSource] = await Promise.all([
+const [
+  ownerSource,
+  payoutsSource,
+  payoutApiSource,
+  collectionApiSource,
+  migrationSource,
+  visualAuditSource,
+  ownerEaserMigrationSource,
+  ownerEaserHelperSource,
+  assignSource,
+  acceptSource,
+  statusSource,
+  completionSource,
+  dropSource,
+  assignmentsSource,
+  assemblersSource,
+  customerErrorAlertSource,
+  setupIntentSource,
+  publicKeySource,
+] = await Promise.all([
   fs.readFile(new URL('../owner/index.html', import.meta.url), 'utf8'),
   fs.readFile(new URL('../api/owner/payouts.js', import.meta.url), 'utf8'),
   fs.readFile(new URL('../api/booking/payout.js', import.meta.url), 'utf8'),
   fs.readFile(new URL('../api/owner/mark-payment-collected.js', import.meta.url), 'utf8'),
   fs.readFile(new URL('../api/migrations/041_owner_manual_collected_payout.sql', import.meta.url), 'utf8'),
   fs.readFile(new URL('./mobile-visual-audit.mjs', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/migrations/042_owner_easer_live_offline_flow.sql', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/_owner-easer.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/assign.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/accept-dispatch.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/easer-status.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/assembler-complete.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/drop-job.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/my-assignments.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/assemblers.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/_customer-error-alert.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/booking/setup-intent.js', import.meta.url), 'utf8'),
+  fs.readFile(new URL('../api/config/public-key.js', import.meta.url), 'utf8'),
 ]);
 assert.match(ownerSource, /data-payout-intent="/);
 assert.match(ownerSource, /intent === 'record'/);
@@ -190,7 +248,11 @@ assert.match(payoutApiSource, /deriveManualPayoutReadiness\(booking/);
 assert.match(collectionApiSource, /normalizeOwnerOfflinePaymentMethod\(paymentMethod\)/);
 assert.match(collectionApiSource, /confirmedCents !== canonicalAmountCents/);
 assert.match(collectionApiSource, /booking\.payment_status !== 'offline_recorded'/);
+assert.match(collectionApiSource, /OFFLINE_PAYMENT_BOOKING_STATE_INVALID/);
+assert.match(collectionApiSource, /FINANCIAL_OPERATION_IN_PROGRESS/);
 assert.match(collectionApiSource, /existingMethod !== normalizedMethod/);
+assert.match(collectionApiSource, /stripe_fee:\s*offlineMethodFeeCents\(normalizedMethod, canonicalAmountCents\)/);
+assert.match(collectionApiSource, /\.is\('financial_operation_key', null\)/);
 assert.match(visualAuditSource, /owner-manual-uncollected/);
 assert.match(visualAuditSource, /ownerOfflineCollection/);
 assert.match(visualAuditSource, /\/api\/owner\/mark-payment-collected/);
@@ -204,5 +266,71 @@ assert.match(migrationSource, /BTRIM\(booking_row\.payment_method\)/);
 assert.match(migrationSource, /COALESCE\(booking_row\.amount_charged, booking_row\.total_price, 0\) > 0/);
 assert.match(migrationSource, /booking_row\.payment_status = 'captured'/);
 assert.match(migrationSource, /Payout state must be pending/);
+
+// Owner-Easer live offline flow: one shared API predicate and an independent
+// database backstop must both require exact offline truth and singular identity.
+assert.match(ownerEaserHelperSource, /isOwnerManualOfflineBooking\(booking\)[\s\S]*isOwnerEaserProfile\(profile\)/);
+assert.match(ownerEaserMigrationSource, /CREATE UNIQUE INDEX IF NOT EXISTS uq_profiles_single_owner_easer/);
+assert.match(ownerEaserMigrationSource, /CHECK \(is_owner IS NOT TRUE OR role = 'assembler'\)/);
+assert.match(ownerEaserMigrationSource, /REVOKE INSERT \(is_owner\), UPDATE \(is_owner\)[\s\S]*FROM PUBLIC, anon, authenticated/);
+assert.match(
+  ownerEaserMigrationSource,
+  /v_owner_manual_easer := COALESCE\(NEW\.source, 'online'\) = 'owner_manual'[\s\S]*NEW\.payment_status = 'offline_recorded'[\s\S]*v_profile\.is_owner/,
+);
+assert.match(
+  ownerEaserMigrationSource,
+  /v_record_only_owner_manual := COALESCE\(NEW\.source, 'online'\) = 'owner_manual'[\s\S]*NEW\.status = 'completed'[\s\S]*NEW\.payment_status = 'offline_recorded'[\s\S]*v_profile\.is_owner/,
+);
+assert.match(ownerEaserMigrationSource, /assignment_token, status, source, payment_status ON public\.bookings/);
+assert.match(ownerEaserMigrationSource, /v_readiness_guard_required[\s\S]*Assigned Easer is not ready and eligible for jobs/);
+assert.match(assignSource, /ownerEaserManual = isOwnerManualLiveFlow\(booking, assembler\)/);
+assert.match(assignSource, /ownerEaserLiveManual = ownerManualConfirmed && ownerEaserManual/);
+assert.match(assignSource, /\.select\('id, role,[^']*is_owner/);
+assert.match(assignSource, /recordOnlyOwnerManualCompleted && !ownerEaserManual/);
+assert.match(assignSource, /code: 'OWNER_EASER_REQUIRED'/);
+assert.match(assignSource, /!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual && !isBookingPaymentReadyForDispatch\(booking\)/);
+assert.match(acceptSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, actorProfile\)/);
+assert.match(statusSource, /ownerEaserLiveManual[\s\S]*isOwnerManualLiveFlow\(booking, profile\)/);
+
+// Completion must never capture Stripe for this lane, must serialize the money
+// write, must pin mutable collection inputs, and must remain a manual payout.
+const offlineCompletionSource = completionSource.slice(
+  completionSource.indexOf('async function completeOfflineOwnerManualBooking'),
+);
+assert.ok(offlineCompletionSource.length > 0);
+assert.match(offlineCompletionSource, /reserveBookingFinancialOperation\(sb/);
+assert.match(offlineCompletionSource, /operationType:\s*'completion_easer'/);
+assert.match(offlineCompletionSource, /\.eq\('financial_operation_key', operationKey\)/);
+assert.match(offlineCompletionSource, /\.eq\('payment_collected', booking\.payment_collected === true\)/);
+assert.match(offlineCompletionSource, /completionUpdate\.is\('payment_method', null\)/);
+assert.match(offlineCompletionSource, /payout_mode_snapshot: split\.assemblerDueCents > 0 \? 'manual' : null/);
+assert.match(offlineCompletionSource, /offlineMethodFeeCents\(booking\.payment_method, totalCents\)/);
+assert.match(offlineCompletionSource, /on_hold_customer_collection/);
+assert.doesNotMatch(offlineCompletionSource, /paymentIntents\.capture|captureOrRecoverBookingPayment/);
+assert.match(completionSource, /OFFLINE_STRIPE_STATE_CONFLICT/);
+
+// Owner and Easer controls must steer this job through the live Easer flow,
+// never expose regular Easers as eligible, and never auto-redispatch it.
+assert.match(assemblersSource, /identity_verified, is_owner,/);
+assert.match(assemblersSource, /const readiness = await getEaserReadiness\(normalized\)/);
+assert.match(assemblersSource, /if \(!readiness\.isReady\) continue/);
+assert.match(ownerSource, /ownerEaserOnly[\s\S]*eligibleAssemblers\.filter\(function\(a\) \{ return a\.is_owner === true; \}\)/);
+assert.match(ownerSource, /Complete from Easer Dashboard/);
+assert.match(ownerSource, /b\.status === 'en_route' \|\| b\.status === 'arrived'/);
+assert.match(dropSource, /OWNER_MANUAL_REDISPATCH_BLOCKED/);
+assert.match(assignmentsSource, /_owner_manual_live_flow = isOwnerManualLiveFlow\(booking, easerProfile\)/);
+
+// Customer identity remains first-name-only in public/transactional surfaces.
+assert.match(acceptSource, /const easerFirstName =/);
+assert.match(acceptSource, /<strong>\$\{esc\(easerFirstName\)\}<\/strong> will be handling/);
+
+// Critical checkout server failures must alert in every server-controlled setup,
+// create, confirmation, and quote-approval step with safe recovery context.
+assert.match(customerErrorAlertSource, /statusCode >= 500/);
+assert.match(customerErrorAlertSource, /Customer email:/);
+assert.match(customerErrorAlertSource, /never request or send card details by email/);
+assert.match(customerErrorAlertSource, /customer_block_\$\{dedupeKey\}/);
+assert.match(setupIntentSource, /guardCustomerFacing\(req, res, 'quote card setup'\)/);
+assert.match(publicKeySource, /guardCustomerFacing\(req, res, 'checkout configuration'\)/);
 
 console.log('Owner manual payout workflow tests: PASS');

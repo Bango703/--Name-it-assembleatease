@@ -136,8 +136,8 @@
     .msg.customer{background:var(--elevated);border:1px solid var(--border-md);align-self:flex-start;color:var(--text)}
     .msg-time{font-size:0.68rem;color:var(--muted);margin-top:3px}
     .msg-empty{font-size:0.85rem;color:var(--muted);text-align:center;padding:2rem 0}
-    .msg-compose{display:flex;gap:0.5rem}
-    .msg-input{flex:1;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:none;min-height:40px;max-height:100px}
+    .msg-compose{display:flex;gap:0.5rem;align-items:flex-end}
+    .msg-input{flex:1;padding:0.6rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;line-height:1.5;outline:none;resize:vertical;min-height:96px;max-height:280px}
     .msg-input:focus{border-color:var(--teal)}
 
     /* -- Website chat inbox -- */
@@ -535,7 +535,7 @@
             <div class="ops-panel-header">
               <div class="ops-panel-title">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Today's Schedule
+                Today's Schedule <span id="ops-today-date" style="font-weight:500;color:var(--muted)"></span>
               </div>
             </div>
             <div id="ops-today">—</div>
@@ -632,7 +632,7 @@
                   <button id="msg-target-assembler" onclick="setMsgTarget('assembler')" style="min-height:44px;padding:8px 12px;border-radius:99px;border:1.5px solid #7c3aed;background:none;color:#7c3aed;font-size:0.76rem;font-weight:600;cursor:pointer;touch-action:manipulation">Easer</button>
                 </div>
                 <div class="msg-compose">
-                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="1" style="border-color:var(--teal)"></textarea>
+                  <textarea class="msg-input" id="msg-input" placeholder="Message customer..." rows="4" style="border-color:var(--teal)"></textarea>
                   <button class="btn" id="msg-send" style="background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;white-space:nowrap">Send to Customer</button>
                 </div>
               </div>
@@ -1735,16 +1735,56 @@ window.intelQuick = intelQuick;
       <label class="modal-label">How the customer paid</label>
       <select id="collection-method" class="modal-input" style="min-height:44px">
         <option value="">Select payment method</option>
-        <option value="stripe_manual">Manual Stripe payment</option>
         <option value="cash">Cash</option>
         <option value="zelle">Zelle</option>
         <option value="cashapp">Cash App</option>
-        <option value="card_on_site">Card on-site</option>
         <option value="invoice">Invoice</option>
       </select>
       <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
         <input type="checkbox" id="collection-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
         <span id="collection-confirm-copy">I confirm this exact amount reached the business outside the online checkout.</span>
+      </label>
+    </div>
+    <div id="manual-payment-row" style="display:none;margin-top:0.75rem">
+      <div class="modal-row">
+        <div>
+          <label class="modal-label">Stripe payment received ($)</label>
+          <input id="manual-payment-amount" class="modal-input" type="number" min="0.01" step="0.01" placeholder="149.00" />
+        </div>
+        <div>
+          <label class="modal-label">Adjusted agreed total ($)</label>
+          <input id="manual-payment-total" class="modal-input" type="number" min="1" step="0.01" />
+        </div>
+      </div>
+      <label class="modal-label">Stripe PaymentIntent ID</label>
+      <input id="manual-payment-intent" class="modal-input" autocomplete="off" placeholder="pi_..." />
+      <label class="modal-label" style="margin-top:0.5rem">Discount explanation</label>
+      <input id="manual-payment-adjustment" class="modal-input" placeholder="Required only when reducing the agreed total" />
+      <label class="modal-label" style="margin-top:0.5rem">Payment note</label>
+      <input id="manual-payment-note" class="modal-input" placeholder="Work or phase this payment covers" />
+      <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
+        <input type="checkbox" id="manual-payment-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+        <span>I confirm the amount and PaymentIntent are copied from Stripe. This records money already received and does not charge the customer.</span>
+      </label>
+    </div>
+    <div id="return-visit-row" style="display:none;margin-top:0.75rem">
+      <div class="modal-row">
+        <div>
+          <label class="modal-label">Return date</label>
+          <input id="return-visit-date" class="modal-input" type="date" />
+        </div>
+        <div>
+          <label class="modal-label">Return time</label>
+          <input id="return-visit-time" class="modal-input" placeholder="2:00 PM - 4:00 PM" />
+        </div>
+      </div>
+      <label class="modal-label">Work completed</label>
+      <textarea id="return-visit-completed" class="modal-input" rows="2" placeholder="Disassembly and moving completed"></textarea>
+      <label class="modal-label" style="margin-top:0.5rem">Work remaining</label>
+      <textarea id="return-visit-remaining" class="modal-input" rows="2" placeholder="Trampoline reassembly"></textarea>
+      <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
+        <input type="checkbox" id="return-visit-notify-cb" checked style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+        <span>Send the customer a professional return-appointment confirmation.</span>
       </label>
     </div>
     <div id="waive-fee-row" style="display:none;margin-top:0.75rem;font-size:0.85rem;color:var(--soft)">
@@ -1771,6 +1811,7 @@ window.intelQuick = intelQuick;
   let ownerSessionToken = '';
   let allBookings = [];
   let selectedId = null;
+  let ownerBusinessDate = null;
   window.selectedId = null;
   window._ownerSelectedId = null;
   let _msgTarget = 'customer';
@@ -1780,6 +1821,30 @@ window.intelQuick = intelQuick;
   let siteChatConversations = [];
   let selectedSiteChatId = null;
   var _evidenceCache = {}; // { [bookingId]: { evidence, total, loading, error } }
+
+  function chicagoBusinessDate(now) {
+    var parts = {};
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(now || new Date()).forEach(function(part) {
+      if (part.type !== 'literal') parts[part.type] = part.value;
+    });
+    return parts.year + '-' + parts.month + '-' + parts.day;
+  }
+
+  function businessDateLabel(dateValue, includeWeekday) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateValue || ''))) return 'Date unavailable';
+    return new Date(dateValue + 'T12:00:00Z').toLocaleDateString('en-US', {
+      timeZone: 'America/Chicago',
+      weekday: includeWeekday ? 'long' : undefined,
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
 
   const $gate      = document.getElementById('login-gate');
   const $layout    = document.getElementById('layout');
@@ -1809,6 +1874,19 @@ window.intelQuick = intelQuick;
   const $collectionConfirm = document.getElementById('collection-confirm-cb');
   const $collectionAmount = document.getElementById('collection-amount');
   const $collectionConfirmCopy = document.getElementById('collection-confirm-copy');
+  const $manualPaymentRow = document.getElementById('manual-payment-row');
+  const $manualPaymentAmount = document.getElementById('manual-payment-amount');
+  const $manualPaymentTotal = document.getElementById('manual-payment-total');
+  const $manualPaymentIntent = document.getElementById('manual-payment-intent');
+  const $manualPaymentAdjustment = document.getElementById('manual-payment-adjustment');
+  const $manualPaymentNote = document.getElementById('manual-payment-note');
+  const $manualPaymentConfirm = document.getElementById('manual-payment-confirm-cb');
+  const $returnVisitRow = document.getElementById('return-visit-row');
+  const $returnVisitDate = document.getElementById('return-visit-date');
+  const $returnVisitTime = document.getElementById('return-visit-time');
+  const $returnVisitCompleted = document.getElementById('return-visit-completed');
+  const $returnVisitRemaining = document.getElementById('return-visit-remaining');
+  const $returnVisitNotify = document.getElementById('return-visit-notify-cb');
 
   function setPayoutFieldsVisible(show) {
     if ($payoutMethodRow) $payoutMethodRow.style.display = show ? '' : 'none';
@@ -1833,11 +1911,45 @@ window.intelQuick = intelQuick;
     }
     if ($collectionMethod) {
       var existingMethod = String((booking && booking.payment_method) || '');
-      $collectionMethod.value = ['stripe_manual','cash','zelle','cashapp','card_on_site','invoice'].includes(existingMethod)
+      $collectionMethod.value = ['cash','zelle','cashapp','invoice'].includes(existingMethod)
         ? existingMethod
         : '';
     }
     if ($collectionConfirm) $collectionConfirm.checked = false;
+  }
+
+  function setManualPaymentFieldsVisible(show, booking) {
+    if ($manualPaymentRow) $manualPaymentRow.style.display = show ? '' : 'none';
+    if (!show) {
+      if ($manualPaymentAmount) $manualPaymentAmount.value = '';
+      if ($manualPaymentTotal) $manualPaymentTotal.value = '';
+      if ($manualPaymentIntent) $manualPaymentIntent.value = '';
+      if ($manualPaymentAdjustment) $manualPaymentAdjustment.value = '';
+      if ($manualPaymentNote) $manualPaymentNote.value = '';
+      if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+      return;
+    }
+    if ($manualPaymentTotal) {
+      $manualPaymentTotal.value = (Number((booking && booking.total_price) || 0) / 100).toFixed(2);
+    }
+    if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+  }
+
+  function setReturnVisitFieldsVisible(show, booking) {
+    if ($returnVisitRow) $returnVisitRow.style.display = show ? '' : 'none';
+    if (!show) {
+      if ($returnVisitDate) $returnVisitDate.value = '';
+      if ($returnVisitTime) $returnVisitTime.value = '';
+      if ($returnVisitCompleted) $returnVisitCompleted.value = '';
+      if ($returnVisitRemaining) $returnVisitRemaining.value = '';
+      if ($returnVisitNotify) $returnVisitNotify.checked = true;
+      return;
+    }
+    if ($returnVisitDate) $returnVisitDate.value = (booking && booking.return_visit_date) || chicagoBusinessDate(new Date());
+    if ($returnVisitTime) $returnVisitTime.value = (booking && booking.return_visit_time) || '';
+    if ($returnVisitCompleted) $returnVisitCompleted.value = (booking && booking.return_visit_completed_scope) || '';
+    if ($returnVisitRemaining) $returnVisitRemaining.value = (booking && booking.return_visit_remaining_scope) || '';
+    if ($returnVisitNotify) $returnVisitNotify.checked = true;
   }
 
   function headers(extra) {
@@ -2620,6 +2732,8 @@ window.intelQuick = intelQuick;
     $list.innerHTML = filtered.map(function(b) {
       var msgCount = 0;
       if (b.messages && b.messages.length) msgCount = b.messages[0].count || 0;
+      var cardDate = b.return_visit_required ? b.return_visit_date : b.date;
+      var cardTime = b.return_visit_required ? b.return_visit_time : b.time;
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
@@ -2630,7 +2744,7 @@ window.intelQuick = intelQuick;
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
-          + '<span>' + formatDate(b.date) + (b.time ? ' ' + esc(b.time) : '') + '</span>'
+          + '<span>' + (b.return_visit_required ? 'Return: ' : '') + formatDate(cardDate) + (cardTime ? ' ' + esc(cardTime) : '') + '</span>'
           + (b.total_price ? '<span class="meta-dot"></span><span>'+fmt$(b.total_price)+'</span>' : '')
           + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
         + '</div></div>';
@@ -2653,12 +2767,47 @@ window.intelQuick = intelQuick;
     $detailPh.style.display = 'none';
     $detail.classList.add('open');
     $detailRef.textContent = b.ref;
+    var bookedTotal = Number(b.total_price || 0);
+    var bookedTax = Number(b.tax_amount || 0);
+    var bookedSubtotal = Math.max(0, bookedTotal - bookedTax);
+    var financial = b.financial_summary || {};
+    var isOfflinePayment = b.source === 'owner_manual' && b.payment_status === 'offline_recorded';
+    var collectedAmount = isOfflinePayment
+      ? Number(b.amount_collected_cents || 0)
+      : (b.amount_charged != null ? Number(b.amount_charged) : null);
+    var remainingBalance = isOfflinePayment
+      ? Number(b.remaining_balance_cents != null
+        ? b.remaining_balance_cents
+        : Math.max(0, bookedTotal - Number(collectedAmount || 0)))
+      : null;
+    var offlineFullyCollected = !isOfflinePayment || b.payment_collected === true;
     $detailGrid.innerHTML = [
-      field('Customer', b.customer_name),
+      field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
       field('Phone', hasValidUsPhone(b.customer_phone) ? '<a href="tel:'+esc(b.customer_phone)+'" style="color:var(--teal);text-decoration:none;font-weight:600">'+esc(formatUsPhone(b.customer_phone))+'</a>' : '<span style="color:var(--red)">Valid phone required</span>'),
-      field('Service', b.service),
-      field('Total', b.total_price != null ? fmt$(b.total_price) : '—'),
+      field('Service', esc(b.service || '—')),
+      field('Service Subtotal', b.total_price != null ? fmt$(bookedSubtotal) : '—'),
+      field('Sales Tax', b.tax_amount != null ? fmt$(bookedTax) : '—'),
+      field('Customer Total', b.total_price != null ? fmt$(bookedTotal) : '—'),
+      field(isOfflinePayment ? 'Customer Payments Received' : 'Total Charged', collectedAmount != null
+        ? fmt$(collectedAmount)
+        : '<span style="color:var(--muted)">Not recorded</span>'),
+      isOfflinePayment ? field('Remaining Balance', fmt$(remainingBalance)) : '',
+      field('Refunds', Number(financial.refundedCents || b.refund_amount || 0) > 0 ? fmt$(Number(financial.refundedCents || b.refund_amount)) : fmt$(0)),
+      field('Processing Fee', isOfflinePayment && Number(b.stripe_fee || 0) > 0
+        ? fmt$(Number(b.stripe_fee)) + ' <span style="font-size:0.7rem;color:var(--muted)">(Stripe-recorded)</span>'
+        : isOfflinePayment && collectedAmount <= 0
+        ? '<span style="color:var(--muted)">No recorded payment fee</span>'
+        : financial.processingFeeCents != null
+        ? fmt$(financial.processingFeeCents) + (financial.processingFeeIsActual ? ' <span style="font-size:0.7rem;color:var(--muted)">(recorded)</span>' : ' <span style="font-size:0.7rem;color:var(--muted)">(estimate)</span>')
+        : (b.stripe_fee != null ? fmt$(b.stripe_fee) : '—')),
+      field('Platform Fee', b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'),
+      field('Easer Earnings', b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>'),
+      field('Platform Gross', financial.platformGrossCents != null
+        ? (isOfflinePayment && !offlineFullyCollected
+          ? '<span style="color:var(--muted)">Not available until the full balance is collected</span>'
+          : fmtSigned$(financial.platformGrossCents) + ' <span style="font-size:0.7rem;color:var(--muted)">(' + (collectedAmount != null ? 'recorded inputs' : 'estimate') + '; before operating costs)</span>')
+        : '—'),
       field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(b.payment_status) : '')),
       field('Payment', paymentStatusLabel(b)),
       field('Easer Payout', b.payout_status === 'transferred'
@@ -2667,8 +2816,11 @@ window.intelQuick = intelQuick;
           ? 'Paid' + (b.paid_out_at ? ' on ' + formatDate(b.paid_out_at) : '')
           : (b.payout_status || 'unpaid').replace(/_/g, ' ')),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
-      field('Address', b.address || '—'),
-      field('Details', b.details || '—'),
+      b.return_visit_required ? field('Return Visit', formatDate(b.return_visit_date) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '')) : '',
+      b.return_visit_required ? field('Work Completed', esc(b.return_visit_completed_scope || '—')) : '',
+      b.return_visit_required ? field('Work Remaining', esc(b.return_visit_remaining_scope || '—')) : '',
+      field('Address', esc(b.address || '—')),
+      field('Details', esc(b.details || '—')),
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
@@ -2725,7 +2877,12 @@ window.intelQuick = intelQuick;
 
     // Render control buttons
     var ctrls = '';
-    if (booking && booking.status === 'confirmed' && !booking.assembler_id) {
+    var ownerManualOffline = booking
+      && booking.source === 'owner_manual'
+      && booking.payment_status === 'offline_recorded';
+    if (booking && booking.status === 'confirmed' && !booking.assembler_id && ownerManualOffline) {
+      ctrls = '<div style="font-size:0.78rem;color:#9a3412;line-height:1.5"><strong>Owner-created offline booking.</strong> Automatic marketplace dispatch is intentionally disabled. Use the Assignment section on the booking record to assign the configured owner-Easer, or complete the job through the documented owner path.</div>';
+    } else if (booking && booking.status === 'confirmed' && !booking.assembler_id) {
       ctrls += '<button class="btn btn-teal" onclick="dispatchWithConfirm(\'' + bookingId + '\')" style="font-size:0.78rem">Dispatch Now</button>';
       ctrls += '<button class="btn" onclick="dispatchControl(\'' + bookingId + '\',\'dry_run\')" style="font-size:0.78rem">Preview Scoring</button>';
       if (booking.dispatch_paused) {
@@ -2738,7 +2895,7 @@ window.intelQuick = intelQuick;
       }
       ctrls += '<button class="btn btn-red" onclick="dispatchControl(\'' + bookingId + '\',\'cancel\')" style="font-size:0.78rem">Cancel Offers</button>';
     }
-    if (booking && booking.needs_manual_dispatch) {
+    if (booking && booking.needs_manual_dispatch && !ownerManualOffline) {
       ctrls = '<span style="color:#ef4444;font-size:0.78rem;font-weight:600">Needs Manual Assignment</span> ' + ctrls;
     }
     if (ctrlEl) ctrlEl.innerHTML = ctrls;
@@ -2850,7 +3007,13 @@ window.intelQuick = intelQuick;
       if (!r.ok) { el.innerHTML = '<div style="color:var(--muted)">No activity yet</div>'; return; }
       var d = await r.json();
       var items = d.activity || [];
-      if (!items.length) { el.innerHTML = '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>'; return; }
+      var timelineWarning = d.partial
+        ? '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.75rem;margin-bottom:0.75rem;color:#9a3412;font-size:0.78rem"><strong>Timeline is incomplete.</strong> ' + esc(d.warning || 'Notification history could not be loaded. Retry before relying on this record.') + '</div>'
+        : '';
+      if (!items.length) {
+        el.innerHTML = timelineWarning + '<div style="color:var(--muted);padding:0.5rem 0">No activity logged yet</div>';
+        return;
+      }
       var dotColors = {
         booking_created:'#3b82f6', confirmed:'#1d9e75', dispatched:'#8b5cf6',
         easer_accepted:'#1d9e75', easer_declined:'#ef4444', en_route:'#3b82f6',
@@ -2860,7 +3023,7 @@ window.intelQuick = intelQuick;
         reassigned:'#f59e0b', owner_action:'#00BFFF',
         notification_sent:'#94a3b8',
       };
-      el.innerHTML = '<div style="padding-left:18px;border-left:2px solid var(--border)">'
+      el.innerHTML = timelineWarning + '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
           var isNotif = a._source === 'notification';
           var isFailed = isNotif && a._status === 'failed';
@@ -3122,7 +3285,7 @@ window.intelQuick = intelQuick;
   function openOwnerCreateBookingModal() {
     var modal = document.getElementById('owner-create-booking-modal');
     if (!modal) return;
-    var today = new Date().toISOString().slice(0, 10);
+    var today = ownerBusinessDate || chicagoBusinessDate(new Date());
     var ids = ['ocb-first','ocb-last','ocb-phone','ocb-email','ocb-service','ocb-address','ocb-time','ocb-standard','ocb-final','ocb-note'];
     ids.forEach(function(id) {
       var el = document.getElementById(id);
@@ -3238,6 +3401,7 @@ window.intelQuick = intelQuick;
             return 'stored as pending compatibility record because migration 038 is not applied';
           }
           if (code === 'confirmation_email_failed') return 'customer confirmation email failed';
+          if (code === 'completion_email_failed') return 'customer completion email failed';
           return code;
         }).join('; ');
         toast('Booking created (' + (d.ref || 'no ref') + ') with warnings: ' + warningText, 'error');
@@ -3267,11 +3431,39 @@ window.intelQuick = intelQuick;
     var isOwnerManual = b.source === 'owner_manual' || b.source === 'manual';
 
     if (isOwnerManual) {
-      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Offline payment booking:</strong> no AssembleAtEase Stripe charge exists. Customer collection and Easer payout must be recorded as two separate steps.</div>');
+      var manualCollectedCents = Number(b.amount_collected_cents || 0);
+      var manualBalanceCents = Number(b.remaining_balance_cents != null
+        ? b.remaining_balance_cents
+        : Math.max(0, Number(b.total_price || 0) - manualCollectedCents));
+      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Owner-created payment workflow:</strong> this booking does not use the website checkout authorization. Customer payments and Easer payout remain separate audited records.</div>');
+      if (manualCollectedCents > 0 && manualBalanceCents > 0) {
+        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Partial payment:</strong> ' + fmt$(manualCollectedCents) + ' received and ' + fmt$(manualBalanceCents) + ' remaining. The booking is not fully paid and payout stays blocked.</div>');
+      }
+      if (b.return_visit_required) {
+        notices.push('<div style="flex-basis:100%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:0.65rem 0.8rem;color:#3730a3;font-size:0.78rem;line-height:1.5"><strong>Return visit:</strong> ' + esc(formatDate(b.return_visit_date)) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '') + '. Remaining: ' + esc(b.return_visit_remaining_scope || 'documented work') + '.</div>');
+      }
+      if (!b.payment_collected
+          && manualBalanceCents > 0
+          && ['confirmed','en_route','arrived','in_progress','completed'].includes(b.status)) {
+        btns.push('<button class="btn btn-teal" data-action="record-manual-payment" data-id="' + b.id + '">Record Stripe Payment</button>');
+      }
+      if (['confirmed','en_route','arrived','in_progress'].includes(b.status)) {
+        btns.push('<button class="btn" data-action="schedule-return-visit" data-id="' + b.id + '">' + (b.return_visit_required ? 'Update Return Visit' : 'Schedule Return Visit') + '</button>');
+      }
       if (b.status === 'confirmed') {
-        btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
+        if (b.assembler_id) {
+          notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Owner-Easer live flow:</strong> accept and complete this job from the Easer dashboard. The owner Mark Complete action is disabled because it would bypass the arrival, evidence, and earnings workflow.</div>');
+          btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed">Complete from Easer Dashboard</button>');
+        } else {
+          btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
+        }
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
+      } else if (b.status === 'en_route' || b.status === 'arrived') {
+        notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Live job in progress:</strong> continue status updates from the Easer dashboard. Cancellation is still available until work starts.</div>');
+        btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
+      } else if (b.status === 'in_progress') {
+        notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Work underway:</strong> upload completion evidence and finish from the Easer dashboard. Any cancellation or customer adjustment now requires owner review after completion.</div>');
       } else if (b.status === 'completed') {
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit / Add Easer</button>');
         var offlineCustomerTotalCents = Number(b.amount_charged ?? b.total_price ?? 0);
@@ -3288,7 +3480,9 @@ window.intelQuick = intelQuick;
           btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed;font-size:0.78rem">Offline Payment Collected</button>');
         } else {
           notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Step 1 required:</strong> confirm the customer payment actually reached the business before releasing any Easer money.</div>');
-          btns.push('<button class="btn btn-teal" data-action="collect-payment" data-id="' + b.id + '">Mark Payment Collected</button>');
+          if (manualCollectedCents === 0) {
+            btns.push('<button class="btn" data-action="collect-payment" data-id="' + b.id + '">Record Full Non-Stripe Payment</button>');
+          }
         }
         var canonicalPayoutJob = payoutTruthAvailable
           ? payoutJobsByBookingId.get(String(b.id))
@@ -3477,6 +3671,8 @@ window.intelQuick = intelQuick;
   function prepareReasonModal() {
     setPayoutFieldsVisible(false);
     setCollectionFieldsVisible(false);
+    setManualPaymentFieldsVisible(false);
+    setReturnVisitFieldsVisible(false);
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -3524,6 +3720,36 @@ window.intelQuick = intelQuick;
       }
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
+    } else if (action === 'record-manual-payment') {
+      var manualPaymentBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!manualPaymentBooking) return;
+      pendingAction = {
+        id: id,
+        type: 'record-manual-payment',
+        expectedTotalCents: Number(manualPaymentBooking.total_price || 0),
+      };
+      document.getElementById('reason-modal-title').textContent = 'Record Verified Stripe Payment';
+      document.getElementById('reason-modal-desc').textContent = 'This verifies an existing Stripe payment and records it against the owner-created booking. It does not charge the customer or mark the full balance paid unless all recorded payments equal the agreed total.';
+      document.getElementById('reason-confirm').textContent = 'Verify and Record Payment';
+      document.getElementById('reason-confirm').className = 'btn btn-teal';
+      $reasonText.style.display = 'none';
+      setManualPaymentFieldsVisible(true, manualPaymentBooking);
+      $reasonModal.classList.add('open');
+    } else if (action === 'schedule-return-visit') {
+      var returnVisitBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!returnVisitBooking) return;
+      pendingAction = { id: id, type: 'schedule-return-visit' };
+      document.getElementById('reason-modal-title').textContent = returnVisitBooking.return_visit_required
+        ? 'Update Return Visit'
+        : 'Schedule Return Visit';
+      document.getElementById('reason-modal-desc').textContent = 'Preserve the original appointment and current workflow status while documenting exactly what is complete, what remains, and when the return visit will occur.';
+      document.getElementById('reason-confirm').textContent = returnVisitBooking.return_visit_required
+        ? 'Update Return Visit'
+        : 'Schedule Return Visit';
+      document.getElementById('reason-confirm').className = 'btn btn-teal';
+      $reasonText.style.display = 'none';
+      setReturnVisitFieldsVisible(true, returnVisitBooking);
+      $reasonModal.classList.add('open');
     } else if (action === 'request-evidence') {
       btn.disabled = true;
       btn.textContent = 'Requesting…';
@@ -3771,6 +3997,129 @@ window.intelQuick = intelQuick;
   document.getElementById('reason-confirm').addEventListener('click', async function() {
     if (!pendingAction) return;
     var reason = $reasonText.value.trim();
+
+    if (pendingAction.type === 'record-manual-payment') {
+      var manualAmountCents = Math.round(Number(($manualPaymentAmount && $manualPaymentAmount.value) || 0) * 100);
+      var manualTotalCents = Math.round(Number(($manualPaymentTotal && $manualPaymentTotal.value) || 0) * 100);
+      var manualIntentId = String(($manualPaymentIntent && $manualPaymentIntent.value) || '').trim();
+      var manualAdjustmentNote = String(($manualPaymentAdjustment && $manualPaymentAdjustment.value) || '').trim();
+      var manualPaymentNote = String(($manualPaymentNote && $manualPaymentNote.value) || '').trim();
+      if (!Number.isInteger(manualAmountCents) || manualAmountCents <= 0) {
+        toast('Enter the exact Stripe payment received', 'error');
+        return;
+      }
+      if (!Number.isInteger(manualTotalCents) || manualTotalCents <= 0) {
+        toast('Enter the adjusted agreed customer total', 'error');
+        return;
+      }
+      if (!/^pi_[A-Za-z0-9]+$/.test(manualIntentId)) {
+        toast('Copy the exact Stripe PaymentIntent ID beginning with pi_', 'error');
+        return;
+      }
+      if (manualTotalCents < pendingAction.expectedTotalCents && !manualAdjustmentNote) {
+        toast('Document the customer discount', 'error');
+        return;
+      }
+      if (!$manualPaymentConfirm || !$manualPaymentConfirm.checked) {
+        toast('Confirm that the amount and PaymentIntent were copied from Stripe', 'error');
+        return;
+      }
+
+      var manualPaymentBookingId = pendingAction.id;
+      var manualPaymentButton = this;
+      manualPaymentButton.disabled = true;
+      manualPaymentButton.textContent = 'Verifying Stripe...';
+      try {
+        var manualPaymentResponse = await fetch('/api/owner/record-manual-payment', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: manualPaymentBookingId,
+            amountCents: manualAmountCents,
+            paymentMethod: 'stripe_manual',
+            paymentIntentId: manualIntentId,
+            expectedTotalCents: pendingAction.expectedTotalCents,
+            adjustedTotalCents: manualTotalCents,
+            adjustmentNote: manualAdjustmentNote || undefined,
+            paymentNote: manualPaymentNote || undefined,
+          }),
+        });
+        var manualPaymentData = await manualPaymentResponse.json().catch(function(){ return {}; });
+        if (!manualPaymentResponse.ok || manualPaymentData.error) {
+          throw new Error(manualPaymentData.error || 'Stripe payment could not be verified');
+        }
+        closeReasonModal();
+        toast(
+          (manualPaymentData.alreadyRecorded ? 'Stripe payment was already recorded. ' : 'Stripe payment recorded. ')
+            + fmt$(manualPaymentData.remainingBalanceCents) + ' remaining.',
+          'success'
+        );
+        await loadBookings();
+        await loadPayoutLedger();
+        if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
+      } catch (manualPaymentError) {
+        toast(manualPaymentError.message || 'Stripe payment could not be verified', 'error');
+      } finally {
+        manualPaymentButton.disabled = false;
+        manualPaymentButton.textContent = 'Verify and Record Payment';
+      }
+      return;
+    }
+
+    if (pendingAction.type === 'schedule-return-visit') {
+      var returnDate = String(($returnVisitDate && $returnVisitDate.value) || '').trim();
+      var returnTime = String(($returnVisitTime && $returnVisitTime.value) || '').trim();
+      var completedScope = String(($returnVisitCompleted && $returnVisitCompleted.value) || '').trim();
+      var remainingScope = String(($returnVisitRemaining && $returnVisitRemaining.value) || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(returnDate) || returnDate < chicagoBusinessDate(new Date())) {
+        toast('Enter today or a future return date', 'error');
+        return;
+      }
+      if (!returnTime || completedScope.length < 5 || remainingScope.length < 5) {
+        toast('Enter the return time, completed work, and remaining work', 'error');
+        return;
+      }
+      var returnVisitBookingId = pendingAction.id;
+      var returnVisitButton = this;
+      returnVisitButton.disabled = true;
+      returnVisitButton.textContent = 'Saving...';
+      try {
+        var returnVisitResponse = await fetch('/api/owner/schedule-return-visit', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: returnVisitBookingId,
+            date: returnDate,
+            time: returnTime,
+            completedScope: completedScope,
+            remainingScope: remainingScope,
+            notifyCustomer: !$returnVisitNotify || $returnVisitNotify.checked,
+          }),
+        });
+        var returnVisitData = await returnVisitResponse.json().catch(function(){ return {}; });
+        if (!returnVisitResponse.ok && returnVisitResponse.status !== 202) {
+          throw new Error(returnVisitData.error || 'Return visit could not be saved');
+        }
+        if (returnVisitData.error) throw new Error(returnVisitData.error);
+        closeReasonModal();
+        toast(
+          returnVisitData.notificationDelivered === false
+            ? 'Return visit saved; customer notification needs manual follow-up'
+            : 'Return visit scheduled',
+          returnVisitData.notificationDelivered === false ? 'error' : 'success'
+        );
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
+      } catch (returnVisitError) {
+        toast(returnVisitError.message || 'Return visit could not be saved', 'error');
+      } finally {
+        returnVisitButton.disabled = false;
+        returnVisitButton.textContent = 'Schedule Return Visit';
+      }
+      return;
+    }
 
     if (pendingAction.type === 'collect-payment') {
       var collectionMethod = ($collectionMethod && $collectionMethod.value) || '';
@@ -4278,6 +4627,23 @@ window.intelQuick = intelQuick;
     return '<span class="sb vr-not-started">Not Started</span>';
   }
 
+  function easerApprovalFeeSatisfied(a) {
+    var paidMode = a.application_fee_paid === true
+      && a.payment_confirmed === true
+      && a.application_fee_waived !== true
+      && a.fee_waived_by_owner !== true;
+    var waivedMode = a.application_fee_paid !== true
+      && a.payment_confirmed !== true
+      && (a.application_fee_waived === true || a.fee_waived_by_owner === true);
+    var refundHold = a.application_fee_refunded === true
+      || Number(a.application_fee_refunded_cents || 0) > 0
+      || Number(a.application_fee_refund_pending_cents || 0) > 0
+      || !!a.application_fee_refund_review_required_at
+      || !!a.application_fee_refund_id
+      || !!a.application_fee_refunded_at;
+    return paidMode !== waivedMode && !refundHold;
+  }
+
   function paymentBadge(status) {
     var map = {
       pending:      ['py-pending',      'Not Authorized'],
@@ -4485,6 +4851,8 @@ window.intelQuick = intelQuick;
     var controls = document.getElementById('assign-controls');
     var select   = document.getElementById('assign-select');
     var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
+    var allowOwnerManualLive = b.source === 'owner_manual' && b.status === 'confirmed';
+    var ownerEaserOnly = allowOwnerManualLive || allowOwnerManualCompleted;
     if (b.status !== 'confirmed' && !allowOwnerManualCompleted) { section.style.display = 'none'; return; }
     section.style.display = '';
     if (b.assembler_id) {
@@ -4495,15 +4863,25 @@ window.intelQuick = intelQuick;
       var accepted = isAccepted
         ? ' &bull; <span style="color:#1d9e75">Accepted' + acceptedAt + '</span>'
         : ' &bull; <span style="color:#f59e0b">Awaiting acceptance</span>';
-      status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted + ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>';
+      status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted
+        + (ownerEaserOnly
+          ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
+          : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>');
       controls.style.display = 'none';
     } else {
+      var assignmentChoices = ownerEaserOnly
+        ? eligibleAssemblers.filter(function(a) { return a.is_owner === true; })
+        : eligibleAssemblers;
       status.textContent = allowOwnerManualCompleted
-        ? 'Completed owner booking — add an Easer account for payout tracking.'
-        : 'No Easer assigned yet.';
+        ? 'Completed owner booking — only the configured owner-Easer account may be credited for payout tracking.'
+        : (allowOwnerManualLive
+          ? 'Only the configured owner-Easer account may work this offline booking.'
+          : 'No Easer assigned yet.');
       controls.style.display = 'flex';
-      select.innerHTML = '<option value="">Select an Easer...</option>';
-      eligibleAssemblers.forEach(function(a) {
+      select.innerHTML = assignmentChoices.length
+        ? '<option value="">Select an Easer...</option>'
+        : '<option value="">Owner-Easer account is not configured</option>';
+      assignmentChoices.forEach(function(a) {
         var tierBadge = a.tier === 'elite' ? ' (Elite)' : a.tier === 'verified' ? ' (Verified)' : '';
         select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';
       });
@@ -4636,6 +5014,11 @@ window.intelQuick = intelQuick;
 
   function renderLiveOps(d) {
     var s = d.summary;
+    ownerBusinessDate = /^\d{4}-\d{2}-\d{2}$/.test(String(d.businessDate || ''))
+      ? d.businessDate
+      : chicagoBusinessDate(new Date());
+    var opsTodayDate = document.getElementById('ops-today-date');
+    if (opsTodayDate) opsTodayDate.textContent = '— ' + businessDateLabel(ownerBusinessDate, true);
 
     // Alert badge in nav
     var alertBadge = document.getElementById('nav-liveops-alerts');
@@ -4664,7 +5047,7 @@ window.intelQuick = intelQuick;
     var chips = [
       { label: 'Active Jobs', val: s.totalActive, color: '#00BFFF' },
       { label: 'Pending', val: s.pendingPayment || 0, color: s.pendingPayment > 0 ? '#d97706' : '#6b7280' },
-      { label: 'Needs Easer', val: s.unassigned + (s.offersExpired||0) + (s.needsManual||0), color: (s.unassigned + (s.offersExpired||0) + (s.needsManual||0)) > 0 ? '#dc2626' : '#6b7280' },
+      { label: 'Needs Easer', val: s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0), color: (s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0)) > 0 ? '#dc2626' : '#6b7280' },
       { label: 'Payment Recovery', val: s.pendingPayment || 0, color: (s.pendingPayment || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Quotes to Price', val: s.quoteNeedsPricing || 0, color: (s.quoteNeedsPricing || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Quote Customer Action', val: (s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0), color: ((s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0)) > 0 ? '#d97706' : '#6b7280' },
@@ -4706,7 +5089,7 @@ window.intelQuick = intelQuick;
       .concat((d.quoteAuthorizationPending || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Authorization Needs Review', _ownerDescription:'Reconcile Stripe before changing status or dispatching.', _ownerColor:'#dc2626' }); }))
       .concat((d.pendingOther || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Unknown Payment State', _ownerDescription:'Review payment truth before any operational action.', _ownerColor:'#dc2626' }); }));
     pending = pending.concat(quoteActions);
-    var needs = (d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
+    var needs = (d.ownerManualNeedsAssignment || []).concat(d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
     if (!pending.length && !needs.length) {
       unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No payment, quote, or assignment actions are waiting</div>';
     } else {
@@ -4727,17 +5110,21 @@ window.intelQuick = intelQuick;
       }
       if (needs.length) {
         html += needs.map(function(b) {
-          var _stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual' };
-          var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626' };
+          var _stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed' };
+          var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626', owner_manual_assignment: '#dc2626' };
           var label = _stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
           var badgeColor = _stateColors[b._dispatchState] || (b.dispatch_offered_at ? '#ea580c' : '#dc2626');
+          var isOwnerManual = b._dispatchState === 'owner_manual_assignment';
+          var action = isOwnerManual ? 'review_timeline' : 'dispatch';
+          var actionLabel = isOwnerManual ? 'Open Booking' : 'Dispatch Now';
+          var actionClass = isOwnerManual ? 'btn' : 'btn btn-teal';
           return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
             + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
             + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.date||'No date')+(b.time ? ' at '+esc(b.time) : '')+'</div></div>'
             + '<span style="background:rgba('+hexToRgb(badgeColor)+',0.1);color:'+badgeColor+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+label+'</span>'
             + '</div>'
-            + '<button onclick="opsAction(\'dispatch\',\''+b.id+'\')" class="btn btn-teal" style="margin-top:0.4rem;font-size:0.75rem">Dispatch Now</button>'
+            + '<button onclick="opsAction(\''+action+'\',\''+b.id+'\')" class="'+actionClass+'" style="margin-top:0.4rem;font-size:0.75rem">'+actionLabel+'</button>'
             + '</div>';
         }).join('');
       }
@@ -4801,7 +5188,8 @@ window.intelQuick = intelQuick;
         return '<div style="padding:0.65rem 0;border-bottom:1px solid var(--border)">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'
           + '<div>'
-          + '<div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(b.time||'Time TBD') + ' &mdash; ' + esc(b.service) + '</div>'
+          + '<div style="font-size:0.85rem;font-weight:600;color:var(--text)">' + esc(b.time||'Time TBD') + ' &mdash; ' + esc(b.service) + (b.is_return_visit ? ' <span style="color:#3730a3">(Return visit)</span>' : '') + '</div>'
+          + '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px">' + esc(businessDateLabel(b.date, false)) + '</div>'
           + '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">' + esc(b.assembler_name||'Unassigned') + ' &bull; ' + esc(b.customer_name||'') + '</div>'
           + '</div>'
           + bookingBadge(b)
@@ -4913,14 +5301,19 @@ window.intelQuick = intelQuick;
 
   // ─── TODAY VIEW ───
   function renderTodayView() {
-    var _now = new Date();
-    var today = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
+    var today = ownerBusinessDate || chicagoBusinessDate(new Date());
     // Show the date so the owner knows exactly what date is being shown
-    var dateDisplay = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+    var dateDisplay = businessDateLabel(today, true);
     var dd = document.getElementById('today-date-display');
     if (dd) dd.textContent = dateDisplay;
-    var jobs = allBookings.filter(function(b){ return b.date === today; });
-    jobs.sort(function(a,b){ return (a.time||'').localeCompare(b.time||''); });
+    var jobs = allBookings.filter(function(b){
+      return (b.return_visit_required ? b.return_visit_date : b.date) === today;
+    });
+    jobs.sort(function(a,b){
+      var aTime = a.return_visit_required ? a.return_visit_time : a.time;
+      var bTime = b.return_visit_required ? b.return_visit_time : b.time;
+      return (aTime||'').localeCompare(bTime||'');
+    });
     document.getElementById('today-count').textContent = jobs.length;
     // "Unconfirmed" = status is still pending (customer submitted, owner hasn't confirmed)
     document.getElementById('today-pending').textContent = jobs.filter(function(b){return b.status==='pending';}).length;
@@ -4935,11 +5328,13 @@ window.intelQuick = intelQuick;
     if(!jobs.length){ list.innerHTML=''; empty.style.display=''; return; }
     empty.style.display='none';
     list.innerHTML = jobs.map(function(b){
+      var scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
+      var scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
       return '<div class="today-job-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
-        +'<div class="today-job-time" style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+(b.time||'—')+'</div>'
+        +'<div class="today-job-time" style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+esc(scheduleTime||'—')+'<div style="font-size:0.66rem;font-weight:500;color:var(--muted);margin-top:3px">'+esc(scheduleDate)+(b.return_visit_required ? ' &bull; Return visit' : '')+'</div></div>'
         +'<div class="today-job-main" style="flex:1;min-width:0">'
-          +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+(b.customer_name||'—')+'</div>'
-          +'<div style="font-size:0.8rem;color:var(--muted)">'+(b.service||'—')+' &bull; '+(b.address||'—')+'</div>'
+          +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+esc(b.customer_name||'—')+'</div>'
+          +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(b.service||'—')+' &bull; '+esc(b.address||'—')+'</div>'
         +'</div>'
         +'<div class="today-job-actions" style="display:flex;align-items:center;gap:0.5rem">'
           + bookingBadge(b)
@@ -6364,6 +6759,9 @@ window.intelQuick = intelQuick;
   function tierBadge(tier)     { return easerTierBadge(tier); }
   function idVerificationBadge(a) { return verificationBadge(a); }
   function connectState(a) {
+    if (!asmConnectRequired) {
+      return { code:'not-required', label:'Not required', bg:'#f1f5f9', fg:'#475569' };
+    }
     if (!a || !a.stripe_connect_account_id) {
       return { code:'not-started', label:'Not started', bg:'#f1f5f9', fg:'#475569' };
     }
@@ -6386,6 +6784,12 @@ window.intelQuick = intelQuick;
     return value
       ? '<span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">TRUE</span>'
       : '<span style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px">FALSE</span>';
+  }
+  function payoutCapabilityBadge(a) {
+    if (!asmConnectRequired) {
+      return '<span style="display:inline-block;background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap">MANUAL PAYOUT</span>';
+    }
+    return boolBadge(!!a.stripe_connect_payouts_enabled);
   }
 
   function renderAssemblerTable() {
@@ -6422,10 +6826,12 @@ window.intelQuick = intelQuick;
       // Quick action buttons based on status
       var quickActions = '';
       if (a.status === 'pending') {
-        if (a.identity_verified) {
+        if (a.identity_verified && easerApprovalFeeSatisfied(a)) {
           quickActions += '<button class="btn btn-teal" data-approve="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Approve</button> ';
-        } else {
+        } else if (!a.identity_verified) {
           quickActions += '<button class="btn" data-mark-id-verified="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Mark ID Verified</button> ';
+        } else {
+          quickActions += '<button class="btn" disabled title="Application fee or refund truth must be reconciled first" style="font-size:0.73rem;padding:3px 10px;opacity:0.5">Approve</button> ';
         }
         quickActions += '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Reject</button> ';
       }
@@ -6444,7 +6850,7 @@ window.intelQuick = intelQuick;
         + '<td style="' + rs + '">' + tierBadge(a.tier) + '</td>'
         + '<td style="' + rs + '">' + idVerificationBadge(a) + '</td>'
         + '<td style="' + rs + '">' + connectBadge(a) + '</td>'
-        + '<td style="' + rs + '">' + boolBadge(!!a.stripe_connect_payouts_enabled) + '</td>'
+        + '<td style="' + rs + '">' + payoutCapabilityBadge(a) + '</td>'
         + '<td style="' + rs + '">' + (a.completed_jobs||0) + '</td>'
         + '<td style="' + rs + '">' + (a.rating ? Number(a.rating).toFixed(1) : '—') + '</td>'
         + '<td style="' + rs + ';font-size:0.78rem;color:var(--muted)">' + formatDate(a.created_at) + '</td>'
@@ -6462,10 +6868,13 @@ window.intelQuick = intelQuick;
         var r = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:aId, action:'approve' }) });
         var d = await r.json();
         if (d.error) { toast(d.error, 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; return; }
+        var approvalState = d.requiresCurrentAgreement
+          ? 'Easer approved and kept Offline — the current contractor agreement must be accepted before going Online.'
+          : 'Easer approved and kept Offline until they choose to go Online.';
         if (d.emailDelivered === false) {
-          toast('Easer approved, but welcome email failed: ' + (d.emailError || 'unknown error'), 'error');
+          toast(approvalState + ' Welcome email failed: ' + (d.emailError || 'unknown error'), 'error');
         } else {
-          toast('Easer approved — welcome email sent', 'success');
+          toast(approvalState + ' Welcome email sent.', 'success');
         }
         loadAssemblerList(); loadAssemblers();
       } catch { toast('Failed to approve', 'error'); approveBtn.disabled = false; approveBtn.textContent = 'Approve'; }
@@ -6552,17 +6961,23 @@ window.intelQuick = intelQuick;
     var rows = [
       ['Application Submitted', readinessChip(!!r.applicationSubmitted)],
       ['Contractor Agreement Accepted', readinessChip(!!r.contractorAgreementAccepted)],
+      ['Current Agreement Accepted', readinessChip(!!r.agreementCurrent)],
       ['Agreement Version', r.agreementVersion ? esc(r.agreementVersion) : '<span style="color:var(--red)">Missing</span>'],
       ['Identity Verified', readinessChip(!!r.identityVerified)],
       ['Owner Approved', readinessChip(!!r.ownerApproved)],
+    ].concat(asmConnectRequired ? [
       ['Stripe Connect Started', readinessChip(!!r.connectStarted)],
       ['Stripe Connect Complete', readinessChip(!!r.connectComplete)],
       ['Payouts Enabled', readinessChip(!!r.payoutsEnabled)],
       ['Requirements Due Count', (r.requirementsDueCount == null ? 'Unknown' : String(r.requirementsDueCount))],
       ['Disabled Reason', r.disabledReason ? esc(r.disabledReason) : 'None'],
+    ] : [
+      ['Payout Mode', '<span style="color:#0369a1;font-weight:700">Manual external payouts</span>'],
+      ['Stripe Connect', '<span style="color:var(--muted)">Not required for launch</span>'],
+    ]).concat([
       ['Tax Readiness Status', esc(r.taxReadinessStatus || 'Unknown')],
       ['W-9 Status', esc((r.w9Status || 'not_requested').replace(/_/g, ' '))],
-    ];
+    ]);
 
     var tableHtml = rows.map(function(row) {
       return '<div style="display:flex;justify-content:space-between;gap:0.75rem;padding:0.38rem 0;border-bottom:1px solid var(--border)">'
@@ -6582,7 +6997,7 @@ window.intelQuick = intelQuick;
 
     container.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem">'
-        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Onboarding Readiness</div>'
+        + '<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">Job Readiness</div>'
         + '<span style="display:inline-block;background:' + statusBg + ';color:' + statusFg + ';font-size:0.7rem;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.05em">' + esc(r.finalStatus || 'ACTION REQUIRED') + '</span>'
       + '</div>'
       + '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.7rem">'
@@ -6627,9 +7042,9 @@ window.intelQuick = intelQuick;
       if (idStatus !== 'verified') {
         actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'mark_id_verified\')">Mark ID Verified</button> ';
       }
-      actionBtns += (idStatus === 'verified')
+      actionBtns += (idStatus === 'verified' && easerApprovalFeeSatisfied(a))
         ? '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'approve\')">Approve Application</button> '
-        : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="Verify ID first">Approve Application</button> ';
+        : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="' + (idStatus !== 'verified' ? 'Verify ID first' : 'Reconcile application fee or refund truth first') + '">Approve Application</button> ';
       actionBtns += '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button> ';
     }
 
@@ -6707,7 +7122,7 @@ window.intelQuick = intelQuick;
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Tier</div>' + tierBadge(a.tier) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">ID Verification</div>' + idVerificationBadge(a) + '</div>'
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Connect Status</div>' + connectBadge(a) + '</div>'
-        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Payouts Enabled</div>' + boolBadge(!!a.stripe_connect_payouts_enabled) + '</div>'
+        + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">' + (asmConnectRequired ? 'Payouts Enabled' : 'Payout Mode') + '</div>' + payoutCapabilityBadge(a) + '</div>'
         + (a.has_membership ? '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Membership</div><span style="background:#00BFFF;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:999px">Active</span></div>' : '')
         + '<div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px">Dispatch</div>' + dispatchChip + '</div>'
         + '</div>',
@@ -6719,7 +7134,10 @@ window.intelQuick = intelQuick;
         + '</div>',
       // Dispatch readiness checklist
       dispatchChecklist,
-      // Onboarding readiness panel
+      (a.status === 'pending'
+        ? '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.75rem;margin-bottom:0.75rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Approval and job readiness are separate.</strong> Once the submitted application, identity, and fee truth are verified, you may approve the Easer. Any remaining agreement, profile, or availability action keeps the approved account Offline until completed.</div>'
+        : ''),
+      // Authoritative job-readiness panel
       '<div id="asm-onboarding-readiness-panel" style="margin-bottom:0.75rem"></div>',
       // Tax-document tracking. Raw W-9/TIN data must remain in an approved secure system.
       '<div style="margin-bottom:0.75rem"><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">W-9 Compliance</div>'
@@ -6836,7 +7254,7 @@ window.intelQuick = intelQuick;
     // (activation, emails, tier changes). Server still validates state too.
     var tierLabel = tier ? (tier.charAt(0).toUpperCase() + tier.slice(1)) : '';
     var confirmMsgs = {
-      approve: 'Approve this Easer? They will be activated immediately and emailed a welcome message with a password-setup link.',
+      approve: 'Approve this Easer? Their account will be activated but kept Offline. They must complete every current readiness item, including the current contractor agreement, before going Online or receiving new work.',
       promote: 'Promote this Easer to ' + tierLabel + '? They will be notified by email.',
       demote: 'Demote this Easer to ' + tierLabel + '?',
       mark_id_verified: 'Mark this Easer’s identity as verified? This allows them to be approved.',
@@ -6861,7 +7279,6 @@ window.intelQuick = intelQuick;
         return;
       }
       var successMsgs = {
-        approve: 'Easer approved — welcome email sent',
         reject: 'Application rejected',
         suspend: 'Easer suspended (tier preserved for reinstatement)',
         reinstate: 'Easer reinstated — dispatch eligibility restored',
@@ -6869,7 +7286,18 @@ window.intelQuick = intelQuick;
         demote: 'Demoted to ' + (tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : tier),
         mark_id_verified: 'ID marked verified — you can now approve',
       };
-      toast(successMsgs[action] || 'Updated', 'success');
+      if (action === 'approve') {
+        var approvedMessage = d.requiresCurrentAgreement
+          ? 'Easer approved and kept Offline — current agreement acceptance is still required before going Online.'
+          : 'Easer approved and kept Offline until they choose to go Online.';
+        if (d.emailDelivered === false) {
+          toast(approvedMessage + ' Welcome email failed: ' + (d.emailError || 'unknown error'), 'error');
+        } else {
+          toast(approvedMessage + ' Welcome email sent.', 'success');
+        }
+      } else {
+        toast(successMsgs[action] || 'Updated', 'success');
+      }
       await reloadAssemblersAndMaybeRefreshDetail(id, true);
     } catch { toast('Action failed — check connection', 'error'); }
   };

@@ -168,10 +168,13 @@ assert.match(reviewPage, /history\.replaceState\(\{\}, document\.title, window\.
 
 for (const file of ['api/booking/complete.js', 'api/booking/assembler-complete.js']) {
   const source = read(file);
-  assert.doesNotMatch(source, /financial_operation_key:\s*null/);
-  assert.match(source, /finalizeCompletionRewards/);
-  assert.match(source, /surfaceCompletionRewardHold/);
-  assert.match(source, /reconciliationRequired/);
+  const stripeCompletionSource = file.endsWith('assembler-complete.js')
+    ? source.slice(0, source.indexOf('async function completeOfflineOwnerManualBooking'))
+    : source;
+  assert.doesNotMatch(stripeCompletionSource, /financial_operation_key:\s*null/);
+  assert.match(stripeCompletionSource, /finalizeCompletionRewards/);
+  assert.match(stripeCompletionSource, /surfaceCompletionRewardHold/);
+  assert.match(stripeCompletionSource, /reconciliationRequired/);
 }
 
 const completionHelper = compact(read('api/booking/_completion-rewards.js'));

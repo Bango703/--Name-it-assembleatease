@@ -46,8 +46,15 @@ export default async function handler(req, res) {
   function getCustomerLabel(b) {
     if (b.status === BOOKING_STATUS.CANCELLED) return { label: 'Booking cancelled', detail: null };
     if (b.status === BOOKING_STATUS.DECLINED)  return { label: 'Booking could not be confirmed', detail: 'Please contact us to reschedule.' };
+    if (b.return_visit_required) {
+      return {
+        label: 'Return appointment scheduled',
+        detail: `We will return ${b.return_visit_date || 'on the confirmed date'}${b.return_visit_time ? ` at ${b.return_visit_time}` : ''} to complete the remaining work.`,
+      };
+    }
     if (b.status === BOOKING_STATUS.COMPLETED) {
-      const paymentProcessed = ['captured', 'deposit_paid', 'partially_refunded', 'refunded'].includes(String(b.payment_status || '').toLowerCase());
+      const paymentProcessed = b.payment_collected === true
+        || ['captured', 'deposit_paid', 'partially_refunded', 'refunded'].includes(String(b.payment_status || '').toLowerCase());
       return {
         label: 'Job complete — thank you!',
         detail: paymentProcessed ? 'Payment has been processed.' : 'Your booking is complete.',
@@ -66,6 +73,30 @@ export default async function handler(req, res) {
   }
 
   const customerStatus = getCustomerLabel(booking);
+
+  let amountCollectedCents = null;
+  let remainingBalanceCents = null;
+  if (booking.source === 'owner_manual') {
+    const { data: paymentEvents, error: paymentEventsError } = await sb
+      .from('owner_manual_payment_events')
+      .select('amount_cents')
+      .eq('booking_id', booking.id);
+    if (paymentEventsError) {
+      console.error('Customer owner-manual payment balance lookup failed:', paymentEventsError);
+      return res.status(503).json({
+        error: 'Your payment balance is temporarily unavailable. Please contact support before making another payment.',
+        code: 'PAYMENT_BALANCE_UNAVAILABLE',
+      });
+    }
+    const ledgerTotal = (paymentEvents || []).reduce(
+      (sum, event) => sum + Number(event.amount_cents || 0),
+      0,
+    );
+    amountCollectedCents = ledgerTotal || (booking.payment_collected === true
+      ? Number(booking.amount_charged ?? booking.total_price ?? 0)
+      : 0);
+    remainingBalanceCents = Math.max(0, Number(booking.total_price || 0) - amountCollectedCents);
+  }
 
   // Has this booking been rescheduled? If so, free cancellation is forfeited —
   // the cancel UI must warn about the cancellation fee regardless of the 24h window.
@@ -117,6 +148,13 @@ export default async function handler(req, res) {
     refund_amount: booking.refund_amount || 0,
     deposit_amount: booking.deposit_amount || null,
     payment_status: booking.payment_status || null,
+    amount_collected_cents: amountCollectedCents,
+    remaining_balance_cents: remainingBalanceCents,
+    return_visit_required: booking.return_visit_required === true,
+    return_visit_date: booking.return_visit_required ? booking.return_visit_date || null : null,
+    return_visit_time: booking.return_visit_required ? booking.return_visit_time || null : null,
+    work_completed: booking.return_visit_required ? booking.return_visit_completed_scope || null : null,
+    work_remaining: booking.return_visit_required ? booking.return_visit_remaining_scope || null : null,
     created_at: booking.created_at,
     cancelled_at: booking.cancelled_at || null,
     completed_at: booking.completed_at || null,

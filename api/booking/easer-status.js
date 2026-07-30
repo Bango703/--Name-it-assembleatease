@@ -11,6 +11,7 @@ import {
   isBookingPaymentReadyForDispatch,
 } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const STAGES = {
   [EASER_STAGE.EN_ROUTE]:    { status: BOOKING_STATUS.EN_ROUTE,    field: 'en_route_at',    label: 'On the way' },
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const access = await requireAssignedWorkEaser(req, { supabase: sb });
   if (!access.ok) return respondWithEaserAccessError(res, access);
-  const { user } = access;
+  const { user, profile } = access;
 
   const { bookingId, stage } = req.body;
   if (!bookingId || !stage) return res.status(400).json({ error: 'bookingId and stage required' });
@@ -51,7 +52,11 @@ export default async function handler(req, res) {
       code: 'FINANCIAL_OPERATION_IN_PROGRESS',
     });
   }
-  if (!isBookingPaymentReadyForDispatch(booking)) {
+  // Exception: the owner working the live flow on their own offline job. The
+  // payment is collected offline by the owner, so there is no Stripe hold to
+  // clear. booking.assembler_id === user.id is already proven above.
+  const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, profile);
+  if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
     return res.status(409).json({
       error: 'This job is on payment hold. Do not travel to or start the job until the owner resolves it.',
       code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
@@ -67,9 +72,11 @@ export default async function handler(req, res) {
   }
   const transitionErr = getTransitionError(booking.status, status);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
+  const appointmentDate = booking.return_visit_required ? booking.return_visit_date : booking.date;
+  const appointmentTime = booking.return_visit_required ? booking.return_visit_time : booking.time;
   const appointmentGate = evaluateEaserAppointmentGate({
-    date: booking.date,
-    time: booking.time,
+    date: appointmentDate,
+    time: appointmentTime,
     stage,
   });
   if (!appointmentGate.allowed) {
@@ -79,7 +86,7 @@ export default async function handler(req, res) {
 
   // Primary update: status + pipeline_stage + timestamp field
   const update = { status, pipeline_stage: stage, [field]: now };
-  const { data: updatedRows, error: updateErr } = await sb.from('bookings')
+  let updateQuery = sb.from('bookings')
     .update(update)
     .eq('id', bookingId)
     .eq('assembler_id', user.id)
@@ -87,8 +94,18 @@ export default async function handler(req, res) {
     .eq('payment_status', booking.payment_status)
     .eq('date', booking.date)
     .eq('time', booking.time)
-    .is('financial_operation_key', null)
-    .select('id');
+    .is('financial_operation_key', null);
+  if (booking.return_visit_required) {
+    updateQuery = updateQuery
+      .eq('return_visit_required', true)
+      .eq('return_visit_date', booking.return_visit_date);
+    updateQuery = booking.return_visit_time == null
+      ? updateQuery.is('return_visit_time', null)
+      : updateQuery.eq('return_visit_time', booking.return_visit_time);
+  } else {
+    updateQuery = updateQuery.eq('return_visit_required', false);
+  }
+  const { data: updatedRows, error: updateErr } = await updateQuery.select('id');
   if (updateErr || !updatedRows?.length) {
     return res.status(409).json({ error: 'Job status changed before this update. Refresh and try again.' });
   }
@@ -118,7 +135,7 @@ export default async function handler(req, res) {
       subject: `Your Easer is on the way — ${esc(booking.ref)}`,
       statusLabel: 'On the way', statusColor: '#1d4ed8', statusBg: '#dbeafe',
       headline: 'Your Easer is on the way.',
-      intro: `${esc(easerFirstName)} is heading to you now and should arrive around ${esc(booking.time || 'the scheduled time')}.`,
+      intro: `${esc(easerFirstName)} is heading to you now and should arrive around ${esc(appointmentTime || 'the scheduled time')}.`,
       reach: true,
     },
     arrived: {

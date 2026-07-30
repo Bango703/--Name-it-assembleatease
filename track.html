@@ -279,11 +279,11 @@
       <div class="booking-card-details">
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Date</span>
+            <span class="detail-label" id="bDateLabel">Date</span>
             <span class="detail-value" id="bDate"></span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Time</span>
+            <span class="detail-label" id="bTimeLabel">Time</span>
             <span class="detail-value" id="bTime"></span>
           </div>
           <div class="detail-item" id="bAddressWrap">
@@ -294,6 +294,10 @@
             <span class="detail-label">Customer</span>
             <span class="detail-value" id="bName"></span>
           </div>
+        </div>
+        <div id="bReturnScope" style="display:none;margin-top:1rem;padding:0.9rem 1rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;font-size:0.84rem;line-height:1.55;color:#334155">
+          <div><strong>Work completed:</strong> <span id="bWorkCompleted"></span></div>
+          <div style="margin-top:0.35rem"><strong>Work remaining:</strong> <span id="bWorkRemaining"></span></div>
         </div>
       </div>
 
@@ -566,8 +570,23 @@ function renderBooking(b) {
   document.getElementById('bRef').textContent      = b.ref;
   document.getElementById('bService').textContent  = b.service;
   document.getElementById('bName').textContent     = b.customer_name;
-  document.getElementById('bDate').textContent     = formatDate(b.date);
-  document.getElementById('bTime').textContent     = b.time || '—';
+  var isReturnVisit = b.return_visit_required === true;
+  var displayDate = isReturnVisit ? b.return_visit_date : b.date;
+  var displayTime = isReturnVisit ? b.return_visit_time : b.time;
+  document.getElementById('bDateLabel').textContent = isReturnVisit ? 'Return date' : 'Date';
+  document.getElementById('bTimeLabel').textContent = isReturnVisit ? 'Return time' : 'Time';
+  document.getElementById('bDate').textContent     = formatDate(displayDate);
+  document.getElementById('bTime').textContent     = displayTime || '—';
+  var returnScope = document.getElementById('bReturnScope');
+  if (returnScope) {
+    if (isReturnVisit) {
+      document.getElementById('bWorkCompleted').textContent = b.work_completed || 'Partial service completed';
+      document.getElementById('bWorkRemaining').textContent = b.work_remaining || 'Remaining service';
+      returnScope.style.display = '';
+    } else {
+      returnScope.style.display = 'none';
+    }
+  }
   var displayTotal = (b.amount_charged != null ? b.amount_charged : b.total_price);
   var paymentStatus = String(b.payment_status || '');
   var totalLabel = ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(paymentStatus)
@@ -596,6 +615,10 @@ function renderBooking(b) {
         row('Service &amp; items', serviceItems)
       + (call > 0 ? row('Service call fee', call) : '')
       + (tax  > 0 ? row('Sales tax', tax) : '')
+      + (b.amount_collected_cents != null && Number(b.amount_collected_cents) > 0
+          ? row('Payment received', Number(b.amount_collected_cents), false)
+            + row('Remaining balance', Number(b.remaining_balance_cents) || 0, true)
+          : '')
       + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
     bd.style.display = '';
   })();

@@ -207,15 +207,14 @@ for (const field of [
 assert.ok(acceptSource.includes('buildEaserFeeSnapshot(booking, easer'));
 assert.ok(assignSource.includes('buildEaserFeeSnapshot(booking, assembler'));
 assert.ok((acceptSource.match(/isBookingPaymentReadyForDispatch\(booking\)/g) || []).length >= 2, 'both offer and legacy acceptance paths must preflight payment truth');
-// Assignment still fails closed on payment truth. The ONLY exemption is a
-// record-only link onto an already-completed owner-manual (offline) job, which
-// implies no dispatch and no Stripe money. Lock that bypass to exactly that
-// shape so it can never silently widen to live or online bookings.
-assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !isBookingPaymentReadyForDispatch(booking)'));
+// Assignment still fails closed on payment truth. The existing record-only
+// completed-booking link and the singular owner-Easer offline live flow are the
+// only exemptions; the dedicated owner-Easer regression locks the latter down.
+assert.ok(assignSource.includes('!recordOnlyOwnerManualCompleted && !ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)'));
 assert.match(
   assignSource,
-  /recordOnlyOwnerManualCompleted = booking\.source === 'owner_manual' && booking\.status === BOOKING_STATUS\.COMPLETED/,
-  'the assignment payment bypass must require BOTH owner_manual source and completed status',
+  /recordOnlyOwnerManualCompleted = booking\.source === 'owner_manual'[\s\S]*booking\.status === BOOKING_STATUS\.COMPLETED[\s\S]*booking\.payment_status === 'offline_recorded'/,
+  'the record-only assignment bypass must require owner_manual, completed, and offline payment truth',
 );
 assert.match(
   migrationSource040,
@@ -274,7 +273,7 @@ assert.match(
 assert.ok(assignCompact.includes('assembler_due: split.assemblerDueCents'), 'a linked Easer must be credited the canonical amount due');
 assert.ok(assignCompact.includes('platform_fee: split.platformFeeCents'), 'the platform fee must come from the same canonical split');
 assert.ok(assignCompact.includes("payout_status: split.assemblerDueCents > 0 ? 'pending' : null"), 'earned money must open a payout owed');
-assert.ok(assignCompact.includes("isStripeConnectEnabled() ? 'stripe_connect' : 'manual'"), 'the linked earnings must snapshot the active payout rail');
+assert.ok(assignCompact.includes("payout_mode_snapshot: split.assemblerDueCents > 0 ? 'manual' : null"), 'offline customer funds must remain on the externally recorded manual payout rail');
 assert.ok(assignCompact.includes("payout_review_status: 'not_required'"), 'new linked earnings must start with no payout review hold');
 assert.ok(!/assembler_due:\s*0\b/.test(assignCompact), 'an assigned Easer must never be recorded as earning zero');
 
@@ -282,16 +281,18 @@ assert.ok(!/assembler_due:\s*0\b/.test(assignCompact), 'an assigned Easer must n
 // only land on an already-COMPLETED offline job; every other assignment still
 // requires CONFIRMED, so a live booking can never be assigned off a stale read.
 assert.ok(assignCompact.includes(".eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)"));
-// The money snapshot (payment status, price, PaymentIntents) is only released
-// from the CAS for the record-only owner-manual link, where no Stripe money
-// exists to race against. Every real assignment still pins it.
+// Both branches pin the money inputs they consume. Online assignments pin Stripe
+// linkage; record-only offline attribution pins collection/method/amount truth.
 const assignMoneyCas = assignCompact.slice(
   assignCompact.indexOf('if (!recordOnlyOwnerManualCompleted) { updateQuery = updateQuery.eq('),
   assignCompact.indexOf('if (reassign && booking.assembler_id)'),
 );
-assert.ok(assignMoneyCas.length > 0, 'the assignment money CAS block must remain scoped to non-record-only assignments');
+assert.ok(assignMoneyCas.length > 0, 'the assignment money CAS blocks must remain present');
 for (const moneyColumn of ['payment_status', 'total_price', 'stripe_payment_intent_id', 'stripe_deposit_intent_id']) {
   assert.ok(assignMoneyCas.includes(`'${moneyColumn}'`), `assignment must CAS ${moneyColumn} on every real assignment`);
+}
+for (const offlineMoneyColumn of ['amount_charged', 'tax_amount', 'payment_collected', 'payment_method']) {
+  assert.ok(assignMoneyCas.includes(`'${offlineMoneyColumn}'`), `record-only attribution must CAS ${offlineMoneyColumn}`);
 }
 assert.ok(assignCompact.includes("updateQuery.eq('assembler_id', booking.assembler_id)"));
 assert.ok(assignCompact.includes("updateQuery.eq('assigned_at', booking.assigned_at)"));
@@ -353,7 +354,7 @@ assert.ok(autoDispatchSource.includes(".in('payment_status', DISPATCH_PAYMENT_ST
 assert.ok(autoDispatchSource.includes('filter(isBookingPaymentReadyForDispatch)'));
 assert.ok(declineSource.includes('await holdDispatchForPaymentReconciliation'));
 assert.ok(declineSource.includes("retry?.code !== 'DISPATCH_PAYMENT_NOT_VERIFIED'"));
-assert.ok(easerStatusSource.includes('if (!isBookingPaymentReadyForDispatch(booking))'));
+assert.ok(easerStatusSource.includes('if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking))'));
 assert.ok(easerStatusSource.includes(".eq('payment_status', booking.payment_status)"));
 assert.ok(dispatchSource.includes('DISPATCH_HISTORY_EXCLUSION_STATUSES'));
 assert.ok(migrationCompact.includes('CREATE UNIQUE INDEX IF NOT EXISTS uq_dispatch_offers_active_booking_easer'));

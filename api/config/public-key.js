@@ -1,3 +1,5 @@
+import { guardCustomerFacing } from '../_customer-error-alert.js';
+
 /**
  * GET /api/config/public-key
  * Returns the Stripe publishable key for frontend use.
@@ -5,6 +7,7 @@
  */
 export default function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  guardCustomerFacing(req, res, 'checkout configuration');
 
   const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
   if (!publishableKey) {

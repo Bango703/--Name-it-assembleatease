@@ -3,6 +3,8 @@ import { verifyOwner } from '../_email.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
+import { chicagoTodayIso } from '../booking/_appt-date.js';
+import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
   const activeAfterMs = new Date(activeAfter).getTime();
@@ -82,13 +84,13 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = chicagoTodayIso(now);
   const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
   const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, pipeline_stage, customer_name, customer_email, customer_phone, date, time, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const bookingProjection = 'id, ref, service, source, status, payment_status, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
   const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
@@ -158,6 +160,12 @@ export default async function handler(req, res) {
     .forEach(booking => bookingMap.set(booking.id, booking));
   const bookings = [...bookingMap.values()];
   const operationalBookings = bookings.filter(booking => !['cancelled', 'declined', 'completed'].includes(booking.status));
+  const operationalDate = booking => booking.return_visit_required
+    ? booking.return_visit_date
+    : booking.date;
+  const operationalTime = booking => booking.return_visit_required
+    ? booking.return_visit_time
+    : booking.time;
   const easers = await Promise.all((easersRes.data || []).map(async easer => ({
     ...easer,
     has_membership: hasEffectiveEaserMembership(easer),
@@ -198,6 +206,9 @@ export default async function handler(req, res) {
     b.status === 'confirmed' && isBookingPaymentReadyForDispatch(b) && !b.assembler_id &&
     !activeOfferBookingIds.has(b.id) && !b.dispatch_offered_at && !b.needs_manual_dispatch
   );
+  const ownerManualNeedsAssignment = operationalBookings
+    .filter(b => b.status === 'confirmed' && isOwnerManualOfflineBooking(b) && !b.assembler_id)
+    .map(b => ({ ...b, _dispatchState: 'owner_manual_assignment' }));
 
   // awaitingDispatch: has live unexpired offers outstanding right now
   const awaitingDispatch = operationalBookings
@@ -223,7 +234,10 @@ export default async function handler(req, res) {
     .map(b => ({ ...b, _dispatchState: 'needs_manual' }));
 
   const awaitingAcceptance = operationalBookings.filter(b =>
-    b.assembler_id && !b.assembler_accepted_at && b.status === 'confirmed' && isBookingPaymentReadyForDispatch(b)
+    b.assembler_id
+    && !b.assembler_accepted_at
+    && b.status === 'confirmed'
+    && (isBookingPaymentReadyForDispatch(b) || isOwnerManualOfflineBooking(b))
   );
 
   const enRoute = operationalBookings.filter(b => b.status === 'en_route');
@@ -253,7 +267,7 @@ export default async function handler(req, res) {
   const pendingConfirm = pendingPayment;
 
   const paymentStateMismatches = operationalBookings.filter(booking => {
-    if (booking.source === 'owner_manual') return false;
+    if (isOwnerManualOfflineBooking(booking)) return false;
     const paymentReady = isDispatchPaymentReady(booking);
     if (booking.status === 'pending') return paymentReady;
     if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) return false;
@@ -265,6 +279,25 @@ export default async function handler(req, res) {
 
   // ── Alerts ──────────────────────────────────────────────────────
   const alerts = [];
+
+  operationalBookings
+    .filter(booking => booking.return_visit_required)
+    .forEach(booking => {
+      const returnDate = operationalDate(booking);
+      const overdue = returnDate && returnDate < todayStr;
+      const dueToday = returnDate === todayStr;
+      if (!overdue && !dueToday) return;
+      alerts.push({
+        type: overdue ? 'return_visit_overdue' : 'return_visit_due_today',
+        severity: overdue ? 'critical' : 'high',
+        ref: booking.ref,
+        bookingId: booking.id,
+        message: overdue
+          ? `${booking.ref} return visit was due ${returnDate} and the remaining work is still open.`
+          : `TODAY: ${booking.ref} return visit at ${operationalTime(booking) || 'TBD'} — ${booking.return_visit_remaining_scope || 'remaining work'}.`,
+        action: 'review_timeline',
+      });
+    });
 
   optionalErrors.forEach(([source, error]) => alerts.push({
     type: 'live_ops_partial_data',
@@ -394,6 +427,20 @@ export default async function handler(req, res) {
     });
   });
 
+  ownerManualNeedsAssignment.forEach(b => {
+    // Today's version is emitted below as a critical alert with appointment
+    // context; avoid showing the owner two alerts for the same action.
+    if (operationalDate(b) === todayStr) return;
+    alerts.push({
+      type: 'owner_manual_assignment_required',
+      severity: 'high',
+      ref: b.ref,
+      bookingId: b.id,
+      message: `${b.ref} — owner-created offline booking needs the configured owner-Easer assignment or the documented owner completion path`,
+      action: 'review_timeline',
+    });
+  });
+
   // All offers expired without acceptance — needs re-dispatch
   offersExpired.forEach(b => {
     const age = (now_ts - new Date(b.dispatch_offered_at).getTime()) / 3600000;
@@ -435,15 +482,20 @@ export default async function handler(req, res) {
 
   // Today's jobs not yet assigned
   const todayUnassigned = operationalBookings.filter(b =>
-    b.date === todayStr && !b.assembler_id && b.status === 'confirmed' && isBookingPaymentReadyForDispatch(b)
+    operationalDate(b) === todayStr
+    && !b.assembler_id
+    && b.status === 'confirmed'
+    && (isBookingPaymentReadyForDispatch(b) || isOwnerManualOfflineBooking(b))
   );
   todayUnassigned.forEach(b => alerts.push({
     type: 'today_unassigned',
     severity: 'critical',
     ref: b.ref,
     bookingId: b.id,
-    message: `TODAY: ${b.service} at ${b.time || 'TBD'} — no Easer assigned`,
-    action: 'dispatch',
+    message: isOwnerManualOfflineBooking(b)
+      ? `TODAY: ${b.service} at ${b.time || 'TBD'} — owner-Easer assignment is still required`
+      : `TODAY: ${b.service} at ${b.time || 'TBD'} — no Easer assigned`,
+    action: isOwnerManualOfflineBooking(b) ? 'review_timeline' : 'dispatch',
   }));
 
   // Incomplete standard card authorizations older than 1hr
@@ -520,10 +572,20 @@ export default async function handler(req, res) {
   const freeEasers = onlineEasers.filter(e => !assignedIds.has(e.id));
 
   // ── Today's schedule ─────────────────────────────────────────────
-  const todayAll = operationalBookings.filter(b => b.date === todayStr);
+  const todayAll = operationalBookings
+    .filter(b => operationalDate(b) === todayStr)
+    .map(b => ({
+      ...b,
+      original_date: b.date,
+      original_time: b.time,
+      date: operationalDate(b),
+      time: operationalTime(b),
+      is_return_visit: b.return_visit_required === true,
+    }));
 
   return res.status(200).json({
     generatedAt: now.toISOString(),
+    businessDate: todayStr,
     summary: {
       // Exclude 'pending' (awaiting payment) from Active Jobs count so the
       // chip matches what's actually shown in the Active Jobs panel.
@@ -534,6 +596,7 @@ export default async function handler(req, res) {
       quoteAuthorizationPending: quoteAuthorizationPending.length,
       pendingOther: pendingOther.length,
       unassigned: unassigned.length,
+      ownerManualNeedsAssignment: ownerManualNeedsAssignment.length,
       awaitingDispatch: awaitingDispatch.length,
       offersExpired: offersExpired.length,
       needsManual: needsManual.length,
@@ -541,6 +604,7 @@ export default async function handler(req, res) {
       enRoute: enRoute.length,
       arrived: arrived.length,
       inProgress: inProgress.length,
+      returnVisitsOpen: operationalBookings.filter(booking => booking.return_visit_required).length,
       alertCount: alerts.length,
       criticalAlerts: alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length,
       runtimeErrors: runtimeErrors.length,
@@ -560,6 +624,7 @@ export default async function handler(req, res) {
       return order[a.severity] - order[b.severity];
     }),
     unassigned,
+    ownerManualNeedsAssignment,
     awaitingDispatch,
     offersExpired,
     needsManual,

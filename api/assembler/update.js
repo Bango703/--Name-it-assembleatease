@@ -8,7 +8,11 @@ import {
   getRestorableTier,
   normalizeAssemblerProfile,
 } from '../_assembler-state.js';
-import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
+import {
+  approvalReadinessError,
+  getEaserApprovalReadiness,
+  getEaserReadiness,
+} from '../_easer-readiness.js';
 import {
   EASER_APPLICATION_FEE_CENTS,
   validateEaserApplicationPaymentIntent,
@@ -96,17 +100,29 @@ async function finalizeApplicationDecision(sb, {
   refundedAt = null,
   rejectionReason = null,
 }) {
-  const { data, error } = await sb.rpc('finalize_easer_application_decision', {
-    p_assembler_id: assemblerId,
-    p_decision: decision,
-    p_operation_key: operationKey,
-    p_expected_snapshot: applicationDecisionSnapshot(expectedProfile),
-    p_required_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
-    p_refund_id: refundId,
-    p_refunded_at: refundedAt,
-    p_rejection_reason: rejectionReason,
-    p_decided_at: new Date().toISOString(),
-  });
+  const decidedAt = new Date().toISOString();
+  const rpcName = decision === 'approve'
+    ? 'finalize_easer_application_approval'
+    : 'finalize_easer_application_decision';
+  const rpcArgs = decision === 'approve'
+    ? {
+        p_assembler_id: assemblerId,
+        p_operation_key: operationKey,
+        p_expected_snapshot: applicationDecisionSnapshot(expectedProfile),
+        p_decided_at: decidedAt,
+      }
+    : {
+        p_assembler_id: assemblerId,
+        p_decision: decision,
+        p_operation_key: operationKey,
+        p_expected_snapshot: applicationDecisionSnapshot(expectedProfile),
+        p_required_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
+        p_refund_id: refundId,
+        p_refunded_at: refundedAt,
+        p_rejection_reason: rejectionReason,
+        p_decided_at: decidedAt,
+      };
+  const { data, error } = await sb.rpc(rpcName, rpcArgs);
   if (error) throw error;
   const result = Array.isArray(data) ? data[0] : data;
   if (!result?.result_action) throw new Error('Application decision finalization returned no authoritative result');
@@ -121,6 +137,23 @@ async function loadRawEaserProfile(sb, assemblerId) {
     .maybeSingle();
   if (error || !data) throw new Error(error?.message || 'Easer profile not found');
   return data;
+}
+
+async function approvedAccountReadiness(profile = {}) {
+  const normalized = normalizeAssemblerProfile(profile);
+  const readiness = await getEaserReadiness({
+    ...normalized,
+    status: 'active',
+    application_status: 'approved',
+    tier: normalized.tier || 'starter',
+    is_available: false,
+  }, { connectRequired: false, requireAvailability: false });
+  return {
+    requiresCurrentAgreement: readiness.agreementCurrent !== true
+      || readiness.codeOfConductAccepted !== true,
+    missingReadinessItems: readiness.missingItems,
+    readyForJobsWhenOnline: readiness.isReady,
+  };
 }
 
 function applicationDecisionHttpError(error, fallback) {
@@ -207,7 +240,9 @@ async function verifyApprovalStripeTruth(profile, assemblerId) {
  *   has_membership       — subscription (managed by /api/assembler/membership)
  *
  * Actions:
- *   approve          → status=active, tier=starter (requires id_verified=true)
+ *   approve          → status=active, tier=starter, offline (requires submitted
+ *                      application, verified identity, and valid fee truth;
+ *                      current agreement remains a job-readiness requirement)
  *   reject           → status=rejected
  *   suspend          → status=suspended, saves previous_tier
  *   reinstate        → status=active, restores previous_tier (not forced to starter)
@@ -367,25 +402,22 @@ export default async function handler(req, res) {
             code: 'APPLICATION_APPROVAL_TRUTH_MISMATCH',
           });
         }
+        const accountReadiness = await approvedAccountReadiness(rawProfile);
         return res.status(200).json({
           ok: true,
           alreadyApproved: true,
           action: 'approved',
           status: 'active',
           tier: profile.tier || 'starter',
+          ...accountReadiness,
         });
       }
       return res.status(409).json({ error: 'The Easer access and application states disagree. Reconcile the profile before approval.' });
     }
-    const approvalReadiness = await getEaserReadiness({
-      ...profile,
-      status: 'active',
-      application_status: 'approved',
-      tier: 'starter',
-    }, { connectRequired: false, requireAvailability: false });
-    if (!approvalReadiness.isReady) {
+    const approvalReadiness = getEaserApprovalReadiness(profile);
+    if (!approvalReadiness.isApprovable) {
       return res.status(400).json({
-        error: readinessError(approvalReadiness),
+        error: approvalReadinessError(approvalReadiness),
         missingItems: approvalReadiness.missingItems,
       });
     }
@@ -410,7 +442,15 @@ export default async function handler(req, res) {
       return res.status(failure.status).json({ error: failure.error, code: failure.code });
     }
     if (claimResult.result_action === 'already_finalized') {
-      return res.status(200).json({ ok: true, alreadyApproved: true, action: 'approved', status: 'active', tier: 'starter' });
+      const accountReadiness = await approvedAccountReadiness(rawProfile);
+      return res.status(200).json({
+        ok: true,
+        alreadyApproved: true,
+        action: 'approved',
+        status: 'active',
+        tier: profile.tier || 'starter',
+        ...accountReadiness,
+      });
     }
 
     let approvalProfile;
@@ -418,14 +458,9 @@ export default async function handler(req, res) {
     try {
       approvalProfile = await loadRawEaserProfile(sb, assemblerId);
       profile = normalizeAssemblerProfile(approvalProfile);
-      const finalReadiness = await getEaserReadiness({
-        ...profile,
-        status: 'active',
-        application_status: 'approved',
-        tier: 'starter',
-      }, { connectRequired: false, requireAvailability: false });
-      if (!finalReadiness.isReady) {
-        const readinessFailure = new Error(readinessError(finalReadiness));
+      const finalReadiness = getEaserApprovalReadiness(profile);
+      if (!finalReadiness.isApprovable) {
+        const readinessFailure = new Error(approvalReadinessError(finalReadiness));
         readinessFailure.status = 400;
         readinessFailure.missingItems = finalReadiness.missingItems;
         throw readinessFailure;
@@ -443,7 +478,15 @@ export default async function handler(req, res) {
         expectedProfile: approvalProfile,
       });
       if (approvedProfile.result_action === 'already_finalized') {
-        return res.status(200).json({ ok: true, alreadyApproved: true, action: 'approved', status: 'active', tier: 'starter' });
+        const accountReadiness = await approvedAccountReadiness(approvalProfile);
+        return res.status(200).json({
+          ok: true,
+          alreadyApproved: true,
+          action: 'approved',
+          status: 'active',
+          tier: 'starter',
+          ...accountReadiness,
+        });
       }
       if (approvedProfile.result_action !== 'applied') {
         throw new Error(`Unexpected approval finalization result: ${approvedProfile.result_action}`);
@@ -481,12 +524,19 @@ export default async function handler(req, res) {
     } catch(e) { console.warn('generateLink error:', e.message); }
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const accountReadiness = await approvedAccountReadiness({
+      ...approvalProfile,
+      status: 'active',
+      application_status: 'approved',
+      tier: 'starter',
+      is_available: false,
+    });
     const emailResult = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Set your password to get started',
       replyTo: 'service@assembleatease.com',
-      html: buildApprovalEmail(firstName, profile.email, resetUrl),
+      html: buildApprovalEmail(firstName, profile.email, resetUrl, accountReadiness),
       meta: {
         notificationType: 'approval',
         recipientType: 'easer',
@@ -513,6 +563,7 @@ export default async function handler(req, res) {
       tier: 'starter',
       emailDelivered: emailSent,
       emailError: emailSent ? null : (emailResult?.error || emailResult?.reason || 'unknown'),
+      ...accountReadiness,
     });
   }
 
@@ -1391,17 +1442,21 @@ async function revokeEaserAuthAccess(sb, assemblerId, revokedAt) {
   };
 }
 
-function buildApprovalEmail(firstName, email, resetUrl) {
+function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
   const steps = [
-    { num: '1', title: 'Set your password', desc: 'Click the button below to create your password and log into your Easer dashboard.' },
-    { num: '2', title: 'Complete your profile', desc: 'Add your profile photo and confirm your phone number and city in the Profile section.' },
-    { num: '3', title: 'Go Online', desc: 'Tap the "Offline" pill on your dashboard home screen to switch to Online. You will not receive job offers while offline.' },
-    { num: '4', title: 'Wait for your first offer', desc: 'When a matching job is dispatched, AssembleAtEase sends the offer by email with a 20-minute acceptance window. If notifications are configured and enabled on your device, you will also receive a push alert.' },
+    { title: 'Set your password', desc: 'Click the button below to create your password and log into your Easer dashboard.' },
+    ...(readiness.requiresCurrentAgreement ? [{
+      title: 'Review the current contractor agreement',
+      desc: 'Your dashboard will show the agreement action. Review and accept it before trying to go Online or receive a new job offer.',
+    }] : []),
+    { title: 'Complete your profile', desc: 'Add your profile photo and confirm your phone number and city in the Profile section.' },
+    { title: 'Go Online', desc: 'After every readiness item is complete, tap the "Offline" pill on your dashboard home screen to switch to Online. You will not receive job offers while offline.' },
+    { title: 'Wait for your first offer', desc: 'When a matching job is dispatched, AssembleAtEase sends the offer by email with a 20-minute acceptance window. If notifications are configured and enabled on your device, you will also receive a push alert.' },
   ];
-  const stepsHtml = steps.map(s => `
+  const stepsHtml = steps.map((s, index) => `
     <tr>
       <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:32px">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#00BFFF;color:#fff;font-size:0.75rem;font-weight:700">${s.num}</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#00BFFF;color:#fff;font-size:0.75rem;font-weight:700">${index + 1}</span>
       </td>
       <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0">
         <div style="font-size:0.875rem;font-weight:700;color:#111;margin-bottom:2px">${s.title}</div>
@@ -1426,7 +1481,7 @@ function buildApprovalEmail(firstName, email, resetUrl) {
 
       <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 16px;margin-bottom:20px">
         <p style="margin:0;font-size:0.82rem;color:#0c4a6e;font-weight:700">Important: You start Offline by default.</p>
-        <p style="margin:4px 0 0;font-size:0.82rem;color:#0369a1;line-height:1.5">You will not appear in dispatch and will not receive job offers until you manually switch to Online in your dashboard.</p>
+        <p style="margin:4px 0 0;font-size:0.82rem;color:#0369a1;line-height:1.5">You will not appear in dispatch or receive new job offers until all readiness items are complete and you manually switch to Online in your dashboard.</p>
       </div>
 
       <div style="text-align:center;margin:1.5rem 0">

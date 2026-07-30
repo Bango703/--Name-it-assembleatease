@@ -35,6 +35,68 @@ function connectState(profile, account, verificationError) {
 }
 
 /**
+ * Owner approval and job readiness are deliberately separate decisions.
+ *
+ * Approval confirms that a submitted applicant may have an active Easer
+ * account. It does not make that account dispatchable. Agreement, code,
+ * profile/phone, tier, availability, and (when enabled) Connect requirements
+ * remain enforced by getEaserReadiness before the Easer can go online or
+ * receive new work.
+ */
+export function getEaserApprovalReadiness(profile = {}) {
+  const applicationStatus = clean(profile.application_status);
+  const accountClosureStatus = normalizeEaserClosureStatus(profile);
+  const applicationFeeStatusKnown = [
+    'application_fee_paid',
+    'application_fee_waived',
+    'fee_waived_by_owner',
+  ].some(field => Object.prototype.hasOwnProperty.call(profile, field));
+  const applicationSubmitted = applicationStatus === 'applied';
+  const identityVerified = profile.identity_verified === true;
+  const paidFeeMode = profile.application_fee_paid === true
+    && profile.payment_confirmed === true
+    && profile.application_fee_waived !== true
+    && profile.fee_waived_by_owner !== true;
+  const waivedFeeMode = profile.application_fee_paid !== true
+    && profile.payment_confirmed !== true
+    && (
+      profile.application_fee_waived === true
+      || profile.fee_waived_by_owner === true
+    );
+  const applicationFeeSatisfied = isApplicationFeeSatisfied(profile)
+    && paidFeeMode !== waivedFeeMode;
+  const accountClosureBlocking = isEaserClosureBlocking(accountClosureStatus);
+  const missingItems = [];
+
+  if (!applicationSubmitted) missingItems.push('Application submitted');
+  if (accountClosureBlocking) {
+    missingItems.push(`Account closure ${accountClosureStatus}`);
+  }
+  if (!applicationFeeStatusKnown || !applicationFeeSatisfied) {
+    missingItems.push('Application fee paid or explicitly waived');
+  }
+  if (!identityVerified) missingItems.push('Identity verified');
+
+  return {
+    applicationSubmitted,
+    identityVerified,
+    applicationFeeStatusKnown,
+    applicationFeeSatisfied,
+    applicationFeeMode: paidFeeMode ? 'paid' : waivedFeeMode ? 'waived' : 'inconsistent',
+    accountClosureStatus,
+    accountClosureBlocking,
+    missingItems,
+    isApprovable: missingItems.length === 0,
+  };
+}
+
+export function approvalReadinessError(readiness) {
+  if (readiness?.isApprovable) return null;
+  const missing = readiness?.missingItems || [];
+  return `Easer cannot be approved yet: ${missing.join(', ') || 'approval requirements could not be verified'}.`;
+}
+
+/**
  * One source of truth for whether an Easer may receive or accept jobs.
  * Manual payout mode intentionally ignores Stripe Connect. Connect mode fails
  * closed unless the connected account is verified live and has no blockers.

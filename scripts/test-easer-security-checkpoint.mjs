@@ -11,7 +11,11 @@ import {
   rotateIdentityResumeToken,
   updateProfileRequired,
 } from '../api/_assembler-onboarding.js';
-import { isActiveApprovedEaserProfile, requireActiveApprovedEaser } from '../api/_easer-access.js';
+import {
+  hasCurrentEaserAgreement,
+  isActiveApprovedEaserProfile,
+  requireActiveApprovedEaser,
+} from '../api/_easer-access.js';
 import {
   EASER_APPLICATION_FEE_CENTS,
   EASER_APPLICATION_FEE_CURRENCY,
@@ -115,6 +119,7 @@ const activeApproved = {
   tier: 'starter',
   identity_verified: true,
   contractor_agreement_signed_at: '2026-07-13T00:00:00.000Z',
+  contractor_agreement_version: CONTRACTOR_AGREEMENT_VERSION,
   code_of_conduct_agreed_at: '2026-07-13T00:00:00.000Z',
   application_fee_waived: true,
 };
@@ -207,6 +212,11 @@ const waivedReadiness = await getEaserReadiness({ ...readyProfile, application_f
 assert.equal(waivedReadiness.isReady, true);
 const ownerWaivedReadiness = await getEaserReadiness({ ...readyProfile, fee_waived_by_owner: true }, { connectRequired: false });
 assert.equal(ownerWaivedReadiness.isReady, true);
+const currentAgreementProfile = { ...readyProfile, application_fee_waived: true };
+assert.equal(hasCurrentEaserAgreement(currentAgreementProfile), true);
+assert.equal(isActiveApprovedEaserProfile(currentAgreementProfile), true);
+assert.equal(hasCurrentEaserAgreement({ ...currentAgreementProfile, contractor_agreement_version: 'old' }), false);
+assert.equal(isActiveApprovedEaserProfile({ ...currentAgreementProfile, contractor_agreement_version: 'old' }), false);
 
 assert.equal(deriveOfferLocation('123 Main Street Apt 4, Austin, TX 78701, USA'), 'Austin, TX 78701');
 assert.equal(deriveOfferLocation('123 Main Street, Round Rock, TX, 78664'), 'Round Rock, TX 78664');
@@ -308,6 +318,27 @@ assert.match(messageApi, /message_notification_failed/);
 assert.match(messageApi, /Message saved, but the notification was not delivered/);
 assert.match(assignmentsApi, /_offer_location = deriveOfferLocation/);
 assert.match(assignmentsApi, /delete b\.address/);
+assert.match(assignmentsApi, /if \(!agreementCurrent\)[\s\S]*current_agreement_required/,
+  'stale-agreement Easers must not receive pending offers');
+assert.match(assignmentsApi, /newOffersAllowed:\s*agreementCurrent/,
+  'assignment responses must disclose the server-authoritative offer-access state');
+
+const dashboardPage = await load('assembler/index.html');
+assert.match(dashboardPage, /agreementRequired === 'true'/,
+  'urgent jobs must not hide a required agreement action');
+assert.match(dashboardPage, /Job readiness could not be verified\. No job information was loaded/,
+  'dashboard must fail closed when readiness cannot be verified');
+const assignmentsPage = await load('assembler/my-assignments.html');
+assert.match(assignmentsPage, /Current contractor agreement required/);
+assert.match(assignmentsPage, /fetch\('\/api\/assembler\/readiness'/,
+  'assignment page must verify readiness before revealing job content');
+const ownerDashboardPage = await load('owner/index.html');
+assert.doesNotMatch(ownerDashboardPage, /var dispatchEligible =/,
+  'owner dashboard must not duplicate a partial browser-side dispatch eligibility rule');
+assert.match(ownerDashboardPage, /authoritativeDispatchChip\.textContent = ready \? 'Eligible' : 'Ineligible'/,
+  'owner dispatch label must come from the server-authoritative readiness response');
+assert.match(ownerDashboardPage, /asm-dispatch-chip[\s\S]*Checking\.\.\./,
+  'owner modal must remain neutral while readiness is loading');
 
 assert.match(migration, /pg_advisory_xact_lock/);
 assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.claim_founding_easer_waiver\(uuid, integer\)\s+TO service_role/);

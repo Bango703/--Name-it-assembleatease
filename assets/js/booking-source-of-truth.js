@@ -142,10 +142,10 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Home Office Furniture', items: [
         { name: 'Home desk (simple, flat-pack)', price: 99 },
         { name: 'Home desk (L-shape / corner)', price: 129 },
-        { name: 'Home standing desk (electric)', price: 169 },
+        { name: 'Home standing desk (electric)', price: 199 },
         { name: 'Home office chair (standard)', price: 89 },
         { name: 'Home bookcase / shelving unit (up to 5 shelves)', price: 99 },
-        { name: 'Home bookcase / shelving unit (6+ shelves)', price: 119 },
+        { name: 'Home bookcase / shelving unit (6+ shelves)', price: 129 },
         { name: 'Home file cabinet (2–4 drawer)', price: 89 }
       ]},
       { group: 'Dining & Kitchen', items: [
@@ -298,7 +298,9 @@ window.AAE_BOOKING_SOURCE = {
     'Outdoor & Playsets': [
       { group: 'Playsets & Backyard Structures', items: [
         { name: 'Swing set / backyard playset assembly', price: 299, priceMax: 379, popular: true },
-        { name: 'Trampoline assembly', price: 229, priceMax: 329 },
+        { name: 'Trampoline assembly (up to 10 ft)', price: 229 },
+        { name: 'Trampoline assembly (11–14 ft)', price: 279 },
+        { name: 'Trampoline assembly (15 ft+)', price: 329 },
         { name: 'Trampoline relocation (disassembly, transport & reassembly) — custom quote', price: 0, customQuote: true },
         { name: 'Pergola / gazebo kit assembly', price: 599, priceMax: 1199 },
         { name: 'Storage shed (small kit)', price: 499, priceMax: 799 },

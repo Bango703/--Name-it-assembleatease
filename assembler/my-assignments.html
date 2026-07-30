@@ -147,6 +147,11 @@
 <div class="easer-page">
   <a href="#" id="sidebar-logout" style="display:none"></a>
   <div id="page-alert" class="alert hidden"></div>
+  <div id="agreement-access-banner" style="display:none;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(245,158,11,0.3);border-radius:10px;background:rgba(245,158,11,0.08);color:#78350f;font-size:0.82rem;line-height:1.5">
+    <strong>Current contractor agreement required.</strong>
+    New job offers are hidden until you review and accept the current agreement. Existing accepted work remains available so customers are not stranded.
+    <a href="/assembler/verify-identity" style="color:#0369a1;font-weight:700;margin-left:0.25rem">Review agreement</a>
+  </div>
 
   <div class="e-filter-row" id="filter-tabs">
     <button class="e-filter-pill active" data-filter="all">All</button>
@@ -454,6 +459,8 @@
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
       const isCompleted = b.status === 'completed';
       const customerName = maskName(b.customer_name);
+      const scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
+      const scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
       const payStr = b._pay_estimate_lo != null
         ? formatMoneyCents(b._pay_estimate_lo)
         : (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : '');
@@ -463,7 +470,7 @@
         '<div class="e-job-card-top">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
-            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerName) : '') + (b.date ? (b.assembler_accepted_at ? ' &bull; ' : '') + formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '') : '') + '</div>' +
+            '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerName) : '') + (scheduleDate ? (b.assembler_accepted_at ? ' &bull; ' : '') + (b.return_visit_required ? 'Return ' : '') + formatDate(scheduleDate) + (scheduleTime ? ' at ' + esc(scheduleTime) : '') : '') + '</div>' +
           '</div>' +
           (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
           (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
@@ -513,10 +520,28 @@
   document.addEventListener('DOMContentLoaded', async function() {
     const auth = await APP.requireAuth(["assembler"]);
     if (!auth) return;
-    document.body.style.visibility = 'visible';
     const session = auth.session;
     // Set module-level sessionToken so getToken() (defined above) has a fallback
     sessionToken = session.access_token;
+
+    // Verify readiness before revealing job content. A failed readiness lookup
+    // fails closed; an outdated agreement may see only previously assigned work.
+    try {
+      const readinessResponse = await fetch('/api/assembler/readiness', {
+        headers: { 'Authorization': 'Bearer ' + sessionToken },
+      });
+      const readinessBody = await readinessResponse.json().catch(function(){ return {}; });
+      if (!readinessResponse.ok || !readinessBody.readiness) throw new Error('Readiness unavailable');
+      const agreementCurrent = readinessBody.readiness.agreementCurrent === true
+        && readinessBody.readiness.codeOfConductAccepted === true;
+      document.getElementById('agreement-access-banner').style.display = agreementCurrent ? 'none' : 'block';
+    } catch (readinessError) {
+      document.body.style.visibility = 'visible';
+      document.getElementById('assignments-list').innerHTML =
+        '<div class="pro-error">Job readiness could not be verified. No job information was loaded. Please refresh.</div>';
+      return;
+    }
+    document.body.style.visibility = 'visible';
 
     // ── Reconnect on visibility change (app returns from background) ──
     document.addEventListener('visibilitychange', async function() {
@@ -626,6 +651,9 @@
       }
       if (!resp.ok) throw new Error('Failed to load assignments');
       const data = await resp.json();
+      if (data.access && data.access.agreementCurrent === false) {
+        document.getElementById('agreement-access-banner').style.display = 'block';
+      }
       allAssignments = data.bookings || [];
       await refreshEarningsTruth(token);
       renderAssignments(allAssignments);
@@ -1110,6 +1138,8 @@
     const isCompleted = b.status === 'completed';
     const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
     const scopeHtml = renderScopeSection(b._booking_items || []);
+    const scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
+    const scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
     const payEst = (b.status === 'completed')
       ? (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null)
       : (b._pay_estimate_lo != null
@@ -1133,7 +1163,7 @@
 
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
-        b.date ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + formatDate(b.date) + (b.time ? ' &nbsp;&bull;&nbsp; ' + esc(b.time) : '') + '</span></div>' : '',
+        scheduleDate ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + (b.return_visit_required ? '<strong>Return visit:</strong> ' : '') + formatDate(scheduleDate) + (scheduleTime ? ' &nbsp;&bull;&nbsp; ' + esc(scheduleTime) : '') + '</span></div>' : '',
         !accepted && b._offer_location ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">Service area: ' + esc(b._offer_location) + '</span></div>' : '',
         accepted && b.address && !isCompleted ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">' + esc(b.address) + '</span></div>' : '',
         accepted && b.customer_name ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="color:var(--pro-text)">' + esc(b.customer_name) + '</span></div>' : '',
@@ -1143,6 +1173,12 @@
       '</div>',
 
       scopeHtml,
+
+      b.return_visit_required ? '<div style="margin-bottom:1rem;border:1px solid #c7d2fe;border-radius:12px;background:#eef2ff;padding:0.85rem 0.9rem">'
+        + '<div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#3730a3;margin-bottom:0.4rem">Return visit required</div>'
+        + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55"><strong>Completed:</strong> ' + esc(b.return_visit_completed_scope || 'Documented by owner') + '</div>'
+        + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55;margin-top:0.2rem"><strong>Remaining:</strong> ' + esc(b.return_visit_remaining_scope || 'Remaining work') + '</div>'
+        + '</div>' : '',
 
       accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
 
@@ -1180,6 +1216,12 @@
     }
 
     const completeBtn = document.getElementById('complete-btn');
+    var completeSheetBody = document.getElementById('complete-sheet-body');
+    if (completeSheetBody) {
+      completeSheetBody.textContent = b._owner_manual_live_flow
+        ? 'Take a clear photo of the finished work. Completing this job records your earnings, but it does not collect or charge the customer payment. Record customer collection separately in the owner dashboard.'
+        : 'Take a clear photo of the finished work. This is required before the job can be marked complete and payment is processed.';
+    }
     if (_completionInFlight) {
       completeBtn.disabled = true;
       completeBtn.textContent = 'Processing…';
@@ -1281,7 +1323,7 @@
     // Within 15 min of acceptance the Pro can self-drop; after that it's support-only.
     const existingDrop = document.getElementById('drop-section');
     if (existingDrop) existingDrop.remove();
-    if (accepted && b.status === 'confirmed') {
+    if (accepted && b.status === 'confirmed' && !b._owner_manual_live_flow) {
       const acceptedAt = b.assembler_accepted_at ? new Date(b.assembler_accepted_at).getTime() : null;
       const minsSince  = acceptedAt ? (Date.now() - acceptedAt) / 60000 : 999;
       const canDrop    = !!acceptedAt && minsSince <= 15;
@@ -1456,7 +1498,7 @@
 <div class="sheet-overlay" id="complete-sheet">
   <div class="sheet-box">
     <div class="sheet-title">Take a completion photo</div>
-    <div class="sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete and payment is processed.</div>
+    <div class="sheet-body" id="complete-sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete and payment is processed.</div>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
       <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Completion photo <span style="font-weight:400;color:#dc2626">(required to submit)</span></div>
       <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">

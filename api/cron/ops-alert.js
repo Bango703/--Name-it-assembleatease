@@ -1,9 +1,10 @@
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
-import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { appointmentTimestampMs, chicagoTodayIso } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
 import { formatUsPhone } from '../_phone.js';
+import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 
 /**
  * GET /api/cron/ops-alert  — every 30 min.
@@ -31,14 +32,13 @@ export default async function handler(req, res) {
   const t = Date.now();
   const sb = getSupabase();
   const now = Date.now();
-  const todayStr = new Date(now).toISOString().slice(0, 10);
+  const todayStr = chicagoTodayIso(new Date(now));
   const sixHoursAgo = new Date(now - 6 * 60 * 60 * 1000).toISOString();
 
   const { data: bookings, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, date, time, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch')
-    .in('status', ['pending', 'confirmed'])
-    .gte('date', todayStr)
+    .select('id, ref, service, source, payment_status, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch')
+    .in('status', ['pending', 'confirmed', 'en_route', 'arrived', 'in_progress'])
     .limit(200);
 
   if (error) {
@@ -51,14 +51,25 @@ export default async function handler(req, res) {
   const issues = [];
   for (const b of bookings || []) {
     let issue = null;
+    const effectiveDate = b.return_visit_required ? b.return_visit_date : b.date;
+    const effectiveTime = b.return_visit_required ? b.return_visit_time : b.time;
 
-    if (b.needs_manual_dispatch && !b.assembler_id && b.status === 'confirmed') {
+    if (b.return_visit_required && effectiveDate && effectiveDate <= todayStr) {
+      issue = {
+        sev: effectiveDate < todayStr ? 'CRITICAL' : 'HIGH',
+        label: effectiveDate < todayStr
+          ? `Return visit overdue since ${effectiveDate} — ${b.return_visit_remaining_scope || 'remaining work is still open'}`
+          : `Return visit today at ${effectiveTime || 'TBD'} — ${b.return_visit_remaining_scope || 'remaining work'}`,
+      };
+    } else if (b.needs_manual_dispatch && !b.assembler_id && b.status === 'confirmed') {
       issue = { sev: 'HIGH', label: 'Needs manual assignment (auto-dispatch gave up)' };
-    } else if (b.date === todayStr && !b.assembler_id && ['pending', 'confirmed'].includes(b.status)) {
-      const apptMs = appointmentTimestampMs(b.date, b.time);
+    } else if (isOwnerManualOfflineBooking(b) && !b.assembler_id && b.status === 'confirmed') {
+      issue = { sev: 'HIGH', label: 'Owner-created offline booking needs the configured owner-Easer assignment or owner completion plan' };
+    } else if (effectiveDate === todayStr && !b.assembler_id && ['pending', 'confirmed'].includes(b.status)) {
+      const apptMs = appointmentTimestampMs(effectiveDate, effectiveTime);
       const hrsAway = apptMs != null ? (apptMs - now) / 3600000 : 99;
       if (hrsAway <= CRITICAL_WINDOW_HRS) {
-        issue = { sev: 'CRITICAL', label: `Today at ${b.time || 'TBD'} — no Pro assigned, ~${Math.max(0, Math.round(hrsAway))}h away` };
+        issue = { sev: 'CRITICAL', label: `Today at ${effectiveTime || 'TBD'} — no Pro assigned, ~${Math.max(0, Math.round(hrsAway))}h away` };
       }
     } else if (b.assembler_id && !b.assembler_accepted_at && b.status === 'confirmed' && b.assigned_at) {
       const mins = (now - new Date(b.assigned_at).getTime()) / 60000;

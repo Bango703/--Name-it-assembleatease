@@ -506,8 +506,10 @@
 
     if (upcomingJobs.length>0){
       document.getElementById('upcoming-list').innerHTML=upcomingJobs.slice(0,3).map(function(b){
-        var dateStr=fmtDate(b.date);
-        var when=dateStr + (b.time ? ' · ' + b.time : '');
+        var upcomingDate = b.return_visit_required ? b.return_visit_date : b.date;
+        var upcomingTime = b.return_visit_required ? b.return_visit_time : b.time;
+        var dateStr=fmtDate(upcomingDate);
+        var when=(b.return_visit_required ? 'Return: ' : '') + dateStr + (upcomingTime ? ' · ' + upcomingTime : '');
         return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
@@ -544,7 +546,11 @@
   function setHomePriorityMode(hasUrgentWork) {
     var checklist = document.getElementById('onboarding-checklist');
     if (checklist && checklist.dataset.deferWhenBusy === 'true') {
-      checklist.style.display = (hasUrgentWork || checklist.dataset.completed === 'true') ? 'none' : '';
+      var hasBlockingAgreementAction = checklist.dataset.agreementRequired === 'true';
+      checklist.style.display = (
+        checklist.dataset.completed === 'true'
+        || (hasUrgentWork && !hasBlockingAgreementAction)
+      ) ? 'none' : '';
     }
 
     var profileBanner = document.getElementById('profile-banner');
@@ -799,6 +805,7 @@
 
     checklist.dataset.deferWhenBusy = 'true';
     checklist.dataset.completed = allDone ? 'true' : 'false';
+    checklist.dataset.agreementRequired = currentAgreementAccepted ? 'false' : 'true';
 
     if (allDone) {
       checklist.style.display = 'none';
@@ -917,8 +924,10 @@
     document.getElementById('active-section').style.display = '';
     var statusLabel  = {en_route:'En Route',arrived:'On Site',in_progress:'In Progress'}[lj.status]||lj.status;
     var statusClass  = {en_route:'bk-en-route',arrived:'bk-arrived',in_progress:'bk-in-progress'}[lj.status]||'bk-confirmed';
-    var dateStr      = lj.date ? new Date(lj.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    var timeStr      = lj.time || '—';
+    var effectiveDate = lj.return_visit_required ? lj.return_visit_date : lj.date;
+    var effectiveTime = lj.return_visit_required ? lj.return_visit_time : lj.time;
+    var dateStr      = effectiveDate ? new Date(effectiveDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    var timeStr      = effectiveTime || '—';
     var addrStr      = lj.address || 'Address on file';
     var customerName = lj.customer_name || lj.customer_email || '';
     var mapsUrl      = lj.address ? 'https://maps.google.com/q='+encodeURIComponent(lj.address) : '#';
@@ -937,6 +946,12 @@
     if(lj.status==='in_progress' && tosStartTs) {
       tosHtml = '<div class="eh-tos-block"><span class="eh-tos-lbl">Time on site</span><span class="eh-tos-val" id="eh-tos-val">—</span></div>';
     }
+    var returnVisitHtml = lj.return_visit_required
+      ? '<div style="margin:0.75rem 0;padding:0.75rem 0.85rem;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;color:#312e81;font-size:0.8rem;line-height:1.5">'
+        + '<strong>Return visit:</strong> ' + esc(dateStr) + (effectiveTime ? ' at ' + esc(effectiveTime) : '')
+        + '<br><strong>Remaining:</strong> ' + esc(lj.return_visit_remaining_scope || 'Remaining work')
+        + '</div>'
+      : '';
 
     var html = '<div class="eh-job-card-header">'
       +'<div class="eh-job-icon">'
@@ -965,6 +980,7 @@
       +'</div>'
       +tosHtml
     +'</div>'
+    +returnVisitHtml
     +buildPipeline(lj)
     +'<div class="eh-action-row">'
       +'<a class="eh-dir-btn" href="'+mapsUrl+'" target="_blank" rel="noopener">'
@@ -1083,11 +1099,17 @@
   document.addEventListener('DOMContentLoaded', async function(){
     var auth=await APP.requireAuth(['assembler']);
     if(!auth) return;
-    document.body.style.visibility='visible';
     var user=auth.user, session=auth.session, profile=auth.profile;
     currentUserId=user.id;
     currentProfile=profile;
     currentClosureStatus=normalizeClosureStatus(profile.account_closure_status);
+    freshTok=session.access_token;
+
+    // Resolve the server-side readiness source of truth before revealing the
+    // dashboard. This prevents agreement/checklist flashes and keeps cached or
+    // private job content from rendering before eligibility is known.
+    await loadEaserReadinessStatus(freshTok);
+    document.body.style.visibility='visible';
 
     // Notification bell toggle
     var _notifPanel=document.getElementById('notif-panel');
@@ -1356,7 +1378,19 @@
       }
     }catch(e){}
 
-    await loadEaserReadinessStatus(freshTok);
+    var readinessVerified = await loadEaserReadinessStatus(freshTok);
+    if (!readinessVerified) {
+      clearDashboardCache();
+      document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a){
+        a.style.opacity='0.4';a.style.pointerEvents='none';
+      });
+      setDashboardStatus('server_error', { message: 'Job readiness could not be verified. No job information was loaded.' });
+      return;
+    }
+    if (currentReadiness.agreementCurrent !== true || currentReadiness.codeOfConductAccepted !== true) {
+      // Never render an older cached offer after the required agreement changes.
+      clearDashboardCache();
+    }
 
     // Load assignments
     var cache = readDashboardCache();

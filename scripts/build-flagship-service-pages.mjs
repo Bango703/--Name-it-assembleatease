@@ -609,8 +609,8 @@ const SERVICES = [
       { n: 'Side / end table', p: '$69' },
       { n: 'Nightstand (single)', p: '$79' },
       { n: 'Bed frame (queen)', p: '$119', popular: true },
-      { n: 'Dresser / chest of drawers', p: '$109&ndash;$129' },
-      { n: 'IKEA PAX wardrobe (single unit)', p: '$169' },
+      { n: 'Dresser / chest of drawers', p: '$109&ndash;$149' },
+      { n: 'IKEA PAX wardrobe (single unit)', p: '$199' },
     ],
     faqs: [
       { q: 'How long does furniture assembly take?', a: 'Most single items take 30&ndash;90 minutes. A full bedroom set or several pieces can take longer. We&rsquo;ll give you a time estimate when confirming your booking.' },
@@ -636,7 +636,7 @@ const SERVICES = [
       { n: 'Single framed picture / mirror', p: '$79' },
       { n: 'TV up to 40" (standard wall)', p: '$99' },
       { n: 'TV 41"&ndash;55" (standard wall)', p: '$119', popular: true },
-      { n: 'In-wall cord concealment', p: '$189' },
+      { n: 'In-wall cord concealment', p: '$199' },
     ],
     faqs: [
       { q: 'How long does TV mounting take?', a: 'Most standard wall mounts take 60&ndash;90 minutes. Cord concealment, brick or stone, and above-fireplace jobs take a little longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },
@@ -661,7 +661,7 @@ const SERVICES = [
       { n: 'Smart plug install + setup (per 2 plugs)', p: '$69' },
       { n: 'Smart Thermostat (Nest, Ecobee)', p: '$99', popular: true },
       { n: 'Smart Doorbell &mdash; wireless', p: '$89' },
-      { n: 'Camera System (4 cameras)', p: '$249' },
+      { n: 'Camera System (4 cameras)', p: '$279' },
     ],
     faqs: [
       { q: 'What can you install?', a: 'Thermostats, video doorbells, cameras, smart locks, plugs, switches and hubs. If it connects to an app, we can usually mount it, wire it, and set it up.' },
@@ -684,7 +684,7 @@ const SERVICES = [
       { n: 'Inversion Table', p: '$119' },
       { n: 'Treadmill Assembly', p: '$189', popular: true },
       { n: 'Elliptical Machine', p: '$209' },
-      { n: 'Squat Rack / Power Cage', p: '$219' },
+      { n: 'Squat Rack / Power Cage', p: '$239' },
     ],
     faqs: [
       { q: 'How long does equipment assembly take?', a: 'Most treadmills and ellipticals take 1&ndash;2 hours; racks, cages and full home gyms can take longer. We&rsquo;ll give you a time estimate when we confirm your booking.' },

@@ -6,6 +6,7 @@ import {
   deriveManualPayoutReadiness,
   hasVerifiedOfflineOwnerPayment,
 } from '../owner/_finance-ledger.js';
+import { verifyOwnerManualCustomerFundsForPayout } from '../owner/_manual-payment-truth.js';
 import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
 import {
   releaseBookingFinancialOperation,
@@ -83,6 +84,16 @@ export default async function handler(req, res) {
         : 'Customer funds must be captured before an Easer payout can be recorded.',
       code: offlineOwnerBooking ? 'OFFLINE_PAYMENT_COLLECTION_REQUIRED' : 'CUSTOMER_FUNDS_NOT_CAPTURED',
     });
+  }
+
+  if (completedPayout && hasVerifiedOfflineOwnerPayment(booking)) {
+    const fundsCheck = await verifyOwnerManualCustomerFundsForPayout({ sb, booking });
+    if (!fundsCheck.ok) {
+      return res.status(409).json({
+        error: fundsCheck.error,
+        code: fundsCheck.code,
+      });
+    }
   }
 
   let hasEvidence = false;
