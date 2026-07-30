@@ -128,21 +128,21 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Bed frame — king / cal king', price: 139 },
         { name: 'Bed frame with storage drawers', price: 159 },
         { name: 'Platform bed with upholstered headboard', price: 169 },
-        { name: 'Bunk bed / loft bed', price: 199 },
+        { name: 'Bunk bed / loft bed', price: 229, priceMax: 299 },
         { name: 'Trundle bed', price: 129 },
         { name: 'Crib / toddler bed', price: 99 },
         { name: 'Nightstand (single)', price: 79 },
         { name: 'Dresser (up to 6 drawers)', price: 109 },
-        { name: 'Dresser (7+ drawers / double)', price: 129 },
+        { name: 'Dresser (7+ drawers / double)', price: 149 },
         { name: 'Wardrobe / armoire (freestanding)', price: 129, priceMax: 159 },
-        { name: 'IKEA PAX wardrobe (single unit)', price: 169, popular: true },
+        { name: 'IKEA PAX wardrobe (single unit)', price: 199, popular: true },
         { name: 'IKEA PAX wardrobe (per additional unit)', price: 99, addon: true },
         { name: 'Vanity with mirror', price: 119 }
       ]},
       { group: 'Home Office Furniture', items: [
         { name: 'Home desk (simple, flat-pack)', price: 99 },
         { name: 'Home desk (L-shape / corner)', price: 129 },
-        { name: 'Home standing desk (electric)', price: 149 },
+        { name: 'Home standing desk (electric)', price: 169 },
         { name: 'Home office chair (standard)', price: 89 },
         { name: 'Home bookcase / shelving unit (up to 5 shelves)', price: 99 },
         { name: 'Home bookcase / shelving unit (6+ shelves)', price: 119 },
@@ -155,7 +155,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Dining chairs (set of 4–6)', price: 109 },
         { name: 'Bar stool (per 2 stools)', price: 69 },
         { name: 'Kitchen island (freestanding)', price: 119 },
-        { name: 'China cabinet / hutch', price: 139 },
+        { name: 'China cabinet / hutch', price: 159 },
         { name: 'Buffet / sideboard', price: 119 }
       ]},
       { group: 'Living Room', items: [
@@ -163,7 +163,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Coffee table (lift-top / storage)', price: 99 },
         { name: 'Side / end table', price: 69 },
         { name: 'TV stand / media console', price: 109 },
-        { name: 'Entertainment center (large)', price: 159 },
+        { name: 'Entertainment center (large)', price: 179 },
         { name: 'Console table', price: 89 }
       ]},
       { group: 'Storage & Entryway', items: [
@@ -185,8 +185,8 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'TV up to 40" (standard wall)', price: 99 },
         { name: 'TV 41"–55" (standard wall)', price: 119, popular: true },
         { name: 'TV 56"–65" (standard wall)', price: 149 },
-        { name: 'TV 66"–75" (standard wall)', price: 179 },
-        { name: 'TV 76"–85" (standard wall)', price: 209 },
+        { name: 'TV 66"–75" (standard wall)', price: 189 },
+        { name: 'TV 76"–85" (standard wall)', price: 229 },
         { name: 'TV 86"+ / commercial display', price: 249, priceMax: 329 },
         { name: 'Second TV (same visit)', price: 69, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Add a second TV', recoWhy: 'Cheaper than booking another trip' }
       ]},
@@ -198,7 +198,7 @@ window.AAE_BOOKING_SOURCE = {
       ]},
       { group: 'Cable & Cord Management', items: [
         { name: 'Surface cord cover (raceway, up to 6 ft)', price: 89, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'Hide the cords', recoWhy: 'Cleaner finish without opening drywall' },
-        { name: 'In-wall cord concealment', price: 189, popular: true, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'In-wall cord concealment', recoWhy: 'Premium clean look for mounted TVs' },
+        { name: 'In-wall cord concealment', price: 199, popular: true, tags: ['upgrade'], appliesTo: ['tv'], recoLabel: 'In-wall cord concealment', recoWhy: 'Premium clean look for mounted TVs' },
         { name: 'In-wall cord concealment (brick / concrete)', price: 249, tags: ['upgrade'], appliesTo: ['tv','brick','concrete'], recoLabel: 'In-wall concealment for masonry', recoWhy: 'Premium finish for brick or concrete walls' },
         { name: 'Cable management box / hub install', price: 79, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Tidy the media box', recoWhy: 'Keeps components and wires organized' }
       ]},
@@ -265,10 +265,10 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Indoor camera (mount + cable manage)', price: 89 },
         { name: 'Outdoor camera — eave / soffit mount', price: 109 },
         { name: 'Outdoor camera — brick / concrete', price: 139 },
-        { name: 'Floodlight camera (hardwired replacement)', price: 149 },
+        { name: 'Floodlight camera (hardwired replacement)', price: 169 },
         { name: 'Camera system — 2 cameras', price: 169 },
-        { name: 'Camera system — 4 cameras', price: 249, popular: true },
-        { name: 'Camera system — 6+ cameras', price: 349, priceMax: 449 },
+        { name: 'Camera system — 4 cameras', price: 279, popular: true },
+        { name: 'Camera system — 6+ cameras', price: 379, priceMax: 499 },
         { name: 'NVR / DVR setup + camera config', price: 129 }
       ]},
       { group: 'Lighting', items: [
@@ -299,6 +299,7 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Playsets & Backyard Structures', items: [
         { name: 'Swing set / backyard playset assembly', price: 299, priceMax: 379, popular: true },
         { name: 'Trampoline assembly', price: 229, priceMax: 329 },
+        { name: 'Trampoline relocation (disassembly, transport & reassembly) — custom quote', price: 0, customQuote: true },
         { name: 'Pergola / gazebo kit assembly', price: 599, priceMax: 1199 },
         { name: 'Storage shed (small kit)', price: 499, priceMax: 799 },
         { name: 'Monkey bars / climbing frame', price: 269 },
@@ -328,7 +329,7 @@ window.AAE_BOOKING_SOURCE = {
       ]},
       { group: 'Add-ons', items: [
         { name: 'Anchoring / leveling / safety hardware', price: 99, addon: true, tags: ['safety'], appliesTo: ['playset','swing','trampoline','basketball','hoop','climbing','monkey','pergola','gazebo','shed','sandbox','playhouse'], recoLabel: 'Anchoring & leveling', recoWhy: 'Stable, level, safe install' },
-        { name: 'Disassembly before move or pickup', price: 119, addon: true },
+        { name: 'Disassembly only (customer handles transport)', price: 119, addon: true },
         { name: 'Same-day / rush outdoor assembly', price: 99, addon: true },
         { name: 'Heavy-duty material haul-away', price: 109, addon: true, tags: ['convenience'], recoLabel: 'Haul away packaging', recoWhy: 'No boxes left behind' }
       ]}
@@ -375,10 +376,10 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Strength Equipment', items: [
         { name: 'Weight bench', price: 129 },
         { name: 'Inversion table', price: 119 },
-        { name: 'Power rack / squat rack', price: 219 },
+        { name: 'Power rack / squat rack', price: 239 },
         { name: 'Punching bag stand', price: 129 },
         { name: 'Dumbbell / weight set assembly', price: 139 },
-        { name: 'Home gym / cable machine', price: 299, priceMax: 429 },
+        { name: 'Home gym / cable machine', price: 329, priceMax: 449 },
         { name: 'Multi-station gym', price: 0, customQuote: true }
       ]},
       { group: 'Add-ons', items: [
