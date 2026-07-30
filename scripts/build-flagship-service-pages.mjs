@@ -735,9 +735,9 @@ const SERVICES = [
     offers: [
       { n: 'Deck box / outdoor storage bench', p: '$89' },
       { n: 'Patio umbrella + base', p: '$89' },
-      { n: 'Trampoline Assembly', p: '$199', popular: true },
+      { n: 'Trampoline Assembly', p: '$229&ndash;$329', popular: true },
       { n: 'Swing Set / Backyard Playset', p: '$299&ndash;$379' },
-      { n: 'Pergola / Gazebo Kit', p: '$399&ndash;$599' },
+      { n: 'Pergola / Gazebo Kit', p: '$599&ndash;$1199' },
     ],
     faqs: [
       { q: 'How long does a playset take?', a: 'A trampoline or sandbox is often 1&ndash;2 hours; a large swing set or playset can take 3&ndash;5 hours or more. We&rsquo;ll give you a time estimate when we confirm your booking.' },

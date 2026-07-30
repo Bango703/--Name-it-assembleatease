@@ -495,9 +495,9 @@ const SERVICES = [
     pricingHighlights: [
       { name: 'Deck box / outdoor storage bench', price: '$89', popular: false },
       { name: 'Patio umbrella + base', price: '$89', popular: false },
-      { name: 'Trampoline Assembly', price: '$199', popular: true },
+      { name: 'Trampoline Assembly', price: '$229–$329', popular: true },
       { name: 'Swing Set / Backyard Playset', price: '$299–$379', popular: false },
-      { name: 'Pergola / Gazebo Kit', price: '$399–$599', popular: false },
+      { name: 'Pergola / Gazebo Kit', price: '$599–$1199', popular: false },
     ],
     faqs: [
       { q: 'Do you anchor the playset to the ground?', a: 'Yes — we anchor and level to the manufacturer\'s spec and check stability before play. If your kit or ground needs extra anchoring, coordinate with your pro.' },

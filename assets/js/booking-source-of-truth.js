@@ -298,9 +298,9 @@ window.AAE_BOOKING_SOURCE = {
     'Outdoor & Playsets': [
       { group: 'Playsets & Backyard Structures', items: [
         { name: 'Swing set / backyard playset assembly', price: 299, priceMax: 379, popular: true },
-        { name: 'Trampoline assembly', price: 199 },
-        { name: 'Pergola / gazebo kit assembly', price: 399, priceMax: 599 },
-        { name: 'Storage shed (small kit)', price: 329, priceMax: 499 },
+        { name: 'Trampoline assembly', price: 229, priceMax: 329 },
+        { name: 'Pergola / gazebo kit assembly', price: 599, priceMax: 1199 },
+        { name: 'Storage shed (small kit)', price: 499, priceMax: 799 },
         { name: 'Monkey bars / climbing frame', price: 269 },
         { name: 'Sandbox / outdoor playhouse', price: 169 }
       ]},
