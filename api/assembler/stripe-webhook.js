@@ -44,13 +44,15 @@ export default async function handler(req, res) {
 
   const sig = req.headers['stripe-signature'];
 
-  // Two Stripe webhook endpoints share the same handler URL but carry different
-  // signing secrets: one for Connect/Payment events (STRIPE_WEBHOOK_SECRET) and
-  // one for Identity events (STRIPE_IDENTITY_WEBHOOK_SECRET). Try both so that
-  // adding a second endpoint never causes the other to silently reject.
+  // Stripe webhook endpoints share the same handler URL but carry different
+  // signing secrets: payment events (STRIPE_WEBHOOK_SECRET), Identity events
+  // (STRIPE_IDENTITY_WEBHOOK_SECRET), and Connect / connected-account events like
+  // account.updated (STRIPE_CONNECT_WEBHOOK_SECRET). Try each so that adding a
+  // dedicated Connect endpoint never causes the others to silently reject.
   const primarySecret   = process.env.STRIPE_WEBHOOK_SECRET;
   const identitySecret  = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
-  const secrets = [primarySecret, identitySecret].filter(Boolean);
+  const connectSecret   = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+  const secrets = [primarySecret, identitySecret, connectSecret].filter(Boolean);
 
   if (!sig || secrets.length === 0) {
     return res.status(400).json({ error: 'Missing Stripe signature or webhook secret' });
