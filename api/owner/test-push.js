@@ -3,6 +3,12 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 
 export default async function handler(req, res) {
+  // Test broadcasts are development-only. Real production notifications must
+  // be tied to an actual dispatch or owner message workflow.
+  if (process.env.VERCEL_ENV === 'production' || String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase() !== 'true') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(403).json({ error: 'Unauthorized' });
 

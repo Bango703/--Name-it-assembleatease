@@ -477,10 +477,10 @@ export default async function handler(req, res) {
     grossCollectedCents: Number(ledgerResult?.gross_collected_cents ?? beforeTruth.capturedCents),
     netCollectedCents: Number(ledgerResult?.net_collected_cents
       ?? (beforeTruth.capturedCents - targetRefundCents)),
-    remainingBalanceCents: Number(ledgerResult?.remaining_balance_cents
-      ?? Math.max(0, Number(booking.total_price || 0)
-        - (beforeTruth.capturedCents - targetRefundCents))),
-    paymentCollected: ledgerResult?.payment_collected === true,
+    // A refund does not create a fresh customer invoice. Original captured
+    // payments, not net retained revenue, determine invoice collection.
+    remainingBalanceCents: Math.max(0, Number(booking.total_price || 0) - beforeTruth.capturedCents),
+    paymentCollected: beforeTruth.capturedCents >= Number(booking.total_price || 0),
     easerPayoutAlreadySettled: ['paid', 'transferred']
       .includes(String(booking.payout_status || '')),
     notificationDelivered: notification?.ok === true,

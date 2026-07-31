@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { bookingId } = req.query;
-    if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
+    if (!isUuid(bookingId)) return res.status(400).json({ error: 'A valid bookingId is required' });
 
     // Fetch activity events and notification log in parallel
     const [activityRes, notifRes] = await Promise.all([
@@ -57,15 +57,20 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { bookingId, description, eventType = 'owner_action', metadata } = req.body;
-    if (!bookingId || !description) return res.status(400).json({ error: 'bookingId and description required' });
+    const { bookingId, description, eventType = 'owner_action', metadata } = req.body || {};
+    if (!isUuid(bookingId) || typeof description !== 'string' || !description.trim()) {
+      return res.status(400).json({ error: 'Valid bookingId and description are required' });
+    }
+    if (description.trim().length > 2000 || !/^[a-z0-9_]{1,80}$/i.test(String(eventType || ''))) {
+      return res.status(400).json({ error: 'Activity description or event type is invalid' });
+    }
 
     const { error } = await sb.from('activity_logs').insert({
       booking_id: bookingId,
       event_type: eventType,
       actor_type: 'owner',
       actor_name: 'Owner',
-      description,
+      description: description.trim(),
       metadata: metadata || null,
     });
 
@@ -76,6 +81,10 @@ export default async function handler(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+}
+
 function formatNotifDescription(n) {
   const typeLabels = {
     booking_created:          'Booking created',
@@ -83,6 +92,7 @@ function formatNotifDescription(n) {
     owner_booking_confirmation: 'Owner booking confirmation email',
     owner_booking_created_notice: 'Owner booking operations notice',
     return_visit_customer:      'Return visit confirmation email',
+    booking_status_correction:  'Booking status correction email',
     dispatch_offer:           'Job offer sent to Easer',
     assignment_confirmation:  'Assignment confirmation to Easer',
     job_accepted:             'Easer confirmed — customer notified',

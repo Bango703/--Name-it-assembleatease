@@ -10,7 +10,6 @@ import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
-import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { reserveBookingFinancialOperation } from './_financial-operation.js';
 import { finalizeCompletionRewards, surfaceCompletionRewardHold } from './_completion-rewards.js';
 import { resolveOrCreateEaserFeeSnapshot } from './_easer-fee-snapshot.js';
@@ -124,6 +123,7 @@ export default async function handler(req, res) {
   }
 
   let feeSnapshot;
+  let completionNotification = { ok: false, error: 'Completion email was not attempted.' };
   try {
     feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, booking.assembler_id);
   } catch (feeError) {
@@ -420,7 +420,7 @@ export default async function handler(req, res) {
         <p style="margin:0;font-size:14px;color:#52525b;line-height:1.7">Need help with anything else? We're always here — <a href="https://www.assembleatease.com/book" style="color:#00BFFF;font-weight:600">book your next service</a> anytime.</p>`,
     });
 
-    await sendEmail({
+    completionNotification = await sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Payment Receipt & Job Complete — ${booking.ref}`,
@@ -428,8 +428,27 @@ export default async function handler(req, res) {
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'customer' },
     });
+    if (completionNotification?.ok !== true) {
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'notification_failed',
+        actorType: 'system',
+        actorName: 'Notifications',
+        description: 'Job completion was saved, but the customer completion receipt email failed.',
+        metadata: { error: completionNotification?.error || completionNotification?.reason || 'Delivery failed' },
+      }).catch(error => console.warn('Completion notification failure activity skipped:', error?.message || error));
+    }
   } catch (emailErr) {
     console.error('Complete email error:', emailErr);
+    completionNotification = { ok: false, error: emailErr?.message || String(emailErr) };
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'notification_failed',
+      actorType: 'system',
+      actorName: 'Notifications',
+      description: 'Job completion was saved, but the customer completion receipt email failed.',
+      metadata: { error: completionNotification.error },
+    }).catch(() => {});
   }
 
   // Audit log
@@ -440,12 +459,15 @@ export default async function handler(req, res) {
     updateDealStage(booking.hubspot_deal_id, 'closedwon').catch(e => console.error('HubSpot complete stage error:', e));
   }
 
-  logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((finalAmountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged: finalAmountCharged, platformFee, assemblerDue } });
+  await logActivity(sb, { bookingId: booking.id, eventType: 'completed', actorType: 'owner', actorName: 'Owner', description: `Job marked complete by owner. Amount charged: $${((finalAmountCharged||0)/100).toFixed(2)}`, metadata: { amountCharged: finalAmountCharged, platformFee, assemblerDue } })
+    .catch(error => console.warn('Owner completion activity log skipped:', error?.message || error));
   return res.status(rewardResult.ok ? 200 : 202).json({
     success: true,
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
     payout: connectPayout,
     reconciliationRequired: !rewardResult.ok,
+    notificationDelivered: completionNotification?.ok === true,
+    notificationError: completionNotification?.ok ? null : (completionNotification?.error || completionNotification?.reason || 'Delivery failed'),
     code: rewardResult.ok ? undefined : rewardResult.code,
   });
 }
@@ -456,6 +478,12 @@ export default async function handler(req, res) {
 // earnings only after the offline customer collection is audited.
 async function completeOwnerManualBooking(sb, res, booking) {
   if (booking.status === BOOKING_STATUS.COMPLETED) {
+    if (booking.return_visit_required === true) {
+      return res.status(409).json({
+        error: 'This booking is marked completed but still has an open return visit. Resolve the return visit before finalizing the job.',
+        code: 'RETURN_VISIT_STATE_CONFLICT',
+      });
+    }
     return res.status(200).json({
       success: true, alreadyCompleted: true, offline: true,
       booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
@@ -463,6 +491,12 @@ async function completeOwnerManualBooking(sb, res, booking) {
   }
   if (booking.status !== BOOKING_STATUS.CONFIRMED) {
     return res.status(409).json({ error: `Only a confirmed owner booking can be completed. Current status: ${booking.status}` });
+  }
+  if (booking.return_visit_required === true) {
+    return res.status(409).json({
+      error: 'This booking has an open return visit. Use Complete Return Visit & Job after the remaining work is finished.',
+      code: 'RETURN_VISIT_OPEN',
+    });
   }
   if (booking.assembler_id) {
     return res.status(409).json({
@@ -479,10 +513,9 @@ async function completeOwnerManualBooking(sb, res, booking) {
   const { data: rows, error: updateErr } = await sb.from('bookings').update({
     status: BOOKING_STATUS.COMPLETED,
     completed_at: now,
-    amount_charged: totalCents,
-    // Processing fee for how the customer paid (0 for cash/bank, card rate for
-    // card rails). No Easer on this path, so no split — the owner did the work.
-    stripe_fee: offlineMethodFeeCents(booking.payment_method, totalCents),
+    // Completion is operational truth only. Customer money remains sourced
+    // exclusively from the owner-manual payment ledger and must not be inferred
+    // from the agreed booking total.
     platform_fee_pct: 0,
     platform_fee: 0,
     assembler_due: 0,
@@ -511,17 +544,19 @@ async function completeOwnerManualBooking(sb, res, booking) {
     return res.status(409).json({ error: 'Booking state changed before completion. Refresh and retry.' });
   }
 
-  logActivity(sb, {
+  await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'completed',
     actorType: 'owner',
     actorName: 'Owner',
-    description: `Owner-created job marked complete (offline). Amount: $${(totalCents / 100).toFixed(2)}.`,
-    metadata: { source: 'owner_manual', amountCharged: totalCents },
+    description: `Owner-created job marked complete (offline). Agreed customer total: $${(totalCents / 100).toFixed(2)}. Customer payment remains separately verified.`,
+    metadata: { source: 'owner_manual', agreedTotalCents: totalCents },
   }).catch(e => console.warn('Owner-manual completion activity log skipped:', e?.message || e));
 
+  let notificationDelivered = null;
+  let notificationError = null;
   if (booking.customer_email) {
-    sendEmail({
+    const emailResult = await sendEmail({
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Your job is complete — ${booking.ref}`,
@@ -538,11 +573,25 @@ async function completeOwnerManualBooking(sb, res, booking) {
       }),
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'completion', recipientType: 'customer' },
-    }).catch(e => console.error('Owner-manual completion email error:', e?.message || e));
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+    notificationDelivered = emailResult?.ok === true;
+    notificationError = emailResult?.ok ? null : (emailResult?.error || emailResult?.reason || 'Delivery failed');
+    if (!notificationDelivered) {
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'notification_failed',
+        actorType: 'system',
+        actorName: 'Notifications',
+        description: 'Owner-created job was completed, but the customer completion email failed.',
+        metadata: { error: notificationError },
+      }).catch(() => {});
+    }
   }
 
   return res.status(200).json({
     success: true, offline: true,
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
+    notificationDelivered,
+    notificationError,
   });
 }

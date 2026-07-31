@@ -629,7 +629,8 @@ function renderBooking(b) {
         + (grossPayments > 0 ? row('Payment received (gross)', grossPayments) : '')
         + (refunded > 0 ? row('Refunded', -refunded) : '')
         + (grossPayments > 0 || refunded > 0 ? row('Net payments retained', netPayments) : '')
-        + row('Remaining balance', Number(b.remaining_balance_cents) || 0, true);
+        + row('Remaining amount due', Number(b.remaining_balance_cents) || 0, true)
+        + (refunded > 0 ? '<div style="margin-top:0.55rem;font-size:0.75rem;color:#475569;line-height:1.45">The refund shown above does not create a new amount due.</div>' : '');
     } else {
       bd.innerHTML = serviceRows
         + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');

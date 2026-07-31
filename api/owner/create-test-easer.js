@@ -2,7 +2,8 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 
 export default async function handler(req, res) {
-  if (process.env.VERCEL_ENV === 'production' && process.env.ENABLE_TEST_ENDPOINTS !== 'true') {
+  // A fixed-credential test account must never be creatable in production.
+  if (process.env.VERCEL_ENV === 'production' || String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase() !== 'true') {
     return res.status(404).json({ error: 'Not found' });
   }
 

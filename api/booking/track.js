@@ -102,7 +102,10 @@ export default async function handler(req, res) {
     amountCollectedCents = (paymentEvents || []).length ? ledgerNet : (booking.payment_collected === true
       ? Number(booking.amount_charged ?? booking.total_price ?? 0)
       : 0);
-    remainingBalanceCents = Math.max(0, Number(booking.total_price || 0) - amountCollectedCents);
+    // Refunds reduce net retained revenue but do not silently create a new
+    // customer invoice. Gross verified payments determine what remains due.
+    const amountPaidTowardInvoice = (paymentEvents || []).length ? ledgerGross : amountCollectedCents;
+    remainingBalanceCents = Math.max(0, Number(booking.total_price || 0) - amountPaidTowardInvoice);
   }
 
   // Has this booking been rescheduled? If so, free cancellation is forfeited —

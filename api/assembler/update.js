@@ -1002,18 +1002,30 @@ export default async function handler(req, res) {
     const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[tier];
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
 
+    let tierEmail = null;
     if (action === 'promote') {
-      await sendEmail({
+      tierEmail = await sendEmail({
         to: profile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         subject: `Congratulations — you've been promoted to ${tierLabel}`,
         replyTo: 'service@assembleatease.com',
         html: buildPromotionEmail(firstName, tierLabel, tier),
         meta: { notificationType: 'easer_tier_changed', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
-      }).catch(() => ({ ok: false }));
+      }).catch(error => ({ ok: false, error: error?.message || String(error) }));
     }
 
-    return res.status(200).json({ ok: true, action, tier, previous: profile.tier });
+    return res.status(200).json({
+      ok: true,
+      action,
+      tier,
+      previous: profile.tier,
+      emailDelivered: action === 'promote'
+        ? tierEmail?.ok === true && !tierEmail?.suppressed
+        : null,
+      emailError: action === 'promote' && tierEmail?.ok !== true
+        ? (tierEmail?.error || tierEmail?.reason || 'unknown')
+        : null,
+    });
   }
 
   // ── MARK ID VERIFIED ─────────────────────────────────────────────────────

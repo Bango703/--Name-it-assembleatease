@@ -9,7 +9,10 @@ export default async function handler(req, res) {
 
   // ── DELETE a job ──────────────────────────────────────────
   if (req.method === 'DELETE') {
-    if (!id) return res.status(400).json({ error: 'Job ID required' });
+    if (process.env.VERCEL_ENV === 'production' || String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase() !== 'true') {
+      return res.status(405).json({ error: 'Marketplace jobs must be closed, not permanently deleted.' });
+    }
+    if (!isUuid(id)) return res.status(400).json({ error: 'Valid job ID required' });
     // Delete bids first (FK constraint)
     await sb.from('bids').delete().eq('job_id', id);
     const { error } = await sb.from('jobs').delete().eq('id', id);
@@ -22,14 +25,17 @@ export default async function handler(req, res) {
 
   // ── PATCH — close/update job status ───────────────────────
   if (req.method === 'PATCH') {
-    if (!id) return res.status(400).json({ error: 'Job ID required' });
+    if (!isUuid(id)) return res.status(400).json({ error: 'Valid job ID required' });
     const newStatus = req.body?.status;
-    if (!newStatus) return res.status(400).json({ error: 'Status required' });
-    const { error } = await sb.from('jobs').update({ status: newStatus }).eq('id', id);
+    if (!['open', 'assigned', 'closed', 'cancelled'].includes(newStatus)) {
+      return res.status(400).json({ error: 'Status must be open, assigned, closed, or cancelled' });
+    }
+    const { error, data } = await sb.from('jobs').update({ status: newStatus }).eq('id', id).select('id');
     if (error) {
       console.error('Owner patch job error:', error);
       return res.status(500).json({ error: 'Failed to update job' });
     }
+    if (!data?.length) return res.status(404).json({ error: 'Job not found' });
     return res.status(200).json({ success: true });
   }
 
@@ -80,4 +86,8 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).json({ jobs: data || [], count: count || 0 });
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }

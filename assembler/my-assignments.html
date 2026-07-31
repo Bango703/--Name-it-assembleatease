@@ -120,6 +120,68 @@
     .sheet-overlay { display: none !important; }
     .sheet-overlay.open { display: flex !important; }
 
+    /* Mobile containment: long service names and status badges must never
+       create a horizontally scrollable card or bottom sheet. */
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body.theme-pro .modal-box {
+      width: min(100%, 640px);
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    #asgn-modal-body,
+    #asgn-modal-body > * { min-width: 0; max-width: 100%; }
+    .e-job-card-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+    }
+    .e-job-card-top > :first-child { min-width: 0; }
+    .e-job-card-title,
+    .asgn-detail-title {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .e-job-card-top > .sb,
+    .asgn-detail-status {
+      flex: 0 0 auto;
+      max-width: 100%;
+      justify-self: end;
+    }
+    .asgn-detail-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 0.75rem;
+      margin-bottom: 0.875rem;
+      min-width: 0;
+    }
+    .asgn-detail-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--pro-text);
+      line-height: 1.3;
+    }
+
+    @media (max-width: 520px) {
+      .e-filter-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        overflow: visible;
+      }
+      .e-filter-pill { width: 100%; padding-inline: 0.55rem; }
+      .asgn-detail-header,
+      .e-job-card-top { grid-template-columns: minmax(0, 1fr); }
+      .e-job-card-top > .sb,
+      .e-job-card-top > .e-job-card-pay,
+      .asgn-detail-status { justify-self: start; }
+      body.theme-pro .modal-box {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+      }
+    }
+
   </style>
 </head>
 <body class="theme-pro">
@@ -344,19 +406,33 @@
   const ACTIVE_STATUSES = ['confirmed', 'en_route', 'arrived', 'in_progress'];
   const LIVE_STATUSES   = ['en_route', 'arrived', 'in_progress'];
 
+  function hasOpenReturnVisit(b) {
+    return !!(b && (b._return_visit_open === true
+      || (b.status === 'completed' && b.return_visit_required === true)));
+  }
+
+  function isFullyCompleted(b) {
+    return !!(b && b.status === 'completed' && !hasOpenReturnVisit(b));
+  }
+
+  function isActiveAssignment(b) {
+    return !!(b && b.assembler_accepted_at
+      && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed' || hasOpenReturnVisit(b)));
+  }
+
   function filterList(list, filter) {
     if (filter === 'offers')   return list.filter(function(b){ return b._is_pending_offer; });
-    if (filter === 'active')   return list.filter(function(b){ return b.assembler_accepted_at && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed'); });
+    if (filter === 'active')   return list.filter(isActiveAssignment);
     if (filter === 'upcoming') return list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; });
-    if (filter === 'completed') return list.filter(function(b){ return b.status === 'completed'; });
+    if (filter === 'completed') return list.filter(isFullyCompleted);
     return list; // 'all'
   }
 
   function updateFilterCounts(list) {
     var offers    = list.filter(function(b){ return b._is_pending_offer; }).length;
-    var active    = list.filter(function(b){ return b.assembler_accepted_at && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed'); }).length;
+    var active    = list.filter(isActiveAssignment).length;
     var upcoming  = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; }).length;
-    var completed = list.filter(function(b){ return b.status === 'completed'; }).length;
+    var completed = list.filter(isFullyCompleted).length;
     var el;
     el = document.getElementById('fc-offers');    if (el) el.textContent = offers ? '(' + offers + ')' : '';
     el = document.getElementById('fc-active');    if (el) el.textContent = active ? '(' + active + ')' : '';
@@ -371,7 +447,7 @@
       { label: 'On My Way',  done: !!b.en_route_at,          isCurrent: b.status === 'en_route' },
       { label: 'Arrived',    done: !!b.checked_in_at,        isCurrent: b.status === 'arrived' },
       { label: 'Start Job',  done: !!b.job_started_at,       isCurrent: b.status === 'in_progress' },
-      { label: 'Complete',   done: b.status === 'completed',  isCurrent: false },
+      { label: 'Complete',   done: isFullyCompleted(b),  isCurrent: hasOpenReturnVisit(b) },
     ];
     var html = '<div class="e-pipeline-track">';
     steps.forEach(function(s, i) {
@@ -409,9 +485,9 @@
     // When showing 'all', group by section
     const isAll = currentFilter === 'all';
     const offers   = list.filter(function(b){ return b._is_pending_offer; });
-    const active   = list.filter(function(b){ return b.assembler_accepted_at && (LIVE_STATUSES.includes(b.status) || b.status === 'confirmed'); });
+    const active   = list.filter(isActiveAssignment);
     const upcoming = list.filter(function(b){ return b.status === 'confirmed' && !b._is_pending_offer && !b.assembler_accepted_at; });
-    const completed = list.filter(function(b){ return b.status === 'completed'; });
+    const completed = list.filter(isFullyCompleted);
 
   function maskName(n) {
     if (!n) return 'Customer';
@@ -457,14 +533,17 @@
     function cardHtml(b) {
       const isPendingOffer = b._is_pending_offer || (!b.assembler_accepted_at && (b._offer_token || b.assignment_token));
       const isLive = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
-      const isCompleted = b.status === 'completed';
+      const openReturnVisit = hasOpenReturnVisit(b);
+      const isCompleted = isFullyCompleted(b);
       const customerName = maskName(b.customer_name);
       const scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
       const scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
       const payStr = b._pay_estimate_lo != null
         ? formatMoneyCents(b._pay_estimate_lo)
         : (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : '');
-      const stageMeta = STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' });
+      const stageMeta = openReturnVisit
+        ? { cls: 'bk-accepted', label: 'Return Visit Open' }
+        : (STAGE_BADGE[b.status] || (b.assembler_accepted_at ? STAGE_BADGE.confirmed : { cls:'bk-dispatched', label:'Pending' }));
 
       return '<div class="e-job-card" data-bid="' + b.id + '">' +
         '<div class="e-job-card-top">' +
@@ -1135,12 +1214,15 @@
     selectedBookingId = bookingId;
     const accepted = !!b.assembler_accepted_at;
     const isPendingOffer = b._is_pending_offer;
-    const isCompleted = b.status === 'completed';
-    const stageMeta = STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' };
+    const openReturnVisit = hasOpenReturnVisit(b);
+    const isCompleted = isFullyCompleted(b);
+    const stageMeta = openReturnVisit
+      ? { cls: 'bk-accepted', label: 'Return Visit Open' }
+      : (STAGE_BADGE[b.status] || { cls:'bk-dispatched', label:'Pending' });
     const scopeHtml = renderScopeSection(b._booking_items || []);
     const scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
     const scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
-    const payEst = (b.status === 'completed')
+    const payEst = isCompleted
       ? (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null)
       : (b._pay_estimate_lo != null
         ? (b._pay_estimate_lo === b._pay_estimate_hi
@@ -1150,15 +1232,15 @@
 
     document.getElementById('asgn-modal-body').innerHTML = [
       // Header row: service title + status badge
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.875rem">',
-        '<div style="font-size:1.1rem;font-weight:700;color:var(--pro-text);line-height:1.3">' + esc(b.service || 'Job') + '</div>',
-        '<span class="sb ' + stageMeta.cls + '" style="flex-shrink:0">' + stageMeta.label + '</span>',
+      '<div class="asgn-detail-header">',
+        '<div class="asgn-detail-title">' + esc(b.service || 'Job') + '</div>',
+        '<span class="sb asgn-detail-status ' + stageMeta.cls + '">' + stageMeta.label + '</span>',
       '</div>',
 
       // Pay estimate pill (for offers / accepted)
       payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
         + '<strong style="color:var(--pro-teal)">' + payEst + '</strong>'
-        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (b.status === 'completed' ? 'Your payout' : 'Est. take-home') + '</span>'
+        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (isCompleted ? 'Your payout' : 'Est. take-home') + '</span>'
         + '</div><br>' : '',
 
       // Detail rows
@@ -1246,7 +1328,7 @@
 
     // Evidence request section — shown when payout is held pending upload
     var evReqSection = document.getElementById('evidence-request-section');
-    var evidenceHeld = b.status === 'completed' && b.evidence_requested_at && !b._evidence_uploaded;
+    var evidenceHeld = isFullyCompleted(b) && b.evidence_requested_at && !b._evidence_uploaded;
     if (evidenceHeld) {
       evReqSection.style.display = '';
       _evidenceReqBookingId = b.id;
@@ -1261,7 +1343,7 @@
 
     // Payout summary for completed jobs
     var payoutSection = document.getElementById('payout-info-section');
-    if (b.status === 'completed') {
+    if (isFullyCompleted(b)) {
       payoutSection.style.display = 'block';
       var earningTruth = earningsTruthLoaded ? earningsByBookingId.get(b.id) : null;
       var dueCents = earningTruth ? Number(earningTruth.amount_cents || 0) : Number(b.assembler_due || 0);

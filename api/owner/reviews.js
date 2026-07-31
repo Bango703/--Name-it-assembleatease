@@ -7,23 +7,22 @@ export default async function handler(req, res) {
 
   // PATCH — toggle approved or featured
   if (req.method === 'PATCH') {
-    const { id, approved, featured } = req.body;
-    if (!id) return res.status(400).json({ error: 'id required' });
+    const { id, approved, featured } = req.body || {};
+    if (!isUuid(id)) return res.status(400).json({ error: 'A valid review id is required' });
     const updates = {};
-    if (approved !== undefined) updates.approved = approved;
-    if (featured !== undefined) updates.featured = featured;
-    const { error } = await sb.from('reviews').update(updates).eq('id', id);
+    if (typeof approved === 'boolean') updates.approved = approved;
+    if (typeof featured === 'boolean') updates.featured = featured;
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'A boolean approved or featured value is required' });
+    const { error, data } = await sb.from('reviews').update(updates).eq('id', id).select('id');
     if (error) return res.status(500).json({ error: 'Failed to update review' });
+    if (!data?.length) return res.status(404).json({ error: 'Review not found' });
     return res.status(200).json({ success: true });
   }
 
-  // DELETE
+  // Reviews are customer/business records. Hide them through PATCH rather than
+  // destroying the only moderation trail from the operating dashboard.
   if (req.method === 'DELETE') {
-    const { id } = req.body;
-    if (!id) return res.status(400).json({ error: 'id required' });
-    const { error } = await sb.from('reviews').delete().eq('id', id);
-    if (error) return res.status(500).json({ error: 'Failed to delete review' });
-    return res.status(200).json({ success: true });
+    return res.status(405).json({ error: 'Reviews must be hidden, not permanently deleted.' });
   }
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -35,4 +34,8 @@ export default async function handler(req, res) {
 
   if (error) return res.status(500).json({ error: 'Failed to fetch reviews' });
   return res.status(200).json({ reviews: data || [] });
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }

@@ -8,6 +8,7 @@ import { getEaserReadiness, readinessError } from '../_easer-readiness.js';
 import { normalizeAssemblerTier } from '../_assembler-state.js';
 import { buildEaserFeeSnapshot } from './_easer-fee-snapshot.js';
 import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
+import { verifyOwnerManualCustomerFundsForPayout } from '../owner/_manual-payment-truth.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
@@ -47,6 +48,25 @@ export default async function handler(req, res) {
   // payment the owner collects directly). See isOwnerManualLiveFlow.
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
     return res.status(409).json({ error: 'A payment, cancellation, or payout operation is in progress. Wait for it to finish before changing the Easer.' });
+  }
+  if (recordOnlyOwnerManualCompleted && booking.return_visit_required === true) {
+    return res.status(409).json({
+      error: 'Resolve the open return visit before crediting completed work or creating Easer earnings.',
+      code: 'RETURN_VISIT_OPEN',
+    });
+  }
+  if (recordOnlyOwnerManualCompleted) {
+    const paymentTruth = await verifyOwnerManualCustomerFundsForPayout({
+      sb,
+      booking,
+      allowRefundedOriginalPayment: Number(booking.refund_amount || 0) > 0,
+    });
+    if (!paymentTruth.ok) {
+      return res.status(409).json({
+        error: paymentTruth.error,
+        code: paymentTruth.code || 'OWNER_MANUAL_PAYMENT_NOT_VERIFIED',
+      });
+    }
   }
   if (booking.assembler_id && !reassign) return res.status(400).json({ error: 'Booking already assigned. Pass reassign:true to override.' });
 
@@ -148,11 +168,13 @@ export default async function handler(req, res) {
       // balance. Their Easer payout must therefore remain an externally recorded
       // manual payout even if Connect is enabled for online jobs.
       payout_mode_snapshot: split.assemblerDueCents > 0 ? 'manual' : null,
-      payout_review_status: 'not_required',
+      payout_review_status: Number(booking.refund_amount || 0) > 0 ? 'review_required' : 'not_required',
       // Record the processing fee for how the customer paid this offline job
       // (0 for cash/bank rails, the card rate for card rails) so platform gross
       // is accurate — one rule, from _offline-payment.js.
-      stripe_fee: offlineMethodFeeCents(booking.payment_method, split.totalCents),
+      stripe_fee: booking.stripe_fee != null
+        ? Number(booking.stripe_fee)
+        : offlineMethodFeeCents(booking.payment_method, split.totalCents),
     });
   }
 

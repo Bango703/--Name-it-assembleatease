@@ -118,7 +118,8 @@ assert.match(endpoint, /req\.method !== 'GET'/, 'matcher must be read-only GET')
 assert.match(endpoint, /if \(!verifyOwner\(req\)\)/, 'matcher must require owner authentication');
 assert.match(endpoint, /booking\.source !== 'owner_manual'/, 'matcher must require the owner-manual booking lane');
 assert.match(endpoint, /booking\.payment_status !== 'offline_recorded'/, 'matcher must require offline-recorded payment truth');
-assert.match(endpoint, /Math\.floor\(Date\.now\(\) \/ 1000\) - LOOKBACK_SECONDS/, 'matcher must use the three-hour Stripe window');
+assert.match(endpoint, /const LOOKBACK_SECONDS = 7 \* 24 \* 60 \* 60/, 'matcher must cover next-day owner reconciliation');
+assert.match(endpoint, /Math\.floor\(Date\.now\(\) \/ 1000\) - LOOKBACK_SECONDS/, 'matcher must use the bounded Stripe window');
 assert.match(endpoint, /limit: STRIPE_LIST_LIMIT/, 'matcher must cap Stripe results at 100');
 assert.match(endpoint, /expand: \['data\.latest_charge'\]/, 'matcher must expand charge truth in the Stripe list request');
 assert.match(endpoint, /\.in\('stripe_payment_intent_id', listedIds\)/, 'matcher must exclude PaymentIntents already linked to any manual booking');
@@ -130,13 +131,19 @@ assert.doesNotMatch(endpoint, /paymentIntents\.create|refunds\.create|charges\.c
 assert.match(recorder, /export function expectedLiveMode/, 'matcher and recorder must share the same live-mode rule');
 assert.match(recorder, /export const MAX_PAYMENT_CENTS/, 'matcher and recorder must share the same payment limit');
 assert.match(recorder, /paymentIntents\.retrieve/, 'recording must still retrieve fresh Stripe truth');
+assert.match(recorder, /const amountCents = Number\(intent\?\.amount_received\)/, 'Stripe must supply the recorded amount');
+assert.match(recorder, /expectedTotalCents - submittedDiscountCents/, 'the server must calculate the adjusted customer total');
+assert.match(recorder, /existingGrossCents \+ amountCents > adjustedTotalCents/, 'gross payments must never exceed the agreed customer total');
 assert.match(recorder, /Number\(charge\.amount_refunded \|\| 0\) !== 0/, 'recording must still reject refunded charges');
 assert.match(recorder, /charge\.disputed === true/, 'recording must still reject disputed charges');
 
 assert.match(ownerUi, /\/api\/owner\/stripe-match-payment\?bookingId=/, 'record-payment modal must call the matcher');
 assert.match(ownerUi, /Matched:<\/strong>/, 'one strong match must be clearly identified');
 assert.match(ownerUi, /manual-payment-match-choice/, 'ambiguous matches must require radio selection');
-assert.match(ownerUi, /No unused recent Stripe payment was found/, 'manual PaymentIntent fallback must remain visible');
+assert.match(ownerUi, /No unused Stripe payment from the last 7 days was found/, 'manual PaymentIntent fallback must remain visible');
+assert.match(ownerUi, /manual-payment-discount/, 'discount entry must remain available as an optional audited adjustment');
+assert.doesNotMatch(ownerUi, /id="manual-payment-amount"/, 'the owner must not type an amount Stripe already knows');
+assert.doesNotMatch(ownerUi, /id="manual-payment-total"/, 'the owner must not recalculate the adjusted booking total');
 assert.match(ownerUi, /\/api\/owner\/record-manual-payment/, 'Record must still use the verified mutation endpoint');
 assert.match(ownerUi, /manual-payment-confirm-cb/, 'owner confirmation must remain required');
 

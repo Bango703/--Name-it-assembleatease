@@ -40,8 +40,17 @@ export default async function handler(req, res) {
   const completedPayout = booking.status === BOOKING_STATUS.COMPLETED;
   const cancellationPayout = booking.status === BOOKING_STATUS.CANCELLED
     && Number(booking.cancellation_easer_due_cents || 0) > 0;
+  const ownerManualRefundAffected = booking.source === 'owner_manual'
+    && booking.payment_status === 'offline_recorded'
+    && Number(booking.refund_amount || 0) > 0;
   if (!completedPayout && !cancellationPayout) {
     return res.status(400).json({ error: 'Only completed jobs or fee-bearing cancellations can be paid out. Current status: ' + booking.status });
+  }
+  if (completedPayout && booking.return_visit_required === true) {
+    return res.status(409).json({
+      error: 'This booking still has an open return visit. Record the remaining work as complete before paying the Easer.',
+      code: 'RETURN_VISIT_OPEN',
+    });
   }
   if (!booking.assembler_id) {
     return res.status(400).json({ error: 'No assembler assigned to this booking' });
@@ -65,6 +74,13 @@ export default async function handler(req, res) {
     }
   } else if (booking.payment_status === 'captured') {
     // Standard completed-job payout path.
+  } else if (ownerManualRefundAffected) {
+    if (booking.payout_review_status !== 'approved_full') {
+      return res.status(409).json({
+        error: 'This owner booking has a customer refund. Review and approve the canonical Easer earnings before recording payment.',
+        code: 'PAYOUT_REVIEW_REQUIRED',
+      });
+    }
   } else if (hasVerifiedOfflineOwnerPayment(booking)) {
     // A completed owner-entered job has no Stripe capture. Its audited
     // payment-collected fields are the server-side customer-funds truth.
@@ -86,8 +102,13 @@ export default async function handler(req, res) {
     });
   }
 
-  if (completedPayout && hasVerifiedOfflineOwnerPayment(booking)) {
-    const fundsCheck = await verifyOwnerManualCustomerFundsForPayout({ sb, booking });
+  if (completedPayout && booking.source === 'owner_manual' && booking.payment_status === 'offline_recorded') {
+    const fundsCheck = await verifyOwnerManualCustomerFundsForPayout({
+      sb,
+      booking,
+      allowRefundedOriginalPayment: ownerManualRefundAffected
+        && booking.payout_review_status === 'approved_full',
+    });
     if (!fundsCheck.ok) {
       return res.status(409).json({
         error: fundsCheck.error,
@@ -98,7 +119,10 @@ export default async function handler(req, res) {
 
   let hasEvidence = false;
   if (completedPayout) {
-    const evidenceResult = await loadCurrentCompletionEvidence(sb, booking, { select: 'id, evidence_type, uploaded_by, created_at' });
+    const evidenceResult = await loadCurrentCompletionEvidence(sb, booking, {
+      select: 'id, evidence_type, uploaded_by, created_at',
+      allowHistoricalOwnerManual: true,
+    });
     if (evidenceResult.error) {
       console.error('Payout completion evidence lookup failed:', evidenceResult.error);
       return res.status(503).json({ error: 'Completion evidence could not be verified. Payout was not recorded.' });
@@ -237,7 +261,10 @@ export default async function handler(req, res) {
     assembler = assemblerProfile || null;
   }
 
-  // #17 — Send assembler payout notification email
+  // #17 — Send assembler payout notification email. The payout record remains
+  // financial truth even if delivery fails, but the owner must see the failure.
+  let notificationDelivered = null;
+  let notificationError = null;
   if (assembler?.email) {
     try {
       await sendEmail({
@@ -265,8 +292,11 @@ export default async function handler(req, res) {
           disableDedupe: true,
         },
       });
+      notificationDelivered = true;
     } catch (e) {
       console.error('Payout email error:', e);
+      notificationDelivered = false;
+      notificationError = e.message || 'Payout email delivery failed';
     }
   }
 
@@ -287,6 +317,8 @@ export default async function handler(req, res) {
     platformRevenue: payoutRecord.platform_revenue ?? platformRevenue,
     amountCharged: payoutRecord.amount_charged || booking.amount_charged || 0,
     hasEvidence,
+    notificationDelivered,
+    notificationError,
   });
 }
 

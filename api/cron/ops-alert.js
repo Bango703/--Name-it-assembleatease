@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   const { data: bookings, error } = await sb
     .from('bookings')
     .select('id, ref, service, source, payment_status, customer_name, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, status, assembler_id, assembler_name, assembler_accepted_at, assigned_at, needs_manual_dispatch')
-    .in('status', ['pending', 'confirmed', 'en_route', 'arrived', 'in_progress'])
+    .or('status.in.(pending,confirmed,en_route,arrived,in_progress),and(status.eq.completed,return_visit_required.eq.true)')
     .limit(200);
 
   if (error) {

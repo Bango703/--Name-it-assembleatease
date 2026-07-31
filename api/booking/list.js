@@ -60,6 +60,10 @@ export default async function handler(req, res) {
         (sum, event) => sum + Number(event.refunded_cents || 0),
         0,
       );
+      const ledgerProcessingFeeCents = paymentEvents.reduce(
+        (sum, event) => sum + Number(event.processing_fee_cents || 0),
+        0,
+      );
       const ledgerNetCents = Math.max(0, ledgerGrossCents - ledgerRefundedCents);
       const manualStripeRefundableCents = paymentEvents
         .filter(event => ['stripe_manual', 'card_on_site'].includes(event.payment_method))
@@ -78,20 +82,30 @@ export default async function handler(req, res) {
       const amountCollectedCents = paymentEvents.length ? ledgerNetCents : legacyCollectedCents;
       booking.payment_events = paymentEvents;
       booking.manual_payment_gross_cents = ledgerGrossCents;
+      booking.amount_paid_cents = paymentEvents.length ? ledgerGrossCents : legacyCollectedCents;
       booking.manual_refunded_cents = ledgerRefundedCents;
       booking.manual_stripe_refundable_cents = manualStripeRefundableCents;
       booking.amount_collected_cents = amountCollectedCents;
       booking.remaining_balance_cents = Math.max(
         0,
-        Number(booking.total_price || 0) - amountCollectedCents,
+        Number(booking.total_price || 0) - (paymentEvents.length ? ledgerGrossCents : legacyCollectedCents),
       );
       booking.payment_ledger_legacy = legacyCollectedCents > 0;
+      const isOwnerManual = booking.source === 'owner_manual';
+      const ownerManualGrossCents = paymentEvents.length ? ledgerGrossCents : legacyCollectedCents;
       booking.financial_summary = computeBookingFinancialSummary({
-        amountChargedCents: booking.amount_charged,
-        totalPriceCents: booking.total_price,
-        refundAmountCents: booking.refund_amount,
+        // Owner-created bookings must never turn an unpaid total into revenue.
+        // Their verified payment ledger (or the audited legacy full-payment
+        // flag) is the only customer-money source of truth.
+        amountChargedCents: isOwnerManual ? ownerManualGrossCents : booking.amount_charged,
+        totalPriceCents: isOwnerManual ? 0 : booking.total_price,
+        refundAmountCents: isOwnerManual && paymentEvents.length
+          ? ledgerRefundedCents
+          : booking.refund_amount,
         taxAmountCents: booking.tax_amount,
-        stripeFeeCents: booking.stripe_fee,
+        stripeFeeCents: isOwnerManual && paymentEvents.length
+          ? ledgerProcessingFeeCents
+          : booking.stripe_fee,
         assemblerDueCents: booking.assembler_due,
         payoutAmountCents: booking.payout_amount,
       });

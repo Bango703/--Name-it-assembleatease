@@ -240,6 +240,11 @@
     }
     @media(max-width:500px){
       input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),select,textarea{font-size:16px !important}
+      .modal-overlay{padding:0.5rem;align-items:flex-start}
+      .modal{padding:1.25rem;max-height:calc(100dvh - 1rem);margin-top:0.5rem}
+      .modal-row{grid-template-columns:minmax(0,1fr)}
+      .modal-actions{flex-wrap:wrap}
+      .modal-actions .btn{flex:1 1 120px;justify-content:center;min-height:44px}
     }
 
     /* ── Professional design system additions ── */
@@ -572,7 +577,7 @@
           <div class="stat teal" id="stat-confirmed"><div class="stat-value">—</div><div class="stat-label">Confirmed</div></div>
           <div class="stat orange" id="stat-completed"><div class="stat-value">—</div><div class="stat-label">Completed</div></div>
           <div class="stat neutral" id="stat-total"><div class="stat-value">—</div><div class="stat-label">Total</div></div>
-          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Platform Profit</div></div>
+          <div class="stat teal" id="stat-revenue"><div class="stat-value">—</div><div class="stat-label">Recorded Platform Gross</div></div>
         </div>
 
         <!-- Search -->
@@ -617,7 +622,7 @@
               <!-- Tabs -->
               <div class="detail-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
                 <button class="detail-tab active" data-tab="messages" onclick="switchDetailTab('messages',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;font-weight:600;color:var(--teal);border-bottom:2px solid var(--teal);cursor:pointer;margin-bottom:-1px">Messages</button>
-                <button class="detail-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
+                <button class="detail-tab" id="detail-dispatch-tab" data-tab="dispatch" onclick="switchDetailTab('dispatch',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Dispatch</button>
                 <button class="detail-tab" data-tab="timeline" onclick="switchDetailTab('timeline',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Timeline</button>
                 <button class="detail-tab" data-tab="notes" onclick="switchDetailTab('notes',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Notes</button>
                 <button class="detail-tab" data-tab="evidence" onclick="switchDetailTab('evidence',this)" style="padding:0.5rem 1rem;border:none;background:none;font-family:inherit;font-size:0.82rem;color:var(--muted);cursor:pointer;margin-bottom:-1px">Evidence<span id="evidence-tab-count" style="margin-left:3px;font-size:0.72rem;opacity:0.9"></span></button>
@@ -664,6 +669,13 @@
                   <button id="evidence-refresh-btn" onclick="window.loadEvidence&&window.loadEvidence(window._ownerSelectedId, true)" style="font-size:0.75rem;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit">Refresh</button>
                 </div>
                 <div id="evidence-content" style="font-size:0.85rem;color:var(--muted)">Loading…</div>
+                <div id="owner-evidence-upload" style="display:none;margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--border)">
+                  <div style="font-size:0.78rem;font-weight:700;color:var(--text);margin-bottom:0.45rem">Add historical completion evidence</div>
+                  <input id="owner-evidence-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:block;width:100%;font-size:0.78rem;margin-bottom:0.55rem" />
+                  <textarea id="owner-evidence-notes" class="modal-input" rows="2" maxlength="2000" placeholder="Describe what the photo shows and when it was taken" style="margin:0"></textarea>
+                  <button id="owner-evidence-upload-btn" class="btn btn-teal" style="margin-top:0.55rem;width:100%">Upload Evidence</button>
+                  <div style="font-size:0.7rem;color:var(--muted);line-height:1.45;margin-top:0.4rem">Owner-added evidence is immutable, owner-visible, and recorded in the booking timeline.</div>
+                </div>
               </div>
             </div>
             <div class="empty-state" id="detail-placeholder" style="margin-top:0">
@@ -777,7 +789,6 @@
       <div id="assemblers-view" style="display:none">
         <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
           <button class="btn" id="check-phones-btn" style="font-size:0.78rem">Email Missing Phones</button>
-          <button class="btn" id="test-push-btn" style="font-size:0.78rem">Test Push Notification</button>
           <button class="btn btn-teal" id="add-easer-btn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Easer</button>
         </div>
         <div class="stats-row" id="asm-stats-row">
@@ -907,7 +918,7 @@
         <div class="stats-row" id="cust-stats-row">
           <div class="stat teal"><div class="stat-value" id="cust-total">—</div><div class="stat-label">Total Customers</div></div>
           <div class="stat orange"><div class="stat-value" id="cust-repeat">—</div><div class="stat-label">Repeat Customers</div></div>
-          <div class="stat neutral"><div class="stat-value" id="cust-ltv">—</div><div class="stat-label">Avg Lifetime Value</div></div>
+          <div class="stat neutral"><div class="stat-value" id="cust-ltv">—</div><div class="stat-label">Avg Net Payments</div></div>
         </div>
         <div class="search-bar" style="margin:1rem 0">
           <span class="search-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -920,7 +931,7 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Customer</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Phone</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Bookings</th>
-                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Total Spent</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Net Payments</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Service</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Booking</th>
               </tr>
@@ -1158,6 +1169,7 @@
               <div class="detail-section-title" style="margin:0">Sales Tax Liability <span style="color:var(--muted);font-weight:400">(Texas &mdash; 8.25%)</span></div>
               <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Pass-through liability owed to the Texas Comptroller &mdash; never platform revenue. Collected on capture; refunds reduce it.</div>
               <div id="tax-next-due" style="font-size:0.78rem;font-weight:700;color:var(--teal,#0099CC);margin-top:0.35rem"></div>
+              <div style="font-size:0.7rem;color:var(--muted);margin-top:0.2rem">Planning reminder only. Confirm the filing frequency and due date assigned to the business in the Texas Comptroller account.</div>
             </div>
             <div style="display:flex;gap:0.4rem">
               <button class="tab" data-tax-gran="month" type="button">Monthly</button>
@@ -1356,7 +1368,7 @@ async function runIntelligence() {
     if (d.error) { document.getElementById('intel-briefing').textContent = 'Error: ' + d.error; return; }
 
     // Briefing
-    var raw = (d.reply || 'No analysis returned.').replace(/</g,'&lt;');
+    var raw = esc(d.reply || 'No analysis returned.');
     // Convert section labels like "URGENT:" to styled headers
     raw = raw.replace(/^([A-Z][A-Z\s]+:)/gm, '<strong style="color:var(--text);font-size:0.82rem;letter-spacing:0.06em">$1</strong>');
     document.getElementById('intel-briefing').innerHTML = raw.replace(/\n/g,'<br/>');
@@ -1384,7 +1396,8 @@ async function runIntelligence() {
     } else {
       var colors = { red:'#ef4444', amber:'#f59e0b' };
       alertList.innerHTML = alertItems.map(function(a) {
-        return '<div style="background:'+colors[a.level]+'18;border-left:3px solid '+colors[a.level]+';border-radius:0 6px 6px 0;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text);line-height:1.5">' + a.msg + '</div>';
+        var safeLevel = a.level === 'red' ? 'red' : 'amber';
+        return '<div style="background:'+colors[safeLevel]+'18;border-left:3px solid '+colors[safeLevel]+';border-radius:0 6px 6px 0;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text);line-height:1.5">' + esc(a.msg) + '</div>';
       }).join('');
     }
 
@@ -1405,7 +1418,7 @@ async function sendIntelChat() {
   if (!msg) return;
   input.value = '';
   var msgs = document.getElementById('intel-chat-msgs');
-  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + msg.replace(/</g,'&lt;') + '</div>';
+  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + esc(msg) + '</div>';
   msgs.innerHTML += '<div id="intel-thinking" style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--muted)">Thinking…</div>';
   msgs.scrollTop = msgs.scrollHeight;
   try {
@@ -1417,7 +1430,7 @@ async function sendIntelChat() {
     var d = await r.json();
     var t = document.getElementById('intel-thinking');
     if (t) t.remove();
-    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + (d.reply||'No response.').replace(/</g,'&lt;') + '</div>';
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + esc(d.reply||'No response.') + '</div>';
   } catch(e) {
     var t2 = document.getElementById('intel-thinking');
     if (t2) t2.remove();
@@ -1512,7 +1525,7 @@ window.intelQuick = intelQuick;
     </select>
     <label class="modal-label">Address</label>
     <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
+    <label id="eb-notify-row" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);margin-top:0.75rem;cursor:pointer">
       <input type="checkbox" id="eb-notify" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
       Notify customer of changes by email
     </label>
@@ -1746,26 +1759,47 @@ window.intelQuick = intelQuick;
       </label>
     </div>
     <div id="manual-payment-row" style="display:none;margin-top:0.75rem">
-      <div id="manual-payment-match" aria-live="polite" style="display:none;margin-bottom:0.75rem"></div>
-      <div class="modal-row">
-        <div>
-          <label class="modal-label">Stripe payment received ($)</label>
-          <input id="manual-payment-amount" class="modal-input" type="number" min="0.01" step="0.01" placeholder="149.00" />
-        </div>
-        <div>
-          <label class="modal-label">Adjusted agreed total ($)</label>
-          <input id="manual-payment-total" class="modal-input" type="number" min="1" step="0.01" />
+      <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.65rem;text-align:center">
+          <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;font-weight:700">Booking</div><strong id="manual-payment-booking-total" style="display:block;margin-top:0.2rem">$0.00</strong></div>
+          <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;font-weight:700">Recorded</div><strong id="manual-payment-recorded-total" style="display:block;margin-top:0.2rem">$0.00</strong></div>
+          <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;font-weight:700">Balance</div><strong id="manual-payment-balance" style="display:block;margin-top:0.2rem;color:#0f766e">$0.00</strong></div>
         </div>
       </div>
-      <label class="modal-label">Stripe PaymentIntent ID</label>
-      <input id="manual-payment-intent" class="modal-input" autocomplete="off" placeholder="pi_..." />
-      <label class="modal-label" style="margin-top:0.5rem">Discount explanation</label>
-      <input id="manual-payment-adjustment" class="modal-input" placeholder="Required only when reducing the agreed total" />
-      <label class="modal-label" style="margin-top:0.5rem">Payment note</label>
-      <input id="manual-payment-note" class="modal-input" placeholder="Work or phase this payment covers" />
+      <div id="manual-payment-match" aria-live="polite" style="display:none;margin-bottom:0.75rem"></div>
+      <button id="manual-payment-fallback-toggle" type="button" style="display:none;border:0;background:none;padding:0;color:#0369a1;font:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;margin:0 0 0.65rem;text-align:left">Payment not listed? Enter the Stripe ID</button>
+      <div id="manual-payment-fallback" style="display:none;margin-bottom:0.75rem">
+        <label class="modal-label">Stripe PaymentIntent ID</label>
+        <input id="manual-payment-intent" class="modal-input" autocomplete="off" placeholder="pi_..." />
+        <div style="font-size:0.72rem;color:#64748b;line-height:1.45;margin-top:0.35rem">AAE reads the exact amount, card, fee, refund, dispute, currency, and payment status from Stripe.</div>
+      </div>
+      <div id="manual-payment-review" aria-live="polite" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:0.7rem 0.8rem;color:#166534;font-size:0.78rem;line-height:1.5;margin-bottom:0.75rem">Select the Stripe payment to record.</div>
+      <details id="manual-payment-options" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.65rem 0.75rem;margin-bottom:0.75rem">
+        <summary style="cursor:pointer;color:#334155;font-size:0.78rem;font-weight:700">Optional discount or internal note</summary>
+        <div style="padding-top:0.65rem">
+          <div class="modal-row">
+            <div>
+              <label class="modal-label">Discount ($)</label>
+              <input id="manual-payment-discount" class="modal-input" type="number" min="0" step="0.01" value="0.00" />
+            </div>
+            <div>
+              <label class="modal-label">Discount reason</label>
+              <select id="manual-payment-adjustment" class="modal-input">
+                <option value="">Select only if discounted</option>
+                <option value="Owner-approved customer discount">Customer discount</option>
+                <option value="Service scope reduced">Service scope reduced</option>
+                <option value="Price correction">Price correction</option>
+              </select>
+            </div>
+          </div>
+          <div id="manual-payment-discount-preview" style="font-size:0.72rem;color:#475569;line-height:1.45;margin-top:0.35rem">No discount applied.</div>
+          <label class="modal-label" style="margin-top:0.6rem">Internal note (optional)</label>
+          <input id="manual-payment-note" class="modal-input" placeholder="Example: disassembly and transport phase" />
+        </div>
+      </details>
       <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
         <input type="checkbox" id="manual-payment-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
-        <span id="manual-payment-confirm-copy">I confirm the selected or manually entered Stripe payment and amount are correct. This records money already received and does not charge the customer.</span>
+        <span id="manual-payment-confirm-copy">I confirm this is the Stripe payment to record. This does not charge the customer again.</span>
       </label>
     </div>
     <div id="manual-refund-row" style="display:none;margin-top:0.75rem">
@@ -1798,6 +1832,12 @@ window.intelQuick = intelQuick;
       <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
         <input type="checkbox" id="return-visit-notify-cb" checked style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
         <span>Send the customer a professional return-appointment confirmation.</span>
+      </label>
+    </div>
+    <div id="return-resolution-row" style="display:none;margin-top:0.75rem">
+      <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45">
+        <input type="checkbox" id="return-resolution-notify-cb" checked style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+        <span id="return-resolution-notify-copy">Notify the customer of this status correction.</span>
       </label>
     </div>
     <div id="waive-fee-row" style="display:none;margin-top:0.75rem;font-size:0.85rem;color:var(--soft)">
@@ -1876,7 +1916,6 @@ window.intelQuick = intelQuick;
   const $siteChatList = document.getElementById('site-chat-list');
   const $siteChatThread = document.getElementById('site-chat-thread');
   const $siteChatSummary = document.getElementById('site-chat-summary');
-  const $cleanupTestBtn = document.getElementById('cleanup-test-data-btn');
   const $reasonModal = document.getElementById('reason-modal');
   const $reasonText  = document.getElementById('reason-text');
   const $payoutMethodRow = document.getElementById('payout-method-row');
@@ -1888,13 +1927,21 @@ window.intelQuick = intelQuick;
   const $collectionAmount = document.getElementById('collection-amount');
   const $collectionConfirmCopy = document.getElementById('collection-confirm-copy');
   const $manualPaymentRow = document.getElementById('manual-payment-row');
-  const $manualPaymentAmount = document.getElementById('manual-payment-amount');
-  const $manualPaymentTotal = document.getElementById('manual-payment-total');
   const $manualPaymentIntent = document.getElementById('manual-payment-intent');
+  const $manualPaymentDiscount = document.getElementById('manual-payment-discount');
   const $manualPaymentAdjustment = document.getElementById('manual-payment-adjustment');
   const $manualPaymentNote = document.getElementById('manual-payment-note');
   const $manualPaymentConfirm = document.getElementById('manual-payment-confirm-cb');
+  const $manualPaymentConfirmCopy = document.getElementById('manual-payment-confirm-copy');
   const $manualPaymentMatch = document.getElementById('manual-payment-match');
+  const $manualPaymentFallback = document.getElementById('manual-payment-fallback');
+  const $manualPaymentFallbackToggle = document.getElementById('manual-payment-fallback-toggle');
+  const $manualPaymentReview = document.getElementById('manual-payment-review');
+  const $manualPaymentOptions = document.getElementById('manual-payment-options');
+  const $manualPaymentDiscountPreview = document.getElementById('manual-payment-discount-preview');
+  const $manualPaymentBookingTotal = document.getElementById('manual-payment-booking-total');
+  const $manualPaymentRecordedTotal = document.getElementById('manual-payment-recorded-total');
+  const $manualPaymentBalance = document.getElementById('manual-payment-balance');
   const $manualRefundRow = document.getElementById('manual-refund-row');
   const $manualRefundAmount = document.getElementById('manual-refund-amount');
   const $manualRefundAvailable = document.getElementById('manual-refund-available');
@@ -1906,6 +1953,9 @@ window.intelQuick = intelQuick;
   const $returnVisitCompleted = document.getElementById('return-visit-completed');
   const $returnVisitRemaining = document.getElementById('return-visit-remaining');
   const $returnVisitNotify = document.getElementById('return-visit-notify-cb');
+  const $returnResolutionRow = document.getElementById('return-resolution-row');
+  const $returnResolutionNotify = document.getElementById('return-resolution-notify-cb');
+  const $returnResolutionNotifyCopy = document.getElementById('return-resolution-notify-copy');
 
   function setPayoutFieldsVisible(show) {
     if ($payoutMethodRow) $payoutMethodRow.style.display = show ? '' : 'none';
@@ -1941,6 +1991,26 @@ window.intelQuick = intelQuick;
   var manualPaymentCandidates = [];
   var manualPaymentSelectedCandidate = null;
 
+  function manualPaymentDollarInputCents(input) {
+    var raw = String((input && input.value) || '').trim();
+    if (!raw) return 0;
+    var cents = Math.round(Number(raw) * 100);
+    return Number.isSafeInteger(cents) && cents >= 0 ? cents : null;
+  }
+
+  function showManualPaymentFallback(show, hideToggle) {
+    if ($manualPaymentFallback) $manualPaymentFallback.style.display = show ? '' : 'none';
+    if ($manualPaymentFallbackToggle) $manualPaymentFallbackToggle.style.display = hideToggle ? 'none' : '';
+  }
+
+  function updateManualPaymentBalanceSummary() {
+    var totalCents = Number((pendingAction && pendingAction.expectedTotalCents) || 0);
+    var grossCents = Number((pendingAction && pendingAction.grossCollectedCents) || 0);
+    if ($manualPaymentBookingTotal) $manualPaymentBookingTotal.textContent = fmt$(totalCents);
+    if ($manualPaymentRecordedTotal) $manualPaymentRecordedTotal.textContent = fmt$(grossCents);
+    if ($manualPaymentBalance) $manualPaymentBalance.textContent = fmt$(Math.max(0, totalCents - grossCents));
+  }
+
   function resetManualPaymentMatcher() {
     manualPaymentMatchRequest += 1;
     manualPaymentCandidates = [];
@@ -1949,6 +2019,7 @@ window.intelQuick = intelQuick;
       $manualPaymentMatch.style.display = 'none';
       $manualPaymentMatch.innerHTML = '';
     }
+    showManualPaymentFallback(false, true);
   }
 
   function manualPaymentRelativeTime(value) {
@@ -1959,30 +2030,78 @@ window.intelQuick = intelQuick;
     var minutes = Math.floor(seconds / 60);
     if (minutes < 60) return minutes + ' min ago';
     var hours = Math.floor(minutes / 60);
-    return hours + (hours === 1 ? ' hr ago' : ' hrs ago');
+    if (hours < 24) return hours + (hours === 1 ? ' hr ago' : ' hrs ago');
+    var days = Math.floor(hours / 24);
+    return days + (days === 1 ? ' day ago' : ' days ago');
   }
 
   function manualPaymentCardLabel(candidate) {
     var brand = String((candidate && candidate.cardBrand) || 'card').toLowerCase();
     var brandLabels = { amex: 'Amex', mastercard: 'Mastercard', visa: 'Visa', discover: 'Discover' };
     var label = brandLabels[brand] || (brand.charAt(0).toUpperCase() + brand.slice(1));
-    return candidate && candidate.last4 ? label + ' ···' + candidate.last4 : label;
+    return candidate && candidate.last4 ? label + ' ending ' + candidate.last4 : label;
   }
 
   function manualPaymentCandidateLabel(candidate) {
     return fmt$(Number(candidate.amountCents || 0))
-      + ' · ' + manualPaymentRelativeTime(candidate.createdAt)
-      + ' · ' + manualPaymentCardLabel(candidate);
+      + ' / ' + manualPaymentRelativeTime(candidate.createdAt)
+      + ' / ' + manualPaymentCardLabel(candidate);
+  }
+
+  function updateManualPaymentReview() {
+    var totalCents = Number((pendingAction && pendingAction.expectedTotalCents) || 0);
+    var grossCents = Number((pendingAction && pendingAction.grossCollectedCents) || 0);
+    var discountCents = manualPaymentDollarInputCents($manualPaymentDiscount);
+    var validDiscount = discountCents != null && discountCents >= 0 && discountCents < totalCents;
+    var adjustedTotalCents = validDiscount ? totalCents - discountCents : totalCents;
+
+    if ($manualPaymentDiscountPreview) {
+      if (discountCents == null) {
+        $manualPaymentDiscountPreview.textContent = 'Enter a valid discount amount.';
+      } else if (discountCents >= totalCents && discountCents > 0) {
+        $manualPaymentDiscountPreview.textContent = 'The discount must be less than the booking total.';
+      } else if (discountCents > 0) {
+        $manualPaymentDiscountPreview.textContent = 'New agreed customer total: ' + fmt$(adjustedTotalCents) + '.';
+      } else {
+        $manualPaymentDiscountPreview.textContent = 'No discount applied.';
+      }
+    }
+
+    if (manualPaymentSelectedCandidate) {
+      var amountCents = Number(manualPaymentSelectedCandidate.amountCents || 0);
+      var remainingCents = Math.max(0, adjustedTotalCents - grossCents - amountCents);
+      var balanceCopy = remainingCents === 0
+        ? 'This will mark the customer balance paid in full.'
+        : fmt$(remainingCents) + ' will remain.';
+      if ($manualPaymentReview) {
+        $manualPaymentReview.textContent = 'Record ' + fmt$(amountCents) + ' from '
+          + manualPaymentCardLabel(manualPaymentSelectedCandidate) + '. ' + balanceCopy;
+      }
+      if ($manualPaymentConfirmCopy) {
+        $manualPaymentConfirmCopy.textContent = 'I confirm the ' + fmt$(amountCents)
+          + ' Stripe payment. This records money already received and does not charge the customer again.';
+      }
+      return;
+    }
+
+    var manualIntentId = String(($manualPaymentIntent && $manualPaymentIntent.value) || '').trim();
+    if ($manualPaymentReview) {
+      $manualPaymentReview.textContent = /^pi_[A-Za-z0-9]+$/.test(manualIntentId)
+        ? 'AAE will read and verify the exact payment amount directly from Stripe before recording it.'
+        : 'Select a Stripe payment to record.';
+    }
+    if ($manualPaymentConfirmCopy) {
+      $manualPaymentConfirmCopy.textContent = 'I confirm this is the Stripe payment to record. This does not charge the customer again.';
+    }
   }
 
   function applyManualPaymentCandidate(candidate) {
     if (!candidate) return;
     manualPaymentSelectedCandidate = candidate;
     if ($manualPaymentIntent) $manualPaymentIntent.value = candidate.paymentIntentId || '';
-    if ($manualPaymentAmount) {
-      $manualPaymentAmount.value = (Number(candidate.amountCents || 0) / 100).toFixed(2);
-    }
     if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+    showManualPaymentFallback(false, false);
+    updateManualPaymentReview();
   }
 
   function renderManualPaymentMatches(payload) {
@@ -1991,10 +2110,21 @@ window.intelQuick = intelQuick;
       ? payload.candidates
       : [];
     manualPaymentSelectedCandidate = null;
+    if (pendingAction && pendingAction.type === 'record-manual-payment') {
+      if (Number.isSafeInteger(Number(payload && payload.totalCents))) {
+        pendingAction.expectedTotalCents = Number(payload.totalCents);
+      }
+      if (Number.isSafeInteger(Number(payload && payload.grossCollectedCents))) {
+        pendingAction.grossCollectedCents = Number(payload.grossCollectedCents);
+      }
+      updateManualPaymentBalanceSummary();
+    }
     $manualPaymentMatch.style.display = '';
 
     if (!manualPaymentCandidates.length) {
-      $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">No unused recent Stripe payment was found. Enter the <strong>pi_</strong> PaymentIntent ID manually.</div>';
+      $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">No unused Stripe payment from the last 7 days was found. Paste the <strong>pi_</strong> ID below; Stripe will provide the amount.</div>';
+      showManualPaymentFallback(true, true);
+      updateManualPaymentReview();
       return;
     }
 
@@ -2005,7 +2135,7 @@ window.intelQuick = intelQuick;
       applyManualPaymentCandidate(bestMatch);
       $manualPaymentMatch.innerHTML = '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:0.7rem 0.8rem;color:#166534;font-size:0.8rem;line-height:1.5"><strong>Matched:</strong> '
         + esc(manualPaymentCandidateLabel(bestMatch))
-        + ' — verify and Record.</div>';
+        + '. Review and record it below.</div>';
       return;
     }
 
@@ -2015,11 +2145,13 @@ window.intelQuick = intelQuick;
     var options = manualPaymentCandidates.map(function(candidate, index) {
       return '<label style="display:flex;align-items:flex-start;gap:0.55rem;padding:0.55rem 0;cursor:pointer;border-top:' + (index ? '1px solid #e2e8f0' : '0') + '">'
         + '<input type="radio" name="manual-payment-match-choice" value="' + index + '" style="margin-top:2px;accent-color:var(--teal)">'
-        + '<span><strong>' + esc(manualPaymentCandidateLabel(candidate)) + '</strong><br><span style="color:#64748b">' + esc(candidate.paymentIntentId) + '</span></span>'
+        + '<span><strong>' + esc(manualPaymentCandidateLabel(candidate)) + '</strong></span>'
         + '</label>';
     }).join('');
     $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#334155;font-size:0.78rem;line-height:1.45"><strong>Select the Stripe payment to record:</strong>'
       + truncatedNote + '<div style="margin-top:0.35rem;max-height:220px;overflow:auto">' + options + '</div></div>';
+    showManualPaymentFallback(false, false);
+    updateManualPaymentReview();
   }
 
   async function loadManualPaymentMatches(booking) {
@@ -2041,7 +2173,9 @@ window.intelQuick = intelQuick;
       manualPaymentCandidates = [];
       manualPaymentSelectedCandidate = null;
       $manualPaymentMatch.style.display = '';
-      $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">Automatic matching is unavailable. Enter the <strong>pi_</strong> PaymentIntent ID manually.</div>';
+      $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">Automatic matching is unavailable. Paste the <strong>pi_</strong> ID below; Stripe will provide the amount.</div>';
+      showManualPaymentFallback(true, true);
+      updateManualPaymentReview();
     }
   }
 
@@ -2054,44 +2188,65 @@ window.intelQuick = intelQuick;
     });
   }
 
-  function clearManualPaymentMatchIfEdited() {
-    if (!manualPaymentSelectedCandidate) return;
-    var currentIntent = String(($manualPaymentIntent && $manualPaymentIntent.value) || '').trim();
-    var currentAmount = Math.round(Number(($manualPaymentAmount && $manualPaymentAmount.value) || 0) * 100);
-    if (currentIntent === manualPaymentSelectedCandidate.paymentIntentId
-        && currentAmount === Number(manualPaymentSelectedCandidate.amountCents)) return;
-    manualPaymentSelectedCandidate = null;
-    if ($manualPaymentMatch) {
-      var choices = $manualPaymentMatch.querySelectorAll('input[name="manual-payment-match-choice"]');
-      choices.forEach(function(input) {
-        input.checked = false;
-      });
-      if (!choices.length) {
-        $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">The suggested match was edited. Verify the amount and <strong>pi_</strong> PaymentIntent ID manually before recording.</div>';
+  if ($manualPaymentFallbackToggle) {
+    $manualPaymentFallbackToggle.addEventListener('click', function() {
+      manualPaymentSelectedCandidate = null;
+      if ($manualPaymentIntent) $manualPaymentIntent.value = '';
+      if ($manualPaymentMatch) {
+        var choices = $manualPaymentMatch.querySelectorAll('input[name="manual-payment-match-choice"]');
+        choices.forEach(function(input) { input.checked = false; });
       }
-    }
-    if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+      showManualPaymentFallback(true, true);
+      if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+      updateManualPaymentReview();
+      if ($manualPaymentIntent) $manualPaymentIntent.focus();
+    });
   }
 
-  if ($manualPaymentIntent) $manualPaymentIntent.addEventListener('input', clearManualPaymentMatchIfEdited);
-  if ($manualPaymentAmount) $manualPaymentAmount.addEventListener('input', clearManualPaymentMatchIfEdited);
+  if ($manualPaymentIntent) {
+    $manualPaymentIntent.addEventListener('input', function() {
+      if (manualPaymentSelectedCandidate
+          && $manualPaymentIntent.value.trim() !== manualPaymentSelectedCandidate.paymentIntentId) {
+        manualPaymentSelectedCandidate = null;
+        if ($manualPaymentMatch) {
+          var choices = $manualPaymentMatch.querySelectorAll('input[name="manual-payment-match-choice"]');
+          choices.forEach(function(input) { input.checked = false; });
+        }
+      }
+      if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+      updateManualPaymentReview();
+    });
+  }
+
+  if ($manualPaymentDiscount) {
+    $manualPaymentDiscount.addEventListener('input', function() {
+      if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+      updateManualPaymentReview();
+    });
+  }
+  if ($manualPaymentAdjustment) {
+    $manualPaymentAdjustment.addEventListener('change', function() {
+      if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+      updateManualPaymentReview();
+    });
+  }
 
   function setManualPaymentFieldsVisible(show, booking) {
     if ($manualPaymentRow) $manualPaymentRow.style.display = show ? '' : 'none';
     resetManualPaymentMatcher();
-    if (!show) {
-      if ($manualPaymentAmount) $manualPaymentAmount.value = '';
-      if ($manualPaymentTotal) $manualPaymentTotal.value = '';
-      if ($manualPaymentIntent) $manualPaymentIntent.value = '';
-      if ($manualPaymentAdjustment) $manualPaymentAdjustment.value = '';
-      if ($manualPaymentNote) $manualPaymentNote.value = '';
-      if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
-      return;
-    }
-    if ($manualPaymentTotal) {
-      $manualPaymentTotal.value = (Number((booking && booking.total_price) || 0) / 100).toFixed(2);
-    }
+    if ($manualPaymentIntent) $manualPaymentIntent.value = '';
+    if ($manualPaymentDiscount) $manualPaymentDiscount.value = '0.00';
+    if ($manualPaymentAdjustment) $manualPaymentAdjustment.value = '';
+    if ($manualPaymentNote) $manualPaymentNote.value = '';
+    if ($manualPaymentOptions) $manualPaymentOptions.open = false;
     if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+    if (!show) return;
+    if (pendingAction && pendingAction.type === 'record-manual-payment') {
+      pendingAction.expectedTotalCents = Number((booking && booking.total_price) || 0);
+      pendingAction.grossCollectedCents = Number((booking && (booking.amount_paid_cents || booking.manual_payment_gross_cents)) || 0);
+    }
+    updateManualPaymentBalanceSummary();
+    updateManualPaymentReview();
   }
 
   function setManualRefundFieldsVisible(show, booking, recovery) {
@@ -2143,6 +2298,16 @@ window.intelQuick = intelQuick;
     if ($returnVisitCompleted) $returnVisitCompleted.value = (booking && booking.return_visit_completed_scope) || '';
     if ($returnVisitRemaining) $returnVisitRemaining.value = (booking && booking.return_visit_remaining_scope) || '';
     if ($returnVisitNotify) $returnVisitNotify.checked = true;
+  }
+
+  function setReturnResolutionFieldsVisible(show, action) {
+    if ($returnResolutionRow) $returnResolutionRow.style.display = show ? '' : 'none';
+    if ($returnResolutionNotify) $returnResolutionNotify.checked = true;
+    if ($returnResolutionNotifyCopy) {
+      $returnResolutionNotifyCopy.textContent = action === 'complete'
+        ? 'Send the customer the final return-visit completion confirmation.'
+        : 'Tell the customer the earlier completion status was corrected and the return visit remains open.';
+    }
   }
 
   function headers(extra) {
@@ -2418,7 +2583,7 @@ window.intelQuick = intelQuick;
   function ckHistoryChannels(publish) {
     var keys = Object.keys(publish || {});
     if (!keys.length) return '';
-    return ' <span style="color:#64748b">(' + keys.map(function(k){ return k + ':' + ((publish[k] || {}).status || 'unknown'); }).join(', ') + ')</span>';
+    return ' <span style="color:#64748b">(' + keys.map(function(k){ return esc(k) + ':' + esc((publish[k] || {}).status || 'unknown'); }).join(', ') + ')</span>';
   }
   function ckCurrentHook() {
     var sel = document.getElementById('ck-hook');
@@ -2620,68 +2785,6 @@ window.intelQuick = intelQuick;
     }
   });
 
-  if ($cleanupTestBtn) {
-    $cleanupTestBtn.addEventListener('click', cleanupTestData);
-  }
-
-  async function cleanupTestData() {
-    if (!$cleanupTestBtn || $cleanupTestBtn.disabled) return;
-    $cleanupTestBtn.disabled = true;
-    $cleanupTestBtn.textContent = 'Checking...';
-    try {
-      var previewRes = await fetch('/api/owner/cleanup-test-data', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ keepNames: ['Barry B'] })
-      });
-      var preview = await previewRes.json();
-      if (preview.error) { toast(preview.error, 'error'); return; }
-
-      var deleteCount = (preview.deleteBookings || []).length;
-      var reviewCount = (preview.deleteReviews || []).length;
-      var keepRefs = (preview.keepBookings || []).map(function(b){ return b.ref || b.customerName; }).join(', ') || 'none found';
-      if (!deleteCount && !reviewCount) {
-        toast('No test data found. Barry booking kept: ' + keepRefs, 'success');
-        return;
-      }
-
-      var lines = [
-        'Clean test data and keep Barry B?',
-        '',
-        'Will delete bookings: ' + deleteCount,
-        'Will delete reviews: ' + reviewCount,
-        'Will keep: ' + keepRefs,
-        '',
-        'This also removes related payout, dispatch, notes, evidence, and audit rows for deleted test bookings.'
-      ];
-      if ((preview.warnings || []).length) lines.push('', 'Warning: ' + preview.warnings.join(' '));
-      if (!confirm(lines.join('\n'))) return;
-
-      $cleanupTestBtn.textContent = 'Cleaning...';
-      var runRes = await fetch('/api/owner/cleanup-test-data', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ keepNames: ['Barry B'], confirm: preview.confirmToken })
-      });
-      var result = await runRes.json();
-      if (result.error) { toast(result.error, 'error'); return; }
-
-      selectedId = null;
-      window.selectedId = null;
-      window._ownerSelectedId = null;
-      await loadBookings();
-      if (currentView === 'reviews') await loadReviews();
-      if (currentView === 'marketing') await loadMarketing();
-      if (currentView === 'analytics') await renderAnalytics();
-      toast('Cleaned ' + result.deletedBookings + ' booking(s) and ' + result.deletedReviews + ' review(s). Barry B kept.', 'success');
-    } catch(e) {
-      toast('Cleanup failed — check connection/logs', 'error');
-    } finally {
-      $cleanupTestBtn.disabled = false;
-      $cleanupTestBtn.textContent = 'Clean Test Data';
-    }
-  }
-
   if (ownerSessionToken) showDashboard();
 
   // ─── Search ───
@@ -2705,8 +2808,16 @@ window.intelQuick = intelQuick;
     _bookingsLoading = true;
     $list.innerHTML = '<div class="loading-text">Loading bookings...</div>';
     try {
-      const data = await apiGet('/list?limit=100');
-      allBookings = data.bookings || [];
+      const pageSize = 100;
+      const firstPage = await apiGet('/list?limit=' + pageSize + '&offset=0');
+      allBookings = firstPage.bookings || [];
+      const totalCount = Math.max(allBookings.length, Number(firstPage.count || 0));
+      for (let offset = allBookings.length; offset < totalCount; offset += pageSize) {
+        const page = await apiGet('/list?limit=' + pageSize + '&offset=' + offset);
+        const rows = page.bookings || [];
+        if (!rows.length) break;
+        allBookings = allBookings.concat(rows);
+      }
       updateStats();
       renderList();
     } catch (e) {
@@ -2719,17 +2830,46 @@ window.intelQuick = intelQuick;
   // ─── Stats ───
   // Pipeline statuses that are logically "confirmed" (job is active / in flight)
   var PIPELINE_STATUSES = ['en_route', 'arrived', 'in_progress'];
+  function actualNetPaymentsCents(booking) {
+    if (!booking) return 0;
+    if (booking.source === 'owner_manual') {
+      return Math.max(0, Number(booking.amount_collected_cents || 0));
+    }
+    var moneyStatuses = ['captured','cancellation_fee_captured','partially_refunded','refunded','deposit_paid'];
+    if (!moneyStatuses.includes(String(booking.payment_status || ''))) return 0;
+    return Math.max(0, Number((booking.financial_summary || {}).netChargedCents || 0));
+  }
+  function completedFinanceReady(booking) {
+    if (!booking || booking.status !== 'completed') return false;
+    var paymentReady = booking.source === 'owner_manual'
+      ? (Number(booking.refund_amount || 0) > 0
+        ? Number(booking.amount_paid_cents || booking.manual_payment_gross_cents || 0) >= Number(booking.total_price || 0)
+          && booking.payout_review_status === 'approved_full'
+        : booking.payment_collected === true && Number(booking.remaining_balance_cents || 0) === 0)
+      : ['captured','partially_refunded','refunded'].includes(String(booking.payment_status || ''));
+    return paymentReady
+      && !!booking.assembler_id
+      && booking.assembler_due != null
+      && !booking.financial_operation_key
+      && !booking.financial_reconciliation_required_at
+      && Number.isFinite(Number((booking.financial_summary || {}).platformGrossCents));
+  }
   function updateStats() {
     const counts = { pending: 0, confirmed: 0, completed: 0 };
     let profit = 0;
+    let unresolvedCompleted = 0;
     allBookings.forEach(function(b) {
       // Count pipeline statuses as Confirmed — they are active/accepted jobs
       var cat = PIPELINE_STATUSES.includes(b.status) ? 'confirmed' : b.status;
       if (counts[cat] !== undefined) counts[cat]++;
       if (b.status === 'completed') {
-        // Server-computed financial_summary is the owner source of truth. It
-        // accounts for refunds, remaining tax, Stripe fees, and Easer cost.
-        profit += Number((b.financial_summary || {}).platformGrossCents) || 0;
+        if (completedFinanceReady(b)) {
+          // Server-computed financial_summary is the owner source of truth. It
+          // accounts for refunds, tax, processing fees, and Easer cost.
+          profit += Number((b.financial_summary || {}).platformGrossCents) || 0;
+        } else {
+          unresolvedCompleted++;
+        }
       }
     });
     document.querySelector('#stat-pending .stat-value').textContent = counts.pending;
@@ -2737,7 +2877,16 @@ window.intelQuick = intelQuick;
     document.querySelector('#stat-completed .stat-value').textContent = counts.completed;
     document.querySelector('#stat-total .stat-value').textContent = allBookings.length;
     var revenueEl = document.querySelector('#stat-revenue .stat-value');
-    if (revenueEl) revenueEl.textContent = profit > 0 ? '$' + (profit / 100).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    var revenueLabel = document.querySelector('#stat-revenue .stat-label');
+    if (revenueEl) {
+      revenueEl.textContent = unresolvedCompleted > 0 ? 'Review ' + unresolvedCompleted : fmtSigned$(profit);
+      revenueEl.title = unresolvedCompleted > 0
+        ? unresolvedCompleted + ' completed booking(s) are excluded until payment and Easer cost are reconciled.'
+        : 'Customer payments less tax, processing fees, refunds, and Easer cost.';
+    }
+    if (revenueLabel) revenueLabel.textContent = unresolvedCompleted > 0
+      ? 'Platform Gross Needs Reconciliation'
+      : 'Recorded Platform Gross';
     var $navP = document.getElementById('nav-pending');
     if (counts.pending > 0) { $navP.textContent = counts.pending; $navP.style.display = ''; }
     else $navP.style.display = 'none';
@@ -2783,25 +2932,30 @@ window.intelQuick = intelQuick;
     function dollars(cents) { return fmt$(cents); }
 
     var completed = allBookings.filter(function(b){return b.status==='completed';});
+    var unresolvedCompleted = completed.filter(function(b){return !completedFinanceReady(b);});
     var totGross=0, totFee=0, totPayout=0, totTax=0;
     completed.forEach(function(b){
       var fs=b.financial_summary||{};
-      totGross+=Number(fs.netChargedCents)||0;
-      totTax+=Number(fs.taxCollectedCents)||0;
-      totFee+=Number(fs.processingFeeCents)||0;
-      totPayout+=Number(fs.easerCostCents)||0;
+      var received = actualNetPaymentsCents(b);
+      totGross+=received;
+      if (received > 0) {
+        totTax+=Number(fs.taxCollectedCents)||0;
+        totFee+=Number(fs.processingFeeCents)||0;
+      }
+      if (completedFinanceReady(b)) totPayout+=Number(fs.easerCostCents)||0;
     });
     var totNet = totGross - totTax - totFee;   // net after sales tax + Stripe
     var totProfit = totNet - totPayout;        // = platform commission - Stripe fee
 
     var rows = allBookings.map(function(b) {
       var fs = b.status==='completed' ? (b.financial_summary||{}) : {};
-      var g = Number(fs.netChargedCents)||0;
-      var tax = Number(fs.taxCollectedCents)||0;
-      var f = Number(fs.processingFeeCents)||0;
+      var g = b.status==='completed' ? actualNetPaymentsCents(b) : 0;
+      var tax = g > 0 ? (Number(fs.taxCollectedCents)||0) : 0;
+      var f = g > 0 ? (Number(fs.processingFeeCents)||0) : 0;
       var n = g - tax - f;
-      var p = Number(fs.easerCostCents)||0;
-      var profit = Number(fs.platformGrossCents)||0;
+      var financeReady = completedFinanceReady(b);
+      var p = financeReady ? (Number(fs.easerCostCents)||0) : 0;
+      var profit = financeReady ? (Number(fs.platformGrossCents)||0) : 0;
       var statusColor = {completed:'#065f46',confirmed:'#0369a1',pending:'#92400e',cancelled:'#475569',declined:'#be123c',refunded:'#c2410c',en_route:'#1d4ed8',in_progress:'#059669'}[b.status]||'#374151';
       var statusBg = {completed:'#d1fae5',confirmed:'#e0f2fe',pending:'#fef3c7',cancelled:'#f1f5f9',declined:'#fff1f2',refunded:'#fff7ed',en_route:'#dbeafe',in_progress:'#d1fae5'}[b.status]||'#f4f4f5';
       return '<tr>'
@@ -2812,8 +2966,8 @@ window.intelQuick = intelQuick;
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g ? dollars(g) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#ef4444">'+(f ? '-'+dollars(f) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n ? dollars(n) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(p ? '-'+dollars(p) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0 ? '#065f46' : '#ef4444')+'">'+(g ? dollars(profit) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(financeReady ? (p ? '-'+dollars(p) : dollars(0)) : (b.status==='completed' ? 'Review' : '—'))+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0 ? '#065f46' : '#ef4444')+'">'+(financeReady ? dollars(profit) : (b.status==='completed' ? 'Review' : '—'))+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+esc(b.status)+'</span></td>'
         +'</tr>';
     }).join('');
@@ -2835,20 +2989,22 @@ window.intelQuick = intelQuick;
           +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Generated '+reportDate+'</div>'
         +'</div>'
         +'<div style="text-align:right">'
-          +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:4px">Stripe fee rate</div>'
-          +'<div style="font-size:12px;color:#374151">2.9% + $0.30 per transaction</div>'
+          +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:4px">Financial source</div>'
+          +'<div style="font-size:12px;color:#374151">Recorded customer payments and fees</div>'
         +'</div>'
       +'</div>'
+
+      +(unresolvedCompleted.length ? '<div style="margin:-0.75rem 0 1.25rem;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:11px;font-weight:600">Reconciliation required: '+unresolvedCompleted.length+' completed booking(s) are missing final payment or Easer-cost truth. Their platform gross is shown as Review and excluded from profit totals.</div>' : '')
 
       // Summary cards
       +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:2rem">'
         +[
           ['Net Customer Revenue',dollars(totGross),'#00BFFF'],
           ['Sales Tax (owed to state)','-'+dollars(totTax),'#7c3aed'],
-          ['Stripe Fees','-'+dollars(totFee),'#ef4444'],
-          ['Net After Tax+Stripe',dollars(totNet),'#374151'],
-          ['Easer Payouts','-'+dollars(totPayout),'#f59e0b'],
-          ['Platform Profit',dollars(totProfit),'#065f46'],
+          ['Processing Fees','-'+dollars(totFee),'#ef4444'],
+          ['Net After Tax+Fees',dollars(totNet),'#374151'],
+          ['Known Easer Cost',unresolvedCompleted.length ? 'Incomplete' : '-'+dollars(totPayout),'#f59e0b'],
+          ['Platform Gross',unresolvedCompleted.length ? 'Incomplete' : dollars(totProfit),'#065f46'],
         ].map(function(c){
           return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px">'
             +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:6px">'+c[0]+'</div>'
@@ -2865,7 +3021,7 @@ window.intelQuick = intelQuick;
           +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Date</th>'
           +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer</th>'
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Net Charged</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Stripe</th>'
+          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Processing Fee</th>'
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Net</th>'
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer Pay</th>'
           +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#00BFFF">Profit</th>'
@@ -2878,8 +3034,8 @@ window.intelQuick = intelQuick;
           +'<td style="padding:10px;text-align:right;font-weight:800;color:#111">'+dollars(totGross)+'</td>'
           +'<td style="padding:10px;text-align:right;font-weight:700;color:#ef4444">-'+dollars(totFee)+'</td>'
           +'<td style="padding:10px;text-align:right;font-weight:700;color:#374151">'+dollars(totNet)+'</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:700;color:#f59e0b">-'+dollars(totPayout)+'</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:800;color:#065f46">'+dollars(totProfit)+'</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:700;color:#f59e0b">'+(unresolvedCompleted.length ? 'Incomplete' : '-'+dollars(totPayout))+'</td>'
+          +'<td style="padding:10px;text-align:right;font-weight:800;color:#065f46">'+(unresolvedCompleted.length ? 'Incomplete' : dollars(totProfit))+'</td>'
           +'<td></td>'
         +'</tr></tfoot>'
       +'</table>'
@@ -2925,19 +3081,20 @@ window.intelQuick = intelQuick;
     $list.innerHTML = filtered.map(function(b) {
       var msgCount = 0;
       if (b.messages && b.messages.length) msgCount = b.messages[0].count || 0;
-      var cardDate = b.return_visit_required ? b.return_visit_date : b.date;
-      var cardTime = b.return_visit_required ? b.return_visit_time : b.time;
+      var cardUsesReturnVisit = b.return_visit_required === true || !!b.return_visit_completed_at;
+      var cardDate = cardUsesReturnVisit ? b.return_visit_date : b.date;
+      var cardTime = cardUsesReturnVisit ? b.return_visit_time : b.time;
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
         + '<div class="card-desc">' + esc(b.service) + '</div>'
-        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + b.assembler_tier : '') + '</div>' : '')
+        + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
         + (b.needs_manual_dispatch ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
-          + '<span>' + (b.return_visit_required ? 'Return: ' : '') + formatDate(cardDate) + (cardTime ? ' ' + esc(cardTime) : '') + '</span>'
+          + '<span>' + (b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '')) + formatDate(cardDate) + (cardTime ? ' ' + esc(cardTime) : '') + '</span>'
           + (b.total_price ? '<span class="meta-dot"></span><span>'+fmt$(b.total_price)+'</span>' : '')
           + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
         + '</div></div>';
@@ -2965,6 +3122,11 @@ window.intelQuick = intelQuick;
     var bookedSubtotal = Math.max(0, bookedTotal - bookedTax);
     var financial = b.financial_summary || {};
     var isOfflinePayment = b.source === 'owner_manual' && b.payment_status === 'offline_recorded';
+    var manualPaymentEvents = isOfflinePayment && Array.isArray(b.payment_events) ? b.payment_events : [];
+    var documentedDiscountCents = manualPaymentEvents.reduce(function(sum, event) {
+      return sum + Number(event.discount_cents || 0);
+    }, 0);
+    var originalCustomerTotal = bookedTotal + documentedDiscountCents;
     var grossManualPayments = isOfflinePayment ? Number(b.manual_payment_gross_cents || 0) : null;
     var collectedAmount = isOfflinePayment
       ? Number(b.amount_collected_cents || 0)
@@ -2982,7 +3144,9 @@ window.intelQuick = intelQuick;
       field('Service', esc(b.service || '—')),
       field('Service Subtotal', b.total_price != null ? fmt$(bookedSubtotal) : '—'),
       field('Sales Tax', b.tax_amount != null ? fmt$(bookedTax) : '—'),
-      field('Customer Total', b.total_price != null ? fmt$(bookedTotal) : '—'),
+      documentedDiscountCents > 0 ? field('Original Customer Total', fmt$(originalCustomerTotal)) : '',
+      documentedDiscountCents > 0 ? field('Documented Discount', '<span style="color:#065f46">-' + fmt$(documentedDiscountCents) + '</span>') : '',
+      field(documentedDiscountCents > 0 ? 'Adjusted Customer Total' : 'Customer Total', b.total_price != null ? fmt$(bookedTotal) : '—'),
       isOfflinePayment ? field('Gross Customer Payments', fmt$(grossManualPayments)) : '',
       field(isOfflinePayment ? 'Net Payments Retained' : 'Total Charged', collectedAmount != null
         ? fmt$(collectedAmount)
@@ -2996,12 +3160,18 @@ window.intelQuick = intelQuick;
         : financial.processingFeeCents != null
         ? fmt$(financial.processingFeeCents) + (financial.processingFeeIsActual ? ' <span style="font-size:0.7rem;color:var(--muted)">(recorded)</span>' : ' <span style="font-size:0.7rem;color:var(--muted)">(estimate)</span>')
         : (b.stripe_fee != null ? fmt$(b.stripe_fee) : '—')),
-      field('Platform Fee', b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>'),
-      field('Easer Earnings', b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>'),
+      field('Platform Fee', !b.assembler_id
+        ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
+        : (b.platform_fee != null ? fmt$(b.platform_fee) : '<span style="color:var(--muted)">Not finalized</span>')),
+      field('Easer Earnings', !b.assembler_id
+        ? '<span style="color:var(--muted)">Not calculated — assign the owner-Easer</span>'
+        : (b.assembler_due != null ? fmt$(b.assembler_due) : '<span style="color:var(--muted)">Not finalized</span>')),
       field('Platform Gross', financial.platformGrossCents != null
         ? (isOfflinePayment && !offlineFullyCollected
           ? '<span style="color:var(--muted)">Not available until the full balance is collected</span>'
-          : fmtSigned$(financial.platformGrossCents) + ' <span style="font-size:0.7rem;color:var(--muted)">(' + (collectedAmount != null ? 'recorded inputs' : 'estimate') + '; before operating costs)</span>')
+          : (!b.assembler_id || b.assembler_due == null)
+            ? '<span style="color:var(--muted)">Not available until Easer earnings are finalized</span>'
+            : fmtSigned$(financial.platformGrossCents) + ' <span style="font-size:0.7rem;color:var(--muted)">(' + (collectedAmount != null ? 'recorded inputs' : 'estimate') + '; before operating costs)</span>')
         : '—'),
       field('Status', bookingBadge(b) + (b.payment_status ? ' ' + paymentBadge(b.payment_status) : '')),
       field('Payment', paymentStatusLabel(b)),
@@ -3011,17 +3181,21 @@ window.intelQuick = intelQuick;
           ? 'Paid' + (b.paid_out_at ? ' on ' + formatDate(b.paid_out_at) : '')
           : (b.payout_status || 'unpaid').replace(/_/g, ' ')),
       field('Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')),
-      b.return_visit_required ? field('Return Visit', formatDate(b.return_visit_date) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '')) : '',
-      b.return_visit_required ? field('Work Completed', esc(b.return_visit_completed_scope || '—')) : '',
+      (b.return_visit_required || b.return_visit_completed_at) ? field(b.return_visit_required ? 'Open Return Visit' : 'Return Visit Completed', formatDate(b.return_visit_date) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '')) : '',
+      (b.return_visit_required || b.return_visit_completed_at) ? field('First-Visit Work', esc(b.return_visit_completed_scope || '—')) : '',
       b.return_visit_required ? field('Work Remaining', esc(b.return_visit_remaining_scope || '—')) : '',
       field('Address', esc(b.address || '—')),
-      field('Details', esc(b.details || '—')),
-      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + b.assembler_tier + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
+      b.details ? field('Details', esc(b.details)) : '',
+      field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
     renderActions(b);
     renderAssignSection(b);
+    var dispatchTabButton = document.getElementById('detail-dispatch-tab');
+    if (dispatchTabButton) {
+      dispatchTabButton.style.display = b.source === 'owner_manual' && b.status === 'completed' ? 'none' : '';
+    }
     // Show/hide Easer target toggle — only when an Easer is assigned
     var $targetRow = document.getElementById('msg-target-row');
     if ($targetRow) $targetRow.style.display = b.assembler_id ? '' : 'none';
@@ -3115,7 +3289,7 @@ window.intelQuick = intelQuick;
       var html = Object.keys(attemptGroups).sort().map(function(attempt) {
         var rows = attemptGroups[attempt];
         return '<div style="margin-bottom:1.25rem">'
-          + '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.5rem">Attempt ' + attempt + '</div>'
+          + '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.5rem">Attempt ' + esc(attempt) + '</div>'
           + '<table style="width:100%;border-collapse:collapse;font-size:0.8rem">'
           + '<thead><tr style="border-bottom:1px solid var(--border)">'
           + '<th style="text-align:left;padding:4px 8px;color:var(--muted);font-weight:500">Easer</th>'
@@ -3130,7 +3304,7 @@ window.intelQuick = intelQuick;
               + '<td style="padding:5px 8px">' + easerTierBadge(o.easer_tier) + '</td>'
               + '<td style="padding:5px 8px;text-align:right;color:var(--soft)">' + (o.dispatch_score||0) + '</td>'
               + '<td style="padding:5px 8px">' + offerStatusBadge(o.offer_status)
-              + (o.decline_reason ? ' <span style="color:var(--muted);font-size:0.7rem">(' + o.decline_reason.replace(/_/g,' ') + ')</span>' : '') + '</td>'
+              + (o.decline_reason ? ' <span style="color:var(--muted);font-size:0.7rem">(' + esc(String(o.decline_reason).replace(/_/g,' ')) + ')</span>' : '') + '</td>'
               + '<td style="padding:5px 8px;color:var(--muted)">' + esc(o.response_time||'—') + '</td>'
               + '</tr>';
           }).join('')
@@ -3304,6 +3478,15 @@ window.intelQuick = intelQuick;
 
   function _renderEvidence(bookingId, cache, contentEl, warningEl, badgeEl, isActiveTab) {
     var booking = allBookings.find(function(b) { return b.id === bookingId; });
+    var ownerUploadPanel = document.getElementById('owner-evidence-upload');
+    var canOwnerUploadHistorical = booking
+      && booking.source === 'owner_manual'
+      && booking.status === 'completed'
+      && booking.assembler_id
+      && ownerEaserProfile
+      && booking.assembler_id === ownerEaserProfile.id
+      && !booking.financial_operation_key;
+    if (ownerUploadPanel) ownerUploadPanel.style.display = canOwnerUploadHistorical && cache.total < 5 ? '' : 'none';
 
     // Update tab badge
     if (badgeEl) {
@@ -3325,7 +3508,11 @@ window.intelQuick = intelQuick;
     // Update warning bar (amber strip above actions — completed + zero evidence only)
     if (warningEl) {
       if (!cache.error && cache.total === 0 && booking && booking.status === 'completed') {
-        warningEl.textContent = 'No completion evidence on file — review before recording payout or issuing refund.';
+        warningEl.textContent = booking.source === 'owner_manual'
+          ? (booking.assembler_id
+            ? 'No completion evidence on file — open Evidence to add the owner’s historical completion photo before payout review.'
+            : 'No completion evidence on file — credit the work to the owner-Easer, then add historical evidence before payout review.')
+          : 'No completion evidence on file — review before recording payout or issuing refund.';
         warningEl.style.display = '';
       } else {
         warningEl.style.display = 'none';
@@ -3344,7 +3531,9 @@ window.intelQuick = intelQuick;
       contentEl.innerHTML = booking && booking.status === 'completed'
         ? '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:0.875rem;color:#92400e;font-size:0.85rem">'
           + 'No completion evidence uploaded for this booking.<br>'
-          + '<span style="font-size:0.78rem;color:#b45309">Easers can upload photos before marking a job complete.</span></div>'
+          + '<span style="font-size:0.78rem;color:#b45309">' + (booking.source === 'owner_manual'
+            ? (booking.assembler_id ? 'Use the historical evidence form below.' : 'Credit the owner-Easer first, then upload the completion photo.')
+            : 'Easers can upload photos before marking a job complete.') + '</span></div>'
         : '<div style="color:var(--muted)">No evidence uploaded yet.</div>';
       return;
     }
@@ -3362,15 +3551,22 @@ window.intelQuick = intelQuick;
 
     var cards = cache.evidence.map(function(ev) {
       var label  = _EVIDENCE_TYPE_LABELS[ev.evidence_type] || ev.evidence_type;
-      var thumb  = ev.signed_url
-        ? '<img src="' + ev.signed_url + '" alt="' + esc(label) + '" loading="lazy"/>'
+      var safeSignedUrl = '';
+      try {
+        var parsedEvidenceUrl = new URL(String(ev.signed_url || ''), window.location.origin);
+        if (parsedEvidenceUrl.protocol === 'https:' || (parsedEvidenceUrl.protocol === 'http:' && parsedEvidenceUrl.hostname === 'localhost')) {
+          safeSignedUrl = parsedEvidenceUrl.href;
+        }
+      } catch (_) {}
+      var thumb  = safeSignedUrl
+        ? '<img src="' + esc(safeSignedUrl) + '" alt="' + esc(label) + '" loading="lazy"/>'
         : '<div style="width:100%;height:100px;background:var(--elevated);display:flex;align-items:center;'
           + 'justify-content:center;color:var(--muted);font-size:0.72rem">No preview</div>';
       var expiry = ev.signed_url_expires_at
         ? '<div style="font-size:0.68rem;margin-top:2px">URL expires ' + fmtDate(ev.signed_url_expires_at) + '</div>'
         : '';
-      var onClick = ev.signed_url
-        ? 'onclick="window.open(\'' + ev.signed_url.replace(/'/g, "\\'") + '\',\'_blank\')" tabindex="0"'
+      var onClick = safeSignedUrl
+        ? 'onclick="window.open(\'' + jsAttr(safeSignedUrl) + '\',\'_blank\',\'noopener\')" tabindex="0"'
         : '';
       return '<div class="evidence-card" ' + onClick + '>'
         + thumb
@@ -3385,6 +3581,55 @@ window.intelQuick = intelQuick;
     }).join('');
 
     contentEl.innerHTML = '<div class="evidence-grid">' + cards + '</div>';
+  }
+
+  var ownerEvidenceUploadButton = document.getElementById('owner-evidence-upload-btn');
+  if (ownerEvidenceUploadButton) {
+    ownerEvidenceUploadButton.addEventListener('click', async function() {
+      var fileInput = document.getElementById('owner-evidence-file');
+      var notesInput = document.getElementById('owner-evidence-notes');
+      var file = fileInput && fileInput.files && fileInput.files[0];
+      var notes = String((notesInput && notesInput.value) || '').trim();
+      if (!selectedId || !file) { toast('Choose a completion photo', 'error'); return; }
+      if (file.size <= 0 || file.size > 5 * 1024 * 1024) { toast('Evidence must be no larger than 5 MB', 'error'); return; }
+      if (notes.length < 10) { toast('Describe what the completion photo shows', 'error'); return; }
+      var allowedEvidenceMime = ['image/jpeg','image/png','image/webp','image/heic','image/heif'];
+      if (!allowedEvidenceMime.includes(file.type)) { toast('Use a JPEG, PNG, WebP, HEIC, or HEIF image', 'error'); return; }
+      var uploadBookingId = selectedId;
+      this.disabled = true;
+      this.textContent = 'Uploading...';
+      try {
+        var fileBase64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function(){ resolve(String(reader.result || '')); };
+          reader.onerror = function(){ reject(new Error('The selected file could not be read')); };
+          reader.readAsDataURL(file);
+        });
+        var response = await fetch('/api/owner/upload-completion-evidence', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: uploadBookingId,
+            fileBase64: fileBase64,
+            mimeType: file.type,
+            notes: notes,
+          }),
+        });
+        var data = await response.json().catch(function(){ return {}; });
+        if (!response.ok || data.error) throw new Error(data.error || 'Evidence upload failed');
+        if (fileInput) fileInput.value = '';
+        if (notesInput) notesInput.value = '';
+        delete _evidenceCache[uploadBookingId];
+        toast('Historical completion evidence recorded', 'success');
+        await window.loadEvidence(uploadBookingId, true);
+        loadTimeline(uploadBookingId);
+      } catch (error) {
+        toast(error.message || 'Evidence upload failed', 'error');
+      } finally {
+        this.disabled = false;
+        this.textContent = 'Upload Evidence';
+      }
+    });
   }
 
   window.saveNote = async function() {
@@ -3627,16 +3872,22 @@ window.intelQuick = intelQuick;
 
     if (isOwnerManual) {
       var manualCollectedCents = Number(b.amount_collected_cents || 0);
+      var manualGrossPaidCents = Number(b.amount_paid_cents || b.manual_payment_gross_cents || 0);
+      var manualRefundedCents = Number(b.manual_refunded_cents || b.refund_amount || 0);
       var manualStripeRefundableCents = Number(b.manual_stripe_refundable_cents || 0);
       var manualBalanceCents = Number(b.remaining_balance_cents != null
         ? b.remaining_balance_cents
         : Math.max(0, Number(b.total_price || 0) - manualCollectedCents));
       notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Owner-created payment workflow:</strong> this booking does not use the website checkout authorization. Customer payments and Easer payout remain separate audited records.</div>');
-      if (manualCollectedCents > 0 && manualBalanceCents > 0) {
-        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Partial payment:</strong> ' + fmt$(manualCollectedCents) + ' received and ' + fmt$(manualBalanceCents) + ' remaining. The booking is not fully paid and payout stays blocked.</div>');
+      if (manualGrossPaidCents > 0 && manualBalanceCents > 0) {
+        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Partial payment:</strong> ' + fmt$(manualGrossPaidCents) + ' paid toward the invoice and ' + fmt$(manualBalanceCents) + ' remaining. The booking is not fully paid and payout stays blocked.</div>');
+      }
+      if (manualRefundedCents > 0) {
+        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Customer refund recorded:</strong> ' + fmt$(manualRefundedCents) + ' was returned and ' + fmt$(manualCollectedCents) + ' is retained. The refund does not create a new amount due from the customer; Easer earnings require explicit review.</div>');
       }
       if (b.return_visit_required) {
-        notices.push('<div style="flex-basis:100%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:0.65rem 0.8rem;color:#3730a3;font-size:0.78rem;line-height:1.5"><strong>Return visit:</strong> ' + esc(formatDate(b.return_visit_date)) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '') + '. Remaining: ' + esc(b.return_visit_remaining_scope || 'documented work') + '.</div>');
+        var returnVisitConflict = b.status === 'completed';
+        notices.push('<div style="flex-basis:100%;background:' + (returnVisitConflict ? '#fef2f2' : '#eef2ff') + ';border:1px solid ' + (returnVisitConflict ? '#fecaca' : '#c7d2fe') + ';border-radius:8px;padding:0.65rem 0.8rem;color:' + (returnVisitConflict ? '#991b1b' : '#3730a3') + ';font-size:0.78rem;line-height:1.5"><strong>' + (returnVisitConflict ? 'Status conflict:' : 'Open return visit:') + '</strong> ' + esc(formatDate(b.return_visit_date)) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '') + '. Remaining: ' + esc(b.return_visit_remaining_scope || 'documented work') + '.' + (returnVisitConflict ? ' Reopen the job if work remains, or finalize the return visit if all work is done.' : '') + '</div>');
       }
       var manualRefundRecovery = b.financial_operation_type === 'refund_owner'
         && String(b.financial_operation_key || '').indexOf('refund:owner-manual:' + b.id + ':total:') === 0;
@@ -3653,10 +3904,20 @@ window.intelQuick = intelQuick;
       if (!b.payment_collected
           && manualBalanceCents > 0
           && ['confirmed','en_route','arrived','in_progress','completed'].includes(b.status)) {
-        btns.push('<button class="btn btn-teal" data-action="record-manual-payment" data-id="' + b.id + '">Record Stripe Payment</button>');
+        btns.push('<button class="btn btn-teal" data-action="record-manual-payment" data-id="' + b.id + '">Record Customer Payment</button>');
       }
       if (['confirmed','en_route','arrived','in_progress'].includes(b.status)) {
         btns.push('<button class="btn" data-action="schedule-return-visit" data-id="' + b.id + '">' + (b.return_visit_required ? 'Update Return Visit' : 'Schedule Return Visit') + '</button>');
+      }
+      if (b.return_visit_required) {
+        if (!b.assembler_id || b.status === 'completed') {
+          btns.push('<button class="btn btn-teal" data-action="complete-return-visit" data-id="' + b.id + '">Complete Return Visit &amp; Job</button>');
+        } else {
+          btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed">Complete Return Visit from Easer Dashboard</button>');
+        }
+      if (b.status === 'completed') {
+          btns.push('<button class="btn btn-amber" data-action="reopen-return-visit" data-id="' + b.id + '">Reopen Unfinished Job</button>');
+        }
       }
       if (['completed','cancelled'].includes(b.status) && manualStripeRefundableCents > 0) {
         btns.push('<button class="btn btn-red" data-action="refund-manual-payment" data-id="' + b.id + '">Refund Stripe Payment</button>');
@@ -3665,7 +3926,7 @@ window.intelQuick = intelQuick;
         if (b.assembler_id) {
           notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Owner-Easer live flow:</strong> accept and complete this job from the Easer dashboard. The owner Mark Complete action is disabled because it would bypass the arrival, evidence, and earnings workflow.</div>');
           btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed">Complete from Easer Dashboard</button>');
-        } else {
+        } else if (!b.return_visit_required) {
           btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
         }
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
@@ -3676,7 +3937,7 @@ window.intelQuick = intelQuick;
       } else if (b.status === 'in_progress') {
         notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Work underway:</strong> upload completion evidence and finish from the Easer dashboard. Any cancellation or customer adjustment now requires owner review after completion.</div>');
       } else if (b.status === 'completed') {
-        btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit / Add Easer</button>');
+        btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit Booking Details</button>');
         var offlineCustomerTotalCents = Number(b.amount_charged ?? b.total_price ?? 0);
         var offlinePaymentVerified = b.source === 'owner_manual'
           && b.payment_status === 'offline_recorded'
@@ -3686,13 +3947,20 @@ window.intelQuick = intelQuick;
           && ['stripe_manual','cash','zelle','cashapp','card_on_site','invoice'].includes(String(b.payment_method || '').trim().toLowerCase())
           && Number.isInteger(offlineCustomerTotalCents)
           && offlineCustomerTotalCents > 0;
-        if (offlinePaymentVerified) {
+        if (manualRefundedCents > 0 && manualGrossPaidCents >= Number(b.total_price || 0)) {
+          notices.push('<div style="flex-basis:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:0.65rem 0.8rem;color:#065f46;font-size:0.78rem;line-height:1.5"><strong>Original payment reconciled:</strong> the agreed total was collected before the documented refund. Do not charge the customer again.</div>');
+          if (b.payout_review_status === 'review_required') {
+            btns.push('<button class="btn btn-amber" data-action="payout-review" data-id="' + b.id + '">Review Full Easer Earnings</button>');
+          } else if (b.payout_review_status === 'approved_full') {
+            btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed;font-size:0.78rem">Refund-Affected Earnings Reviewed</button>');
+          }
+        } else if (offlinePaymentVerified) {
           notices.push('<div style="flex-basis:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:0.65rem 0.8rem;color:#065f46;font-size:0.78rem;line-height:1.5"><strong>Step 1 complete:</strong> ' + fmt$(offlineCustomerTotalCents) + ' in offline customer payment is recorded as collected' + (b.payment_method ? ' via ' + esc(String(b.payment_method).replace(/_/g, ' ')) : '') + '.</div>');
           btns.push('<button class="btn" disabled style="opacity:0.55;cursor:not-allowed;font-size:0.78rem">Offline Payment Collected</button>');
         } else {
           notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Step 1 required:</strong> confirm the customer payment actually reached the business before releasing any Easer money.</div>');
-          if (manualCollectedCents === 0) {
-            btns.push('<button class="btn" data-action="collect-payment" data-id="' + b.id + '">Record Full Non-Stripe Payment</button>');
+          if (manualGrossPaidCents === 0 && manualRefundedCents === 0) {
+            btns.push('<button class="btn" data-action="collect-payment" data-id="' + b.id + '">Record Cash / Bank Payment</button>');
           }
         }
         var canonicalPayoutJob = payoutTruthAvailable
@@ -3885,6 +4153,7 @@ window.intelQuick = intelQuick;
     setManualPaymentFieldsVisible(false);
     setManualRefundFieldsVisible(false);
     setReturnVisitFieldsVisible(false);
+    setReturnResolutionFieldsVisible(false);
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -3915,7 +4184,7 @@ window.intelQuick = intelQuick;
       var bEdit = allBookings.find(function(x){ return x.id == id; });
       if (!bEdit) return;
       if (bEdit.source === 'owner_manual' && bEdit.status === 'completed') {
-        var ok = confirm('You are about to edit a completed owner-created job. Use this to correct the record or add your Easer account for payout tracking. This does not reopen the job. Continue?');
+        var ok = confirm('You are about to correct the service, appointment, or address on a completed owner-created job. This does not reopen the job or change its payment. Continue?');
         if (!ok) return;
       }
       document.getElementById('eb-id').value = id;
@@ -3930,6 +4199,11 @@ window.intelQuick = intelQuick;
           ? 'You are editing a completed owner-created job. Changes are treated as record corrections and do not reopen the job.'
           : 'Changes are saved immediately. Optionally notify the customer.';
       }
+      var editNotifyRow = document.getElementById('eb-notify-row');
+      var editNotifyBox = document.getElementById('eb-notify');
+      var recordOnlyEdit = bEdit.source === 'owner_manual' && bEdit.status === 'completed';
+      if (editNotifyRow) editNotifyRow.style.display = recordOnlyEdit ? 'none' : 'flex';
+      if (editNotifyBox) editNotifyBox.checked = !recordOnlyEdit;
       document.getElementById('eb-error').style.display = 'none';
       document.getElementById('edit-booking-modal').classList.add('open');
     } else if (action === 'record-manual-payment') {
@@ -3939,10 +4213,11 @@ window.intelQuick = intelQuick;
         id: id,
         type: 'record-manual-payment',
         expectedTotalCents: Number(manualPaymentBooking.total_price || 0),
+        grossCollectedCents: Number(manualPaymentBooking.amount_paid_cents || manualPaymentBooking.manual_payment_gross_cents || 0),
       };
-      document.getElementById('reason-modal-title').textContent = 'Record Verified Stripe Payment';
-      document.getElementById('reason-modal-desc').textContent = 'This verifies an existing Stripe payment and records it against the owner-created booking. It does not charge the customer or mark the full balance paid unless all recorded payments equal the agreed total.';
-      document.getElementById('reason-confirm').textContent = 'Verify and Record Payment';
+      document.getElementById('reason-modal-title').textContent = 'Record Stripe Payment';
+      document.getElementById('reason-modal-desc').textContent = 'Choose money Stripe already collected. AAE verifies the payment and updates the customer balance; it never charges the customer again.';
+      document.getElementById('reason-confirm').textContent = 'Record Payment';
       document.getElementById('reason-confirm').className = 'btn btn-teal';
       $reasonText.style.display = 'none';
       setManualPaymentFieldsVisible(true, manualPaymentBooking);
@@ -3962,6 +4237,28 @@ window.intelQuick = intelQuick;
       document.getElementById('reason-confirm').className = 'btn btn-teal';
       $reasonText.style.display = 'none';
       setReturnVisitFieldsVisible(true, returnVisitBooking);
+      $reasonModal.classList.add('open');
+    } else if (action === 'complete-return-visit' || action === 'reopen-return-visit') {
+      var resolutionBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!resolutionBooking || !resolutionBooking.return_visit_required) return;
+      var resolutionAction = action === 'complete-return-visit' ? 'complete' : 'reopen';
+      pendingAction = { id: id, type: 'resolve-return-visit', resolution: resolutionAction };
+      document.getElementById('reason-modal-title').textContent = resolutionAction === 'complete'
+        ? 'Complete Return Visit & Job'
+        : 'Reopen Unfinished Job';
+      document.getElementById('reason-modal-desc').textContent = resolutionAction === 'complete'
+        ? 'Use this only after all remaining work is finished. This closes the return visit and makes the booking completion final.'
+        : 'Use this when the booking was marked complete too early. The return visit and remaining work will become operationally active again.';
+      document.getElementById('reason-confirm').textContent = resolutionAction === 'complete'
+        ? 'Confirm Final Completion'
+        : 'Reopen Job';
+      document.getElementById('reason-confirm').className = resolutionAction === 'complete' ? 'btn btn-teal' : 'btn btn-amber';
+      $reasonText.style.display = '';
+      $reasonText.value = '';
+      $reasonText.placeholder = resolutionAction === 'complete'
+        ? 'What remaining work was completed?'
+        : 'Why was the completion incorrect?';
+      setReturnResolutionFieldsVisible(true, resolutionAction);
       $reasonModal.classList.add('open');
     } else if (action === 'refund-manual-payment' || action === 'manual-refund-recovery') {
       var manualRefundBooking = allBookings.find(function(item){ return item.id == id; });
@@ -4312,29 +4609,27 @@ window.intelQuick = intelQuick;
     }
 
     if (pendingAction.type === 'record-manual-payment') {
-      var manualAmountCents = Math.round(Number(($manualPaymentAmount && $manualPaymentAmount.value) || 0) * 100);
-      var manualTotalCents = Math.round(Number(($manualPaymentTotal && $manualPaymentTotal.value) || 0) * 100);
+      var manualDiscountCents = manualPaymentDollarInputCents($manualPaymentDiscount);
       var manualIntentId = String(($manualPaymentIntent && $manualPaymentIntent.value) || '').trim();
       var manualAdjustmentNote = String(($manualPaymentAdjustment && $manualPaymentAdjustment.value) || '').trim();
       var manualPaymentNote = String(($manualPaymentNote && $manualPaymentNote.value) || '').trim();
-      if (!Number.isInteger(manualAmountCents) || manualAmountCents <= 0) {
-        toast('Enter the exact Stripe payment received', 'error');
-        return;
-      }
-      if (!Number.isInteger(manualTotalCents) || manualTotalCents <= 0) {
-        toast('Enter the adjusted agreed customer total', 'error');
+      if (!Number.isInteger(manualDiscountCents)
+          || manualDiscountCents < 0
+          || manualDiscountCents >= pendingAction.expectedTotalCents) {
+        toast('Enter a valid discount smaller than the booking total', 'error');
         return;
       }
       if (!/^pi_[A-Za-z0-9]+$/.test(manualIntentId)) {
-        toast('Copy the exact Stripe PaymentIntent ID beginning with pi_', 'error');
+        toast('Select a Stripe payment or paste its pi_ ID', 'error');
         return;
       }
-      if (manualTotalCents < pendingAction.expectedTotalCents && !manualAdjustmentNote) {
-        toast('Document the customer discount', 'error');
+      if (manualDiscountCents > 0 && !manualAdjustmentNote) {
+        if ($manualPaymentOptions) $manualPaymentOptions.open = true;
+        toast('Select why the customer total was discounted', 'error');
         return;
       }
       if (!$manualPaymentConfirm || !$manualPaymentConfirm.checked) {
-        toast('Confirm that the selected or manually entered Stripe payment is correct', 'error');
+        toast('Confirm the Stripe payment before recording it', 'error');
         return;
       }
 
@@ -4348,12 +4643,11 @@ window.intelQuick = intelQuick;
           headers: headers(),
           body: JSON.stringify({
             bookingId: manualPaymentBookingId,
-            amountCents: manualAmountCents,
             paymentMethod: 'stripe_manual',
             paymentIntentId: manualIntentId,
             expectedTotalCents: pendingAction.expectedTotalCents,
-            adjustedTotalCents: manualTotalCents,
-            adjustmentNote: manualAdjustmentNote || undefined,
+            discountCents: manualDiscountCents,
+            adjustmentNote: manualDiscountCents > 0 ? manualAdjustmentNote : undefined,
             paymentNote: manualPaymentNote || undefined,
           }),
         });
@@ -4362,11 +4656,14 @@ window.intelQuick = intelQuick;
           throw new Error(manualPaymentData.error || 'Stripe payment could not be verified');
         }
         closeReasonModal();
-        toast(
-          (manualPaymentData.alreadyRecorded ? 'Stripe payment was already recorded. ' : 'Stripe payment recorded. ')
-            + fmt$(manualPaymentData.remainingBalanceCents) + ' remaining.',
-          'success'
-        );
+        var paymentSuccess = manualPaymentData.alreadyRecorded
+          ? 'Stripe payment was already recorded. '
+          : 'Stripe payment recorded. ';
+        paymentSuccess += manualPaymentData.paymentCollected
+          ? 'Customer balance is paid in full.'
+          : fmt$(manualPaymentData.remainingBalanceCents) + ' remaining.';
+        if (manualPaymentData.notificationDelivered === false) paymentSuccess += ' Customer receipt needs manual follow-up.';
+        toast(paymentSuccess, manualPaymentData.notificationDelivered === false ? 'error' : 'success');
         await loadBookings();
         await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
@@ -4375,7 +4672,51 @@ window.intelQuick = intelQuick;
         toast(manualPaymentError.message || 'Stripe payment could not be verified', 'error');
       } finally {
         manualPaymentButton.disabled = false;
-        manualPaymentButton.textContent = 'Verify and Record Payment';
+        manualPaymentButton.textContent = 'Record Payment';
+      }
+      return;
+    }
+
+    if (pendingAction.type === 'resolve-return-visit') {
+      var resolutionNote = String(($reasonText && $reasonText.value) || '').trim();
+      if (resolutionNote.length < 5) {
+        toast('Document what happened before changing the return visit', 'error');
+        return;
+      }
+      var resolutionBookingId = pendingAction.id;
+      var selectedResolution = pendingAction.resolution;
+      var resolutionButton = this;
+      resolutionButton.disabled = true;
+      resolutionButton.textContent = selectedResolution === 'complete' ? 'Finalizing...' : 'Reopening...';
+      try {
+        var resolutionResponse = await fetch('/api/owner/resolve-return-visit', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: resolutionBookingId,
+            action: selectedResolution,
+            note: resolutionNote,
+            notifyCustomer: !$returnResolutionNotify || $returnResolutionNotify.checked,
+          }),
+        });
+        var resolutionData = await resolutionResponse.json().catch(function(){ return {}; });
+        if (!resolutionResponse.ok || resolutionData.error) {
+          throw new Error(resolutionData.error || 'Return visit could not be resolved');
+        }
+        closeReasonModal();
+        var resolutionMessage = selectedResolution === 'complete'
+          ? 'Return visit completed and booking finalized'
+          : 'Booking reopened with return work active';
+        if (resolutionData.notificationDelivered === false) resolutionMessage += '; customer email needs manual follow-up';
+        toast(resolutionMessage, resolutionData.notificationDelivered === false ? 'error' : 'success');
+        await loadBookings();
+        if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
+      } catch (resolutionError) {
+        toast(resolutionError.message || 'Return visit could not be resolved', 'error');
+      } finally {
+        resolutionButton.disabled = false;
+        resolutionButton.textContent = selectedResolution === 'complete' ? 'Confirm Final Completion' : 'Reopen Job';
       }
       return;
     }
@@ -4561,7 +4902,12 @@ window.intelQuick = intelQuick;
           if (selectedId) selectBooking(selectedId);
           return;
         }
-        toast('Refund issued', 'success');
+        toast(
+          rd.notificationDelivered === false
+            ? 'Refund issued; customer email needs manual follow-up'
+            : 'Refund issued and customer notified',
+          rd.notificationDelivered === false ? 'error' : 'success'
+        );
         await loadBookings();
         if (selectedId) selectBooking(selectedId);
       } catch { toast('Refund failed', 'error'); }
@@ -4617,7 +4963,12 @@ window.intelQuick = intelQuick;
         var pd = await pr.json().catch(function(){ return {}; });
         if (!pr.ok || pd.error) throw new Error(pd.error || 'Payout record could not be verified');
         closeReasonModal();
-        toast('Payout recorded', 'success');
+        toast(
+          pd.notificationDelivered === false
+            ? 'Payout recorded; Easer email needs manual follow-up'
+            : 'Payout recorded and Easer notified',
+          pd.notificationDelivered === false ? 'error' : 'success'
+        );
         await loadBookings();
         await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
@@ -4641,7 +4992,12 @@ window.intelQuick = intelQuick;
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
-        toast('Easer rejected and notified', 'success');
+        toast(
+          data.emailDelivered === false
+            ? 'Easer rejected; notification email needs manual follow-up'
+            : 'Easer rejected and notified',
+          data.emailDelivered === false ? 'error' : 'success'
+        );
         await reloadAssemblersAndMaybeRefreshDetail(aIdRej, reopenRejectDetail);
       } catch { toast('Failed to reject Easer', 'error'); }
       return;
@@ -4685,7 +5041,12 @@ window.intelQuick = intelQuick;
         var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: aIdRei, action: 'reinstate' }) });
         var data = await r.json();
         if (data.error) { toast(data.error, 'error'); return; }
-        toast('Easer reinstated — dispatch eligibility restored', 'success');
+        toast(
+          data.emailDelivered === false
+            ? 'Easer account reinstated; email needs manual follow-up and readiness still applies'
+            : 'Easer account reinstated; current readiness requirements still apply',
+          data.emailDelivered === false ? 'error' : 'success'
+        );
         await reloadAssemblersAndMaybeRefreshDetail(aIdRei, reopenReinstateDetail);
       } catch { toast('Action failed — check connection', 'error'); }
       return;
@@ -4742,11 +5103,15 @@ window.intelQuick = intelQuick;
         if (selectedId) selectBooking(selectedId);
         return;
       }
-      toast(msg || 'Booking updated', 'success');
+      var successMessage = msg || 'Booking updated';
+      if (data.notificationDelivered === false) {
+        successMessage += '; customer email needs manual follow-up';
+      }
+      toast(successMessage, data.notificationDelivered === false ? 'error' : 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch (e) {
-      toast('Action failed — check your connection', 'error');
+      toast((e && e.message) || 'Action failed — check your connection', 'error');
     }
   }
 
@@ -4859,7 +5224,23 @@ window.intelQuick = intelQuick;
   });
 
   // ─── Helpers ───
-  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function jsAttr(s) {
+    return esc(String(s == null ? '' : s)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029'));
+  }
 
   // ── Centralized badge helpers ──────────────────────────────────────────────
   // Each function maps a DB value to a <span class="sb {category-class}">.
@@ -4902,7 +5283,7 @@ window.intelQuick = intelQuick;
     } else {
       cls = 'bk-confirmed'; label = s || '—';
     }
-    return '<span class="sb ' + cls + '">' + label + '</span>';
+    return '<span class="sb ' + cls + '">' + esc(label) + '</span>';
   }
 
   function easerAccountBadge(status) {
@@ -4913,7 +5294,7 @@ window.intelQuick = intelQuick;
       rejected:  ['ea-rejected',  'Rejected'],
     };
     var v = map[status] || ['ea-pending', status || '—'];
-    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+    return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
   }
 
   function easerTierBadge(tier) {
@@ -4924,7 +5305,7 @@ window.intelQuick = intelQuick;
       elite:        ['et-elite',        'Elite'],
     };
     var v = map[tier] || ['et-starter', tier];
-    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+    return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
   }
 
   function verificationBadge(a) {
@@ -4964,6 +5345,7 @@ window.intelQuick = intelQuick;
       card_saved:   ['py-authorized',   'Card on File'],
       authorized:   ['py-authorized',   'Authorized'],
       deposit_paid: ['py-deposit-paid', 'Deposit Paid'],
+      offline_recorded: ['py-not-required', 'Owner Payment Workflow'],
       captured:     ['py-captured',     'Captured'],
       cancellation_fee_captured: ['py-captured', 'Cancellation Fee Captured'],
       partially_refunded: ['py-refunded', 'Partially Refunded'],
@@ -4973,11 +5355,22 @@ window.intelQuick = intelQuick;
       quote_authorization_pending: ['py-pending', 'Quote Authorization Pending'],
     };
     var v = map[status] || ['py-pending', status || '—'];
-    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+    return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
   }
 
   function paymentStatusLabel(booking) {
     var status = String(booking && booking.payment_status || 'unknown');
+    if (status === 'offline_recorded') {
+      var receivedCents = Number((booking && booking.amount_collected_cents) || 0);
+      var remainingCents = Number((booking && booking.remaining_balance_cents) || 0);
+      if (booking && booking.payment_collected === true && remainingCents === 0) {
+        return 'Paid in full — ' + fmt$(receivedCents) + ' verified in AAE';
+      }
+      if (receivedCents > 0) {
+        return 'Partial payment recorded — ' + fmt$(receivedCents) + ' received; ' + fmt$(remainingCents) + ' remaining';
+      }
+      return 'No customer payment recorded in AAE';
+    }
     var labels = {
       pending: 'No card authorization or charge is confirmed',
       failed: 'Authorization failed; customer can retry securely',
@@ -5005,7 +5398,7 @@ window.intelQuick = intelQuick;
       superseded: ['do-superseded', 'Taken'],
     };
     var v = map[status] || ['do-expired', status || '—'];
-    return '<span class="sb ' + v[0] + '">' + v[1] + '</span>';
+    return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
   }
 
   function formatDate(d) {
@@ -5146,6 +5539,7 @@ window.intelQuick = intelQuick;
 
   // ─── Assembler assignment ───
   var eligibleAssemblers = [];
+  var ownerEaserProfile = null;
 
   async function loadAssemblers() {
     try {
@@ -5153,6 +5547,21 @@ window.intelQuick = intelQuick;
       if (!r.ok) return;
       var data = await r.json();
       eligibleAssemblers = data.assemblers || [];
+      ownerEaserProfile = data.ownerEaser || null;
+      if (selectedId) {
+        var selectedBookingForAssignment = allBookings.find(function(booking) { return booking.id === selectedId; });
+        if (selectedBookingForAssignment) renderAssignSection(selectedBookingForAssignment);
+        if (_evidenceCache[selectedId] && !_evidenceCache[selectedId].loading) {
+          _renderEvidence(
+            selectedId,
+            _evidenceCache[selectedId],
+            document.getElementById('evidence-content'),
+            document.getElementById('evidence-warning-bar'),
+            document.getElementById('evidence-tab-count'),
+            document.getElementById('tab-evidence').style.display !== 'none'
+          );
+        }
+      }
     } catch(e) { console.error('Failed to load assemblers:', e); }
   }
 
@@ -5163,13 +5572,19 @@ window.intelQuick = intelQuick;
     var status   = document.getElementById('assign-status');
     var controls = document.getElementById('assign-controls');
     var select   = document.getElementById('assign-select');
+    var assignButton = document.getElementById('assign-btn');
     var allowOwnerManualCompleted = b.source === 'owner_manual' && b.status === 'completed';
     var allowOwnerManualLive = b.source === 'owner_manual' && b.status === 'confirmed';
     var ownerEaserOnly = allowOwnerManualLive || allowOwnerManualCompleted;
+    var completedAttributionReady = allowOwnerManualCompleted
+      && b.return_visit_required !== true
+      && b.payment_collected === true
+      && Number(b.remaining_balance_cents || 0) === 0;
     if (b.status !== 'confirmed' && !allowOwnerManualCompleted) { section.style.display = 'none'; return; }
     section.style.display = '';
     if (b.assembler_id) {
-      var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; });
+      var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; })
+        || (ownerEaserProfile && ownerEaserProfile.id === b.assembler_id ? ownerEaserProfile : null);
       var aName = a ? a.full_name : (b.assembler_name || 'Assigned Easer');
       var isAccepted = !!(b.assembler_accepted_at || b.dispatch_status === 'accepted');
       var acceptedAt = b.assembler_accepted_at ? ' at ' + new Date(b.assembler_accepted_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
@@ -5182,22 +5597,54 @@ window.intelQuick = intelQuick;
           : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>');
       controls.style.display = 'none';
     } else {
-      var assignmentChoices = ownerEaserOnly
-        ? eligibleAssemblers.filter(function(a) { return a.is_owner === true; })
-        : eligibleAssemblers;
+      if (allowOwnerManualCompleted && !completedAttributionReady) {
+        status.textContent = b.return_visit_required === true
+          ? 'Resolve the open return visit before crediting completed work to the owner-Easer.'
+          : 'Record the full customer payment before crediting completed work or creating Easer earnings.';
+        controls.style.display = 'none';
+        if (assignButton) {
+          assignButton.disabled = true;
+          assignButton.textContent = 'Credit Owner-Easer';
+        }
+        return;
+      }
+      var readyOwnerChoices = eligibleAssemblers.filter(function(a) { return a.is_owner === true; });
+      var assignmentChoices = allowOwnerManualCompleted
+        ? (ownerEaserProfile ? [ownerEaserProfile] : [])
+        : (allowOwnerManualLive ? readyOwnerChoices : eligibleAssemblers);
+      var ownerMissingItems = ownerEaserProfile && Array.isArray(ownerEaserProfile.missing_items)
+        ? ownerEaserProfile.missing_items.join(', ')
+        : '';
       status.textContent = allowOwnerManualCompleted
         ? 'Completed owner booking — only the configured owner-Easer account may be credited for payout tracking.'
         : (allowOwnerManualLive
           ? 'Only the configured owner-Easer account may work this offline booking.'
           : 'No Easer assigned yet.');
+      if (allowOwnerManualCompleted) {
+        status.textContent = ownerEaserProfile
+          ? 'Credit the completed work to the configured owner-Easer. Historical attribution does not make the account eligible for new jobs.'
+          : 'Configure the singular owner-Easer account before crediting completed work.';
+      } else if (allowOwnerManualLive && ownerEaserProfile && !ownerEaserProfile.is_job_ready) {
+        status.textContent = 'Owner-Easer is not eligible for new jobs yet' + (ownerMissingItems ? ': ' + ownerMissingItems : '.');
+      }
       controls.style.display = 'flex';
       select.innerHTML = assignmentChoices.length
-        ? '<option value="">Select an Easer...</option>'
-        : '<option value="">Owner-Easer account is not configured</option>';
+        ? (allowOwnerManualCompleted ? '' : '<option value="">Select an Easer...</option>')
+        : '<option value="">Owner-Easer account is not available</option>';
       assignmentChoices.forEach(function(a) {
         var tierBadge = a.tier === 'elite' ? ' (Elite)' : a.tier === 'verified' ? ' (Verified)' : '';
         select.innerHTML += '<option value="' + a.id + '">' + esc(a.full_name) + tierBadge + ' (' + (a.completed_jobs || 0) + ' jobs, ' + (a.rating ? Number(a.rating).toFixed(1) : 'New') + ')</option>';
       });
+      if (allowOwnerManualCompleted && assignmentChoices.length) {
+        select.value = assignmentChoices[0].id;
+        if (assignButton) {
+          assignButton.disabled = false;
+          assignButton.textContent = 'Credit Owner-Easer';
+        }
+      } else if (assignButton) {
+        assignButton.disabled = true;
+        assignButton.textContent = 'Assign';
+      }
     }
   }
 
@@ -5227,7 +5674,7 @@ window.intelQuick = intelQuick;
       delete this.dataset.reassign;
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
-    } catch(e) { toast('Failed to assign', 'error'); }
+    } catch(e) { toast(e.message || 'Failed to assign', 'error'); }
     finally { this.disabled = false; this.textContent = 'Assign'; }
   });
 
@@ -5246,7 +5693,6 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var $cleanupTestBtn2 = document.getElementById('cleanup-test-data-btn');
   var allViews = [$bookingsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
@@ -5279,7 +5725,6 @@ window.intelQuick = intelQuick;
       link.classList.add('active');
       hideAllViews();
       syncPrimaryOwnerAction(view);
-      if ($cleanupTestBtn2) $cleanupTestBtn2.style.display = view === 'bookings' ? '' : 'none';
       if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
@@ -5347,8 +5792,11 @@ window.intelQuick = intelQuick;
         var safeAction = actionLabels[a.action] ? a.action : '';
         var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
         var actionBtn = safeAction ? '<button onclick="opsAction(\'' + safeAction + '\',\'' + safeBookingId + '\',\'' + encodedRecipient + '\')" class="btn" style="font-size:0.7rem;padding:2px 10px;margin-left:auto;flex-shrink:0">' + actionLabels[safeAction] + '</button>' : '';
-        return '<div class="alert-row ' + a.severity + '">'
-          + '<span class="alert-label">' + a.severity.toUpperCase() + '</span>'
+        var safeSeverity = ['critical','high','medium','low'].includes(String(a.severity || '').toLowerCase())
+          ? String(a.severity).toLowerCase()
+          : 'medium';
+        return '<div class="alert-row ' + safeSeverity + '">'
+          + '<span class="alert-label">' + safeSeverity.toUpperCase() + '</span>'
           + '<span style="font-size:0.82rem;color:var(--text);flex:1;line-height:1.4">' + esc(a.message) + '</span>'
           + actionBtn + '</div>';
       }).join('');
@@ -5361,6 +5809,7 @@ window.intelQuick = intelQuick;
       { label: 'Active Jobs', val: s.totalActive, color: '#00BFFF' },
       { label: 'Pending', val: s.pendingPayment || 0, color: s.pendingPayment > 0 ? '#d97706' : '#6b7280' },
       { label: 'Needs Easer', val: s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0), color: (s.unassigned + (s.ownerManualNeedsAssignment||0) + (s.offersExpired||0) + (s.needsManual||0)) > 0 ? '#dc2626' : '#6b7280' },
+      { label: 'Owner Reconciliation', val: s.ownerManualReconciliation || 0, color: (s.ownerManualReconciliation || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Payment Recovery', val: s.pendingPayment || 0, color: (s.pendingPayment || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Quotes to Price', val: s.quoteNeedsPricing || 0, color: (s.quoteNeedsPricing || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Quote Customer Action', val: (s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0), color: ((s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0)) > 0 ? '#d97706' : '#6b7280' },
@@ -5402,7 +5851,7 @@ window.intelQuick = intelQuick;
       .concat((d.quoteAuthorizationPending || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Authorization Needs Review', _ownerDescription:'Reconcile Stripe before changing status or dispatching.', _ownerColor:'#dc2626' }); }))
       .concat((d.pendingOther || []).map(function(item){ return Object.assign({}, item, { _ownerLabel:'Unknown Payment State', _ownerDescription:'Review payment truth before any operational action.', _ownerColor:'#dc2626' }); }));
     pending = pending.concat(quoteActions);
-    var needs = (d.ownerManualNeedsAssignment || []).concat(d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
+    var needs = (d.ownerManualReconciliation || []).concat(d.ownerManualNeedsAssignment || []).concat(d.needsManual || []).concat(d.unassigned || []).concat(d.offersExpired || []).concat(d.awaitingDispatch || []);
     if (!pending.length && !needs.length) {
       unassignedEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No payment, quote, or assignment actions are waiting</div>';
     } else {
@@ -5423,11 +5872,11 @@ window.intelQuick = intelQuick;
       }
       if (needs.length) {
         html += needs.map(function(b) {
-          var _stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed' };
-          var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626', owner_manual_assignment: '#dc2626' };
+          var _stateLabels = { active_offers: 'Offers sent', offers_expired: 'Offers expired', needs_manual: 'Needs manual', owner_manual_assignment: 'Owner assignment needed', owner_manual_reconciliation: 'Owner reconciliation' };
+          var _stateColors = { active_offers: '#8b5cf6', offers_expired: '#ea580c', needs_manual: '#dc2626', owner_manual_assignment: '#dc2626', owner_manual_reconciliation: '#d97706' };
           var label = _stateLabels[b._dispatchState] || (b.dispatch_offered_at ? 'Offer sent' : 'No Easer yet');
           var badgeColor = _stateColors[b._dispatchState] || (b.dispatch_offered_at ? '#ea580c' : '#dc2626');
-          var isOwnerManual = b._dispatchState === 'owner_manual_assignment';
+          var isOwnerManual = ['owner_manual_assignment','owner_manual_reconciliation'].includes(b._dispatchState);
           var action = isOwnerManual ? 'review_timeline' : 'dispatch';
           var actionLabel = isOwnerManual ? 'Open Booking' : 'Dispatch Now';
           var actionClass = isOwnerManual ? 'btn' : 'btn btn-teal';
@@ -5457,7 +5906,7 @@ window.intelQuick = intelQuick;
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
           + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
-          + '<div style="font-size:0.78rem;color:var(--muted)">'+(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
+          + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.assembler_name||'Easer')+' &bull; '+esc(b.customer_name||'Customer')+'</div></div>'
           + '<span style="background:rgba('+hexToRgb(color)+',0.1);color:'+color+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px">'+stage+'</span>'
           + '</div>'
           + (b.address ? '<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">'+esc(b.address)+'</div>' : '')
@@ -5521,8 +5970,9 @@ window.intelQuick = intelQuick;
         var color = inactive ? '#64748b' : (item.severity === 'high' ? '#dc2626' : '#d97706');
         var meta = item.meta ? '<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">' + esc(item.meta) + '</div>' : '';
         var when = item.when ? new Date(item.when).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
-        var failureAction = item.kind === 'notification' && item.bookingId
-          ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px;margin-top:7px" onclick="opsAction(\'review_timeline\',\'' + item.bookingId + '\',\'' + encodeURIComponent(item.recipient || '') + '\')">Review Booking</button>'
+        var safeFailureBookingId = /^[0-9a-f-]{36}$/i.test(String(item.bookingId || '')) ? item.bookingId : '';
+        var failureAction = item.kind === 'notification' && safeFailureBookingId
+          ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px;margin-top:7px" onclick="opsAction(\'review_timeline\',\'' + safeFailureBookingId + '\',\'' + jsAttr(encodeURIComponent(item.recipient || '')) + '\')">Review Booking</button>'
           : '';
         var recipient = item.recipient ? '<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Recipient: ' + esc(item.recipient) + (item.notificationType ? ' &bull; ' + esc(item.notificationType) : '') + '</div>' : '';
         var ownerAction = item.ownerAction ? '<div style="font-size:0.75rem;color:#9a3412;margin-top:4px">Owner action: ' + esc(item.ownerAction) + '</div>' : '';
@@ -5555,11 +6005,14 @@ window.intelQuick = intelQuick;
     } else {
       damageEl.innerHTML = damageReports.map(function(report) {
         var when = report.created_at || report.when;
+        var safeDamageBookingId = /^[0-9a-f-]{36}$/i.test(String(report.booking_id || report.bookingId || ''))
+          ? (report.booking_id || report.bookingId)
+          : '';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border);display:flex;gap:0.75rem;align-items:flex-start">'
           + '<div style="flex:1"><div style="font-size:0.84rem;font-weight:700;color:var(--text)">' + esc(report.booking_ref || report.ref || 'Booking report') + '</div>'
           + '<div style="font-size:0.8rem;color:var(--soft);line-height:1.45">' + esc(report.description || report.detail || report.notes || 'Damage or rework evidence requires review.') + '</div>'
           + (when ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px">' + esc(new Date(when).toLocaleString()) + '</div>' : '') + '</div>'
-          + '<button class="btn" style="font-size:0.7rem;padding:2px 9px" onclick="opsAction(\'review_damage_evidence\',\'' + (report.booking_id || report.bookingId || '') + '\')">Review Booking</button>'
+          + (safeDamageBookingId ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px" onclick="opsAction(\'review_damage_evidence\',\'' + safeDamageBookingId + '\')">Review Booking</button>' : '')
           + '</div>';
       }).join('');
     }
@@ -5619,12 +6072,16 @@ window.intelQuick = intelQuick;
     var dateDisplay = businessDateLabel(today, true);
     var dd = document.getElementById('today-date-display');
     if (dd) dd.textContent = dateDisplay;
+    function usesReturnVisitSchedule(b) {
+      return b.return_visit_date === today
+        && (b.return_visit_required === true || !!b.return_visit_completed_at);
+    }
     var jobs = allBookings.filter(function(b){
-      return (b.return_visit_required ? b.return_visit_date : b.date) === today;
+      return usesReturnVisitSchedule(b) || b.date === today;
     });
     jobs.sort(function(a,b){
-      var aTime = a.return_visit_required ? a.return_visit_time : a.time;
-      var bTime = b.return_visit_required ? b.return_visit_time : b.time;
+      var aTime = usesReturnVisitSchedule(a) ? a.return_visit_time : a.time;
+      var bTime = usesReturnVisitSchedule(b) ? b.return_visit_time : b.time;
       return (aTime||'').localeCompare(bTime||'');
     });
     document.getElementById('today-count').textContent = jobs.length;
@@ -5641,10 +6098,11 @@ window.intelQuick = intelQuick;
     if(!jobs.length){ list.innerHTML=''; empty.style.display=''; return; }
     empty.style.display='none';
     list.innerHTML = jobs.map(function(b){
-      var scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
-      var scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
+      var showingReturnVisit = usesReturnVisitSchedule(b);
+      var scheduleDate = showingReturnVisit ? b.return_visit_date : b.date;
+      var scheduleTime = showingReturnVisit ? b.return_visit_time : b.time;
       return '<div class="today-job-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">'
-        +'<div class="today-job-time" style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+esc(scheduleTime||'—')+'<div style="font-size:0.66rem;font-weight:500;color:var(--muted);margin-top:3px">'+esc(scheduleDate)+(b.return_visit_required ? ' &bull; Return visit' : '')+'</div></div>'
+        +'<div class="today-job-time" style="font-size:1.1rem;font-weight:700;color:var(--teal);min-width:70px">'+esc(scheduleTime||'—')+'<div style="font-size:0.66rem;font-weight:500;color:var(--muted);margin-top:3px">'+esc(scheduleDate)+(showingReturnVisit ? ' &bull; Return visit' : '')+'</div></div>'
         +'<div class="today-job-main" style="flex:1;min-width:0">'
           +'<div style="font-size:0.9rem;font-weight:600;color:var(--text)">'+esc(b.customer_name||'—')+'</div>'
           +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(b.service||'—')+' &bull; '+esc(b.address||'—')+'</div>'
@@ -5693,12 +6151,11 @@ window.intelQuick = intelQuick;
         +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">'
           +'<div>'
             +'<div style="font-size:1rem;margin-bottom:2px">'+stars+'</div>'
-            +'<div style="font-size:0.8rem;color:var(--muted)">'+(r.customer_name||'Customer')+' &bull; '+(r.service||'')+(date ? ' &bull; '+date : '')+'</div>'
+            +'<div style="font-size:0.8rem;color:var(--muted)">'+esc(r.customer_name||'Customer')+' &bull; '+esc(r.service||'')+(date ? ' &bull; '+esc(date) : '')+'</div>'
           +'</div>'
           +'<div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0">'
             +'<span style="font-size:0.72rem;font-weight:700;padding:2px 10px;border-radius:999px;background:'+approvedBg+';color:'+approvedColor+'">'+approvedLabel+'</span>'
             +'<button onclick="toggleReview(\''+r.id+'\','+(r.approved ? 'false' : 'true')+')" class="btn" style="font-size:0.72rem;padding:3px 10px">'+(r.approved ? 'Hide' : 'Show')+'</button>'
-            +'<button onclick="deleteReview(\''+r.id+'\')" class="btn btn-red" style="font-size:0.72rem;padding:3px 10px">Delete</button>'
           +'</div>'
         +'</div>'
         +'<p style="font-size:0.875rem;color:var(--text);line-height:1.65;margin:0">&ldquo;'+esc(r.body)+'&rdquo;</p>'
@@ -5716,18 +6173,6 @@ window.intelQuick = intelQuick;
       toast(approved ? 'Review now visible on site' : 'Review hidden from site', 'success');
     } catch { toast('Failed to update review','error'); }
   };
-  window.deleteReview = async function(id) {
-    if(!confirm('Permanently delete this review?')) return;
-    try {
-      var r = await fetch('/api/owner/reviews', { method:'DELETE', headers:headers(), body:JSON.stringify({id:id}) });
-      var d = await r.json();
-      if(d.error){toast(d.error,'error');return;}
-      allReviews = allReviews.filter(function(x){return x.id!==id;});
-      renderReviews();
-      toast('Review deleted','success');
-    } catch { toast('Failed to delete review','error'); }
-  };
-
   // ─── CUSTOMERS VIEW ───
   var allCustomers = [];
   function buildCustomers() {
@@ -5739,7 +6184,7 @@ window.intelQuick = intelQuick;
         map[key] = { name:b.customer_name, email:b.customer_email, phone:b.customer_phone, bookings:0, spent:0, lastDate:'', lastService:'' };
       }
       map[key].bookings++;
-      if(b.total_price) map[key].spent += Number(b.total_price)||0;
+      map[key].spent += actualNetPaymentsCents(b);
       if(b.created_at > map[key].lastDate){ map[key].lastDate=b.created_at; map[key].lastService=b.service||'—'; }
     });
     allCustomers = Object.values(map).sort(function(a,b){return b.bookings-a.bookings;});
@@ -6221,7 +6666,7 @@ window.intelQuick = intelQuick;
     if (nextDueEl) {
       var nd = nextQuarterlyDue(new Date());
       var days = Math.max(0, Math.round((nd.due - new Date()) / 86400000));
-      nextDueEl.textContent = 'Next return: ' + nd.periodKey + ' — due ' + nd.dueLabel + ' (' + days + ' day' + (days === 1 ? '' : 's') + ')';
+      nextDueEl.textContent = 'Quarterly planning date: ' + nd.periodKey + ' — ' + nd.dueLabel + ' (' + days + ' day' + (days === 1 ? '' : 's') + ')';
     }
     var banner = document.getElementById('tax-outstanding-banner');
     var msg = document.getElementById('tax-remittance-msg');
@@ -6232,7 +6677,7 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error(d.error || 'Failed');
       var periods = d.periods || [];
       if (!periods.length) {
-        body.innerHTML = '<tr><td colspan="10" style="padding:1rem;text-align:center;color:var(--muted)">No captured bookings yet.</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" style="padding:1rem;text-align:center;color:var(--muted)">No collected customer payments in this tax period.</td></tr>';
       } else {
         body.innerHTML = periods.map(function(p) {
           var out = p.outstandingCents || 0;
@@ -7367,24 +7812,24 @@ window.intelQuick = intelQuick;
       if (a.tier === 'starter') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'professional\')">Promote to Professional</button> ';
       if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';
       if (a.tier === 'elite') actionBtns += '<button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'professional\')">Demote to Professional</button> ';
-      actionBtns += '<button class="btn btn-red" onclick="suspendFromDetail(\'' + a.id + '\',\'' + esc(a.full_name) + '\')">Suspend</button> ';
+      actionBtns += '<button class="btn btn-red" onclick="suspendFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Suspend</button> ';
     }
 
     // REINSTATE (suspended)
     if (a.status === 'suspended' && !closureHeld) {
       var prevLabel = { starter:'Starter', professional:'Professional', elite:'Elite' }[a.previous_tier] || 'Starter';
-      actionBtns += '<button class="btn btn-teal" onclick="reinstateFromDetail(\'' + a.id + '\',\'' + esc(a.full_name) + '\',\'' + prevLabel + '\')">Reinstate (' + prevLabel + ')</button> ';
+      actionBtns += '<button class="btn btn-teal" onclick="reinstateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\',\'' + prevLabel + '\')">Reinstate (' + prevLabel + ')</button> ';
     }
 
     // REJECTED actions
     if (a.status === 'rejected') {
-      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')">Archive Application</button> ';
+      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Archive Application</button> ';
     }
 
     // ALWAYS available
-    if (!closureHeld) actionBtns += '<button class="btn" onclick="sendResetPassword(\'' + esc(a.email) + '\')">Reset Password</button>';
+    if (!closureHeld) actionBtns += '<button class="btn" onclick="sendResetPassword(\'' + jsAttr(a.email) + '\')">Reset Password</button>';
     if (a.status !== 'rejected' && a.account_closure_status !== 'completed') {
-      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + esc(a.full_name) + '\')">' + (closureHeld ? 'Complete Account Closure' : 'Close Easer Account') + '</button>';
+      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">' + (closureHeld ? 'Complete Account Closure' : 'Close Easer Account') + '</button>';
     } else if (a.account_closure_status === 'completed' && !a.auth_access_revoked_at) {
       actionBtns += '<button class="btn btn-red" onclick="retryEaserAccessRevocation(\'' + a.id + '\')">Retry Sign-In Revocation</button>';
     }
@@ -7425,6 +7870,10 @@ window.intelQuick = intelQuick;
     }
 
     document.getElementById('asm-detail-body').innerHTML = [
+      // Profile photo the Easer uploaded during onboarding (initials fallback if none/broken)
+      (a.profile_photo
+        ? '<div style="text-align:center;margin-bottom:0.75rem"><img src="' + esc(a.profile_photo) + '" alt="' + esc(a.full_name) + '" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.parentNode.innerHTML=\'&lt;div style=&quot;width:96px;height:96px;border-radius:50%;background:#e4e4e7;color:#71717a;display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700&quot;&gt;' + esc((a.full_name||'?').trim().charAt(0).toUpperCase()) + '&lt;/div&gt;\'"></div>'
+        : '<div style="text-align:center;margin-bottom:0.75rem"><div style="width:96px;height:96px;border-radius:50%;background:#e4e4e7;color:#71717a;display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700">' + esc((a.full_name||'?').trim().charAt(0).toUpperCase()) + '</div><div style="font-size:0.72rem;color:var(--muted);margin-top:4px">No photo uploaded</div></div>'),
       (['requested','reviewing'].includes(a.account_closure_status)
         ? '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.7rem 0.8rem;margin-bottom:0.75rem;color:#9a3412"><strong>Account closure requested.</strong> Review active work, unpaid earnings, W-9/tax retention, and access before completing or removing this Easer.'
           + (a.account_closure_requested_at ? '<br><span style="font-size:0.75rem">Requested ' + esc(formatDate(a.account_closure_requested_at)) + '</span>' : '') + '</div>'
@@ -7594,7 +8043,7 @@ window.intelQuick = intelQuick;
       var successMsgs = {
         reject: 'Application rejected',
         suspend: 'Easer suspended (tier preserved for reinstatement)',
-        reinstate: 'Easer reinstated — dispatch eligibility restored',
+        reinstate: 'Easer account reinstated; current readiness requirements still apply',
         promote: 'Promoted to ' + (tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : tier),
         demote: 'Demoted to ' + (tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : tier),
         mark_id_verified: 'ID marked verified — you can now approve',
@@ -7608,6 +8057,12 @@ window.intelQuick = intelQuick;
         } else {
           toast(approvedMessage + ' Welcome email sent.', 'success');
         }
+      } else if (action === 'promote' && d.emailDelivered === false) {
+        toast((successMsgs[action] || 'Promoted') + '; Easer email needs manual follow-up', 'error');
+      } else if (action === 'reinstate' && d.emailDelivered === false) {
+        toast('Easer account reinstated; email needs manual follow-up and readiness still applies', 'error');
+      } else if (action === 'reject' && d.emailDelivered === false) {
+        toast('Application rejected; Easer email needs manual follow-up', 'error');
       } else {
         toast(successMsgs[action] || 'Updated', 'success');
       }
@@ -7726,7 +8181,12 @@ window.intelQuick = intelQuick;
       var d = await r.json();
       if (d.error) { errEl.textContent = d.error; errEl.style.display = ''; return; }
       document.getElementById('edit-booking-modal').classList.remove('open');
-      toast('Booking updated' + (notify ? ' — customer notified' : ''), 'success');
+      var notificationFailed = Array.isArray(d.notificationFailures) && d.notificationFailures.length > 0;
+      var customerWasNotified = notify && !d.recordOnlyOwnerManual && !notificationFailed;
+      toast('Booking updated'
+        + (customerWasNotified ? ' — customer notified' : '')
+        + (notificationFailed ? ' — customer email needs follow-up' : ''),
+        notificationFailed ? 'error' : 'success');
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch { errEl.textContent = 'Failed to save. Try again.'; errEl.style.display = ''; }
@@ -7757,18 +8217,6 @@ window.intelQuick = intelQuick;
       toast(d.message || 'Phone readiness check completed', Number(d.failed || 0) > 0 ? 'error' : 'success');
     } catch { toast('Failed','error'); }
     finally { btn.disabled=false; btn.textContent='Email Missing Phones'; }
-  });
-
-  document.getElementById('test-push-btn').addEventListener('click', async function() {
-    var btn = this; btn.disabled=true; btn.textContent='Sending…';
-    try {
-      var r = await fetch('/api/owner/test-push', { method:'POST', headers:headers(), body:'{}' });
-      var d = await r.json();
-      if (d.error) { toast(d.error,'error'); return; }
-      if (d.sent === 0) toast(d.message || 'No subscriptions yet — log into the Easer app and allow notifications first', 'error');
-      else toast('Test push sent to ' + d.sent + ' Easer(s)!', 'success');
-    } catch { toast('Failed to send test push','error'); }
-    finally { btn.disabled=false; btn.textContent='Test Push Notification'; }
   });
 
   document.getElementById('add-easer-btn').addEventListener('click', function() {

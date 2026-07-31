@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   }
   if (isAlreadyCompleted && ['stripe_manual', 'card_on_site'].includes(method)) {
     return res.status(409).json({
-      error: 'Create the booking as open, then use Record Stripe Payment with the exact PaymentIntent before completion.',
+      error: 'Create the booking as open, then use Record Customer Payment with the exact Stripe PaymentIntent before completion.',
       code: 'STRIPE_PAYMENT_INTENT_VERIFICATION_REQUIRED',
     });
   }

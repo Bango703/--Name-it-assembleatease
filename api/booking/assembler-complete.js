@@ -407,12 +407,6 @@ export default async function handler(req, res) {
     connectPayout = { status: 'pending_manual', reason: 'connect-disabled' };
   }
 
-  // ── Increment completed_jobs + total_earned atomically ──────────────────────
-  try {
-    const { error: rpcErr } = await sb.rpc('increment_profile_counters', { user_id: user.id, earned_cents: assemblerDue });
-    if (rpcErr) console.error('profile counters RPC failed — counter may need reconciliation:', rpcErr.message);
-  } catch (e) { console.error('profile counters increment error:', e); }
-
   // Job is done — release the Easer's daily slot
   adjustActiveJobs(sb, user.id, -1).catch(() => {});
 
@@ -681,12 +675,6 @@ async function completeOfflineOwnerManualBooking(sb, res, {
       code: currentError ? 'OFFLINE_COMPLETION_RECONCILIATION_REQUIRED' : 'OFFLINE_COMPLETION_STATE_CHANGED',
     });
   }
-
-  // The owner-Easer earns the completion + earnings credit like any Easer.
-  try {
-    const { error: rpcErr } = await sb.rpc('increment_profile_counters', { user_id: user.id, earned_cents: split.assemblerDueCents });
-    if (rpcErr) console.error('Offline completion profile counters RPC failed:', rpcErr.message);
-  } catch (e) { console.error('Offline completion profile counters error:', e); }
 
   adjustActiveJobs(sb, user.id, -1).catch(() => {});
 

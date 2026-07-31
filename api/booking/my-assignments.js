@@ -60,8 +60,11 @@ export function deriveOfferLocation(address) {
 
 export function redactAssignmentCustomerData(bookings = []) {
   return bookings.map(booking => {
+    const hasOpenReturnVisit = booking.status === BOOKING_STATUS.COMPLETED
+      && booking.return_visit_required === true;
     const maySeeOperationalContact = Boolean(
-      booking.assembler_accepted_at && ACTIVE_BOOKING_STATUSES.includes(booking.status)
+      booking.assembler_accepted_at
+      && (ACTIVE_BOOKING_STATUSES.includes(booking.status) || hasOpenReturnVisit)
     );
     if (!maySeeOperationalContact) {
       booking.customer_name = null;
@@ -245,6 +248,8 @@ export default async function handler(req, res) {
   // ── 3. Merge and add pay estimates ──────────────────────────────────────
   const allBookings = [...offerBookings, ...(assignedBookings || [])];
   allBookings.forEach(booking => {
+    booking._return_visit_open = booking.status === BOOKING_STATUS.COMPLETED
+      && booking.return_visit_required === true;
     booking._owner_manual_live_flow = isOwnerManualLiveFlow(booking, easerProfile);
     delete booking.source;
   });
@@ -296,7 +301,12 @@ export default async function handler(req, res) {
   }
 
   allBookings.forEach(b => {
-    if (b.status === 'completed') return;
+    if (b.status === BOOKING_STATUS.COMPLETED && !b._return_visit_open) return;
+    if (b._return_visit_open && Number(b.assembler_due || 0) > 0) {
+      b._pay_estimate_lo = Number(b.assembler_due);
+      b._pay_estimate_hi = Number(b.assembler_due);
+      return;
+    }
     const price = Number(b.amount_charged || b.total_price) || 0;
     if (price > 0) {
       // Canonical split (tax excluded) — must match the completion payout exactly.

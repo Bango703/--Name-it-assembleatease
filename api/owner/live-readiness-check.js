@@ -2,7 +2,7 @@ import { verifyOwner } from '../_email.js';
 import { getSupabase } from '../_supabase.js';
 
 const MIN_SECRET_LENGTH = 24;
-const REQUIRED_SCHEMA_MIGRATION = 44;
+const REQUIRED_SCHEMA_MIGRATION = 48;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -63,17 +63,17 @@ async function checkSchemaState() {
       .maybeSingle();
     if (error || !data) {
       return fail(
-        'DATABASE_SCHEMA_044',
+        'DATABASE_SCHEMA_048',
         `Launch migration ${REQUIRED_SCHEMA_MIGRATION} is not verified in this environment.`,
-        'Apply migrations 038-044 in order and rerun readiness.',
+        'Apply migrations 038-048 in order and rerun readiness.',
       );
     }
-    return pass('DATABASE_SCHEMA_044', `Launch schema ${data.migration_number} is applied.`);
+    return pass('DATABASE_SCHEMA_048', `Launch schema ${data.migration_number} is applied.`);
   } catch (error) {
     return fail(
-      'DATABASE_SCHEMA_044',
+      'DATABASE_SCHEMA_048',
       'Could not verify the launch database schema.',
-      'Confirm Supabase connectivity and apply migrations 038-044 in order.',
+      'Confirm Supabase connectivity and apply migrations 038-048 in order.',
     );
   }
 }

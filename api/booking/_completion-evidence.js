@@ -14,15 +14,28 @@ export function isCurrentCompletionEvidence(row, booking) {
   return Number.isFinite(createdAt) && Number.isFinite(validAfter) && createdAt >= validAfter;
 }
 
-export async function loadCurrentCompletionEvidence(sb, booking, { select = 'id, storage_path, evidence_type, uploaded_by, created_at' } = {}) {
-  if (!booking?.assembler_id || !booking?.job_started_at) {
+export async function loadCurrentCompletionEvidence(sb, booking, {
+  select = 'id, storage_path, evidence_type, uploaded_by, created_at',
+  allowHistoricalOwnerManual = false,
+} = {}) {
+  if (!booking?.assembler_id) {
+    return { evidence: null, error: null, reason: 'work_start_or_assignee_missing' };
+  }
+
+  const historicalOwnerManual = allowHistoricalOwnerManual
+    && booking.source === 'owner_manual'
+    && booking.payment_status === 'offline_recorded'
+    && booking.status === 'completed'
+    && !booking.job_started_at
+    && Boolean(booking.completed_at);
+  if (!booking.job_started_at && !historicalOwnerManual) {
     return { evidence: null, error: null, reason: 'work_start_or_assignee_missing' };
   }
 
   const evidenceRequestedAt = booking.evidence_requested_at
     ? new Date(booking.evidence_requested_at).getTime()
     : null;
-  const workStartedAt = new Date(booking.job_started_at).getTime();
+  const workStartedAt = new Date(historicalOwnerManual ? booking.completed_at : booking.job_started_at).getTime();
   const validAfter = Number.isFinite(evidenceRequestedAt)
     ? Math.max(workStartedAt, evidenceRequestedAt)
     : workStartedAt;
@@ -42,7 +55,13 @@ export async function loadCurrentCompletionEvidence(sb, booking, { select = 'id,
     .maybeSingle();
 
   if (error) return { evidence: null, error, reason: 'evidence_lookup_failed' };
-  if (!data || !isCurrentCompletionEvidence(data, booking)) {
+  const evidenceIsValid = historicalOwnerManual
+    ? Boolean(data
+      && data.evidence_type === 'completion_photo'
+      && data.uploaded_by === booking.assembler_id
+      && new Date(data.created_at).getTime() >= validAfter)
+    : isCurrentCompletionEvidence(data, booking);
+  if (!data || !evidenceIsValid) {
     return {
       evidence: null,
       error: null,

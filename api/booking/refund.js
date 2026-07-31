@@ -552,7 +552,10 @@ export default async function handler(req, res) {
     }
   }
 
-  // #7 — Send customer refund email
+  // #7 — Send customer refund email. Stripe/DB refund truth is never rolled
+  // back for an email failure, but the failure is returned to the owner.
+  let notificationDelivered = null;
+  let notificationError = null;
   try {
     const refundDisplay = `$${(stripeRefund.amount / 100).toFixed(2)}`;
     const totalDisplay = booking.amount_charged ? `$${(booking.amount_charged / 100).toFixed(2)}` : null;
@@ -588,9 +591,18 @@ export default async function handler(req, res) {
       subject: `Your refund is on the way — ${booking.ref}`,
       html,
       replyTo: ownerEmail(),
+      meta: {
+        bookingId: booking.id,
+        notificationType: 'customer_refund_processed',
+        recipientType: 'customer',
+        disableDedupe: true,
+      },
     });
+    notificationDelivered = true;
   } catch (emailErr) {
     console.error('Refund email error:', emailErr);
+    notificationDelivered = false;
+    notificationError = emailErr.message || 'Refund email delivery failed';
   }
 
   return res.status(financialReconciliationRequired ? 202 : 200).json({
@@ -604,6 +616,8 @@ export default async function handler(req, res) {
     rewardsReconciliationRequired: !rewardsReversal.ok,
     clawbackAuditReconciliationRequired,
     financialReconciliationRequired,
+    notificationDelivered,
+    notificationError,
     message: financialReconciliationRequired
       ? 'The customer refund is recorded, but financial reconciliation remains open. Do not retry the refund or issue a payout.'
       : undefined,

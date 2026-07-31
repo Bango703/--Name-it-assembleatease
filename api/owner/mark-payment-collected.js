@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
   if (['stripe_manual', 'card_on_site'].includes(normalizedMethod)) {
     return res.status(409).json({
-      error: 'Stripe card payments must be verified by PaymentIntent through Record Stripe Payment.',
+      error: 'Stripe card payments must be verified by PaymentIntent through Record Customer Payment.',
       code: 'STRIPE_PAYMENT_INTENT_VERIFICATION_REQUIRED',
     });
   }

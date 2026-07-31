@@ -377,7 +377,7 @@ function verifyOwnerSessionToken(token) {
 /**
  * Verify owner authorization using a short-lived signed bearer session.
  * Direct password headers remain available only outside production for local
- * operational scripts unless explicitly enabled during a controlled migration.
+ * operational scripts. Production accepts signed bearer sessions only.
  */
 export function verifyOwner(req) {
   const authorization = String(req.headers?.authorization || '');
@@ -385,8 +385,7 @@ export function verifyOwner(req) {
     return verifyOwnerSessionToken(authorization.replace(/^Bearer\s+/i, '').trim());
   }
 
-  const allowLegacyPassword = process.env.VERCEL_ENV !== 'production'
-    || process.env.ALLOW_LEGACY_OWNER_PASSWORD === 'true';
+  const allowLegacyPassword = process.env.VERCEL_ENV !== 'production';
   return allowLegacyPassword ? verifyOwnerPassword(req) : false;
 }
 

@@ -90,11 +90,12 @@ export default async function handler(req, res) {
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
   const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
   const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
-      .not('status', 'in', '("cancelled","declined","completed")')
+      .not('status', 'in', '("cancelled","declined")')
+      .or(`status.neq.completed,return_visit_required.eq.true,and(status.eq.completed,source.eq.owner_manual),and(status.eq.completed,return_visit_date.eq.${todayStr},return_visit_completed_at.not.is.null)`)
       .order('date', { ascending: true }),
     sb.from('bookings')
       .select(bookingProjection)
@@ -159,7 +160,9 @@ export default async function handler(req, res) {
   [...(bookingsRes.data || []), ...(financialHoldsRes.data || [])]
     .forEach(booking => bookingMap.set(booking.id, booking));
   const bookings = [...bookingMap.values()];
-  const operationalBookings = bookings.filter(booking => !['cancelled', 'declined', 'completed'].includes(booking.status));
+  const operationalBookings = bookings.filter(booking =>
+    !['cancelled', 'declined'].includes(booking.status)
+      && (booking.status !== 'completed' || booking.return_visit_required === true));
   const operationalDate = booking => booking.return_visit_required
     ? booking.return_visit_date
     : booking.date;
@@ -209,6 +212,18 @@ export default async function handler(req, res) {
   const ownerManualNeedsAssignment = operationalBookings
     .filter(b => b.status === 'confirmed' && isOwnerManualOfflineBooking(b) && !b.assembler_id)
     .map(b => ({ ...b, _dispatchState: 'owner_manual_assignment' }));
+  const ownerManualReconciliation = bookings
+    .filter(b => b.status === 'completed'
+      && isOwnerManualOfflineBooking(b)
+      && (
+        b.return_visit_required === true
+        || (!b.payment_collected && Number(b.refund_amount || 0) <= 0)
+        || !b.assembler_id
+        || b.assembler_due == null
+        || (Number(b.refund_amount || 0) > 0 && b.payout_review_status !== 'approved_full')
+        || b.payout_status === 'pending'
+      ))
+    .map(b => ({ ...b, _dispatchState: 'owner_manual_reconciliation' }));
 
   // awaitingDispatch: has live unexpired offers outstanding right now
   const awaitingDispatch = operationalBookings
@@ -493,8 +508,8 @@ export default async function handler(req, res) {
     ref: b.ref,
     bookingId: b.id,
     message: isOwnerManualOfflineBooking(b)
-      ? `TODAY: ${b.service} at ${b.time || 'TBD'} — owner-Easer assignment is still required`
-      : `TODAY: ${b.service} at ${b.time || 'TBD'} — no Easer assigned`,
+      ? `TODAY: ${b.service} at ${operationalTime(b) || 'TBD'} — owner-Easer assignment is still required`
+      : `TODAY: ${b.service} at ${operationalTime(b) || 'TBD'} — no Easer assigned`,
     action: isOwnerManualOfflineBooking(b) ? 'review_timeline' : 'dispatch',
   }));
 
@@ -572,15 +587,24 @@ export default async function handler(req, res) {
   const freeEasers = onlineEasers.filter(e => !assignedIds.has(e.id));
 
   // ── Today's schedule ─────────────────────────────────────────────
-  const todayAll = operationalBookings
-    .filter(b => operationalDate(b) === todayStr)
+  const todayAll = bookings
+    .filter(b => {
+      const completedReturnToday = b.status === 'completed'
+        && b.return_visit_date === todayStr
+        && !!b.return_visit_completed_at;
+      return completedReturnToday || operationalDate(b) === todayStr;
+    })
     .map(b => ({
       ...b,
       original_date: b.date,
       original_time: b.time,
-      date: operationalDate(b),
-      time: operationalTime(b),
-      is_return_visit: b.return_visit_required === true,
+      date: b.return_visit_date === todayStr && (b.return_visit_required || b.return_visit_completed_at)
+        ? b.return_visit_date
+        : operationalDate(b),
+      time: b.return_visit_date === todayStr && (b.return_visit_required || b.return_visit_completed_at)
+        ? b.return_visit_time
+        : operationalTime(b),
+      is_return_visit: b.return_visit_date === todayStr && (b.return_visit_required || b.return_visit_completed_at),
     }));
 
   return res.status(200).json({
@@ -597,6 +621,7 @@ export default async function handler(req, res) {
       pendingOther: pendingOther.length,
       unassigned: unassigned.length,
       ownerManualNeedsAssignment: ownerManualNeedsAssignment.length,
+      ownerManualReconciliation: ownerManualReconciliation.length,
       awaitingDispatch: awaitingDispatch.length,
       offersExpired: offersExpired.length,
       needsManual: needsManual.length,
@@ -625,6 +650,7 @@ export default async function handler(req, res) {
     }),
     unassigned,
     ownerManualNeedsAssignment,
+    ownerManualReconciliation,
     awaitingDispatch,
     offersExpired,
     needsManual,

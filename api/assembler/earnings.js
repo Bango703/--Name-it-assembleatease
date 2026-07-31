@@ -54,6 +54,9 @@ export default async function handler(req, res) {
 
   const earnings = (finance.rows || [])
     .filter(row => row.assemblerId === authenticated.user.id)
+    // A legacy row may say completed while an owner-recorded return visit is
+    // still open. It remains visible in Jobs, but it is not yet an earning.
+    .filter(row => !(row.status === 'completed' && row.returnVisitRequired === true))
     .map(toEaserEarningDto)
     .sort((a, b) => Date.parse(b.earned_at || 0) - Date.parse(a.earned_at || 0));
 

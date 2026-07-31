@@ -3,7 +3,10 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { expectedLiveMode, MAX_PAYMENT_CENTS } from './record-manual-payment.js';
 
-const LOOKBACK_SECONDS = 3 * 60 * 60;
+// Tap-to-Pay jobs are often reconciled after the workday. Keep the window wide
+// enough for next-day owner bookkeeping while still limiting suggestions to a
+// small, recent, human-reviewable set.
+const LOOKBACK_SECONDS = 7 * 24 * 60 * 60;
 const STRIPE_LIST_LIMIT = 100;
 
 function objectId(value) {
@@ -148,15 +151,20 @@ export default async function handler(req, res) {
     (sum, event) => sum + Number(event.amount_cents || 0),
     0,
   );
-  const refundedCents = (bookingEvents || []).reduce(
-    (sum, event) => sum + Number(event.refunded_cents || 0),
-    0,
-  );
-  const netCollectedCents = Math.max(0, grossCollectedCents - refundedCents);
   const totalCents = Number(booking.total_price || 0);
-  const remainingBalanceCents = Math.max(0, totalCents - netCollectedCents);
+  // A refund is a financial adjustment, not a new customer invoice. Matching
+  // uses original payments toward the agreed total so it never suggests
+  // charging the customer again merely because money was refunded.
+  const remainingBalanceCents = Math.max(0, totalCents - grossCollectedCents);
   if (remainingBalanceCents <= 0) {
-    return res.status(200).json({ candidates: [], bestMatchId: null, searchTruncated: false });
+    return res.status(200).json({
+      candidates: [],
+      bestMatchId: null,
+      searchTruncated: false,
+      totalCents,
+      grossCollectedCents,
+      remainingBalanceCents,
+    });
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -223,5 +231,8 @@ export default async function handler(req, res) {
     candidates,
     bestMatchId,
     searchTruncated,
+    totalCents,
+    grossCollectedCents,
+    remainingBalanceCents,
   });
 }

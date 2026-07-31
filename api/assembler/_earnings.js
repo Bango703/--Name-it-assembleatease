@@ -35,6 +35,10 @@ const HOLD_COPY = {
     label: 'Payment Review',
     message: 'AssembleAtEase is reconciling the payment record before releasing this earning.',
   },
+  return_visit_open: {
+    label: 'Completion Pending',
+    message: 'The return visit is still open. This amount becomes earned only after the remaining work is recorded complete.',
+  },
   stripe_connect_path: {
     label: 'Transfer Review',
     message: 'This earning is assigned to Stripe Connect and its transfer status is being verified.',
@@ -60,6 +64,7 @@ const HOLD_COPY = {
 const HOLD_PRIORITY = [
   'customer_dispute_open',
   'financial_reconciliation_open',
+  'return_visit_open',
   'damage_review_open',
   'damage_review_incomplete',
   'refund_review_incomplete',

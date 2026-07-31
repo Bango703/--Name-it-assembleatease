@@ -185,6 +185,9 @@ const list = read('api/booking/list.js');
 const track = read('api/booking/track.js');
 const payoutTruth = read('api/owner/_manual-payment-truth.js');
 const paymentRecorder = read('api/owner/record-manual-payment.js');
+const payoutApi = read('api/booking/payout.js');
+const assignmentApi = read('api/booking/assign.js');
+const financeLedger = read('api/owner/_finance-ledger.js');
 
 assert.match(endpoint, /if \(!verifyOwner\(req\)\)/, 'manual refund endpoint must be owner-only');
 assert.match(endpoint, /booking\.source !== 'owner_manual'/, 'manual refund endpoint must require the owner-manual lane');
@@ -207,7 +210,7 @@ assert.match(migration, /UNIQUE \(stripe_refund_id\)/, 'each Stripe refund must 
 assert.match(migration, /GRANT SELECT, INSERT ON TABLE public\.owner_manual_refund_events/, 'the refund ledger must not grant update or delete access');
 assert.match(migration, /refunded_cents >= 0 AND refunded_cents <= amount_cents/, 'event refund totals must be constrained');
 assert.match(migration, /financial_operation_type IS DISTINCT FROM 'refund_owner'/, 'refund RPC must require the booking financial lock');
-assert.match(migration, /record_owner_manual_payment_event_v2/, 'replacement collection after a refund must use net payment truth');
+assert.match(migration, /record_owner_manual_payment_event_v2/, 'payment event idempotency must remain available after a refund');
 assert.match(migration, /v_net := v_gross - v_refunded/, 'manual balances must subtract succeeded refunds');
 assert.match(migration, /amount_charged = ledger\.gross_cents/, 'migration must repair overstated completed-manual charge truth');
 
@@ -218,16 +221,24 @@ assert.match(owner, /Easer payout is already settled/, 'owner must be warned tha
 assert.match(owner, /\/api\/owner\/refund-manual-payment/, 'owner UI must call the verified manual refund endpoint');
 assert.match(owner, /Resume \/ Reconcile Stripe Refund/, 'owner must have a safe recovery action');
 
-assert.match(list, /ledgerNetCents = Math\.max\(0, ledgerGrossCents - ledgerRefundedCents\)/, 'owner booking balances must be net of refunds');
+assert.match(list, /amount_collected_cents = amountCollectedCents/, 'owner booking must expose net retained payments');
+assert.match(list, /amount_paid_cents = paymentEvents\.length \? ledgerGrossCents/, 'owner booking must separately expose gross payments toward the invoice');
+assert.match(list, /Number\(booking\.total_price \|\| 0\) - \(paymentEvents\.length \? ledgerGrossCents/, 'refunds must not create a new customer balance');
 assert.match(list, /manual_stripe_refundable_cents/, 'owner UI maximum must come from server-derived ledger truth');
-assert.match(track, /ledgerNet = Math\.max\(0, ledgerGross - ledgerRefunded\)/, 'customer tracking balance must be net of refunds');
+assert.match(track, /amountPaidTowardInvoice = \(paymentEvents \|\| \[\]\)\.length \? ledgerGross/, 'customer balance must use gross verified payments');
 assert.match(track, /gross_payment_cents: grossPaymentCents/, 'customer tracking must separate gross payments from net retained');
 const trackPage = read('track.html');
 assert.match(trackPage, /Payment received \(gross\)/, 'customer must see gross manual payments separately');
 assert.match(trackPage, /Net payments retained/, 'customer must see net retained after refunds');
+assert.match(trackPage, /refund shown above does not create a new amount due/, 'customer must never be told a refund created a new balance');
 assert.match(trackPage, /isOwnerManualPayment[\s\S]*Booking Total/, 'manual booking must keep the agreed booking total visible');
 assert.match(payoutTruth, /hasPendingRefund/, 'pending manual Stripe refunds must block payout');
 assert.match(payoutTruth, /succeededRefundedCents !== Number\(event\.refunded_cents/, 'payout must require exact Stripe/refund-ledger agreement');
-assert.match(paymentRecorder, /record_owner_manual_payment_event_v2/, 'new payments must use refund-aware net collection truth');
+assert.match(paymentRecorder, /record_owner_manual_payment_event_v4/, 'new payments must preserve gross invoice satisfaction after refunds');
+assert.match(paymentRecorder, /OWNER_MANUAL_INVOICE_ALREADY_PAID/, 'the recorder must block a second customer charge after a refund');
+assert.match(payoutTruth, /allowRefundedOriginalPayment/, 'refund-affected payment truth must be explicitly opted into');
+assert.match(payoutApi, /ownerManualRefundAffected/, 'manual refunds must enter the explicit Easer earnings review lane');
+assert.match(assignmentApi, /payout_review_status: Number\(booking\.refund_amount \|\| 0\) > 0 \? 'review_required'/, 'historical owner-Easer attribution after a refund must open review');
+assert.match(financeLedger, /Refund-affected Easer earnings require a completed owner review/, 'canonical payout finance must retain the refund review hold');
 
 console.log('Owner manual Stripe refund safety checks passed.');

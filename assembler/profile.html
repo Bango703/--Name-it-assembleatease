@@ -513,11 +513,43 @@
     }
   }
 
+  async function loadCanonicalPerformance(token) {
+    var jobs = document.getElementById('jobs-done');
+    var heroJobs = document.getElementById('prof-stat-jobs');
+    var total = document.getElementById('total-earned');
+    var heroTotal = document.getElementById('prof-stat-earned');
+    try {
+      var response = await fetch('/api/assembler/earnings', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!response.ok) throw new Error('Current performance summary unavailable');
+      var data = await response.json();
+      var summary = data && data.summary ? data.summary : {};
+      var completedJobs = String(Number(summary.completed_jobs || 0));
+      var totalEarned = formatCents(Number(summary.total_earned_cents || 0));
+      if (jobs) jobs.textContent = completedJobs;
+      if (heroJobs) heroJobs.textContent = completedJobs;
+      if (total) total.textContent = totalEarned;
+      if (heroTotal) heroTotal.textContent = totalEarned;
+    } catch (error) {
+      [jobs, heroJobs].forEach(function(el) {
+        if (!el) return;
+        el.textContent = '—';
+        el.title = 'Current completed-job count is temporarily unavailable';
+      });
+      [total, heroTotal].forEach(function(el) {
+        if (!el) return;
+        el.textContent = '—';
+        el.title = 'Current earnings total is temporarily unavailable';
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['assembler']);
     if (!auth) return;
     document.body.style.visibility = 'visible';
-    const { user, profile } = auth;
+    const { user, profile, session } = auth;
     currentUserId = user.id;  // enable immediate photo auto-save
     var closureStatus = String(profile.account_closure_status || '').trim().toLowerCase();
     var closureButton = document.getElementById('delete-account-btn');
@@ -612,18 +644,19 @@
         idAvatar.textContent = initials2;
       }
     }
-    document.getElementById('jobs-done').textContent      = profile.completed_jobs || 0;
+    document.getElementById('jobs-done').textContent      = '—';
     document.getElementById('rating-display').textContent = profile.rating
       ? Number(profile.rating).toFixed(1) + ' / 5' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
       : 'New';
-    document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = formatCents(profile.total_earned));
+    document.getElementById('total-earned') && (document.getElementById('total-earned').textContent = '—');
     // Hero card stats
     var statJobs = document.getElementById('prof-stat-jobs');
-    if (statJobs) statJobs.textContent = profile.completed_jobs || 0;
+    if (statJobs) statJobs.textContent = '—';
     var statRating = document.getElementById('prof-stat-rating');
     if (statRating) statRating.textContent = profile.rating ? Number(profile.rating).toFixed(1) : '\u2014';
     var statEarned = document.getElementById('prof-stat-earned');
-    if (statEarned) statEarned.textContent = formatCents(profile.total_earned);
+    if (statEarned) statEarned.textContent = '—';
+    await loadCanonicalPerformance(session.access_token);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 

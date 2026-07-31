@@ -47,7 +47,9 @@ assert.ok(
 assert.match(paymentApi, /paymentIntents\.retrieve/);
 assert.match(paymentApi, /latest_charge\.balance_transaction/);
 assert.match(paymentApi, /intent\.status !== 'succeeded'/);
-assert.match(paymentApi, /Number\(intent\.amount_received\) !== amountCents/);
+assert.match(paymentApi, /const amountCents = Number\(intent\?\.amount_received\)/);
+assert.match(paymentApi, /Number\.isSafeInteger\(amountCents\)/);
+assert.match(paymentApi, /expectedTotalCents - submittedDiscountCents/);
 assert.match(paymentApi, /Number\(charge\.amount_refunded \|\| 0\) !== 0/);
 assert.match(paymentApi, /charge\.disputed === true/);
 assert.match(paymentApi, /balanceTransaction\?\.fee/);
@@ -68,7 +70,7 @@ assert.doesNotMatch(
   trackApi.slice(trackApi.indexOf('const safe = {')),
   /stripe_payment_intent_id|stripe_charge_id/,
 );
-assert.match(ownerUi, /Record Stripe Payment/);
+assert.match(ownerUi, /Record Customer Payment/);
 assert.match(ownerUi, /Schedule Return Visit/);
 assert.match(ownerUi, /remainingBalanceCents/);
 assert.match(trackUi, /Payment received/);
@@ -108,6 +110,10 @@ const successfulIntent = {
     id: 'ch_verified',
     status: 'succeeded',
     paid: true,
+    captured: true,
+    currency: 'usd',
+    livemode: true,
+    payment_intent: 'pi_verified',
     amount_captured: 14900,
     amount_refunded: 0,
     refunded: false,

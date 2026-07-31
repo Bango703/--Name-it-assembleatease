@@ -37,6 +37,9 @@ export function deriveManualPayoutReadiness(booking, {
   const paymentStatus = String(booking.payment_status || '').toLowerCase();
   const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
 
+  if (booking.status === 'completed' && booking.return_visit_required === true) {
+    hold('return_visit_open', 'The booking still has unfinished return-visit work.');
+  }
   if (!booking.assembler_id) hold('easer_not_assigned', 'No Easer is assigned to this earning.');
   if (payoutStatus !== 'pending') hold('payout_state_reconciliation', 'Payout state must be reconciled to pending.');
   if (booking.stripe_transfer_id) hold('stripe_transfer_exists', 'A Stripe Connect transfer already exists.');
@@ -52,6 +55,14 @@ export function deriveManualPayoutReadiness(booking, {
     }
   } else if (paymentStatus === 'captured') {
     // Standard completed-job payout path.
+  } else if (String(booking.source || '').trim().toLowerCase() === 'owner_manual'
+      && paymentStatus === 'offline_recorded'
+      && Number(booking.refund_amount || 0) > 0) {
+    const reviewComplete = booking.payout_review_status === 'approved_full'
+      && !!booking.payout_reviewed_at
+      && String(booking.payout_reviewed_by || '').trim().length > 0
+      && String(booking.payout_review_notes || '').trim().length >= 10;
+    if (!reviewComplete) hold('refund_review_incomplete', 'Refund-affected Easer earnings require a completed owner review.');
   } else if (hasVerifiedOfflineOwnerPayment(booking)) {
     // Owner-recorded completed work may be paid only after an audited offline
     // customer collection exists. This remains distinct from Stripe capture.
@@ -104,7 +115,7 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
 
   let bookingsQuery = sb
     .from('bookings')
-    .select('id, ref, source, payment_method, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
+    .select('id, ref, source, payment_method, payment_collected, payment_collected_at, payment_collected_by, status, created_at, completed_at, cancelled_at, date, service, customer_name, customer_email, assembler_id, assembler_name, assembler_tier, amount_charged, total_price, assembler_due, payout_status, payout_amount, paid_out_at, payout_mode_snapshot, payout_review_status, payout_reviewed_at, payout_reviewed_by, payout_review_notes, damage_review_status, damage_claim_opened_at, damage_reviewed_at, damage_reviewed_by, damage_review_notes, evidence_requested_at, job_started_at, return_visit_required, return_visit_date, return_visit_time, return_visit_remaining_scope, financial_operation_key, financial_reconciliation_required_at, stripe_transfer_id, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_hold, platform_fee, platform_revenue, payment_status, refund_amount, tax_amount, stripe_fee, bundle_slug, assemblecash_earned_cents, assemblecash_redeemed_cents, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status')
     .in('status', ['completed', 'cancelled']);
 
   if (assemblerId) bookingsQuery = bookingsQuery.eq('assembler_id', assemblerId);
@@ -123,6 +134,43 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
 
   const financeBookings = bookings || [];
   const bookingIds = financeBookings.map(b => b.id).filter(Boolean);
+
+  // Owner-created bookings do not have the website checkout/capture flow.
+  // Their payment-event ledger is financial truth; the quoted booking total
+  // must never be counted as revenue merely because the job says completed.
+  const ownerManualPaymentByBooking = new Map();
+  const ownerManualBookingIds = financeBookings
+    .filter(booking => booking.source === 'owner_manual')
+    .map(booking => booking.id)
+    .filter(Boolean);
+  if (ownerManualBookingIds.length) {
+    const { data: manualEvents, error: manualEventsError } = await sb
+      .from('owner_manual_payment_events')
+      .select('booking_id, amount_cents, refunded_cents, processing_fee_cents, payment_method')
+      .in('booking_id', ownerManualBookingIds);
+    if (manualEventsError) {
+      const migrationError = new Error('Owner-manual payment ledger is unavailable. Apply all required migrations before using owner financial reports.');
+      migrationError.code = 'MIGRATION_REQUIRED';
+      migrationError.cause = manualEventsError;
+      throw migrationError;
+    }
+    for (const bookingId of ownerManualBookingIds) {
+      ownerManualPaymentByBooking.set(bookingId, {
+        eventCount: 0,
+        gross: 0,
+        refunded: 0,
+        processingFee: 0,
+      });
+    }
+    for (const event of manualEvents || []) {
+      const truth = ownerManualPaymentByBooking.get(event.booking_id);
+      if (!truth) continue;
+      truth.eventCount += 1;
+      truth.gross += Number(event.amount_cents || 0);
+      truth.refunded += Number(event.refunded_cents || 0);
+      truth.processingFee += Number(event.processing_fee_cents || 0);
+    }
+  }
 
   const evidenceRequiredBookings = financeBookings.filter(booking =>
     booking.status === 'completed' && booking.evidence_requested_at);
@@ -167,12 +215,23 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
   const rows = financeBookings.map(b => {
     const isCancellationEarning = b.status === 'cancelled';
     const ledger = ledgerByBooking.get(b.id) || null;
+    const ownerManualTruth = b.source === 'owner_manual'
+      ? ownerManualPaymentByBooking.get(b.id)
+      : null;
+    const hasOwnerManualEvents = Number(ownerManualTruth?.eventCount || 0) > 0;
+    const legacyOwnerManualCharged = b.source === 'owner_manual' && hasVerifiedOfflineOwnerPayment(b)
+      ? Number(b.amount_charged ?? b.total_price ?? 0)
+      : 0;
     const charged = ledger
       ? Number(ledger.amount_charged || 0)
       : Number(isCancellationEarning
         ? (b.cancellation_fee || b.amount_charged || 0)
-        : (b.amount_charged || b.total_price || 0));
-    const refund = Number(b.refund_amount || 0);
+        : b.source === 'owner_manual'
+          ? (hasOwnerManualEvents ? ownerManualTruth.gross : legacyOwnerManualCharged)
+          : (b.amount_charged || b.total_price || 0));
+    const refund = Number(b.source === 'owner_manual' && hasOwnerManualEvents
+      ? ownerManualTruth.refunded
+      : (b.refund_amount || 0));
     const canonicalDue = Number(isCancellationEarning
       ? b.cancellation_easer_due_cents
       : b.assembler_due) || 0;
@@ -202,10 +261,12 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
     // Exclude it from platform revenue so the books reconcile to true operating profit.
     const financial = computeBookingFinancialSummary({
       amountChargedCents: charged,
-      totalPriceCents: b.total_price,
+      totalPriceCents: b.source === 'owner_manual' ? 0 : b.total_price,
       refundAmountCents: refund,
       taxAmountCents: isCancellationEarning ? 0 : b.tax_amount,
-      stripeFeeCents: b.stripe_fee,
+      stripeFeeCents: b.source === 'owner_manual' && hasOwnerManualEvents
+        ? ownerManualTruth.processingFee
+        : b.stripe_fee,
       assemblerDueCents: owed,
       payoutAmountCents: paidOut ? payoutAmount : 0,
     });
@@ -220,6 +281,10 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
       completedAt: b.completed_at,
       cancelledAt: b.cancelled_at,
       date: b.date,
+      returnVisitRequired: b.return_visit_required === true,
+      returnVisitDate: b.return_visit_date || null,
+      returnVisitTime: b.return_visit_time || null,
+      returnVisitRemainingScope: b.return_visit_remaining_scope || null,
       service: b.service,
       customerName: b.customer_name,
       customerEmail: b.customer_email,

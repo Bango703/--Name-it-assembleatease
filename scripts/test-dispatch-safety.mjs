@@ -274,7 +274,10 @@ assert.ok(assignCompact.includes('assembler_due: split.assemblerDueCents'), 'a l
 assert.ok(assignCompact.includes('platform_fee: split.platformFeeCents'), 'the platform fee must come from the same canonical split');
 assert.ok(assignCompact.includes("payout_status: split.assemblerDueCents > 0 ? 'pending' : null"), 'earned money must open a payout owed');
 assert.ok(assignCompact.includes("payout_mode_snapshot: split.assemblerDueCents > 0 ? 'manual' : null"), 'offline customer funds must remain on the externally recorded manual payout rail');
-assert.ok(assignCompact.includes("payout_review_status: 'not_required'"), 'new linked earnings must start with no payout review hold');
+assert.ok(
+  assignCompact.includes("payout_review_status: Number(booking.refund_amount || 0) > 0 ? 'review_required' : 'not_required'"),
+  'new linked earnings must require owner review when the customer payment was refunded',
+);
 assert.ok(!/assembler_due:\s*0\b/.test(assignCompact), 'an assigned Easer must never be recorded as earning zero');
 
 // The status is pinned on both branches. A record-only owner-manual link may

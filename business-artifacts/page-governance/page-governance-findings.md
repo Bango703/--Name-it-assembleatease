@@ -4,8 +4,8 @@ Generated from 370 HTML pages.
 
 ## Status Counts
 
-- PASS: 370
-- WARNING: 0
+- PASS: 369
+- WARNING: 1
 - FAIL: 0
 
 ## Page Types
@@ -13,7 +13,7 @@ Generated from 370 HTML pages.
 - assembler_portal: 6
 - assembler_public: 1
 - auth: 5
-- blog_article: 17
+- blog_article: 16
 - blog_index: 1
 - booking: 1
 - business: 1
@@ -25,11 +25,15 @@ Generated from 370 HTML pages.
 - policy: 2
 - pricing: 1
 - support: 4
+- unknown: 1
 - utility: 1
 
 ## Highest-Risk Pages
 
-- No current failures or warnings.
+- owner/email.html — WARNING (0 fail, 3 warning)
+  - WARNING: Meta description is recommended for this page type.
+  - WARNING: Canonical link is recommended for this page type.
+  - WARNING: Page type is not mapped yet.
 
 ## Output Files
 

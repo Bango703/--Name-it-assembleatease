@@ -489,9 +489,15 @@
   function renderDashboardPayload(bookings, options) {
     var list = Array.isArray(bookings) ? bookings.slice() : [];
     var liveStatuses=['en_route','arrived','in_progress'];
+    var hasOpenReturnVisit = function(b) {
+      return !!(b && (b._return_visit_open === true
+        || (b.status === 'completed' && b.return_visit_required === true)));
+    };
     var liveJobs     =list.filter(function(b){return liveStatuses.includes(b.status);});
     var pendingOffers=list.filter(function(b){return b._is_pending_offer;});
-    var upcomingJobs =list.filter(function(b){return b.status==='confirmed'&&!b._is_pending_offer;});
+    var upcomingJobs =list.filter(function(b){
+      return (b.status==='confirmed'&&!b._is_pending_offer) || hasOpenReturnVisit(b);
+    });
     var hasUrgentWork = liveJobs.length > 0 || pendingOffers.length > 0;
 
     setHomePriorityMode(hasUrgentWork);
@@ -750,6 +756,30 @@
     if (cardTitle) cardTitle.textContent = on ? "You're Online" : "You're Offline";
     if (cardSub) cardSub.textContent = on ? "You'll receive job offers when they're available" : "Toggle Online to start receiving job offers";
     renderOnboardingChecklist();
+  }
+
+  async function loadCanonicalPerformance(token) {
+    var jobsEl = document.getElementById('stat-jobs');
+    var earnedEl = document.getElementById('stat-earned');
+    try {
+      var response = await fetch('/api/assembler/earnings', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!response.ok) throw new Error('Current earnings summary unavailable');
+      var data = await response.json();
+      var summary = data && data.summary ? data.summary : {};
+      if (jobsEl) jobsEl.textContent = String(Number(summary.completed_jobs || 0));
+      if (earnedEl) earnedEl.textContent = fmtPay(Number(summary.total_earned_cents || 0)) || '$0.00';
+    } catch (error) {
+      if (jobsEl) {
+        jobsEl.textContent = '—';
+        jobsEl.title = 'Current completed-job count is temporarily unavailable';
+      }
+      if (earnedEl) {
+        earnedEl.textContent = '—';
+        earnedEl.title = 'Current earnings total is temporarily unavailable';
+      }
+    }
   }
 
   function hasUrgentDashboardWork() {
@@ -1148,9 +1178,8 @@
       statsStrip.style.display='';
       var ratingVal=profile.rating ? profile.rating.toFixed(1)+' / 5' : 'New';
       document.getElementById('stat-rating').textContent=ratingVal;
-      document.getElementById('stat-jobs').textContent=profile.completed_jobs||'0';
-      var earnedCents=profile.total_earned||0;
-      document.getElementById('stat-earned').textContent=fmtPay(earnedCents)||'$0.00';
+      document.getElementById('stat-jobs').textContent='—';
+      document.getElementById('stat-earned').textContent='—';
     }
 
     // Offline banner
@@ -1402,7 +1431,10 @@
       setDashboardStatus('loading');
     }
 
-    await loadDashboardData('initial_load');
+    await Promise.all([
+      loadDashboardData('initial_load'),
+      loadCanonicalPerformance(freshTok),
+    ]);
   });
 </script>
 
