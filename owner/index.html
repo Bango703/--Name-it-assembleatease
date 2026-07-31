@@ -1746,6 +1746,7 @@ window.intelQuick = intelQuick;
       </label>
     </div>
     <div id="manual-payment-row" style="display:none;margin-top:0.75rem">
+      <div id="manual-payment-match" aria-live="polite" style="display:none;margin-bottom:0.75rem"></div>
       <div class="modal-row">
         <div>
           <label class="modal-label">Stripe payment received ($)</label>
@@ -1764,7 +1765,7 @@ window.intelQuick = intelQuick;
       <input id="manual-payment-note" class="modal-input" placeholder="Work or phase this payment covers" />
       <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
         <input type="checkbox" id="manual-payment-confirm-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
-        <span>I confirm the amount and PaymentIntent are copied from Stripe. This records money already received and does not charge the customer.</span>
+        <span id="manual-payment-confirm-copy">I confirm the selected or manually entered Stripe payment and amount are correct. This records money already received and does not charge the customer.</span>
       </label>
     </div>
     <div id="manual-refund-row" style="display:none;margin-top:0.75rem">
@@ -1893,6 +1894,7 @@ window.intelQuick = intelQuick;
   const $manualPaymentAdjustment = document.getElementById('manual-payment-adjustment');
   const $manualPaymentNote = document.getElementById('manual-payment-note');
   const $manualPaymentConfirm = document.getElementById('manual-payment-confirm-cb');
+  const $manualPaymentMatch = document.getElementById('manual-payment-match');
   const $manualRefundRow = document.getElementById('manual-refund-row');
   const $manualRefundAmount = document.getElementById('manual-refund-amount');
   const $manualRefundAvailable = document.getElementById('manual-refund-available');
@@ -1935,8 +1937,148 @@ window.intelQuick = intelQuick;
     if ($collectionConfirm) $collectionConfirm.checked = false;
   }
 
+  var manualPaymentMatchRequest = 0;
+  var manualPaymentCandidates = [];
+  var manualPaymentSelectedCandidate = null;
+
+  function resetManualPaymentMatcher() {
+    manualPaymentMatchRequest += 1;
+    manualPaymentCandidates = [];
+    manualPaymentSelectedCandidate = null;
+    if ($manualPaymentMatch) {
+      $manualPaymentMatch.style.display = 'none';
+      $manualPaymentMatch.innerHTML = '';
+    }
+  }
+
+  function manualPaymentRelativeTime(value) {
+    var time = new Date(value).getTime();
+    if (!Number.isFinite(time)) return 'recently';
+    var seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+    if (seconds < 60) return 'just now';
+    var minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + ' min ago';
+    var hours = Math.floor(minutes / 60);
+    return hours + (hours === 1 ? ' hr ago' : ' hrs ago');
+  }
+
+  function manualPaymentCardLabel(candidate) {
+    var brand = String((candidate && candidate.cardBrand) || 'card').toLowerCase();
+    var brandLabels = { amex: 'Amex', mastercard: 'Mastercard', visa: 'Visa', discover: 'Discover' };
+    var label = brandLabels[brand] || (brand.charAt(0).toUpperCase() + brand.slice(1));
+    return candidate && candidate.last4 ? label + ' ···' + candidate.last4 : label;
+  }
+
+  function manualPaymentCandidateLabel(candidate) {
+    return fmt$(Number(candidate.amountCents || 0))
+      + ' · ' + manualPaymentRelativeTime(candidate.createdAt)
+      + ' · ' + manualPaymentCardLabel(candidate);
+  }
+
+  function applyManualPaymentCandidate(candidate) {
+    if (!candidate) return;
+    manualPaymentSelectedCandidate = candidate;
+    if ($manualPaymentIntent) $manualPaymentIntent.value = candidate.paymentIntentId || '';
+    if ($manualPaymentAmount) {
+      $manualPaymentAmount.value = (Number(candidate.amountCents || 0) / 100).toFixed(2);
+    }
+    if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+  }
+
+  function renderManualPaymentMatches(payload) {
+    if (!$manualPaymentMatch) return;
+    manualPaymentCandidates = Array.isArray(payload && payload.candidates)
+      ? payload.candidates
+      : [];
+    manualPaymentSelectedCandidate = null;
+    $manualPaymentMatch.style.display = '';
+
+    if (!manualPaymentCandidates.length) {
+      $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">No unused recent Stripe payment was found. Enter the <strong>pi_</strong> PaymentIntent ID manually.</div>';
+      return;
+    }
+
+    var bestMatch = manualPaymentCandidates.find(function(candidate) {
+      return candidate.paymentIntentId === payload.bestMatchId;
+    });
+    if (bestMatch) {
+      applyManualPaymentCandidate(bestMatch);
+      $manualPaymentMatch.innerHTML = '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:8px;padding:0.7rem 0.8rem;color:#166534;font-size:0.8rem;line-height:1.5"><strong>Matched:</strong> '
+        + esc(manualPaymentCandidateLabel(bestMatch))
+        + ' — verify and Record.</div>';
+      return;
+    }
+
+    var truncatedNote = payload.searchTruncated
+      ? '<div style="margin-top:0.45rem;color:#92400e">Stripe returned more than 100 recent payments, so no payment was selected automatically.</div>'
+      : '';
+    var options = manualPaymentCandidates.map(function(candidate, index) {
+      return '<label style="display:flex;align-items:flex-start;gap:0.55rem;padding:0.55rem 0;cursor:pointer;border-top:' + (index ? '1px solid #e2e8f0' : '0') + '">'
+        + '<input type="radio" name="manual-payment-match-choice" value="' + index + '" style="margin-top:2px;accent-color:var(--teal)">'
+        + '<span><strong>' + esc(manualPaymentCandidateLabel(candidate)) + '</strong><br><span style="color:#64748b">' + esc(candidate.paymentIntentId) + '</span></span>'
+        + '</label>';
+    }).join('');
+    $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#334155;font-size:0.78rem;line-height:1.45"><strong>Select the Stripe payment to record:</strong>'
+      + truncatedNote + '<div style="margin-top:0.35rem;max-height:220px;overflow:auto">' + options + '</div></div>';
+  }
+
+  async function loadManualPaymentMatches(booking) {
+    if (!$manualPaymentMatch || !booking || !booking.id) return;
+    var requestId = ++manualPaymentMatchRequest;
+    $manualPaymentMatch.style.display = '';
+    $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem">Checking recent Stripe payments...</div>';
+    try {
+      var response = await fetch('/api/owner/stripe-match-payment?bookingId=' + encodeURIComponent(booking.id), {
+        method: 'GET',
+        headers: headers(),
+      });
+      var payload = await response.json().catch(function(){ return {}; });
+      if (requestId !== manualPaymentMatchRequest) return;
+      if (!response.ok || payload.error) throw new Error(payload.error || 'Automatic Stripe matching is unavailable');
+      renderManualPaymentMatches(payload);
+    } catch (error) {
+      if (requestId !== manualPaymentMatchRequest) return;
+      manualPaymentCandidates = [];
+      manualPaymentSelectedCandidate = null;
+      $manualPaymentMatch.style.display = '';
+      $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">Automatic matching is unavailable. Enter the <strong>pi_</strong> PaymentIntent ID manually.</div>';
+    }
+  }
+
+  if ($manualPaymentMatch) {
+    $manualPaymentMatch.addEventListener('change', function(event) {
+      var choice = event.target.closest('input[name="manual-payment-match-choice"]');
+      if (!choice) return;
+      var candidate = manualPaymentCandidates[Number(choice.value)];
+      applyManualPaymentCandidate(candidate);
+    });
+  }
+
+  function clearManualPaymentMatchIfEdited() {
+    if (!manualPaymentSelectedCandidate) return;
+    var currentIntent = String(($manualPaymentIntent && $manualPaymentIntent.value) || '').trim();
+    var currentAmount = Math.round(Number(($manualPaymentAmount && $manualPaymentAmount.value) || 0) * 100);
+    if (currentIntent === manualPaymentSelectedCandidate.paymentIntentId
+        && currentAmount === Number(manualPaymentSelectedCandidate.amountCents)) return;
+    manualPaymentSelectedCandidate = null;
+    if ($manualPaymentMatch) {
+      var choices = $manualPaymentMatch.querySelectorAll('input[name="manual-payment-match-choice"]');
+      choices.forEach(function(input) {
+        input.checked = false;
+      });
+      if (!choices.length) {
+        $manualPaymentMatch.innerHTML = '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:0.7rem 0.8rem;color:#475569;font-size:0.78rem;line-height:1.5">The suggested match was edited. Verify the amount and <strong>pi_</strong> PaymentIntent ID manually before recording.</div>';
+      }
+    }
+    if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+  }
+
+  if ($manualPaymentIntent) $manualPaymentIntent.addEventListener('input', clearManualPaymentMatchIfEdited);
+  if ($manualPaymentAmount) $manualPaymentAmount.addEventListener('input', clearManualPaymentMatchIfEdited);
+
   function setManualPaymentFieldsVisible(show, booking) {
     if ($manualPaymentRow) $manualPaymentRow.style.display = show ? '' : 'none';
+    resetManualPaymentMatcher();
     if (!show) {
       if ($manualPaymentAmount) $manualPaymentAmount.value = '';
       if ($manualPaymentTotal) $manualPaymentTotal.value = '';
@@ -3805,6 +3947,7 @@ window.intelQuick = intelQuick;
       $reasonText.style.display = 'none';
       setManualPaymentFieldsVisible(true, manualPaymentBooking);
       $reasonModal.classList.add('open');
+      loadManualPaymentMatches(manualPaymentBooking);
     } else if (action === 'schedule-return-visit') {
       var returnVisitBooking = allBookings.find(function(item){ return item.id == id; });
       if (!returnVisitBooking) return;
@@ -4191,7 +4334,7 @@ window.intelQuick = intelQuick;
         return;
       }
       if (!$manualPaymentConfirm || !$manualPaymentConfirm.checked) {
-        toast('Confirm that the amount and PaymentIntent were copied from Stripe', 'error');
+        toast('Confirm that the selected or manually entered Stripe payment is correct', 'error');
         return;
       }
 

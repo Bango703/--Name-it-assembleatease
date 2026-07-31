@@ -4,7 +4,7 @@ import { verifyOwner } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
 
-const MAX_PAYMENT_CENTS = 2_500_000;
+export const MAX_PAYMENT_CENTS = 2_500_000;
 
 function cleanCents(value) {
   const cents = Number.parseInt(value, 10);
@@ -20,7 +20,7 @@ function stripeObjectId(value) {
   return typeof value === 'string' ? value : value?.id || null;
 }
 
-function expectedLiveMode() {
+export function expectedLiveMode() {
   const secret = String(process.env.STRIPE_SECRET_KEY || '');
   if (secret.startsWith('sk_live_')) return true;
   if (secret.startsWith('sk_test_')) return false;
