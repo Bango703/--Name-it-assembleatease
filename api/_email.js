@@ -172,8 +172,15 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   // List-Unsubscribe improves sender trust and satisfies Gmail/Yahoo bulk-sender
   // rules — mailboxes rank senders who make opting out easy, which helps inbox
   // placement. Points at the email-preferences path already shown in the footer.
+  // A broadcast (marketing/announcement) send passes a per-recipient tokenized
+  // unsubscribe URL so the one-click header actually opts THAT recipient out —
+  // required for CAN-SPAM and Gmail/Yahoo bulk-sender compliance. Transactional
+  // sends fall back to the generic preferences link.
+  const listUnsub = typeof meta.listUnsubscribe === 'string' && /^https:\/\//.test(meta.listUnsubscribe)
+    ? `<${meta.listUnsubscribe}>, <mailto:service@assembleatease.com?subject=unsubscribe>`
+    : '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>';
   body.headers = {
-    'List-Unsubscribe': '<mailto:service@assembleatease.com?subject=unsubscribe>, <https://www.assembleatease.com/contact?subject=Email%20Preferences>',
+    'List-Unsubscribe': listUnsub,
     'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
   };
 

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Customer Email — AssembleAtEase Owner</title>
+<link rel="icon" href="/favicon.ico" sizes="any"/>
+<style>
+  :root{--teal:#00BFFF;--ink:#18181b;--muted:#71717a;--border:#e4e4e7;--bg:#f4f4f5}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+  .wrap{max-width:660px;margin:0 auto;padding:24px 16px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff}
+  textarea{min-height:200px;resize:vertical;line-height:1.5}
+  .btn{display:inline-block;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:6px}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:14px;display:none}
+  .msg.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;display:block}
+  .msg.err{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;display:block}
+  .msg.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;display:block}
+  .hidden{display:none}
+  .warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:12.5px;line-height:1.55;padding:10px 12px;border-radius:8px;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Login gate -->
+  <div class="card" id="gate">
+    <h1>Owner sign-in</h1>
+    <p class="sub">Enter your owner password to send customer email.</p>
+    <input type="password" id="pw" placeholder="Owner password" autocomplete="current-password"/>
+    <div class="row"><button class="btn" id="login-btn">Sign in</button></div>
+    <div class="msg" id="gate-msg"></div>
+  </div>
+
+  <!-- Composer -->
+  <div class="card hidden" id="composer">
+    <h1>Send customer email</h1>
+    <p class="sub">Announcements go to everyone who booked. Promotions go only to people who opted in.</p>
+
+    <label for="audience">Audience</label>
+    <select id="audience">
+      <option value="past_customers">All past customers — announcement / update</option>
+      <option value="marketing_optins">Marketing opt-ins only — promotions</option>
+    </select>
+
+    <label for="subject">Subject</label>
+    <input type="text" id="subject" maxlength="150" placeholder="e.g. New: weekend assembly slots in Austin"/>
+
+    <label for="body">Message</label>
+    <textarea id="body" placeholder="Write your message. Plain text — line breaks are kept, and links (https://...) become clickable."></textarea>
+    <p class="note">Every email automatically includes the AssembleAtEase header, your business address, and a one-click unsubscribe link. People who unsubscribed are always skipped.</p>
+
+    <div class="warn" id="promo-warn">Promotions may only be sent to people who affirmatively opted in. Confirm your real physical mailing address is set (BUSINESS_POSTAL_ADDRESS) before sending marketing — it is legally required in every email.</div>
+
+    <label for="test">Send a test to yourself first</label>
+    <input type="email" id="test" placeholder="your@email.com"/>
+
+    <div class="row">
+      <button class="btn secondary" id="count-btn">Check recipients</button>
+      <button class="btn secondary" id="test-btn">Send test</button>
+      <button class="btn" id="send-btn">Send campaign</button>
+    </div>
+    <div class="msg" id="out"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var token = '';
+  var $ = function(id){ return document.getElementById(id); };
+  function show(el, cls, html){ el.className = 'msg ' + cls; el.innerHTML = html; }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  // Owner types plain text; convert safely to HTML: escape, linkify URLs, keep line breaks.
+  function bodyToHtml(text){
+    var safe = esc(text);
+    safe = safe.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#00BFFF">$1</a>');
+    return safe.replace(/\n/g, '<br>');
+  }
+
+  async function api(body){
+    var r = await fetch('/api/owner/broadcast', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + token },
+      body: JSON.stringify(body)
+    });
+    var d = await r.json().catch(function(){ return {}; });
+    if (r.status === 401){ token=''; $('composer').classList.add('hidden'); $('gate').classList.remove('hidden'); throw new Error('Session expired — sign in again.'); }
+    if (!r.ok || d.error) throw new Error(d.error || 'Request failed');
+    return d;
+  }
+
+  function payload(extra){
+    return Object.assign({
+      audience: $('audience').value,
+      subject: $('subject').value.trim(),
+      bodyHtml: bodyToHtml($('body').value.trim())
+    }, extra || {});
+  }
+
+  // ── Login ──
+  $('login-btn').addEventListener('click', async function(){
+    var btn = this; btn.disabled = true;
+    try{
+      var r = await fetch('/api/owner/session', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: $('pw').value }) });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok || !d.token) throw new Error(d.error || 'Invalid password');
+      token = d.token; $('pw').value='';
+      $('gate').classList.add('hidden'); $('composer').classList.remove('hidden');
+    }catch(e){ show($('gate-msg'),'err', esc(e.message)); }
+    finally{ btn.disabled = false; }
+  });
+  $('pw').addEventListener('keydown', function(e){ if(e.key==='Enter') $('login-btn').click(); });
+
+  // ── Check recipients ──
+  $('count-btn').addEventListener('click', async function(){
+    if(!$('subject').value.trim() || !$('body').value.trim()){ show($('out'),'err','Add a subject and message first.'); return; }
+    this.disabled = true;
+    try{
+      var d = await api(payload({ countOnly:true }));
+      show($('out'),'info','This will email <strong>'+d.recipientCount+'</strong> recipient(s). '+d.suppressed+' opted-out address(es) will be skipped.');
+    }catch(e){ show($('out'),'err', esc(e.message)); }
+    finally{ this.disabled = false; }
+  });
+
+  // ── Send test ──
+  $('test-btn').addEventListener('click', async function(){
+    var te = $('test').value.trim();
+    if(!te){ show($('out'),'err','Enter a test email address.'); return; }
+    if(!$('subject').value.trim() || !$('body').value.trim()){ show($('out'),'err','Add a subject and message first.'); return; }
+    this.disabled = true;
+    try{
+      var d = await api(payload({ testEmail: te }));
+      show($('out'), d.ok?'ok':'err', d.ok ? ('Test sent to '+esc(te)+'. Check your inbox (and spam).') : 'Test failed to send.');
+    }catch(e){ show($('out'),'err', esc(e.message)); }
+    finally{ this.disabled = false; }
+  });
+
+  // ── Send campaign ──
+  $('send-btn').addEventListener('click', async function(){
+    if(!$('subject').value.trim() || !$('body').value.trim()){ show($('out'),'err','Add a subject and message first.'); return; }
+    var aud = $('audience').value === 'marketing_optins' ? 'marketing opt-ins' : 'all past customers';
+    var d;
+    this.disabled = true;
+    try{
+      d = await api(payload({ countOnly:true }));
+    }catch(e){ show($('out'),'err', esc(e.message)); this.disabled=false; return; }
+    if (d.recipientCount === 0){ show($('out'),'err','No eligible recipients on this list.'); this.disabled=false; return; }
+    if (!window.confirm('Send this email to '+d.recipientCount+' '+aud+'? This cannot be undone.')){ this.disabled=false; return; }
+    try{
+      var res = await api(payload({}));
+      show($('out'),'ok','Sent to <strong>'+res.sent+'</strong> of '+res.recipientCount+'. '+(res.failed?res.failed+' failed. ':'')+(res.suppressed?res.suppressed+' opted-out skipped.':''));
+    }catch(e){ show($('out'),'err', esc(e.message)); }
+    finally{ this.disabled = false; }
+  });
+
+  // Toggle the promo-only warning
+  $('audience').addEventListener('change', function(){
+    $('promo-warn').style.display = this.value === 'marketing_optins' ? 'block' : 'none';
+  });
+  $('promo-warn').style.display = 'none';
+})();
+</script>
+</body>
+</html>
