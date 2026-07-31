@@ -14,6 +14,7 @@ function expectedLiveMode(secretKey) {
 export function manualStripeEventMatches(event, intent, keyLiveMode) {
   const charge = intent?.latest_charge;
   const amountCents = Number(event?.amount_cents);
+  const refundedCents = Number(event?.refunded_cents || 0);
   return !!(
     event
     && intent
@@ -28,8 +29,8 @@ export function manualStripeEventMatches(event, intent, keyLiveMode) {
     && charge.status === 'succeeded'
     && charge.paid === true
     && Number(charge.amount_captured || charge.amount) === amountCents
-    && Number(charge.amount_refunded || 0) === 0
-    && charge.refunded !== true
+    && Number(charge.amount_refunded || 0) === refundedCents
+    && charge.refunded === (refundedCents === amountCents)
     && charge.disputed !== true
   );
 }
@@ -42,7 +43,7 @@ export async function verifyOwnerManualCustomerFundsForPayout({
 }) {
   const { data: events, error } = await sb
     .from('owner_manual_payment_events')
-    .select('amount_cents, payment_method, stripe_payment_intent_id, stripe_charge_id')
+    .select('amount_cents, refunded_cents, payment_method, stripe_payment_intent_id, stripe_charge_id')
     .eq('booking_id', booking.id)
     .order('created_at', { ascending: true });
 
@@ -66,7 +67,10 @@ export async function verifyOwnerManualCustomerFundsForPayout({
     return { ok: true, legacyNonStripe: true };
   }
 
-  const collectedCents = events.reduce((sum, event) => sum + Number(event.amount_cents || 0), 0);
+  const collectedCents = events.reduce(
+    (sum, event) => sum + Number(event.amount_cents || 0) - Number(event.refunded_cents || 0),
+    0,
+  );
   if (booking.payment_collected !== true || collectedCents !== Number(booking.total_price || 0)) {
     return {
       ok: false,
@@ -106,6 +110,38 @@ export async function verifyOwnerManualCustomerFundsForPayout({
         ok: false,
         code: 'STRIPE_PAYMENT_NO_LONGER_CLEAR',
         error: 'A recorded Stripe payment is refunded, disputed, incomplete, or no longer matches the ledger. Resolve it before paying the Easer.',
+      };
+    }
+    const chargeId = objectId(intent.latest_charge);
+    let refundPage;
+    try {
+      refundPage = await stripe.refunds.list({ charge: chargeId, limit: 100 });
+    } catch (stripeError) {
+      console.error('Payout manual Stripe refund recheck failed:', stripeError);
+      return {
+        ok: false,
+        code: 'STRIPE_REFUND_REVERIFICATION_FAILED',
+        error: 'Stripe could not reverify the customer refund history. Do not pay the Easer until it is reconciled.',
+      };
+    }
+    if (refundPage?.has_more) {
+      return {
+        ok: false,
+        code: 'STRIPE_REFUND_PAGINATION_REQUIRED',
+        error: 'The Stripe payment has too many refund events for automatic verification. Reconcile it before paying the Easer.',
+      };
+    }
+    const refunds = Array.isArray(refundPage?.data) ? refundPage.data : [];
+    const succeededRefundedCents = refunds
+      .filter(refund => refund.status === 'succeeded')
+      .reduce((sum, refund) => sum + Number(refund.amount || 0), 0);
+    const hasPendingRefund = refunds.some(refund =>
+      !['succeeded', 'failed', 'canceled'].includes(String(refund.status || '')));
+    if (hasPendingRefund || succeededRefundedCents !== Number(event.refunded_cents || 0)) {
+      return {
+        ok: false,
+        code: 'STRIPE_REFUND_NO_LONGER_CLEAR',
+        error: 'A recorded Stripe refund is pending or no longer matches the booking ledger. Resolve it before paying the Easer.',
       };
     }
   }

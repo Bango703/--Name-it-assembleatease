@@ -53,22 +53,32 @@ export default async function handler(req, res) {
 
     const { data: events, error: eventsError } = await sb
       .from('owner_manual_payment_events')
-      .select('id, amount_cents, currency, payment_method, processing_fee_cents, stripe_payment_intent_id, stripe_charge_id, stripe_created_at, booking_total_before_cents, booking_total_after_cents, discount_cents, adjustment_note, payment_note, recorded_by, created_at')
+      .select('id, amount_cents, refunded_cents, latest_refund_id, refunded_at, refund_reason, currency, payment_method, processing_fee_cents, stripe_payment_intent_id, stripe_charge_id, stripe_created_at, booking_total_before_cents, booking_total_after_cents, discount_cents, adjustment_note, payment_note, recorded_by, created_at')
       .eq('booking_id', booking.id)
       .order('created_at', { ascending: true });
     if (eventsError) {
       console.error('Owner manual payment event lookup failed:', eventsError);
       return res.status(503).json({
-        error: 'Partial-payment history is unavailable. Apply migration 044 and retry.',
-        code: 'OWNER_MANUAL_PAYMENT_LEDGER_UNAVAILABLE',
+        error: 'Payment and refund history is unavailable. Apply migration 045 and retry.',
+        code: 'OWNER_MANUAL_REFUND_LEDGER_UNAVAILABLE',
       });
     }
 
-    const amountCollectedCents = (events || []).reduce((sum, event) => sum + Number(event.amount_cents || 0), 0);
+    const grossCollectedCents = (events || []).reduce(
+      (sum, event) => sum + Number(event.amount_cents || 0),
+      0,
+    );
+    const refundedCents = (events || []).reduce(
+      (sum, event) => sum + Number(event.refunded_cents || 0),
+      0,
+    );
+    const amountCollectedCents = Math.max(0, grossCollectedCents - refundedCents);
     return res.status(200).json({
       bookingId: booking.id,
       ref: booking.ref,
       totalCents: Number(booking.total_price || 0),
+      grossCollectedCents,
+      refundedCents,
       amountCollectedCents,
       remainingBalanceCents: Math.max(0, Number(booking.total_price || 0) - amountCollectedCents),
       events: events || [],
@@ -199,7 +209,7 @@ export default async function handler(req, res) {
   }
 
   const operationKey = `owner-manual-payment:${booking.id}:${paymentIntentId}`;
-  const { data: rpcRows, error: rpcError } = await sb.rpc('record_owner_manual_payment_event', {
+  const { data: rpcRows, error: rpcError } = await sb.rpc('record_owner_manual_payment_event_v2', {
     p_booking_id: booking.id,
     p_operation_key: operationKey,
     p_expected_total_cents: expectedTotalCents,
@@ -217,13 +227,13 @@ export default async function handler(req, res) {
 
   if (rpcError) {
     console.error('Record owner-manual payment RPC failed:', rpcError);
-    const migrationMissing = /record_owner_manual_payment_event|owner_manual_payment_events|does not exist/i
+    const migrationMissing = /record_owner_manual_payment_event_v2|owner_manual_payment_events|does not exist/i
       .test(String(rpcError.message || ''));
     return res.status(migrationMissing ? 503 : 409).json({
       error: migrationMissing
-        ? 'Partial-payment storage is unavailable. Apply migration 044 and retry.'
+        ? 'Refund-aware payment storage is unavailable. Apply migration 045 and retry.'
         : 'Payment could not be reconciled safely. Refresh the booking and verify Stripe before retrying.',
-      code: migrationMissing ? 'MIGRATION_044_REQUIRED' : 'PAYMENT_RECONCILIATION_CONFLICT',
+      code: migrationMissing ? 'MIGRATION_045_REQUIRED' : 'PAYMENT_RECONCILIATION_CONFLICT',
     });
   }
 

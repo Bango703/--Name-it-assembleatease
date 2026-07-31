@@ -75,11 +75,12 @@ export default async function handler(req, res) {
   const customerStatus = getCustomerLabel(booking);
 
   let amountCollectedCents = null;
+  let grossPaymentCents = null;
   let remainingBalanceCents = null;
   if (booking.source === 'owner_manual') {
     const { data: paymentEvents, error: paymentEventsError } = await sb
       .from('owner_manual_payment_events')
-      .select('amount_cents')
+      .select('amount_cents, refunded_cents')
       .eq('booking_id', booking.id);
     if (paymentEventsError) {
       console.error('Customer owner-manual payment balance lookup failed:', paymentEventsError);
@@ -88,11 +89,17 @@ export default async function handler(req, res) {
         code: 'PAYMENT_BALANCE_UNAVAILABLE',
       });
     }
-    const ledgerTotal = (paymentEvents || []).reduce(
+    const ledgerGross = (paymentEvents || []).reduce(
       (sum, event) => sum + Number(event.amount_cents || 0),
       0,
     );
-    amountCollectedCents = ledgerTotal || (booking.payment_collected === true
+    const ledgerRefunded = (paymentEvents || []).reduce(
+      (sum, event) => sum + Number(event.refunded_cents || 0),
+      0,
+    );
+    const ledgerNet = Math.max(0, ledgerGross - ledgerRefunded);
+    grossPaymentCents = (paymentEvents || []).length ? ledgerGross : null;
+    amountCollectedCents = (paymentEvents || []).length ? ledgerNet : (booking.payment_collected === true
       ? Number(booking.amount_charged ?? booking.total_price ?? 0)
       : 0);
     remainingBalanceCents = Math.max(0, Number(booking.total_price || 0) - amountCollectedCents);
@@ -148,6 +155,8 @@ export default async function handler(req, res) {
     refund_amount: booking.refund_amount || 0,
     deposit_amount: booking.deposit_amount || null,
     payment_status: booking.payment_status || null,
+    owner_manual_payment: booking.source === 'owner_manual',
+    gross_payment_cents: grossPaymentCents,
     amount_collected_cents: amountCollectedCents,
     remaining_balance_cents: remainingBalanceCents,
     return_visit_required: booking.return_visit_required === true,

@@ -587,9 +587,14 @@ function renderBooking(b) {
       returnScope.style.display = 'none';
     }
   }
-  var displayTotal = (b.amount_charged != null ? b.amount_charged : b.total_price);
+  var isOwnerManualPayment = b.owner_manual_payment === true;
+  var displayTotal = isOwnerManualPayment
+    ? b.total_price
+    : (b.amount_charged != null ? b.amount_charged : b.total_price);
   var paymentStatus = String(b.payment_status || '');
-  var totalLabel = ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(paymentStatus)
+  var totalLabel = isOwnerManualPayment
+    ? 'Booking Total'
+    : ['captured','partially_refunded','refunded','cancellation_fee_captured'].includes(paymentStatus)
     ? 'Total Charged'
     : (paymentStatus === 'authorized' ? 'Total Authorized' : (paymentStatus === 'deposit_paid' ? 'Deposit Paid' : 'Booking Total'));
   document.getElementById('bPriceLabel').textContent = totalLabel;
@@ -600,7 +605,8 @@ function renderBooking(b) {
     var bd = document.getElementById('priceBreakdown');
     if (!bd) return;
     var total = Number(displayTotal) || 0;
-    var refunded = Math.min(total, Math.max(0, Number(b.refund_amount) || 0));
+    var rawRefunded = Math.max(0, Number(b.refund_amount) || 0);
+    var refunded = isOwnerManualPayment ? rawRefunded : Math.min(total, rawRefunded);
     var tax   = Number(b.tax_amount) || 0;
     var call  = Number(b.service_call_fee) || 0;
     if (total <= 0) { bd.style.display = 'none'; return; }
@@ -611,15 +617,23 @@ function renderBooking(b) {
         + '<span>' + label + '</span>'
         + '<span class="price-breakdown-value' + (strong ? ' strong' : '') + '">' + money(val) + '</span></div>';
     }
-    bd.innerHTML =
+    var serviceRows =
         row('Service &amp; items', serviceItems)
       + (call > 0 ? row('Service call fee', call) : '')
-      + (tax  > 0 ? row('Sales tax', tax) : '')
-      + (b.amount_collected_cents != null && Number(b.amount_collected_cents) > 0
-          ? row('Payment received', Number(b.amount_collected_cents), false)
-            + row('Remaining balance', Number(b.remaining_balance_cents) || 0, true)
-          : '')
-      + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
+      + (tax  > 0 ? row('Sales tax', tax) : '');
+    if (isOwnerManualPayment) {
+      var grossPayments = Math.max(0, Number(b.gross_payment_cents) || 0);
+      var netPayments = Math.max(0, Number(b.amount_collected_cents) || 0);
+      bd.innerHTML = serviceRows
+        + row('Booking total', total, true)
+        + (grossPayments > 0 ? row('Payment received (gross)', grossPayments) : '')
+        + (refunded > 0 ? row('Refunded', -refunded) : '')
+        + (grossPayments > 0 || refunded > 0 ? row('Net payments retained', netPayments) : '')
+        + row('Remaining balance', Number(b.remaining_balance_cents) || 0, true);
+    } else {
+      bd.innerHTML = serviceRows
+        + (refunded > 0 ? row('Refunded', -refunded) + row('Net charged after refund', total - refunded, true) : '');
+    }
     bd.style.display = '';
   })();
   document.getElementById('bCreated').textContent  = 'Booked on ' + formatDate(b.created_at);

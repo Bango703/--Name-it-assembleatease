@@ -91,6 +91,7 @@ function formatNotifDescription(n) {
     in_progress:              'Job started — customer notified',
     completion:               'Completion receipt sent',
     payment_receipt:          'Payment receipt sent',
+    owner_manual_refund:      'Manual Stripe refund confirmation sent',
     cancellation:             'Cancellation notification sent',
     review_request:           'Review request sent',
     reminder:                 'Appointment reminder sent',

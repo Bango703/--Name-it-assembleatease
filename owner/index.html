@@ -1767,6 +1767,18 @@ window.intelQuick = intelQuick;
         <span>I confirm the amount and PaymentIntent are copied from Stripe. This records money already received and does not charge the customer.</span>
       </label>
     </div>
+    <div id="manual-refund-row" style="display:none;margin-top:0.75rem">
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:#9a3412;font-weight:700">Maximum from recorded Stripe payments</div>
+        <div id="manual-refund-available" style="font-size:1.15rem;font-weight:800;color:#9a3412;margin-top:0.2rem">$0.00</div>
+      </div>
+      <label class="modal-label">Refund amount ($)</label>
+      <input id="manual-refund-amount" class="modal-input" type="number" min="0.01" step="0.01" placeholder="25.00" />
+      <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;font-size:0.82rem;color:var(--soft);line-height:1.45;margin-top:0.75rem">
+        <input type="checkbox" id="manual-refund-confirm-cb" style="width:16px;height:16px;accent-color:#dc2626;margin-top:2px;flex:0 0 auto">
+        <span id="manual-refund-confirm-copy">I confirm the exact refund amount. This sends money back through Stripe and cannot be undone from this dashboard.</span>
+      </label>
+    </div>
     <div id="return-visit-row" style="display:none;margin-top:0.75rem">
       <div class="modal-row">
         <div>
@@ -1881,6 +1893,11 @@ window.intelQuick = intelQuick;
   const $manualPaymentAdjustment = document.getElementById('manual-payment-adjustment');
   const $manualPaymentNote = document.getElementById('manual-payment-note');
   const $manualPaymentConfirm = document.getElementById('manual-payment-confirm-cb');
+  const $manualRefundRow = document.getElementById('manual-refund-row');
+  const $manualRefundAmount = document.getElementById('manual-refund-amount');
+  const $manualRefundAvailable = document.getElementById('manual-refund-available');
+  const $manualRefundConfirm = document.getElementById('manual-refund-confirm-cb');
+  const $manualRefundConfirmCopy = document.getElementById('manual-refund-confirm-copy');
   const $returnVisitRow = document.getElementById('return-visit-row');
   const $returnVisitDate = document.getElementById('return-visit-date');
   const $returnVisitTime = document.getElementById('return-visit-time');
@@ -1933,6 +1950,40 @@ window.intelQuick = intelQuick;
       $manualPaymentTotal.value = (Number((booking && booking.total_price) || 0) / 100).toFixed(2);
     }
     if ($manualPaymentConfirm) $manualPaymentConfirm.checked = false;
+  }
+
+  function setManualRefundFieldsVisible(show, booking, recovery) {
+    if ($manualRefundRow) $manualRefundRow.style.display = show ? '' : 'none';
+    if (!show) {
+      if ($manualRefundAmount) {
+        $manualRefundAmount.value = '';
+        $manualRefundAmount.disabled = false;
+      }
+      if ($manualRefundAvailable) $manualRefundAvailable.textContent = '$0.00';
+      if ($manualRefundConfirm) $manualRefundConfirm.checked = false;
+      return;
+    }
+    var refundableCents = Number((booking && booking.manual_stripe_refundable_cents) || 0);
+    if ($manualRefundAvailable) {
+      $manualRefundAvailable.textContent = recovery
+        ? 'Original refund target is locked'
+        : fmt$(refundableCents);
+    }
+    if ($manualRefundAmount) {
+      $manualRefundAmount.value = recovery ? '' : (refundableCents / 100).toFixed(2);
+      $manualRefundAmount.disabled = !!recovery;
+    }
+    if ($manualRefundConfirmCopy) {
+      var payoutAlreadySettled = booking
+        && ['paid', 'transferred'].includes(String(booking.payout_status || ''));
+      var payoutWarning = payoutAlreadySettled
+        ? ' The Easer payout is already settled; this customer refund will not reverse it and will require owner financial review.'
+        : '';
+      $manualRefundConfirmCopy.textContent = recovery
+        ? 'I understand this rechecks Stripe and resumes only the previously confirmed refund target.' + payoutWarning
+        : 'I confirm this exact refund amount. Stripe will send it back to the original payment method, and this action cannot be undone from the dashboard.' + payoutWarning;
+    }
+    if ($manualRefundConfirm) $manualRefundConfirm.checked = false;
   }
 
   function setReturnVisitFieldsVisible(show, booking) {
@@ -2772,6 +2823,7 @@ window.intelQuick = intelQuick;
     var bookedSubtotal = Math.max(0, bookedTotal - bookedTax);
     var financial = b.financial_summary || {};
     var isOfflinePayment = b.source === 'owner_manual' && b.payment_status === 'offline_recorded';
+    var grossManualPayments = isOfflinePayment ? Number(b.manual_payment_gross_cents || 0) : null;
     var collectedAmount = isOfflinePayment
       ? Number(b.amount_collected_cents || 0)
       : (b.amount_charged != null ? Number(b.amount_charged) : null);
@@ -2789,7 +2841,8 @@ window.intelQuick = intelQuick;
       field('Service Subtotal', b.total_price != null ? fmt$(bookedSubtotal) : '—'),
       field('Sales Tax', b.tax_amount != null ? fmt$(bookedTax) : '—'),
       field('Customer Total', b.total_price != null ? fmt$(bookedTotal) : '—'),
-      field(isOfflinePayment ? 'Customer Payments Received' : 'Total Charged', collectedAmount != null
+      isOfflinePayment ? field('Gross Customer Payments', fmt$(grossManualPayments)) : '',
+      field(isOfflinePayment ? 'Net Payments Retained' : 'Total Charged', collectedAmount != null
         ? fmt$(collectedAmount)
         : '<span style="color:var(--muted)">Not recorded</span>'),
       isOfflinePayment ? field('Remaining Balance', fmt$(remainingBalance)) : '',
@@ -3432,6 +3485,7 @@ window.intelQuick = intelQuick;
 
     if (isOwnerManual) {
       var manualCollectedCents = Number(b.amount_collected_cents || 0);
+      var manualStripeRefundableCents = Number(b.manual_stripe_refundable_cents || 0);
       var manualBalanceCents = Number(b.remaining_balance_cents != null
         ? b.remaining_balance_cents
         : Math.max(0, Number(b.total_price || 0) - manualCollectedCents));
@@ -3442,6 +3496,18 @@ window.intelQuick = intelQuick;
       if (b.return_visit_required) {
         notices.push('<div style="flex-basis:100%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:0.65rem 0.8rem;color:#3730a3;font-size:0.78rem;line-height:1.5"><strong>Return visit:</strong> ' + esc(formatDate(b.return_visit_date)) + (b.return_visit_time ? ' at ' + esc(b.return_visit_time) : '') + '. Remaining: ' + esc(b.return_visit_remaining_scope || 'documented work') + '.</div>');
       }
+      var manualRefundRecovery = b.financial_operation_type === 'refund_owner'
+        && String(b.financial_operation_key || '').indexOf('refund:owner-manual:' + b.id + ':total:') === 0;
+      var manualFinancialHold = !!(b.financial_operation_key || b.financial_reconciliation_required_at);
+      if (manualFinancialHold) {
+        notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Financial hold:</strong> this booking is locked while Stripe and the payment ledger are reconciled. Do not collect more money or issue an Easer payout.</div>');
+        if (manualRefundRecovery) {
+          btns.push('<button class="btn btn-amber" data-action="manual-refund-recovery" data-id="' + b.id + '">Resume / Reconcile Stripe Refund</button>');
+        }
+        $detailAct.innerHTML = notices.concat(btns).join('');
+        $detailAct.style.display = '';
+        return;
+      }
       if (!b.payment_collected
           && manualBalanceCents > 0
           && ['confirmed','en_route','arrived','in_progress','completed'].includes(b.status)) {
@@ -3449,6 +3515,9 @@ window.intelQuick = intelQuick;
       }
       if (['confirmed','en_route','arrived','in_progress'].includes(b.status)) {
         btns.push('<button class="btn" data-action="schedule-return-visit" data-id="' + b.id + '">' + (b.return_visit_required ? 'Update Return Visit' : 'Schedule Return Visit') + '</button>');
+      }
+      if (['completed','cancelled'].includes(b.status) && manualStripeRefundableCents > 0) {
+        btns.push('<button class="btn btn-red" data-action="refund-manual-payment" data-id="' + b.id + '">Refund Stripe Payment</button>');
       }
       if (b.status === 'confirmed') {
         if (b.assembler_id) {
@@ -3672,6 +3741,7 @@ window.intelQuick = intelQuick;
     setPayoutFieldsVisible(false);
     setCollectionFieldsVisible(false);
     setManualPaymentFieldsVisible(false);
+    setManualRefundFieldsVisible(false);
     setReturnVisitFieldsVisible(false);
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
@@ -3749,6 +3819,36 @@ window.intelQuick = intelQuick;
       document.getElementById('reason-confirm').className = 'btn btn-teal';
       $reasonText.style.display = 'none';
       setReturnVisitFieldsVisible(true, returnVisitBooking);
+      $reasonModal.classList.add('open');
+    } else if (action === 'refund-manual-payment' || action === 'manual-refund-recovery') {
+      var manualRefundBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!manualRefundBooking) return;
+      var refundRecovery = action === 'manual-refund-recovery';
+      pendingAction = {
+        id: id,
+        type: 'refund-manual-payment',
+        recovery: refundRecovery,
+        maxRefundCents: Number(manualRefundBooking.manual_stripe_refundable_cents || 0),
+      };
+      document.getElementById('reason-modal-title').textContent = refundRecovery
+        ? 'Resume / Reconcile Stripe Refund'
+        : 'Refund Stripe Payment';
+      document.getElementById('reason-modal-desc').textContent = refundRecovery
+        ? 'The server will recheck Stripe and the manual-payment ledger, then resume only the refund amount you already confirmed. It cannot create an Easer payout.'
+        : 'Enter the exact amount to return to the customer. The server will recheck the recorded PaymentIntent, Stripe refund history, booking balance, and payout holds before sending money.'
+          + (['paid', 'transferred'].includes(String(manualRefundBooking.payout_status || ''))
+            ? ' The Easer payout is already settled and will not be reversed by this refund.'
+            : '');
+      document.getElementById('reason-confirm').textContent = refundRecovery
+        ? 'Recheck and Resume'
+        : 'Confirm Stripe Refund';
+      document.getElementById('reason-confirm').className = refundRecovery
+        ? 'btn btn-amber'
+        : 'btn btn-red';
+      $reasonText.style.display = '';
+      $reasonText.value = '';
+      $reasonText.placeholder = 'Refund reason (required)';
+      setManualRefundFieldsVisible(true, manualRefundBooking, refundRecovery);
       $reasonModal.classList.add('open');
     } else if (action === 'request-evidence') {
       btn.disabled = true;
@@ -3997,6 +4097,76 @@ window.intelQuick = intelQuick;
   document.getElementById('reason-confirm').addEventListener('click', async function() {
     if (!pendingAction) return;
     var reason = $reasonText.value.trim();
+
+    if (pendingAction.type === 'refund-manual-payment') {
+      var manualRefundCents = pendingAction.recovery
+        ? null
+        : Math.round(Number(($manualRefundAmount && $manualRefundAmount.value) || 0) * 100);
+      if (!pendingAction.recovery
+          && (!Number.isInteger(manualRefundCents)
+            || manualRefundCents <= 0
+            || manualRefundCents > pendingAction.maxRefundCents)) {
+        toast('Enter a refund up to ' + fmt$(pendingAction.maxRefundCents), 'error');
+        return;
+      }
+      if (reason.length < 3) {
+        toast('Enter a refund reason of at least 3 characters', 'error');
+        return;
+      }
+      if (!$manualRefundConfirm || !$manualRefundConfirm.checked) {
+        toast('Confirm the Stripe refund before continuing', 'error');
+        return;
+      }
+      var manualRefundBookingId = pendingAction.id;
+      var manualRefundButton = this;
+      manualRefundButton.disabled = true;
+      manualRefundButton.textContent = pendingAction.recovery ? 'Rechecking Stripe...' : 'Issuing Refund...';
+      try {
+        var manualRefundResponse = await fetch('/api/owner/refund-manual-payment', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: manualRefundBookingId,
+            amountCents: manualRefundCents || undefined,
+            reason: reason,
+          }),
+        });
+        var manualRefundData = await manualRefundResponse.json().catch(function(){ return {}; });
+        if (manualRefundResponse.status === 202 || manualRefundData.pending) {
+          closeReasonModal();
+          toast(manualRefundData.message || 'Stripe is still processing the refund. Do not retry in Stripe.', 'error');
+          await loadBookings();
+          if (selectedId) selectBooking(selectedId);
+          return;
+        }
+        if (!manualRefundResponse.ok || manualRefundData.error) {
+          throw new Error(manualRefundData.error || 'Stripe refund could not be completed');
+        }
+        closeReasonModal();
+        var refundSuccessCopy = manualRefundData.reconciled
+          ? 'Stripe refund and booking ledger reconciled'
+          : fmt$(manualRefundData.amount) + ' refunded through Stripe';
+        if (manualRefundData.easerPayoutAlreadySettled) {
+          refundSuccessCopy += '; Easer payout remains settled and needs owner financial review';
+        }
+        if (manualRefundData.notificationDelivered === false) {
+          refundSuccessCopy += '; customer email needs manual follow-up';
+        }
+        toast(refundSuccessCopy, manualRefundData.notificationDelivered === false ? 'error' : 'success');
+        await loadBookings();
+        await loadPayoutLedger();
+        if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
+      } catch (manualRefundError) {
+        toast(manualRefundError.message || 'Stripe refund could not be completed', 'error');
+      } finally {
+        manualRefundButton.disabled = false;
+        manualRefundButton.textContent = pendingAction && pendingAction.recovery
+          ? 'Recheck and Resume'
+          : 'Confirm Stripe Refund';
+      }
+      return;
+    }
 
     if (pendingAction.type === 'record-manual-payment') {
       var manualAmountCents = Math.round(Number(($manualPaymentAmount && $manualPaymentAmount.value) || 0) * 100);
