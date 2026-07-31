@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { ownerManualPaymentRpcFailure } from '../api/owner/record-manual-payment.js';
 
 const [
   migration,
   paymentGuardMigration,
+  completedDiscountMigration,
   completionApi,
   resolutionApi,
   paymentApi,
@@ -15,6 +17,7 @@ const [
 ] = await Promise.all([
   readFile(new URL('../api/migrations/047_owner_manual_recovery_and_evidence.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/049_owner_manual_gross_payment_guard.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../api/migrations/050_completed_owner_booking_discount.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/complete.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/resolve-return-visit.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/record-manual-payment.js', import.meta.url), 'utf8'),
@@ -35,6 +38,15 @@ assert.match(paymentGuardMigration, /record_owner_manual_payment_event_v4/);
 assert.match(paymentGuardMigration, /v_gross \+ p_amount_cents > v_target_total/);
 assert.match(paymentGuardMigration, /Refunds remain visible financial adjustments and never recreate balance due/);
 assert.match(paymentGuardMigration, /record_owner_manual_payment_event_v3/);
+assert.match(completedDiscountMigration, /record_owner_manual_payment_event_v3/);
+assert.match(completedDiscountMigration, /Assignment does not finalize money/);
+assert.doesNotMatch(completedDiscountMigration, /v_booking\.assembler_id IS NOT NULL/);
+assert.match(completedDiscountMigration, /COALESCE\(v_booking\.payout_status, 'unpaid'\) <> 'unpaid'/);
+assert.match(completedDiscountMigration, /v_booking\.payment_collected IS TRUE/);
+assert.match(completedDiscountMigration, /COALESCE\(v_booking\.refund_amount, 0\) > 0/);
+assert.match(completedDiscountMigration, /'discountFunding', 'platform'/);
+assert.match(completedDiscountMigration, /'easerEarningsPreservedCents', COALESCE\(v_booking\.assembler_due, 0\)/);
+assert.doesNotMatch(completedDiscountMigration, /SET[\s\S]{0,180}assembler_due\s*=/);
 assert.match(migration, /record_owner_manual_payment_event_v2/);
 assert.match(migration, /UPDATE public\.owner_manual_payment_events[\s\S]*discount_cents = v_discount/);
 assert.match(migration, /record_owner_manual_completion_evidence/);
@@ -59,6 +71,19 @@ assert.match(paymentApi, /record_owner_manual_payment_event_v4/);
 assert.match(paymentApi, /notificationType: 'payment_receipt'/);
 assert.match(paymentApi, /Remaining balance/);
 assert.match(paymentApi, /This receipt confirms payment only/);
+
+assert.deepEqual(
+  ownerManualPaymentRpcFailure({ message: 'Completed booking financials are already finalized or locked' }),
+  {
+    status: 409,
+    error: 'This booking has finalized or locked payment, payout, refund, or reconciliation activity. Nothing was recorded.',
+    code: 'OWNER_MANUAL_FINANCIALS_LOCKED',
+  },
+);
+assert.equal(
+  ownerManualPaymentRpcFailure({ message: 'Gross recorded customer payments exceed the agreed booking total' }).code,
+  'OWNER_MANUAL_PAYMENT_EXCEEDS_BALANCE',
+);
 
 assert.match(evidenceApi, /if \(!verifyOwner\(req\)\)/);
 assert.match(evidenceApi, /record_owner_manual_completion_evidence/);

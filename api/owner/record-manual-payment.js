@@ -31,6 +31,43 @@ function money(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
 }
 
+export function ownerManualPaymentRpcFailure(rpcError) {
+  const message = String(rpcError?.message || '');
+  if (/record_owner_manual_payment_event_v4|owner_manual_payment_events|does not exist/i.test(message)) {
+    return {
+      status: 503,
+      error: 'Owner-manual payment protection is unavailable. Apply migration 049 and retry.',
+      code: 'MIGRATION_049_REQUIRED',
+    };
+  }
+  if (/already finalized or locked/i.test(message)) {
+    return {
+      status: 409,
+      error: 'This booking has finalized or locked payment, payout, refund, or reconciliation activity. Nothing was recorded.',
+      code: 'OWNER_MANUAL_FINANCIALS_LOCKED',
+    };
+  }
+  if (/invalid or stale|booking total changed/i.test(message)) {
+    return {
+      status: 409,
+      error: 'The booking total changed before the payment could be recorded. Refresh and review the balance; nothing was recorded.',
+      code: 'BOOKING_TOTAL_CHANGED',
+    };
+  }
+  if (/lower than verified|gross recorded customer payments exceed|net recorded customer payments exceed/i.test(message)) {
+    return {
+      status: 409,
+      error: 'That payment or discount would exceed the agreed customer total. Review the recorded payments; nothing was recorded.',
+      code: 'OWNER_MANUAL_PAYMENT_EXCEEDS_BALANCE',
+    };
+  }
+  return {
+    status: 409,
+    error: 'Payment could not be reconciled safely. Refresh the booking and verify Stripe before retrying.',
+    code: 'PAYMENT_RECONCILIATION_CONFLICT',
+  };
+}
+
 async function loadBooking(sb, { bookingId, ref }) {
   let query = sb.from('bookings')
     .select('id, ref, source, status, payment_status, service, total_price, refund_amount, customer_name, customer_email, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at');
@@ -286,14 +323,8 @@ export default async function handler(req, res) {
 
   if (rpcError) {
     console.error('Record owner-manual payment RPC failed:', rpcError);
-    const migrationMissing = /record_owner_manual_payment_event_v4|owner_manual_payment_events|does not exist/i
-      .test(String(rpcError.message || ''));
-    return res.status(migrationMissing ? 503 : 409).json({
-      error: migrationMissing
-        ? 'Owner-manual payment protection is unavailable. Apply migration 049 and retry.'
-        : 'Payment could not be reconciled safely. Refresh the booking and verify Stripe before retrying.',
-      code: migrationMissing ? 'MIGRATION_049_REQUIRED' : 'PAYMENT_RECONCILIATION_CONFLICT',
-    });
+    const failure = ownerManualPaymentRpcFailure(rpcError);
+    return res.status(failure.status).json({ error: failure.error, code: failure.code });
   }
 
   const result = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
