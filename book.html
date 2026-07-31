@@ -3236,6 +3236,10 @@
           Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
 
         </p>
+        <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
+          <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
+          <span>I understand that for used or previously assembled items, reassembly can be limited by the item&rsquo;s condition and pre-existing wear or brittleness is not refundable, and that products such as trampolines, playsets, and fitness equipment carry inherent risks when used. AssembleAtEase is not responsible for a product&rsquo;s design or my use of it after assembly. I agree to the <a href="/terms" target="_blank" style="color:var(--teal)">Terms</a>.</span>
+        </label>
 
         <div class="step-actions">
 
@@ -7152,6 +7156,14 @@ async function submitBooking() {
 
   if (BOOK.isEmergingMarket) {
     await submitMarketDemand();
+    return;
+  }
+
+  var ackEl = document.getElementById('s5-ack');
+  if (ackEl && !ackEl.checked) {
+    errEl.textContent = 'Please check the box to acknowledge the reassembly and product-use terms before continuing.';
+    errEl.classList.add('show');
+    try { ackEl.focus(); } catch (e) {}
     return;
   }
 
