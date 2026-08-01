@@ -2463,7 +2463,7 @@ window.intelQuick = intelQuick;
           : fmt$(data.discountCents) + ' discount applied. Customer balance is $0.00. Platform gross: ' + fmt$(data.platformGrossCents) + '.';
         if (data.notificationDelivered === false) message += ' Customer receipt needs manual follow-up.';
         toast(message, data.notificationDelivered === false ? 'error' : 'success');
-        await loadBookings();
+        await loadBookings(true);
         await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
         loadLiveOps();
@@ -3067,27 +3067,37 @@ window.intelQuick = intelQuick;
   };
 
   // ─── Load bookings ───
-  async function loadBookings() {
-    if (_bookingsLoading) return;
-    _bookingsLoading = true;
-    $list.innerHTML = '<div class="loading-text">Loading bookings...</div>';
-    try {
-      const pageSize = 100;
-      const firstPage = await apiGet('/list?limit=' + pageSize + '&offset=0');
-      allBookings = firstPage.bookings || [];
-      const totalCount = Math.max(allBookings.length, Number(firstPage.count || 0));
-      for (let offset = allBookings.length; offset < totalCount; offset += pageSize) {
-        const page = await apiGet('/list?limit=' + pageSize + '&offset=' + offset);
-        const rows = page.bookings || [];
-        if (!rows.length) break;
-        allBookings = allBookings.concat(rows);
+  async function loadBookings(forceRefresh) {
+    if (_bookingsLoadPromise) {
+      await _bookingsLoadPromise;
+      if (!forceRefresh) return;
+    }
+
+    var activeLoad = (async function() {
+      $list.innerHTML = '<div class="loading-text">Loading bookings...</div>';
+      try {
+        const pageSize = 100;
+        const firstPage = await apiGet('/list?limit=' + pageSize + '&offset=0');
+        allBookings = firstPage.bookings || [];
+        const totalCount = Math.max(allBookings.length, Number(firstPage.count || 0));
+        for (let offset = allBookings.length; offset < totalCount; offset += pageSize) {
+          const page = await apiGet('/list?limit=' + pageSize + '&offset=' + offset);
+          const rows = page.bookings || [];
+          if (!rows.length) break;
+          allBookings = allBookings.concat(rows);
+        }
+        updateStats();
+        renderList();
+      } catch (e) {
+        $list.innerHTML = '<div class="empty">Failed to load bookings</div>';
       }
-      updateStats();
-      renderList();
-    } catch (e) {
-      $list.innerHTML = '<div class="empty">Failed to load bookings</div>';
+    })();
+
+    _bookingsLoadPromise = activeLoad;
+    try {
+      await activeLoad;
     } finally {
-      _bookingsLoading = false;
+      if (_bookingsLoadPromise === activeLoad) _bookingsLoadPromise = null;
     }
   }
 
@@ -5169,7 +5179,8 @@ window.intelQuick = intelQuick;
         }
         closeReasonModal();
         toast('Damage report acknowledged and logged; no payment was sent', 'success');
-        await loadBookings();
+        await loadBookings(true);
+        await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
         loadLiveOps();
       } catch (damageReviewError) {
@@ -5200,7 +5211,8 @@ window.intelQuick = intelQuick;
         if (!reviewResponse.ok || reviewData.error) throw new Error(reviewData.error || 'Payout review could not be saved');
         closeReasonModal();
         toast('Full canonical Easer earnings approved; send the external payment before recording it', 'success');
-        await loadBookings();
+        await loadBookings(true);
+        await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
       } catch (reviewError) {
         toast(reviewError.message || 'Payout review could not be saved', 'error');
@@ -6042,7 +6054,7 @@ window.intelQuick = intelQuick;
   var allViews = [$bookingsView,$casesView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
-  var _bookingsLoading = false;
+  var _bookingsLoadPromise = null;
 
   function syncPrimaryOwnerAction(view) {
     if (!$newBookingBtn) return;

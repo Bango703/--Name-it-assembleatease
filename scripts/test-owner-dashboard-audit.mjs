@@ -55,6 +55,24 @@ assert.match(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
 assert.match(ownerUi, /Central time/);
 assert.match(ownerUi, /No completed jobs in/);
 assert.match(ownerUi, /Show All Time/);
+assert.match(ownerUi, /async function loadBookings\(forceRefresh\)/);
+assert.match(ownerUi, /if \(_bookingsLoadPromise\) \{\s*await _bookingsLoadPromise;\s*if \(!forceRefresh\) return;/);
+assert.doesNotMatch(ownerUi, /_bookingsLoading/);
+assert.ok(
+  [...ownerUi.matchAll(/await loadBookings\(true\);/g)].length >= 3,
+  'Owner financial and case mutations must force a fresh booking read before re-rendering.',
+);
+const damageReviewMutation = ownerUi.slice(
+  ownerUi.indexOf("pendingAction.type === 'damage-review'"),
+  ownerUi.indexOf("pendingAction.type === 'payout-review'"),
+);
+const payoutReviewMutation = ownerUi.slice(
+  ownerUi.indexOf("pendingAction.type === 'payout-review'"),
+  ownerUi.indexOf("pendingAction.type === 'refund'"),
+);
+for (const mutation of [damageReviewMutation, payoutReviewMutation]) {
+  assert.match(mutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);/);
+}
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
 
