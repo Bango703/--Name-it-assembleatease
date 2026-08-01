@@ -84,6 +84,7 @@ const ownerPages = [
   { id: 'owner-liveops', path: '/owner/index.html', group: 'owner-auth', ownerView: 'liveops', menu: true },
   { id: 'owner-today', path: '/owner/index.html', group: 'owner-auth', ownerView: 'today', menu: true },
   { id: 'owner-bookings', path: '/owner/index.html', group: 'owner-auth', ownerView: 'bookings', ownerSelectBooking: 'owner-payment-recovery', ownerOfflineCollectionBooking: 'owner-manual-uncollected', ownerManualPayoutBooking: 'owner-manual-completed', ownerDamageReviewBooking: 'owner-completed-damage-hold', ownerRefundRecoveryBooking: 'owner-completed-refund-recovery', menu: true },
+  { id: 'owner-cases', path: '/owner/index.html', group: 'owner-auth', ownerView: 'cases', menu: true },
   { id: 'owner-customers', path: '/owner/index.html', group: 'owner-auth', ownerView: 'customers', menu: true },
   { id: 'owner-market-demand', path: '/owner/index.html', group: 'owner-auth', ownerView: 'market-demand', menu: true },
   { id: 'owner-reviews', path: '/owner/index.html', group: 'owner-auth', ownerView: 'reviews', menu: true },
@@ -98,6 +99,7 @@ const ownerViewEndpoints = {
   liveops: ['/api/owner/live-ops'],
   today: [],
   bookings: ['/api/booking/message', '/api/booking/activity', '/api/booking/notes'],
+  cases: ['/api/owner/cases'],
   customers: [],
   'market-demand': ['/api/owner/market-demand'],
   reviews: ['/api/owner/reviews'],
@@ -112,6 +114,7 @@ const ownerViewTitles = {
   liveops: 'Live Operations',
   today: "Today's Schedule",
   bookings: 'Bookings',
+  cases: 'Cases',
   customers: 'Customers',
   'market-demand': 'Market Demand',
   reviews: 'Customer Reviews',
@@ -427,6 +430,70 @@ const mockOwnerMarketDemand = {
   requests: [
     { requestRef: 'MR-260714-01', customerName: 'Quinn Harris', customerEmail: 'quinn.harris@example.com', city: 'Round Rock', state: 'TX', zip: '78664', requestedService: 'Furniture Assembly', requestedDate: dateOnly(5), desiredTime: 'Morning', estimatedRevenue: 24500, status: 'new' },
     { requestRef: 'MR-260713-02', customerName: 'Parker Young', customerEmail: 'parker.young@example.com', city: 'Cedar Park', state: 'TX', zip: '78613', requestedService: 'Fitness Equipment Assembly', requestedDate: dateOnly(7), desiredTime: 'Afternoon', estimatedRevenue: 31500, status: 'watch' },
+  ],
+};
+
+const mockOwnerCase = {
+  id: '11111111-1111-4111-8111-111111111111',
+  ref: 'AAE-CS-MOCK-12345678',
+  type: 'support',
+  typeLabel: 'Support Request',
+  source: 'contact_form',
+  sourceRef: 'mock-contact-request',
+  status: 'open',
+  statusLabel: 'Open',
+  customerStatus: { code: 'received', label: 'Received', actionRequired: false },
+  easerStatus: { code: 'received', label: 'Received', actionRequired: false },
+  severity: 'normal',
+  subject: 'Arrival time for tomorrow',
+  description: 'Please confirm the expected arrival window for my scheduled appointment.',
+  booking: null,
+  customer: { name: 'Morgan Ellis', email: 'morgan.ellis@example.com', phone: '+15125550108' },
+  easerId: null,
+  assignedTo: 'owner',
+  createdBy: { type: 'customer', name: 'Morgan Ellis' },
+  acknowledgedAt: null,
+  lastPublicUpdateAt: null,
+  resolvedAt: null,
+  closedAt: null,
+  resolutionSummary: null,
+  createdAt: iso(-2 * 3600000),
+  updatedAt: iso(-2 * 3600000),
+  notifications: { attempts: 2, failed: 0, latest: { type: 'support_case_confirmation', recipientType: 'customer', status: 'sent', error: null, sentAt: iso(-2 * 3600000) } },
+  availableActions: [
+    { action: 'acknowledge', label: 'Acknowledge', targetStatus: 'acknowledged', targetLabel: 'Acknowledged', requiresConfirmation: false },
+    { action: 'start', label: 'Start Work', targetStatus: 'in_progress', targetLabel: 'In Progress', requiresConfirmation: false },
+    { action: 'resolve', label: 'Resolve', targetStatus: 'resolved', targetLabel: 'Resolved', requiresConfirmation: true },
+    { action: 'close', label: 'Close', targetStatus: 'closed', targetLabel: 'Closed', requiresConfirmation: true },
+    { action: 'add_note', label: 'Add Internal Note', targetStatus: 'open', targetLabel: 'Open', requiresConfirmation: false },
+  ],
+};
+
+const mockOwnerCases = {
+  summary: { total: 3, active: 2, new: 1, critical: 0, highPriority: 1, waitingCustomer: 1, waitingEaser: 0, resolved: 1 },
+  filters: { status: 'active', caseType: 'all', severity: 'all' },
+  cases: [
+    mockOwnerCase,
+    {
+      ...mockOwnerCase,
+      id: '22222222-2222-4222-8222-222222222222',
+      ref: 'AAE-CS-MOCK-87654321',
+      status: 'waiting_customer',
+      statusLabel: 'Waiting for Customer',
+      customerStatus: { code: 'action_required', label: 'Action Required', actionRequired: true },
+      severity: 'high',
+      subject: 'Additional item photos requested',
+      customer: { name: 'Riley Carter', email: 'riley.carter@example.com', phone: '+15125550144' },
+      updatedAt: iso(-26 * 3600000),
+    },
+  ],
+};
+
+const mockOwnerCaseDetail = {
+  case: mockOwnerCase,
+  events: [
+    { id: 'case-event-1', type: 'created', actor: { type: 'customer', name: 'Morgan Ellis' }, fromStatus: null, toStatus: 'open', fromStatusLabel: null, toStatusLabel: 'Open', note: 'Case created: Arrival time for tomorrow', publicMessage: 'We received your request.', metadata: {}, createdAt: iso(-2 * 3600000) },
+    { id: 'case-event-2', type: 'notification_attempted', actor: { type: 'system', name: 'Notification Service' }, fromStatus: 'open', toStatus: 'open', fromStatusLabel: 'Open', toStatusLabel: 'Open', note: 'Owner alert and customer confirmation were attempted.', publicMessage: null, metadata: {}, createdAt: iso(-2 * 3600000 + 5000) },
   ],
 };
 
@@ -904,6 +971,8 @@ async function configureContext(context) {
       payload = { token: 'mock-owner-session-token', expiresIn: 3600 };
     } else if (pathname === '/api/owner/live-ops') {
       payload = mockOwnerLiveOps;
+    } else if (pathname === '/api/owner/cases') {
+      payload = url.searchParams.get('caseId') ? mockOwnerCaseDetail : mockOwnerCases;
     } else if (pathname === '/api/owner/reviews') {
       payload = mockOwnerReviews;
     } else if (pathname === '/api/owner/promo') {
@@ -1996,6 +2065,7 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
         liveops: '#ops-alerts-bar .alert-row, #ops-today > *',
         today: '#today-list > *',
         bookings: '#bookings-list .booking-card',
+        cases: '#cases-list .cases-list-item',
         customers: '#cust-tbody tr',
         'market-demand': '#md-top-markets > *, #md-requests-tbody tr',
         reviews: '#reviews-list > *',
@@ -2014,7 +2084,7 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
         bookingListSettled: !!list && !/loading bookings/i.test(list.textContent || ''),
         activeViewVisible: visible(activeView),
         activeViewTextLength: activeText.length,
-        activeViewLoading: /\bLoading(?:\.\.\.|…|\s+(?:bookings|reviews|financial|demand|market|waitlist|Easers|website|social|conversation|promo))/i.test(activeText),
+        activeViewLoading: /\bLoading(?:\.\.\.|…|\s+(?:bookings|cases|case details|reviews|financial|demand|market|waitlist|Easers|website|social|conversation|promo))/i.test(activeText),
         activeViewFailure: /Failed to load|could not be loaded|could not verify|Unmocked owner-audit API/i.test(activeText),
         dataMarkerCount: markerSelector ? activeView?.querySelectorAll(markerSelector).length || 0 : 0,
         topbarTitle: document.querySelector('.topbar-title')?.textContent?.trim() || '',

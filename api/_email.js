@@ -67,7 +67,15 @@ function normalizeEmail(addr) {
 
 async function insertNotificationLog(sb, payload) {
   try {
-    const { error } = await sb.from('notification_log').insert(payload);
+    let { error } = await sb.from('notification_log').insert(payload);
+    // Migration 053 adds operation_case_id. Preserve logging for every older
+    // notification during a safe code-before-schema deployment window.
+    if (error && Object.prototype.hasOwnProperty.call(payload, 'operation_case_id')
+        && (error.code === '42703' || error.code === 'PGRST204' || /operation_case_id/i.test(error.message || ''))) {
+      const legacyPayload = { ...payload };
+      delete legacyPayload.operation_case_id;
+      ({ error } = await sb.from('notification_log').insert(legacyPayload));
+    }
     if (error) throw error;
     return { ok: true, error: null };
   } catch (err) {
@@ -155,6 +163,7 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
     const logResult = await insertNotificationLog(sb, {
       channel: 'email',
       booking_id: meta.bookingId || null,
+      operation_case_id: meta.operationCaseId || null,
       notification_type: notificationType,
       recipient_type: recipientType,
       recipient_email: recipientEmail,
@@ -212,6 +221,7 @@ export async function sendEmail({ to, from, subject, html, replyTo, meta = {} })
   const logResult = await insertNotificationLog(sb, {
     channel: 'email',
     booking_id: meta.bookingId || null,
+    operation_case_id: meta.operationCaseId || null,
     notification_type: notificationType,
     recipient_type: recipientType,
     recipient_email: recipientEmail,

@@ -717,6 +717,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
+var contactSubmissionId = '';
 async function sendContact() {
   var name = document.getElementById('c-name').value.trim();
   var email = document.getElementById('c-email').value.trim();
@@ -731,13 +732,18 @@ async function sendContact() {
   btn.disabled = true;
   btn.textContent = 'Sending...';
   try {
-    var resp = await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message})});
-    if (!resp.ok) throw new Error('Server error');
-    var data = await resp.json();
+    if (!contactSubmissionId) {
+      contactSubmissionId = window.crypto && typeof window.crypto.randomUUID === 'function'
+        ? window.crypto.randomUUID()
+        : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+    }
+    var resp = await fetch('/api/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name, email:email, subject:subject, message:message, requestId:contactSubmissionId})});
+    var data = await resp.json().catch(function(){ return {}; });
+    if (!resp.ok) throw new Error(data.error || 'Server error');
     var refEl = document.getElementById('c-success-ref');
     if (refEl && data.ref) refEl.textContent = 'Reference: ' + data.ref;
   } catch(e) {
-    err.textContent='Something went wrong. Please try again or email us at service@assembleatease.com.';
+    err.textContent=e && e.message ? e.message : 'Something went wrong. Please try again or email us at service@assembleatease.com.';
     err.style.display='block';
     btn.disabled = false; btn.textContent = 'Send Message \u2192';
     return;

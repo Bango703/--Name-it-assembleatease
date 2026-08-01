@@ -11,7 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/status.css" />
+  <link rel="stylesheet" href="/owner/assets/cases.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
+  <script src="/owner/assets/cases.js" defer></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -450,6 +452,7 @@
         <li><a data-view="liveops"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="2" y="15" width="6" height="6" rx="1"/><rect x="16" y="15" width="6" height="6" rx="1"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="18" x2="16" y2="18"/><line x1="5" y1="9" x2="5" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/></svg></span> Live Ops <span class="nav-count" id="nav-liveops-alerts" style="display:none;background:#ef4444">0</span></a></li>
         <li><a data-view="today"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Today <span class="nav-count" id="nav-today" style="display:none">0</span></a></li>
         <li><a class="active" data-view="bookings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Bookings <span class="nav-count" id="nav-pending" style="display:none">0</span><span class="nav-count" id="nav-messages" title="Unread customer or Easer messages" style="display:none;background:#dc2626">0</span></a></li>
+        <li><a data-view="cases"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 5V3h8v2"/><path d="M9 11h6M9 15h4"/></svg></span> Cases <span class="nav-count" id="nav-cases" title="Active support and operational cases" style="display:none;background:#dc2626">0</span></a></li>
         <li><a data-view="customers"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span> Customers</a></li>
         <li><a data-view="market-demand"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11Z"/></svg></span> Market Demand <span class="nav-count" id="nav-market-demand" style="display:none">0</span></a></li>
         <li><a data-view="reviews"><span class="nav-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Reviews <span class="nav-count" id="nav-reviews" style="display:none">0</span></a></li>
@@ -568,6 +571,78 @@
         <div style="text-align:center;margin-top:1rem;font-size:0.75rem;color:var(--muted)">
           Auto-refreshes every 30s &bull; <span id="ops-last-updated">—</span>
           &nbsp;<button class="btn" onclick="loadLiveOps()" style="font-size:0.72rem;padding:2px 10px">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Durable owner-only support and operational case queue. Financial,
+           booking, dispatch, payout, and Stripe truth remain in their existing workflows. -->
+      <div id="cases-view" class="cases-view-shell" style="display:none">
+        <div class="cases-toolbar">
+          <div class="cases-toolbar-copy">
+            <h2>Cases</h2>
+            <p>Support, quality, safety, payment, and damage follow-up with a permanent timeline.</p>
+          </div>
+          <div class="cases-filters" aria-label="Case filters">
+            <label class="cases-filter">Status
+              <select id="cases-status-filter">
+                <option value="active">Active</option>
+                <option value="open">New</option>
+                <option value="acknowledged">Acknowledged</option>
+                <option value="in_progress">In Progress</option>
+                <option value="waiting_customer">Waiting for Customer</option>
+                <option value="waiting_easer">Waiting for Easer</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label class="cases-filter">Type
+              <select id="cases-type-filter">
+                <option value="all">All types</option>
+                <option value="support">Support</option>
+                <option value="damage">Damage</option>
+                <option value="quality">Quality</option>
+                <option value="payment">Payment</option>
+                <option value="dispute">Dispute</option>
+                <option value="safety">Safety</option>
+                <option value="late_arrival">Late arrival</option>
+                <option value="no_show">No-show</option>
+                <option value="missing_hardware">Missing hardware</option>
+                <option value="account">Account</option>
+              </select>
+            </label>
+            <label class="cases-filter">Priority
+              <select id="cases-severity-filter">
+                <option value="all">All priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="stats-row" id="cases-stats-row">
+          <div class="stat amber"><div class="stat-value" id="cases-stat-active">&mdash;</div><div class="stat-label">Active</div></div>
+          <div class="stat teal"><div class="stat-value" id="cases-stat-new">&mdash;</div><div class="stat-label">New</div></div>
+          <div class="stat red"><div class="stat-value" id="cases-stat-priority">&mdash;</div><div class="stat-label">High Priority</div></div>
+          <div class="stat neutral"><div class="stat-value" id="cases-stat-waiting">&mdash;</div><div class="stat-label">Waiting on Reply</div></div>
+        </div>
+
+        <div class="cases-grid">
+          <section class="cases-panel" aria-label="Case list">
+            <div class="cases-panel-header">
+              <div class="cases-panel-title">Cases</div>
+              <span class="cases-badge" id="cases-list-count">0</span>
+            </div>
+            <div class="cases-list" id="cases-list"><div class="cases-loading">Loading cases...</div></div>
+          </section>
+          <section class="cases-panel" aria-label="Case details">
+            <div class="cases-detail" id="cases-detail">
+              <div class="cases-empty">Choose a case to review its request, contact information, notifications, and timeline.</div>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -2811,6 +2886,13 @@ window.intelQuick = intelQuick;
         if (count > 0) { $navMd.textContent = count; $navMd.style.display = ''; }
         else $navMd.style.display = 'none';
       }).catch(function(){});
+    // Cases is a separate owner module. Delay one tick so the deferred module
+    // is ready even when an existing owner session opens immediately.
+    setTimeout(function() {
+      if (window.OwnerCases && typeof window.OwnerCases.loadBadge === 'function') {
+        window.OwnerCases.loadBadge();
+      }
+    }, 0);
   }
 
   // Brute-force lockout: track failed attempts in sessionStorage
@@ -2900,6 +2982,7 @@ window.intelQuick = intelQuick;
     btn.textContent = 'Refreshing…';
     try {
       if (currentView === 'assemblers') await loadAssemblerList();
+      else if (currentView === 'cases') { if (window.OwnerCases) await window.OwnerCases.refresh(); }
       else if (currentView === 'waitlist') await loadWaitlist();
       else if (currentView === 'market-demand') await loadMarketDemand();
       else if (currentView === 'reviews') { await loadReviews(); }
@@ -5875,6 +5958,7 @@ window.intelQuick = intelQuick;
   // ─── View switching ───
   var currentView = 'bookings';
   var $bookingsView   = document.getElementById('bookings-view');
+  var $casesView      = document.getElementById('cases-view');
   var $marketDemandView = document.getElementById('market-demand-view');
   var $waitlistView   = document.getElementById('waitlist-view');
   var $assemblersView = document.getElementById('assemblers-view');
@@ -5887,7 +5971,7 @@ window.intelQuick = intelQuick;
   var $liveopsView      = document.getElementById('liveops-view');
   var $topbarTitle    = document.querySelector('.topbar-title');
   var $newBookingBtn  = document.getElementById('new-booking-btn');
-  var allViews = [$bookingsView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
+  var allViews = [$bookingsView,$casesView,$marketDemandView,$waitlistView,$assemblersView,$todayView,$reviewsView,$customersView,$marketingView,$analyticsView,$intelligenceView,$liveopsView];
   var _liveOpsTimer  = null;
   var _bookingsTimer = null;
   var _bookingsLoading = false;
@@ -5921,6 +6005,7 @@ window.intelQuick = intelQuick;
       syncPrimaryOwnerAction(view);
       if (view === 'liveops')      { $liveopsView.style.display='';     $topbarTitle.textContent='Live Operations'; startLiveOps(); }
       else if (view === 'bookings')     { $bookingsView.style.display='';    $topbarTitle.textContent='Bookings'; stopLiveOps(); }
+      else if (view === 'cases')        { $casesView.style.display='';       $topbarTitle.textContent='Cases'; stopLiveOps(); if (window.OwnerCases) window.OwnerCases.load(); }
       else if (view === 'market-demand') { $marketDemandView.style.display=''; $topbarTitle.textContent='Market Demand'; stopLiveOps(); loadMarketDemand(); }
       else if (view === 'waitlist')    { $waitlistView.style.display='';    $topbarTitle.textContent='Easer Waitlist'; stopLiveOps(); loadWaitlist(); }
       else if (view === 'assemblers')  { $assemblersView.style.display='';  $topbarTitle.textContent='Easers'; loadAssemblerList(); }
