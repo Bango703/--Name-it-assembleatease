@@ -1,6 +1,9 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
-import { computeBookingFinancialSummary } from '../_source-of-truth.js';
+import {
+  allocateCollectedTaxCents,
+  computeBookingFinancialSummary,
+} from '../_source-of-truth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -102,7 +105,13 @@ export default async function handler(req, res) {
         refundAmountCents: isOwnerManual && paymentEvents.length
           ? ledgerRefundedCents
           : booking.refund_amount,
-        taxAmountCents: booking.tax_amount,
+        taxAmountCents: isOwnerManual && paymentEvents.length
+          ? allocateCollectedTaxCents({
+            invoiceTotalCents: booking.total_price,
+            invoiceTaxCents: booking.tax_amount,
+            grossCollectedCents: ledgerGrossCents,
+          })
+          : booking.tax_amount,
         stripeFeeCents: isOwnerManual && paymentEvents.length
           ? ledgerProcessingFeeCents
           : booking.stripe_fee,

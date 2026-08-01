@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { MIN_PRETAX_BOOKING_BY_ZONE } from '../_source-of-truth.js';
+import { chicagoTodayIso } from '../booking/_appt-date.js';
 import { loadLedgerFirstFinanceRows } from './_finance-ledger.js';
 
 const DEFAULT_ASSUMPTIONS = Object.freeze({
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const period = normalizePeriod(req.query.period);
-  const range = getPeriodRange(period);
+  const range = getFinancialPeriodRange(period);
   const cacCents = dollarsToCents(req.query.cacDollars ?? req.query.cac);
   const opexMonthlyCents = dollarsToCents(req.query.opexMonthlyDollars ?? req.query.opexMonthly);
   const annualOpexCents = opexMonthlyCents > 0 ? opexMonthlyCents * 12 : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
@@ -57,6 +58,8 @@ export default async function handler(req, res) {
   const cancellationEaserEarnings = sum(cancellationRows, row => payoutForProfit(row));
   const salesTaxCollected = sum(financeRows, row => row.taxCollected); // pass-through liability — never profit
   const processingFees = sum(financeRows, row => row.stripeFee); // actual Stripe fee when captured (migration 011), else canonical estimate
+  const processingFeesAllActual = financeRows.length > 0
+    && financeRows.every(row => row.stripeFeeIsActual === true);
   const easerPayouts = sum(financeRows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const completedPlatformGrossProfit = sum(rows, row => Number(row.netCharged || 0)
@@ -144,7 +147,9 @@ export default async function handler(req, res) {
     assumptions: {
       ...DEFAULT_ASSUMPTIONS,
       cacCents,
-      processingFeeLabel: 'Estimated at 2.9% + $0.30 per captured transaction',
+      processingFeeLabel: processingFeesAllActual
+        ? 'Actual recorded Stripe processing fees'
+        : 'Actual where recorded; otherwise estimated at 2.9% + $0.30',
       annualOperatingExpensesCents: annualOpexCents,
       operatingExpenseLabel: opexMonthlyCents > 0
         ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo (owner-entered) allocated to selected period`
@@ -163,8 +168,8 @@ export default async function handler(req, res) {
       easerPayouts: 'actual_or_pending_due',
       cancellationEaserEarnings: 'actual_or_pending_due_from_captured_cancellation_fees',
       assemblecashLiability: assemblecashMetrics.available ? 'actual_rewards_ledger' : 'missing_data',
-      processingFees: 'estimated',
-      platformGrossProfit: 'estimated',
+      processingFees: processingFeesAllActual ? 'actual' : 'actual_and_estimated',
+      platformGrossProfit: processingFeesAllActual ? 'actual' : 'actual_and_estimated',
       reworkRefundReserve: 'estimated',
       operatingExpenses: 'estimated',
       cac: cacCents > 0 ? 'estimated' : 'missing_data',
@@ -249,6 +254,7 @@ export default async function handler(req, res) {
     },
     expansionReadiness,
     ledger,
+    periodTimeZone: 'America/Chicago',
     reconciliation: finance.reconciliation,
   });
 }
@@ -325,23 +331,60 @@ function normalizePeriod(value) {
   return ['today', 'week', 'month', 'year', 'all'].includes(period) ? period : 'year';
 }
 
-function getPeriodRange(period) {
+export function getFinancialPeriodRange(period, nowInput = new Date()) {
   if (period === 'all') return {};
-  const now = new Date();
-  const start = new Date(now);
+  const now = new Date(nowInput);
+  if (Number.isNaN(now.getTime())) throw new Error('A valid financial period time is required');
+  const today = chicagoTodayIso(now);
+  let startDate = today;
   if (period === 'today') {
-    start.setHours(0, 0, 0, 0);
+    startDate = today;
   } else if (period === 'week') {
-    start.setDate(now.getDate() - 6);
-    start.setHours(0, 0, 0, 0);
+    startDate = addIsoCalendarDays(today, -6);
   } else if (period === 'month') {
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
+    startDate = `${today.slice(0, 7)}-01`;
   } else {
-    start.setMonth(0, 1);
-    start.setHours(0, 0, 0, 0);
+    startDate = `${today.slice(0, 4)}-01-01`;
   }
-  return { from: start.toISOString(), to: now.toISOString().slice(0, 10) };
+  return {
+    from: new Date(chicagoLocalMidnightMs(startDate)).toISOString(),
+    to: now.toISOString(),
+  };
+}
+
+function addIsoCalendarDays(dateIso, days) {
+  const value = new Date(`${dateIso}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function chicagoLocalMidnightMs(dateIso) {
+  const year = Number(dateIso.slice(0, 4));
+  const month = Number(dateIso.slice(5, 7));
+  const day = Number(dateIso.slice(8, 10));
+  const desiredLocalClock = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  });
+  let guess = desiredLocalClock + (6 * 60 * 60 * 1000);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(guess))
+        .filter(part => part.type !== 'literal')
+        .map(part => [part.type, part.value]),
+    );
+    const representedLocalClock = Date.UTC(
+      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour), Number(parts.minute), Number(parts.second), 0,
+    );
+    const correction = desiredLocalClock - representedLocalClock;
+    guess += correction;
+    if (correction === 0) break;
+  }
+  return guess;
 }
 
 function periodOperatingExpenses(period, annualOverrideCents) {

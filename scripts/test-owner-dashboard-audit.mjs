@@ -47,6 +47,12 @@ assert.match(ownerUi, /replace\(\/"\/g, '&quot;'\)/);
 assert.match(ownerUi, /replace\(\/'\/g, '&#39;'\)/);
 assert.match(ownerUi, /\.modal-row\{grid-template-columns:minmax\(0,1fr\)\}/);
 assert.match(ownerUi, /max-height:calc\(100dvh - 1rem\)/);
+assert.match(ownerUi, /Selected-Period Money Summary/);
+assert.match(ownerUi, /an-sales-tax/);
+assert.match(ownerUi, /an-processing-fees/);
+assert.match(ownerUi, /an-easer-payouts/);
+assert.match(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
+assert.match(ownerUi, /Austin time/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
 

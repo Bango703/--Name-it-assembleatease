@@ -1,4 +1,7 @@
-import { computeBookingFinancialSummary } from '../_source-of-truth.js';
+import {
+  allocateCollectedTaxCents,
+  computeBookingFinancialSummary,
+} from '../_source-of-truth.js';
 import { isCurrentCompletionEvidence } from '../booking/_completion-evidence.js';
 import { normalizeOwnerOfflinePaymentMethod } from './_offline-payment.js';
 
@@ -259,11 +262,18 @@ export async function loadLedgerFirstFinanceRows(sb, { from, to, assemblerId } =
 
     // Sales tax is a pass-through liability owed to the state — NOT platform revenue.
     // Exclude it from platform revenue so the books reconcile to true operating profit.
+    const allocatedTaxCents = b.source === 'owner_manual' && hasOwnerManualEvents
+      ? allocateCollectedTaxCents({
+        invoiceTotalCents: b.total_price,
+        invoiceTaxCents: b.tax_amount,
+        grossCollectedCents: charged,
+      })
+      : b.tax_amount;
     const financial = computeBookingFinancialSummary({
       amountChargedCents: charged,
       totalPriceCents: b.source === 'owner_manual' ? 0 : b.total_price,
       refundAmountCents: refund,
-      taxAmountCents: isCancellationEarning ? 0 : b.tax_amount,
+      taxAmountCents: isCancellationEarning ? 0 : allocatedTaxCents,
       stripeFeeCents: b.source === 'owner_manual' && hasOwnerManualEvents
         ? ownerManualTruth.processingFee
         : b.stripe_fee,

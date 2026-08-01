@@ -9,6 +9,8 @@ const [
   ownerUi,
   paymentApi,
   paymentMigration,
+  discountCloseApi,
+  discountCloseMigration,
   payoutReviewApi,
   liveOpsApi,
   evidenceApi,
@@ -20,6 +22,8 @@ const [
   readFile(new URL('../owner/index.html', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/record-manual-payment.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/051_owner_manual_completed_discount_v5.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../api/owner/close-manual-balance-discount.js', import.meta.url), 'utf8'),
+  readFile(new URL('../api/migrations/052_owner_manual_balance_discount_close.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/payout-review.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/live-ops.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/evidence.js', import.meta.url), 'utf8'),
@@ -38,6 +42,19 @@ assert.match(paymentMigration, /COALESCE\(v_booking\.refund_amount, 0\) > 0/);
 assert.match(paymentMigration, /easerEarningsPreservedCents/);
 assert.match(ownerUi, /Record it without the discount, then use Refund/);
 assert.match(ownerUi, /Easer earnings will not change/);
+assert.match(ownerUi, /Close .* as Customer Discount/);
+assert.match(ownerUi, /close-manual-balance-discount/);
+assert.match(ownerUi, /No customer charge, refund, or Easer payout will be created/);
+assert.match(discountCloseApi, /acknowledged !== true/);
+assert.match(discountCloseApi, /close_owner_manual_balance_as_discount_v1/);
+assert.doesNotMatch(discountCloseApi, /new Stripe|paymentIntents|refunds\.create|transfers\.create/);
+assert.match(discountCloseMigration, /v_target_total := v_gross/);
+assert.match(discountCloseMigration, /v_discount IS DISTINCT FROM p_expected_discount_cents/);
+assert.match(discountCloseMigration, /COALESCE\(v_booking\.payout_status, 'unpaid'\) IN \('paid', 'transferred'\)/);
+assert.match(discountCloseMigration, /EXISTS \([\s\S]*public\.payout_ledger/);
+assert.match(discountCloseMigration, /easerEarningsPreservedCents/);
+assert.match(discountCloseMigration, /noCustomerChargeCreated', TRUE/);
+assert.match(discountCloseMigration, /VALUES \(52, 'owner_manual_balance_discount_close'\)/);
 
 // Damage acknowledgment must be explicit, server-checked, logged, and removable
 // from Live Ops only after the canonical booking hold is resolved.

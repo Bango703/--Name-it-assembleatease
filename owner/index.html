@@ -1063,8 +1063,8 @@
           <div class="detail-panel open" style="background:#001f2b;color:#fff;border-color:#00394d">
             <div class="detail-section-title" style="color:rgba(255,255,255,0.62);margin-bottom:0.55rem">Financial North Star</div>
             <div style="font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.25rem);line-height:1;color:#fff" id="fin-gross-per-job">—</div>
-            <div style="margin-top:0.35rem;color:rgba(255,255,255,0.78);font-size:0.9rem">Platform Gross Profit Per Completed Job</div>
-            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Main formula: Customer Revenue - Sales Tax - Processing Fees - Easer Payouts = Platform Gross Profit. Sales tax is a pass-through liability, never revenue.</div>
+            <div style="margin-top:0.35rem;color:rgba(255,255,255,0.78);font-size:0.9rem">Platform Gross Per Completed Job</div>
+            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Customer payments received minus sales tax, Stripe fees, and Easer earnings. This is the platform amount before operating expenses.</div>
           </div>
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
@@ -1095,7 +1095,7 @@
           <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem">
             <div>
               <div class="detail-section-title" style="margin:0">Money that isn&rsquo;t yours &mdash; set it aside</div>
-              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Dollars already in your balance that are owed out. Don&rsquo;t spend them.</div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">All-time outstanding obligations, separate from the selected profit period below.</div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:1.4rem;align-items:flex-end">
               <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:700">Sales tax owed</div><div id="reserve-tax" style="font-size:1.05rem;font-weight:800;color:var(--text)">&mdash;</div></div>
@@ -1108,14 +1108,20 @@
         </div>
 
         <!-- Executive Overview -->
-        <div class="detail-section-title" style="margin:0 0 0.75rem">Executive Overview</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin:0 0 0.75rem">
+          <div class="detail-section-title" style="margin:0">Selected-Period Money Summary</div>
+          <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Austin time</div>
+        </div>
         <div class="stats-row" id="analytics-stats-row" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
           <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Total Customer Revenue</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Customer Payments Retained</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-sales-tax">—</div><div class="stat-label">Sales Tax Collected</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-processing-fees">—</div><div class="stat-label">Stripe Processing Fees</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Easer Earnings Cost</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-completed-jobs">—</div><div class="stat-label">Completed Jobs</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-ajv">—</div><div class="stat-label">Average Job Value</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-profit">—</div><div class="stat-label">Platform Gross Profit</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. Net Operating Profit</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-profit">—</div><div class="stat-label">Platform Gross After Tax, Stripe &amp; Easer</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Overhead</div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
@@ -1792,6 +1798,11 @@ window.intelQuick = intelQuick;
           <div><div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;font-weight:700">Balance</div><strong id="manual-payment-balance" style="display:block;margin-top:0.2rem;color:#0f766e">$0.00</strong></div>
         </div>
       </div>
+      <div id="manual-payment-close-discount" style="display:none;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem">
+        <div style="font-size:0.78rem;font-weight:800;color:#1e3a8a">All customer funds received?</div>
+        <div id="manual-payment-close-discount-copy" style="font-size:0.75rem;color:#334155;line-height:1.5;margin-top:0.25rem"></div>
+        <button id="manual-payment-close-discount-btn" type="button" class="btn" style="max-width:100%;white-space:normal;text-align:center;justify-content:center;margin-top:0.65rem;background:#fff;border-color:#60a5fa;color:#1d4ed8;font-weight:800">Close Balance as Customer Discount</button>
+      </div>
       <div id="manual-payment-match" aria-live="polite" style="display:none;margin-bottom:0.75rem"></div>
       <button id="manual-payment-fallback-toggle" type="button" style="display:none;border:0;background:none;padding:0;color:#0369a1;font:inherit;font-size:0.76rem;font-weight:700;cursor:pointer;margin:0 0 0.65rem;text-align:left">Payment not listed? Enter the Stripe ID</button>
       <div id="manual-payment-fallback" style="display:none;margin-bottom:0.75rem">
@@ -1801,7 +1812,7 @@ window.intelQuick = intelQuick;
       </div>
       <div id="manual-payment-review" aria-live="polite" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:0.7rem 0.8rem;color:#166534;font-size:0.78rem;line-height:1.5;margin-bottom:0.75rem">Select the Stripe payment to record.</div>
       <details id="manual-payment-options" style="border:1px solid #cbd5e1;border-radius:8px;padding:0.65rem 0.75rem;margin-bottom:0.75rem">
-        <summary style="cursor:pointer;color:#334155;font-size:0.78rem;font-weight:700">Optional discount or internal note</summary>
+        <summary style="cursor:pointer;color:#334155;font-size:0.78rem;font-weight:700">Discount with a new payment or internal note</summary>
         <div style="padding-top:0.65rem">
           <div class="modal-row">
             <div>
@@ -1972,6 +1983,9 @@ window.intelQuick = intelQuick;
   const $manualPaymentBookingTotal = document.getElementById('manual-payment-booking-total');
   const $manualPaymentRecordedTotal = document.getElementById('manual-payment-recorded-total');
   const $manualPaymentBalance = document.getElementById('manual-payment-balance');
+  const $manualPaymentCloseDiscount = document.getElementById('manual-payment-close-discount');
+  const $manualPaymentCloseDiscountCopy = document.getElementById('manual-payment-close-discount-copy');
+  const $manualPaymentCloseDiscountButton = document.getElementById('manual-payment-close-discount-btn');
   const $manualRefundRow = document.getElementById('manual-refund-row');
   const $manualRefundAmount = document.getElementById('manual-refund-amount');
   const $manualRefundAvailable = document.getElementById('manual-refund-available');
@@ -2036,9 +2050,27 @@ window.intelQuick = intelQuick;
   function updateManualPaymentBalanceSummary() {
     var totalCents = Number((pendingAction && pendingAction.expectedTotalCents) || 0);
     var grossCents = Number((pendingAction && pendingAction.grossCollectedCents) || 0);
+    var balanceCents = Math.max(0, totalCents - grossCents);
     if ($manualPaymentBookingTotal) $manualPaymentBookingTotal.textContent = fmt$(totalCents);
     if ($manualPaymentRecordedTotal) $manualPaymentRecordedTotal.textContent = fmt$(grossCents);
-    if ($manualPaymentBalance) $manualPaymentBalance.textContent = fmt$(Math.max(0, totalCents - grossCents));
+    if ($manualPaymentBalance) $manualPaymentBalance.textContent = fmt$(balanceCents);
+    var canCloseAsDiscount = pendingAction
+      && pendingAction.type === 'record-manual-payment'
+      && pendingAction.bookingStatus === 'completed'
+      && grossCents > 0
+      && balanceCents > 0;
+    if ($manualPaymentCloseDiscount) $manualPaymentCloseDiscount.style.display = canCloseAsDiscount ? '' : 'none';
+    if ($manualPaymentCloseDiscountCopy && canCloseAsDiscount) {
+      $manualPaymentCloseDiscountCopy.textContent = 'If the customer owes nothing else, close the '
+        + fmt$(balanceCents) + ' balance as a discount. The agreed total becomes ' + fmt$(grossCents)
+        + '. This does not charge or refund the customer and does not change Easer earnings.';
+    }
+    if ($manualPaymentCloseDiscountButton) {
+      $manualPaymentCloseDiscountButton.textContent = canCloseAsDiscount
+        ? 'Close ' + fmt$(balanceCents) + ' as Customer Discount'
+        : 'Close Balance as Customer Discount';
+      $manualPaymentCloseDiscountButton.disabled = !canCloseAsDiscount;
+    }
   }
 
   function resetManualPaymentMatcher() {
@@ -2271,6 +2303,56 @@ window.intelQuick = intelQuick;
     });
   }
 
+  if ($manualPaymentCloseDiscountButton) {
+    $manualPaymentCloseDiscountButton.addEventListener('click', async function() {
+      if (!pendingAction || pendingAction.type !== 'record-manual-payment') return;
+      var totalCents = Number(pendingAction.expectedTotalCents || 0);
+      var grossCents = Number(pendingAction.grossCollectedCents || 0);
+      var discountCents = Math.max(0, totalCents - grossCents);
+      if (pendingAction.bookingStatus !== 'completed' || grossCents <= 0 || discountCents <= 0) {
+        toast('Refresh the booking before closing the balance', 'error');
+        return;
+      }
+      if (!confirm(
+        'Close the ' + fmt$(discountCents) + ' remaining balance as a customer discount? '
+          + 'The agreed total will become ' + fmt$(grossCents) + '. No customer charge, refund, or Easer payout will be created.'
+      )) return;
+
+      var button = this;
+      button.disabled = true;
+      button.textContent = 'Closing Balance...';
+      try {
+        var response = await fetch('/api/owner/close-manual-balance-discount', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            bookingId: pendingAction.id,
+            expectedTotalCents: totalCents,
+            expectedDiscountCents: discountCents,
+            acknowledged: true,
+          }),
+        });
+        var data = await response.json().catch(function(){ return {}; });
+        if (!response.ok || data.error) throw new Error(data.error || 'The balance could not be closed');
+        closeReasonModal();
+        var message = data.alreadyApplied
+          ? 'The discount was already applied. Customer balance is $0.00.'
+          : fmt$(data.discountCents) + ' discount applied. Customer balance is $0.00. Platform gross: ' + fmt$(data.platformGrossCents) + '.';
+        if (data.notificationDelivered === false) message += ' Customer receipt needs manual follow-up.';
+        toast(message, data.notificationDelivered === false ? 'error' : 'success');
+        await loadBookings();
+        await loadPayoutLedger();
+        if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
+        if (currentView === 'analytics') renderAnalytics();
+      } catch (error) {
+        toast(error.message || 'The balance could not be closed safely', 'error');
+        button.disabled = false;
+        button.textContent = 'Close ' + fmt$(discountCents) + ' as Customer Discount';
+      }
+    });
+  }
+
   function setManualPaymentFieldsVisible(show, booking) {
     if ($manualPaymentRow) $manualPaymentRow.style.display = show ? '' : 'none';
     resetManualPaymentMatcher();
@@ -2284,6 +2366,7 @@ window.intelQuick = intelQuick;
     if (pendingAction && pendingAction.type === 'record-manual-payment') {
       pendingAction.expectedTotalCents = Number((booking && booking.total_price) || 0);
       pendingAction.grossCollectedCents = Number((booking && (booking.amount_paid_cents || booking.manual_payment_gross_cents)) || 0);
+      pendingAction.bookingStatus = String((booking && booking.status) || '');
     }
     updateManualPaymentBalanceSummary();
     updateManualPaymentReview();
@@ -3170,10 +3253,16 @@ window.intelQuick = intelQuick;
     var financial = b.financial_summary || {};
     var isOfflinePayment = b.source === 'owner_manual' && b.payment_status === 'offline_recorded';
     var manualPaymentEvents = isOfflinePayment && Array.isArray(b.payment_events) ? b.payment_events : [];
-    var documentedDiscountCents = manualPaymentEvents.reduce(function(sum, event) {
+    var eventDiscountCents = manualPaymentEvents.reduce(function(sum, event) {
       return sum + Number(event.discount_cents || 0);
     }, 0);
-    var originalCustomerTotal = bookedTotal + documentedDiscountCents;
+    var correctedTotalDiscountCents = Math.max(
+      0,
+      Number(b.standard_price_cents || 0) - bookedTotal,
+    );
+    var documentedDiscountCents = Math.max(eventDiscountCents, correctedTotalDiscountCents);
+    var originalCustomerTotal = Number(b.standard_price_cents || 0)
+      || (bookedTotal + documentedDiscountCents);
     var grossManualPayments = isOfflinePayment ? Number(b.manual_payment_gross_cents || 0) : null;
     var collectedAmount = isOfflinePayment
       ? Number(b.amount_collected_cents || 0)
@@ -6739,7 +6828,11 @@ window.intelQuick = intelQuick;
       renderClawbacks(d.clawbacks || {});
     } catch (e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Failed to load financial dashboard</td></tr>';
-      setText('fin-gross-per-job', '—');
+      ['fin-gross-per-job', 'an-gross-per-job', 'an-gross', 'an-sales-tax',
+        'an-processing-fees', 'an-easer-payouts', 'an-ajv', 'an-profit', 'an-net-profit']
+        .forEach(function(id){ setText(id, 'Unavailable'); });
+      setText('an-completed-jobs', '—');
+      setText('an-period-note', 'Financial data unavailable · Refresh');
       console.error('Financial dashboard error:', e);
     }
 
@@ -6923,18 +7016,25 @@ window.intelQuick = intelQuick;
     var s = d.summary || {};
     var exec = d.executiveOverview || {};
     var a = d.assumptions || {};
-    setText('fin-gross-per-job', s.completedJobs ? fmt$(s.grossProfitPerJob) : '—');
+    var periodLabels = { today: 'Today', week: 'Last 7 Days', month: 'This Month', year: 'This Year', all: 'All Time' };
+    setText('an-period-note', (periodLabels[d.period] || 'Selected Period') + ' · Austin time');
+    setText('fin-gross-per-job', fmt$(s.grossProfitPerJob || 0));
     setText('fin-assumption-reserve', Math.round(Number(a.reserveRate || 0) * 100) + '%');
-    setText('fin-assumption-processing', '2.9% + $0.30');
+    setText('fin-assumption-processing', (d.labels && d.labels.processingFees) === 'actual'
+      ? 'Actual Stripe fees'
+      : 'Actual + estimated');
     setText('fin-assumption-opex', '$' + ((a.annualOperatingExpensesCents || 0) / 100).toLocaleString('en-US') + '/year');
     setText('fin-assumption-cac', s.cac ? fmt$(s.cac) : 'Missing / editable');
 
-    setText('an-gross-per-job', exec.completedJobs ? fmt$(exec.platformGrossProfitPerCompletedJob) : '—');
-    setText('an-gross', exec.totalCustomerRevenue ? fmt$(exec.totalCustomerRevenue) : '—');
+    setText('an-gross-per-job', fmt$(exec.platformGrossProfitPerCompletedJob || 0));
+    setText('an-gross', fmt$(exec.totalCustomerRevenue || 0));
+    setText('an-sales-tax', fmt$(s.salesTaxCollected || 0));
+    setText('an-processing-fees', fmt$(s.processingFees || 0));
+    setText('an-easer-payouts', fmt$(s.easerPayouts || 0));
     setText('an-completed-jobs', String(exec.completedJobs || 0));
-    setText('an-ajv', exec.averageJobValue ? fmt$(exec.averageJobValue) : '—');
-    setText('an-profit', exec.platformGrossProfit || exec.completedJobs ? fmtSigned$(exec.platformGrossProfit) : '—');
-    setText('an-net-profit', exec.estimatedNetOperatingProfit || exec.completedJobs ? fmtSigned$(exec.estimatedNetOperatingProfit) : '—');
+    setText('an-ajv', fmt$(exec.averageJobValue || 0));
+    setText('an-profit', fmtSigned$(exec.platformGrossProfit || 0));
+    setText('an-net-profit', fmtSigned$(exec.estimatedNetOperatingProfit || 0));
     setText('an-addon-rate', fmtPct(exec.addOnAttachmentRate));
     setText('an-addon-source', exec.addOnAttachmentRateSource === 'actual_booking_items' ? '(Actual)' : '(Est.)');
     setText('an-addon-value', exec.averageAddOnValue ? fmt$(exec.averageAddOnValue) : '—');
@@ -6953,7 +7053,7 @@ window.intelQuick = intelQuick;
     var formula = document.getElementById('fin-formula');
     if (formula) {
       formula.innerHTML =
-        metricBox('Customer Revenue', fmt$(s.customerRevenue), 'plus') +
+        metricBox('Customer Payments Retained', fmt$(s.customerRevenue), 'plus') +
         metricBox('- Sales Tax (to state)', '-' + fmt$(s.salesTaxCollected || 0), 'minus') +
         metricBox('- Processing Fees', '-' + fmt$(s.processingFees), 'minus') +
         metricBox('- Easer Payouts', '-' + fmt$(s.easerPayouts), 'minus') +
@@ -6964,7 +7064,11 @@ window.intelQuick = intelQuick;
     var note = document.getElementById('an-reconciliation-note');
     if (note) {
       var rec = d.reconciliation || {};
-      note.textContent = 'Actual revenue/payouts from ledger/bookings; processing, reserve, opex, and CAC are estimates. '
+      var processingTruth = (d.labels && d.labels.processingFees) === 'actual'
+        ? 'Stripe fees are actual. '
+        : 'Some Stripe fees are estimated. ';
+      note.textContent = 'Customer payments, tax, and Easer earnings come from booking/payment truth. ' + processingTruth
+        + 'Reserve, overhead, and CAC are planning estimates. '
         + (rec.legacyRows || 0) + ' legacy row(s), ' + (rec.ledgerBackedRows || 0) + ' ledger-backed row(s), '
         + (rec.cancellationEarningRows || 0) + ' cancellation earning row(s).';
     }

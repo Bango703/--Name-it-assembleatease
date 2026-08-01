@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
+import { allocateCollectedTaxCents } from '../_source-of-truth.js';
 
 // Sales Tax Liability report (read-only) + owner-entered remittance tracking.
 // Does NOT change tax calculation, taxability, or the 8.25% rate — it only
@@ -106,9 +107,11 @@ export default async function handler(req, res) {
         const amount = Math.max(0, Number(event.amount_cents || 0));
         if (!amount) continue;
         cumulativeGross += amount;
-        const targetAllocatedTax = total > 0
-          ? Math.round(tax * Math.min(cumulativeGross, total) / total)
-          : 0;
+        const targetAllocatedTax = allocateCollectedTaxCents({
+          invoiceTotalCents: total,
+          invoiceTaxCents: tax,
+          grossCollectedCents: cumulativeGross,
+        });
         const eventTax = Math.max(0, targetAllocatedTax - allocatedTax);
         allocatedTax = targetAllocatedTax;
         const key = periodKey(event.stripe_created_at || event.created_at);

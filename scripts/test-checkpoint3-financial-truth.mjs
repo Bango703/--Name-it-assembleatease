@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { evaluateEaserAppointmentGate } from '../api/booking/_appointment-gates.js';
 import { isCurrentCompletionEvidence } from '../api/booking/_completion-evidence.js';
 import { captureOrRecoverBookingPayment } from '../api/booking/_stripe-booking-payment.js';
+import { allocateCollectedTaxCents } from '../api/_source-of-truth.js';
+import { getFinancialPeriodRange } from '../api/owner/financial-dashboard.js';
 import { summarizeFinanceRows } from '../api/owner/_finance-ledger.js';
 
 const appointmentMs = Date.parse('2026-07-13T12:00:00.000Z');
@@ -131,6 +133,24 @@ assert.equal(financeSummary.completedJobs, 1, 'cancellation earnings must not in
 assert.equal(financeSummary.cancellationEarningEvents, 1);
 assert.equal(financeSummary.pendingPayouts, 9_500, 'owner reserves must include both earning types');
 
+assert.equal(allocateCollectedTaxCents({
+  invoiceTotalCents: 37_965,
+  invoiceTaxCents: 2_893,
+  grossCollectedCents: 37_400,
+}), 2_850, 'partial owner-manual collections must allocate only tax actually collected');
+
+const julyMonthAtUtcBoundary = getFinancialPeriodRange(
+  'month',
+  new Date('2026-08-01T04:30:00.000Z'),
+);
+assert.equal(julyMonthAtUtcBoundary.from, '2026-07-01T05:00:00.000Z');
+assert.equal(julyMonthAtUtcBoundary.to, '2026-08-01T04:30:00.000Z');
+const augustMonthInAustin = getFinancialPeriodRange(
+  'month',
+  new Date('2026-08-01T05:00:00.000Z'),
+);
+assert.equal(augustMonthInAustin.from, '2026-08-01T05:00:00.000Z');
+
 const load = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const [
   ownerComplete,
@@ -227,9 +247,9 @@ assert.match(migration, /p_expected_financial_snapshot/);
 assert.match(migration, /completion_owner', 'completion_easer/);
 assert.match(migration, /evidence\.evidence_type = 'completion_photo'/);
 assert.match(migration, /VALUES \(35, 'financial_completion_reservations'\)/);
-assert.match(readiness, /REQUIRED_SCHEMA_MIGRATION\s*=\s*51/);
-assert.match(readiness, /DATABASE_SCHEMA_051/);
-assert.match(readiness, /Apply migrations 038-051 in order/);
+assert.match(readiness, /REQUIRED_SCHEMA_MIGRATION\s*=\s*52/);
+assert.match(readiness, /DATABASE_SCHEMA_052/);
+assert.match(readiness, /Apply migrations 038-052 in order/);
 assert.doesNotMatch(readiness, /DATABASE_SCHEMA_036|Apply migrations 034-036/);
 assert.match(operationHelper, /p_check_assembler_id: true/);
 assert.match(operationHelper, /p_expected_financial_snapshot/);

@@ -315,6 +315,25 @@ export function computeBookingFinancialSummary({
   };
 }
 
+// Owner-created bookings can be collected in multiple verified payments. Until
+// the invoice is fully satisfied, only the proportional share of sales tax has
+// actually been collected. Keeping this allocation in one helper prevents the
+// owner booking detail, tax report, and finance dashboard from disagreeing.
+export function allocateCollectedTaxCents({
+  invoiceTotalCents = 0,
+  invoiceTaxCents = 0,
+  grossCollectedCents = 0,
+} = {}) {
+  const invoiceTotal = Math.max(0, Math.round(Number(invoiceTotalCents) || 0));
+  const invoiceTax = Math.min(invoiceTotal, Math.max(0, Math.round(Number(invoiceTaxCents) || 0)));
+  const grossCollected = Math.max(0, Math.round(Number(grossCollectedCents) || 0));
+  if (!invoiceTotal || !invoiceTax || !grossCollected) return 0;
+  return Math.min(
+    grossCollected,
+    Math.round(invoiceTax * Math.min(grossCollected, invoiceTotal) / invoiceTotal),
+  );
+}
+
 // isTexasZip covers the whole state and gates statewide instant booking. A job
 // far from any Easer is not blocked at booking — it is prevented from
 // auto-dispatching (see isAutomaticDispatchZip) and waits for owner assignment.
