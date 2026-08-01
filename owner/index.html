@@ -129,6 +129,12 @@
     .detail-field label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:2px}
     .detail-field span{font-size:0.9rem;color:var(--text)}
     .detail-actions{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+    .owner-next-action{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.85rem 0.95rem;border:1px solid #a5f3fc;border-radius:10px;background:#ecfeff}
+    .owner-next-action-copy{min-width:0}
+    .owner-next-action-kicker{font-size:0.65rem;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#0e7490;margin-bottom:0.2rem}
+    .owner-next-action-desc{font-size:0.76rem;line-height:1.45;color:#155e75}
+    .owner-next-action .btn{flex-shrink:0}
+    .owner-other-actions{flex-basis:100%;font-size:0.66rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:0.25rem}
     .detail-section-title{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:0.75rem}
 
     /* ── Messages thread ── */
@@ -247,6 +253,8 @@
       .modal-row{grid-template-columns:minmax(0,1fr)}
       .modal-actions{flex-wrap:wrap}
       .modal-actions .btn{flex:1 1 120px;justify-content:center;min-height:44px}
+      .owner-next-action{align-items:stretch;flex-direction:column}
+      .owner-next-action .btn{width:100%;justify-content:center;min-height:44px}
     }
 
     /* ── Professional design system additions ── */
@@ -4166,6 +4174,58 @@ window.intelQuick = intelQuick;
   }
 
   function renderActions(b) {
+    function renderOwnerActionCollection(notices, btns) {
+      var actionPriority = [
+        'manual-refund-recovery', 'refund-recovery', 'stripe-dispute-review',
+        'damage-review', 'reconcile-payment', 'send-payment', 'quote',
+        'record-manual-payment', 'collect-payment', 'complete-return-visit',
+        'complete', 'dispatch', 'payout-review', 'payout',
+        'request-review', 'request-evidence'
+      ];
+      var actionDescriptions = {
+        'manual-refund-recovery': 'Continue the existing refund recovery. The server will recheck Stripe and the ledger before changing money state.',
+        'refund-recovery': 'Continue the existing refund recovery. The server will recheck aggregate Stripe truth before changing money state.',
+        'stripe-dispute-review': 'Refresh Stripe dispute truth before any refund, dispatch, or Easer payment decision.',
+        'damage-review': 'Review the saved evidence and record the outcome before releasing any Easer payment.',
+        'reconcile-payment': 'Verify the linked Stripe authorization before confirming or dispatching this booking.',
+        'send-payment': 'Send the existing secure payment continuation to the customer. This does not charge the customer by itself.',
+        'quote': 'Set the server-controlled quote and send it to the customer for approval before scheduling work.',
+        'record-manual-payment': 'Record only customer money already received. The server verifies the Stripe payment or the selected offline method.',
+        'collect-payment': 'Record only customer money already received before considering any Easer payment.',
+        'complete-return-visit': 'Finalize the documented return visit only after the remaining work is actually complete.',
+        'complete': 'Mark the job complete only after the work is finished. Payment and Easer payout remain separate steps.',
+        'dispatch': 'Send this paid or authorized booking through the current Easer matching workflow.',
+        'payout-review': 'Resolve the Easer earnings review before recording any external payment.',
+        'payout': 'Record the external Easer payment only after sending the exact verified amount outside this dashboard.',
+        'request-review': 'Send the customer a review request for this completed booking.',
+        'request-evidence': 'Ask the assigned Easer for completion evidence tied to this booking.'
+      };
+      var candidates = btns.map(function(html, index) {
+        var match = html.match(/data-action="([^"]+)"/);
+        var action = match ? match[1] : (html.indexOf('openQuoteModal(') !== -1 ? 'quote' : '');
+        return { action: action, html: html, index: index };
+      });
+      var recommended = null;
+      actionPriority.some(function(action) {
+        recommended = candidates.find(function(candidate) { return candidate.action === action; }) || null;
+        return !!recommended;
+      });
+
+      var blocks = notices.slice();
+      if (recommended) {
+        btns.splice(recommended.index, 1);
+        blocks.push('<div class="owner-next-action">'
+          + '<div class="owner-next-action-copy"><div class="owner-next-action-kicker">Recommended next action</div>'
+          + '<div class="owner-next-action-desc">' + esc(actionDescriptions[recommended.action] || 'Use the booking timeline and verified status before continuing.') + '</div></div>'
+          + recommended.html
+          + '</div>');
+        if (btns.length) blocks.push('<div class="owner-other-actions">Other available actions</div>');
+      }
+      blocks = blocks.concat(btns);
+      $detailAct.innerHTML = blocks.join('');
+      $detailAct.style.display = blocks.length ? '' : 'none';
+    }
+
     var btns = [];
     var notices = [];
     var isOwnerManual = b.source === 'owner_manual' || b.source === 'manual';
@@ -4197,8 +4257,7 @@ window.intelQuick = intelQuick;
         if (manualRefundRecovery) {
           btns.push('<button class="btn btn-amber" data-action="manual-refund-recovery" data-id="' + b.id + '">Resume / Reconcile Stripe Refund</button>');
         }
-        $detailAct.innerHTML = notices.concat(btns).join('');
-        $detailAct.style.display = '';
+        renderOwnerActionCollection(notices, btns);
         return;
       }
       if (!b.payment_collected
@@ -4291,8 +4350,7 @@ window.intelQuick = intelQuick;
           notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--muted)">Add the Easer who completed this work before recording contractor earnings.</div>');
         }
       }
-      $detailAct.innerHTML = notices.concat(btns).join('');
-      $detailAct.style.display = notices.length || btns.length ? '' : 'none';
+      renderOwnerActionCollection(notices, btns);
       return;
     }
 
@@ -4441,8 +4499,7 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--red)">An Easer payment already exists. Review the financial timeline and any clawback requirement; do not attempt another payment.</div>');
       }
     }
-    $detailAct.innerHTML = notices.concat(btns).join('');
-    $detailAct.style.display = notices.length || btns.length ? '' : 'none';
+    renderOwnerActionCollection(notices, btns);
   }
 
   var pendingAction = null;

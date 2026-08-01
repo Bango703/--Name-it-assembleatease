@@ -296,6 +296,40 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
+    .application-progress {
+      margin: 0.75rem 1.1rem 0;
+      padding: 0.9rem 1rem;
+      border: 1px solid #cfe8ef;
+      border-radius: 12px;
+      background: #f7fcfe;
+    }
+    .application-progress-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.55rem;
+    }
+    .application-progress-head strong { font-size: 0.84rem; color: var(--apply-ink); }
+    .application-progress-head span { font-size: 0.76rem; font-weight: 800; color: var(--apply-cyan-dark); }
+    .application-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: #dfeef3; }
+    .application-progress-bar { height: 100%; width: 20%; border-radius: inherit; background: var(--apply-cyan); transition: width 0.2s ease; }
+    .application-progress-next { margin-top: 0.5rem; color: var(--apply-muted); font-size: 0.76rem; line-height: 1.45; }
+    .easer-value-preview {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin-top: 1rem;
+    }
+    .easer-value-item {
+      min-width: 0;
+      padding: 0.75rem 0.8rem;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+    }
+    .easer-value-item span { display: block; color: #9bebff; font-size: 0.66rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.25rem; }
+    .easer-value-item strong { display: block; color: #fff; font-size: 0.8rem; line-height: 1.4; }
 
     .section {
       background: #fff;
@@ -762,6 +796,7 @@
       .hero-photo img { min-height: 360px; }
       .apply-layout { grid-template-columns: 1fr; }
       .apply-aside { position: static; }
+      .easer-value-preview { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 640px) {
@@ -783,6 +818,7 @@
       .apply-main { width: min(100% - 1rem, 1180px); }
       .form-panel { padding: 0.75rem; border-radius: 12px; }
       .form-intro { display: block; padding: 0.9rem 0.9rem 0.15rem; }
+      .application-progress { margin-left: 0.9rem; margin-right: 0.9rem; }
       .form-pill { margin-top: 0.85rem; }
       .section { padding: 1rem; }
       .section-head { display: block; }
@@ -824,6 +860,11 @@
         <a class="hero-btn hero-btn-primary" href="#apply-form">Apply Now &rarr;</a>
       </div>
       <p class="hero-copy">Apply to receive local assembly, mounting, smart home, fitness, outdoor, and office jobs after approval. We verify every application before offering work.</p>
+      <div class="easer-value-preview" aria-label="What Easers see and control">
+        <div class="easer-value-item"><span>Before accepting</span><strong>See the job details, service area, schedule, and your estimated payout.</strong></div>
+        <div class="easer-value-item"><span>Your decision</span><strong>Review each offer, then accept or decline based on your fit and availability.</strong></div>
+        <div class="easer-value-item"><span>After the job</span><strong>See final earnings and payout status without seeing the customer’s private payment details.</strong></div>
+      </div>
     </div>
 
     <figure class="hero-photo" aria-label="Two home-service professionals preparing for local jobs">
@@ -848,6 +889,17 @@
           <p>This takes a few minutes. Use accurate contact information because your phone number is required for job offers after approval.</p>
         </div>
         <div class="form-pill" id="fee-status-pill">Checking application fee</div>
+      </div>
+
+      <div class="application-progress" id="application-progress">
+        <div class="application-progress-head">
+          <strong>Application progress</strong>
+          <span id="application-progress-text">1 of 5 steps complete</span>
+        </div>
+        <div class="application-progress-track" role="progressbar" aria-label="Application form progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20" id="application-progress-track">
+          <div class="application-progress-bar" id="application-progress-bar"></div>
+        </div>
+        <div class="application-progress-next" id="application-progress-next">Application started. Next: complete your profile and contact details.</div>
       </div>
 
       <div id="alert" class="alert hidden"></div>
@@ -1132,6 +1184,8 @@
   var lastApplicationData = null;
   var applicationAttemptId = getApplicationAttemptId();
   var US_STATE_CODES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+  var applicationStateSelect = document.getElementById('state');
+  if (applicationStateSelect && !applicationStateSelect.value) applicationStateSelect.value = 'TX';
 
   function getApplicationAttemptId() {
     var storageKey = 'aae_easer_application_attempt';
@@ -1259,6 +1313,7 @@
       button.textContent = 'Submit Founding Easer Application';
     }
     button.disabled = false;
+    updateApplicationProgress();
   }
 
   async function fetchApplicationPreflight(state, zip) {
@@ -1329,6 +1384,7 @@
           if (d.phone) document.getElementById('phone').value = formatUsPhoneForDisplay(d.phone);
           if (d.city) document.getElementById('city').value = d.city;
           if (d.state) document.getElementById('state').value = String(d.state).toUpperCase();
+          updateApplicationProgress();
           var banner = document.getElementById('invite-banner');
           banner.style.display = '';
           banner.classList.remove('hidden');
@@ -1382,6 +1438,57 @@
     document.getElementById('fee-consent-error').textContent = '';
     document.getElementById('alert').className = 'alert hidden';
   }
+
+  function updateApplicationProgress() {
+    var text = document.getElementById('application-progress-text');
+    var bar = document.getElementById('application-progress-bar');
+    var track = document.getElementById('application-progress-track');
+    var next = document.getElementById('application-progress-next');
+    if (!text || !bar || !track || !next) return;
+
+    var fullName = document.getElementById('full-name').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var city = document.getElementById('city').value.trim();
+    var state = document.getElementById('state').value.trim().toUpperCase();
+    var zip = document.getElementById('zip').value.trim();
+    var yearsRaw = document.getElementById('years').value.trim();
+    var years = Number(yearsRaw);
+    var profileDone = fullName.split(/\s+/).filter(Boolean).length >= 2
+      && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      && isValidUsPhoneForApplication(phone)
+      && !!city
+      && US_STATE_CODES.indexOf(state) !== -1
+      && /^\d{5}$/.test(zip)
+      && !!yearsRaw
+      && Number.isInteger(years)
+      && years >= 0
+      && years <= 80;
+    var servicesDone = !!document.querySelector('#services-grid input:checked');
+    var readinessDone = !!document.querySelector('input[name="transport"]:checked');
+    var agreementDone = !!feeState
+      && document.getElementById('contractor-agree').checked
+      && document.getElementById('conduct').checked
+      && (!isPaidFeeRequired() || document.getElementById('fee-consent').checked);
+
+    var completed = 1 + [profileDone, servicesDone, readinessDone, agreementDone].filter(Boolean).length;
+    var pct = completed * 20;
+    text.textContent = completed + ' of 5 steps complete';
+    bar.style.width = pct + '%';
+    track.setAttribute('aria-valuenow', String(pct));
+
+    if (!profileDone) next.textContent = 'Application started. Next: complete your profile and contact details.';
+    else if (!servicesDone) next.textContent = 'Profile complete. Next: select the services you can safely perform.';
+    else if (!readinessDone) next.textContent = 'Services selected. Next: confirm your transportation readiness.';
+    else if (!agreementDone) next.textContent = feeState
+      ? 'Readiness complete. Next: review and accept the required agreements' + (isPaidFeeRequired() ? ' and exact application fee' : '') + '.'
+      : 'Readiness complete. The current application fee is still being verified.';
+    else next.textContent = 'Application form ready. Review your answers before submitting.';
+  }
+
+  document.getElementById('apply-form').addEventListener('input', updateApplicationProgress);
+  document.getElementById('apply-form').addEventListener('change', updateApplicationProgress);
+  updateApplicationProgress();
 
   function collectApplicationData() {
     var services = [];

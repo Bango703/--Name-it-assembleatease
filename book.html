@@ -956,6 +956,24 @@
     /* -- Date/time picker -- */
 
     .schedule-grid { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(290px, 0.98fr); gap: 1rem; align-items: start; margin-bottom: 1rem; }
+    .job-plan-card{display:none;margin:0 0 1rem;background:linear-gradient(180deg,#f8fdff 0%,#f4fbfd 100%);border:1px solid #cfe8ef;border-radius:var(--radius-lg);padding:1rem 1.1rem}
+    .job-plan-card.show{display:block}
+    .job-plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.75rem}
+    .job-plan-kicker{font-size:0.68rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:0.2rem}
+    .job-plan-title{font-size:1rem;font-weight:750;color:var(--ink);line-height:1.3}
+    .job-plan-price{text-align:right;flex-shrink:0;font-size:1.05rem;font-weight:800;color:var(--ink)}
+    .job-plan-price span{display:block;font-size:0.67rem;font-weight:600;color:var(--muted);margin-top:0.1rem}
+    .job-plan-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.55rem}
+    .job-plan-meta-item{background:#fff;border:1px solid #deedf2;border-radius:9px;padding:0.65rem 0.75rem;min-width:0}
+    .job-plan-meta-item span{display:block;font-size:0.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem}
+    .job-plan-meta-item strong{display:block;font-size:0.82rem;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+    .job-plan-note{margin-top:0.65rem;font-size:0.74rem;color:var(--muted);line-height:1.45}
+    @media (max-width:520px){
+      .job-plan-card{padding:0.9rem}
+      .job-plan-head{gap:0.65rem}
+      .job-plan-meta{grid-template-columns:1fr}
+      .job-plan-price{font-size:0.95rem}
+    }
 
     .schedule-card { background: #ffffff; border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; padding: 1.1rem 1.15rem; box-shadow: none; }
 
@@ -2508,7 +2526,7 @@
 
 
 
-  <!-- Progress indicator: 5 steps -->
+  <!-- Progress indicator: 4 customer-visible steps -->
 
   <div class="book-progress">
 
@@ -2518,7 +2536,7 @@
 
         <div class="progress-dot">1</div>
 
-        <span class="progress-label">Services</span>
+        <span class="progress-label">Job plan</span>
 
       </div>
 
@@ -2556,7 +2574,7 @@
 
   </div>
 
-  <div class="book-progress-hint" id="book-progress-hint">Step 1 of 4 &mdash; Services</div>
+  <div class="book-progress-hint" id="book-progress-hint">Step 1 of 4 &mdash; Job plan</div>
 
 
 
@@ -2836,13 +2854,15 @@
 
         <p class="step-sub">Choose a date, time, and service address.</p>
 
+        <div class="job-plan-card" id="job-plan-preview" aria-live="polite"></div>
+
 
 
         <div class="urgency-hint">
 
           <span class="urgency-dot"></span>
 
-          <div><strong>Next available:</strong> <span class="urgency-slot" id="urgency-next"></span> &nbsp;<span class="urgency-scarcity" id="urgency-scarce"></span></div>
+          <div><strong>Next available:</strong> <span class="urgency-slot" id="urgency-next"></span></div>
 
         </div>
 
@@ -3025,9 +3045,11 @@
 
       <div class="step-panel hidden" id="step-4">
 
-        <div class="step-heading">Your contact info</div>
+        <div class="step-heading">Your job plan is ready</div>
 
-        <p class="step-sub">We’ll use this to confirm the visit and send updates.</p>
+        <p class="step-sub">Add your contact information so we can confirm the visit and send updates.</p>
+
+        <div class="job-plan-card" id="job-plan-ready" aria-live="polite"></div>
 
 
 
@@ -4720,7 +4742,7 @@ function updateItemStageActions(svc) {
     }
   }
   else if (stage === 'extras') nextBtn.innerHTML = 'Continue to notes <span>&#8594;</span>';
-  else nextBtn.innerHTML = 'Continue to schedule <span>&#8594;</span>';
+  else nextBtn.innerHTML = 'Review job plan &amp; schedule <span>&#8594;</span>';
 }
 
 function openServiceGroup(groupName) {
@@ -5586,6 +5608,67 @@ function changeQty(svc, name, delta) {
 
 // ----------------------------------------------------------------------------
 
+function getJobPlanItemCount() {
+  return BOOK.selectedServices.reduce(function(total, svc) {
+    return total + (BOOK.selectedItems[svc] || []).reduce(function(serviceTotal, item) {
+      return serviceTotal + Math.min(99, Math.max(1, parseInt(item.qty, 10) || 1));
+    }, 0);
+  }, 0);
+}
+
+function renderJobPlanCards() {
+  var preview = document.getElementById('job-plan-preview');
+  var ready = document.getElementById('job-plan-ready');
+  var cards = [preview, ready].filter(Boolean);
+  if (!cards.length) return;
+
+  var itemCount = getJobPlanItemCount();
+  if (!BOOK.selectedServices.length || itemCount === 0) {
+    cards.forEach(function(card) {
+      card.classList.remove('show');
+      card.innerHTML = '';
+    });
+    return;
+  }
+
+  var snapshot = getPricingSnapshot(BOOK.zip || '');
+  var serviceNames = formatSelectedServices(', ');
+  var selectedSubtotal = Math.max(0, Number(snapshot.discountedSubtotal || 0));
+  var schedulePrice = snapshot.hasCustom && selectedSubtotal === 0 ? 'Custom quote' : dollars(selectedSubtotal);
+  var finalPrice = BOOK.isEmergingMarket
+    ? 'Service request'
+    : (snapshot.hasCustom && snapshot.itemSubtotal === 0 ? 'Custom quote' : dollars(snapshot.grandTotal));
+  var appointment = BOOK.date
+    ? new Date(BOOK.date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) + (BOOK.time ? ' at ' + BOOK.time : '')
+    : 'Choose an appointment';
+
+  if (preview) {
+    preview.innerHTML = '<div class="job-plan-head">'
+      + '<div><div class="job-plan-kicker">Your job plan</div><div class="job-plan-title">Selected work is ready to schedule</div></div>'
+      + '<div class="job-plan-price">' + esc(schedulePrice) + '<span>' + (snapshot.hasCustom ? 'Priced items only' : 'Items subtotal') + '</span></div>'
+      + '</div>'
+      + '<div class="job-plan-meta">'
+      + '<div class="job-plan-meta-item"><span>Services</span><strong>' + esc(serviceNames) + '</strong></div>'
+      + '<div class="job-plan-meta-item"><span>Selected work</span><strong>' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + '</strong></div>'
+      + '</div>'
+      + '<div class="job-plan-note">Choose the service address next. Any service-area fee and sales tax will be itemized before payment.</div>';
+    preview.classList.add('show');
+  }
+
+  if (ready) {
+    ready.innerHTML = '<div class="job-plan-head">'
+      + '<div><div class="job-plan-kicker">Plan summary</div><div class="job-plan-title">' + esc(serviceNames) + '</div></div>'
+      + '<div class="job-plan-price">' + esc(finalPrice) + '<span>' + (BOOK.isEmergingMarket ? 'No payment collected' : (snapshot.hasCustom ? 'Estimated priced total' : 'Estimated total')) + '</span></div>'
+      + '</div>'
+      + '<div class="job-plan-meta">'
+      + '<div class="job-plan-meta-item"><span>Appointment</span><strong>' + esc(appointment) + '</strong></div>'
+      + '<div class="job-plan-meta-item"><span>Service address</span><strong>' + esc(BOOK.address || 'Address not saved yet') + '</strong></div>'
+      + '</div>'
+      + '<div class="job-plan-note">You can still go back and adjust the plan. The server confirms the exact price and availability before the booking is submitted.</div>';
+    ready.classList.add('show');
+  }
+}
+
 function updateOrderSummary() {
 
   var linesEl   = document.getElementById('order-lines');
@@ -5608,6 +5691,7 @@ function updateOrderSummary() {
     renderSelectedServiceStrip();
     renderItemSummaryStrip();
     updateMobileStepSummary();
+    renderJobPlanCards();
 
     return;
 
@@ -5644,6 +5728,7 @@ function updateOrderSummary() {
   renderSelectedServiceStrip();
   renderItemSummaryStrip();
   updateMobileStepSummary();
+  renderJobPlanCards();
 
 }
 
@@ -5795,7 +5880,7 @@ function setProgress(step) {
 
   if (hint) {
 
-    var hints = ['Step 1 of 4 &mdash; Services','Step 1 of 4 &mdash; Services','Step 2 of 4 &mdash; Schedule','Step 3 of 4 &mdash; Your info','Step 4 of 4 &mdash; Payment'];
+    var hints = ['Step 1 of 4 &mdash; Job plan','Step 1 of 4 &mdash; Job plan','Step 2 of 4 &mdash; Schedule','Step 3 of 4 &mdash; Your info','Step 4 of 4 &mdash; Payment'];
 
     hint.innerHTML = hints[step - 1] || '';
 
@@ -5877,23 +5962,9 @@ function goToStep2Account() {
 
   BOOK.accountMode = 'guest'; // auto guest, no friction step
 
+  renderJobPlanCards();
+
   goToStep(3);
-
-  // Hesitation trigger: if user pauses without picking a time, nudge urgency bar
-
-  if (window._hesitationTimer) clearTimeout(window._hesitationTimer);
-
-  window._hesitationTimer = setTimeout(function() {
-
-    if (!BOOK.time) {
-
-      var sc = document.getElementById('urgency-scarce');
-
-      if (sc && !sc.textContent) sc.textContent = 'Slots filling up fast';
-
-    }
-
-  }, 7000);
 
 }
 
@@ -5996,6 +6067,8 @@ function goToStep4Contact() {
   BOOK.isEmergingMarket = isEmergingMarket;
 
   BOOK.address = (street ? street + (apt ? ', ' + apt : '') + ', ' : '') + BOOK.city + ', ' + BOOK.state + ' ' + zip;
+
+  renderJobPlanCards();
 
   goToStep(4);
 
