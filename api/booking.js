@@ -686,37 +686,29 @@ export default async function handler(req, res) {
     // card form or the auth might fail. Owner email is sent by /api/booking-confirmed
     // AFTER the frontend successfully calls stripe.confirmCardPayment().
     // When no payment is required (custom quote / free booking), send immediately.
+    // Route through sendEmail so the owner alert is logged to notification_log and
+    // its failures are visible — a raw fire-and-forget send previously let quote
+    // requests vanish silently when the owner email never landed or hit spam.
     if (!clientSecret) {
-      const ownerResp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-          to: [TO],
-          subject: (quoteRequested ? 'New Quote Request - ' : 'New Booking - ') + (quoteRequested && service === 'Other' ? 'Custom Quote' : service) + ' from ' + name,
-          html: ownerHtml,
-          reply_to: email,
-        }),
-      });
-      if (!ownerResp.ok) {
-        const err = await ownerResp.text();
-        console.error('Resend owner error:', err);
-      }
+      const ownerAlert = await sendEmail({
+        to: TO,
+        from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
+        subject: (quoteRequested ? 'New Quote Request - ' : 'New Booking - ') + (quoteRequested && service === 'Other' ? 'Custom Quote' : service) + ' from ' + name,
+        html: ownerHtml,
+        replyTo: email,
+        meta: { bookingId, notificationType: quoteRequested ? 'quote_request_owner' : 'new_booking_owner', recipientType: 'owner' },
+      }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+      if (!ownerAlert?.ok) console.error('Owner quote/booking email failed:', ownerAlert?.error || ownerAlert?.reason || 'unknown');
+
       // Send customer email immediately too (no payment to wait for)
-      const customerResp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'AssembleAtEase <booking@assembleatease.com>',
-          to: [email],
-          subject: quoteRequested ? 'Quote request received - ' + ref : 'Booking Confirmed - We received your request!',
-          html: customerHtml,
-          reply_to: TO,
-        }),
-      });
-      if (!customerResp.ok) {
-        console.error('Resend customer error:', await customerResp.text());
-      }
+      await sendEmail({
+        to: email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: quoteRequested ? 'Quote request received - ' + ref : 'Booking Confirmed - We received your request!',
+        html: customerHtml,
+        replyTo: TO,
+        meta: { bookingId, notificationType: quoteRequested ? 'quote_request_customer' : 'booking_received_customer', recipientType: 'customer' },
+      }).catch(e => console.error('Customer quote/booking email failed:', e?.message || e));
     }
     // When clientSecret is present: both owner and customer emails are sent by
     // /api/booking-confirmed after the card authorization succeeds.

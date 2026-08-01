@@ -1388,6 +1388,68 @@ export default async function handler(req, res) {
         break;
       }
 
+      // ── Customer quote: card saved via SetupIntent ──
+      // Safety net for the custom-quote flow. The browser saves the card (this
+      // event) and is supposed to then POST /api/booking to create the booking
+      // + alert the owner. If that second call never lands (tab closed, network),
+      // the card is orphaned in Stripe and the quote request is invisible. Here
+      // we detect the orphan and alert the owner so the warm lead is never lost.
+      case 'setup_intent.succeeded': {
+        const si = event.data.object;
+        if (si.metadata?.source !== 'quote_booking') break;
+        webhookPaymentIntentId = si.id;
+
+        const pmId = typeof si.payment_method === 'string' ? si.payment_method : (si.payment_method?.id || null);
+        const customerId = typeof si.customer === 'string' ? si.customer : (si.customer?.id || null);
+
+        // Did the normal path create a booking for this saved card? booking.js
+        // links stripe_payment_method_id when the quote booking POST succeeds.
+        let bookingExists = false;
+        if (pmId) {
+          const { data: linked } = await sb.from('bookings')
+            .select('id').eq('stripe_payment_method_id', pmId).limit(1).maybeSingle();
+          bookingExists = !!linked;
+        }
+        if (!bookingExists && customerId) {
+          const { data: byCustomer } = await sb.from('bookings')
+            .select('id').eq('stripe_customer_id', customerId).eq('payment_status', 'card_saved').limit(1).maybeSingle();
+          bookingExists = !!byCustomer;
+        }
+
+        if (bookingExists) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { ...webhookMetadata, reason: 'quote-booking-exists', setupIntentId: si.id };
+          break;
+        }
+
+        // Orphan — a customer saved a card for a quote but never finished. Alert
+        // the owner. Deduped per SetupIntent; the webhook claim already prevents
+        // reprocessing, so this fires at most once per saved card.
+        const email = String(si.metadata?.email || '').trim();
+        let custName = '';
+        try {
+          if (customerId) {
+            const cust = await stripe.customers.retrieve(customerId);
+            if (cust && !cust.deleted && cust.name) custName = cust.name;
+          }
+        } catch (_) {}
+
+        const alert = await sendEmail({
+          to: ownerEmail(),
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: 'Action needed — a customer saved a card for a quote but didn’t finish',
+          html: `<p style="font-size:15px;line-height:1.7"><strong>A customer saved their card to request a custom quote, but never finished submitting the project details.</strong> It won’t appear in your &ldquo;Quotes to Price&rdquo; list, so reach out and close it.</p>
+            <p style="font-size:14px;line-height:1.7;color:#52525b">Name: <strong>${esc(custName || 'Not provided')}</strong><br>Email: <a href="mailto:${esc(email)}" style="color:#00BFFF">${esc(email || 'unknown')}</a><br>Saved card: on file in Stripe${customerId ? ` (customer ${esc(customerId)})` : ''}</p>
+            <p style="font-size:14px;line-height:1.7">Their card is saved and valid. Email or call them with a quote — once they approve, you can charge the saved card. <em>(If this booking already shows in your Quotes-to-Price list, you can ignore this — they finished after all.)</em></p>`,
+          replyTo: email || ownerEmail(),
+          meta: { notificationType: `quote_orphan_${si.id}`, recipientType: 'owner', dedupeWindowMin: 1440 },
+        }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+
+        webhookOutcome = 'processed';
+        webhookMetadata = { ...webhookMetadata, reason: 'orphaned-quote-card-alerted', setupIntentId: si.id, email, alerted: alert?.ok === true };
+        break;
+      }
+
       default:
         // Unhandled event type — ignore silently
         break;
