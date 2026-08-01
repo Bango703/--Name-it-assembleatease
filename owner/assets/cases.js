@@ -153,6 +153,19 @@
     var latestNotification = notification.latest
       ? notification.latest.status.charAt(0).toUpperCase() + notification.latest.status.slice(1)
       : 'No attempt logged';
+    var bookingWorkflow = item.booking
+      ? '<div class="cases-detail-section">' +
+          '<div class="cases-section-label">Linked booking action</div>' +
+          '<div class="cases-resolution">' +
+            (item.requiresBookingDamageResolution
+              ? 'This report has an active booking hold. Review its evidence and complete the documented acknowledgment there; the case will close automatically.'
+              : 'Open the linked booking to review its authoritative status, evidence, payment, and timeline.') +
+            '<div style="margin-top:0.75rem"><button type="button" class="btn btn-teal" data-open-case-booking="' + attr(item.booking.id) + '" data-booking-tab="' + (item.type === 'damage' ? 'evidence' : '') + '">' +
+              (item.requiresBookingDamageResolution ? 'Review Evidence and Close Alert' : 'Open Linked Booking') +
+            '</button></div>' +
+          '</div>' +
+        '</div>'
+      : '';
 
     detail.innerHTML =
       '<div class="cases-detail-title-row">' +
@@ -182,6 +195,7 @@
           metaItem('Source', sourceLabel(item.source)) +
         '</div>' +
       '</div>' +
+      bookingWorkflow +
       (item.resolutionSummary ? '<div class="cases-detail-section"><div class="cases-section-label">Resolution</div><div class="cases-resolution">' + esc(item.resolutionSummary) + '</div></div>' : '') +
       '<div class="cases-detail-section">' +
         '<div class="cases-section-label">Update case</div>' +
@@ -364,6 +378,13 @@
   }
 
   document.addEventListener('click', function(event) {
+    var bookingButton = event.target.closest('[data-open-case-booking]');
+    if (bookingButton) {
+      if (typeof window.openOwnerBookingRecord === 'function') {
+        window.openOwnerBookingRecord(bookingButton.dataset.openCaseBooking, bookingButton.dataset.bookingTab || null);
+      }
+      return;
+    }
     var row = event.target.closest('[data-case-id]');
     if (row && row.classList.contains('cases-list-item')) select(row.dataset.caseId);
   });

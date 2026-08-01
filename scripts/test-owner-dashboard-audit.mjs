@@ -52,7 +52,9 @@ assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
 assert.match(ownerUi, /an-easer-payouts/);
 assert.match(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
-assert.match(ownerUi, /Austin time/);
+assert.match(ownerUi, /Central time/);
+assert.match(ownerUi, /No completed jobs in/);
+assert.match(ownerUi, /Show All Time/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
 

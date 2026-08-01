@@ -112,7 +112,7 @@ export default async function handler(req, res) {
           from: 'AssembleAtEase <booking@assembleatease.com>',
           subject: 'You are invited to join AssembleAtEase',
           replyTo: 'service@assembleatease.com',
-          html: buildInviteEmail(firstName, inviteUrl),
+          html: buildInviteEmail(firstName, inviteUrl, entry.city, entry.state),
         });
       } catch (emailErr) {
         console.error('Invite email error:', emailErr);
@@ -160,7 +160,8 @@ export default async function handler(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-function buildInviteEmail(firstName, inviteUrl) {
+function buildInviteEmail(firstName, inviteUrl, city, state) {
+  const market = [city, state].map(value => String(value || '').trim()).filter(Boolean).join(', ') || 'your Texas area';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:24px;text-align:center">
@@ -169,7 +170,7 @@ function buildInviteEmail(firstName, inviteUrl) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">Hi ${esc(firstName)},</p>
-    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Great news &mdash; you have been selected to apply to join the <strong>AssembleAtEase</strong> handyman network in Austin, TX.</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#52525b;line-height:1.7">Great news &mdash; you have been selected to apply to join the <strong>AssembleAtEase</strong> professional network near ${esc(market)}.</p>
     <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">We reviewed your waitlist signup and we would like to invite you to complete a full application.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
@@ -192,7 +193,7 @@ function buildInviteEmail(firstName, inviteUrl) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
     <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
     <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0;font-size:11px;color:#a1a1aa">Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
+    <p style="margin:0;font-size:11px;color:#a1a1aa">Texas network &bull; Austin headquarters &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
   </td></tr></table>
 </div></body></html>`;
 }

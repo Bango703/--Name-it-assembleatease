@@ -2,6 +2,12 @@ import { getSupabase } from '../_supabase.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
 import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { logActivity } from './_activity.js';
+import {
+  createOperationCase,
+  OPERATION_CASE_SEVERITIES,
+  OPERATION_CASE_SOURCES,
+  OPERATION_CASE_TYPES,
+} from '../_operation-cases.js';
 
 // Raise body-parser limit: base64 of a 5 MB image is ~6.7 MB JSON
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
@@ -130,7 +136,7 @@ export default async function handler(req, res) {
   // ── Verify booking ownership ──────────────────────────────────────────────
   const { data: booking, error: bookingErr } = await sb
     .from('bookings')
-    .select('id, ref, service, date, time, status, assembler_id, assembler_name, assembler_accepted_at, job_started_at, financial_operation_key')
+    .select('id, ref, service, date, time, status, customer_name, customer_email, customer_phone, assembler_id, assembler_name, assembler_accepted_at, job_started_at, financial_operation_key')
     .eq('id', bookingId)
     .eq('assembler_id', user.id)
     .maybeSingle();
@@ -242,6 +248,35 @@ export default async function handler(req, res) {
       description: `${booking.assembler_name || 'Easer'} reported possible damage and uploaded evidence`,
       metadata: { evidenceId: evidenceRow.id, notes: cleanNotes },
     });
+    let damageCase = null;
+    try {
+      damageCase = await createOperationCase(sb, {
+        caseType: OPERATION_CASE_TYPES.DAMAGE,
+        source: OPERATION_CASE_SOURCES.EASER_REPORT,
+        sourceRef: `damage-booking:${booking.id}`,
+        severity: OPERATION_CASE_SEVERITIES.HIGH,
+        subject: 'Damage report requires documented review',
+        description: `Possible damage was reported for booking ${booking.ref}. Review the saved evidence, document any follow-up, and use the booking damage-review workflow to close the hold.`,
+        bookingId: booking.id,
+        customerName: booking.customer_name,
+        customerEmail: booking.customer_email,
+        customerPhone: booking.customer_phone,
+        easerId: user.id,
+        createdByType: 'easer',
+        createdByName: booking.assembler_name || 'Easer',
+        metadata: { evidenceId: evidenceRow.id },
+      });
+    } catch (caseError) {
+      console.error('Damage report Operations Case creation failed:', caseError);
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'damage_case_link_failed',
+        actorType: 'system',
+        actorName: 'Operations Cases',
+        description: 'The damage hold and evidence were saved, but the linked Operations Case could not be created.',
+        metadata: { evidenceId: evidenceRow.id, error: caseError?.message || String(caseError) },
+      }).catch(() => {});
+    }
     ownerNotification = await sendEmail({
       to: ownerEmail(),
       from: 'AssembleAtEase <booking@assembleatease.com>',
@@ -255,7 +290,13 @@ export default async function handler(req, res) {
         <p>Open the booking timeline and evidence panel before contacting the customer or making a financial decision.</p>
         <p><a href="https://www.assembleatease.com/owner/">Open owner dashboard</a></p>
       </div>`,
-      meta: { bookingId: booking.id, notificationType: 'damage_claim_reported', recipientType: 'owner', disableDedupe: true },
+      meta: {
+        bookingId: booking.id,
+        operationCaseId: damageCase?.id || null,
+        notificationType: 'damage_claim_reported',
+        recipientType: 'owner',
+        disableDedupe: true,
+      },
     }).catch(err => ({ ok: false, error: err?.message || String(err) }));
     if (!ownerNotification?.ok) {
       await logActivity(sb, {

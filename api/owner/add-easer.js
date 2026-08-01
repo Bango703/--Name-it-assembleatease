@@ -136,12 +136,12 @@ export default async function handler(req, res) {
       <ol style="margin:8px 0 0;padding-left:16px;font-size:13px;color:#52525b;line-height:1.8">
         <li>Set your password and complete your identity verification.</li>
         <li>Our team reviews your profile after verification is submitted.</li>
-        <li>Once approved, you can go online and start receiving job assignments in Austin, TX.</li>
+        <li>Once approved, you can go online and receive eligible job assignments near ${esc(city.trim())}, Texas.</li>
       </ol>
     </td></tr></table>
     <p style="margin:20px 0 0;font-size:13px;color:#52525b">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF;text-decoration:none">service@assembleatease.com</a></p>
   </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Texas network &bull; Austin headquarters</td></tr></table>
 </div></body></html>`,
     });
   } catch (e) {

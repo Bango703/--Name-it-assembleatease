@@ -1,10 +1,10 @@
 # Page Governance Report
 
-Generated from 370 HTML pages.
+Generated from 371 HTML pages.
 
 ## Status Counts
 
-- PASS: 369
+- PASS: 370
 - WARNING: 1
 - FAIL: 0
 
@@ -13,7 +13,7 @@ Generated from 370 HTML pages.
 - assembler_portal: 6
 - assembler_public: 1
 - auth: 5
-- blog_article: 16
+- blog_article: 17
 - blog_index: 1
 - booking: 1
 - business: 1

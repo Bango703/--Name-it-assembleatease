@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const client = new Anthropic({ apiKey: key });
 
-  const system = `You are a sharp, concise business assistant for AssembleAtEase — a professional furniture assembly and handyman service in Austin, TX.
+  const system = `You are a sharp, concise business assistant for AssembleAtEase — a Texas home-services marketplace headquartered in Austin.
 You help the owner manage bookings, understand revenue, and run a growing service business.
 
 Business context provided by the dashboard:

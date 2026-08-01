@@ -5,6 +5,7 @@ import { randomToken, guestMutationTokenHash } from '../_payment-security.js';
 import { normalizeUsPhone } from '../_phone.js';
 import { logActivity } from '../booking/_activity.js';
 import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_offline-payment.js';
+import { isMissingServiceLocationColumn, parseServiceLocation } from '../_booking-location.js';
 
 // Owner-created offline bookings never touch Stripe capture or automated
 // dispatch. They can remain unassigned for the owner's direct completion path,
@@ -73,6 +74,7 @@ export default async function handler(req, res) {
   // ── Address required. Owner intentionally bypasses the active-market ZIP gate. ──
   const cleanAddress = String(address || '').trim().replace(/\s+/g, ' ').slice(0, 240);
   if (!cleanAddress) return res.status(400).json({ error: 'Service address is required.' });
+  const serviceLocation = parseServiceLocation({ address: cleanAddress });
 
   // ── Appointment date required (YYYY-MM-DD); time optional. Owner sets freely. ──
   const cleanDate = String(date || '').trim().slice(0, 10);
@@ -131,6 +133,9 @@ export default async function handler(req, res) {
     customer_phone: phone,
     customer_email: cleanEmail || null,
     address: cleanAddress,
+    service_city: serviceLocation.city,
+    service_state: serviceLocation.state,
+    service_zip: serviceLocation.zip,
     date: cleanDate,
     time: cleanTime,
     details: null,
@@ -157,8 +162,14 @@ export default async function handler(req, res) {
     owner_booking_note: cleanNote,
   };
 
-  const { data: saved, error: insertErr } = await sb
+  let { data: saved, error: insertErr } = await sb
     .from('bookings').insert(insertPayload).select('id').single();
+
+  if (insertErr && isMissingServiceLocationColumn(insertErr)) {
+    const { service_city, service_state, service_zip, ...legacyLocationPayload } = insertPayload;
+    ({ data: saved, error: insertErr } = await sb
+      .from('bookings').insert(legacyLocationPayload).select('id').single());
+  }
 
   if (insertErr || !saved) {
     console.error('Owner create-booking insert error:', insertErr);

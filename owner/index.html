@@ -783,10 +783,10 @@
       <div id="market-demand-view" style="display:none">
         <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Online booking is active across Texas. Central Texas can use automatic dispatch; other Texas bookings require owner-managed Easer assignment. Markets outside Texas remain demand collection only.</p>
         <div class="stats-row" id="md-stats-row">
-          <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Active Markets</div></div>
-          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Emerging Markets</div></div>
-          <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Market Requests</div></div>
-          <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Market Conversion Rate</div></div>
+          <div class="stat teal"><div class="stat-value" id="md-active">—</div><div class="stat-label">Demand Signals</div></div>
+          <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Real Bookings</div></div>
+          <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Unbooked Requests</div></div>
+          <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Manual Assignment</div></div>
           <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Easer Supply by Market</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
         </div>
@@ -807,7 +807,7 @@
           </div>
 
           <div class="detail-panel open" style="grid-column:1/-1">
-            <div class="detail-section-title">Market Requests</div>
+            <div class="detail-section-title">Demand Activity</div>
             <div style="overflow-x:auto;margin-top:0.85rem">
               <table id="md-requests-table" style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.82rem">
                 <thead>
@@ -817,7 +817,7 @@
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Market</th>
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Service</th>
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Date</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:right">Estimate</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:right">Value</th>
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
                   </tr>
                 </thead>
@@ -941,7 +941,7 @@
             <div style="margin-bottom:0.5rem;display:flex;gap:0.4rem;flex-wrap:wrap">
               <button onclick="intelQuick('Why am I getting cancellations?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Cancellation reasons</button>
               <button onclick="intelQuick('Write a follow-up email for a customer who cancelled')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Draft follow-up email</button>
-              <button onclick="intelQuick('What should I charge for furniture assembly in Austin?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Pricing advice</button>
+              <button onclick="intelQuick('What should I charge for furniture assembly across my active Texas markets?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Pricing advice</button>
               <button onclick="intelQuick('How do I expand to a second city?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Expansion strategy</button>
               <button onclick="intelQuick('Which service makes me the most money?')" class="btn" style="font-size:0.68rem;padding:2px 8px;border-radius:999px">Most profitable service</button>
             </div>
@@ -1185,7 +1185,7 @@
         <!-- Executive Overview -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;margin:0 0 0.75rem">
           <div class="detail-section-title" style="margin:0">Selected-Period Money Summary</div>
-          <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Austin time</div>
+          <div id="an-period-note" style="font-size:0.74rem;color:var(--muted);font-weight:700">Year &middot; Central time</div>
         </div>
         <div class="stats-row" id="analytics-stats-row" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
           <div class="stat teal"><div class="stat-value" id="an-gross-per-job">—</div><div class="stat-label">Platform Gross / Job</div></div>
@@ -1205,6 +1205,7 @@
           <div class="stat orange"><div class="stat-value" id="an-refund-rework-rate">—</div><div class="stat-label">Refund/Rework Rate</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-active-easers">—</div><div class="stat-label">Active Easers</div></div>
         </div>
+        <div id="an-empty-period" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#1e3a8a;font-size:0.8rem;line-height:1.5"></div>
 
         <!-- Contractor Tax / 1099 (calendar year, from payout_ledger) -->
         <div class="detail-panel open" style="margin-top:1.5rem">
@@ -1342,7 +1343,7 @@
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
               <div>
                 <div class="detail-section-title" style="margin:0">Expansion Readiness</div>
-                <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">All-time Austin readiness. This does not change when the period filter changes.</div>
+                <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">All-time Texas launch readiness. This does not change when the period filter changes.</div>
               </div>
               <div id="an-expansion-status" style="border-radius:999px;padding:0.35rem 0.75rem;font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:0.08em">—</div>
             </div>
@@ -1758,7 +1759,7 @@ window.intelQuick = intelQuick;
     <div class="modal-row">
       <div>
         <label class="modal-label">City *</label>
-        <input type="text" class="modal-input" id="ae-city" placeholder="Austin"/>
+        <input type="text" class="modal-input" id="ae-city" placeholder="City"/>
       </div>
       <div>
         <label class="modal-label">Zip</label>
@@ -1876,6 +1877,7 @@ window.intelQuick = intelQuick;
       <div id="manual-payment-close-discount" style="display:none;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem">
         <div style="font-size:0.78rem;font-weight:800;color:#1e3a8a">All customer funds received?</div>
         <div id="manual-payment-close-discount-copy" style="font-size:0.75rem;color:#334155;line-height:1.5;margin-top:0.25rem"></div>
+        <div id="manual-payment-close-discount-status" aria-live="polite" style="font-size:0.74rem;color:#475569;line-height:1.45;margin-top:0.45rem"></div>
         <button id="manual-payment-close-discount-btn" type="button" class="btn" style="max-width:100%;white-space:normal;text-align:center;justify-content:center;margin-top:0.65rem;background:#fff;border-color:#60a5fa;color:#1d4ed8;font-weight:800">Close Balance as Customer Discount</button>
       </div>
       <div id="manual-payment-match" aria-live="polite" style="display:none;margin-bottom:0.75rem"></div>
@@ -2060,6 +2062,7 @@ window.intelQuick = intelQuick;
   const $manualPaymentBalance = document.getElementById('manual-payment-balance');
   const $manualPaymentCloseDiscount = document.getElementById('manual-payment-close-discount');
   const $manualPaymentCloseDiscountCopy = document.getElementById('manual-payment-close-discount-copy');
+  const $manualPaymentCloseDiscountStatus = document.getElementById('manual-payment-close-discount-status');
   const $manualPaymentCloseDiscountButton = document.getElementById('manual-payment-close-discount-btn');
   const $manualRefundRow = document.getElementById('manual-refund-row');
   const $manualRefundAmount = document.getElementById('manual-refund-amount');
@@ -2109,6 +2112,7 @@ window.intelQuick = intelQuick;
   var manualPaymentMatchRequest = 0;
   var manualPaymentCandidates = [];
   var manualPaymentSelectedCandidate = null;
+  var manualPaymentDiscountPreflightRequest = 0;
 
   function manualPaymentDollarInputCents(input) {
     var raw = String((input && input.value) || '').trim();
@@ -2145,6 +2149,50 @@ window.intelQuick = intelQuick;
         ? 'Close ' + fmt$(balanceCents) + ' as Customer Discount'
         : 'Close Balance as Customer Discount';
       $manualPaymentCloseDiscountButton.disabled = !canCloseAsDiscount;
+    }
+  }
+
+  async function loadManualPaymentDiscountEligibility(booking) {
+    var requestId = ++manualPaymentDiscountPreflightRequest;
+    if (!$manualPaymentCloseDiscount || $manualPaymentCloseDiscount.style.display === 'none' || !booking) return;
+    if ($manualPaymentCloseDiscountButton) $manualPaymentCloseDiscountButton.disabled = true;
+    if ($manualPaymentCloseDiscountStatus) {
+      $manualPaymentCloseDiscountStatus.textContent = 'Checking the payment and payout ledgers...';
+      $manualPaymentCloseDiscountStatus.style.color = '#475569';
+    }
+    try {
+      var response = await fetch('/api/owner/close-manual-balance-discount?bookingId=' + encodeURIComponent(booking.id), {
+        headers: headers(),
+      });
+      var data = await response.json().catch(function(){ return {}; });
+      if (requestId !== manualPaymentDiscountPreflightRequest) return;
+      if (!response.ok || data.error) throw new Error(data.error || 'The balance could not be verified');
+      if (pendingAction && pendingAction.id === booking.id) {
+        pendingAction.expectedTotalCents = Number(data.originalTotalCents || 0);
+        pendingAction.grossCollectedCents = Number(data.grossCollectedCents || 0);
+        updateManualPaymentBalanceSummary();
+      }
+      if (!data.eligible) {
+        var blocker = data.blockers && data.blockers[0];
+        if ($manualPaymentCloseDiscountButton) $manualPaymentCloseDiscountButton.disabled = true;
+        if ($manualPaymentCloseDiscountStatus) {
+          $manualPaymentCloseDiscountStatus.textContent = blocker && blocker.message || 'This booking is not eligible for a final balance discount.';
+          $manualPaymentCloseDiscountStatus.style.color = '#991b1b';
+        }
+        return;
+      }
+      if ($manualPaymentCloseDiscountButton) $manualPaymentCloseDiscountButton.disabled = false;
+      if ($manualPaymentCloseDiscountStatus) {
+        $manualPaymentCloseDiscountStatus.textContent = 'Ready: verified payments ' + fmt$(data.grossCollectedCents) + ', final discount ' + fmt$(data.discountCents) + '. No new charge, refund, or Easer payout will be created.';
+        $manualPaymentCloseDiscountStatus.style.color = '#166534';
+      }
+    } catch (error) {
+      if (requestId !== manualPaymentDiscountPreflightRequest) return;
+      if ($manualPaymentCloseDiscountButton) $manualPaymentCloseDiscountButton.disabled = true;
+      if ($manualPaymentCloseDiscountStatus) {
+        $manualPaymentCloseDiscountStatus.textContent = error.message || 'The ledgers could not be verified. No amount was changed.';
+        $manualPaymentCloseDiscountStatus.style.color = '#991b1b';
+      }
     }
   }
 
@@ -2422,8 +2470,10 @@ window.intelQuick = intelQuick;
         if (currentView === 'analytics') renderAnalytics();
       } catch (error) {
         toast(error.message || 'The balance could not be closed safely', 'error');
-        button.disabled = false;
         button.textContent = 'Close ' + fmt$(discountCents) + ' as Customer Discount';
+        var latestBooking = allBookings.find(function(item){ return item.id === pendingAction.id; });
+        if (latestBooking) loadManualPaymentDiscountEligibility(latestBooking);
+        else button.disabled = true;
       }
     });
   }
@@ -2445,6 +2495,7 @@ window.intelQuick = intelQuick;
     }
     updateManualPaymentBalanceSummary();
     updateManualPaymentReview();
+    loadManualPaymentDiscountEligibility(booking);
   }
 
   function setManualRefundFieldsVisible(show, booking, recovery) {
@@ -2877,11 +2928,11 @@ window.intelQuick = intelQuick;
         if (pending > 0) { $navWl.textContent = pending; $navWl.style.display = ''; }
         else $navWl.style.display = 'none';
       }).catch(function(){});
-    // Nav badge: emerging-market demand requests
+    // Nav badge: demand records that require owner assignment or follow-up.
     fetch('/api/owner/market-demand', { headers: headers() })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var count = ((d.summary || {}).marketRequests) || 0;
+        var count = ((d.summary || {}).ownerActionRequired) || 0;
         var $navMd = document.getElementById('nav-market-demand');
         if (count > 0) { $navMd.textContent = count; $navMd.style.display = ''; }
         else $navMd.style.display = 'none';
@@ -3697,6 +3748,13 @@ window.intelQuick = intelQuick;
 
   function _renderEvidence(bookingId, cache, contentEl, warningEl, badgeEl, isActiveTab) {
     var booking = allBookings.find(function(b) { return b.id === bookingId; });
+    var damageReviewPanel = booking && booking.damage_review_status === 'review_required'
+      ? '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:0.9rem 1rem;margin-bottom:1rem;color:#9a3412;font-size:0.82rem;line-height:1.55">'
+        + '<strong>Action required: document this damage review.</strong><br>Open the saved evidence, record the follow-up and outcome, then acknowledge the report. This closes the alert and hold; it does not send money or change earnings.'
+        + '<div style="margin-top:0.7rem"><button type="button" class="btn btn-amber" onclick="window.openDamageReview(\'' + esc(String(bookingId)) + '\')"' + (cache.error || cache.total === 0 ? ' disabled' : '') + '>Review Steps and Close Alert</button></div>'
+        + (cache.error || cache.total === 0 ? '<div style="margin-top:0.45rem;font-size:0.74rem">Evidence must load before this acknowledgment can be completed.</div>' : '')
+        + '</div>'
+      : '';
     var ownerUploadPanel = document.getElementById('owner-evidence-upload');
     var canOwnerUploadHistorical = booking
       && booking.source === 'owner_manual'
@@ -3742,18 +3800,18 @@ window.intelQuick = intelQuick;
     if (!isActiveTab || !contentEl) return;
 
     if (cache.error) {
-      contentEl.innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load evidence: ' + esc(cache.error) + '</div>';
+      contentEl.innerHTML = damageReviewPanel + '<div style="color:var(--red);font-size:0.85rem">Failed to load evidence: ' + esc(cache.error) + '</div>';
       return;
     }
 
     if (cache.total === 0) {
-      contentEl.innerHTML = booking && booking.status === 'completed'
+      contentEl.innerHTML = damageReviewPanel + (booking && booking.status === 'completed'
         ? '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:0.875rem;color:#92400e;font-size:0.85rem">'
           + 'No completion evidence uploaded for this booking.<br>'
           + '<span style="font-size:0.78rem;color:#b45309">' + (booking.source === 'owner_manual'
             ? (booking.assembler_id ? 'Use the historical evidence form below.' : 'Credit the owner-Easer first, then upload the completion photo.')
             : 'Easers can upload photos before marking a job complete.') + '</span></div>'
-        : '<div style="color:var(--muted)">No evidence uploaded yet.</div>';
+        : '<div style="color:var(--muted)">No evidence uploaded yet.</div>');
       return;
     }
 
@@ -3799,7 +3857,7 @@ window.intelQuick = intelQuick;
         + '</div></div>';
     }).join('');
 
-    contentEl.innerHTML = '<div class="evidence-grid">' + cards + '</div>';
+    contentEl.innerHTML = damageReviewPanel + '<div class="evidence-grid">' + cards + '</div>';
   }
 
   var ownerEvidenceUploadButton = document.getElementById('owner-evidence-upload-btn');
@@ -4389,6 +4447,25 @@ window.intelQuick = intelQuick;
     pendingAction = null;
   }
 
+  function openDamageReviewModal(bookingId) {
+    var booking = allBookings.find(function(item){ return item.id == bookingId; });
+    if (!booking || booking.damage_review_status !== 'review_required') {
+      toast('This damage report is no longer awaiting acknowledgment. Refresh the booking.', 'error');
+      return;
+    }
+    prepareReasonModal();
+    pendingAction = { id: bookingId, type: 'damage-review' };
+    document.getElementById('reason-modal-title').textContent = 'Acknowledge Damage Report';
+    document.getElementById('reason-modal-desc').textContent = 'Complete each review step and record the outcome. AAE will log the acknowledgment and close the active alert and damage hold. No money is sent and no earnings are changed.';
+    $reasonText.placeholder = 'Required resolution note: what you reviewed, follow-up needed, and outcome';
+    document.getElementById('reason-confirm').textContent = 'Acknowledge and Close Alert';
+    document.getElementById('reason-confirm').className = 'btn btn-amber';
+    setDamageReviewFieldsVisible(true);
+    $reasonModal.classList.add('open');
+  }
+
+  window.openDamageReview = openDamageReviewModal;
+
   $detailAct.addEventListener('click', async function(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -4662,16 +4739,7 @@ window.intelQuick = intelQuick;
       $reasonText.placeholder = 'Reason (optional)';
       $reasonModal.classList.add('open');
     } else if (action === 'damage-review') {
-      var bDamageReview = allBookings.find(function(item){ return item.id == id; });
-      if (!bDamageReview) return;
-      pendingAction = { id: id, type: 'damage-review' };
-      document.getElementById('reason-modal-title').textContent = 'Acknowledge Damage Report';
-      document.getElementById('reason-modal-desc').textContent = 'Complete each review step and record the outcome. AAE will log the acknowledgment and close the active alert and damage hold. No money is sent and no earnings are changed.';
-      $reasonText.placeholder = 'Required resolution note: what you reviewed, follow-up needed, and outcome';
-      document.getElementById('reason-confirm').textContent = 'Acknowledge and Close Alert';
-      document.getElementById('reason-confirm').className = 'btn btn-amber';
-      setDamageReviewFieldsVisible(true);
-      $reasonModal.classList.add('open');
+      openDamageReviewModal(id);
     } else if (action === 'payout-review') {
       var bReview = allBookings.find(function(item){ return item.id == id; });
       if (!bReview) return;
@@ -6066,7 +6134,7 @@ window.intelQuick = intelQuick;
     var alertsEl = document.getElementById('ops-alerts-bar');
     if (d.alerts && d.alerts.length) {
       alertsEl.innerHTML = d.alerts.slice(0, 6).map(function(a) {
-        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review Report' };
+        var actionLabels = { dispatch:'Dispatch', redispatch:'Re-dispatch', reassign:'View Booking', contact_easer:'Contact Easer', review_timeline:'Review Timeline', review_damage_evidence:'Review and Close Alert' };
         var encodedRecipient = encodeURIComponent(a.recipientEmail || '');
         var safeAction = actionLabels[a.action] ? a.action : '';
         var safeBookingId = /^[0-9a-f-]{36}$/i.test(String(a.bookingId || '')) ? a.bookingId : '';
@@ -6291,7 +6359,7 @@ window.intelQuick = intelQuick;
           + '<div style="flex:1"><div style="font-size:0.84rem;font-weight:700;color:var(--text)">' + esc(report.booking_ref || report.ref || 'Booking report') + '</div>'
           + '<div style="font-size:0.8rem;color:var(--soft);line-height:1.45">' + esc(report.description || report.detail || report.notes || 'Damage or rework evidence requires review.') + '</div>'
           + (when ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px">' + esc(new Date(when).toLocaleString()) + '</div>' : '') + '</div>'
-          + (safeDamageBookingId ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px" onclick="opsAction(\'review_damage_evidence\',\'' + safeDamageBookingId + '\')">Review Booking</button>' : '')
+          + (safeDamageBookingId ? '<button class="btn" style="font-size:0.7rem;padding:2px 9px" onclick="opsAction(\'review_damage_evidence\',\'' + safeDamageBookingId + '\')">Review and Close Alert</button>' : '')
           + '</div>';
       }).join('');
     }
@@ -6893,6 +6961,15 @@ window.intelQuick = intelQuick;
     });
   });
 
+  window.showAllFinancialPeriods = function() {
+    financialPeriod = 'all';
+    localStorage.setItem('aae-owner-financial-period', financialPeriod);
+    document.querySelectorAll('[data-fin-period]').forEach(function(button){
+      button.classList.toggle('active', button.dataset.finPeriod === 'all');
+    });
+    renderAnalytics();
+  };
+
   async function renderAnalytics() {
     var tbody = document.getElementById('an-ledger-body');
     if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading financial dashboard...</td></tr>';
@@ -7102,7 +7179,7 @@ window.intelQuick = intelQuick;
     var exec = d.executiveOverview || {};
     var a = d.assumptions || {};
     var periodLabels = { today: 'Today', week: 'Last 7 Days', month: 'This Month', year: 'This Year', all: 'All Time' };
-    setText('an-period-note', (periodLabels[d.period] || 'Selected Period') + ' · Austin time');
+    setText('an-period-note', (periodLabels[d.period] || 'Selected Period') + ' · Central time');
     setText('fin-gross-per-job', fmt$(s.grossProfitPerJob || 0));
     setText('fin-assumption-reserve', Math.round(Number(a.reserveRate || 0) * 100) + '%');
     setText('fin-assumption-processing', (d.labels && d.labels.processingFees) === 'actual'
@@ -7128,6 +7205,18 @@ window.intelQuick = intelQuick;
     setText('an-repeat-rate', fmtPct(exec.repeatCustomerRate));
     setText('an-refund-rework-rate', fmtPct(exec.refundReworkRate));
     setText('an-active-easers', String(exec.activeEasers || 0));
+    var emptyPeriod = document.getElementById('an-empty-period');
+    if (emptyPeriod) {
+      if (Number(exec.completedJobs || 0) === 0 && d.period !== 'all') {
+        emptyPeriod.style.display = '';
+        emptyPeriod.innerHTML = '<strong>No completed jobs in ' + esc(periodLabels[d.period] || 'this period') + '.</strong> '
+          + 'The $0.00 cards apply only to this filter; they do not erase earlier jobs. '
+          + '<button type="button" class="btn" style="margin-left:0.45rem;padding:0.25rem 0.55rem;font-size:0.72rem" onclick="showAllFinancialPeriods()">Show All Time</button>';
+      } else {
+        emptyPeriod.style.display = 'none';
+        emptyPeriod.innerHTML = '';
+      }
+    }
     reserveParts.rewards = Number(exec.assemblecashLiabilityCents || 0); renderReserveRollup();
     setStatTone('an-gross-per-job', Number(exec.platformGrossProfitPerCompletedJob || 0) >= 3500 ? 'teal' : 'orange');
     setStatTone('an-profit', Number(exec.platformGrossProfit || 0) >= 0 ? 'teal' : 'red');
@@ -7508,14 +7597,14 @@ window.intelQuick = intelQuick;
       if (!r.ok) throw new Error(d.error || 'Failed to load market demand');
       renderMarketDemand(d);
       var badge = document.getElementById('nav-market-demand');
-      var ct = ((d.summary || {}).marketRequests) || 0;
+      var ct = ((d.summary || {}).ownerActionRequired) || 0;
       if (badge) {
         if (ct > 0) { badge.textContent = ct; badge.style.display = ''; }
         else badge.style.display = 'none';
       }
     } catch(e) {
-      document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load market demand. Run migration 017 if the market_requests table is missing.</div>';
-      document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Failed to load market requests.</td></tr>';
+      document.getElementById('md-top-markets').innerHTML = '<div style="color:var(--red);font-size:0.85rem">Failed to load demand from bookings and market requests.</div>';
+      document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1rem;color:var(--red)">Failed to load demand activity.</td></tr>';
     }
   }
 
@@ -7530,10 +7619,10 @@ window.intelQuick = intelQuick;
 
   function renderMarketDemand(data) {
     var s = data.summary || {};
-    document.getElementById('md-active').textContent = s.activeMarkets || 0;
-    document.getElementById('md-emerging').textContent = s.emergingMarkets || 0;
-    document.getElementById('md-requests').textContent = s.marketRequests || 0;
-    document.getElementById('md-conversion').textContent = fmtPct(s.marketConversionRate || 0);
+    document.getElementById('md-active').textContent = s.demandSignals || 0;
+    document.getElementById('md-emerging').textContent = s.bookedDemand || 0;
+    document.getElementById('md-requests').textContent = s.unbookedDemand || 0;
+    document.getElementById('md-conversion').textContent = s.manualDispatchDemand || 0;
     document.getElementById('md-supply').textContent = s.easerSupplyByMarket || 0;
     document.getElementById('md-potential').textContent = s.totalPotentialRevenue == null
       ? '—'
@@ -7571,10 +7660,10 @@ window.intelQuick = intelQuick;
         + mdStatusPill(m.activationStatus)
         + '</div>'
         + '<div class="md-metrics-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.6rem;margin-bottom:0.65rem">'
-        + mdMiniMetric('Requests', m.requestCount)
+        + mdMiniMetric('All Demand', m.requestCount)
+        + mdMiniMetric('Bookings', m.bookedCount || 0)
+        + mdMiniMetric('Unbooked', m.unbookedCount || 0)
         + mdMiniMetric('Priced', m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
-        + mdMiniMetric('Approved Easers', m.approvedEasers)
-        + mdMiniMetric('Demand/Supply', ratio)
         + '</div>'
         + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Top services:</strong> ' + services + '</div>'
         + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">ZIPs: ' + ((m.requestedZips || []).join(', ') || '—') + ' &bull; Easer apps: ' + (m.easerApplications || 0) + ' &bull; Waitlist: ' + (m.waitlistEasers || 0) + '</div>'
@@ -7585,21 +7674,46 @@ window.intelQuick = intelQuick;
   function renderMarketRequests(requests) {
     var tbody = document.getElementById('md-requests-tbody');
     if (!requests.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:var(--muted)">No market requests yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:var(--muted)">No booking or request demand has been recorded yet.</td></tr>';
       return;
     }
     tbody.innerHTML = requests.slice(0, 80).map(function(r) {
+      var ref = esc(r.requestRef || '—');
+      var refCell = r.bookingId
+        ? '<button type="button" class="btn" style="font-size:0.72rem;padding:0.25rem 0.5rem" onclick="openDemandBooking(\'' + esc(String(r.bookingId)) + '\')">' + ref + '</button>'
+        : ref;
+      var status = r.recordType === 'booking'
+        ? 'BOOKING · ' + String(r.status || 'pending').toUpperCase()
+        : String(r.status || 'new').toUpperCase();
       return '<tr>'
-        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-weight:700;color:var(--text)">' + esc(r.requestRef || '—') + '</td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-weight:700;color:var(--text)">' + refCell + '</td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)"><div style="font-weight:700;color:var(--text)">' + esc(r.customerName || '—') + '</div><div style="font-size:0.72rem;color:var(--muted)">' + esc(r.customerEmail || '') + '</div></td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.city || '—') + ', ' + esc(r.state || '') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(r.zip || '') + '</div></td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.requestedService || '—') + '</td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.requestedDate || '—') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(r.desiredTime || '') + '</div></td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700">' + (r.estimatedRevenue == null ? '<span style="color:var(--muted);font-weight:500">Not priced</span>' : fmt$(r.estimatedRevenue)) + '</td>'
-        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + mdStatusPill((r.status || 'new').toUpperCase()) + '</td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + mdStatusPill(status) + '</td>'
         + '</tr>';
     }).join('');
   }
+
+  window.openOwnerBookingRecord = async function(bookingId, tabName) {
+    currentView = 'bookings';
+    document.querySelectorAll('.sidebar-nav a').forEach(function(link) { link.classList.toggle('active', link.dataset.view === 'bookings'); });
+    hideAllViews();
+    $bookingsView.style.display = '';
+    $topbarTitle.textContent = 'Bookings';
+    stopLiveOps();
+    var opened = await window.openPayoutBooking(bookingId, 'booking');
+    if (opened && tabName === 'evidence') {
+      switchDetailTab('evidence', document.querySelector('[data-tab="evidence"]'));
+    }
+    return opened;
+  };
+
+  window.openDemandBooking = async function(bookingId) {
+    return window.openOwnerBookingRecord(bookingId, null);
+  };
 
   function mdMiniMetric(label, value) {
     return '<div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.65rem;min-width:0"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">' + esc(label) + '</div><div style="font-size:0.92rem;font-weight:800;color:var(--text);margin-top:0.15rem;overflow-wrap:anywhere">' + esc(String(value)) + '</div></div>';
@@ -8530,7 +8644,7 @@ window.intelQuick = intelQuick;
     document.getElementById('ae-name').value = '';
     document.getElementById('ae-phone').value = '';
     document.getElementById('ae-email').value = '';
-    document.getElementById('ae-city').value = 'Austin';
+    document.getElementById('ae-city').value = '';
     document.getElementById('ae-zip').value = '';
     document.getElementById('ae-exp').value = '';
     document.getElementById('ae-bio').value = '';

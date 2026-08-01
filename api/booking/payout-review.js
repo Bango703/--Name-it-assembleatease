@@ -3,6 +3,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { loadBookingStripeDisputeTruth } from './_stripe-dispute-truth.js';
+import { transitionOperationCase } from '../_operation-cases.js';
 
 /**
  * POST /api/booking/payout-review
@@ -299,6 +300,18 @@ async function resolveDamageReview({ sb, res, booking, notes, acknowledgements }
     });
   }
 
+  const caseSync = await resolveLinkedDamageCase(sb, booking.id, notes);
+  if (!caseSync.ok) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'damage_case_resolution_sync_failed',
+      actorType: 'system',
+      actorName: 'Operations Cases',
+      description: 'The authoritative damage hold was resolved, but the linked Operations Case status could not be synchronized.',
+      metadata: { error: caseSync.error },
+    }).catch(() => {});
+  }
+
   return res.status(200).json({
     success: true,
     alreadyResolved: resolved.already_resolved === true,
@@ -308,5 +321,33 @@ async function resolveDamageReview({ sb, res, booking, notes, acknowledgements }
     payoutMode: resolved.payout_mode_snapshot || booking.payout_mode_snapshot || null,
     damageReviewStatus: 'resolved',
     paymentSent: false,
+    caseStatusSynchronized: caseSync.ok,
+    caseSyncWarning: caseSync.ok ? null : 'The damage alert is closed. Refresh Operations Cases before updating its linked record.',
   });
+}
+
+async function resolveLinkedDamageCase(sb, bookingId, notes) {
+  try {
+    const { data: operationCase, error } = await sb
+      .from('operations_cases')
+      .select('id, status')
+      .eq('source', 'easer_report')
+      .eq('source_ref', `damage-booking:${bookingId}`)
+      .maybeSingle();
+    if (error) throw error;
+    if (!operationCase || ['resolved', 'closed'].includes(operationCase.status)) return { ok: true };
+    await transitionOperationCase(sb, {
+      caseId: operationCase.id,
+      expectedStatus: operationCase.status,
+      targetStatus: 'resolved',
+      actorType: 'system',
+      actorName: 'Damage workflow',
+      note: `Booking damage review completed: ${notes}`.slice(0, 4000),
+      confirmed: true,
+    });
+    return { ok: true };
+  } catch (error) {
+    console.error('Damage Operations Case resolution sync failed:', error);
+    return { ok: false, error: error?.message || String(error) };
+  }
 }

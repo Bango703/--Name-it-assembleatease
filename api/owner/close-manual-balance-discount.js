@@ -55,8 +55,17 @@ function discountFailure(error) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
+  if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
+
+  const sb = getSupabase();
+  if (req.method === 'GET') {
+    const bookingId = String(req.query?.bookingId || '').trim();
+    if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
+    const eligibility = await loadDiscountEligibility(sb, bookingId);
+    if (eligibility.error) return res.status(eligibility.status || 500).json({ error: eligibility.error, code: eligibility.code });
+    return res.status(200).json(eligibility);
+  }
 
   const payload = req.body && typeof req.body === 'object' ? req.body : {};
   const bookingId = String(payload.bookingId || '').trim();
@@ -75,7 +84,25 @@ export default async function handler(req, res) {
     });
   }
 
-  const sb = getSupabase();
+  const eligibility = await loadDiscountEligibility(sb, bookingId);
+  if (eligibility.error) {
+    return res.status(eligibility.status || 500).json({ error: eligibility.error, code: eligibility.code });
+  }
+  if (!eligibility.eligible) {
+    return res.status(409).json({
+      error: eligibility.blockers[0]?.message || 'This balance cannot be closed as a discount.',
+      code: eligibility.blockers[0]?.code || 'OWNER_MANUAL_DISCOUNT_INELIGIBLE',
+      eligibility,
+    });
+  }
+  if (eligibility.originalTotalCents !== expectedTotalCents
+      || eligibility.discountCents !== expectedDiscountCents) {
+    return res.status(409).json({
+      error: 'The payment total changed. Refresh the booking and review the current balance.',
+      code: 'OWNER_MANUAL_BALANCE_CHANGED',
+      eligibility,
+    });
+  }
   const { data: booking, error: bookingError } = await sb
     .from('bookings')
     .select('id, ref, source, status, service, total_price, customer_name, customer_email')
@@ -197,3 +224,77 @@ export default async function handler(req, res) {
 }
 
 export { discountFailure };
+
+async function loadDiscountEligibility(sb, bookingId) {
+  const { data: booking, error: bookingError } = await sb
+    .from('bookings')
+    .select('id, ref, source, status, payment_status, total_price, payment_collected, payout_status, stripe_transfer_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (bookingError) {
+    console.error('Balance-discount eligibility booking load failed:', bookingError);
+    return { error: 'Could not verify the booking balance. No amount was changed.', status: 503, code: 'DISCOUNT_PREFLIGHT_FAILED' };
+  }
+  if (!booking) return { error: 'Booking not found', status: 404, code: 'BOOKING_NOT_FOUND' };
+
+  const [eventsResult, payoutResult, migrationResult] = await Promise.all([
+    sb.from('owner_manual_payment_events')
+      .select('amount_cents, refunded_cents, processing_fee_cents')
+      .eq('booking_id', booking.id),
+    sb.from('payout_ledger').select('id').eq('booking_id', booking.id).limit(1),
+    sb.from('platform_schema_state').select('migration_number').eq('migration_number', 52).maybeSingle(),
+  ]);
+  if (eventsResult.error || payoutResult.error) {
+    console.error('Balance-discount eligibility ledger load failed:', eventsResult.error || payoutResult.error);
+    return { error: 'Could not verify the payment and payout ledgers. No amount was changed.', status: 503, code: 'DISCOUNT_PREFLIGHT_FAILED' };
+  }
+
+  const events = eventsResult.data || [];
+  const grossCents = events.reduce((sum, event) => sum + Math.max(0, Number(event.amount_cents || 0)), 0);
+  const refundedCents = events.reduce((sum, event) => sum + Math.max(0, Number(event.refunded_cents || 0)), 0);
+  const processingFeeCents = events.reduce((sum, event) => sum + Math.max(0, Number(event.processing_fee_cents || 0)), 0);
+  const originalTotalCents = Math.max(0, Number(booking.total_price || 0));
+  const discountCents = Math.max(0, originalTotalCents - grossCents);
+  const blockers = [];
+  const block = (code, message) => blockers.push({ code, message });
+
+  if (migrationResult.error || !migrationResult.data) {
+    block('MIGRATION_052_REQUIRED', 'Apply migration 052 before closing a balance as a discount.');
+  }
+  if (booking.source !== 'owner_manual') block('OWNER_MANUAL_REQUIRED', 'Only an owner-created booking can use this balance-discount workflow.');
+  if (booking.status !== 'completed') block('COMPLETION_REQUIRED', 'Complete the job before closing its final balance as a discount.');
+  if (booking.payment_status !== 'offline_recorded') block('OFFLINE_PAYMENT_REQUIRED', 'This booking does not use the verified owner-manual payment ledger.');
+  if (booking.payment_collected === true) block('PAYMENT_ALREADY_FINALIZED', 'This booking is already recorded as paid in full.');
+  if (['paid', 'transferred'].includes(String(booking.payout_status || ''))
+      || booking.stripe_transfer_id
+      || (payoutResult.data || []).length) {
+    block('OWNER_MANUAL_FINANCIALS_LOCKED', 'An Easer payment or transfer is already recorded, so the customer total cannot be changed.');
+  }
+  if (booking.financial_operation_key
+      || booking.financial_operation_type
+      || booking.financial_operation_started_at
+      || booking.financial_reconciliation_required_at) {
+    block('OWNER_MANUAL_FINANCIALS_LOCKED', 'Another financial operation or reconciliation is active. Resolve it before changing the customer total.');
+  }
+  if (refundedCents > 0) block('REFUND_RECONCILIATION_REQUIRED', 'This booking has a refund and must use refund reconciliation.');
+  if (grossCents <= 0) block('RECORDED_PAYMENT_REQUIRED', 'Record at least one verified customer payment before closing a remaining balance as a discount.');
+  if (discountCents <= 0) block('NO_REMAINING_BALANCE', 'There is no positive remaining balance to discount.');
+  if (grossCents >= originalTotalCents && originalTotalCents > 0) block('NO_REMAINING_BALANCE', 'Recorded payments already meet or exceed the booking total.');
+
+  return {
+    eligible: blockers.length === 0,
+    bookingId: booking.id,
+    ref: booking.ref,
+    originalTotalCents,
+    grossCollectedCents: grossCents,
+    discountCents,
+    processingFeeCents,
+    refundedCents,
+    blockers,
+    noCustomerChargeCreated: true,
+    noRefundCreated: true,
+    noPayoutCreated: true,
+  };
+}
+
+export { loadDiscountEligibility };

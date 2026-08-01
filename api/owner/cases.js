@@ -113,7 +113,7 @@ async function loadBookingMap(sb, cases) {
   if (!ids.length) return new Map();
   const { data, error } = await sb
     .from('bookings')
-    .select('id, ref, service, status, payment_status, payout_status')
+    .select('id, ref, service, status, payment_status, payout_status, damage_review_status')
     .in('id', ids);
   if (error) {
     console.error('Operations case booking linkage load failed:', error);
@@ -126,6 +126,7 @@ async function loadBookingMap(sb, cases) {
     status: row.status,
     paymentStatus: row.payment_status,
     payoutStatus: row.payout_status,
+    damageReviewStatus: row.damage_review_status || null,
   }]));
 }
 
@@ -175,6 +176,12 @@ export function summarizeOperationCases(rows = []) {
 }
 
 export function formatOperationCase(row, context = {}) {
+  const booking = context.booking || null;
+  const requiresBookingDamageResolution = row.case_type === 'damage'
+    && booking?.damageReviewStatus === 'review_required';
+  const actions = availableOperationCaseActions(row.status).filter(action => (
+    !requiresBookingDamageResolution || !['resolve', 'close'].includes(action.action)
+  ));
   return {
     id: row.id,
     ref: row.case_ref,
@@ -189,7 +196,7 @@ export function formatOperationCase(row, context = {}) {
     severity: row.severity,
     subject: row.subject,
     description: row.description,
-    booking: context.booking || null,
+    booking,
     customer: {
       name: row.customer_name || null,
       email: row.customer_email || null,
@@ -206,7 +213,8 @@ export function formatOperationCase(row, context = {}) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     notifications: context.notifications || emptyNotificationSummary(),
-    availableActions: availableOperationCaseActions(row.status),
+    availableActions: actions,
+    requiresBookingDamageResolution,
   };
 }
 

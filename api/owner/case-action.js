@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: existing, error: loadError } = await sb
     .from('operations_cases')
-    .select('id, case_ref, status')
+    .select('id, case_ref, case_type, status, booking_id')
     .eq('id', input.caseId)
     .maybeSingle();
 
@@ -57,6 +57,22 @@ export default async function handler(req, res) {
     const targetStatus = operationCaseActionTarget(input.action);
     if (!targetStatus || !canTransitionOperationCase(existing.status, targetStatus)) {
       return res.status(409).json({ error: 'That action is not available for the case in its current status.' });
+    }
+    if (existing.case_type === 'damage'
+        && existing.booking_id
+        && ['resolved', 'closed'].includes(targetStatus)) {
+      const { data: booking, error: bookingError } = await sb
+        .from('bookings')
+        .select('damage_review_status')
+        .eq('id', existing.booking_id)
+        .maybeSingle();
+      if (bookingError) throw bookingError;
+      if (booking?.damage_review_status === 'review_required') {
+        return res.status(409).json({
+          error: 'Review the linked booking evidence and complete its damage acknowledgment first. The case will close automatically.',
+          code: 'BOOKING_DAMAGE_REVIEW_REQUIRED',
+        });
+      }
     }
 
     const updated = await transitionOperationCase(sb, {

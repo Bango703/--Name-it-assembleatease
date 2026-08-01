@@ -181,7 +181,7 @@ export default async function handler(req, res) {
   const { message } = req.body;
   const isChat = !!message;
 
-  const systemPrompt = `You are the business intelligence system for AssembleAtEase — a professional assembly and handyman service in Austin, TX growing toward national expansion.
+  const systemPrompt = `You are the business intelligence system for AssembleAtEase — a Texas home-services marketplace headquartered in Austin. Prioritize reliable Texas operations before any future national expansion.
 
 You have full access to real-time platform data shown below. Your job is to surface what matters, flag problems before they cost money, and give the owner direct, actionable guidance.
 

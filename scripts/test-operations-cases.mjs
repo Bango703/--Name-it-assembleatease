@@ -217,7 +217,9 @@ assert.match(contactUi, /requestId:contactSubmissionId/);
 assert.match(casesApi, /verifyOwner\(req\)/);
 assert.match(caseActionApi, /verifyOwner\(req\)/);
 assert.match(caseActionApi, /moneyMovementCreated: false/);
-assert.doesNotMatch(caseActionApi, /\.from\(['"]bookings['"]\)/);
+assert.match(caseActionApi, /\.from\(['"]bookings['"]\)[\s\S]*\.select\(['"]damage_review_status['"]\)/);
+assert.doesNotMatch(caseActionApi, /\.from\(['"]bookings['"]\)[\s\S]{0,180}\.(?:insert|update|delete)\(/);
+assert.match(caseActionApi, /BOOKING_DAMAGE_REVIEW_REQUIRED/);
 assert.doesNotMatch(caseActionApi, /stripe\.(refunds|paymentIntents|transfers|payouts)/i);
 assert.match(ownerUi, /data-view="cases"/);
 assert.match(ownerUi, /id="cases-view"/);
@@ -229,6 +231,6 @@ assert.match(ownerCasesCss, /@media \(max-width: 520px\)/);
 assert.match(ownerCasesCss, /grid-template-columns: minmax\(0, 1fr\)/);
 assert.match(mobileAudit, /ownerView: 'cases'/);
 assert.match(mobileAudit, /cases: '#cases-list \.cases-list-item'/);
-assert.match(readiness, /REQUIRED_SCHEMA_MIGRATION = 53/);
+assert.match(readiness, /REQUIRED_SCHEMA_MIGRATION = 54/);
 
 console.log('Operations case durability, security, copy, and owner workflow tests: PASS');

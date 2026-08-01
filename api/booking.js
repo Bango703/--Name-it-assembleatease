@@ -15,6 +15,7 @@ import { logActivity } from './booking/_activity.js';
 import { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } from './booking/_appt-date.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
+import { parseServiceLocation } from './_booking-location.js';
 import {
   verifyRedemptionToken,
   getAvailableBalanceCents,
@@ -83,6 +84,7 @@ export default async function handler(req, res) {
   }
 
   const bookingCity = String(city || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+  const serviceLocation = parseServiceLocation({ address, city: bookingCity, state: 'TX', zip });
 
   const requestedDate = parseIsoCalendarDate(date);
   if (!requestedDate) {
@@ -328,6 +330,9 @@ export default async function handler(req, res) {
     customer_phone: phone,
     customer_email: email,
     address,
+    service_city: serviceLocation.city,
+    service_state: serviceLocation.state,
+    service_zip: serviceLocation.zip,
     date,
     time,
     details,
@@ -347,10 +352,17 @@ export default async function handler(req, res) {
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
   };
 
-  let { data: savedBooking, error: insertErr } = await sb.from('bookings').insert(bookingInsertPayload).select('id').single();
+  let activeBookingInsertPayload = bookingInsertPayload;
+  let { data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single();
+
+  if (insertErr && isMissingColumnError(insertErr) && /service_(?:city|state|zip)/i.test(String(insertErr.message || ''))) {
+    const { service_city, service_state, service_zip, ...withoutLocationColumns } = activeBookingInsertPayload;
+    activeBookingInsertPayload = withoutLocationColumns;
+    ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
+  }
 
   if (insertErr && isMissingColumnError(insertErr) && /promo_|assemblecash|bundle_slug/i.test(String(insertErr.message || ''))) {
-    const { promo_code, promo_discount_cents, assemblecash_redeemed_cents, bundle_slug, ...legacyBookingInsertPayload } = bookingInsertPayload;
+    const { promo_code, promo_discount_cents, assemblecash_redeemed_cents, bundle_slug, ...legacyBookingInsertPayload } = activeBookingInsertPayload;
     ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(legacyBookingInsertPayload).select('id').single());
   }
 
