@@ -4,6 +4,7 @@ import { loadCurrentCompletionEvidence } from '../api/booking/_completion-eviden
 import { deriveManualPayoutReadiness } from '../api/owner/_finance-ledger.js';
 import {
   allocateOperatingExpenses,
+  summarizeKnownOperatingCosts,
   summarizeLaborCosting,
 } from '../api/owner/financial-dashboard.js';
 
@@ -59,6 +60,8 @@ assert.match(ownerUi, /Total Platform Gross/);
 assert.match(ownerUi, /Owner-Easer Labor/);
 assert.match(ownerUi, /External Easer Labor/);
 assert.match(ownerUi, /Jobs Missing Labor Cost/);
+assert.match(ownerUi, /Known Operating Costs/);
+assert.match(ownerUi, /Other Opex\/mo/);
 assert.match(ownerUi, /Labor costing incomplete/);
 assert.doesNotMatch(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
 assert.match(ownerUi, /Central time/);
@@ -145,6 +148,21 @@ assert.deepEqual(allocateOperatingExpenses('all', 350_000, {
   from: null,
   to: '2026-01-31T00:00:00.000Z',
 });
+
+const beforeMailboxStart = summarizeKnownOperatingCosts('all', {}, new Date('2026-07-31T18:00:00.000Z'));
+assert.equal(beforeMailboxStart.recognizedCents, 0);
+assert.equal(beforeMailboxStart.monthlyRunRateCents, 798);
+assert.equal(beforeMailboxStart.items[0].nextChargeDate, '2026-08-01');
+const firstMailboxPayment = summarizeKnownOperatingCosts('all', {}, new Date('2026-08-01T18:00:00.000Z'));
+assert.equal(firstMailboxPayment.recognizedCents, 798);
+assert.equal(firstMailboxPayment.confirmedCents, 798);
+assert.equal(firstMailboxPayment.scheduledAssumptionCents, 0);
+assert.equal(firstMailboxPayment.items[0].nextChargeDate, '2026-09-01');
+const firstRecurringMailboxCharge = summarizeKnownOperatingCosts('all', {}, new Date('2026-09-01T18:00:00.000Z'));
+assert.equal(firstRecurringMailboxCharge.recognizedCents, 1_596);
+assert.equal(firstRecurringMailboxCharge.confirmedCents, 798);
+assert.equal(firstRecurringMailboxCharge.scheduledAssumptionCents, 798);
+assert.equal(firstRecurringMailboxCharge.items[0].nextChargeDate, '2026-10-01');
 
 const laborCosting = summarizeLaborCosting([
   {

@@ -210,7 +210,7 @@ function emailShell(content) {
       </div>
       <div style="padding:28px 24px">${content}</div>
       <div style="padding:16px 24px;background:#fafafa;border-top:1px solid #e5e7eb;text-align:center;font-size:11px;color:#9ca3af">
-        AssembleAtEase &bull; Austin, Texas &bull; service@assembleatease.com
+        AssembleAtEase &bull; Serving customers across Texas &bull; service@assembleatease.com
       </div>
     </div>
   </div></body></html>`;

@@ -179,7 +179,7 @@ export default async function handler(req, res) {
     <p style="margin:20px 0 0;font-size:13px;color:#52525b">Reply to this email if you have questions.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
+    AssembleAtEase &bull; Serving customers across Texas &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
   </td></tr></table>
 </div></body></html>`;
       notificationResult = await sendEmail({
@@ -221,7 +221,7 @@ export default async function handler(req, res) {
     <p style="margin:20px 0 0;font-size:13px;color:#52525b">Reply to this email to respond.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
+    AssembleAtEase &bull; Texas Professional Network &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
   </td></tr></table>
 </div></body></html>`;
       notificationResult = await sendEmail({
@@ -286,7 +286,7 @@ export default async function handler(req, res) {
       <p style="margin:0;font-size:13px;color:#1e40af">Contact <strong>${esc(booking.customer_name)}</strong> at <a href="mailto:${esc(booking.customer_email)}" style="color:#1e40af">${esc(booking.customer_email)}</a>.</p>
     </td></tr></table>
   </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Austin, TX</td></tr></table>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">AssembleAtEase &bull; Serving customers across Texas</td></tr></table>
 </div></body></html>`,
         replyTo: booking.customer_email,
         meta: {

@@ -181,7 +181,7 @@ function buildDailySummaryEmail({ date, newBookings, completedCount, cancelledCo
   </td></tr></table>
 
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:14px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    AssembleAtEase &bull; Austin, TX &bull; Daily automated summary
+    AssembleAtEase &bull; Texas Operations &bull; Daily automated summary
   </td></tr></table>
 </div></body></html>`;
 }

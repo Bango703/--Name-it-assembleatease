@@ -130,7 +130,7 @@ function buildEvidenceRequestEmail({ firstName, ref, service, date }) {
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    AssembleAtEase &bull; Austin, TX &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
+    AssembleAtEase &bull; Texas Professional Network &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a">service@assembleatease.com</a>
   </td></tr></table>
 </div></body></html>`;
 }

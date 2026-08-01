@@ -1151,7 +1151,8 @@
             <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.6rem;font-size:0.78rem;color:var(--soft)">
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Reserve</strong><br><span id="fin-assumption-reserve">2%</span></div>
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Processing</strong><br><span id="fin-assumption-processing">2.9% + $0.30</span></div>
-              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Opex</strong><br><span id="fin-assumption-opex">$3,500/year</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Other overhead</strong><br><span id="fin-assumption-opex">$3,500/year</span></div>
+              <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>Known recurring costs</strong><br><span id="fin-assumption-known-costs">$7.98/month</span></div>
               <div style="padding:0.65rem;background:var(--elevated);border-radius:8px"><strong>CAC</strong><br><span id="fin-assumption-cac">Editable</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.9rem">
@@ -1160,7 +1161,7 @@
               <button class="tab" data-fin-period="week" type="button">Week</button>
               <button class="tab" data-fin-period="today" type="button">Today</button>
               <button class="tab" data-fin-period="all" type="button">All</button>
-              <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Opex/mo $
+              <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Other Opex/mo $
                 <input id="fin-opex-input" type="number" min="0" step="1" placeholder="292 default" style="width:100px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
               </label>
               <label style="font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">CAC $
@@ -1205,8 +1206,9 @@
           <div class="stat neutral"><div class="stat-value" id="an-gross-margin">—</div><div class="stat-label">Recorded Gross Margin</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-costed-gross-per-job">—</div><div class="stat-label">Gross / Labor-Costed Job</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Overhead Allocated</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Allocated Overhead</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-known-operating-costs">—</div><div class="stat-label">Known Operating Costs</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Other Overhead Allocated</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Operating Costs</div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
@@ -6918,7 +6920,7 @@ window.intelQuick = intelQuick;
   // ─── ANALYTICS / FINANCIALS VIEW ───
   var financialPeriod = localStorage.getItem('aae-owner-financial-period') || 'year';
   var financialCacDollars = localStorage.getItem('aae-owner-cac-dollars') || '';
-  var financialOpexMonthly = localStorage.getItem('aae-owner-opex-monthly') || '';
+  var financialOpexMonthly = localStorage.getItem('aae-owner-other-opex-monthly') || '';
   var taxGranularity = localStorage.getItem('aae-owner-tax-gran') || 'quarter';
   var reserveParts = { tax: 0, payouts: 0, rewards: 0, clawbacks: 0 };
   var payoutTruthAvailable = false;
@@ -6959,7 +6961,7 @@ window.intelQuick = intelQuick;
     opexInput.value = financialOpexMonthly;
     opexInput.addEventListener('change', function() {
       financialOpexMonthly = this.value || '';
-      localStorage.setItem('aae-owner-opex-monthly', financialOpexMonthly);
+      localStorage.setItem('aae-owner-other-opex-monthly', financialOpexMonthly);
       renderAnalytics();
     });
   }
@@ -7017,7 +7019,7 @@ window.intelQuick = intelQuick;
       ['fin-total-platform-gross', 'fin-gross-per-job', 'fin-gross-margin', 'fin-costed-gross-per-job',
         'an-gross-per-job', 'an-gross', 'an-sales-tax', 'an-processing-fees', 'an-easer-payouts',
         'an-owner-easer-earnings', 'an-external-easer-earnings', 'an-ajv', 'an-gross-margin',
-        'an-costed-gross-per-job', 'an-opex-allocated', 'an-net-profit']
+        'an-costed-gross-per-job', 'an-known-operating-costs', 'an-opex-allocated', 'an-net-profit']
         .forEach(function(id){ setText(id, 'Unavailable'); });
       setText('an-completed-jobs', '—');
       setText('an-period-note', 'Financial data unavailable · Refresh');
@@ -7217,6 +7219,14 @@ window.intelQuick = intelQuick;
       ? 'Actual Stripe fees'
       : 'Actual + estimated');
     setText('fin-assumption-opex', a.operatingExpenseLabel || ('$' + ((a.annualOperatingExpensesCents || 0) / 100).toLocaleString('en-US') + '/year'));
+    var knownCosts = a.knownOperatingCosts || {};
+    var knownCostItems = knownCosts.items || [];
+    var mailboxCost = knownCostItems.find(function(item){ return item.key === 'business_mailbox'; });
+    var knownCostLabel = fmt$(knownCosts.monthlyRunRateCents || 0) + '/month';
+    if (mailboxCost && mailboxCost.nextChargeDate) {
+      knownCostLabel += ' · next ' + new Date(mailboxCost.nextChargeDate + 'T12:00:00Z').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+    setText('fin-assumption-known-costs', knownCostLabel);
     setText('fin-assumption-cac', s.cac ? fmt$(s.cac) : 'Missing / editable');
 
     setText('an-gross-per-job', fmt$(exec.platformGrossProfitPerCompletedJob || 0));
@@ -7231,6 +7241,7 @@ window.intelQuick = intelQuick;
     setText('an-gross-margin', fmtPct(exec.grossMarginPct));
     setText('an-costed-gross-per-job', Number(exec.costedCompletedJobs || 0) > 0 ? fmt$(exec.costedGrossProfitPerJob || 0) : '—');
     setText('an-uncosted-jobs', String(exec.uncostedCompletedJobs || 0));
+    setText('an-known-operating-costs', fmt$(exec.knownOperatingCosts || 0));
     setText('an-opex-allocated', fmt$(exec.operatingExpenses || 0));
     setText('an-net-profit', fmtSigned$(exec.estimatedNetOperatingProfit || 0));
     setText('an-addon-rate', fmtPct(exec.addOnAttachmentRate));
@@ -7285,6 +7296,10 @@ window.intelQuick = intelQuick;
         metricBox('- Owner-Easer Labor', '-' + fmt$(s.ownerEaserEarnings || 0), 'minus') +
         metricBox('- External Easer Labor', '-' + fmt$(s.externalEaserEarnings || 0), 'minus') +
         metricBox('= Platform Gross', fmtSigned$(s.platformGrossProfit), 'equals') +
+        metricBox('- Refund/Rework Reserve', '-' + fmt$(s.reworkRefundReserve || 0), 'minus') +
+        metricBox('- Known Operating Costs', '-' + fmt$(s.knownOperatingCosts || 0), 'minus') +
+        metricBox('- Other Overhead', '-' + fmt$(s.operatingExpenses || 0), 'minus') +
+        metricBox('- Customer Acquisition', '-' + fmt$(s.cac || 0), 'minus') +
         metricBox('Estimated Net', fmtSigned$(s.estimatedNetOperatingProfit), 'equals');
     }
 
@@ -7295,7 +7310,7 @@ window.intelQuick = intelQuick;
         ? 'Stripe fees are actual. '
         : 'Some Stripe fees are estimated. ';
       note.textContent = 'Customer payments, tax, and Easer earnings come from booking/payment truth. ' + processingTruth
-        + 'Reserve, overhead, and CAC are planning estimates. '
+        + 'The first mailbox payment is confirmed; future monthly mailbox charges are configured assumptions. Reserve, other overhead, and CAC are planning estimates. '
         + (rec.legacyRows || 0) + ' legacy row(s), ' + (rec.ledgerBackedRows || 0) + ' ledger-backed row(s), '
         + (rec.cancellationEarningRows || 0) + ' cancellation earning row(s).';
     }

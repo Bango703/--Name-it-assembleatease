@@ -437,6 +437,6 @@ export function buildAssignmentEmail({ firstName, service, date, time, estimated
     </div>
     <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">Please respond within 24 hours. If you don't respond, the job may be reassigned.</p>
   </td></tr></table>
-  <p style="text-align:center;font-size:11px;color:#a1a1aa;margin-top:16px">AssembleAtEase &bull; Austin, TX</p>
+  <p style="text-align:center;font-size:11px;color:#a1a1aa;margin-top:16px">AssembleAtEase &bull; Texas Professional Network</p>
 </div></body></html>`;
 }

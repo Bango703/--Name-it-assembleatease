@@ -14,6 +14,18 @@ const DEFAULT_ASSUMPTIONS = Object.freeze({
   baseCancellationRate: 0.05,
 });
 
+const KNOWN_RECURRING_OPERATING_EXPENSES = Object.freeze([
+  Object.freeze({
+    key: 'business_mailbox',
+    label: 'Business mailing address',
+    vendor: 'Mailbox provider',
+    amountCents: 798,
+    cadence: 'monthly',
+    firstPaymentDate: '2026-08-01',
+    recurringStartDate: '2026-09-01',
+  }),
+]);
+
 const MIN_PROFITABLE_TICKET_CENTS = MIN_PRETAX_BOOKING_BY_ZONE.austin_core;
 
 export default async function handler(req, res) {
@@ -23,6 +35,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const period = normalizePeriod(req.query.period);
   const range = getFinancialPeriodRange(period);
+  const knownOperatingCosts = summarizeKnownOperatingCosts(period, range);
   const cacCents = dollarsToCents(req.query.cacDollars ?? req.query.cac);
   const opexInput = req.query.opexMonthlyDollars ?? req.query.opexMonthly;
   const ownerOpexProvided = opexInput !== undefined && String(opexInput).trim() !== '';
@@ -76,7 +89,11 @@ export default async function handler(req, res) {
     rows: financeRows,
   });
   const operatingExpenses = operatingExpenseAllocation.cents;
-  const estimatedNetOperatingProfit = platformGrossProfit - reworkRefundReserve - operatingExpenses - cacCents;
+  const estimatedNetOperatingProfit = platformGrossProfit
+    - reworkRefundReserve
+    - operatingExpenses
+    - knownOperatingCosts.recognizedCents
+    - cacCents;
 
   let activeEasers = 0;
   let ownerEaserIds = new Set();
@@ -169,8 +186,9 @@ export default async function handler(req, res) {
       annualOperatingExpensesCents: annualOpexCents,
       ownerOpexProvided,
       operatingExpenseLabel: ownerOpexProvided
-        ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo (owner-entered) allocated across ${operatingExpenseAllocation.days} selected day(s)`
-        : `Default $3,500/yr allocated across ${operatingExpenseAllocation.days} selected day(s) — enter real monthly overhead for an accurate net`,
+        ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo other overhead (owner-entered) allocated across ${operatingExpenseAllocation.days} selected day(s)`
+        : `Default $3,500/yr other overhead allocated across ${operatingExpenseAllocation.days} selected day(s) — known recurring costs are separate`,
+      knownOperatingCosts,
       launchMinimums: MIN_PRETAX_BOOKING_BY_ZONE,
     },
     labels: {
@@ -189,6 +207,7 @@ export default async function handler(req, res) {
       platformGrossProfit: processingFeesAllActual ? 'actual' : 'actual_and_estimated',
       reworkRefundReserve: 'estimated',
       operatingExpenses: 'estimated',
+      knownOperatingCosts: 'confirmed_first_payment_plus_configured_recurring_schedule',
       cac: cacCents > 0 ? 'estimated' : 'missing_data',
       estimatedNetOperatingProfit: 'estimated',
     },
@@ -218,6 +237,8 @@ export default async function handler(req, res) {
       platformGrossProfit,
       reworkRefundReserve,
       operatingExpenses,
+      knownOperatingCosts: knownOperatingCosts.recognizedCents,
+      knownOperatingCostMonthlyRunRate: knownOperatingCosts.monthlyRunRateCents,
       operatingExpenseDays: operatingExpenseAllocation.days,
       cac: cacCents,
       estimatedNetOperatingProfit,
@@ -261,6 +282,8 @@ export default async function handler(req, res) {
       costedGrossProfitPerJob: laborCosting.costedGrossProfitPerJob,
       costedGrossMarginPct: laborCosting.costedGrossMarginPct,
       operatingExpenses,
+      knownOperatingCosts: knownOperatingCosts.recognizedCents,
+      knownOperatingCostMonthlyRunRate: knownOperatingCosts.monthlyRunRateCents,
       operatingExpenseDays: operatingExpenseAllocation.days,
       estimatedNetOperatingProfit,
       addOnAttachmentRate,
@@ -427,6 +450,75 @@ function chicagoLocalMidnightMs(dateIso) {
   return guess;
 }
 
+export function summarizeKnownOperatingCosts(period, range = {}, nowInput = new Date(), definitions = KNOWN_RECURRING_OPERATING_EXPENSES) {
+  const now = new Date(nowInput);
+  if (Number.isNaN(now.getTime())) throw new Error('A valid operating-cost time is required');
+  const fromMs = Number.isFinite(Date.parse(range.from || '')) ? Date.parse(range.from) : Number.NEGATIVE_INFINITY;
+  const rangeToMs = Number.isFinite(Date.parse(range.to || '')) ? Date.parse(range.to) : now.getTime();
+  const toMs = Math.min(rangeToMs, now.getTime());
+
+  const items = (definitions || []).map(definition => {
+    const amountCents = Math.max(0, Number(definition.amountCents) || 0);
+    const recognizedEvents = [];
+    const firstPaymentMs = chicagoLocalMidnightMs(definition.firstPaymentDate);
+    if (firstPaymentMs >= fromMs && firstPaymentMs <= toMs) {
+      recognizedEvents.push({
+        date: definition.firstPaymentDate,
+        amountCents,
+        status: 'confirmed',
+      });
+    }
+
+    let recurringDate = definition.recurringStartDate;
+    let recurringMs = chicagoLocalMidnightMs(recurringDate);
+    while (recurringMs <= toMs) {
+      if (recurringMs >= fromMs && recurringDate !== definition.firstPaymentDate) {
+        recognizedEvents.push({
+          date: recurringDate,
+          amountCents,
+          status: 'scheduled_assumption',
+        });
+      }
+      recurringDate = addIsoCalendarMonths(recurringDate, 1);
+      recurringMs = chicagoLocalMidnightMs(recurringDate);
+    }
+
+    const nextChargeDate = firstPaymentMs > toMs && firstPaymentMs < recurringMs
+      ? definition.firstPaymentDate
+      : recurringDate;
+
+    return {
+      key: definition.key,
+      label: definition.label,
+      vendor: definition.vendor,
+      cadence: definition.cadence,
+      amountCents,
+      firstPaymentDate: definition.firstPaymentDate,
+      recurringStartDate: definition.recurringStartDate,
+      nextChargeDate,
+      recognizedCents: sum(recognizedEvents, event => event.amountCents),
+      confirmedCents: sum(recognizedEvents.filter(event => event.status === 'confirmed'), event => event.amountCents),
+      scheduledAssumptionCents: sum(recognizedEvents.filter(event => event.status === 'scheduled_assumption'), event => event.amountCents),
+      events: recognizedEvents,
+    };
+  });
+
+  return {
+    period,
+    recognizedCents: sum(items, item => item.recognizedCents),
+    confirmedCents: sum(items, item => item.confirmedCents),
+    scheduledAssumptionCents: sum(items, item => item.scheduledAssumptionCents),
+    monthlyRunRateCents: sum(items.filter(item => item.cadence === 'monthly'), item => item.amountCents),
+    items,
+  };
+}
+
+function addIsoCalendarMonths(dateIso, months) {
+  const value = new Date(`${dateIso}T12:00:00Z`);
+  value.setUTCMonth(value.getUTCMonth() + months);
+  return value.toISOString().slice(0, 10);
+}
+
 export function allocateOperatingExpenses(period, annualOverrideCents, {
   range = {},
   rows = [],
@@ -521,8 +613,10 @@ async function buildExpansionReadiness(sb, rows, activeEasers) {
   const easerPayouts = sum(financeRows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
+  const knownOperatingCosts = summarizeKnownOperatingCosts('all').recognizedCents;
   const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve
-    - allocateOperatingExpenses('all', DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents, { rows: financeRows }).cents;
+    - allocateOperatingExpenses('all', DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents, { rows: financeRows }).cents
+    - knownOperatingCosts;
   const refundRate = completedJobs > 0 ? refundedJobs / completedJobs : 0;
   const reworkRate = completedJobs > 0 ? damageClaimBookingIds.size / completedJobs : 0;
   const ratingStats = await loadCustomerRatingStats(sb);

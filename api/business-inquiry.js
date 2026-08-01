@@ -87,7 +87,7 @@ export default async function handler(req, res) {
     </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    AssembleAtEase &bull; Austin, TX &bull; <a href="${SITE}/business" style="color:#71717a">assembleatease.com/business</a>
+    AssembleAtEase &bull; Serving businesses across Texas &bull; <a href="${SITE}/business" style="color:#71717a">assembleatease.com/business</a>
   </td></tr></table>
 </div></body></html>`;
 

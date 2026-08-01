@@ -193,7 +193,7 @@ function buildInviteEmail(firstName, inviteUrl, city, state) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:20px 24px;text-align:center">
     <img src="${LOGO}" alt="AssembleAtEase" width="28" height="28" style="border-radius:50%;display:inline-block"/>
     <p style="margin:8px 0 4px;font-size:12px;font-weight:600;color:#71717a">AssembleAtEase</p>
-    <p style="margin:0;font-size:11px;color:#a1a1aa">Texas network &bull; Austin headquarters &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
+    <p style="margin:0;font-size:11px;color:#a1a1aa">Texas Service Network &bull; <a href="mailto:service@assembleatease.com" style="color:#71717a;text-decoration:none">service@assembleatease.com</a></p>
   </td></tr></table>
 </div></body></html>`;
 }

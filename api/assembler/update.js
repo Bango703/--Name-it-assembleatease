@@ -1581,7 +1581,7 @@ function buildPromotionEmail(firstName, tierLabel, tier) {
     <!-- Footer -->
     <div style="border-top:1px solid #e4e4e7;padding:1rem 2rem;text-align:center">
       <p style="margin:0;font-size:0.75rem;color:#a1a1aa">
-        AssembleAtEase &bull; Austin, TX &bull;
+        AssembleAtEase &bull; Texas Professional Network &bull;
         <a href="${SITE}" style="color:#00BFFF;text-decoration:none">assembleatease.com</a>
       </p>
     </div>

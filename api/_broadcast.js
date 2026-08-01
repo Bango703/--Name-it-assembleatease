@@ -6,13 +6,13 @@ import crypto from 'crypto';
 // transactional email behavior is untouched.
 
 const SITE = 'https://www.assembleatease.com';
+const DEFAULT_BUSINESS_POSTAL_ADDRESS = 'ASSEMBLEATEASE LLC, 9169 W State St #3847, Garden City, ID 83714';
 
 // CAN-SPAM requires a valid physical postal address in every marketing/
-// announcement email. Set BUSINESS_POSTAL_ADDRESS to your real mailing address
-// (street, PO box, or CMRA). The fallback is NOT a complete postal address —
-// promos should not go out until this is set to something the USPS could deliver.
+// announcement email. BUSINESS_POSTAL_ADDRESS can override the purchased
+// commercial mailbox fallback when the company's public mailing address changes.
 export function businessPostalAddress() {
-  return (process.env.BUSINESS_POSTAL_ADDRESS || 'AssembleAtEase LLC, Austin, TX 78701').trim();
+  return (process.env.BUSINESS_POSTAL_ADDRESS || DEFAULT_BUSINESS_POSTAL_ADDRESS).trim();
 }
 
 export function normalizeEmail(email) {
