@@ -231,6 +231,6 @@ assert.match(ownerCasesCss, /@media \(max-width: 520px\)/);
 assert.match(ownerCasesCss, /grid-template-columns: minmax\(0, 1fr\)/);
 assert.match(mobileAudit, /ownerView: 'cases'/);
 assert.match(mobileAudit, /cases: '#cases-list \.cases-list-item'/);
-assert.match(readiness, /REQUIRED_SCHEMA_MIGRATION = 54/);
+assert.match(readiness, /REQUIRED_SCHEMA_MIGRATION = 55/);
 
 console.log('Operations case durability, security, copy, and owner workflow tests: PASS');

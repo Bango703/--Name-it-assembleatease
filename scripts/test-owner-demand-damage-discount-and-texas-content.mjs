@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { parseServiceLocation } from '../api/_booking-location.js';
 import { buildMarketRows, formatBookingSignal } from '../api/owner/market-demand.js';
-import { loadDiscountEligibility } from '../api/owner/close-manual-balance-discount.js';
+import { discountFailure, loadDiscountEligibility } from '../api/owner/close-manual-balance-discount.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = file => readFile(path.join(root, file), 'utf8');
@@ -57,18 +57,24 @@ const kellyEligibility = await loadDiscountEligibility({
       { amount_cents: 22500, refunded_cents: 0, processing_fee_cents: 613 },
     ], error: null });
     if (table === 'payout_ledger') return queryResult({ data: [], error: null });
-    if (table === 'platform_schema_state') return queryResult({ data: { migration_number: 52 }, error: null });
+    if (table === 'platform_schema_state') return queryResult({ data: { migration_number: 55 }, error: null });
     throw new Error(`Unexpected table: ${table}`);
   },
 }, 'kelly-booking');
 assert.equal(kellyEligibility.eligible, true);
 assert.equal(kellyEligibility.grossCollectedCents, 37400);
 assert.equal(kellyEligibility.discountCents, 565);
+assert.deepEqual(discountFailure({ code: '42702', message: 'column reference "booking_id" is ambiguous' }), {
+  status: 503,
+  code: 'MIGRATION_055_REQUIRED',
+  error: 'The balance-discount database function is outdated. Apply migration 055; no money or invoice amount was changed.',
+});
 
-const [marketApi, bookingApi, ownerBookingApi, ownerUi, damageUpload, damageResolution, casesApi, caseAction, discountApi, migration, blogIndex, texasGuide, sitemap] = await Promise.all([
+const [marketApi, bookingApi, ownerBookingApi, ownerUi, damageUpload, damageResolution, casesApi, caseAction, discountApi, migration, discountFixMigration, blogIndex, texasGuide, sitemap] = await Promise.all([
   source('api/owner/market-demand.js'), source('api/booking.js'), source('api/owner/create-booking.js'), source('owner/index.html'),
   source('api/booking/upload-evidence.js'), source('api/booking/payout-review.js'), source('api/owner/cases.js'), source('api/owner/case-action.js'),
   source('api/owner/close-manual-balance-discount.js'), source('api/migrations/054_booking_demand_and_damage_cases.sql'),
+  source('api/migrations/055_owner_manual_discount_rpc_ambiguity_fix.sql'),
   source('blog/index.html'), source('blog/texas-furniture-assembly-home-setup-guide.html'), source('sitemap.xml'),
 ]);
 
@@ -99,8 +105,14 @@ assert.match(discountApi, /loadDiscountEligibility/);
 assert.match(discountApi, /owner_manual_payment_events/);
 assert.match(discountApi, /payout_ledger/);
 assert.match(discountApi, /close_owner_manual_balance_as_discount_v1/);
+assert.match(discountApi, /MIGRATION_055_REQUIRED/);
 assert.match(ownerUi, /Checking the payment and payout ledgers/);
 assert.match(ownerUi, /No new charge, refund, or Easer payout will be created/);
+
+assert.match(discountFixMigration, /#variable_conflict error/);
+assert.match(discountFixMigration, /audit_row\.booking_id = p_booking_id/);
+assert.doesNotMatch(discountFixMigration, /WHERE\s+booking_id = p_booking_id/i);
+assert.match(discountFixMigration, /VALUES \(55, 'owner_manual_discount_rpc_ambiguity_fix'\)/);
 
 assert.match(migration, /ADD COLUMN IF NOT EXISTS service_city/);
 assert.match(migration, /damage-booking:/);

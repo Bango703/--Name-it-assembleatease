@@ -11,6 +11,7 @@ const [
   paymentMigration,
   discountCloseApi,
   discountCloseMigration,
+  discountCloseFixMigration,
   payoutReviewApi,
   liveOpsApi,
   evidenceApi,
@@ -24,6 +25,7 @@ const [
   readFile(new URL('../api/migrations/051_owner_manual_completed_discount_v5.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/close-manual-balance-discount.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/052_owner_manual_balance_discount_close.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../api/migrations/055_owner_manual_discount_rpc_ambiguity_fix.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/payout-review.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/live-ops.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/evidence.js', import.meta.url), 'utf8'),
@@ -55,6 +57,9 @@ assert.match(discountCloseMigration, /EXISTS \([\s\S]*public\.payout_ledger/);
 assert.match(discountCloseMigration, /easerEarningsPreservedCents/);
 assert.match(discountCloseMigration, /noCustomerChargeCreated', TRUE/);
 assert.match(discountCloseMigration, /VALUES \(52, 'owner_manual_balance_discount_close'\)/);
+assert.match(discountCloseFixMigration, /#variable_conflict error/);
+assert.match(discountCloseFixMigration, /audit_row\.booking_id = p_booking_id/);
+assert.match(discountCloseFixMigration, /VALUES \(55, 'owner_manual_discount_rpc_ambiguity_fix'\)/);
 
 // Damage acknowledgment must be explicit, server-checked, logged, and removable
 // from Live Ops only after the canonical booking hold is resolved.

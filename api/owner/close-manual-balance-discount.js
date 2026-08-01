@@ -19,11 +19,19 @@ function money(cents) {
 
 function discountFailure(error) {
   const message = String(error?.message || '');
+  const code = String(error?.code || '');
+  if (code === '42702' || /column reference .*booking_id.*ambiguous|ambiguous/i.test(message)) {
+    return {
+      status: 503,
+      code: 'MIGRATION_055_REQUIRED',
+      error: 'The balance-discount database function is outdated. Apply migration 055; no money or invoice amount was changed.',
+    };
+  }
   if (/close_owner_manual_balance_as_discount_v1|does not exist/i.test(message)) {
     return {
       status: 503,
-      code: 'MIGRATION_052_REQUIRED',
-      error: 'Balance-discount protection is unavailable. Apply migration 052 and retry.',
+      code: 'MIGRATION_055_REQUIRED',
+      error: 'Balance-discount protection is unavailable. Apply migrations through 055 and retry.',
     };
   }
   if (/finalized or locked|payout_ledger/i.test(message)) {
@@ -242,7 +250,7 @@ async function loadDiscountEligibility(sb, bookingId) {
       .select('amount_cents, refunded_cents, processing_fee_cents')
       .eq('booking_id', booking.id),
     sb.from('payout_ledger').select('id').eq('booking_id', booking.id).limit(1),
-    sb.from('platform_schema_state').select('migration_number').eq('migration_number', 52).maybeSingle(),
+    sb.from('platform_schema_state').select('migration_number').eq('migration_number', 55).maybeSingle(),
   ]);
   if (eventsResult.error || payoutResult.error) {
     console.error('Balance-discount eligibility ledger load failed:', eventsResult.error || payoutResult.error);
@@ -259,7 +267,7 @@ async function loadDiscountEligibility(sb, bookingId) {
   const block = (code, message) => blockers.push({ code, message });
 
   if (migrationResult.error || !migrationResult.data) {
-    block('MIGRATION_052_REQUIRED', 'Apply migration 052 before closing a balance as a discount.');
+    block('MIGRATION_055_REQUIRED', 'Apply migration 055 before closing a balance as a discount. No amount has been changed.');
   }
   if (booking.source !== 'owner_manual') block('OWNER_MANUAL_REQUIRED', 'Only an owner-created booking can use this balance-discount workflow.');
   if (booking.status !== 'completed') block('COMPLETION_REQUIRED', 'Complete the job before closing its final balance as a discount.');
