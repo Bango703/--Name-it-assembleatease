@@ -49,7 +49,8 @@ assert.equal(readiness.disposition, 'on_hold');
 assert.ok(readiness.holdCodes.includes('return_visit_open'));
 
 assert.match(earningsMapper, /return_visit_open/);
-assert.match(earningsMapper, /Completion Pending/);
+assert.match(earningsMapper, /label: 'Action Required'/);
+assert.match(earningsMapper, /Complete the remaining work before this amount becomes payable/);
 assert.match(earningsApi, /row\.returnVisitRequired === true/);
 assert.match(payoutApi, /code: 'RETURN_VISIT_OPEN'/);
 

@@ -36,7 +36,8 @@ export default async function handler(req, res) {
           marketRequests: 0,
           marketConversionRate: 0,
           easerSupplyByMarket: 0,
-          totalPotentialRevenue: 0,
+          totalPotentialRevenue: null,
+          pricedRequestCount: 0,
         },
         activeMarkets: ACTIVE_MARKETS,
         topMarkets: [],
@@ -54,15 +55,36 @@ export default async function handler(req, res) {
   const requests = requestsRes.data || [];
   const easers = easersRes.error ? [] : (easersRes.data || []);
   const waitlist = waitlistRes.error ? [] : (waitlistRes.data || []);
+  const convertedBookingIds = [...new Set(requests.map(request => request.converted_booking_id).filter(Boolean))];
+  const convertedBookingsRes = convertedBookingIds.length
+    ? await sb.from('bookings').select('id, total_price').in('id', convertedBookingIds)
+    : { data: [], error: null };
+  const convertedRevenueByBooking = new Map(
+    (convertedBookingsRes.data || []).map(booking => [booking.id, positiveCents(booking.total_price)]),
+  );
+  const enrichedRequests = requests.map(request => ({
+    ...request,
+    verified_revenue_cents: request.converted_booking_id
+      ? (convertedRevenueByBooking.get(request.converted_booking_id) ?? null)
+      : null,
+  }));
+  const warnings = [
+    easersRes.error ? 'Easer supply could not be loaded.' : null,
+    waitlistRes.error ? 'Easer waitlist supply could not be loaded.' : null,
+    convertedBookingsRes.error ? 'Converted booking value could not be loaded.' : null,
+  ].filter(Boolean);
   const marketSupply = buildSupplyByMarket(easers, waitlist);
-  const marketRows = buildMarketRows(requests, marketSupply);
+  const marketRows = buildMarketRows(enrichedRequests, marketSupply);
   const topMarkets = marketRows.slice().sort((a, b) => {
     if (b.requestCount !== a.requestCount) return b.requestCount - a.requestCount;
     return b.potentialRevenue - a.potentialRevenue;
   }).slice(0, 8);
 
-  const converted = requests.filter(r => r.status === 'converted' || r.converted_booking_id).length;
+  const converted = enrichedRequests.filter(r => r.status === 'converted' || r.converted_booking_id).length;
   const emergingMarketCount = marketRows.filter(m => !m.isActiveMarket).length;
+  const pricedRequests = enrichedRequests
+    .map(request => requestRevenueCents(request))
+    .filter(value => value != null);
 
   const summary = {
     activeMarkets: ACTIVE_MARKETS.length,
@@ -70,7 +92,10 @@ export default async function handler(req, res) {
     marketRequests: requests.length,
     marketConversionRate: requests.length ? converted / requests.length : 0,
     easerSupplyByMarket: Array.from(marketSupply.values()).reduce((sum, m) => sum + m.approvedEasers, 0),
-    totalPotentialRevenue: requests.reduce((sum, r) => sum + cents(r.estimated_revenue), 0),
+    totalPotentialRevenue: pricedRequests.length
+      ? pricedRequests.reduce((sum, value) => sum + value, 0)
+      : null,
+    pricedRequestCount: pricedRequests.length,
   };
 
   return res.status(200).json({
@@ -78,8 +103,9 @@ export default async function handler(req, res) {
     activeMarkets: ACTIVE_MARKETS,
     topMarkets,
     markets: marketRows,
-    requests: requests.map(formatRequest),
+    requests: enrichedRequests.map(formatRequest),
     supply: Array.from(marketSupply.values()),
+    warnings,
   });
 }
 
@@ -90,7 +116,11 @@ function buildMarketRows(requests, supplyMap) {
     const key = marketKey(req.city, req.state);
     const current = map.get(key) || emptyMarket(req.city, req.state);
     current.requestCount += 1;
-    current.potentialRevenue += cents(req.estimated_revenue);
+    const verifiedEstimate = requestRevenueCents(req);
+    if (verifiedEstimate != null) {
+      current.potentialRevenue += verifiedEstimate;
+      current.pricedRequestCount += 1;
+    }
     current.zips.add(req.zip_code);
     current.services.set(req.requested_service, (current.services.get(req.requested_service) || 0) + 1);
     if (req.status === 'converted' || req.converted_booking_id) current.convertedCount += 1;
@@ -122,7 +152,8 @@ function buildMarketRows(requests, supplyMap) {
       requestCount: m.requestCount,
       convertedCount: m.convertedCount,
       conversionRate: m.requestCount ? m.convertedCount / m.requestCount : 0,
-      potentialRevenue: m.potentialRevenue,
+      potentialRevenue: m.pricedRequestCount ? m.potentialRevenue : null,
+      pricedRequestCount: m.pricedRequestCount,
       requestedZips: Array.from(m.zips).filter(Boolean).sort(),
       topServices,
       approvedEasers: m.approvedEasers,
@@ -168,6 +199,7 @@ function emptyMarket(city, state) {
     requestCount: 0,
     convertedCount: 0,
     potentialRevenue: 0,
+    pricedRequestCount: 0,
     zips: new Set(),
     services: new Map(),
     approvedEasers: 0,
@@ -201,7 +233,7 @@ function formatRequest(req) {
     requestedService: req.requested_service,
     requestedDate: req.requested_date,
     desiredTime: req.desired_time,
-    estimatedRevenue: cents(req.estimated_revenue),
+    estimatedRevenue: requestRevenueCents(req),
     createdAt: req.created_at || req.request_timestamp,
   };
 }
@@ -244,3 +276,15 @@ function cents(value) {
   const n = Number(value || 0);
   return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
 }
+
+function positiveCents(value) {
+  const amount = cents(value);
+  return amount > 0 ? amount : null;
+}
+
+function requestRevenueCents(request) {
+  return positiveCents(request?.verified_revenue_cents)
+    ?? positiveCents(request?.estimated_revenue);
+}
+
+export { buildMarketRows, buildSupplyByMarket, formatRequest, isActiveMarket };

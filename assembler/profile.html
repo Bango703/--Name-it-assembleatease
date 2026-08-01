@@ -413,10 +413,10 @@
     if (note) {
       if (done === checks.length) {
         note.className = 'completion-note complete';
-        note.textContent = 'Profile complete. Your dispatch basics are already on file.';
+        note.textContent = 'Profile complete. Your job contact details are already on file.';
       } else {
         note.className = 'completion-note';
-        note.textContent = 'Finish the remaining profile basics so dispatch and support details stay current.';
+        note.textContent = 'Finish the remaining profile basics so your contact and support details stay current.';
       }
     }
   }
@@ -807,14 +807,12 @@
         });
         const data = await response.json();
         if (!response.ok || data.error) throw new Error(data.error || 'Could not request account closure.');
-        APP.showAlert('page-alert', data.warning
-          ? 'Your request was saved, but support notification failed. Please also email service@assembleatease.com.'
-          : 'Account closure requested. You are offline and support will review the request.', data.warning ? 'error' : 'success');
+        APP.showAlert('page-alert', 'Account closure requested. You are offline. We will email you when the status changes.', 'success');
         document.getElementById('delete-account-btn').disabled = true;
         document.getElementById('delete-account-btn').textContent = 'Closure requested';
         if (cancelClosureButton) cancelClosureButton.style.display = '';
         closureNotice.classList.add('show');
-        closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
+        closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers. We will email you when the status changes.';
       } catch (err) {
         APP.showAlert('page-alert', err.message || 'Failed to request account closure.', 'error');
         APP.setLoading('delete-account-btn', false, 'Request account closure');
@@ -843,9 +841,7 @@
           closureNotice.classList.remove('show');
           closureNotice.innerHTML = '';
 
-          APP.showAlert('page-alert', data.warning
-            ? 'Closure request cancelled, but support notification failed. You can continue using your account.'
-            : 'Closure request cancelled. Your account remains offline until you choose to go online again.', data.warning ? 'error' : 'success');
+          APP.showAlert('page-alert', 'Closure request cancelled. Your account remains offline until you choose to go online again.', 'success');
         } catch (err) {
           APP.showAlert('page-alert', err.message || 'Failed to cancel account closure request.', 'error');
         } finally {
@@ -860,7 +856,7 @@
 <div class="sheet-overlay" id="delete-sheet">
   <div class="sheet-box">
     <div class="sheet-title" style="color:#dc2626">Request Account Closure</div>
-    <div class="sheet-body">You will be switched offline immediately. Support will review active work, unpaid earnings, tax records, and data-retention requirements before closing access.</div>
+    <div class="sheet-body">You will be switched Offline immediately and cannot receive new job offers. We will email you when your account status changes.</div>
     <label for="closure-reason" style="display:block;font-size:0.78rem;font-weight:700;margin:0.8rem 0 0.35rem">Reason (optional)</label>
     <textarea id="closure-reason" maxlength="500" style="width:100%;min-height:76px;box-sizing:border-box" placeholder="Tell support anything needed to process this safely."></textarea>
     <div class="sheet-actions">

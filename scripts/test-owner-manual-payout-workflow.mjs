@@ -305,7 +305,7 @@ assert.match(offlineCompletionSource, /\.eq\('payment_collected', booking\.payme
 assert.match(offlineCompletionSource, /completionUpdate\.is\('payment_method', null\)/);
 assert.match(offlineCompletionSource, /payout_mode_snapshot: split\.assemblerDueCents > 0 \? 'manual' : null/);
 assert.match(offlineCompletionSource, /offlineMethodFeeCents\(booking\.payment_method, totalCents\)/);
-assert.match(offlineCompletionSource, /on_hold_customer_collection/);
+assert.doesNotMatch(offlineCompletionSource, /on_hold_customer_collection/);
 assert.doesNotMatch(offlineCompletionSource, /paymentIntents\.capture|captureOrRecoverBookingPayment/);
 assert.match(completionSource, /OFFLINE_STRIPE_STATE_CONFLICT/);
 
@@ -318,7 +318,7 @@ assert.match(ownerSource, /ownerEaserOnly[\s\S]*eligibleAssemblers\.filter\(func
 assert.match(ownerSource, /Complete from Easer Dashboard/);
 assert.match(ownerSource, /b\.status === 'en_route' \|\| b\.status === 'arrived'/);
 assert.match(dropSource, /OWNER_MANUAL_REDISPATCH_BLOCKED/);
-assert.match(assignmentsSource, /_owner_manual_live_flow = isOwnerManualLiveFlow\(booking, easerProfile\)/);
+assert.match(assignmentsSource, /_can_self_drop = !isOwnerManualLiveFlow\(booking, easerProfile\)/);
 
 // Customer identity remains first-name-only in public/transactional surfaces.
 assert.match(acceptSource, /const easerFirstName =/);

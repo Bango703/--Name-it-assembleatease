@@ -156,8 +156,8 @@ export default async function handler(req, res) {
 
   if (!['pending', 'failed', 'authorized', 'not_required'].includes(booking.payment_status)) {
     return res.status(409).json({
-      error: 'This booking has a captured or deposit payment that requires owner-assisted cancellation. Contact support so the payment is reconciled before the booking changes.',
-      code: 'OWNER_CANCELLATION_REQUIRED',
+      error: 'This booking needs support assistance before it can be canceled. The booking remains unchanged.',
+      code: 'CANCELLATION_SUPPORT_REQUIRED',
     });
   }
 
@@ -345,9 +345,8 @@ export default async function handler(req, res) {
         stripeMutationStarted,
       });
       return res.status(held.ok && e?.code === 'OWNER_CANCELLATION_REQUIRED' ? 409 : 503).json({
-        error: 'We could not fully reconcile the payment portion of this cancellation. Dispatch is paused; please call us at 737-290-6129.',
-        code: e?.code || 'CANCELLATION_PAYMENT_RECONCILIATION_REQUIRED',
-        recoverable: true,
+        error: 'We could not complete the cancellation. Your booking remains unchanged. Please call 737-290-6129.',
+        code: 'CANCELLATION_INCOMPLETE',
       });
     }
   }

@@ -187,8 +187,8 @@
   </div>
 
   <section class="payout-process-card" aria-labelledby="payout-process-title">
-    <div class="payout-process-title" id="payout-process-title">How payouts work</div>
-    <p class="payout-process-copy">Customers pay AssembleAtEase. Each earning below shows its current payout status. Manual payouts are sent by AssembleAtEase outside this dashboard; Stripe Connect earnings show transfer and verified bank-payout status separately. This page shows status only and does not send funds.</p>
+    <div class="payout-process-title" id="payout-process-title">Your payouts</div>
+    <p class="payout-process-copy">Each completed job shows your payout amount and current status. Choose your preferred payout method below. We will notify you whenever a payout status changes.</p>
     <div class="payout-preference-row">
       <div>
         <label for="payout-preference">Preferred manual payout method</label>
@@ -323,11 +323,11 @@
         '<div class="earn-tx-info">' +
           '<div class="earn-tx-name">' + (isCancellation ? 'Cancellation trip earnings — ' : '') + esc(b.service || 'Service') + '</div>' +
           '<div class="earn-tx-date">' + dateLabel + '</div>' +
-          ((isZero && !isPaid) ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Amount pending confirmation — our team will update this shortly.</div>' : '') +
+          ((isZero && !isPaid) ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Amount unavailable. Check back soon.</div>' : '') +
         '</div>' +
         '<div class="earn-tx-right">' +
           '<div class="earn-tx-amount ' + (isPaid ? 'paid' : '') + '">' + fmt(amount) + '</div>' +
-          '<div class="earn-tx-status ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + esc(payout.status_label || 'Payment Review') + '</div>' +
+          '<div class="earn-tx-status ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + esc(payout.status_label || 'On Hold') + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -361,7 +361,7 @@
       closureNote.classList.add('show');
       closureNote.textContent = closureStatus === 'completed'
         ? 'This Easer account is closed. Contact AssembleAtEase support for retained payout records.'
-        : 'Account closure is in progress. You cannot receive new offers, but existing earnings remain visible and any valid unpaid amount still must be reconciled.';
+        : 'Account closure is in progress. You cannot receive new offers, but existing earnings and payout statuses remain visible.';
     }
 
     function showPreferenceStatus(type, message) {

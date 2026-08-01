@@ -50,7 +50,7 @@ function evidenceWorkflowError(booking, evidenceType) {
     return { error: 'Accept this assignment before uploading job evidence.', code: 'ASSIGNMENT_NOT_ACCEPTED' };
   }
   if (booking.financial_operation_key) {
-    return { error: 'A payment action is in progress. Reload the job before uploading evidence.', code: 'FINANCIAL_OPERATION_ACTIVE' };
+    return { error: 'This job is temporarily unavailable. Reload it before uploading evidence.', code: 'FINANCIAL_OPERATION_ACTIVE' };
   }
   if (evidenceType === 'before_photo' && !['arrived', 'in_progress'].includes(booking.status)) {
     return { error: 'Before photos can only be uploaded after arrival and before completion.', code: 'INVALID_EVIDENCE_WORKFLOW' };
@@ -211,13 +211,16 @@ export default async function handler(req, res) {
     const forbidden = recordError?.code === '42501';
     const notFound = recordError?.code === 'P0002';
     return res.status(forbidden ? 403 : (notFound ? 404 : (conflict ? 409 : 503))).json({
-      error: conflict
-        ? recordError.message
+      error: forbidden
+        ? 'You do not have access to upload evidence for this job.'
+        : notFound
+          ? 'This job could not be found. Reload and try again.'
+          : conflict
+            ? 'This job changed before the upload finished. Reload and try again.'
         : (cleanup.ok
             ? 'Evidence could not be saved. The uploaded object was removed; please reload and try again.'
-            : 'Evidence could not be saved and storage cleanup needs support review. Do not upload again yet.'),
+            : 'Evidence could not be saved. Contact support before uploading again.'),
       code: conflict ? 'EVIDENCE_WORKFLOW_CONFLICT' : 'EVIDENCE_RECORD_FAILED',
-      storageCleanupFailed: cleanup.ok ? undefined : true,
     });
   }
   const evidenceRow = {
@@ -283,12 +286,6 @@ export default async function handler(req, res) {
     mimeType:     evidenceRow.mime_type,
     sizeBytes:    evidenceRow.file_size_bytes,
     createdAt:    evidenceRow.created_at,
-    damageReviewStatus: recorded.damage_review_status,
-    ownerNotified: evidenceType === 'damage_claim' ? ownerNotification?.ok === true && !ownerNotification?.suppressed : undefined,
-    warning: evidenceType === 'damage_claim' && (!ownerNotification?.ok || ownerNotification?.logged === false)
-      ? (ownerNotification?.ok
-          ? 'Damage evidence was saved and the owner email was sent, but the notification audit log needs owner review.'
-          : 'Damage evidence was saved, but the owner notification needs retry.')
-      : undefined,
+    message: evidenceType === 'damage_claim' ? 'Your issue report was received.' : 'Evidence uploaded.',
   });
 }

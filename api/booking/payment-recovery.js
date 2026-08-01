@@ -109,7 +109,7 @@ async function startRecovery(req, res) {
     return res.status(409).json({ error: 'This card authorization can no longer be continued. Contact AssembleAtEase.' });
   }
   if (!intent.client_secret) {
-    return res.status(409).json({ error: 'Stripe could not continue this card authorization. Contact AssembleAtEase.' });
+    return res.status(409).json({ error: 'Card authorization could not continue. Contact AssembleAtEase.' });
   }
 
   return res.status(200).json({
@@ -156,7 +156,7 @@ async function loadRecoveryState({ bookingId, token, allowAlreadyConfirmed = fal
     intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
   } catch (stripeError) {
     console.error('[payment-recovery] Stripe lookup failed:', stripeError?.message || stripeError);
-    return { ok: false, status: 502, publicError: 'Stripe payment state could not be verified.' };
+    return { ok: false, status: 502, publicError: 'Payment status could not be confirmed. Please try again.' };
   }
   const validation = validateBookingPaymentIntent(booking, intent);
   if (!validation.ok) {

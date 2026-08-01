@@ -33,8 +33,8 @@ const baseRow = {
 const ready = toEaserEarningDto(baseRow);
 assert.equal(ready.amount_cents, 7113);
 assert.equal(ready.payout.disposition, 'pending');
-assert.equal(ready.payout.status_code, 'manual_payout_ready');
-assert.equal(ready.payout.status_label, 'Ready for Manual Payout');
+assert.equal(ready.payout.status_code, 'pending');
+assert.equal(ready.payout.status_label, 'Pending');
 assert.equal(ready.payout.action, 'none');
 
 const held = toEaserEarningDto({
@@ -43,16 +43,16 @@ const held = toEaserEarningDto({
   payoutHoldCodes: ['offline_payment_not_verified'],
 });
 assert.equal(held.payout.disposition, 'on_hold');
-assert.equal(held.payout.status_label, 'Payment Verification');
-assert.match(held.payout.status_message, /not yet been recorded as collected/i);
-assert.doesNotMatch(held.payout.status_message, /Stripe PaymentIntent|financial_operation|customer_name/i);
+assert.equal(held.payout.status_label, 'On Hold');
+assert.match(held.payout.status_message, /temporarily on hold/i);
+assert.doesNotMatch(held.payout.status_message, /customer|owner|Stripe|financial_operation|review|reconcil/i);
 
 const evidenceHeld = toEaserEarningDto({
   ...baseRow,
   payoutDisposition: 'on_hold',
   payoutHoldCodes: ['completion_evidence_missing'],
 });
-assert.equal(evidenceHeld.payout.status_label, 'Photo Required');
+assert.equal(evidenceHeld.payout.status_label, 'Action Required');
 assert.equal(evidenceHeld.payout.action, 'upload_completion_evidence');
 
 const paid = toEaserEarningDto({
@@ -73,8 +73,8 @@ const transferred = toEaserEarningDto({
   payoutDisposition: 'on_hold',
 });
 assert.equal(transferred.payout.disposition, 'transferred');
-assert.equal(transferred.payout.status_label, 'Bank Payout Pending');
-assert.match(transferred.payout.status_message, /not yet verified as paid/i);
+assert.equal(transferred.payout.status_label, 'Processing');
+assert.match(transferred.payout.status_message, /processing/i);
 
 const bankPaid = toEaserEarningDto({
   ...baseRow,
@@ -86,7 +86,7 @@ const bankPaid = toEaserEarningDto({
   stripeBankPayoutPaidAt: '2026-07-19T14:00:00.000Z',
 });
 assert.equal(bankPaid.payout.disposition, 'paid');
-assert.equal(bankPaid.payout.status_label, 'Bank Payout Paid');
+assert.equal(bankPaid.payout.status_label, 'Paid');
 assert.equal(bankPaid.payout.recorded_at, '2026-07-19T14:00:00.000Z');
 
 const connectPending = toEaserEarningDto({
@@ -96,7 +96,7 @@ const connectPending = toEaserEarningDto({
   payoutHoldCodes: ['stripe_connect_path'],
 });
 assert.equal(connectPending.payout.disposition, 'pending');
-assert.equal(connectPending.payout.status_label, 'Transfer Pending');
+assert.equal(connectPending.payout.status_label, 'Pending');
 
 const connectPaymentHold = toEaserEarningDto({
   ...baseRow,
@@ -105,7 +105,7 @@ const connectPaymentHold = toEaserEarningDto({
   payoutHoldCodes: ['stripe_connect_path', 'customer_payment_uncaptured'],
 });
 assert.equal(connectPaymentHold.payout.disposition, 'on_hold');
-assert.equal(connectPaymentHold.payout.status_label, 'Payment Verification');
+assert.equal(connectPaymentHold.payout.status_label, 'On Hold');
 
 const serialized = JSON.stringify(ready);
 for (const forbidden of [
@@ -151,7 +151,7 @@ assert.match(payoutsPage, /fetch\('\/api\/assembler\/earnings'/);
 assert.match(payoutsPage, /visibilitychange/);
 assert.match(payoutsPage, /setInterval\(function\(\)/);
 assert.match(payoutsPage, /refreshEarnings\(false\)/);
-assert.match(payoutsPage, /Stripe Connect earnings show transfer and verified bank-payout status separately/);
+assert.match(payoutsPage, /Each completed job shows your payout amount and current status/);
 assert.doesNotMatch(payoutsPage, /Awaiting Manual Payout/);
 assert.doesNotMatch(payoutsPage, /fetch\('\/api\/booking\/my-assignments'/);
 assert.match(assignmentsPage, /refreshEarningsTruth/);

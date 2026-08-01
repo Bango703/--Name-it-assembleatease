@@ -234,7 +234,7 @@ assert.match(trackPage, /refund shown above does not create a new amount due/, '
 assert.match(trackPage, /isOwnerManualPayment[\s\S]*Booking Total/, 'manual booking must keep the agreed booking total visible');
 assert.match(payoutTruth, /hasPendingRefund/, 'pending manual Stripe refunds must block payout');
 assert.match(payoutTruth, /succeededRefundedCents !== Number\(event\.refunded_cents/, 'payout must require exact Stripe/refund-ledger agreement');
-assert.match(paymentRecorder, /record_owner_manual_payment_event_v4/, 'new payments must preserve gross invoice satisfaction after refunds');
+assert.match(paymentRecorder, /record_owner_manual_payment_event_v5/, 'new payments must preserve gross invoice satisfaction after refunds');
 assert.match(paymentRecorder, /OWNER_MANUAL_INVOICE_ALREADY_PAID/, 'the recorder must block a second customer charge after a refund');
 assert.match(payoutTruth, /allowRefundedOriginalPayment/, 'refund-affected payment truth must be explicitly opted into');
 assert.match(payoutApi, /ownerManualRefundAffected/, 'manual refunds must enter the explicit Easer earnings review lane');

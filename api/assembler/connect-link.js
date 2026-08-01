@@ -16,10 +16,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!isStripeConnectEnabled()) {
-    return res.status(400).json({ error: 'Stripe Connect is not enabled' });
+    return res.status(400).json({ error: 'Payout setup is not available for this account.' });
   }
   if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(503).json({ error: 'Stripe is not configured' });
+    return res.status(503).json({ error: 'Payout setup is temporarily unavailable.' });
   }
 
   const auth = req.headers.authorization;
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         await sb.from('profiles').update(invalidConnectStateUpdate()).eq('id', profile.id);
       } else {
         console.error('connect-link retrieve error:', err?.message || err);
-        return res.status(502).json({ error: 'Stripe payout setup is temporarily unavailable. Please try again shortly.' });
+        return res.status(502).json({ error: 'Payout setup is temporarily unavailable. Please try again shortly.' });
       }
     }
   }
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
     }).eq('id', profile.id);
     if (updateErr) {
       console.error('connect-link profile update error:', updateErr);
-      return res.status(500).json({ error: 'Failed to save Stripe Connect account' });
+      return res.status(500).json({ error: 'Your payout account could not be saved. Please try again.' });
     }
   }
 
@@ -119,8 +119,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    accountId,
     onboardingUrl: String(link.url || '').trim(),
-    expiresAt: link.expires_at,
   });
 }

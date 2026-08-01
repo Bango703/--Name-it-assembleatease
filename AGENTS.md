@@ -33,6 +33,48 @@ AssembleAtEase is preparing to launch real customers in Austin, Texas. Treat thi
 - If auditing, audit first and recommend before fixing.
 - If coding, make the smallest safe change and test it.
 
+## External-Facing Copy Boundary
+
+Customer and Easer interfaces must be written from the user's perspective. Show only:
+
+- Current status
+- Amount relevant to that user
+- Action the user must take
+- What happens next
+
+Never expose internal business roles, administrative workflow, review queues, payment collection operations, Stripe verification details, reconciliation logic, dispatch mechanics, moderation steps, or database/system terminology on customer or Easer screens.
+
+Do not use customer- or Easer-facing labels such as:
+
+- Owner Review
+- Admin Review
+- Internal Review
+- Dispatch Review
+- Finance Review
+- Operations Review
+- Payment Verification
+- Payment Collection
+- Manual Review Queue
+- Release This Earning
+
+Translate internal truth into concise external statuses such as:
+
+- On Hold
+- Pending
+- Processing
+- Paid
+- Scheduled
+- Action Required
+- Unavailable
+
+If no user action is required, do not explain which person, department, queue, payment rail, or internal event caused the status. Say what the status is and that the user will be notified when it changes. If action is required, state only that action.
+
+Detailed internal reasons, actor names, payment truth, reconciliation state, and operational instructions belong in owner APIs, owner dashboards, audit logs, and internal notifications only. Preserve the underlying safety controls and source-of-truth fields; translate their presentation at the external boundary.
+
+Do not repeat the same amount and label in adjacent Easer components. Use one status summary and one clearly labeled payout amount.
+
+Use calm, natural action labels such as "Report an Issue" instead of legalistic or alarming phrases unless legally required.
+
 ## Role
 
 Codex is acting as an independent business, platform, finance, operations, risk, SEO, security, QA, and marketplace auditor.

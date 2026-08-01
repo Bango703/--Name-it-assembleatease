@@ -57,12 +57,12 @@ export default async function handler(req, res) {
   }
   if (booking.source === 'owner_manual' && booking.payment_status === 'offline_recorded') {
     return res.status(409).json({
-      error: 'Owner-created offline jobs cannot enter automatic redispatch. Manage this assignment from the owner dashboard.',
+      error: 'This job cannot be dropped from the Easer app. Contact support if the assignment must change.',
       code: 'OWNER_MANUAL_REDISPATCH_BLOCKED',
     });
   }
   if (booking.financial_operation_key) {
-    return res.status(409).json({ error: 'This job is temporarily locked while a financial operation finishes. Contact support before dropping it.' });
+    return res.status(409).json({ error: 'This job is temporarily unavailable. Refresh or contact support before dropping it.' });
   }
 
   // ── 15-minute window check (from acceptance) ──────────────────────────────
@@ -238,17 +238,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    message: offersCreated
-      ? 'Job dropped. It has been sent to other Pros.'
-      : paymentHeld
-        ? 'Job dropped. Dispatch is paused while the owner reconciles customer payment.'
-      : manualRequired
-        ? 'Job dropped. The owner has been alerted to reassign it manually.'
-        : 'Job dropped. Rematching is being reviewed.',
-    redispatch,
-    dispatchAction: finalization?.action || (offersCreated ? 'offers_created' : 'review_required'),
-    warning: (!offersCreated && !manualRequired)
-      ? 'The job was released, but rematching needs owner review.'
-      : null,
+    message: 'Job dropped. You will not receive further updates for this assignment.',
   });
 }

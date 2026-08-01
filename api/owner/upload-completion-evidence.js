@@ -132,11 +132,11 @@ export default async function handler(req, res) {
   const activity = await logActivity(sb, {
     bookingId: booking.id,
     eventType: 'completion_evidence_added',
-    actorType: 'owner',
+    actorType: 'easer',
     actorId: ownerEaser.id,
-    actorName: ownerEaser.full_name || 'Owner-Easer',
-    description: 'Owner added historical completion evidence after the job was completed.',
-    metadata: { evidenceId: recorded.evidence_id, notes },
+    actorName: ownerEaser.full_name || 'Easer',
+    description: 'Completion evidence was added for the Easer from the owner dashboard after the job was completed.',
+    metadata: { evidenceId: recorded.evidence_id, notes, recordedFrom: 'owner_dashboard' },
   });
 
   return res.status(201).json({

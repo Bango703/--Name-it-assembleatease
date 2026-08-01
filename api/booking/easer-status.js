@@ -48,7 +48,7 @@ export default async function handler(req, res) {
   }
   if (booking.financial_operation_key) {
     return res.status(409).json({
-      error: 'A payment, cancellation, or payout action is already in progress. Refresh before updating the job.',
+      error: 'This job is temporarily unavailable for updates. Refresh and try again.',
       code: 'FINANCIAL_OPERATION_IN_PROGRESS',
     });
   }
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
   const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, profile);
   if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
     return res.status(409).json({
-      error: 'This job is on payment hold. Do not travel to or start the job until the owner resolves it.',
+      error: 'This job is temporarily on hold. Do not travel to or start it until the status changes.',
       code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
     });
   }
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, stage, label, alreadyUpdated: true });
   }
   if (booking.status === status && !booking[field]) {
-    return res.status(409).json({ error: `Booking is missing its ${field} timestamp. Owner review is required.` });
+    return res.status(409).json({ error: 'This job status could not be confirmed. Refresh and contact support if it continues.' });
   }
   const transitionErr = getTransitionError(booking.status, status);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
@@ -203,5 +203,5 @@ export default async function handler(req, res) {
     });
   }
 
-  return res.status(200).json({ ok: true, stage, label, notificationFailures, auditFailures });
+  return res.status(200).json({ ok: true, stage, label });
 }

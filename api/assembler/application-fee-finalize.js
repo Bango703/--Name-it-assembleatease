@@ -54,25 +54,25 @@ export default async function handler(req, res) {
   if (String(profile.status || '').trim().toLowerCase() !== 'pending'
       || isEaserClosureBlocking(profile)) {
     return res.status(409).json({
-      error: 'This Easer application is no longer open for payment finalization. No additional payment will be reconciled.',
+      error: 'This application is no longer accepting payment. No additional payment was attempted.',
       code: 'APPLICATION_FEE_FINALIZATION_CLOSED',
     });
   }
   if (!['payment_pending', 'applied'].includes(String(profile.application_status || '').toLowerCase())) {
     return res.status(409).json({
-      error: 'This Easer application is no longer open for payment finalization. Contact support if Stripe charged the card.',
+      error: 'This application is no longer accepting payment. Contact support if your card was charged.',
       code: 'APPLICATION_FEE_FINALIZATION_CLOSED',
     });
   }
   if (profile.application_fee_waived === true || profile.fee_waived_by_owner === true) {
     return res.status(409).json({
-      error: 'The application fee state changed and requires owner reconciliation. No additional payment will be attempted.',
+      error: 'Your application payment status changed. No additional payment was attempted. Refresh your application status or contact support.',
       code: 'APPLICATION_FEE_TRUTH_MISMATCH',
     });
   }
   if (hasEaserApplicationFeeRefundHold(profile)) {
     return res.status(409).json({
-      error: 'Stripe refund activity placed this application payment under owner review. It cannot be finalized or used for approval.',
+      error: 'This application payment is temporarily on hold. No additional payment will be attempted. Contact support.',
       code: 'APPLICATION_FEE_REFUND_REVIEW_REQUIRED',
     });
   }
@@ -87,9 +87,8 @@ export default async function handler(req, res) {
     });
     if (paymentIntent.status !== 'succeeded') {
       return res.status(409).json({
-        error: 'Stripe has not confirmed the application fee yet. Complete card verification and retry.',
+        error: 'The application fee is not complete yet. Complete any card verification shown and retry.',
         code: 'APPLICATION_FEE_NOT_COMPLETE',
-        paymentStatus: paymentIntent.status,
       });
     }
     validateEaserApplicationPaymentIntent(paymentIntent, {
@@ -114,7 +113,7 @@ export default async function handler(req, res) {
         reason: 'Browser finalization observed application-fee refund activity',
       });
       return res.status(409).json({
-        error: 'Stripe shows a pending or completed refund for this application fee. The application is blocked for owner review.',
+        error: 'This application payment is temporarily on hold. No additional payment will be attempted. Contact support.',
         code: 'APPLICATION_FEE_REFUND_REVIEW_REQUIRED',
       });
     }
@@ -155,13 +154,13 @@ export default async function handler(req, res) {
   } catch (error) {
     if (/account closure|account.*closed|closure status/i.test(String(error?.message || error))) {
       return res.status(409).json({
-        error: 'This Easer application closed while payment was being verified. Contact support before taking any further payment action.',
+        error: 'This application closed before payment finished. Contact support before taking another payment action.',
         code: 'APPLICATION_FEE_FINALIZATION_CLOSED',
       });
     }
     console.error('Application fee finalization failed:', error?.message || error);
     return res.status(503).json({
-      error: 'Stripe confirmed payment could not be reconciled with the application. Retry safely; you will not be charged again.',
+      error: 'Your payment was not added to the application. Retry the same application; you will not be charged again.',
       code: 'APPLICATION_FEE_FINALIZATION_RETRYABLE',
     });
   }

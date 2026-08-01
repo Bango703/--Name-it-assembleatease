@@ -228,7 +228,7 @@ const mockEaserEarnings = {
     {
       booking_id: 'job-cancel-1', booking_ref: 'AAE-240630', service: 'Smart Home Setup',
       earning_type: 'cancellation_earnings', earned_at: iso(-13 * 86400000), amount_cents: 3500,
-      payout: { rail: 'manual', disposition: 'pending', status_code: 'manual_payout_ready', status_label: 'Ready for Manual Payout', status_message: 'This earning is ready for AssembleAtEase to send through your selected external payout method.', action: 'none', recorded_at: null },
+      payout: { rail: 'manual', disposition: 'pending', status_code: 'pending', status_label: 'Pending', status_message: 'Your payout is ready and waiting to be sent.', action: 'none', recorded_at: null },
     },
   ],
   summary: { completed_jobs: 1, total_earned_cents: 21950, paid_cents: 18450, awaiting_payout_cents: 3500, on_hold_cents: 0 },

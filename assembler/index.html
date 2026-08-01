@@ -827,7 +827,7 @@
         key:'phone',
         done: hasValidUsPhone(currentProfile.phone),
         label:'Add your phone number',
-        desc: 'Add a phone number for dispatch and job notifications.',
+        desc: 'Add a phone number for job offers and notifications.',
         action: !hasValidUsPhone(currentProfile.phone) ? { href:'/assembler/profile', label:'Add Phone' } : null,
       },
     ].filter(function(step){ return !step.done; });
@@ -1368,7 +1368,7 @@
       pb.style.background='rgba(239,68,68,0.06)';
       pb.style.borderColor='rgba(239,68,68,0.2)';
       document.getElementById('profile-banner-title').textContent='Phone number required to receive jobs';
-      document.getElementById('profile-banner-sub').textContent='Easers without a phone number cannot be dispatched.';
+      document.getElementById('profile-banner-sub').textContent='A phone number is required to receive job offers.';
       document.getElementById('profile-banner-cta').textContent='Add Phone';
     } else if(!profile.city){
       document.getElementById('profile-banner').dataset.deferWhenBusy='true';

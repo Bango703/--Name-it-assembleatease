@@ -250,8 +250,8 @@
     </div>
     <!-- Evidence request section (shown when payout is held pending photo upload) -->
     <div id="evidence-request-section" style="display:none;background:#fffbeb;border:1px solid rgba(245,158,11,0.4);border-radius:10px;padding:0.875rem 1rem;margin-top:0.5rem;margin-bottom:0.75rem">
-      <div style="font-size:0.82rem;font-weight:700;color:#92400e;margin-bottom:0.3rem">Payout On Hold — Upload Required</div>
-      <div style="font-size:0.78rem;color:#92400e;line-height:1.55;margin-bottom:0.75rem">The owner needs photos of the completed work before releasing your payout. Please upload at least one photo from your camera roll.</div>
+      <div style="font-size:0.82rem;font-weight:700;color:#92400e;margin-bottom:0.3rem">Action Required: Completion Photo</div>
+      <div style="font-size:0.78rem;color:#92400e;line-height:1.55;margin-bottom:0.75rem">Upload at least one clear photo of the completed work to continue your payout.</div>
       <input type="file" id="evidence-req-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none">
       <div id="evidence-req-preview" style="display:none;margin-bottom:0.6rem">
         <img id="evidence-req-img" src="" alt="Preview" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:cover;display:block">
@@ -264,7 +264,7 @@
       <div id="evidence-req-status" style="font-size:0.75rem;color:#92400e;margin-top:0.45rem;display:none"></div>
     </div>
     <div id="damage-report-section" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:0.875rem 1rem;margin-top:0.5rem;margin-bottom:0.75rem">
-      <button type="button" id="damage-report-toggle" style="width:100%;border:0;background:none;padding:0;text-align:left;color:#991b1b;font-size:0.82rem;font-weight:700;cursor:pointer">Report damage or an onsite incident</button>
+      <button type="button" id="damage-report-toggle" style="width:100%;border:0;background:none;padding:0;text-align:left;color:#991b1b;font-size:0.82rem;font-weight:700;cursor:pointer">Report an Issue</button>
       <div id="damage-report-form" style="display:none;margin-top:0.75rem">
         <label for="damage-report-notes" style="display:block;font-size:0.76rem;font-weight:700;color:#7f1d1d;margin-bottom:0.35rem">Describe exactly what happened</label>
         <textarea id="damage-report-notes" maxlength="2000" rows="4" placeholder="Include what was affected, when it happened, and what you did immediately afterward." style="width:100%;box-sizing:border-box;border:1px solid #fca5a5;border-radius:8px;padding:0.65rem;font:inherit;font-size:0.8rem;resize:vertical"></textarea>
@@ -279,7 +279,7 @@
     </div>
     <!-- Payout info section (shown for completed jobs) -->
     <div id="payout-info-section" style="display:none;background:rgba(5,150,105,0.07);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:0.75rem 1rem;margin-top:0.5rem;margin-bottom:1rem">
-      <div style="font-size:0.8rem;font-weight:700;color:#065f46;margin-bottom:0.25rem">Your Payout</div>
+      <div style="font-size:0.8rem;font-weight:700;color:#065f46;margin-bottom:0.25rem">Payout Amount</div>
       <div id="payout-info-amount" style="font-size:1.1rem;font-weight:700;color:#059669"></div>
       <div id="payout-info-note" style="font-size:0.72rem;color:#047857;margin-top:0.2rem;line-height:1.5"></div>
     </div>
@@ -950,8 +950,8 @@
           ? earningsByBookingId.get(_evidenceReqBookingId)
           : null;
         document.getElementById('payout-info-note').textContent = refreshedEarning && refreshedEarning.payout
-          ? refreshedEarning.payout.status_label + ' - ' + refreshedEarning.payout.status_message
-          : 'Evidence received. AssembleAtEase is verifying the current payout status.';
+          ? 'Status: ' + refreshedEarning.payout.status_label + '. ' + refreshedEarning.payout.status_message
+          : 'Evidence received. Your payout status will update soon.';
         APP.showAlert(
           'page-alert',
           payoutTruthRefreshed
@@ -1005,7 +1005,7 @@
       _damageInFlight = true;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Sending...';
-      statusEl.textContent = 'Saving the report and notifying the owner...';
+      statusEl.textContent = 'Saving your report...';
       statusEl.style.display = 'block';
       try {
         var fileBase64 = await new Promise(function(resolve, reject) {
@@ -1027,8 +1027,8 @@
         });
         var result = await response.json();
         if (!response.ok || result.error) throw new Error(result.error || 'Damage report could not be saved.');
-        statusEl.textContent = result.warning || 'Damage report saved. Stop work if continuing could make the issue worse, and contact support.';
-        statusEl.style.color = result.warning ? '#92400e' : '#166534';
+        statusEl.textContent = result.message || 'Issue report received. Stop work if continuing could make the issue worse, and contact support.';
+        statusEl.style.color = '#166534';
         document.getElementById('damage-report-notes').value = '';
         document.getElementById('damage-report-photo').value = '';
         document.getElementById('damage-report-file').textContent = '';
@@ -1124,7 +1124,7 @@
           document.getElementById('complete-section').style.display = 'none';
           const banner = document.createElement('div');
           banner.className = 'checkin-banner';
-          banner.innerHTML = '&#10003; Job marked complete. Payment captured and customer notified.';
+          banner.innerHTML = '&#10003; Job marked complete. Your payout status is available in Earnings.';
           document.getElementById('asgn-modal-body').appendChild(banner);
           // Fresh fetch — replaces stale local mutation so assembler_due, payout_status,
           // and completed_at render correctly without waiting for the realtime event.
@@ -1174,9 +1174,6 @@
           APP.showAlert('page-alert', d.error || 'Failed to send message.', 'error');
           input.value = body;
         } else {
-          if (d.warning || d.notification?.delivered === false) {
-            APP.showAlert('page-alert', d.warning || 'Message saved, but the owner notification failed. The message remains in the booking thread.', 'error');
-          }
           refreshThread(selectedBookingId);
         }
       } catch { alert('Failed to send message'); input.value = body; }
@@ -1222,13 +1219,17 @@
     const scopeHtml = renderScopeSection(b._booking_items || []);
     const scheduleDate = b.return_visit_required ? b.return_visit_date : b.date;
     const scheduleTime = b.return_visit_required ? b.return_visit_time : b.time;
-    const payEst = isCompleted
-      ? (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null)
-      : (b._pay_estimate_lo != null
-        ? (b._pay_estimate_lo === b._pay_estimate_hi
-          ? formatMoneyCents(b._pay_estimate_lo)
-          : formatMoneyCents(b._pay_estimate_lo) + '–' + formatMoneyCents(b._pay_estimate_hi))
-        : (b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null));
+    const detailEarningTruth = isCompleted && earningsTruthLoaded
+      ? earningsByBookingId.get(b.id)
+      : null;
+    const completedPayoutLabel = detailEarningTruth && detailEarningTruth.payout
+      ? detailEarningTruth.payout.status_label
+      : 'Payout Status';
+    const payEst = !isCompleted && b._pay_estimate_lo != null
+      ? (b._pay_estimate_lo === b._pay_estimate_hi
+        ? formatMoneyCents(b._pay_estimate_lo)
+        : formatMoneyCents(b._pay_estimate_lo) + '–' + formatMoneyCents(b._pay_estimate_hi))
+      : (!isCompleted && b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null);
 
     document.getElementById('asgn-modal-body').innerHTML = [
       // Header row: service title + status badge
@@ -1237,11 +1238,14 @@
         '<span class="sb asgn-detail-status ' + stageMeta.cls + '">' + stageMeta.label + '</span>',
       '</div>',
 
-      // Pay estimate pill (for offers / accepted)
-      payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
+      // One concise summary: payout status after completion, pay estimate before.
+      isCompleted ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
+        + '<strong style="color:var(--pro-teal)">' + esc(completedPayoutLabel) + '</strong>'
+        + '<span style="color:var(--pro-muted);font-size:0.72rem">Payout status</span>'
+        + '</div><br>' : (payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.3rem 0.875rem;font-size:0.875rem;margin-bottom:1rem">'
         + '<strong style="color:var(--pro-teal)">' + payEst + '</strong>'
-        + '<span style="color:var(--pro-muted);font-size:0.72rem">' + (isCompleted ? 'Your payout' : 'Est. take-home') + '</span>'
-        + '</div><br>' : '',
+        + '<span style="color:var(--pro-muted);font-size:0.72rem">Est. take-home</span>'
+        + '</div><br>' : ''),
 
       // Detail rows
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
@@ -1258,7 +1262,7 @@
 
       b.return_visit_required ? '<div style="margin-bottom:1rem;border:1px solid #c7d2fe;border-radius:12px;background:#eef2ff;padding:0.85rem 0.9rem">'
         + '<div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#3730a3;margin-bottom:0.4rem">Return visit required</div>'
-        + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55"><strong>Completed:</strong> ' + esc(b.return_visit_completed_scope || 'Documented by owner') + '</div>'
+        + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55"><strong>Completed:</strong> ' + esc(b.return_visit_completed_scope || 'Previously completed work') + '</div>'
         + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55;margin-top:0.2rem"><strong>Remaining:</strong> ' + esc(b.return_visit_remaining_scope || 'Remaining work') + '</div>'
         + '</div>' : '',
 
@@ -1300,9 +1304,7 @@
     const completeBtn = document.getElementById('complete-btn');
     var completeSheetBody = document.getElementById('complete-sheet-body');
     if (completeSheetBody) {
-      completeSheetBody.textContent = b._owner_manual_live_flow
-        ? 'Take a clear photo of the finished work. Completing this job records your earnings, but it does not collect or charge the customer payment. Record customer collection separately in the owner dashboard.'
-        : 'Take a clear photo of the finished work. This is required before the job can be marked complete and payment is processed.';
+      completeSheetBody.textContent = 'Take a clear photo of the finished work. This is required before the job can be marked complete.';
     }
     if (_completionInFlight) {
       completeBtn.disabled = true;
@@ -1345,12 +1347,12 @@
     var payoutSection = document.getElementById('payout-info-section');
     if (isFullyCompleted(b)) {
       payoutSection.style.display = 'block';
-      var earningTruth = earningsTruthLoaded ? earningsByBookingId.get(b.id) : null;
+      var earningTruth = detailEarningTruth;
       var dueCents = earningTruth ? Number(earningTruth.amount_cents || 0) : Number(b.assembler_due || 0);
       document.getElementById('payout-info-amount').textContent = formatMoneyCents(dueCents);
       var payoutNote;
       if (earningTruth && earningTruth.payout) {
-        payoutNote = earningTruth.payout.status_label + ' - ' + earningTruth.payout.status_message;
+        payoutNote = 'Status: ' + earningTruth.payout.status_label + '. ' + earningTruth.payout.status_message;
       } else if (!earningsTruthLoaded) {
         payoutNote = 'Payout status is temporarily unavailable. Open Earnings or refresh before relying on a status.';
       } else {
@@ -1405,7 +1407,7 @@
     // Within 15 min of acceptance the Pro can self-drop; after that it's support-only.
     const existingDrop = document.getElementById('drop-section');
     if (existingDrop) existingDrop.remove();
-    if (accepted && b.status === 'confirmed' && !b._owner_manual_live_flow) {
+    if (accepted && b.status === 'confirmed' && b._can_self_drop !== false) {
       const acceptedAt = b.assembler_accepted_at ? new Date(b.assembler_accepted_at).getTime() : null;
       const minsSince  = acceptedAt ? (Date.now() - acceptedAt) / 60000 : 999;
       const canDrop    = !!acceptedAt && minsSince <= 15;
@@ -1433,7 +1435,7 @@
       const dropBtn = document.getElementById('drop-job-btn');
       if (dropBtn) {
         dropBtn.addEventListener('click', async function() {
-          if (!confirm('Drop this job? It will be offered to other Pros right away. You can only do this within 15 minutes of accepting.')) return;
+          if (!confirm('Drop this job? You will be removed from the assignment. You can only do this within 15 minutes of accepting.')) return;
           dropBtn.disabled = true; dropBtn.textContent = 'Dropping…';
           try {
             const r = await fetch('/api/booking/drop-job', {
@@ -1447,7 +1449,7 @@
               dropBtn.disabled = false; dropBtn.textContent = 'Drop this job'; return;
             }
             document.getElementById('asgn-modal').classList.remove('open');
-            APP.showAlert('page-alert', 'Job dropped. It has been sent to other Pros.', 'info');
+            APP.showAlert('page-alert', d.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
             const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
             if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
           } catch {
@@ -1580,7 +1582,7 @@
 <div class="sheet-overlay" id="complete-sheet">
   <div class="sheet-box">
     <div class="sheet-title">Take a completion photo</div>
-    <div class="sheet-body" id="complete-sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete and payment is processed.</div>
+    <div class="sheet-body" id="complete-sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete.</div>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
       <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Completion photo <span style="font-weight:400;color:#dc2626">(required to submit)</span></div>
       <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">
@@ -1605,7 +1607,7 @@
 <div class="sheet-overlay" id="decline-sheet">
   <div class="sheet-box">
     <div class="sheet-title">Why are you declining</div>
-    <div class="sheet-body">This helps us improve dispatch matching. Optional.</div>
+    <div class="sheet-body">This helps us improve future job matching. Optional.</div>
     <div class="sheet-actions" id="decline-reason-list">
       <button class="decline-reason-btn" data-reason="scheduling_conflict">Scheduling conflict</button>
       <button class="decline-reason-btn" data-reason="too_far">Too far from my location</button>

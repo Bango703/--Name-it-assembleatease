@@ -812,8 +812,8 @@ function applicationSuccessResponse(profile, {
     },
     warning,
   };
-  if (typeof ownerDelivered === 'boolean' || typeof applicantDelivered === 'boolean') {
-    response.notifications = { ownerDelivered: ownerDelivered === true, applicantDelivered: applicantDelivered === true };
+  if (typeof applicantDelivered === 'boolean') {
+    response.notificationSent = applicantDelivered === true;
   }
   return response;
 }
@@ -901,7 +901,7 @@ function buildApplicantEmail(firstName, { feeWaived, verificationResumeUrl }) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">Application received, ${esc(firstName)}!</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.7">Thank you for applying to join the AssembleAtEase team. ${paymentCopy} Your application is now on file, but we cannot review or approve it until identity verification is completed.</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.7">Thank you for applying to join AssembleAtEase. ${paymentCopy} Your application is now on file. Your next required step is identity verification.</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;text-align:center">
       <p style="margin:0;font-size:13px;color:#166534;font-weight:600">${statusCopy}</p>
     </td></tr></table>
@@ -910,8 +910,8 @@ function buildApplicantEmail(firstName, { feeWaived, verificationResumeUrl }) {
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">What happens next</p>
       <ol style="margin:8px 0 0;padding-left:16px;font-size:14px;color:#52525b;line-height:1.8">
         <li>Complete identity verification through the secure AssembleAtEase link above.</li>
-        <li>Our team reviews your application after Stripe confirms your identity check.</li>
-        <li>If approved, you receive a separate email with password setup and dashboard access.</li>
+        <li>We will email you when your application status changes.</li>
+        <li>If your application is approved, you will receive password setup and dashboard access.</li>
       </ol>
     </td></tr></table>
     <p style="margin:20px 0 0;font-size:13px;color:#52525b;line-height:1.6">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF;text-decoration:none">service@assembleatease.com</a>.</p>

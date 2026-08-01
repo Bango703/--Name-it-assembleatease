@@ -32,6 +32,33 @@ const SAFE_OFFER_CITIES = new Map([
   ['west lake hills', 'West Lake Hills'],
 ]);
 
+const INTERNAL_FINANCIAL_FIELDS = [
+  'amount_charged',
+  'platform_fee',
+  'platform_fee_pct',
+  'payment_status',
+  'refund_amount',
+  'refunded_at',
+  'payout_status',
+  'payout_mode_snapshot',
+  'payout_review_status',
+  'paid_out_at',
+  'payout_notes',
+  'stripe_transfer_status',
+  'stripe_transfer_created_at',
+  'stripe_bank_payout_status',
+  'stripe_bank_payout_paid_at',
+  'total_price',
+  'tax_amount',
+  'assemblecash_redeemed_cents',
+  'cancellation_fee',
+  'cancellation_easer_due_cents',
+  'cancellation_easer_payout_status',
+  'easer_fee_snapshot_easer_id',
+  'easer_fee_pct_snapshot',
+  'easer_estimated_due_snapshot',
+];
+
 export function deriveOfferLocation(address) {
   const parts = String(address || '')
     .split(',')
@@ -141,8 +168,8 @@ export default async function handler(req, res) {
     );
   } else if (applicationFeeRefundHold) {
     pushWarning(
-      'application_fee_refund_hold',
-      'New job offers are paused while the application-fee refund is reviewed. Existing assigned work remains available.',
+      'new_offers_paused',
+      'New job offers are temporarily paused. Existing assigned work remains available. Contact support if you need help.',
     );
   } else try {
     const { data, error } = await sb
@@ -250,7 +277,7 @@ export default async function handler(req, res) {
   allBookings.forEach(booking => {
     booking._return_visit_open = booking.status === BOOKING_STATUS.COMPLETED
       && booking.return_visit_required === true;
-    booking._owner_manual_live_flow = isOwnerManualLiveFlow(booking, easerProfile);
+    booking._can_self_drop = !isOwnerManualLiveFlow(booking, easerProfile);
     delete booking.source;
   });
 
@@ -322,10 +349,16 @@ export default async function handler(req, res) {
       });
       b._pay_estimate_lo = split.assemblerDueCents;
       b._pay_estimate_hi = split.assemblerDueCents;
-      b._fee_pct         = split.feePct;
     } else if (b.total_price === 0 || b.total_price === null) {
       b._custom_quote = true; // signal to UI: price TBD
     }
+  });
+
+  // The Easer response carries only the user's earnings and job-operation truth.
+  // Raw customer-payment, refund, review, fee, and Stripe-transfer fields remain
+  // available to owner and financial workflows but never cross this boundary.
+  allBookings.forEach(booking => {
+    INTERNAL_FINANCIAL_FIELDS.forEach(field => { delete booking[field]; });
   });
 
   const response = {

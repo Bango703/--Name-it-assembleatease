@@ -823,7 +823,7 @@
       <div class="hero-actions">
         <a class="hero-btn hero-btn-primary" href="#apply-form">Apply Now &rarr;</a>
       </div>
-      <p class="hero-copy">Apply to receive local assembly, mounting, smart home, fitness, outdoor, and office jobs after approval. We review every application before dispatching work.</p>
+      <p class="hero-copy">Apply to receive local assembly, mounting, smart home, fitness, outdoor, and office jobs after approval. We verify every application before offering work.</p>
     </div>
 
     <figure class="hero-photo" aria-label="Two home-service professionals preparing for local jobs">
@@ -832,7 +832,7 @@
         <div class="photo-note-icon"><img src="../images/logo.jpg" alt="" /></div>
         <div>
           <strong>Built for careful pros</strong>
-          <span>Approved Easers get job details, customer info, and dispatch updates in the app.</span>
+          <span>Approved Easers get job details, customer info, and job updates in the app.</span>
         </div>
       </figcaption>
     </figure>
@@ -845,7 +845,7 @@
       <div class="form-intro">
         <div>
           <h2>Apply to join</h2>
-          <p>This takes a few minutes. Use accurate contact info because your phone number is required for dispatch after approval.</p>
+          <p>This takes a few minutes. Use accurate contact information because your phone number is required for job offers after approval.</p>
         </div>
         <div class="form-pill" id="fee-status-pill">Checking application fee</div>
       </div>
@@ -885,7 +885,7 @@
             <div class="form-group">
               <label for="phone">Phone number *</label>
               <input type="tel" id="phone" class="form-control" placeholder="737-290-6129" autocomplete="tel" required />
-              <span class="field-hint">Required for dispatch, job updates, and urgent coordination.</span>
+              <span class="field-hint">Required for job updates and urgent coordination.</span>
               <span class="field-error" id="phone-error"></span>
             </div>
             <div class="form-group">
@@ -1063,7 +1063,7 @@
           <div class="conduct-check" id="fee-consent-section" style="display:none;margin-bottom:0.75rem">
             <input type="checkbox" id="fee-consent" />
             <div class="conduct-check-text" id="fee-consent-copy">
-              I authorize AssembleAtEase to charge a one-time $30.00 Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and owner approval are separate, and work is not guaranteed.
+              I authorize AssembleAtEase to charge a one-time $30.00 Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and application approval are separate, and work is not guaranteed.
             </div>
           </div>
           <span class="field-error" id="fee-consent-error"></span>
@@ -1091,7 +1091,7 @@
         <div class="step-list">
           <div class="mini-step"><div class="mini-num">1</div><div><strong>Submit application</strong><span>We receive your profile, service categories, and launch-program status.</span></div></div>
           <div class="mini-step"><div class="mini-num">2</div><div><strong>Verify identity</strong><span>Use the time-limited secure AssembleAtEase link sent after submission. If another attempt is required, use the newest link emailed to you.</span></div></div>
-          <div class="mini-step"><div class="mini-num">3</div><div><strong>Owner review</strong><span>We review your application after identity verification is submitted.</span></div></div>
+          <div class="mini-step"><div class="mini-num">3</div><div><strong>Application status</strong><span>We will email you when your application status changes.</span></div></div>
         </div>
       </div>
 
@@ -1242,16 +1242,16 @@
     if (paidRequired) {
       pill.textContent = 'Application fee: ' + amountDisplay;
       programCopy.innerHTML = '<strong>One-time Easer application fee: ' + amountDisplay + '.</strong> This exact amount is set and verified by the AssembleAtEase server.';
-      chargeCopy.innerHTML = '<strong>Payment is collected only after your authorization.</strong> Identity verification and owner approval remain required, and submitting does not guarantee work.';
+      chargeCopy.innerHTML = '<strong>Payment is collected only after your authorization.</strong> Identity verification and application approval remain required, and submitting does not guarantee work.';
       refundCopy.textContent = 'Refund terms: if AssembleAtEase rejects your application, the full application fee is returned to the original payment method. Applicant-withdrawal, duplicate-charge, and payment-error requests are reviewed by service@assembleatease.com; no other refund is guaranteed.';
-      document.getElementById('fee-consent-copy').textContent = 'I authorize AssembleAtEase to charge a one-time ' + amountDisplay + ' Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and owner approval are separate, and work is not guaranteed.';
+      document.getElementById('fee-consent-copy').textContent = 'I authorize AssembleAtEase to charge a one-time ' + amountDisplay + ' Easer application fee to submit this application, and I acknowledge the refund terms shown above. Identity verification and application approval are separate, and work is not guaranteed.';
       document.getElementById('card-label').textContent = 'Card details for the ' + amountDisplay + ' application fee *';
       consentSection.style.display = '';
       button.textContent = 'Continue to ' + amountDisplay + ' Secure Payment';
     } else {
       pill.textContent = 'Founding Easer: fee waived';
       programCopy.innerHTML = '<strong>Founding Easer Program.</strong> The server currently confirms that no application fee is required for this launch spot.';
-      chargeCopy.innerHTML = '<strong>No payment collected.</strong> Identity verification and owner review are still required before any jobs are offered.';
+      chargeCopy.innerHTML = '<strong>No payment collected.</strong> Identity verification and application approval are still required before any jobs are offered.';
       refundCopy.textContent = 'This Founding Easer application has no application charge, so no application-fee refund applies.';
       consentSection.style.display = 'none';
       document.getElementById('fee-consent').checked = false;

@@ -104,7 +104,5 @@ export default async function handler(req, res) {
     ok: true,
     requestedAt,
     closureStatus: closure.closure_status,
-    ownerNotified: notice?.ok === true && !notice?.suppressed,
-    warning: notice?.ok === true && !notice?.suppressed ? null : 'owner_notification_failed',
   });
 }

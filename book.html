@@ -3238,7 +3238,7 @@
         </p>
         <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
           <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
-          <span>I understand that for used or previously assembled items, reassembly can be limited by the item&rsquo;s condition and pre-existing wear or brittleness is not refundable, and that products such as trampolines, playsets, and fitness equipment carry inherent risks when used. AssembleAtEase is not responsible for a product&rsquo;s design or my use of it after assembly. I agree to the <a href="/terms" target="_blank" style="color:var(--teal)">Terms</a>.</span>
+          <span>I understand that used or previously assembled items may have pre-existing wear that can affect reassembly. I agree to the <a href="/terms" target="_blank" style="color:var(--teal)">Terms</a>, including the item-condition and safe-use provisions.</span>
         </label>
 
         <div class="step-actions">
@@ -7684,7 +7684,7 @@ async function recoverRedirectedPayment() {
     await loadStripeJs();
     var cfgResp=await fetch('/api/config/public-key');
     var cfg=await cfgResp.json();
-    if(!cfgResp.ok||!cfg.publishableKey) throw new Error('Could not load secure payment verification.');
+    if(!cfgResp.ok||!cfg.publishableKey) throw new Error('Could not load secure payment.');
     var stripe=Stripe(cfg.publishableKey);
     var retrieved=await stripe.retrievePaymentIntent(params.get('payment_intent_client_secret'));
     if(retrieved.error) throw new Error(retrieved.error.message);

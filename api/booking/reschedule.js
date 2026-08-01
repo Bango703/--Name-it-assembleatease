@@ -127,8 +127,8 @@ export default async function handler(req, res) {
   if (booking.status === BOOKING_STATUS.CONFIRMED
       && (!Number.isInteger(currentDispatchAttempt) || currentDispatchAttempt < 0)) {
     return res.status(503).json({
-      error: 'Dispatch state is invalid. The owner must reconcile this booking before it can be rescheduled.',
-      code: 'DISPATCH_TRUTH_UNAVAILABLE',
+      error: 'This booking is temporarily unavailable for rescheduling. Please contact support.',
+      code: 'RESCHEDULE_UNAVAILABLE',
     });
   }
   const update = {
@@ -343,9 +343,6 @@ export default async function handler(req, res) {
     date,
     time,
     reschedulesRemaining: Math.max(0, remaining),
-    easerReconfirmationRequired: reconfirmationRequired,
     guestMutationToken: effectiveGuestMutationToken,
-    notificationFailures,
-    notificationAuditFailures,
   });
 }

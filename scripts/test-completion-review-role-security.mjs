@@ -174,7 +174,12 @@ for (const file of ['api/booking/complete.js', 'api/booking/assembler-complete.j
   assert.doesNotMatch(stripeCompletionSource, /financial_operation_key:\s*null/);
   assert.match(stripeCompletionSource, /finalizeCompletionRewards/);
   assert.match(stripeCompletionSource, /surfaceCompletionRewardHold/);
-  assert.match(stripeCompletionSource, /reconciliationRequired/);
+  if (file.endsWith('assembler-complete.js')) {
+    assert.doesNotMatch(stripeCompletionSource, /reconciliationRequired/,
+      'Easer completion responses must not expose internal reconciliation state');
+  } else {
+    assert.match(stripeCompletionSource, /reconciliationRequired/);
+  }
 }
 
 const completionHelper = compact(read('api/booking/_completion-rewards.js'));

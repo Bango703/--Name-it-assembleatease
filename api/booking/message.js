@@ -171,7 +171,7 @@ export default async function handler(req, res) {
     <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#1a1a1a">Job update from dispatcher</p>
+    <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#1a1a1a">Job update from AssembleAtEase</p>
     <p style="margin:0 0 20px;font-size:13px;color:#71717a">Ref: ${esc(booking.ref)} &bull; ${esc(booking.service)}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:16px 18px">
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
       notificationResult = await sendEmail({
         to: easerUser.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: 'Job update from dispatcher — ' + booking.ref,
+        subject: 'Job update from AssembleAtEase — ' + booking.ref,
         html: easerHtml,
         replyTo: ownerEmail(),
         meta: {
@@ -199,7 +199,7 @@ export default async function handler(req, res) {
       // Push the message straight to the Easer's device so it isn't silent —
       // same channel as job offers. Email alone is easy to miss on a job.
       sendPushToUser(booking.assembler_id, {
-        title: 'New message from dispatch',
+        title: 'New job message',
         body: messageText.slice(0, 140),
         url: SITE + '/assembler/my-assignments',
         jobId: booking.id,
@@ -320,11 +320,14 @@ export default async function handler(req, res) {
     });
   }
 
-  return res.status(200).json({
+  const response = {
     success: true,
     message: { id: message.id, sender: resolvedSender, recipientType: resolvedRecipient },
-    notification: notificationFailure
+  };
+  if (resolvedSender === 'owner') {
+    response.notification = notificationFailure
       ? { delivered: false, warning: 'Message saved, but the notification was not delivered.' }
-      : { delivered: true },
-  });
+      : { delivered: true };
+  }
+  return res.status(200).json(response);
 }

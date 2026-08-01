@@ -58,9 +58,6 @@ export default async function handler(req, res) {
         alreadyCompleted: true,
         offline: true,
         booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-        payout: booking.payout_status === 'paid'
-          ? { status: 'paid' }
-          : { status: booking.payment_collected ? 'pending_manual' : 'on_hold_customer_collection' },
       });
     }
     if (booking.payment_status === 'captured'
@@ -80,8 +77,6 @@ export default async function handler(req, res) {
       return res.status(rewardResult.ok ? 200 : 202).json({
         success: true,
         alreadyCompleted: true,
-        reconciliationRequired: !rewardResult.ok,
-        code: rewardResult.ok ? undefined : rewardResult.code,
         booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
       });
     }
@@ -110,7 +105,7 @@ export default async function handler(req, res) {
   const completionEvidenceResult = await loadCurrentCompletionEvidence(sb, booking);
   if (completionEvidenceResult.error) {
     console.error('Completion evidence lookup failed:', completionEvidenceResult.error);
-    return res.status(503).json({ error: 'Completion evidence could not be verified. No payment was captured.' });
+    return res.status(503).json({ error: 'Your completion photo could not be confirmed. The job was not marked complete. Refresh and try again.' });
   }
   const completionEvidence = completionEvidenceResult.evidence;
   if (!completionEvidence) {
@@ -126,7 +121,7 @@ export default async function handler(req, res) {
         || booking.stripe_deposit_intent_id
         || booking.stripe_balance_payment_intent_id) {
       return res.status(409).json({
-        error: 'This offline booking unexpectedly has linked Stripe payment state. Owner reconciliation is required before completion.',
+        error: 'This job is temporarily unavailable for completion. Its status and earnings are unchanged. Contact support.',
         code: 'OFFLINE_STRIPE_STATE_CONFLICT',
       });
     }
@@ -141,14 +136,14 @@ export default async function handler(req, res) {
   const positivePrice = Number(booking.total_price || 0) > 0;
   if (!positivePrice) {
     return res.status(409).json({
-      error: 'This job cannot be completed until the owner confirms a positive final price.',
+      error: 'This job is waiting for a final price and cannot be completed yet.',
       code: 'PRICE_NOT_SET',
     });
   }
   const capturedRecovery = booking.payment_status === 'captured';
   if (positivePrice && !['authorized', 'deposit_paid', 'captured'].includes(booking.payment_status)) {
     return res.status(409).json({
-      error: 'Customer payment is not authorized. The job cannot be completed and no earnings will be created until the owner resolves payment.',
+      error: 'This job is temporarily on hold and cannot be completed yet. Your earnings are unchanged.',
       code: 'PAYMENT_NOT_AUTHORIZED',
     });
   }
@@ -157,12 +152,12 @@ export default async function handler(req, res) {
   if (positivePrice && !booking.stripe_payment_intent_id && !booking.stripe_deposit_intent_id) {
     if (!booking.stripe_payment_method_id) {
       return res.status(400).json({
-        error: 'No payment method on file. Contact AssembleAtEase to resolve before completing.',
+        error: 'This job is temporarily on hold and cannot be completed yet. Contact support.',
         code: 'PAYMENT_NOT_AUTHORIZED',
       });
     }
     return res.status(400).json({
-      error: 'This is a custom quote job. The owner must finalize the quote price before you can mark it complete.',
+      error: 'This job is waiting for a final price and cannot be completed yet.',
       code: 'QUOTE_PENDING_APPROVAL',
     });
   }
@@ -170,7 +165,7 @@ export default async function handler(req, res) {
   const captureRequired = booking.payment_status === 'authorized' || booking.payment_status === 'deposit_paid';
   if ((captureRequired || capturedRecovery) && !process.env.STRIPE_SECRET_KEY) {
     return res.status(503).json({
-      error: 'Payment capture configuration is unavailable. Booking was not completed.',
+      error: 'Completion is temporarily unavailable. The job was not marked complete. Try again later.',
       code: 'CAPTURE_CONFIGURATION_UNAVAILABLE',
     });
   }
@@ -180,7 +175,10 @@ export default async function handler(req, res) {
     feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, user.id);
   } catch (feeError) {
     console.error('Assembler-complete fee snapshot error:', feeError);
-    return res.status(503).json({ error: feeError.message, code: feeError.code });
+    return res.status(503).json({
+      error: 'Your payout details could not be prepared. The job was not marked complete. Try again or contact support.',
+      code: feeError.code,
+    });
   }
 
   // Shared with owner completion so either trusted actor can reconcile an
@@ -199,7 +197,9 @@ export default async function handler(req, res) {
     });
   } catch (reservationError) {
     return res.status(reservationError.code === 'FINANCIAL_OPERATION_CONFLICT' ? 409 : 503).json({
-      error: reservationError.message,
+      error: reservationError.code === 'FINANCIAL_OPERATION_CONFLICT'
+        ? 'This job changed before completion. Refresh and try again.'
+        : 'Completion is temporarily unavailable. The job was not marked complete. Try again later.',
       code: reservationError.code,
     });
   }
@@ -259,8 +259,8 @@ export default async function handler(req, res) {
         || (stripeErr?.message || '').includes('requires_capture');
       return res.status(502).json({
         error: isUncapturable
-          ? 'The card authorization for this job has expired or is no longer valid. The owner has been notified and will collect payment manually. You can message support if you need help.'
-          : 'Payment capture failed. The owner has been alerted and will resolve this. Please message support if you need assistance.',
+          ? 'Completion did not finish. The job and your earnings are unchanged. Contact support.'
+          : 'Completion did not finish. The job and your earnings are unchanged. Please try again or contact support.',
         code: 'CAPTURE_FAILED',
       });
     }
@@ -268,7 +268,7 @@ export default async function handler(req, res) {
 
   if (captureRequired && amountCharged <= 0) {
     return res.status(502).json({
-      error: 'Payment capture did not produce a charge. Booking was not completed.',
+      error: 'Completion did not finish. The job was not marked complete. Refresh and try again.',
       code: 'CAPTURE_INCOMPLETE',
     });
   }
@@ -277,7 +277,7 @@ export default async function handler(req, res) {
 
   if (!captureRequired && finalAmount <= 0) {
     return res.status(400).json({
-      error: 'This job can\'t be marked complete yet — the final price hasn\'t been confirmed. Contact your dispatcher.',
+      error: 'This job is waiting for a final price and cannot be completed yet. Contact support.',
       code: 'PRICE_NOT_SET',
     });
   }
@@ -294,10 +294,6 @@ export default async function handler(req, res) {
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;
-  const taxCents         = split.taxCents;
-  const payoutBaseCents  = split.payoutBaseCents;
-  const assemblecashRedeemedCents = split.assemblecashRedeemedCents;
-  let connectPayout = { status: 'disabled' };
 
   // ── Update booking (atomic guard — prevents double-complete race) ────────
   const completionPayload = {
@@ -358,21 +354,12 @@ export default async function handler(req, res) {
       return res.status(recoveryResult.ok ? 200 : 202).json({
         success: true,
         alreadyCompleted: true,
-        reconciliationRequired: !recoveryResult.ok,
-        code: recoveryResult.ok ? undefined : recoveryResult.code,
         booking: { id: booking.id, ref: booking.ref, status: current.status || BOOKING_STATUS.COMPLETED },
-        payout: current.stripe_transfer_id
-          ? {
-              status: current.payout_status === 'paid' ? 'paid' : 'pending_manual',
-              transferId: current.stripe_transfer_id,
-              destinationAccount: current.stripe_destination_account_id || null,
-            }
-          : { status: current.payout_status === 'paid' ? 'paid' : 'pending_manual' },
       });
     }
 
     return res.status(409).json({
-      error: 'Completion capture succeeded, but booking state was changed by another request. Contact AssembleAtEase before retrying.',
+      error: 'This job changed before completion finished. Contact support before retrying.',
       code: 'COMPLETION_STATE_RACE',
     });
   }
@@ -394,17 +381,6 @@ export default async function handler(req, res) {
       actorType: 'easer', actorId: user.id, actorName: booking.assembler_name || 'Easer',
       eventSource: 'booking_complete_assembler',
     });
-  }
-
-  // Payout is HELD, not sent now. A 'release-payouts' cron transfers it via Stripe
-  // Connect ~48h after completion. That hold (a) gives a dispute/verification window
-  // and (b) lets the just-captured funds settle from pending -> available, since
-  // Stripe transfers require AVAILABLE balance (an immediate transfer fails otherwise).
-  // The booking is already payout_status='pending' (set above); the cron does the rest.
-  if (isStripeConnectEnabled() && assemblerDue > 0) {
-    connectPayout = { status: 'scheduled', note: 'Releases ~48h after completion (dispute window + funds settling).' };
-  } else if (assemblerDue > 0) {
-    connectPayout = { status: 'pending_manual', reason: 'connect-disabled' };
   }
 
   // Job is done — release the Easer's daily slot
@@ -455,7 +431,7 @@ export default async function handler(req, res) {
           ${photoBlock}
           ${receiptBlock}
           ${buildReviewCta()}
-          <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work or receipt? Reply to this email and the owner will follow up.</p>`,
+          <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions about the completed work or receipt? Reply to this email for help from AssembleAtEase.</p>`,
       }),
       replyTo: ownerEmail(),
     });
@@ -475,18 +451,12 @@ export default async function handler(req, res) {
     <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#065f46">&#10003; Job Marked Complete</p>
     <p style="margin:0 0 20px;font-size:14px;color:#52525b">Booking <strong>${esc(booking.ref)}</strong> &mdash; ${esc(booking.service)}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 20px">
-      <table width="100%" style="font-size:14px">
-        <tr><td style="padding:4px 0;color:#166534">Total charged to customer</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(finalAmount/100).toFixed(2)}</td></tr>
-        ${taxCents > 0 ? `<tr><td style="padding:4px 0;color:#166534">Sales tax (paid to the state)</td><td style="padding:4px 0;text-align:right;color:#71717a">&minus;$${(taxCents/100).toFixed(2)}</td></tr>
-        <tr><td style="padding:4px 0;color:#166534">Pre-tax amount collected</td><td style="padding:4px 0;text-align:right;font-weight:600">$${((finalAmount - taxCents)/100).toFixed(2)}</td></tr>` : ''}
-        ${assemblecashRedeemedCents > 0 ? `<tr><td style="padding:4px 0;color:#166534">AssembleCash funded by AssembleAtEase</td><td style="padding:4px 0;text-align:right;font-weight:600;color:#0f766e">+$${(assemblecashRedeemedCents/100).toFixed(2)}</td></tr>
-        <tr><td style="padding:4px 0;color:#166534">Payout basis before platform share</td><td style="padding:4px 0;text-align:right;font-weight:600">$${(payoutBaseCents/100).toFixed(2)}</td></tr>` : ''}
-        <tr><td style="padding:4px 0;color:#166534">${assemblecashRedeemedCents > 0 ? 'Platform share after customer credit' : `Platform fee (${PLATFORM_FEE_PCT}% of service amount)`}</td><td style="padding:4px 0;text-align:right;color:#dc2626">&minus;$${(platformFee/100).toFixed(2)}</td></tr>
-        <tr style="border-top:1px solid #bbf7d0"><td style="padding:8px 0 4px;font-weight:700;color:#065f46">Your payout</td><td style="padding:8px 0 4px;text-align:right;font-weight:700;color:#065f46;font-size:18px">$${(assemblerDue/100).toFixed(2)}</td></tr>
-      </table>
+      <p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#166534">Payout Amount</p>
+      <p style="margin:0;font-size:24px;font-weight:700;color:#065f46">$${(assemblerDue/100).toFixed(2)}</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#166534">Status: Pending</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;margin-bottom:14px"><tr><td style="padding:12px 16px;font-size:13px;color:#0c4a6e;line-height:1.6">
-      ${isStripeConnectEnabled() ? "Your payout releases to your bank <strong>about 48 hours after completion</strong>, once the job is confirmed and clear of any dispute. You'll see it move from <em>Pending</em> to <em>Paid</em> on your Payouts page." : "Your payout for this job is now <strong>pending</strong>. AssembleAtEase sends Easer payouts by bank transfer (ACH) once the job is confirmed and clear of any dispute &mdash; typically within a few business days. You'll see it move from <em>Pending</em> to <em>Paid</em> on your Payouts page, and you'll get a payout confirmation email when it's sent."}
+      Your payout is now <strong>Pending</strong>. Track its current status on your Earnings page. We will email you when it is complete.
     </td></tr></table>
     <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6">Questions? Contact <a href="mailto:${ownerEmail()}" style="color:#00BFFF">${ownerEmail()}</a>.</p>
   </td></tr></table>
@@ -524,9 +494,6 @@ export default async function handler(req, res) {
   return res.status(rewardResult.ok ? 200 : 202).json({
     success: true,
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-    payout: connectPayout,
-    reconciliationRequired: !rewardResult.ok,
-    code: rewardResult.ok ? undefined : rewardResult.code,
   });
 }
 
@@ -557,7 +524,10 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     feeSnapshot = await resolveOrCreateEaserFeeSnapshot(sb, booking, user.id);
   } catch (feeError) {
     console.error('Offline owner-manual completion fee snapshot error:', feeError);
-    return res.status(503).json({ error: feeError.message, code: feeError.code });
+    return res.status(503).json({
+      error: 'Your payout details could not be prepared. The job was not marked complete. Try again or contact support.',
+      code: feeError.code,
+    });
   }
 
   // Canonical split — tax is a pass-through liability, excluded from the payout
@@ -588,7 +558,9 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     });
   } catch (reservationError) {
     return res.status(reservationError.code === 'FINANCIAL_OPERATION_CONFLICT' ? 409 : 503).json({
-      error: reservationError.message,
+      error: reservationError.code === 'FINANCIAL_OPERATION_CONFLICT'
+        ? 'This job changed before completion. Refresh and try again.'
+        : 'Completion is temporarily unavailable. The job was not marked complete. Try again later.',
       code: reservationError.code,
     });
   }
@@ -650,9 +622,6 @@ async function completeOfflineOwnerManualBooking(sb, res, {
       return res.status(200).json({
         success: true, alreadyCompleted: true, offline: true,
         booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-        payout: current.payout_status === 'paid'
-          ? { status: 'paid' }
-          : { status: current.payment_collected ? 'pending_manual' : 'on_hold_customer_collection' },
       });
     }
     if (!currentError
@@ -663,15 +632,15 @@ async function completeOfflineOwnerManualBooking(sb, res, {
       } catch (releaseError) {
         console.error('Offline owner-manual completion lock release failed:', releaseError);
         return res.status(503).json({
-          error: 'Completion did not finish and its financial lock needs owner review before retrying.',
+          error: 'Completion did not finish. The job and your earnings are unchanged. Contact support before retrying.',
           code: 'OFFLINE_COMPLETION_RECONCILIATION_REQUIRED',
         });
       }
     }
     return res.status(currentError ? 503 : 409).json({
       error: currentError
-        ? 'Completion state could not be reconciled. Owner review is required before retrying.'
-        : 'Job or payment state changed before completion. Refresh and try again.',
+        ? 'Completion status is temporarily unavailable. Refresh and contact support if it continues.'
+        : 'This job changed before completion. Refresh and try again.',
       code: currentError ? 'OFFLINE_COMPLETION_RECONCILIATION_REQUIRED' : 'OFFLINE_COMPLETION_STATE_CHANGED',
     });
   }
@@ -750,8 +719,5 @@ async function completeOfflineOwnerManualBooking(sb, res, {
     success: true,
     offline: true,
     booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.COMPLETED },
-    payout: split.assemblerDueCents > 0
-      ? { status: booking.payment_collected ? 'pending_manual' : 'on_hold_customer_collection' }
-      : { status: 'none' },
   });
 }

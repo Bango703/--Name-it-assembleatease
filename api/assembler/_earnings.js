@@ -1,63 +1,78 @@
 const HOLD_COPY = {
   offline_payment_not_verified: {
-    label: 'Payment Verification',
-    message: 'The customer payment has not yet been recorded as collected. AssembleAtEase is reviewing this earning.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   customer_payment_uncaptured: {
-    label: 'Payment Verification',
-    message: 'The customer payment is still being verified before this earning can be released.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   cancellation_payment_uncaptured: {
-    label: 'Payment Verification',
-    message: 'The customer cancellation payment is still being verified before this earning can be released.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   completion_evidence_missing: {
-    label: 'Photo Required',
-    message: 'A current completion photo is required before this earning can be released.',
+    code: 'action_required',
+    label: 'Action Required',
+    message: 'Upload a completion photo to continue your payout.',
   },
   refund_review_incomplete: {
-    label: 'Owner Review',
-    message: 'AssembleAtEase is reviewing this earning after a customer refund.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   damage_review_open: {
-    label: 'Owner Review',
-    message: 'AssembleAtEase is reviewing a reported job issue before releasing this earning.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   damage_review_incomplete: {
-    label: 'Owner Review',
-    message: 'AssembleAtEase is finishing the documented job review before releasing this earning.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   customer_dispute_open: {
-    label: 'Payment Review',
-    message: 'This earning is on hold while a customer payment dispute is reviewed.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   financial_reconciliation_open: {
-    label: 'Payment Review',
-    message: 'AssembleAtEase is reconciling the payment record before releasing this earning.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   return_visit_open: {
-    label: 'Completion Pending',
-    message: 'The return visit is still open. This amount becomes earned only after the remaining work is recorded complete.',
+    code: 'action_required',
+    label: 'Action Required',
+    message: 'Complete the remaining work before this amount becomes payable.',
   },
   stripe_connect_path: {
-    label: 'Transfer Review',
-    message: 'This earning is assigned to Stripe Connect and its transfer status is being verified.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   stripe_transfer_exists: {
-    label: 'Transfer Review',
-    message: 'A Stripe transfer exists and its bank payout status is being verified.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   payout_mode_missing: {
-    label: 'Payment Review',
-    message: 'AssembleAtEase is reconciling the payout method for this earning.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   payout_state_reconciliation: {
-    label: 'Payment Review',
-    message: 'AssembleAtEase is reconciling the payout record for this earning.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
   easer_not_assigned: {
-    label: 'Account Review',
-    message: 'AssembleAtEase is reconciling this earning with your Easer account.',
+    code: 'on_hold',
+    label: 'On Hold',
+    message: "Your payout is temporarily on hold. We'll notify you when its status changes.",
   },
 };
 
@@ -92,9 +107,9 @@ export function toEaserEarningDto(row = {}) {
   const isPaid = row.paidOut === true || rawPayoutStatus === 'paid';
   const isTransferred = !isPaid && !stripeBankPaid && rawPayoutStatus === 'transferred';
   let disposition = row.payoutDisposition || 'on_hold';
-  let statusCode = 'payment_review';
-  let statusLabel = 'Payment Review';
-  let statusMessage = 'AssembleAtEase is verifying this earning. Refresh later for the current payout status.';
+  let statusCode = 'on_hold';
+  let statusLabel = 'On Hold';
+  let statusMessage = "Your payout is temporarily on hold. We'll notify you when its status changes.";
 
   const connectRailOnlyHold = row.payoutMode === 'stripe_connect'
     && rawPayoutStatus === 'pending'
@@ -105,36 +120,33 @@ export function toEaserEarningDto(row = {}) {
 
   if (stripeBankPaid) {
     disposition = 'paid';
-    statusCode = 'bank_payout_paid';
-    statusLabel = 'Bank Payout Paid';
-    statusMessage = 'Stripe reports that the bank payout completed.';
+    statusCode = 'paid';
+    statusLabel = 'Paid';
+    statusMessage = 'Your payout is complete.';
   } else if (isPaid) {
     disposition = 'paid';
     statusCode = 'paid';
     statusLabel = 'Paid';
-    statusMessage = row.paidOutAt
-      ? 'AssembleAtEase recorded this external payout.'
-      : 'This payout is recorded as paid.';
+    statusMessage = 'Your payout is complete.';
   } else if (isTransferred) {
     disposition = 'transferred';
-    statusCode = 'bank_payout_pending';
-    statusLabel = 'Bank Payout Pending';
-    statusMessage = 'Funds were transferred to Stripe, but the bank payout is not yet verified as paid.';
+    statusCode = 'processing';
+    statusLabel = 'Processing';
+    statusMessage = "Your payout is processing. We'll update this status when it is complete.";
   } else if (disposition === 'pending') {
-    statusCode = row.payoutMode === 'stripe_connect' ? 'stripe_transfer_pending' : 'manual_payout_ready';
-    statusLabel = row.payoutMode === 'stripe_connect' ? 'Transfer Pending' : 'Ready for Manual Payout';
-    statusMessage = row.payoutMode === 'stripe_connect'
-      ? 'This earning is ready for its Stripe Connect transfer.'
-      : 'This earning is ready for AssembleAtEase to send through your selected external payout method.';
+    statusCode = 'pending';
+    statusLabel = 'Pending';
+    statusMessage = 'Your payout is ready and waiting to be sent.';
   } else if (disposition === 'not_payable') {
-    statusCode = 'amount_not_available';
-    statusLabel = 'Amount Not Available';
-    statusMessage = 'No payable Easer amount is currently recorded for this item.';
+    statusCode = 'unavailable';
+    statusLabel = 'Unavailable';
+    statusMessage = 'A payout amount is not currently available for this job.';
   } else {
     disposition = 'on_hold';
-    statusCode = primaryHoldCode(holdCodes);
-    const copy = HOLD_COPY[statusCode];
+    const internalHoldCode = primaryHoldCode(holdCodes);
+    const copy = HOLD_COPY[internalHoldCode];
     if (copy) {
+      statusCode = copy.code;
       statusLabel = copy.label;
       statusMessage = copy.message;
     }

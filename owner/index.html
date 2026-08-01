@@ -174,7 +174,7 @@
     /* ── Modals ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;padding:1rem}
     .modal-overlay.open{display:flex}
-    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;overflow-wrap:anywhere}
     .modal h3{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.5rem}
     .modal p{font-size:0.85rem;color:var(--muted);margin-bottom:1rem}
     .modal textarea,.modal-input{width:100%;padding:0.55rem 0.85rem;background:var(--elevated);border:1px solid var(--border-md);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;outline:none;resize:vertical;min-height:80px;margin-bottom:0.75rem}
@@ -398,7 +398,7 @@
       .detail-grid{grid-template-columns:minmax(0,1fr)}
       .detail-tabs{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
       .detail-tabs .detail-tab{flex:0 0 auto;min-height:44px}
-      .msg-compose,#assign-controls{flex-wrap:wrap}
+      .msg-compose,#assign-controls,#msg-target-row{flex-wrap:wrap}
       .msg-input,#assign-select,#intel-chat-input{min-width:0;min-height:44px}
       #msg-send{flex:1 1 100%;justify-content:center}
       .view-header{align-items:flex-start;flex-direction:column}
@@ -713,7 +713,7 @@
           <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Market Requests</div></div>
           <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Market Conversion Rate</div></div>
           <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Easer Supply by Market</div></div>
-          <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Potential Revenue</div></div>
+          <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
         </div>
 
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1.5rem" class="content-grid">
@@ -742,7 +742,7 @@
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Market</th>
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Service</th>
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Date</th>
-                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:right">Est. Rev</th>
+                    <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);text-align:right">Estimate</th>
                     <th style="padding:0.55rem 0.75rem;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Status</th>
                   </tr>
                 </thead>
@@ -1352,6 +1352,15 @@
 // ─── AI Intelligence ───────────────────────────────────────────────
 var _intelRunning = false;
 
+function intelEsc(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function runIntelligence() {
   if (_intelRunning) return;
   _intelRunning = true;
@@ -1368,7 +1377,7 @@ async function runIntelligence() {
     if (d.error) { document.getElementById('intel-briefing').textContent = 'Error: ' + d.error; return; }
 
     // Briefing
-    var raw = esc(d.reply || 'No analysis returned.');
+    var raw = intelEsc(d.reply || 'No analysis returned.');
     // Convert section labels like "URGENT:" to styled headers
     raw = raw.replace(/^([A-Z][A-Z\s]+:)/gm, '<strong style="color:var(--text);font-size:0.82rem;letter-spacing:0.06em">$1</strong>');
     document.getElementById('intel-briefing').innerHTML = raw.replace(/\n/g,'<br/>');
@@ -1397,7 +1406,7 @@ async function runIntelligence() {
       var colors = { red:'#ef4444', amber:'#f59e0b' };
       alertList.innerHTML = alertItems.map(function(a) {
         var safeLevel = a.level === 'red' ? 'red' : 'amber';
-        return '<div style="background:'+colors[safeLevel]+'18;border-left:3px solid '+colors[safeLevel]+';border-radius:0 6px 6px 0;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text);line-height:1.5">' + esc(a.msg) + '</div>';
+        return '<div style="background:'+colors[safeLevel]+'18;border-left:3px solid '+colors[safeLevel]+';border-radius:0 6px 6px 0;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text);line-height:1.5">' + intelEsc(a.msg) + '</div>';
       }).join('');
     }
 
@@ -1418,7 +1427,7 @@ async function sendIntelChat() {
   if (!msg) return;
   input.value = '';
   var msgs = document.getElementById('intel-chat-msgs');
-  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + esc(msg) + '</div>';
+  msgs.innerHTML += '<div style="background:var(--teal);color:#fff;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;line-height:1.5;align-self:flex-end;margin-left:auto;max-width:85%">' + intelEsc(msg) + '</div>';
   msgs.innerHTML += '<div id="intel-thinking" style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--muted)">Thinking…</div>';
   msgs.scrollTop = msgs.scrollHeight;
   try {
@@ -1430,7 +1439,7 @@ async function sendIntelChat() {
     var d = await r.json();
     var t = document.getElementById('intel-thinking');
     if (t) t.remove();
-    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + esc(d.reply||'No response.') + '</div>';
+    msgs.innerHTML += '<div style="background:var(--elevated);border-radius:8px;padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--soft);line-height:1.65;max-width:90%;white-space:pre-wrap">' + intelEsc(d.reply||'No response.') + '</div>';
   } catch(e) {
     var t2 = document.getElementById('intel-thinking');
     if (t2) t2.remove();
@@ -1729,6 +1738,23 @@ window.intelQuick = intelQuick;
     <h3 id="reason-modal-title">Reason</h3>
     <p id="reason-modal-desc">Optionally provide a reason.</p>
     <textarea id="reason-text" placeholder="Reason (optional)"></textarea>
+    <div id="damage-review-row" style="display:none;margin-top:0.25rem;margin-bottom:0.75rem">
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem;font-size:0.8rem;color:var(--soft);line-height:1.5">
+        <div style="font-weight:700;color:var(--text);margin-bottom:0.55rem">Required review steps</div>
+        <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;margin-bottom:0.5rem">
+          <input type="checkbox" id="damage-review-evidence-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+          <span>I reviewed the report, notes, and saved evidence.</span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer;margin-bottom:0.5rem">
+          <input type="checkbox" id="damage-review-followup-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+          <span>I documented any customer or Easer follow-up needed.</span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:0.55rem;cursor:pointer">
+          <input type="checkbox" id="damage-review-hold-cb" style="width:16px;height:16px;accent-color:var(--teal);margin-top:2px;flex:0 0 auto">
+          <span>I understand this acknowledgment closes the alert but does not send money, issue a refund, or change Easer earnings.</span>
+        </label>
+      </div>
+    </div>
     <div id="payout-method-row" style="display:none;margin-top:0.75rem">
       <label class="modal-label">Payout method</label>
       <select id="payout-method" class="modal-input" style="min-height:44px">
@@ -1918,6 +1944,10 @@ window.intelQuick = intelQuick;
   const $siteChatSummary = document.getElementById('site-chat-summary');
   const $reasonModal = document.getElementById('reason-modal');
   const $reasonText  = document.getElementById('reason-text');
+  const $damageReviewRow = document.getElementById('damage-review-row');
+  const $damageReviewEvidence = document.getElementById('damage-review-evidence-cb');
+  const $damageReviewFollowup = document.getElementById('damage-review-followup-cb');
+  const $damageReviewHold = document.getElementById('damage-review-hold-cb');
   const $payoutMethodRow = document.getElementById('payout-method-row');
   const $payoutMethod = document.getElementById('payout-method');
   const $payoutReference = document.getElementById('payout-reference');
@@ -2069,13 +2099,20 @@ window.intelQuick = intelQuick;
 
     if (manualPaymentSelectedCandidate) {
       var amountCents = Number(manualPaymentSelectedCandidate.amountCents || 0);
+      var availableCents = Math.max(0, adjustedTotalCents - grossCents);
       var remainingCents = Math.max(0, adjustedTotalCents - grossCents - amountCents);
-      var balanceCopy = remainingCents === 0
+      var exceedsDiscountedTotal = amountCents > availableCents;
+      var balanceCopy = exceedsDiscountedTotal
+        ? 'This payment is ' + fmt$(amountCents - availableCents) + ' above the discounted balance. Record it without the discount, then use Refund if the customer should receive money back.'
+        : remainingCents === 0
         ? 'This will mark the customer balance paid in full.'
         : fmt$(remainingCents) + ' will remain.';
       if ($manualPaymentReview) {
         $manualPaymentReview.textContent = 'Record ' + fmt$(amountCents) + ' from '
           + manualPaymentCardLabel(manualPaymentSelectedCandidate) + '. ' + balanceCopy;
+        $manualPaymentReview.style.background = exceedsDiscountedTotal ? '#fef2f2' : '#ecfdf5';
+        $manualPaymentReview.style.borderColor = exceedsDiscountedTotal ? '#fecaca' : '#a7f3d0';
+        $manualPaymentReview.style.color = exceedsDiscountedTotal ? '#991b1b' : '#166534';
       }
       if ($manualPaymentConfirmCopy) {
         $manualPaymentConfirmCopy.textContent = 'I confirm the ' + fmt$(amountCents)
@@ -2089,6 +2126,9 @@ window.intelQuick = intelQuick;
       $manualPaymentReview.textContent = /^pi_[A-Za-z0-9]+$/.test(manualIntentId)
         ? 'AAE will read and verify the exact payment amount directly from Stripe before recording it.'
         : 'Select a Stripe payment to record.';
+      $manualPaymentReview.style.background = '#ecfdf5';
+      $manualPaymentReview.style.borderColor = '#a7f3d0';
+      $manualPaymentReview.style.color = '#166534';
     }
     if ($manualPaymentConfirmCopy) {
       $manualPaymentConfirmCopy.textContent = 'I confirm this is the Stripe payment to record. This does not charge the customer again.';
@@ -2308,6 +2348,13 @@ window.intelQuick = intelQuick;
         ? 'Send the customer the final return-visit completion confirmation.'
         : 'Tell the customer the earlier completion status was corrected and the return visit remains open.';
     }
+  }
+
+  function setDamageReviewFieldsVisible(show) {
+    if ($damageReviewRow) $damageReviewRow.style.display = show ? '' : 'none';
+    if ($damageReviewEvidence) $damageReviewEvidence.checked = false;
+    if ($damageReviewFollowup) $damageReviewFollowup.checked = false;
+    if ($damageReviewHold) $damageReviewHold.checked = false;
   }
 
   function headers(extra) {
@@ -3200,7 +3247,7 @@ window.intelQuick = intelQuick;
     var $targetRow = document.getElementById('msg-target-row');
     if ($targetRow) $targetRow.style.display = b.assembler_id ? '' : 'none';
     _msgTarget = 'customer';
-    setMsgTarget('customer');
+    applyMsgTarget('customer');
     // Notes handled by Notes tab (api/booking/notes.js)
     loadMessages(b.id);
     // Reset to messages tab on new booking select
@@ -3572,7 +3619,7 @@ window.intelQuick = intelQuick;
         + thumb
         + '<div class="evidence-card-meta">'
         + '<div class="evidence-card-type">' + esc(label) + '</div>'
-        + '<div>' + esc(ev.uploaded_by_name || 'Unknown') + '</div>'
+        + '<div><strong>' + esc(ev.uploaded_by_role || 'Uploader') + ':</strong> ' + esc(ev.uploaded_by_name || 'Unknown') + '</div>'
         + '<div>' + fmtDate(ev.created_at) + '</div>'
         + '<div>' + fmtBytes(ev.file_size_bytes) + '</div>'
         + (ev.notes ? '<div style="margin-top:2px;font-style:italic">' + esc(ev.notes) + '</div>' : '')
@@ -4078,8 +4125,8 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Damage payout hold:</strong> review the saved damage evidence and document the outcome before any Easer payout. Resolving this review does not send money or change earnings.</div>');
         btns.push('<button class="btn btn-amber" data-action="damage-review" data-id="' + b.id + '">Resolve Damage Review</button>');
       }
-      if (b.review_requested_at) {
-        btns.push('<button class="btn" disabled style="opacity:0.45;cursor:not-allowed;font-size:0.78rem">Review Requested</button>');
+      if (b.review_requested_at && b.customer_email) {
+        btns.push('<button class="btn" data-action="request-review" data-id="' + b.id + '">Resend Review Request</button>');
       } else if (b.customer_email) {
         btns.push('<button class="btn btn-teal" data-action="request-review" data-id="' + b.id + '">Request Review</button>');
       }
@@ -4154,6 +4201,7 @@ window.intelQuick = intelQuick;
     setManualRefundFieldsVisible(false);
     setReturnVisitFieldsVisible(false);
     setReturnResolutionFieldsVisible(false);
+    setDamageReviewFieldsVisible(false);
     var waiveRow = document.getElementById('waive-fee-row');
     var waiveBox = document.getElementById('waive-fee-cb');
     if (waiveRow) waiveRow.style.display = 'none';
@@ -4364,6 +4412,18 @@ window.intelQuick = intelQuick;
     } else if (action === 'complete') {
       doAction('/complete', { bookingId: id }, 'Marked as complete');
     } else if (action === 'request-review') {
+      var reviewBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!reviewBooking || !reviewBooking.customer_email) {
+        toast('This booking does not have a customer email', 'error');
+        return;
+      }
+      var isReviewResend = !!reviewBooking.review_requested_at;
+      var reviewRecipient = reviewBooking.customer_name || reviewBooking.customer_email;
+      if (!confirm(
+        (isReviewResend ? 'Resend' : 'Send') + ' the review request to '
+          + reviewRecipient + ' at ' + reviewBooking.customer_email + '?'
+          + (isReviewResend ? ' This sends another email.' : '')
+      )) return;
       btn.disabled = true;
       var originalReviewText = btn.textContent;
       btn.textContent = 'Sending...';
@@ -4371,11 +4431,17 @@ window.intelQuick = intelQuick;
         var reviewRes = await fetch('/api/review-request', {
           method: 'POST',
           headers: headers(),
-          body: JSON.stringify({ bookingId: id }),
+          body: JSON.stringify({
+            bookingId: id,
+            resend: isReviewResend,
+            ownerAcknowledged: true,
+          }),
         });
         var reviewData = await reviewRes.json().catch(function(){ return {}; });
         if (!reviewRes.ok || reviewData.error) throw new Error(reviewData.error || 'Review request could not be sent');
-        toast('Review request sent to customer', 'success');
+        var reviewToast = reviewData.resent ? 'Review request resent to customer' : 'Review request sent to customer';
+        if (reviewData.trackingUpdated === false) reviewToast += '; booking timestamp needs review';
+        toast(reviewToast, reviewData.trackingUpdated === false ? 'error' : 'success');
         await loadBookings();
         if (selectedId) selectBooking(selectedId);
       } catch (reviewErr) {
@@ -4427,11 +4493,12 @@ window.intelQuick = intelQuick;
       var bDamageReview = allBookings.find(function(item){ return item.id == id; });
       if (!bDamageReview) return;
       pendingAction = { id: id, type: 'damage-review' };
-      document.getElementById('reason-modal-title').textContent = 'Resolve Damage Payout Hold';
-      document.getElementById('reason-modal-desc').textContent = 'Review the damage evidence and record what you verified. This closes the damage hold only; it does not send an Easer payout, refund the customer, or change the server-calculated earnings.';
-      $reasonText.placeholder = 'Required review note (evidence reviewed and outcome)';
-      document.getElementById('reason-confirm').textContent = 'Resolve Damage Review';
+      document.getElementById('reason-modal-title').textContent = 'Acknowledge Damage Report';
+      document.getElementById('reason-modal-desc').textContent = 'Complete each review step and record the outcome. AAE will log the acknowledgment and close the active alert and damage hold. No money is sent and no earnings are changed.';
+      $reasonText.placeholder = 'Required resolution note: what you reviewed, follow-up needed, and outcome';
+      document.getElementById('reason-confirm').textContent = 'Acknowledge and Close Alert';
       document.getElementById('reason-confirm').className = 'btn btn-amber';
+      setDamageReviewFieldsVisible(true);
       $reasonModal.classList.add('open');
     } else if (action === 'payout-review') {
       var bReview = allBookings.find(function(item){ return item.id == id; });
@@ -4628,10 +4695,22 @@ window.intelQuick = intelQuick;
         toast('Select why the customer total was discounted', 'error');
         return;
       }
+      var adjustedManualTotalCents = pendingAction.expectedTotalCents - manualDiscountCents;
+      var selectedManualAmountCents = Number((manualPaymentSelectedCandidate && manualPaymentSelectedCandidate.amountCents) || 0);
+      var availableManualBalanceCents = Math.max(0, adjustedManualTotalCents - pendingAction.grossCollectedCents);
+      if (selectedManualAmountCents > availableManualBalanceCents) {
+        toast('That Stripe payment is above the discounted balance. Record it without a discount, then issue the customer refund separately.', 'error');
+        return;
+      }
       if (!$manualPaymentConfirm || !$manualPaymentConfirm.checked) {
         toast('Confirm the Stripe payment before recording it', 'error');
         return;
       }
+      if (manualDiscountCents > 0 && !confirm(
+        'Apply a ' + fmt$(manualDiscountCents) + ' customer discount and change the agreed total to '
+          + fmt$(adjustedManualTotalCents)
+          + '? Easer earnings will not change. The Stripe payment will still be verified before anything is recorded.'
+      )) return;
 
       var manualPaymentBookingId = pendingAction.id;
       var manualPaymentButton = this;
@@ -4821,6 +4900,10 @@ window.intelQuick = intelQuick;
         toast('Enter a damage review note of at least 10 characters', 'error');
         return;
       }
+      if (!$damageReviewEvidence?.checked || !$damageReviewFollowup?.checked || !$damageReviewHold?.checked) {
+        toast('Complete all three damage review acknowledgments', 'error');
+        return;
+      }
       var damageReviewBookingId = pendingAction.id;
       var damageReviewButton = this;
       damageReviewButton.disabled = true;
@@ -4829,21 +4912,31 @@ window.intelQuick = intelQuick;
         var damageReviewResponse = await fetch('/api/booking/payout-review', {
           method: 'POST',
           headers: headers(),
-          body: JSON.stringify({ bookingId: damageReviewBookingId, decision: 'resolve_damage_review', notes: reason }),
+          body: JSON.stringify({
+            bookingId: damageReviewBookingId,
+            decision: 'resolve_damage_review',
+            notes: reason,
+            acknowledgements: {
+              evidenceReviewed: true,
+              followupDocumented: true,
+              noFinancialAction: true,
+            },
+          }),
         });
         var damageReviewData = await damageReviewResponse.json().catch(function(){ return {}; });
         if (!damageReviewResponse.ok || damageReviewData.error) {
           throw new Error(damageReviewData.error || 'Damage review could not be resolved');
         }
         closeReasonModal();
-        toast('Damage review resolved; no payment was sent', 'success');
+        toast('Damage report acknowledged and logged; no payment was sent', 'success');
         await loadBookings();
         if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
       } catch (damageReviewError) {
         toast(damageReviewError.message || 'Damage review could not be resolved', 'error');
       } finally {
         damageReviewButton.disabled = false;
-        damageReviewButton.textContent = 'Resolve Damage Review';
+        damageReviewButton.textContent = 'Acknowledge and Close Alert';
       }
       return;
     }
@@ -5149,7 +5242,7 @@ window.intelQuick = intelQuick;
   document.getElementById('msg-send').addEventListener('click', sendMessage);
   $msgInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 
-  function setMsgTarget(t) {
+  function applyMsgTarget(t) {
     _msgTarget = t;
     // Distinct color per recipient so the two are never confused at a glance:
     // Customer = teal (brand), Easer = violet. The Send button names the recipient
@@ -5171,13 +5264,25 @@ window.intelQuick = intelQuick;
     send.style.borderColor = color;
     send.style.color = '#fff';
   }
-  window.setMsgTarget = setMsgTarget;
+  function requestMsgTarget(t) {
+    if (!['customer', 'assembler'].includes(t) || t === _msgTarget) return;
+    var currentLabel = _msgTarget === 'assembler' ? 'Easer' : 'customer';
+    var nextLabel = t === 'assembler' ? 'Easer' : 'customer';
+    if (!confirm('Switch this message from ' + currentLabel + ' to ' + nextLabel + '? Review the recipient before sending.')) return;
+    applyMsgTarget(t);
+  }
+  window.setMsgTarget = requestMsgTarget;
 
   async function sendMessage() {
     var body = $msgInput.value.trim();
     if (!body || !selectedId || _messageSending) return;
     var bookingId = selectedId;
     var target = _msgTarget;
+    var messageBooking = allBookings.find(function(item){ return item.id == bookingId; });
+    var recipientName = target === 'assembler'
+      ? ((messageBooking && messageBooking.assembler_name) || 'the assigned Easer')
+      : ((messageBooking && messageBooking.customer_name) || 'the customer');
+    if (!confirm('Send this message to ' + recipientName + ' (' + (target === 'assembler' ? 'Easer' : 'customer') + ')?')) return;
     var sendBtn = document.getElementById('msg-send');
     var sendingLabel = target === 'assembler' ? 'Sending to Easer...' : 'Sending to Customer...';
     _messageSending = true;
@@ -5208,7 +5313,7 @@ window.intelQuick = intelQuick;
         sendBtn.disabled = false;
         sendBtn.style.opacity = '';
         sendBtn.style.cursor = '';
-        setMsgTarget(_msgTarget);
+        applyMsgTarget(_msgTarget);
       }
       if (selectedId === bookingId) $msgInput.focus();
     }
@@ -6040,7 +6145,10 @@ window.intelQuick = intelQuick;
       $bookingsView.style.display = '';
       $topbarTitle.textContent = 'Bookings';
       stopLiveOps();
-      await window.openPayoutBooking(bookingId, 'booking');
+      var bookingOpened = await window.openPayoutBooking(bookingId, 'booking');
+      if (bookingOpened && action === 'review_damage_evidence') {
+        switchDetailTab('evidence', document.querySelector('[data-tab="evidence"]'));
+      }
     }
   }
 
@@ -7238,7 +7346,9 @@ window.intelQuick = intelQuick;
     document.getElementById('md-requests').textContent = s.marketRequests || 0;
     document.getElementById('md-conversion').textContent = fmtPct(s.marketConversionRate || 0);
     document.getElementById('md-supply').textContent = s.easerSupplyByMarket || 0;
-    document.getElementById('md-potential').textContent = fmt$(s.totalPotentialRevenue || 0);
+    document.getElementById('md-potential').textContent = s.totalPotentialRevenue == null
+      ? '—'
+      : fmt$(s.totalPotentialRevenue);
     if (data.setupNeeded) {
       document.getElementById('md-top-markets').innerHTML = '<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:0.9rem 1rem;font-size:0.85rem;font-weight:600">' + esc(data.setupMessage || 'Run migration 017_market_requests.sql to enable market demand tracking.') + '</div>';
       document.getElementById('md-requests-tbody').innerHTML = '<tr><td colspan="7" style="padding:1.25rem;color:var(--muted);text-align:center">Market demand tracking is not enabled yet.</td></tr>';
@@ -7246,6 +7356,14 @@ window.intelQuick = intelQuick;
     }
     renderMarketRows(data.topMarkets || []);
     renderMarketRequests(data.requests || []);
+    if (Array.isArray(data.warnings) && data.warnings.length) {
+      document.getElementById('md-top-markets').insertAdjacentHTML(
+        'afterbegin',
+        '<div style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;line-height:1.5">'
+          + esc(data.warnings.join(' '))
+          + ' Demand counts remain available, but supply totals should not be treated as complete.</div>'
+      );
+    }
   }
 
   function renderMarketRows(markets) {
@@ -7265,7 +7383,7 @@ window.intelQuick = intelQuick;
         + '</div>'
         + '<div class="md-metrics-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.6rem;margin-bottom:0.65rem">'
         + mdMiniMetric('Requests', m.requestCount)
-        + mdMiniMetric('Potential', fmt$(m.potentialRevenue))
+        + mdMiniMetric('Priced', m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
         + mdMiniMetric('Approved Easers', m.approvedEasers)
         + mdMiniMetric('Demand/Supply', ratio)
         + '</div>'
@@ -7288,7 +7406,7 @@ window.intelQuick = intelQuick;
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.city || '—') + ', ' + esc(r.state || '') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(r.zip || '') + '</div></td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.requestedService || '—') + '</td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + esc(r.requestedDate || '—') + '<div style="font-size:0.72rem;color:var(--muted)">' + esc(r.desiredTime || '') + '</div></td>'
-        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700">' + fmt$(r.estimatedRevenue || 0) + '</td>'
+        + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700">' + (r.estimatedRevenue == null ? '<span style="color:var(--muted);font-weight:500">Not priced</span>' : fmt$(r.estimatedRevenue)) + '</td>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border)">' + mdStatusPill((r.status || 'new').toUpperCase()) + '</td>'
         + '</tr>';
     }).join('');

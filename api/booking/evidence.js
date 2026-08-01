@@ -50,9 +50,9 @@ export default async function handler(req, res) {
   const uploaderIds = [...new Set(rows.map(r => r.uploaded_by))];
   const { data: profiles } = await sb
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, role')
     .in('id', uploaderIds);
-  const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]));
+  const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
 
   // Generate signed download URLs in parallel — ephemeral, 1-hour expiry
   const signedUrlExpiresAt = new Date(Date.now() + SIGNED_URL_EXPIRY_SECONDS * 1000).toISOString();
@@ -76,7 +76,8 @@ export default async function handler(req, res) {
         notes:               row.notes || null,
         created_at:          row.created_at,
         uploaded_by_id:      row.uploaded_by,
-        uploaded_by_name:    profileMap[row.uploaded_by] || 'Unknown',
+        uploaded_by_name:    profileMap[row.uploaded_by]?.full_name || 'Unknown',
+        uploaded_by_role:    profileMap[row.uploaded_by]?.role === 'assembler' ? 'Easer' : 'Platform user',
         signed_url:          signed?.signedUrl || null,
         signed_url_expires_at: signed?.signedUrl ? signedUrlExpiresAt : null,
       };

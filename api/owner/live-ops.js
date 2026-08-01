@@ -88,14 +88,13 @@ export default async function handler(req, res) {
   const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
   const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
+  const bookingProjection = 'id, ref, service, source, status, payment_status, payment_collected, amount_charged, refund_amount, payout_status, payout_review_status, assembler_due, pipeline_stage, customer_name, customer_email, customer_phone, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_at, return_visit_completed_scope, return_visit_remaining_scope, address, assembler_id, assembler_name, assembler_tier, assigned_at, assembler_accepted_at, checked_in_at, en_route_at, job_started_at, completed_at, created_at, dispatch_offered_at, dispatch_status, dispatch_paused, needs_manual_dispatch, total_price, deposit_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, confirmed_by, quote_amount_cents, quote_sent_at, quote_expires_at, quote_approval_started_at, financial_operation_key, financial_operation_type, financial_operation_started_at, cancellation_reconciliation_required_at, cancellation_reconciliation_reason, financial_reconciliation_required_at, financial_reconciliation_reason, damage_review_status, damage_claim_opened_at, stripe_dispute_id, stripe_dispute_status, stripe_dispute_amount_cents, stripe_dispute_reason, stripe_dispute_opened_at, stripe_dispute_updated_at';
   const [bookingsRes, financialHoldsRes, easersRes, activeOffersRes, runtimeErrorsRes, failedNotificationsRes, cronErrorsRes, damageReportsRes] = await Promise.all([
     sb.from('bookings')
       .select(bookingProjection)
       .not('status', 'in', '("cancelled","declined")')
-      .or(`status.neq.completed,return_visit_required.eq.true,and(status.eq.completed,source.eq.owner_manual),and(status.eq.completed,return_visit_date.eq.${todayStr},return_visit_completed_at.not.is.null)`)
+      .or(`status.neq.completed,return_visit_required.eq.true,damage_review_status.eq.review_required,and(status.eq.completed,source.eq.owner_manual),and(status.eq.completed,return_visit_date.eq.${todayStr},return_visit_completed_at.not.is.null)`)
       .order('date', { ascending: true }),
     sb.from('bookings')
       .select(bookingProjection)
@@ -129,9 +128,8 @@ export default async function handler(req, res) {
     sb.from('activity_logs')
       .select('id, booking_id, description, metadata, created_at')
       .eq('event_type', 'damage_claim_reported')
-      .gte('created_at', sevenDaysAgo)
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(100),
   ]);
 
   const essentialErrors = [
@@ -195,13 +193,27 @@ export default async function handler(req, res) {
     ownerAction: 'Review the booking timeline and contact the recipient using the booking record. Do not assume delivery.',
   }));
   const { active: cronErrors, resolved: resolvedCronErrors } = classifyCronFailures(cronErrorsRes.data);
-  const damageReports = (damageReportsRes.data || []).map(row => ({
-    id: row.id,
-    bookingId: row.booking_id,
-    detail: row.description || 'Easer reported possible damage',
-    notes: row.metadata?.notes || null,
-    when: row.created_at,
-  }));
+  const latestDamageActivityByBooking = new Map();
+  for (const row of (damageReportsRes.data || [])) {
+    if (!latestDamageActivityByBooking.has(row.booking_id)) {
+      latestDamageActivityByBooking.set(row.booking_id, row);
+    }
+  }
+  // The booking hold is canonical. An activity-log failure must never hide an
+  // open damage report from the owner.
+  const damageReports = bookings
+    .filter(booking => booking.damage_review_status === 'review_required')
+    .map(booking => {
+      const activity = latestDamageActivityByBooking.get(booking.id);
+      return {
+        id: activity?.id || `damage:${booking.id}`,
+        bookingId: booking.id,
+        ref: booking.ref,
+        detail: activity?.description || `${booking.assembler_name || 'Easer'} reported possible damage`,
+        notes: activity?.metadata?.notes || null,
+        when: activity?.created_at || booking.damage_claim_opened_at,
+      };
+    });
 
   // ── Categorize bookings ─────────────────────────────────────────
   // unassigned: never dispatched, no active offers, not flagged manual

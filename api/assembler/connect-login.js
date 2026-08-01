@@ -14,10 +14,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!isStripeConnectEnabled()) {
-    return res.status(400).json({ error: 'Stripe Connect is not enabled' });
+    return res.status(400).json({ error: 'Payout management is not available for this account.' });
   }
   if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(503).json({ error: 'Stripe is not configured' });
+    return res.status(503).json({ error: 'Payout management is temporarily unavailable.' });
   }
 
   const auth = req.headers.authorization;
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     if (profile.stripe_connect_account_id) {
       await sb.from('profiles').update(invalidConnectStateUpdate()).eq('id', profile.id);
     }
-    return res.status(400).json({ error: 'Stripe payout account is not set up yet.' });
+    return res.status(400).json({ error: 'Your payout account is not set up yet.' });
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -63,6 +63,6 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Your payout setup needs to be restarted. Open the payout setup button again to continue.' });
     }
     console.error('connect-login error:', err?.message || err);
-    return res.status(500).json({ error: 'Unable to open Stripe dashboard right now.' });
+    return res.status(500).json({ error: 'Unable to open payout management right now.' });
   }
 }

@@ -258,10 +258,10 @@ export default async function handler(req, res) {
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
     if (booking.status !== BOOKING_STATUS.CONFIRMED) return res.status(400).json({ error: 'This booking is no longer available' });
     if (!isBookingPaymentReadyForDispatch(booking)) {
-      return res.status(409).json({ error: 'This booking is on payment hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
+      return res.status(409).json({ error: 'This job is temporarily on hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
     }
     if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
-      return res.status(409).json({ error: 'This booking is temporarily locked while a financial operation finishes.' });
+      return res.status(409).json({ error: 'This job is temporarily unavailable. Refresh and try again.' });
     }
     if (booking.assembler_id) return res.status(409).json({ error: 'Sorry — another Easer just accepted this job.' });
 
@@ -364,7 +364,7 @@ export default async function handler(req, res) {
   const ownerEaserLiveManual = isOwnerManualLiveFlow(booking, actorProfile)
     && booking.assembler_id === assemblerId;
   if (!ownerEaserLiveManual && !isBookingPaymentReadyForDispatch(booking)) {
-    return res.status(409).json({ error: 'This booking is on payment hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
+    return res.status(409).json({ error: 'This job is temporarily on hold and cannot be accepted.', code: 'DISPATCH_PAYMENT_NOT_VERIFIED' });
   }
 
   const isDispatch   = booking.dispatch_token && booking.dispatch_token === token;
@@ -375,7 +375,7 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Invalid or expired offer token' });
   }
   if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
-    return res.status(409).json({ error: 'This booking is temporarily locked while a financial operation finishes.' });
+    return res.status(409).json({ error: 'This job is temporarily unavailable. Refresh and try again.' });
   }
 
   if (isAssignment && !isLegacyAssignmentTokenFresh(booking)) {
@@ -384,7 +384,7 @@ export default async function handler(req, res) {
       .eq('id', bookingId)
       .eq('assembler_id', assemblerId)
       .eq('assignment_token', token);
-    return res.status(410).json({ error: 'This assignment link has expired. Ask the owner to resend or reassign the job.' });
+    return res.status(410).json({ error: 'This assignment link has expired. Contact support to receive a new assignment link.' });
   }
 
   if (isDispatch) {

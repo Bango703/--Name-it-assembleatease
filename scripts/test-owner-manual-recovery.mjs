@@ -6,6 +6,7 @@ const [
   migration,
   paymentGuardMigration,
   completedDiscountMigration,
+  consolidatedDiscountMigration,
   completionApi,
   resolutionApi,
   paymentApi,
@@ -18,6 +19,7 @@ const [
   readFile(new URL('../api/migrations/047_owner_manual_recovery_and_evidence.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/049_owner_manual_gross_payment_guard.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/050_completed_owner_booking_discount.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../api/migrations/051_owner_manual_completed_discount_v5.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/booking/complete.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/resolve-return-visit.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/record-manual-payment.js', import.meta.url), 'utf8'),
@@ -47,6 +49,12 @@ assert.match(completedDiscountMigration, /COALESCE\(v_booking\.refund_amount, 0\
 assert.match(completedDiscountMigration, /'discountFunding', 'platform'/);
 assert.match(completedDiscountMigration, /'easerEarningsPreservedCents', COALESCE\(v_booking\.assembler_due, 0\)/);
 assert.doesNotMatch(completedDiscountMigration, /SET[\s\S]{0,180}assembler_due\s*=/);
+assert.match(consolidatedDiscountMigration, /record_owner_manual_payment_event_v5/);
+assert.match(consolidatedDiscountMigration, /v_gross \+ p_amount_cents > v_target_total/);
+assert.match(consolidatedDiscountMigration, /discountFunding', 'platform'/);
+assert.match(consolidatedDiscountMigration, /easerEarningsPreservedCents/);
+assert.match(consolidatedDiscountMigration, /already_recorded/);
+assert.doesNotMatch(consolidatedDiscountMigration, /SET[\s\S]{0,180}assembler_due\s*=/);
 assert.match(migration, /record_owner_manual_payment_event_v2/);
 assert.match(migration, /UPDATE public\.owner_manual_payment_events[\s\S]*discount_cents = v_discount/);
 assert.match(migration, /record_owner_manual_completion_evidence/);
@@ -67,7 +75,7 @@ assert.match(resolutionApi, /return_visit_completed_at: now/);
 assert.match(resolutionApi, /status: 'confirmed'/);
 assert.match(resolutionApi, /notificationDelivered/);
 
-assert.match(paymentApi, /record_owner_manual_payment_event_v4/);
+assert.match(paymentApi, /record_owner_manual_payment_event_v5/);
 assert.match(paymentApi, /notificationType: 'payment_receipt'/);
 assert.match(paymentApi, /Remaining balance/);
 assert.match(paymentApi, /This receipt confirms payment only/);

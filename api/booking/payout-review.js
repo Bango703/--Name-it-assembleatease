@@ -16,6 +16,9 @@ export default async function handler(req, res) {
   const bookingId = String(req.body?.bookingId || '').trim();
   const decision = String(req.body?.decision || '').trim().toLowerCase();
   const notes = String(req.body?.notes || '').trim();
+  const acknowledgements = req.body?.acknowledgements && typeof req.body.acknowledgements === 'object'
+    ? req.body.acknowledgements
+    : {};
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
   if (!['approve_full', 'resolve_damage_review', 'resolve_stripe_dispute'].includes(decision)) {
     return res.status(400).json({
@@ -24,6 +27,15 @@ export default async function handler(req, res) {
   }
   if (notes.length < 10 || notes.length > 1000) {
     return res.status(400).json({ error: 'Enter a review note between 10 and 1000 characters.' });
+  }
+  if (decision === 'resolve_damage_review'
+      && (acknowledgements.evidenceReviewed !== true
+        || acknowledgements.followupDocumented !== true
+        || acknowledgements.noFinancialAction !== true)) {
+    return res.status(400).json({
+      error: 'Confirm the evidence review, follow-up record, and no-financial-action acknowledgment before closing this report.',
+      code: 'DAMAGE_REVIEW_ACKNOWLEDGEMENT_REQUIRED',
+    });
   }
 
   const sb = getSupabase();
@@ -36,7 +48,7 @@ export default async function handler(req, res) {
   if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
   if (decision === 'resolve_damage_review') {
-    return resolveDamageReview({ sb, res, booking, notes });
+    return resolveDamageReview({ sb, res, booking, notes, acknowledgements });
   }
   if (decision === 'resolve_stripe_dispute') {
     return resolveStripeDispute({ sb, res, booking, notes });
@@ -236,7 +248,7 @@ async function resolveStripeDispute({ sb, res, booking, notes }) {
   }
 }
 
-async function resolveDamageReview({ sb, res, booking, notes }) {
+async function resolveDamageReview({ sb, res, booking, notes, acknowledgements }) {
   const { data: resolvedRows, error: resolveError } = await sb.rpc('resolve_booking_damage_review', {
     p_booking_id: booking.id,
     p_notes: notes,
@@ -278,6 +290,11 @@ async function resolveDamageReview({ sb, res, booking, notes }) {
         payoutStatus: resolved.payout_status || booking.payout_status || null,
         payoutMode: resolved.payout_mode_snapshot || booking.payout_mode_snapshot || null,
         notes,
+        acknowledgements: {
+          evidenceReviewed: acknowledgements.evidenceReviewed === true,
+          followupDocumented: acknowledgements.followupDocumented === true,
+          noFinancialAction: acknowledgements.noFinancialAction === true,
+        },
       },
     });
   }

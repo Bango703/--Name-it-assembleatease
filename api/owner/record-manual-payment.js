@@ -33,11 +33,11 @@ function money(cents) {
 
 export function ownerManualPaymentRpcFailure(rpcError) {
   const message = String(rpcError?.message || '');
-  if (/record_owner_manual_payment_event_v4|owner_manual_payment_events|does not exist/i.test(message)) {
+  if (/record_owner_manual_payment_event_v5|owner_manual_payment_events|does not exist/i.test(message)) {
     return {
       status: 503,
-      error: 'Owner-manual payment protection is unavailable. Apply migration 049 and retry.',
-      code: 'MIGRATION_049_REQUIRED',
+      error: 'Owner-manual payment protection is unavailable. Apply migration 051 and retry.',
+      code: 'MIGRATION_051_REQUIRED',
     };
   }
   if (/already finalized or locked/i.test(message)) {
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
   }
 
   const operationKey = `owner-manual-payment:${booking.id}:${paymentIntentId}`;
-  const { data: rpcRows, error: rpcError } = await sb.rpc('record_owner_manual_payment_event_v4', {
+  const { data: rpcRows, error: rpcError } = await sb.rpc('record_owner_manual_payment_event_v5', {
     p_booking_id: booking.id,
     p_operation_key: operationKey,
     p_expected_total_cents: expectedTotalCents,
