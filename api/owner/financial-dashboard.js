@@ -24,8 +24,12 @@ export default async function handler(req, res) {
   const period = normalizePeriod(req.query.period);
   const range = getFinancialPeriodRange(period);
   const cacCents = dollarsToCents(req.query.cacDollars ?? req.query.cac);
-  const opexMonthlyCents = dollarsToCents(req.query.opexMonthlyDollars ?? req.query.opexMonthly);
-  const annualOpexCents = opexMonthlyCents > 0 ? opexMonthlyCents * 12 : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
+  const opexInput = req.query.opexMonthlyDollars ?? req.query.opexMonthly;
+  const ownerOpexProvided = opexInput !== undefined && String(opexInput).trim() !== '';
+  const opexMonthlyCents = dollarsToNonnegativeCents(opexInput);
+  const annualOpexCents = ownerOpexProvided
+    ? opexMonthlyCents * 12
+    : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
 
   let finance;
   try {
@@ -67,20 +71,32 @@ export default async function handler(req, res) {
     - Number(row.stripeFee || 0)
     - payoutForProfit(row));
   const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
-  const operatingExpenses = periodOperatingExpenses(period, annualOpexCents);
+  const operatingExpenseAllocation = allocateOperatingExpenses(period, annualOpexCents, {
+    range,
+    rows: financeRows,
+  });
+  const operatingExpenses = operatingExpenseAllocation.cents;
   const estimatedNetOperatingProfit = platformGrossProfit - reworkRefundReserve - operatingExpenses - cacCents;
 
   let activeEasers = 0;
+  let ownerEaserIds = new Set();
+  let ownerEaserClassificationAvailable = false;
   try {
-    const { count } = await sb
+    const { data: easerProfiles, error: easerProfilesError } = await sb
       .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'assembler')
-      .eq('status', 'active');
-    activeEasers = count || 0;
+      .select('id, status, is_owner')
+      .eq('role', 'assembler');
+    if (easerProfilesError) throw easerProfilesError;
+    activeEasers = (easerProfiles || []).filter(profile => profile.status === 'active').length;
+    ownerEaserIds = new Set((easerProfiles || []).filter(profile => profile.is_owner === true).map(profile => profile.id));
+    ownerEaserClassificationAvailable = true;
   } catch (error) {
     console.warn('Financial dashboard active Easer count skipped:', error?.message || error);
   }
+
+  const laborCosting = summarizeLaborCosting(financeRows, ownerEaserIds, {
+    ownerClassificationAvailable: ownerEaserClassificationAvailable,
+  });
 
   const grossProfitPerJob = completedJobs ? Math.round(completedPlatformGrossProfit / completedJobs) : 0;
   const averageJobValue = completedJobs ? Math.round(completedCustomerRevenue / completedJobs) : 0;
@@ -151,9 +167,10 @@ export default async function handler(req, res) {
         ? 'Actual recorded Stripe processing fees'
         : 'Actual where recorded; otherwise estimated at 2.9% + $0.30',
       annualOperatingExpensesCents: annualOpexCents,
-      operatingExpenseLabel: opexMonthlyCents > 0
-        ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo (owner-entered) allocated to selected period`
-        : 'Default $3,500/yr — enter your real monthly opex for an accurate net',
+      ownerOpexProvided,
+      operatingExpenseLabel: ownerOpexProvided
+        ? `$${Math.round(opexMonthlyCents / 100).toLocaleString('en-US')}/mo (owner-entered) allocated across ${operatingExpenseAllocation.days} selected day(s)`
+        : `Default $3,500/yr allocated across ${operatingExpenseAllocation.days} selected day(s) — enter real monthly overhead for an accurate net`,
       launchMinimums: MIN_PRETAX_BOOKING_BY_ZONE,
     },
     labels: {
@@ -188,9 +205,20 @@ export default async function handler(req, res) {
       salesTaxCollected,
       processingFees,
       easerPayouts,
+      ownerEaserEarnings: laborCosting.ownerEaserEarnings,
+      externalEaserEarnings: laborCosting.externalEaserEarnings,
+      ownerEaserClassificationAvailable,
+      uncostedCompletedJobs: laborCosting.uncostedCompletedJobs,
+      uncostedPlatformGross: laborCosting.uncostedPlatformGross,
+      costedCompletedJobs: laborCosting.costedCompletedJobs,
+      costedCustomerRevenue: laborCosting.costedCustomerRevenue,
+      costedPlatformGrossProfit: laborCosting.costedPlatformGrossProfit,
+      costedGrossProfitPerJob: laborCosting.costedGrossProfitPerJob,
+      costedGrossMarginPct: laborCosting.costedGrossMarginPct,
       platformGrossProfit,
       reworkRefundReserve,
       operatingExpenses,
+      operatingExpenseDays: operatingExpenseAllocation.days,
       cac: cacCents,
       estimatedNetOperatingProfit,
       grossProfitPerJob,
@@ -222,6 +250,18 @@ export default async function handler(req, res) {
       cancellationEaserEarnings,
       averageJobValue,
       platformGrossProfit,
+      grossMarginPct,
+      ownerEaserEarnings: laborCosting.ownerEaserEarnings,
+      externalEaserEarnings: laborCosting.externalEaserEarnings,
+      ownerEaserClassificationAvailable,
+      uncostedCompletedJobs: laborCosting.uncostedCompletedJobs,
+      uncostedPlatformGross: laborCosting.uncostedPlatformGross,
+      costedCompletedJobs: laborCosting.costedCompletedJobs,
+      costedPlatformGrossProfit: laborCosting.costedPlatformGrossProfit,
+      costedGrossProfitPerJob: laborCosting.costedGrossProfitPerJob,
+      costedGrossMarginPct: laborCosting.costedGrossMarginPct,
+      operatingExpenses,
+      operatingExpenseDays: operatingExpenseAllocation.days,
       estimatedNetOperatingProfit,
       addOnAttachmentRate,
       addOnAttachmentRateSource: hasRealAddOnData ? 'actual_booking_items' : 'assumption',
@@ -387,14 +427,74 @@ function chicagoLocalMidnightMs(dateIso) {
   return guess;
 }
 
-function periodOperatingExpenses(period, annualOverrideCents) {
-  const annual = (Number.isFinite(annualOverrideCents) && annualOverrideCents > 0)
-    ? annualOverrideCents
-    : DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents;
-  if (period === 'today') return Math.round(annual / 365);
-  if (period === 'week') return Math.round(annual / 52);
-  if (period === 'month') return Math.round(annual / 12);
-  return annual;
+export function allocateOperatingExpenses(period, annualOverrideCents, {
+  range = {},
+  rows = [],
+  now = new Date(),
+} = {}) {
+  const annual = Math.max(0, Number(annualOverrideCents) || 0);
+  const nowMs = now instanceof Date ? now.getTime() : Date.parse(now);
+  const parsedTo = Date.parse(range.to || '');
+  const parsedFrom = Date.parse(range.from || '');
+  const toMs = Number.isFinite(parsedTo) ? parsedTo : nowMs;
+  let fromMs = Number.isFinite(parsedFrom) ? parsedFrom : null;
+
+  if (period === 'all') {
+    const eventTimes = (rows || [])
+      .map(row => row.eventAt || row.completedAt || row.cancelledAt || row.createdAt || row.date)
+      .map(value => Date.parse(value || ''))
+      .filter(value => Number.isFinite(value) && value <= toMs);
+    fromMs = eventTimes.length ? Math.min(...eventTimes) : null;
+  }
+
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || toMs < fromMs) {
+    return { cents: 0, days: 0, from: null, to: Number.isFinite(toMs) ? new Date(toMs).toISOString() : null };
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const days = Math.max(1, Math.ceil((toMs - fromMs) / dayMs));
+  return {
+    cents: Math.round(annual * days / 365),
+    days,
+    from: new Date(fromMs).toISOString(),
+    to: new Date(toMs).toISOString(),
+  };
+}
+
+export function summarizeLaborCosting(rows = [], ownerEaserIds = new Set(), {
+  ownerClassificationAvailable = true,
+} = {}) {
+  const ownerIds = ownerEaserIds instanceof Set ? ownerEaserIds : new Set(ownerEaserIds || []);
+  const earningRows = rows || [];
+  const completedRows = earningRows.filter(row => row.status === 'completed');
+  const totalEaserEarnings = sum(earningRows, row => payoutForProfit(row));
+  const ownerEaserEarnings = ownerClassificationAvailable
+    ? sum(earningRows.filter(row => ownerIds.has(row.assemblerId)), row => payoutForProfit(row))
+    : null;
+  const externalEaserEarnings = ownerClassificationAvailable
+    ? Math.max(0, totalEaserEarnings - Number(ownerEaserEarnings || 0))
+    : null;
+  const costedRows = completedRows.filter(row => payoutForProfit(row) > 0);
+  const uncostedRows = completedRows.filter(row => payoutForProfit(row) <= 0);
+  const rowPlatformGross = row => Number(row.netCharged || 0)
+    - Number(row.taxCollected || 0)
+    - Number(row.stripeFee || 0)
+    - payoutForProfit(row);
+  const costedCustomerRevenue = sum(costedRows, row => row.netCharged);
+  const costedPlatformGrossProfit = sum(costedRows, rowPlatformGross);
+
+  return {
+    ownerEaserEarnings,
+    externalEaserEarnings,
+    costedCompletedJobs: costedRows.length,
+    costedCustomerRevenue,
+    costedPlatformGrossProfit,
+    costedGrossProfitPerJob: costedRows.length ? Math.round(costedPlatformGrossProfit / costedRows.length) : 0,
+    costedGrossMarginPct: costedCustomerRevenue > 0 ? costedPlatformGrossProfit / costedCustomerRevenue : 0,
+    uncostedCompletedJobs: uncostedRows.length,
+    uncostedPlatformGross: sum(uncostedRows, rowPlatformGross),
+    uncostedRefs: uncostedRows.map(row => row.ref).filter(Boolean),
+  };
 }
 
 async function loadExpansionRows(sb) {
@@ -421,7 +521,8 @@ async function buildExpansionReadiness(sb, rows, activeEasers) {
   const easerPayouts = sum(financeRows, row => payoutForProfit(row));
   const platformGrossProfit = customerRevenue - salesTaxCollected - processingFees - easerPayouts;
   const reworkRefundReserve = Math.round(completedCustomerRevenue * DEFAULT_ASSUMPTIONS.reserveRate);
-  const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve - periodOperatingExpenses('all');
+  const estimatedOperatingProfit = platformGrossProfit - reworkRefundReserve
+    - allocateOperatingExpenses('all', DEFAULT_ASSUMPTIONS.annualOperatingExpensesCents, { rows: financeRows }).cents;
   const refundRate = completedJobs > 0 ? refundedJobs / completedJobs : 0;
   const reworkRate = completedJobs > 0 ? damageClaimBookingIds.size / completedJobs : 0;
   const ratingStats = await loadCustomerRatingStats(sb);
@@ -908,6 +1009,11 @@ function payoutForProfit(row) {
 function dollarsToCents(value) {
   const n = Number(value || 0);
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
+}
+
+function dollarsToNonnegativeCents(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
 }
 
 function sum(rows, fn) {

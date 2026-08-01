@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { loadCurrentCompletionEvidence } from '../api/booking/_completion-evidence.js';
 import { deriveManualPayoutReadiness } from '../api/owner/_finance-ledger.js';
+import {
+  allocateOperatingExpenses,
+  summarizeLaborCosting,
+} from '../api/owner/financial-dashboard.js';
 
 const read = relative => readFile(new URL(`../${relative}`, import.meta.url), 'utf8');
 const [
@@ -51,7 +55,12 @@ assert.match(ownerUi, /Selected-Period Money Summary/);
 assert.match(ownerUi, /an-sales-tax/);
 assert.match(ownerUi, /an-processing-fees/);
 assert.match(ownerUi, /an-easer-payouts/);
-assert.match(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
+assert.match(ownerUi, /Total Platform Gross/);
+assert.match(ownerUi, /Owner-Easer Labor/);
+assert.match(ownerUi, /External Easer Labor/);
+assert.match(ownerUi, /Jobs Missing Labor Cost/);
+assert.match(ownerUi, /Labor costing incomplete/);
+assert.doesNotMatch(ownerUi, /Platform Gross After Tax, Stripe &amp; Easer/);
 assert.match(ownerUi, /Central time/);
 assert.match(ownerUi, /No completed jobs in/);
 assert.match(ownerUi, /Show All Time/);
@@ -73,6 +82,11 @@ const payoutReviewMutation = ownerUi.slice(
 for (const mutation of [damageReviewMutation, payoutReviewMutation]) {
   assert.match(mutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);/);
 }
+const payoutMutation = ownerUi.slice(
+  ownerUi.indexOf("pendingAction.type === 'payout'"),
+  ownerUi.indexOf("pendingAction.type === 'reject-assembler'"),
+);
+assert.match(payoutMutation, /await loadBookings\(true\);\s*await loadPayoutLedger\(\);\s*if \(selectedId\) selectBooking\(selectedId\);\s*loadLiveOps\(\);/);
 assert.doesNotMatch(ownerUi, /id="test-push-btn"/);
 assert.doesNotMatch(ownerUi, /deleteReview\(/);
 
@@ -109,6 +123,51 @@ assert.match(taxReport, /America\/Chicago/);
 assert.match(taxReport, /taxableSalesRefundedCents/);
 assert.match(taxReport, /bucket\(r\.filing_period\)/);
 assert.match(ownerUi, /Planning reminder only/);
+
+const thirtyDayOpex = allocateOperatingExpenses('all', 350_000, {
+  rows: [{ eventAt: '2026-01-01T00:00:00.000Z' }],
+  now: new Date('2026-01-31T00:00:00.000Z'),
+});
+assert.equal(thirtyDayOpex.days, 30);
+assert.equal(thirtyDayOpex.cents, Math.round(350_000 * 30 / 365));
+const explicitZeroOpex = allocateOperatingExpenses('all', 0, {
+  rows: [{ eventAt: '2026-01-01T00:00:00.000Z' }],
+  now: new Date('2026-01-31T00:00:00.000Z'),
+});
+assert.equal(explicitZeroOpex.days, 30);
+assert.equal(explicitZeroOpex.cents, 0);
+assert.deepEqual(allocateOperatingExpenses('all', 350_000, {
+  rows: [],
+  now: new Date('2026-01-31T00:00:00.000Z'),
+}), {
+  cents: 0,
+  days: 0,
+  from: null,
+  to: '2026-01-31T00:00:00.000Z',
+});
+
+const laborCosting = summarizeLaborCosting([
+  {
+    status: 'completed', ref: 'AAE-KELLY', assemblerId: 'owner-easer',
+    netCharged: 37_400, taxCollected: 2_850, stripeFee: 1_020, owed: 24_550,
+  },
+  {
+    status: 'completed', ref: 'AAE-VAIBHAV', assemblerId: 'external-easer',
+    netCharged: 11_000, taxCollected: 838, stripeFee: 349, paidOut: true, payoutAmount: 7_113,
+  },
+  {
+    status: 'completed', ref: 'AAE-BARRY', assemblerId: null,
+    netCharged: 15_300, taxCollected: 1_166, stripeFee: 474, owed: 0,
+  },
+], new Set(['owner-easer']));
+assert.equal(laborCosting.ownerEaserEarnings, 24_550);
+assert.equal(laborCosting.externalEaserEarnings, 7_113);
+assert.equal(laborCosting.costedCompletedJobs, 2);
+assert.equal(laborCosting.costedPlatformGrossProfit, 11_680);
+assert.equal(laborCosting.costedGrossProfitPerJob, 5_840);
+assert.equal(laborCosting.uncostedCompletedJobs, 1);
+assert.equal(laborCosting.uncostedPlatformGross, 13_660);
+assert.deepEqual(laborCosting.uncostedRefs, ['AAE-BARRY']);
 
 const refundBooking = {
   status: 'completed',

@@ -1137,9 +1137,14 @@
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
           <div class="detail-panel open" style="background:#001f2b;color:#fff;border-color:#00394d">
             <div class="detail-section-title" style="color:rgba(255,255,255,0.62);margin-bottom:0.55rem">Financial North Star</div>
-            <div style="font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.25rem);line-height:1;color:#fff" id="fin-gross-per-job">—</div>
-            <div style="margin-top:0.35rem;color:rgba(255,255,255,0.78);font-size:0.9rem">Platform Gross Per Completed Job</div>
-            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Customer payments received minus sales tax, Stripe fees, and Easer earnings. This is the platform amount before operating expenses.</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.25rem);line-height:1;color:#fff" id="fin-total-platform-gross">—</div>
+            <div style="margin-top:0.35rem;color:rgba(255,255,255,0.82);font-size:0.9rem">Total Platform Gross</div>
+            <div style="display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:1rem;font-size:0.75rem;color:rgba(255,255,255,0.72)">
+              <span><strong id="fin-gross-per-job" style="color:#fff">—</strong> average per completed job</span>
+              <span><strong id="fin-gross-margin" style="color:#fff">—</strong> recorded gross margin</span>
+              <span><strong id="fin-costed-gross-per-job" style="color:#fff">—</strong> average on labor-costed jobs</span>
+            </div>
+            <div style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.68);line-height:1.7">Customer payments retained minus sales tax, processing fees, and all recorded Easer earnings. Owner-Easer labor remains compensation for work, not scalable platform profit.</div>
           </div>
           <div class="detail-panel open">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Assumptions</div>
@@ -1156,7 +1161,7 @@
               <button class="tab" data-fin-period="today" type="button">Today</button>
               <button class="tab" data-fin-period="all" type="button">All</button>
               <label style="margin-left:auto;font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">Opex/mo $
-                <input id="fin-opex-input" type="number" min="0" step="1" placeholder="0" style="width:86px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
+                <input id="fin-opex-input" type="number" min="0" step="1" placeholder="292 default" style="width:100px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
               </label>
               <label style="font-size:0.72rem;color:var(--muted);display:flex;align-items:center;gap:0.35rem">CAC $
                 <input id="fin-cac-input" type="number" min="0" step="1" placeholder="0" style="width:86px;background:var(--elevated);border:1px solid var(--border-md);border-radius:7px;padding:0.35rem 0.5rem;font-family:inherit;color:var(--text)"/>
@@ -1192,11 +1197,16 @@
           <div class="stat teal"><div class="stat-value" id="an-gross">—</div><div class="stat-label">Customer Payments Retained</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-sales-tax">—</div><div class="stat-label">Sales Tax Collected</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-processing-fees">—</div><div class="stat-label">Stripe Processing Fees</div></div>
-          <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Easer Earnings Cost</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-easer-payouts">—</div><div class="stat-label">Total Easer Earnings</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-owner-easer-earnings">—</div><div class="stat-label">Owner-Easer Labor</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-external-easer-earnings">—</div><div class="stat-label">External Easer Labor</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-completed-jobs">—</div><div class="stat-label">Completed Jobs</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-ajv">—</div><div class="stat-label">Average Job Value</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-profit">—</div><div class="stat-label">Platform Gross After Tax, Stripe &amp; Easer</div></div>
-          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Overhead</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-gross-margin">—</div><div class="stat-label">Recorded Gross Margin</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-costed-gross-per-job">—</div><div class="stat-label">Gross / Labor-Costed Job</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-uncosted-jobs">—</div><div class="stat-label">Jobs Missing Labor Cost</div></div>
+          <div class="stat neutral"><div class="stat-value" id="an-opex-allocated">—</div><div class="stat-label">Overhead Allocated</div></div>
+          <div class="stat teal"><div class="stat-value" id="an-net-profit">—</div><div class="stat-label">Est. After Reserve &amp; Allocated Overhead</div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-rate">—</div><div class="stat-label">Add-On Attachment Rate <span id="an-addon-source" style="color:#d97706">(Est.)</span></div></div>
           <div class="stat amber"><div class="stat-value" id="an-addon-value">—</div><div class="stat-label">Average Add-On Value</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-bundle-rate">—</div><div class="stat-label">Bundle Attach Rate</div></div>
@@ -1205,6 +1215,7 @@
           <div class="stat orange"><div class="stat-value" id="an-refund-rework-rate">—</div><div class="stat-label">Refund/Rework Rate</div></div>
           <div class="stat neutral"><div class="stat-value" id="an-active-easers">—</div><div class="stat-label">Active Easers</div></div>
         </div>
+        <div id="an-finance-warning" style="display:none;background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#9a3412;font-size:0.8rem;line-height:1.55"></div>
         <div id="an-empty-period" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.8rem 0.9rem;margin-top:0.85rem;color:#1e3a8a;font-size:0.8rem;line-height:1.5"></div>
 
         <!-- Contractor Tax / 1099 (calendar year, from payout_ledger) -->
@@ -1304,7 +1315,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem" class="content-grid">
           <div class="detail-panel open" style="grid-column:1/-1">
             <div class="detail-section-title" style="margin-bottom:0.75rem">Financial Formula</div>
-            <div id="fin-formula" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0.65rem;font-size:0.82rem"></div>
+            <div id="fin-formula" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.65rem;font-size:0.82rem"></div>
           </div>
           <div class="detail-panel open" style="grid-column:1/-1">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap">
@@ -5314,9 +5325,10 @@ window.intelQuick = intelQuick;
             : 'Payout recorded and Easer notified',
           pd.notificationDelivered === false ? 'error' : 'success'
         );
-        await loadBookings();
+        await loadBookings(true);
         await loadPayoutLedger();
         if (selectedId) selectBooking(selectedId);
+        loadLiveOps();
       } catch (payoutError) {
         toast(payoutError.message || 'Payout record failed. Keep the external confirmation and retry only after reviewing the booking.', 'error');
       } finally {
@@ -7002,8 +7014,10 @@ window.intelQuick = intelQuick;
       renderClawbacks(d.clawbacks || {});
     } catch (e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:var(--red);font-size:0.85rem">Failed to load financial dashboard</td></tr>';
-      ['fin-gross-per-job', 'an-gross-per-job', 'an-gross', 'an-sales-tax',
-        'an-processing-fees', 'an-easer-payouts', 'an-ajv', 'an-profit', 'an-net-profit']
+      ['fin-total-platform-gross', 'fin-gross-per-job', 'fin-gross-margin', 'fin-costed-gross-per-job',
+        'an-gross-per-job', 'an-gross', 'an-sales-tax', 'an-processing-fees', 'an-easer-payouts',
+        'an-owner-easer-earnings', 'an-external-easer-earnings', 'an-ajv', 'an-gross-margin',
+        'an-costed-gross-per-job', 'an-opex-allocated', 'an-net-profit']
         .forEach(function(id){ setText(id, 'Unavailable'); });
       setText('an-completed-jobs', '—');
       setText('an-period-note', 'Financial data unavailable · Refresh');
@@ -7192,12 +7206,17 @@ window.intelQuick = intelQuick;
     var a = d.assumptions || {};
     var periodLabels = { today: 'Today', week: 'Last 7 Days', month: 'This Month', year: 'This Year', all: 'All Time' };
     setText('an-period-note', (periodLabels[d.period] || 'Selected Period') + ' · Central time');
+    setText('fin-total-platform-gross', fmtSigned$(exec.platformGrossProfit || 0));
     setText('fin-gross-per-job', fmt$(s.grossProfitPerJob || 0));
+    setText('fin-gross-margin', fmtPct(exec.grossMarginPct));
+    setText('fin-costed-gross-per-job', Number(exec.costedCompletedJobs || 0) > 0
+      ? fmt$(exec.costedGrossProfitPerJob || 0)
+      : 'Not available');
     setText('fin-assumption-reserve', Math.round(Number(a.reserveRate || 0) * 100) + '%');
     setText('fin-assumption-processing', (d.labels && d.labels.processingFees) === 'actual'
       ? 'Actual Stripe fees'
       : 'Actual + estimated');
-    setText('fin-assumption-opex', '$' + ((a.annualOperatingExpensesCents || 0) / 100).toLocaleString('en-US') + '/year');
+    setText('fin-assumption-opex', a.operatingExpenseLabel || ('$' + ((a.annualOperatingExpensesCents || 0) / 100).toLocaleString('en-US') + '/year'));
     setText('fin-assumption-cac', s.cac ? fmt$(s.cac) : 'Missing / editable');
 
     setText('an-gross-per-job', fmt$(exec.platformGrossProfitPerCompletedJob || 0));
@@ -7205,9 +7224,14 @@ window.intelQuick = intelQuick;
     setText('an-sales-tax', fmt$(s.salesTaxCollected || 0));
     setText('an-processing-fees', fmt$(s.processingFees || 0));
     setText('an-easer-payouts', fmt$(s.easerPayouts || 0));
+    setText('an-owner-easer-earnings', exec.ownerEaserClassificationAvailable === false ? 'Unavailable' : fmt$(exec.ownerEaserEarnings || 0));
+    setText('an-external-easer-earnings', exec.ownerEaserClassificationAvailable === false ? 'Unavailable' : fmt$(exec.externalEaserEarnings || 0));
     setText('an-completed-jobs', String(exec.completedJobs || 0));
     setText('an-ajv', fmt$(exec.averageJobValue || 0));
-    setText('an-profit', fmtSigned$(exec.platformGrossProfit || 0));
+    setText('an-gross-margin', fmtPct(exec.grossMarginPct));
+    setText('an-costed-gross-per-job', Number(exec.costedCompletedJobs || 0) > 0 ? fmt$(exec.costedGrossProfitPerJob || 0) : '—');
+    setText('an-uncosted-jobs', String(exec.uncostedCompletedJobs || 0));
+    setText('an-opex-allocated', fmt$(exec.operatingExpenses || 0));
     setText('an-net-profit', fmtSigned$(exec.estimatedNetOperatingProfit || 0));
     setText('an-addon-rate', fmtPct(exec.addOnAttachmentRate));
     setText('an-addon-source', exec.addOnAttachmentRateSource === 'actual_booking_items' ? '(Actual)' : '(Est.)');
@@ -7217,6 +7241,20 @@ window.intelQuick = intelQuick;
     setText('an-repeat-rate', fmtPct(exec.repeatCustomerRate));
     setText('an-refund-rework-rate', fmtPct(exec.refundReworkRate));
     setText('an-active-easers', String(exec.activeEasers || 0));
+    var financeWarning = document.getElementById('an-finance-warning');
+    if (financeWarning) {
+      var financeWarnings = [];
+      if (Number(exec.uncostedCompletedJobs || 0) > 0) {
+        financeWarnings.push('<strong>Labor costing incomplete:</strong> ' + Number(exec.uncostedCompletedJobs || 0)
+          + ' completed job(s) have no Easer labor cost. Recorded platform gross includes '
+          + fmt$(exec.uncostedPlatformGross || 0) + ' from those jobs; the labor-costed average excludes them.');
+      }
+      if (exec.ownerEaserClassificationAvailable === false) {
+        financeWarnings.push('<strong>Easer classification unavailable:</strong> owner labor and external contractor labor could not be separated.');
+      }
+      financeWarning.style.display = financeWarnings.length ? '' : 'none';
+      financeWarning.innerHTML = financeWarnings.join('<br>');
+    }
     var emptyPeriod = document.getElementById('an-empty-period');
     if (emptyPeriod) {
       if (Number(exec.completedJobs || 0) === 0 && d.period !== 'all') {
@@ -7231,7 +7269,9 @@ window.intelQuick = intelQuick;
     }
     reserveParts.rewards = Number(exec.assemblecashLiabilityCents || 0); renderReserveRollup();
     setStatTone('an-gross-per-job', Number(exec.platformGrossProfitPerCompletedJob || 0) >= 3500 ? 'teal' : 'orange');
-    setStatTone('an-profit', Number(exec.platformGrossProfit || 0) >= 0 ? 'teal' : 'red');
+    setStatTone('an-gross-margin', Number(exec.grossMarginPct || 0) >= 0.30 ? 'teal' : 'orange');
+    setStatTone('an-costed-gross-per-job', Number(exec.costedGrossProfitPerJob || 0) >= 3500 ? 'teal' : 'orange');
+    setStatTone('an-uncosted-jobs', Number(exec.uncostedCompletedJobs || 0) > 0 ? 'orange' : 'neutral');
     setStatTone('an-net-profit', Number(exec.estimatedNetOperatingProfit || 0) >= 0 ? 'teal' : 'red');
     setStatTone('an-bundle-rate', Number(exec.bundleAttachRate || 0) >= 0.25 ? 'teal' : 'neutral');
     setStatTone('an-ac-liability', Number(exec.assemblecashLiabilityCents || 0) > 0 ? 'amber' : 'neutral');
@@ -7242,7 +7282,8 @@ window.intelQuick = intelQuick;
         metricBox('Customer Payments Retained', fmt$(s.customerRevenue), 'plus') +
         metricBox('- Sales Tax (to state)', '-' + fmt$(s.salesTaxCollected || 0), 'minus') +
         metricBox('- Processing Fees', '-' + fmt$(s.processingFees), 'minus') +
-        metricBox('- Easer Payouts', '-' + fmt$(s.easerPayouts), 'minus') +
+        metricBox('- Owner-Easer Labor', '-' + fmt$(s.ownerEaserEarnings || 0), 'minus') +
+        metricBox('- External Easer Labor', '-' + fmt$(s.externalEaserEarnings || 0), 'minus') +
         metricBox('= Platform Gross', fmtSigned$(s.platformGrossProfit), 'equals') +
         metricBox('Estimated Net', fmtSigned$(s.estimatedNetOperatingProfit), 'equals');
     }
