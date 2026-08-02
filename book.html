@@ -2884,7 +2884,7 @@
 
                 </div>
 
-                <span class="schedule-chip">6-day window</span>
+                <span class="schedule-chip">30-day window</span>
 
               </div>
 
@@ -2938,7 +2938,7 @@
 
               <p class="schedule-time-note">Select a date first to unlock available appointment times.</p>
 
-              <p class="dt-horizon-note">Online booking available up to 6 days in advance. For later dates email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a></p>
+              <p class="dt-horizon-note">Online booking is available up to 30 days in advance. For dates farther out, email <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>
 
             </div>
 
@@ -3514,6 +3514,50 @@ var BOOK = {
 
 
 var TIME_SLOTS = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM'];
+var BOOKING_WINDOW_DAYS = 30;
+var IMMEDIATE_AUTHORIZATION_DAYS = 6;
+
+function captureBookingAttribution() {
+  var storageKey = 'aaeBookingAttribution';
+  try {
+    var existing = sessionStorage.getItem(storageKey);
+    if (existing) return JSON.parse(existing);
+    var params = new URLSearchParams(window.location.search || '');
+    var referrerHost = '';
+    try { referrerHost = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    var value = {
+      utmSource: params.get('utm_source') || '',
+      utmMedium: params.get('utm_medium') || '',
+      utmCampaign: params.get('utm_campaign') || '',
+      utmContent: params.get('utm_content') || '',
+      utmTerm: params.get('utm_term') || '',
+      clickId: params.get('gclid') || params.get('msclkid') || '',
+      landingPath: window.location.pathname || '/book',
+      referrerHost: referrerHost
+    };
+    sessionStorage.setItem(storageKey, JSON.stringify(value));
+    return value;
+  } catch (e) {
+    return { landingPath: '/book' };
+  }
+}
+
+var BOOKING_ATTRIBUTION = captureBookingAttribution();
+
+function trackBookingFunnelOnce(eventName, params) {
+  try {
+    var key = 'aaeFunnel:' + eventName;
+    if (sessionStorage.getItem(key)) return;
+    if (typeof window.gtag !== 'function') return;
+    window.gtag('event', eventName, Object.assign({
+      page_path: window.location.pathname,
+      booking_flow: 'standard'
+    }, params || {}));
+    sessionStorage.setItem(key, '1');
+  } catch (e) {}
+}
+
+window.setTimeout(function() { trackBookingFunnelOnce('job_plan_started'); }, 0);
 
 var CHICAGO_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -3569,7 +3613,7 @@ function getSlotStartMinutes(slot) {
 
 function isPublishedSlotAvailable(isoDate, slot) {
   var todayIso = getChicagoTodayIso();
-  var maxIso = addIsoDays(todayIso, 6);
+  var maxIso = addIsoDays(todayIso, BOOKING_WINDOW_DAYS);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(isoDate || '')) || isoDate < todayIso || isoDate > maxIso) return false;
   var slotIndex = TIME_SLOTS.indexOf(slot);
   var weekday = getIsoWeekday(isoDate);
@@ -5965,6 +6009,8 @@ function goToStep2Account() {
   renderJobPlanCards();
 
   goToStep(3);
+  trackBookingFunnelOnce('job_plan_completed', { service_count: BOOK.selectedServices.length });
+  trackBookingFunnelOnce('schedule_started');
 
 }
 
@@ -6071,6 +6117,8 @@ function goToStep4Contact() {
   renderJobPlanCards();
 
   goToStep(4);
+  trackBookingFunnelOnce('schedule_completed', { days_ahead: Math.max(0, Math.round((new Date(BOOK.date + 'T12:00:00Z') - new Date(getChicagoTodayIso() + 'T12:00:00Z')) / 86400000)) });
+  trackBookingFunnelOnce('contact_started');
 
   // Update step-4 CTA label so quote flow never says "Continue to payment"
   var allCustom = Object.keys(BOOK.selectedItems).length > 0 &&
@@ -6118,6 +6166,8 @@ async function goToStep5Payment() {
   if (!ok) return;
 
   BOOK.firstName = first; BOOK.lastName = last; BOOK.email = email; BOOK.phone = phone;
+  trackBookingFunnelOnce('contact_completed');
+  trackBookingFunnelOnce('begin_checkout', { value: Number(BOOK._grandTotalCents || 0) / 100, currency: 'USD' });
 
   hideErr('s4-err');
   var policyMessage = getOnlineBookingPolicyMessage();
@@ -6195,7 +6245,7 @@ async function goToStep5Payment() {
 
   var minBookableDate = getChicagoTodayIso();
 
-  var maxBookableDate = addIsoDays(minBookableDate, 6);
+  var maxBookableDate = addIsoDays(minBookableDate, BOOKING_WINDOW_DAYS);
 
   _s5SelTime = BOOK.time;
 
@@ -6345,21 +6395,30 @@ async function goToStep5Payment() {
   // Detect quote-only flow: all items are custom quotes OR user checked the quote checkbox
 
   var isQuoteFlow = (BOOK._grandTotalCents === 0) || BOOK.wantsQuote || BOOK._hasCustomQuoteItems;
+  var isScheduledAuthorization = !isQuoteFlow
+    && BOOK.date > addIsoDays(getChicagoTodayIso(), IMMEDIATE_AUTHORIZATION_DAYS);
 
   BOOK._isQuoteFlow = isQuoteFlow;
-  if (isQuoteFlow) BOOK._setupIntentSecret = null;
+  BOOK._scheduledAuthorization = isScheduledAuthorization;
+  if (isQuoteFlow || isScheduledAuthorization) BOOK._setupIntentSecret = null;
   syncPaymentSubmitState();
   await refreshPromoPreview({ silentFailure: true });
 
 
 
-  if (isQuoteFlow) {
+  if (isQuoteFlow || isScheduledAuthorization) {
 
-    document.getElementById('s5-banner').textContent = 'Almost done - request your quote';
+    document.getElementById('s5-banner').textContent = isQuoteFlow
+      ? 'Almost done - request your quote'
+      : 'Almost done - reserve your appointment';
 
-    document.getElementById('s5-heading').textContent = 'Request custom quote';
+    document.getElementById('s5-heading').textContent = isQuoteFlow
+      ? 'Request custom quote'
+      : 'Reserve your appointment';
 
-    document.getElementById('s5-sub').textContent = 'Save your card securely so we can finalize the quote faster if you approve it. No appointment is confirmed yet.';
+    document.getElementById('s5-sub').textContent = isQuoteFlow
+      ? 'Save your card securely so we can finalize the quote faster if you approve it. No appointment is confirmed yet.'
+      : 'Save your card securely without a charge or temporary hold. We will verify it five days before your visit and process payment only after the job is complete.';
 
     document.getElementById('s5-payment-section').style.display = 'block';
 
@@ -6373,10 +6432,12 @@ async function goToStep5Payment() {
 
       '';
 
-    document.getElementById('s5-submit').innerHTML = 'Request Custom Quote <span>&#8594;</span>';
+    document.getElementById('s5-submit').innerHTML = isQuoteFlow
+      ? 'Request Custom Quote <span>&#8594;</span>'
+      : 'Reserve Appointment <span>&#8594;</span>';
 
     var prog4Label = document.querySelector('#prog-4 .progress-label');
-    if (prog4Label) prog4Label.textContent = 'Review';
+    if (prog4Label) prog4Label.textContent = isQuoteFlow ? 'Review' : 'Card';
 
     if (!await initStripe()) return;
 
@@ -6384,7 +6445,12 @@ async function goToStep5Payment() {
       var siResp = await fetch('/api/booking/setup-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: BOOK.firstName + ' ' + BOOK.lastName, email: BOOK.email })
+        body: JSON.stringify({
+          name: BOOK.firstName + ' ' + BOOK.lastName,
+          email: BOOK.email,
+          purpose: isScheduledAuthorization ? 'future_booking' : 'quote_booking',
+          date: BOOK.date
+        })
       });
       var siData = await siResp.json();
       if (!siResp.ok) throw new Error(siData.error || 'Could not initialize payment form');
@@ -6459,7 +6525,7 @@ function s5SelectTime(t) {
 
 
 
-function saveDtEdit() {
+async function saveDtEdit() {
 
   var dateInp = document.getElementById('s5-dt-date');
 
@@ -6470,7 +6536,7 @@ function saveDtEdit() {
   if (!isPublishedSlotAvailable(dateInp.value, _s5SelTime)) {
     var scheduleErr = document.getElementById('s5-err');
     if (scheduleErr) {
-      scheduleErr.textContent = 'Choose an available time within the next 6 days: Monday–Friday 7 AM–5 PM, Saturday 7 AM–1 PM, closed Sunday.';
+      scheduleErr.textContent = 'Choose an available time within the next 30 days: Monday–Friday 7 AM–5 PM, Saturday 7 AM–1 PM, closed Sunday.';
       scheduleErr.classList.add('show');
     }
     return;
@@ -6479,6 +6545,7 @@ function saveDtEdit() {
   var scheduleErr = document.getElementById('s5-err');
   if (scheduleErr) scheduleErr.classList.remove('show');
 
+  var previousDate = BOOK.date;
   BOOK.date = dateInp.value;
 
   BOOK.time = _s5SelTime;
@@ -6496,6 +6563,11 @@ function saveDtEdit() {
   if (s3date) s3date.value = BOOK.date;
 
   toggleS5Edit('dt');
+
+  // SetupIntents are purpose- and appointment-bound. Rebuild checkout when
+  // the date changes so a near-term authorization can never be mistaken for a
+  // future saved-card booking (or vice versa).
+  if (previousDate !== BOOK.date) await goToStep5Payment();
 
 }
 
@@ -6867,11 +6939,17 @@ function saveContactEdit() {
 
   var todayIso = getChicagoTodayIso();
 
-  var maxIso = addIsoDays(todayIso, 6);
+  var maxIso = addIsoDays(todayIso, BOOKING_WINDOW_DAYS);
 
   var todayParts = chicagoDateParts(new Date());
 
   var curMonth = parseInt(todayParts.month, 10) - 1, curYear = parseInt(todayParts.year, 10);
+
+  var firstMonthKey = curYear * 12 + curMonth;
+
+  var maxParts = maxIso.split('-');
+
+  var lastMonthKey = parseInt(maxParts[0], 10) * 12 + parseInt(maxParts[1], 10) - 1;
 
   function pad(n) { return n < 10 ? '0'+n : n; }
 
@@ -6886,6 +6964,16 @@ function saveContactEdit() {
     if (!titleEl || !gridEl) return;
 
     titleEl.textContent = MONTHS[curMonth] + ' ' + curYear;
+
+    var visibleMonthKey = curYear * 12 + curMonth;
+
+    var prevButton = document.getElementById('dt-prev');
+
+    var nextButton = document.getElementById('dt-next');
+
+    if (prevButton) prevButton.disabled = visibleMonthKey <= firstMonthKey;
+
+    if (nextButton) nextButton.disabled = visibleMonthKey >= lastMonthKey;
 
     var firstDay = new Date(Date.UTC(curYear, curMonth, 1, 12)).getUTCDay();
 
@@ -7057,19 +7145,22 @@ function syncPaymentSubmitState() {
   if (!submitBtn || BOOK.isEmergingMarket) return;
 
   var paymentFormReady = !!BOOK._stripe && !!BOOK._cardEl;
-  var quoteSetupReady = !BOOK._isQuoteFlow || !!BOOK._setupIntentSecret;
-  var canSubmit = paymentFormReady && quoteSetupReady && !!BOOK._cardComplete;
+  var usesSetupIntent = !!BOOK._isQuoteFlow || !!BOOK._scheduledAuthorization;
+  var setupReady = !usesSetupIntent || !!BOOK._setupIntentSecret;
+  var canSubmit = paymentFormReady && setupReady && !!BOOK._cardComplete;
 
   submitBtn.disabled = !canSubmit;
 
-  if (!paymentFormReady || !quoteSetupReady) {
+  if (!paymentFormReady || !setupReady) {
     submitBtn.textContent = 'Preparing secure checkout...';
   } else if (!BOOK._cardComplete) {
     submitBtn.textContent = 'Enter card details to continue';
   } else {
     submitBtn.innerHTML = BOOK._isQuoteFlow
       ? 'Request Custom Quote <span>&#8594;</span>'
-      : 'Complete Booking <span>&#8594;</span>';
+      : (BOOK._scheduledAuthorization
+        ? 'Reserve Appointment <span>&#8594;</span>'
+        : 'Complete Booking <span>&#8594;</span>');
   }
 
 }
@@ -7265,7 +7356,7 @@ async function submitBooking() {
 
   }
 
-  if (BOOK._isQuoteFlow && !BOOK._setupIntentSecret) {
+  if ((BOOK._isQuoteFlow || BOOK._scheduledAuthorization) && !BOOK._setupIntentSecret) {
 
     errEl.textContent = 'Payment setup failed. Please refresh and try again.';
 
@@ -7293,7 +7384,7 @@ async function submitBooking() {
 
   var savedSetupIntentId = null;
 
-  if (BOOK._isQuoteFlow && BOOK._setupIntentSecret) {
+  if ((BOOK._isQuoteFlow || BOOK._scheduledAuthorization) && BOOK._setupIntentSecret) {
 
     submitBtn.innerHTML = 'Saving card&hellip;';
 
@@ -7313,7 +7404,10 @@ async function submitBooking() {
       errEl.textContent = setupResult.error.message;
       errEl.classList.add('show');
       submitBtn.disabled=false; backBtn.disabled=false;
-      submitBtn.innerHTML = 'Request Custom Quote <span>&#8594;</span>'; return;
+      submitBtn.innerHTML = BOOK._isQuoteFlow
+        ? 'Request Custom Quote <span>&#8594;</span>'
+        : 'Reserve Appointment <span>&#8594;</span>';
+      return;
     }
 
     savedSetupIntentId = setupResult.setupIntent.id;
@@ -7363,7 +7457,8 @@ async function submitBooking() {
 
         isQuoteRequest: BOOK._isQuoteFlow || false,
 
-        setupIntentId: BOOK._isQuoteFlow ? savedSetupIntentId : null
+        setupIntentId: (BOOK._isQuoteFlow || BOOK._scheduledAuthorization) ? savedSetupIntentId : null,
+        attribution: BOOKING_ATTRIBUTION
 
       })
 
@@ -7489,7 +7584,7 @@ async function submitBooking() {
   }
 
   BOOK._guestMutationToken = data.guestMutationToken || BOOK._guestMutationToken || '';
-  showConfirmation(data.ref, BOOK._isQuoteFlow);
+  showConfirmation(data.ref, BOOK._isQuoteFlow, !!data.scheduledAuthorization);
 
 }
 
@@ -7593,9 +7688,15 @@ function showMarketDemandConfirmation(ref) {
 
 
 
-function showConfirmation(ref, isQuote) {
+function showConfirmation(ref, isQuote, isScheduledAuthorization) {
 
   if (window.gtag) gtag('event', 'conversion', { send_to: 'AW-16551666395/7KS0CIjz1aMcENvFudQ9', transaction_id: ref });
+  trackBookingFunnelOnce('booking_completed', {
+    transaction_id: ref,
+    value: Number(BOOK._grandTotalCents || 0) / 100,
+    currency: 'USD',
+    booking_type: isQuote ? 'quote' : (isScheduledAuthorization ? 'future' : 'near_term')
+  });
 
   for (var i=1;i<=TOTAL_STEPS;i++) { var p=document.getElementById('step-'+i); if(p) p.classList.add('hidden'); }
 
@@ -7625,6 +7726,18 @@ function showConfirmation(ref, isQuote) {
     if (portal) portal.textContent = 'Track Your Request \u2192';
     if (cal) cal.style.display = 'none';
 
+  }
+
+  if (isScheduledAuthorization && !isQuote) {
+    var scheduledTitle = document.querySelector('#step-confirm .confirm-title');
+    var scheduledSteps = document.getElementById('confirm-next-steps');
+    if (scheduledTitle) scheduledTitle.textContent = 'Appointment reserved';
+    if (scheduledSteps) {
+      scheduledSteps.innerHTML =
+        '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Appointment reserved</strong> - your requested date and time are on our schedule.</div></div>'
+        + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Card saved securely</strong> - no charge or temporary hold was placed today.</div></div>'
+        + '<div style="display:flex;align-items:flex-start;gap:0.75rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div><div style="font-size:0.875rem;color:var(--ink-soft);line-height:1.5"><strong style="color:var(--ink)">Payment verified closer to the visit</strong> - we will contact you only if your bank needs another confirmation.</div></div>';
+    }
   }
 
 

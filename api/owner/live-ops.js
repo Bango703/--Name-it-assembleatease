@@ -4,6 +4,7 @@ import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
 import { DISPATCH_PAYMENT_STATUSES, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { chicagoTodayIso } from '../booking/_appt-date.js';
+import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
 import { isOwnerManualOfflineBooking } from '../_owner-easer.js';
 
 export function classifyRuntimeFailures(rows = [], activeAfter) {
@@ -280,6 +281,9 @@ export default async function handler(req, res) {
   const quoteNeedsPricing = pendingRows.filter(b => b.payment_status === 'card_saved');
   const quoteAwaitingApproval = pendingRows.filter(b => b.payment_status === 'quote_pending_approval');
   const quoteAuthorizationPending = pendingRows.filter(b => b.payment_status === 'quote_authorization_pending');
+  const scheduledPaymentPending = operationalBookings.filter(b =>
+    b.status === 'confirmed' && b.payment_status === 'card_saved'
+  );
   const pendingOther = pendingRows.filter(b => ![
     'pending',
     'failed',
@@ -295,6 +299,9 @@ export default async function handler(req, res) {
 
   const paymentStateMismatches = operationalBookings.filter(booking => {
     if (isOwnerManualOfflineBooking(booking)) return false;
+    if (booking.status === 'confirmed' && booking.payment_status === 'card_saved') {
+      return false;
+    }
     const paymentReady = isDispatchPaymentReady(booking);
     if (booking.status === 'pending') return paymentReady;
     if (!['confirmed', 'en_route', 'arrived', 'in_progress'].includes(booking.status)) return false;
@@ -568,6 +575,17 @@ export default async function handler(req, res) {
     action: 'review_timeline',
   }));
 
+  scheduledPaymentPending
+    .filter(b => b.date <= addIsoDays(todayStr, SCHEDULED_AUTHORIZATION_LEAD_DAYS))
+    .forEach(b => alerts.push({
+      type: 'scheduled_payment_due',
+      severity: 'high',
+      ref: b.ref,
+      bookingId: b.id,
+      message: `${b.ref} — scheduled card verification is due. Dispatch remains paused until Stripe confirms authorization.`,
+      action: 'review_timeline',
+    }));
+
   pendingOther.forEach(b => alerts.push({
     type: 'unknown_pending_payment_state',
     severity: 'high',
@@ -630,6 +648,7 @@ export default async function handler(req, res) {
       quoteNeedsPricing: quoteNeedsPricing.length,
       quoteAwaitingApproval: quoteAwaitingApproval.length,
       quoteAuthorizationPending: quoteAuthorizationPending.length,
+      scheduledPaymentPending: scheduledPaymentPending.length,
       pendingOther: pendingOther.length,
       unassigned: unassigned.length,
       ownerManualNeedsAssignment: ownerManualNeedsAssignment.length,
@@ -675,6 +694,7 @@ export default async function handler(req, res) {
     quoteNeedsPricing,
     quoteAwaitingApproval,
     quoteAuthorizationPending,
+    scheduledPaymentPending,
     pendingOther,
     paymentStateMismatches,
     todaySchedule: todayAll,

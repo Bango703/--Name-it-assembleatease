@@ -505,6 +505,7 @@ export default async function handler(req, res) {
   if (refundAmount > 0) paymentStatus = 'refunded';
   else if (feeCaptured > 0) paymentStatus = 'cancellation_fee_captured';
   else if (linkedIntentIds.length) paymentStatus = 'authorization_released';
+  else if (booking.payment_status === 'card_saved') paymentStatus = 'not_required';
   const releasedWithoutCharge = linkedIntentIds.length > 0 && refundAmount === 0 && feeCaptured === 0;
 
   const cumulativeRefund = refundAmount > 0 ? refundAmount : Number(booking.refund_amount || 0);

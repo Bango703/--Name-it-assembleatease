@@ -795,7 +795,7 @@
           <div class="stat amber"><div class="stat-value" id="md-emerging">—</div><div class="stat-label">Real Bookings</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-requests">—</div><div class="stat-label">Unbooked Requests</div></div>
           <div class="stat teal"><div class="stat-value" id="md-conversion">—</div><div class="stat-label">Manual Assignment</div></div>
-          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Easer Supply by Market</div></div>
+          <div class="stat orange"><div class="stat-value" id="md-supply">—</div><div class="stat-label">Job-Ready Easers</div></div>
           <div class="stat neutral"><div class="stat-value" id="md-potential">—</div><div class="stat-label">Priced Demand</div></div>
         </div>
 
@@ -808,9 +808,9 @@
           <div class="detail-panel open">
             <div class="detail-section-title">Activation Rules</div>
             <div style="display:grid;gap:0.65rem;margin-top:0.85rem;font-size:0.82rem;color:var(--soft);line-height:1.55">
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Active Market</strong><br>Full booking, payment, and dispatch are enabled.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Emerging Market</strong><br>Request captured only. No card, no guarantee, no dispatch.</div>
-              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Review Threshold</strong><br>10+ requests, 3+ approved Easers, or a strategic account opportunity.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Booking Open</strong><br>Texas customers can book and save or authorize a card. This does not prove local Easer coverage.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Coverage Needed</strong><br>A real booking exists but no job-ready Easer is recorded in that market. Assign coverage before committing a pro.</div>
+              <div style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.75rem 0.85rem"><strong style="color:var(--text)">Ready</strong><br>At least three job-ready Easers are recorded. Statewide jobs still remain owner-assigned unless the ZIP is approved for automatic dispatch.</div>
             </div>
           </div>
 
@@ -4381,6 +4381,9 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:#7f1d1d">Resume only from this booking. The server rechecks aggregate Stripe truth first and may finish only the remaining portion of the already-requested full refund.</div>');
       }
     }
+    if (b.status === 'confirmed' && b.payment_status === 'card_saved') {
+      notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Future appointment:</strong> the customer card is saved with no charge or hold. Authorization runs five days before the visit; dispatch remains paused until Stripe confirms it.</div>');
+    }
     if (b.status === 'pending') {
       // A pending booking is not paid. Keep quote, authorization, and failed
       // checkout states visibly separate so the owner never dispatches it.
@@ -5802,7 +5805,9 @@ window.intelQuick = intelQuick;
     var labels = {
       pending: 'No card authorization or charge is confirmed',
       failed: 'Authorization failed; customer can retry securely',
-      card_saved: 'Card saved for an owner-priced quote; no charge captured',
+      card_saved: booking && booking.status === 'confirmed'
+        ? 'Card saved; authorization scheduled five days before the appointment'
+        : 'Card saved for an owner-priced quote; no charge captured',
       authorized: 'Card hold authorized; funds not captured yet',
       captured: 'Customer payment captured by Stripe',
       cancellation_fee_captured: 'Cancellation fee captured by Stripe',
@@ -7758,6 +7763,14 @@ window.intelQuick = intelQuick;
       return;
     }
     renderMarketRows(data.topMarkets || []);
+    if (Array.isArray(data.topAcquisitionSources) && data.topAcquisitionSources.length) {
+      document.getElementById('md-top-markets').insertAdjacentHTML(
+        'afterbegin',
+        '<div style="background:#f8fafc;border:1px solid #e2e8f0;color:#334155;border-radius:8px;padding:0.75rem 0.85rem;margin-bottom:0.75rem;font-size:0.8rem;line-height:1.5"><strong>Booking sources:</strong> '
+          + data.topAcquisitionSources.map(function(item){ return esc(item.source) + ' (' + Number(item.count || 0) + ')'; }).join(', ')
+          + '</div>'
+      );
+    }
     renderMarketRequests(data.requests || []);
     if (Array.isArray(data.warnings) && data.warnings.length) {
       document.getElementById('md-top-markets').insertAdjacentHTML(
@@ -7781,7 +7794,7 @@ window.intelQuick = intelQuick;
       return '<div style="border:1px solid var(--border);border-radius:10px;padding:0.9rem 1rem;margin-bottom:0.7rem;background:var(--surface)">'
         + '<div class="md-market-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;margin-bottom:0.55rem">'
         + '<div><div style="font-size:0.96rem;font-weight:800;color:var(--text)">' + esc(m.market) + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.isActiveMarket ? 'Active fulfillment market' : 'Emerging demand market') + '</div></div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem">' + (m.isActiveMarket ? 'Texas booking market' : 'Demand-only market') + '</div></div>'
         + mdStatusPill(m.activationStatus)
         + '</div>'
         + '<div class="md-metrics-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.6rem;margin-bottom:0.65rem">'
@@ -7791,7 +7804,7 @@ window.intelQuick = intelQuick;
         + mdMiniMetric('Priced', m.potentialRevenue == null ? 'Not priced' : fmt$(m.potentialRevenue))
         + '</div>'
         + '<div style="font-size:0.78rem;color:var(--soft);line-height:1.55"><strong style="color:var(--text)">Top services:</strong> ' + services + '</div>'
-        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">ZIPs: ' + ((m.requestedZips || []).join(', ') || '—') + ' &bull; Easer apps: ' + (m.easerApplications || 0) + ' &bull; Waitlist: ' + (m.waitlistEasers || 0) + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem">ZIPs: ' + ((m.requestedZips || []).join(', ') || '—') + ' &bull; Ready Easers: ' + (m.approvedEasers || 0) + ' &bull; Online now: ' + (m.onlineReadyEasers || 0) + ' &bull; Applications: ' + (m.easerApplications || 0) + ' &bull; Waitlist: ' + (m.waitlistEasers || 0) + '</div>'
         + '</div>';
     }).join('');
   }
@@ -7847,7 +7860,10 @@ window.intelQuick = intelQuick;
   function mdStatusPill(status) {
     var s = String(status || 'COLLECTING DEMAND').toUpperCase();
     var color = '#075985', bg = '#e0f2fe', border = '#bae6fd';
-    if (s === 'ACTIVE') { color = '#065f46'; bg = '#d1fae5'; border = '#a7f3d0'; }
+    if (s === 'READY') { color = '#065f46'; bg = '#d1fae5'; border = '#a7f3d0'; }
+    else if (s === 'COVERAGE NEEDED') { color = '#991b1b'; bg = '#fef2f2'; border = '#fecaca'; }
+    else if (s === 'OWNER ASSIGNMENT') { color = '#9a3412'; bg = '#fff7ed'; border = '#fed7aa'; }
+    else if (s === 'LIMITED COVERAGE') { color = '#92400e'; bg = '#fef3c7'; border = '#fde68a'; }
     else if (s === 'READY TO REVIEW') { color = '#92400e'; bg = '#fef3c7'; border = '#fde68a'; }
     else if (s === 'WATCH') { color = '#1d4ed8'; bg = '#dbeafe'; border = '#bfdbfe'; }
     else if (s === 'NEW') { color = '#075985'; bg = '#e0f2fe'; border = '#bae6fd'; }

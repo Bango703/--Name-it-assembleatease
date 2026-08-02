@@ -330,7 +330,7 @@ assert.match(customerErrorAlertSource, /statusCode >= 500/);
 assert.match(customerErrorAlertSource, /Customer email:/);
 assert.match(customerErrorAlertSource, /never request or send card details by email/);
 assert.match(customerErrorAlertSource, /customer_block_\$\{dedupeKey\}/);
-assert.match(setupIntentSource, /guardCustomerFacing\(req, res, 'quote card setup'\)/);
+assert.match(setupIntentSource, /guardCustomerFacing\(req, res, 'booking card setup'\)/);
 assert.match(publicKeySource, /guardCustomerFacing\(req, res, 'checkout configuration'\)/);
 
 console.log('Owner manual payout workflow tests: PASS');

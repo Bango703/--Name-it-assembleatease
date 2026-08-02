@@ -154,7 +154,7 @@ export default async function handler(req, res) {
   });
   const withinWindow = policy.tier !== 'free';
 
-  if (!['pending', 'failed', 'authorized', 'not_required'].includes(booking.payment_status)) {
+  if (!['pending', 'failed', 'authorized', 'card_saved', 'not_required'].includes(booking.payment_status)) {
     return res.status(409).json({
       error: 'This booking needs support assistance before it can be canceled. The booking remains unchanged.',
       code: 'CANCELLATION_SUPPORT_REQUIRED',
@@ -364,7 +364,7 @@ export default async function handler(req, res) {
     cancellation_fee: feeCaptured || null,
     payment_status: feeCaptured > 0
       ? 'cancellation_fee_captured'
-      : (stripeMutationRequired ? 'authorization_released' : booking.payment_status),
+      : (stripeMutationRequired ? 'authorization_released' : (booking.payment_status === 'card_saved' ? 'not_required' : booking.payment_status)),
     amount_charged: feeCaptured > 0 ? feeCaptured : (releasedWithoutCharge ? null : (booking.amount_charged || null)),
     payment_captured_at: feeCaptured > 0 ? new Date().toISOString() : (releasedWithoutCharge ? null : booking.payment_captured_at),
     cancellation_easer_due_cents: proTripCutCents,

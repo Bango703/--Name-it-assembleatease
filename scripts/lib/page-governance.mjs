@@ -236,7 +236,7 @@ export function classifyPage(pagePath) {
   if (path === 'terms.html' || path === 'privacy.html') return 'policy';
   if (path === 'track.html' || path === 'review.html' || path === 'assemblecash.html' || path === 'setup-club.html') return 'support';
   if (path === 'about.html' || path === 'contact.html' || path === 'bundles.html' || path === 'locations.html') return 'core_marketing';
-  if (path === 'owner/index.html') return 'owner_portal';
+  if (path.startsWith('owner/')) return 'owner_portal';
   if (path.startsWith('auth/')) return 'auth';
   if (path === 'assembler/apply.html') return 'assembler_public';
   if (path.startsWith('assembler/')) return 'assembler_portal';

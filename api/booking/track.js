@@ -63,6 +63,12 @@ export default async function handler(req, res) {
     if (b.status === BOOKING_STATUS.IN_PROGRESS) return { label: 'Work is underway', detail: null };
     if (b.status === BOOKING_STATUS.ARRIVED)     return { label: 'Your service pro has arrived', detail: null };
     if (b.status === BOOKING_STATUS.EN_ROUTE)    return { label: 'Your service pro is on the way', detail: null };
+    if (b.status === BOOKING_STATUS.CONFIRMED && b.payment_status === 'card_saved') {
+      return {
+        label: 'Appointment reserved',
+        detail: 'Your card is saved securely. We will verify it closer to your appointment and contact you only if another confirmation is needed.',
+      };
+    }
     if (b.assembler_accepted_at && b.assembler_name) {
       const first = (b.assembler_name || '').split(' ')[0];
       return { label: `${first} is confirmed for your job`, detail: `Arriving ${b.date}${b.time ? ' at ' + b.time.split('-')[0].trim() : ''}.` };

@@ -1,4 +1,24 @@
 (function () {
+  function captureBookingAttributionEntry() {
+    var storageKey = 'aaeBookingAttribution';
+    try {
+      if (!window.sessionStorage || sessionStorage.getItem(storageKey)) return;
+      var params = new URLSearchParams(window.location.search || '');
+      var referrerHost = '';
+      try { referrerHost = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        utmSource: params.get('utm_source') || '',
+        utmMedium: params.get('utm_medium') || '',
+        utmCampaign: params.get('utm_campaign') || '',
+        utmContent: params.get('utm_content') || '',
+        utmTerm: params.get('utm_term') || '',
+        clickId: params.get('gclid') || params.get('msclkid') || '',
+        landingPath: window.location.pathname || '/',
+        referrerHost: referrerHost,
+      }));
+    } catch (e) {}
+  }
+
   var runtimeErrorState = {
     sent: Object.create(null),
     sessionId: null,
@@ -258,6 +278,7 @@
     });
   }
 
+  captureBookingAttributionEntry();
   initRuntimeMonitor();
   initImageRecovery();
   document.addEventListener('click', routeMobileServicesLink);

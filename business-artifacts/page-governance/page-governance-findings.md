@@ -4,8 +4,8 @@ Generated from 371 HTML pages.
 
 ## Status Counts
 
-- PASS: 370
-- WARNING: 1
+- PASS: 371
+- WARNING: 0
 - FAIL: 0
 
 ## Page Types
@@ -21,19 +21,15 @@ Generated from 371 HTML pages.
 - core_marketing: 4
 - flagship_service: 6
 - home: 1
-- owner_portal: 1
+- owner_portal: 2
 - policy: 2
 - pricing: 1
 - support: 4
-- unknown: 1
 - utility: 1
 
 ## Highest-Risk Pages
 
-- owner/email.html — WARNING (0 fail, 3 warning)
-  - WARNING: Meta description is recommended for this page type.
-  - WARNING: Canonical link is recommended for this page type.
-  - WARNING: Page type is not mapped yet.
+- No current failures or warnings.
 
 ## Output Files
 

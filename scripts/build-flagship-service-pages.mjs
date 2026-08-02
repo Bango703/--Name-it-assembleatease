@@ -598,11 +598,11 @@ const SERVICES = [
     fromPrice: '$69', fromLabel: 'per item', ctaVerb: 'Book furniture assembly',
     heroTitle: 'Furniture Assembly in Austin,<br><em>built right the first time.</em>',
     heroSub: 'Beds, dressers, desks, sectionals and storage pieces assembled cleanly and left ready to use. Tools and cleanup are included.',
-    heroPhoto: 'real-furniture-dresser-wood.jpg', heroAlt: 'Two-tone six-drawer dresser assembled in an Austin bedroom',
+    heroPhoto: 'real-furniture-dresser-wood.jpg', heroAlt: 'Two-tone six-drawer dresser assembled in a finished bedroom',
     workHeadline: 'Built right. Left clean.',
-    noteStrong: 'Recent builds around Austin.', noteSpan: 'Beds, dressers, desks and storage pieces assembled, leveled and cleaned up before we leave.',
+    noteStrong: 'Furniture assembly examples.', noteSpan: 'Beds, dressers, desks and storage pieces assembled, leveled and cleaned up before we leave.',
     gallery: [
-      { src: 'real-furniture-dresser-white.png', alt: 'Nine-drawer white dresser assembled and leveled in an Austin bedroom', cap: '9-drawer modern dresser', sub: 'Drawers aligned, frame leveled, packaging removed' },
+      { src: 'real-furniture-dresser-white.png', alt: 'Nine-drawer white dresser assembled and leveled in a finished bedroom', cap: '9-drawer modern dresser', sub: 'Drawers aligned, frame leveled, packaging removed' },
       { src: 'real-furniture-bed-paneled.png', alt: 'Upholstered paneled platform bed assembled in a bedroom', cap: 'Upholstered platform bed', sub: 'Headboard, rails and slats torqued to spec', pos: 'center 26%' },
     ],
     offers: [
@@ -627,7 +627,7 @@ const SERVICES = [
     heroSub: 'TVs, soundbars, mirrors and art &mdash; mounted level, anchored to studs, cables hidden. You supply the mount and hardware; we bring the tools and the steady hands for a clean, level wall.',
     heroPhoto: 'real-tv-mount-console.jpg', heroAlt: 'Large flat-screen TV wall-mounted above a media console',
     workHeadline: 'Mounted level. Wires gone.',
-    noteStrong: 'Hundreds of TVs on the wall and counting.', noteSpan: 'Bedrooms, great rooms, offices and patios &mdash; mounts, soundbars and cable concealment, cleaned up and leveled.',
+    noteStrong: 'TV mounting examples.', noteSpan: 'Bedrooms, great rooms, offices and patios &mdash; mounts, soundbars and cable concealment, cleaned up and leveled.',
     gallery: [
       { src: 'real-tv-dawg-days.jpg', alt: 'Large TV mounted on a great-room wall above a soundbar', cap: 'Great-room TV + soundbar', sub: 'Leveled, soundbar mounted, cables out of sight' },
       { src: 'real-tv-setup-console.jpg', alt: 'Flat TV flush-mounted over a black media console', cap: 'Flush mount over a console', sub: 'Tilt set, cords concealed, ready to watch' },
@@ -727,7 +727,7 @@ const SERVICES = [
     heroSub: 'Playsets, swing sets, trampolines, gazebos and patio sets &mdash; built to spec, anchored safe, and checked over before anyone climbs on. Tools and cleanup included.',
     heroPhoto: 'service-outdoor-playsets.jpg', heroAlt: 'Assembler building a backyard playset frame with the completed set behind him',
     workHeadline: 'Built safe. Ready to play.',
-    noteStrong: 'Backyards built and counting.', noteSpan: 'Swing sets, trampolines, playhouses and gazebos &mdash; built to spec, anchored, and safety-checked before play.',
+    noteStrong: 'Outdoor assembly examples.', noteSpan: 'Swing sets, trampolines, playhouses and gazebos &mdash; built to spec, anchored, and safety-checked before play.',
     gallery: [
       { src: 'work-outdoor-playset.jpg', alt: 'Assembler working on a backyard playset frame', cap: 'Playset build in progress', sub: 'Frame squared up, hardware staged, setup underway' },
       { src: 'real-outdoor-gazebo.png', alt: 'Assembled backyard gazebo structure', cap: 'Completed gazebo kit', sub: 'Leveled, tightened, and ready for the backyard' },

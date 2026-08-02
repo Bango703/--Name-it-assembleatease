@@ -5,7 +5,8 @@ import { sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
 import { safeTokenHashMatch, randomToken, sha256 } from '../_payment-security.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
-import { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } from './_appt-date.js';
+import { appointmentTimestampMs, parseIsoCalendarDate } from './_appt-date.js';
+import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './_booking-window.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
 
 const MAX_RESCHEDULES = 2;
@@ -61,10 +62,9 @@ export default async function handler(req, res) {
   const requestedDate = parseIsoCalendarDate(date);
   if (!requestedDate) return res.status(400).json({ error: 'Invalid appointment date.' });
 
-  const windowStart = parseIsoCalendarDate(chicagoTodayIso());
-  const windowEnd = new Date(windowStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-  if (requestedDate < windowStart || requestedDate > windowEnd) {
-    return res.status(400).json({ error: 'New date must be within the next 6 days. For later dates, email service@assembleatease.com.' });
+  const windowCheck = validateBookingWindowDate(date);
+  if (!windowCheck.ok) {
+    return res.status(400).json({ error: `New date must be within the next ${BOOKING_WINDOW_DAYS} days.` });
   }
 
   const slotValidation = validatePublishedRescheduleSlot(date, time);
@@ -96,6 +96,20 @@ export default async function handler(req, res) {
       ? 'Your Easer is already on the way or working. Please call 737-290-6129 to make changes.'
       : 'This booking can no longer be rescheduled. Please call 737-290-6129.';
     return res.status(400).json({ error: message });
+  }
+
+  const movingToScheduledAuthorization = needsScheduledAuthorization(date);
+  if (booking.payment_status === 'authorized' && movingToScheduledAuthorization) {
+    return res.status(409).json({
+      error: 'This date is outside the current card-authorization window. Contact support so we can move the appointment without leaving an expired hold.',
+      code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
+    });
+  }
+  if (booking.payment_status === 'card_saved' && !movingToScheduledAuthorization) {
+    return res.status(409).json({
+      error: 'This earlier date requires card verification now. Contact support so we can move and confirm the appointment securely.',
+      code: 'PAYMENT_RESCHEDULE_ASSISTANCE_REQUIRED',
+    });
   }
 
   if (date === booking.date && normalizedTime === normalizeSlot(booking.time)) {

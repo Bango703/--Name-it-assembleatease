@@ -829,7 +829,10 @@ function rsSlotAvailable(isoDate, slot) {
   var parsed = new Date(isoDate + 'T12:00:00Z');
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== isoDate) return false;
   var today = rsTodayIso();
-  if (isoDate < today || isoDate > rsAddDays(today, 6)) return false;
+  var savedCardWindow = currentBooking && currentBooking.payment_status === 'card_saved';
+  var earliest = savedCardWindow ? rsAddDays(today, 7) : today;
+  var latest = rsAddDays(today, savedCardWindow ? 30 : 6);
+  if (isoDate < earliest || isoDate > latest) return false;
   var slotIndex = RS_TIME_SLOTS.map(rsNormalizeSlot).indexOf(rsNormalizeSlot(slot));
   var weekday = parsed.getUTCDay();
   if (slotIndex < 0 || weekday === 0 || (weekday === 6 && slotIndex >= 3)) return false;
@@ -862,7 +865,10 @@ function firstAvailableRescheduleDate(preferredDate) {
   var today = rsTodayIso();
   var candidates = [];
   if (preferredDate) candidates.push(preferredDate);
-  for (var offset = 0; offset <= 6; offset++) candidates.push(rsAddDays(today, offset));
+  var savedCardWindow = currentBooking && currentBooking.payment_status === 'card_saved';
+  var firstOffset = savedCardWindow ? 7 : 0;
+  var lastOffset = savedCardWindow ? 30 : 6;
+  for (var offset = firstOffset; offset <= lastOffset; offset++) candidates.push(rsAddDays(today, offset));
   return candidates.find(function(date, index) {
     return candidates.indexOf(date) === index && RS_TIME_SLOTS.some(function(slot) { return rsSlotAvailable(date, slot); });
   }) || today;
@@ -876,8 +882,9 @@ function openRescheduleModal() {
 
   // Date bounds and time options use the same Austin calendar rules as the server.
   var today = rsTodayIso();
-  dateEl.min = today;
-  dateEl.max = rsAddDays(today, 6);
+  var savedCardWindow = currentBooking.payment_status === 'card_saved';
+  dateEl.min = savedCardWindow ? rsAddDays(today, 7) : today;
+  dateEl.max = rsAddDays(today, savedCardWindow ? 30 : 6);
   dateEl.value = firstAvailableRescheduleDate(currentBooking.date);
   dateEl.onchange = function() { renderRescheduleTimes(''); };
   errEl.style.display = 'none';
@@ -906,7 +913,9 @@ async function confirmReschedule() {
     return;
   }
   if (!rsSlotAvailable(date, time)) {
-    errEl.textContent = 'Choose an available time within the next 6 days. Sunday is closed, and Saturday appointments end at 1 PM.';
+    errEl.textContent = currentBooking && currentBooking.payment_status === 'card_saved'
+      ? 'Choose an available future appointment from 7 to 30 days out. Sunday is closed, and Saturday appointments end at 1 PM.'
+      : 'Choose an available time within the next 6 days. Sunday is closed, and Saturday appointments end at 1 PM.';
     errEl.style.display = 'block';
     return;
   }

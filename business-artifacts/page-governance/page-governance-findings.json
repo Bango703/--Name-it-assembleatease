@@ -15140,10 +15140,10 @@
   },
   {
     "path": "owner/email.html",
-    "pageType": "unknown",
-    "visibility": "unknown",
+    "pageType": "owner_portal",
+    "visibility": "private_owner",
     "generatorOwners": [
-      "unmapped"
+      "manual owner page"
     ],
     "title": "Customer Email — AssembleAtEase Owner",
     "h1": "Owner sign-in",
@@ -15191,26 +15191,10 @@
     "footerLegacyBusinessCustomCount": 0,
     "footerCompanyLabels": [],
     "footerServiceLabels": [],
-    "status": "WARNING",
+    "status": "PASS",
     "failCount": 0,
-    "warningCount": 3,
-    "issues": [
-      {
-        "severity": "warning",
-        "code": "recommended_meta_description",
-        "message": "Meta description is recommended for this page type."
-      },
-      {
-        "severity": "warning",
-        "code": "recommended_canonical",
-        "message": "Canonical link is recommended for this page type."
-      },
-      {
-        "severity": "warning",
-        "code": "unknown_page_type",
-        "message": "Page type is not mapped yet."
-      }
-    ]
+    "warningCount": 0,
+    "issues": []
   },
   {
     "path": "owner/index.html",

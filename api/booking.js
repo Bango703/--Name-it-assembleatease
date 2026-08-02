@@ -12,7 +12,8 @@ import {
   resolveBookingPromotion,
 } from './_promotions.js';
 import { logActivity } from './booking/_activity.js';
-import { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } from './booking/_appt-date.js';
+import { appointmentTimestampMs } from './booking/_appt-date.js';
+import { BOOKING_WINDOW_DAYS, needsScheduledAuthorization, validateBookingWindowDate } from './booking/_booking-window.js';
 import { formatUsPhone, normalizeUsPhone } from './_phone.js';
 import { assertGuestTokenConfiguration, deriveGuestMutationToken, guestMutationTokenHash, randomToken } from './_payment-security.js';
 import { parseServiceLocation } from './_booking-location.js';
@@ -54,9 +55,11 @@ export default async function handler(req, res) {
     promoPreviewTotalCents,
     assemblecashToken,
     bundleSlug,
+    attribution,
   } = req.body;
 
   const phone = normalizeUsPhone(rawPhone);
+  const quoteRequested = isQuoteRequest === true;
 
   // Support both new multi-service payload (services=[]) and legacy single-service (service='')
   const serviceList = Array.isArray(services) && services.length > 0
@@ -86,21 +89,19 @@ export default async function handler(req, res) {
   const bookingCity = String(city || '').trim().replace(/\s+/g, ' ').slice(0, 80);
   const serviceLocation = parseServiceLocation({ address, city: bookingCity, state: 'TX', zip });
 
-  const requestedDate = parseIsoCalendarDate(date);
+  const dateCheck = validateBookingWindowDate(date);
+  const requestedDate = dateCheck.requestedDate;
   if (!requestedDate) {
     return res.status(400).json({ error: 'Invalid appointment date.' });
   }
-
-  const chicagoToday = chicagoTodayIso();
-  const bookingWindowStart = new Date(`${chicagoToday}T12:00:00Z`);
-  const bookingWindowEnd = new Date(bookingWindowStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-  if (requestedDate < bookingWindowStart || requestedDate > bookingWindowEnd) {
+  if (!dateCheck.ok) {
     return res.status(400).json({
-      error: 'Online booking is temporarily limited to appointments within the next 6 days. For later dates, email service@assembleatease.com.',
+      error: `Online appointments can be booked up to ${BOOKING_WINDOW_DAYS} days ahead.`,
       code: 'BOOKING_WINDOW_RESTRICTED',
-      latestBookableDate: bookingWindowEnd.toISOString().slice(0, 10),
+      latestBookableDate: dateCheck.lastDate,
     });
   }
+  const scheduledAuthorization = !quoteRequested && needsScheduledAuthorization(date);
 
   const weekday = requestedDate.getUTCDay();
   const weekdaySlots = [
@@ -139,7 +140,6 @@ export default async function handler(req, res) {
 
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
-  const quoteRequested = isQuoteRequest === true;
   const pricing = calculateBookingPricing({ services: serviceList, itemsByService: items, zip });
   if (pricing.invalidItems.length) {
     return res.status(400).json({
@@ -163,36 +163,41 @@ export default async function handler(req, res) {
   let taxableSubtotalCents = pricingWithPromo.taxableSubtotalCents;
   let taxCents = pricingWithPromo.taxCents;
   const serviceCallFeeCents = pricingWithPromo.serviceCallFeeCents;
-  const shouldChargeNow = amount > 0 && !quoteRequested;
+  const pricedBooking = amount > 0 && !quoteRequested;
+  const shouldAuthorizeNow = pricedBooking && !scheduledAuthorization;
   let verifiedQuotePaymentMethodId = null;
   let verifiedQuoteCustomerId = null;
 
-  if (quoteRequested) {
+  if (quoteRequested || scheduledAuthorization) {
     if (!setupIntentId || !process.env.STRIPE_SECRET_KEY) {
       return res.status(409).json({
-        error: 'Secure card setup must be completed before submitting a custom quote request.',
-        code: 'QUOTE_CARD_SETUP_REQUIRED',
+        error: scheduledAuthorization
+          ? 'Secure card setup must be completed before confirming this future appointment.'
+          : 'Secure card setup must be completed before submitting a custom quote request.',
+        code: scheduledAuthorization ? 'FUTURE_BOOKING_CARD_SETUP_REQUIRED' : 'QUOTE_CARD_SETUP_REQUIRED',
       });
     }
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const setupIntent = await stripe.setupIntents.retrieve(String(setupIntentId));
       const setupEmail = String(setupIntent.metadata?.email || '').trim().toLowerCase();
+      const expectedSetupSource = scheduledAuthorization ? 'future_booking' : 'quote_booking';
       if (setupIntent.status !== 'succeeded'
-          || setupIntent.metadata?.source !== 'quote_booking'
+          || setupIntent.metadata?.source !== expectedSetupSource
           || setupEmail !== String(email).trim().toLowerCase()
+          || (scheduledAuthorization && setupIntent.metadata?.appointmentDate !== date)
           || typeof setupIntent.customer !== 'string'
           || typeof setupIntent.payment_method !== 'string') {
         return res.status(409).json({
-          error: 'Secure card setup does not match this quote request.',
-          code: 'QUOTE_CARD_SETUP_MISMATCH',
+          error: 'Secure card setup does not match this booking request.',
+          code: scheduledAuthorization ? 'FUTURE_BOOKING_CARD_SETUP_MISMATCH' : 'QUOTE_CARD_SETUP_MISMATCH',
         });
       }
       verifiedQuoteCustomerId = setupIntent.customer;
       verifiedQuotePaymentMethodId = setupIntent.payment_method;
     } catch (setupErr) {
-      console.error('Quote SetupIntent verification failed:', setupErr);
-      return res.status(502).json({ error: 'Could not verify secure card setup. Please retry the quote request.' });
+      console.error('Booking SetupIntent verification failed:', setupErr);
+      return res.status(502).json({ error: 'Could not verify secure card setup. Please retry the booking.' });
     }
   }
 
@@ -251,7 +256,7 @@ export default async function handler(req, res) {
   // We atomically reserve the credit before saving the booking / creating Stripe
   // state so two overlapping checkouts cannot spend the same reward balance.
   let assemblecashRedeemedCents = 0;
-  if (assemblecashToken && shouldChargeNow && verifyRedemptionToken(assemblecashToken, email)) {
+  if (assemblecashToken && pricedBooking && verifyRedemptionToken(assemblecashToken, email)) {
     try {
       const acBalance = await getAvailableBalanceCents(sb, email);
       const requestedRedeem = maxRedeemableCents({
@@ -336,20 +341,27 @@ export default async function handler(req, res) {
     date,
     time,
     details,
-    status: 'pending',
-    payment_status: shouldChargeNow ? 'pending' : 'not_required',
+    status: scheduledAuthorization ? 'confirmed' : 'pending',
+    payment_status: scheduledAuthorization ? 'card_saved' : (shouldAuthorizeNow ? 'pending' : 'not_required'),
     total_price: amount,
     tax_amount: taxCents,
     service_call_fee: serviceCallFeeCents,
     call_zone: pricingWithPromo.callZone,
-    dispatch_paused: false,
+    dispatch_paused: scheduledAuthorization,
     needs_manual_dispatch: requiresOwnerAssignment,
+    ...(scheduledAuthorization ? {
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: 'scheduled_card_setup',
+      stripe_customer_id: verifiedQuoteCustomerId,
+      stripe_payment_method_id: verifiedQuotePaymentMethodId,
+    } : {}),
     is_deposit: isDeposit,
     deposit_amount: depositAmountCents,
     promo_code: promo.applied ? promo.appliedCode : null,
     promo_discount_cents: promoDiscountCents,
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
+    booking_attribution: cleanBookingAttribution(attribution),
   };
 
   let activeBookingInsertPayload = bookingInsertPayload;
@@ -363,7 +375,14 @@ export default async function handler(req, res) {
 
   if (insertErr && isMissingColumnError(insertErr) && /promo_|assemblecash|bundle_slug/i.test(String(insertErr.message || ''))) {
     const { promo_code, promo_discount_cents, assemblecash_redeemed_cents, bundle_slug, ...legacyBookingInsertPayload } = activeBookingInsertPayload;
-    ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(legacyBookingInsertPayload).select('id').single());
+    activeBookingInsertPayload = legacyBookingInsertPayload;
+    ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
+  }
+
+  if (insertErr && isMissingColumnError(insertErr) && /booking_attribution/i.test(String(insertErr.message || ''))) {
+    const { booking_attribution, ...withoutAttribution } = activeBookingInsertPayload;
+    activeBookingInsertPayload = withoutAttribution;
+    ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
   }
 
   if (insertErr) {
@@ -433,7 +452,7 @@ export default async function handler(req, res) {
   let clientSecret = null;
   let paymentIntentCreationAttempted = false;
 
-  if (shouldChargeNow && process.env.STRIPE_SECRET_KEY) {
+  if (shouldAuthorizeNow && process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -616,11 +635,12 @@ export default async function handler(req, res) {
       <tr><td style="padding:10px 0;color:#71717a;vertical-align:top">Tax</td><td style="padding:10px 0;font-weight:600">$${(taxCents/100).toFixed(2)}</td></tr>
       <tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a;vertical-align:top">Est. Total</td><td style="padding:10px 0;border-top:1px solid #f0f0f0;font-weight:700;color:#065f46">$${(amount/100).toFixed(2)}</td></tr>` : ''}
       ${clientSecret ? '<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-top:1px solid #f0f0f0"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CARD PENDING AUTHORIZATION</span></td></tr>' : ''}
+      ${scheduledAuthorization ? '<tr><td style="padding:10px 0;border-top:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-top:1px solid #f0f0f0"><span style="display:inline-block;background:#e0f2fe;color:#075985;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">CARD SAVED — AUTHORIZATION SCHEDULED</span></td></tr>' : ''}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1e40af">Action Required</p>
-    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`}</p>
+    <p style="margin:0;font-size:13px;color:#1e40af;line-height:1.6">${quoteRequested ? `Review the project notes, prepare a final quote, and contact <strong>${sName}</strong> before scheduling or authorizing any amount.` : (scheduledAuthorization ? `Plan coverage for this appointment. The customer card is saved, but dispatch stays paused until payment is authorized five days before the visit.` : `Contact <strong>${sName}</strong> at <a href="tel:${sPhone}" style="color:#1e40af">${sPhone}</a> or <a href="mailto:${sEmail}" style="color:#1e40af">${sEmail}</a> to confirm this appointment.`)}</p>
     </td></tr></table>
   </td></tr></table>
 
@@ -641,12 +661,12 @@ export default async function handler(req, res) {
   <!-- Body -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">${quoteRequested ? `We received your quote request,&nbsp;${sName}.` : `We received your booking,&nbsp;${sName}.`}</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">${quoteRequested ? `We will review your project notes and follow up with the next step before anything is scheduled.` : `Thank you for choosing AssembleAtEase. A member of our team will follow up to confirm your appointment details.`}</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">${quoteRequested ? `We will review your project notes and follow up with the next step before anything is scheduled.` : (scheduledAuthorization ? `Your appointment is reserved. Your card is saved securely, and we will verify it closer to your visit. No payment has been taken.` : `Thank you for choosing AssembleAtEase. A member of our team will follow up to confirm your appointment details.`)}</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
-        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${quoteRequested ? 'QUOTE REQUEST' : 'PENDING CONFIRMATION'}</span></td></tr>
+        <tr><td style="font-size:16px;font-weight:700;color:#1a1a1a">${ref}</td><td style="text-align:right"><span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${quoteRequested ? 'QUOTE REQUEST' : (scheduledAuthorization ? 'SCHEDULED' : 'PENDING CONFIRMATION')}</span></td></tr>
       </table>
     </td></tr></table>
 
@@ -668,7 +688,7 @@ export default async function handler(req, res) {
       ` : `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll follow up to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${clientSecret ? 'Secure checkout' : 'Payment reviewed after confirmation'}</strong> &mdash; ${clientSecret ? 'Your payment method is verified securely by Stripe. Payment is processed after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.'}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${scheduledAuthorization ? 'Payment method saved' : (clientSecret ? 'Secure checkout' : 'Payment reviewed after confirmation')}</strong> &mdash; ${scheduledAuthorization ? 'We will verify your card five days before the appointment. If your bank needs anything else, we will send a secure link.' : (clientSecret ? 'Your payment method is verified securely by Stripe. Payment is processed after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.')}</td></tr>
       `}
     </table>
 
@@ -740,6 +760,7 @@ export default async function handler(req, res) {
       bookingId,
       guestMutationToken,
       clientSecret,
+      scheduledAuthorization,
       isDeposit,
       depositAmountCents,
       pricing: {
@@ -812,4 +833,30 @@ function clampInt(value, min, max, fallback) {
   const n = parseInt(value, 10);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
+}
+
+function cleanBookingAttribution(value) {
+  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const clean = (field, max) => String(input[field] || '').trim().replace(/[\u0000-\u001f]/g, '').slice(0, max);
+  const landingPath = clean('landingPath', 240);
+  const referrerHost = clean('referrerHost', 120).toLowerCase();
+  const utmSource = clean('utmSource', 100);
+  const result = {
+    source: utmSource || referrerHost || 'direct',
+    capturedAt: new Date().toISOString(),
+  };
+  if (utmSource) result.utmSource = utmSource;
+  const utmMedium = clean('utmMedium', 100);
+  const utmCampaign = clean('utmCampaign', 140);
+  const utmContent = clean('utmContent', 140);
+  const utmTerm = clean('utmTerm', 140);
+  const clickId = clean('clickId', 180);
+  if (utmMedium) result.utmMedium = utmMedium;
+  if (utmCampaign) result.utmCampaign = utmCampaign;
+  if (utmContent) result.utmContent = utmContent;
+  if (utmTerm) result.utmTerm = utmTerm;
+  if (clickId) result.clickId = clickId;
+  if (landingPath.startsWith('/')) result.landingPath = landingPath;
+  if (referrerHost) result.referrerHost = referrerHost;
+  return result;
 }
