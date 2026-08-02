@@ -15,8 +15,11 @@ _Last reconciled: 2026-08-02_
 
 ## Mobile (P1 — 90% of traffic)
 
-- [ ] **P2 · Verify Easer login + my-assignments responsiveness** _(UX)_ — `assembler/index.html` (login) has 0 media queries; `my-assignments.html` has 1. Likely fluid/mobile-first but spot-check on a real phone for overflow/hierarchy.
-- _(New deep-audit findings appended below as they are confirmed — whole-site mobile pass, booking-first.)_
+- [ ] **P1 · Homepage "double-talk": value props repeated 4–7× ** _(UX, Growth, CPO)_ — "Upfront pricing", "reviewed local pros", and "pay after completion" each recur across the hero, the "Why choose" band, trust items, every service card, how-it-works, and FAQ (grep-confirmed on `index.html`). On mobile you scroll the same three promises repeatedly across 9+ sections → the "double-talk / gotta-scroll / not friendly" the owner reported. Violates the existing no-repeated-value-props rule. Fix = **subtraction**: each benefit once; shorten the mobile homepage so the service tiles / book CTA arrive sooner. Highest-traffic page — plan the cut carefully, don't blind-edit.
+- [ ] **P2 · Homepage load-in animation timing** _(UX)_ — service cards use staggered `mCardIn` fade (`animation:...both`); on slow phones content can read as "not there yet" briefly. Verify on a real mid-tier device; consider trimming stagger.
+- [ ] **P2 · Reviews strip is a sideways scroller on mobile** _(UX)_ — `#reviews-grid` is a horizontal overflow-x carousel; horizontal scroll on mobile can feel unfriendly. Consider a stacked/snap layout.
+- [ ] **P2 · Verify Easer login + my-assignments responsiveness** _(UX)_ — `assembler/index.html` (login) has 0 media queries; `my-assignments.html` has 1. Spot-check on a real phone.
+- _Verified NOT broken (device-tested at true 390px via Edge iframe): no horizontal overflow / clipping on home, booking, or track; booking step-1 tiles + prices render clean. Earlier "severe overflow" alarm was a headless tooling artifact (Edge floored `--window-size=390` at 492px), now corrected._
 
 ## Trust & communication (P1)
 
