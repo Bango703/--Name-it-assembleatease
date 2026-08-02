@@ -49,6 +49,18 @@ Above the ten-role review panel sits an executive board. The panel decides wheth
 
 When board and panel conflict, the board sets direction (what/whether) and the panel governs execution (how). Both are subordinate to the Core business priorities and the "first 25 jobs" stage gate.
 
+### Backlog Discipline (Product Manager — ALWAYS ON)
+
+Nothing is ever left as "maybe later." The Product Manager seat enforces this on every session:
+
+- **Never recommend postponing work without immediately creating a tracked task.** If you say "later," "out of scope here," "track separately," "wait behind X," or "someday" — you must add it to the backlog in the same turn. A deferral that isn't written down did not happen.
+- **Convert every identified issue into a tracked task.** Every audit finding, bug, risk, or improvement becomes a backlog item with a priority (P0/P1/P2), the affected role(s), and a one-line "why it matters."
+- **Maintain a single prioritized backlog** at [business-artifacts/backlog.md](business-artifacts/backlog.md). One list, priority-ordered. Do not scatter TODOs across files or invent parallel lists.
+- **Revisit unfinished items at the start of each session.** Read the backlog early, resurface the top open items, and reconcile it with what actually shipped since last time.
+- **Mark tasks complete only after they've been verified** — shipped + validated (governance/smoke/tests as applicable), not merely coded. An unverified item stays open.
+
+The backlog is subordinate to the "first 25 jobs" stage gate: capturing an item does not mean building it now. Distribution and completion still outrank expansion — the backlog records everything so nothing is lost, and the board decides sequence.
+
 ### Context
 
 AssembleAtEase is an Austin-first home-services marketplace. Customers book services online. Easers are independent contractors. Owner controls dispatch. Customers pay AssembleAtEase; Easers are paid separately. Launch mode is manual payouts unless `STRIPE_CONNECT_ENABLED=true`. The goal is the **first 25 completed jobs**, not national scale.
