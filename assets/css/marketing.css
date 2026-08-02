@@ -129,6 +129,10 @@ body.nav-open #cookie-banner{display:none}
 .footer-contact{display:flex;flex-direction:column;gap:0.35rem}
 .footer-contact a{display:block;font-size:0.85rem;color:rgba(255,255,255,0.65);text-decoration:none;overflow-wrap:anywhere;transition:color 0.15s}
 .footer-contact a:hover{color:var(--cyan)}
+.footer-social{display:flex;gap:0.6rem;margin-top:0.9rem}
+.footer-social a{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);transition:background 0.15s,color 0.15s}
+.footer-social a:hover{background:rgba(255,255,255,0.16);color:#fff}
+.footer-social svg{width:18px;height:18px;fill:currentColor}
 .footer-col-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.55);margin-bottom:0.85rem;font-weight:700}
 .footer-links{list-style:none;display:flex;flex-direction:column;gap:0.55rem}
 .footer-links a{font-size:0.85rem;color:rgba(255,255,255,0.65);text-decoration:none;overflow-wrap:anywhere;transition:color 0.15s}
