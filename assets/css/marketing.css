@@ -221,7 +221,7 @@ body.nav-open #cookie-banner{display:none}
   .nav-easer-link{display:none}
   .nav-book-pill{min-height:44px;padding:0 0.85rem}
   .nav-hamburger{min-width:44px;min-height:44px;align-items:center;justify-content:center}
-  .form-control{font-size:16px}
+  .form-control,.waitlist-input{font-size:16px}
   .guides-section{padding:2.25rem 1rem}
   .guides-head{display:block;margin-bottom:1rem}
   .guides-head-link{margin-top:0.9rem;width:100%}
