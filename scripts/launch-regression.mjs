@@ -221,7 +221,7 @@ assert.match(browserApi, /fetch\(['"]\/api\/assembler\/reviews['"][\s\S]*?cache:
 
 const easerProfileReviewsPage = source('assembler/profile.html');
 const easerHomeApiPage = source('assembler/index.html');
-const easerCriticalAssetVersion = '20260716a';
+const easerCriticalAssetVersion = '20260802a';
 const easerApiAssetVersion = (html) => html.match(/assets\/js\/api\.js\?v=([0-9A-Za-z_-]+)/)?.[1] || '';
 assert.equal(easerApiAssetVersion(easerProfileReviewsPage), easerCriticalAssetVersion, 'Easer profile must load the current secured browser API asset');
 assert.equal(easerApiAssetVersion(easerHomeApiPage), easerApiAssetVersion(easerProfileReviewsPage), 'Easer pages must use one browser API asset version');
