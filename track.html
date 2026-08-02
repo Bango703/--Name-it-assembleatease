@@ -92,7 +92,11 @@
 .form-info{display:none;margin-top:1rem;background:#ecfdf5;border:1.5px solid #86efac;color:#166534;border-radius:10px;padding:0.75rem 0.9rem;font-size:0.82rem;line-height:1.5}
 .track-tools{padding:3rem 2rem 5rem;background:var(--off-white)}
 .track-tools-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,0.95fr) minmax(320px,0.85fr);gap:1.25rem;align-items:stretch}
-.track-tool-card{background:#fff;border:1.5px solid var(--border);border-radius:22px;padding:2rem;box-shadow:0 12px 34px rgba(15,23,42,0.07)}
+.track-tool-card{background:#fff;border:1.5px solid var(--border);border-radius:22px;padding:2rem;box-shadow:0 12px 34px rgba(15,23,42,0.07);display:flex;flex-direction:column}
+#trackForm{display:flex;flex-direction:column;flex:1 1 auto}
+#trackForm #trackSubmit{margin-top:auto}
+.ac-card #acStepEmail{display:flex;flex-direction:column;flex:1 1 auto}
+.ac-card #acStepEmail .ac-action{margin-top:auto}
 .track-tool-kicker{display:inline-flex;align-items:center;font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
 .track-tool-title{font-family:var(--font-display);font-size:1.42rem;line-height:1.15;color:var(--ink);margin:0.35rem 0 0.45rem}
 .track-tool-copy{font-size:0.89rem;color:var(--muted);line-height:1.65;margin:0 0 1.25rem}
@@ -225,6 +229,7 @@
         <span class="ac-perk">No account required</span>
         <span class="ac-perk">Use on future bookings</span>
       </div>
+      <p class="track-tool-note" style="margin:0 0 1rem">AssembleCash is future-booking credit. It has no cash value and cannot be withdrawn.</p>
       <div id="acStepEmail">
         <input type="email" id="ac-email" class="form-control" placeholder="you@example.com" autocomplete="email"/>
         <button class="btn btn-cyan btn-full ac-action" id="acReqBtn" onclick="acRequestCode()">Email me a code</button>
@@ -236,7 +241,6 @@
       </div>
       <div id="acResult" style="display:none"></div>
       <div class="form-err" id="acErr" style="margin-top:0.85rem"></div>
-      <p class="track-tool-note">AssembleCash is future-booking credit. It has no cash value and cannot be withdrawn.</p>
       <p class="track-side-link"><a href="/assemblecash">Learn more about AssembleCash &rarr;</a></p>
     </div>
   </div>
