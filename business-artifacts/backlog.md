@@ -10,8 +10,8 @@ _Last reconciled: 2026-08-02_
 
 ## Now (top of stack)
 
-- [ ] **P1 · Distribution — pick ONE channel and work it 30 days** _(CEO, VP Marketing)_
-  Demand is the real bottleneck, not code. Start with move-in / realtor / apartment referrals (Bundles + Move-In Pass are built for it). Deliverable: one-page outreach pitch + QR counter-card → `/book`. This is where the first 25 jobs come from.
+- [~] **P1 · Distribution — work the move-in / referral channel for 30 days** _(CEO, VP Marketing)_
+  Demand is the real bottleneck, not code. Kit is built (see Done). **Owner action:** approach top-2 partners (apartment/property managers, realtors), leave 5–10 QR counter-cards each, and track completed bookings with `utm_source=partner`. Double down on whichever partner drives the first jobs. This is where the first 25 jobs come from.
 
 ## Trust & communication (P1)
 
@@ -31,6 +31,7 @@ _Last reconciled: 2026-08-02_
 
 ## Done (verified)
 
+- [x] **P1 · Partner outreach kit + move-in QR counter-card built** — pitch, target list, and email/DM templates at [business-artifacts/partner-outreach-kit.md](partner-outreach-kit.md); print-ready 5×7 counter-card with a real scannable QR (segno v5) → `/book?bundle=move-in-ready&utm_source=partner`, published as a private artifact. Enables the distribution item above. _2026-08-02._
 - [x] **P1 · Booking — card billing-address AVS false declines fixed** — removed the service `address` block from Stripe `billing_details` in both checkout paths ([book.html:7394](../book.html#L7394) quote/scheduled + immediate payment); billing_details now carries name/email/phone only. Service address still sent to the booking API. Stripe Radar + manual capture still protect. _Shipped 2026-08-02; surgical 2-block diff, smoke PASS, governance 371/371._
 - [x] **P1 · Homepage re-assembly guarantee surfaced** — "Assembled right, or we come back free." added to desktop + mobile hero. _Shipped ff5d0e3f; governance 371/371, smoke PASS._
 - [x] **P1 · Hero teal drift fixed** — mint-green `#5eead4` pulse dot → sky-blue `#8fe8ff`. _Shipped ff5d0e3f; verified 0 remaining `#5eead4`._
