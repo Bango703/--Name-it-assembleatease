@@ -7394,8 +7394,7 @@ async function submitBooking() {
         billing_details: {
           name: BOOK.firstName + ' ' + BOOK.lastName,
           email: BOOK.email,
-          phone: BOOK.phone || undefined,
-          address: { line1: BOOK.address, city: BOOK.city || undefined, state: BOOK.state || 'TX', postal_code: BOOK.zip, country: 'US' }
+          phone: BOOK.phone || undefined
         }
       }
     });
@@ -7548,9 +7547,7 @@ async function submitBooking() {
 
           email: BOOK.email,
 
-          phone: BOOK.phone || undefined,
-
-          address: { line1: BOOK.address, city: BOOK.city || undefined, state: BOOK.state || 'TX', postal_code: BOOK.zip, country: 'US' }
+          phone: BOOK.phone || undefined
 
         }
 

@@ -10,8 +10,6 @@ _Last reconciled: 2026-08-02_
 
 ## Now (top of stack)
 
-- [ ] **P1 · Booking — card billing-address AVS false declines** _(VP Finance, CX, CTO)_
-  Checkout sends the **service** address as the **card billing** address ([book.html:7398](../book.html#L7398), [book.html:7553](../book.html#L7553)). When the cardholder's billing address differs (gift, new home, rental, moved, corporate card) the mismatch can cause a **false decline / fraud flag at the last step** — silent lost bookings. Fix: remove the `address` block from `billing_details` in both checkout paths (Radar + manual-capture still protect). Reversible; recommended and awaiting go-ahead.
 - [ ] **P1 · Distribution — pick ONE channel and work it 30 days** _(CEO, VP Marketing)_
   Demand is the real bottleneck, not code. Start with move-in / realtor / apartment referrals (Bundles + Move-In Pass are built for it). Deliverable: one-page outreach pitch + QR counter-card → `/book`. This is where the first 25 jobs come from.
 
@@ -33,6 +31,7 @@ _Last reconciled: 2026-08-02_
 
 ## Done (verified)
 
+- [x] **P1 · Booking — card billing-address AVS false declines fixed** — removed the service `address` block from Stripe `billing_details` in both checkout paths ([book.html:7394](../book.html#L7394) quote/scheduled + immediate payment); billing_details now carries name/email/phone only. Service address still sent to the booking API. Stripe Radar + manual capture still protect. _Shipped 2026-08-02; surgical 2-block diff, smoke PASS, governance 371/371._
 - [x] **P1 · Homepage re-assembly guarantee surfaced** — "Assembled right, or we come back free." added to desktop + mobile hero. _Shipped ff5d0e3f; governance 371/371, smoke PASS._
 - [x] **P1 · Hero teal drift fixed** — mint-green `#5eead4` pulse dot → sky-blue `#8fe8ff`. _Shipped ff5d0e3f; verified 0 remaining `#5eead4`._
 - [x] **P2 · LinkedIn in Organization JSON-LD `sameAs`** — added to homepage + About. _Shipped ff5d0e3f._
