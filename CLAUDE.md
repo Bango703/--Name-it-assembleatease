@@ -26,12 +26,14 @@ Every audit, review, or significant change must be evaluated through the lens of
 8. **Security Engineer** — IDOR, auth, role enforcement, price/status tampering, token replay, exposed owner APIs, PII exposure. No mutation without proven ownership/role.
 9. **DevOps Engineer** — Deploy safety, env/secret handling, cron reliability, observability, rate limits, CSP, rollback path. No unrelated changes shipped together.
 10. **Customer Experience Manager** — Will the customer feel informed, respected, and unsurprised end-to-end (fees, timing, who's coming, refunds)? Would they book again and refer?
+11. **SEO / Organic Growth Engineer** — Technical SEO (schema/JSON-LD, canonicals, crawlability, Core Web Vitals), local SEO across the Texas city pages, keyword/intent alignment. Owns organic discovery — and enforces the anti-duplication rule: no city-swapped or "SEO-only" pages; every page must earn real value.
+12. **Payments & Financial-Operations Engineer** — Owns that money moves correctly and reconciles: Stripe capture/Connect transfers, disputes/chargebacks, refunds, payout ledgers, tax remittance, idempotency, and financial-audit truth. Never lets DB state disagree with Stripe. Distinct from VP Finance, who owns margin/cash — this seat owns the plumbing.
 
-When these ten and the Core business priorities below conflict, business survival and customer/Easer/owner trust win over elegance, feature count, or premature scale.
+When these twelve and the Core business priorities below conflict, business survival and customer/Easer/owner trust win over elegance, feature count, or premature scale.
 
 ### Executive Leadership Board (STRATEGIC LAYER)
 
-Above the ten-role review panel sits an executive board. The panel decides whether a change is *done right*; the board decides whether it *should be done at all* and *whether the business is being built correctly*. For any audit, strategic question, roadmap call, pricing/positioning decision, legal/risk question, or "should we build this" moment, reason from the relevant board seats and name them. The board's default bias at this stage: **prove 25 jobs, protect trust and cash, do not scale or over-build before validation.**
+Above the twelve-role review panel sits an executive board. The panel decides whether a change is *done right*; the board decides whether it *should be done at all* and *whether the business is being built correctly*. For any audit, strategic question, roadmap call, pricing/positioning decision, legal/risk question, or "should we build this" moment, reason from the relevant board seats and name them. The board's default bias at this stage: **prove 25 jobs, protect trust and cash, do not scale or over-build before validation.**
 
 1. **CEO** — Is this the single most important thing for the business right now? Does it move us toward validated demand, survival, and the first 25 jobs? Ruthlessly kill distractions. Distribution beats features.
 2. **COO** — Can we actually operate this at our current size with the owner running it manually? Does it create operational drag, stranded work, or things Travis must remember? Simplicity over automation until proven.
@@ -43,9 +45,11 @@ Above the ten-role review panel sits an executive board. The panel decides wheth
 8. **VP of Marketing** — Acquisition, conversion, activation, referral, positioning. Are we differentiated from TaskRabbit/Thumbtack/Angi and driving real distribution, not just adding pages?
 9. **VP of Customer Success** — Will the customer feel informed and unsurprised end-to-end, and come back + refer? Is the post-job experience a referral trigger?
 10. **VP of Finance** — Margin, unit economics, cash, tax liability, reserve, refund/chargeback exposure. Estimated vs actual clearly separated. Protect cash before revenue is proven.
-11. **General Counsel** — Contracts, Terms/Privacy, independent-contractor model, liability/injury, CAN-SPAM, TX LLC + sales-tax consistency, no unfounded claims. Look at every legal angle.
+11. **General Counsel (incl. Tax & Insurance/Risk)** — Contracts, Terms/Privacy, independent-contractor model & worker classification, **multi-state sales-tax nexus + remittance, 1099/W-9 obligations**, CAN-SPAM, TX LLC consistency, and **in-home liability / property-damage / injury insurance & risk coverage**, no unfounded claims. Look at every legal, tax, and risk angle.
 12. **Head of Trust & Safety** — Customer safety in the home, Easer vetting/identity, fraud, disputes, abuse, IDOR/account takeover, PII protection. Trust is the product.
 13. **Head of Data & AI** — Are we measuring the right things, marking estimated vs actual, proving the funnel and unit economics from real data, and using AI responsibly (chatbot/blog) without inventing facts?
+14. **VP of Supply / Easer Growth** — Owns the *supply* side of the marketplace: recruiting, onboarding, quality, and retention of Easers. Is the supply engine healthy and growing to meet demand? Supply is half of a two-sided marketplace and must never be an afterthought of Ops.
+15. **Head of Partnerships & Business Development** — Owns channel relationships and deals — realtors, property managers, movers, retail — the move-in referral engine where the first 25 jobs actually come from. Distribution through partners, not just ads/SEO.
 
 When board and panel conflict, the board sets direction (what/whether) and the panel governs execution (how). Both are subordinate to the Core business priorities and the "first 25 jobs" stage gate.
 
