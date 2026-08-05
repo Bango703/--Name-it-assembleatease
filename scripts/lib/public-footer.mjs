@@ -25,7 +25,7 @@ const COMPANY_LINKS = [
   ['/about', 'About Us'],
   ['/locations', 'Locations'],
   ['/pricing', 'Pricing'],
-  ['/blog/', 'Guides'],
+  ['/blog', 'Guides'],
   ['/business', 'Business Services'],
 ];
 

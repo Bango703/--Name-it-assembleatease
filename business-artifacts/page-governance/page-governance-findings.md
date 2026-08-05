@@ -1,16 +1,16 @@
 # Page Governance Report
 
-Generated from 371 HTML pages.
+Generated from 372 HTML pages.
 
 ## Status Counts
 
 - PASS: 371
-- WARNING: 0
+- WARNING: 1
 - FAIL: 0
 
 ## Page Types
 
-- assembler_portal: 6
+- assembler_portal: 7
 - assembler_public: 1
 - auth: 5
 - blog_article: 17
@@ -29,7 +29,8 @@ Generated from 371 HTML pages.
 
 ## Highest-Risk Pages
 
-- No current failures or warnings.
+- assembler/offline.html — WARNING (0 fail, 1 warning)
+  - WARNING: Meta description is recommended for this page type.
 
 ## Output Files
 
