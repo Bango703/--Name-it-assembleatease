@@ -13,12 +13,17 @@ import {
 const SITE = 'https://www.assembleatease.com';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+  res.setHeader('Cache-Control', 'private, no-store');
 
   const authenticated = await authenticateBearerUser(req);
   if (!authenticated.ok) return respondWithEaserAccessError(res, authenticated);
 
-  const action = String(req.body?.action || '').trim().toLowerCase();
+  const action = req.method === 'GET'
+    ? 'status'
+    : String(req.body?.action || '').trim().toLowerCase();
   const sb = getSupabase();
   const { data: profile, error: profileError } = await sb
     .from('profiles')

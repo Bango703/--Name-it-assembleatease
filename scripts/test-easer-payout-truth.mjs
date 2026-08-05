@@ -147,7 +147,7 @@ assert.match(endpointSource, /Cache-Control['"], ['"]private, no-store/);
 assert.doesNotMatch(endpointSource, /req\.query.*assembler|req\.body.*assembler/);
 assert.match(financeSource, /if \(assemblerId\) bookingsQuery = bookingsQuery\.eq\('assembler_id', assemblerId\)/);
 
-assert.match(payoutsPage, /fetch\('\/api\/assembler\/earnings'/);
+assert.match(payoutsPage, /APP\.privateFetch\(privateUserId, '\/api\/assembler\/earnings'/);
 assert.match(payoutsPage, /visibilitychange/);
 assert.match(payoutsPage, /setInterval\(function\(\)/);
 assert.match(payoutsPage, /refreshEarnings\(false\)/);

@@ -16,12 +16,12 @@
   <meta name="apple-mobile-web-app-title" content="Easer App" />
   <meta name="theme-color" content="#00BFFF" />
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
-  <style>body{visibility:hidden}</style>
+  <style>body.easer-booting>*{visibility:hidden}</style>
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260802a" defer></script>
-  <script src="../assets/js/app.js?v=20260802a" defer></script>
+  <script src="../config.js?v=20260804a" defer></script>
+  <script src="../assets/js/app.js?v=20260804a" defer></script>
   <style>
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
@@ -142,7 +142,7 @@
     }
   </style>
 </head>
-<body class="theme-pro">
+<body class="theme-pro easer-booting">
 
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
@@ -186,12 +186,17 @@
     </div>
   </div>
 
-  <section class="payout-process-card" aria-labelledby="payout-process-title">
+  <section class="payout-process-card" id="payout-mode-loading" aria-live="polite">
+    <div class="payout-process-title">Loading payout setup</div>
+    <p class="payout-process-copy" id="payout-mode-loading-copy">Checking how your earnings are sent.</p>
+  </section>
+
+  <section class="payout-process-card" id="manual-payout-card" style="display:none" aria-labelledby="payout-process-title">
     <div class="payout-process-title" id="payout-process-title">Your payouts</div>
     <p class="payout-process-copy">Each completed job shows your payout amount and current status. Choose your preferred payout method below. We will notify you whenever a payout status changes.</p>
     <div class="payout-preference-row">
       <div>
-        <label for="payout-preference">Preferred manual payout method</label>
+        <label for="payout-preference">Preferred payout method</label>
         <select id="payout-preference">
           <option value="">Choose a method</option>
           <option value="ach">ACH bank transfer</option>
@@ -202,7 +207,7 @@
       </div>
       <button type="button" class="btn btn-teal" id="save-payout-preference">Save preference</button>
     </div>
-    <div class="payout-preference-help">This saves only your preferred method. Do not enter bank, card, Zelle, or PayPal credentials here. AssembleAtEase will separately confirm the details needed before the first payout.</div>
+    <div class="payout-preference-help">Choose how you would like to receive payouts. Do not enter account credentials here. We will contact you before your first payout to confirm the details securely.</div>
     <div id="payout-preference-status" class="payout-preference-status" role="status" aria-live="polite"></div>
   </section>
 
@@ -349,8 +354,10 @@
   document.addEventListener('DOMContentLoaded', async function() {
     const auth = await APP.requireAuth(["assembler"]);
     if (!auth) return;
-    document.body.style.visibility = 'visible';
+    if (!await APP.bindPrivateSession(auth.user.id)) return;
+    APP.revealPrivatePage();
     const session = auth.session;
+    const privateUserId = auth.user.id;
 
     // getToken with expiry check — refreshes automatically if JWT is stale
     async function getToken() {
@@ -383,8 +390,9 @@
 
     async function loadPayoutPreference(token) {
       try {
-        var response = await fetch('/api/assembler/payout-preference', {
+        var response = await APP.privateFetch(privateUserId, '/api/assembler/payout-preference', {
           headers: { 'Authorization': 'Bearer ' + token },
+          cache: 'no-store',
         });
         var data = await response.json().catch(function(){ return {}; });
         if (!response.ok) throw new Error(data.error || 'Payout preference could not be loaded.');
@@ -427,7 +435,9 @@
     // Shown only when Connect is enabled platform-wide; otherwise the manual
     // preference card above stays visible as the fallback.
     var connectCard = document.getElementById('connect-payout-card');
-    var manualPayoutCard = document.querySelector('.payout-process-card[aria-labelledby="payout-process-title"]');
+    var manualPayoutCard = document.getElementById('manual-payout-card');
+    var payoutModeLoading = document.getElementById('payout-mode-loading');
+    var payoutModeLoadingCopy = document.getElementById('payout-mode-loading-copy');
     function showConnectStatus(type, message) {
       var s = document.getElementById('connect-payout-status');
       s.className = 'payout-preference-status show ' + type;
@@ -435,10 +445,21 @@
     }
     async function loadConnectStatus(token) {
       try {
-        var resp = await fetch('/api/assembler/connect-status', { headers: { 'Authorization': 'Bearer ' + token } });
+        var returningFromStripe = new URLSearchParams(window.location.search).get('connect') === 'return';
+        var endpoint = '/api/assembler/connect-status' + (returningFromStripe ? '?refresh=true' : '');
+        var resp = await APP.privateFetch(privateUserId, endpoint, {
+          headers: { 'Authorization': 'Bearer ' + token },
+          cache: 'no-store',
+        });
         var data = await resp.json().catch(function(){ return {}; });
-        if (!resp.ok) return;
-        if (!data.enabled) { connectCard.style.display = 'none'; return; }
+        if (!resp.ok) throw new Error(data.error || 'Payout setup could not be loaded.');
+        if (returningFromStripe) history.replaceState({}, '', window.location.pathname);
+        payoutModeLoading.style.display = 'none';
+        if (!data.enabled) {
+          connectCard.style.display = 'none';
+          manualPayoutCard.style.display = '';
+          return false;
+        }
         connectCard.style.display = '';
         if (manualPayoutCard) manualPayoutCard.style.display = 'none';
         var setupBtn = document.getElementById('connect-setup-btn');
@@ -454,7 +475,14 @@
           setupBtn.style.display = '';
           manageBtn.style.display = 'none';
         }
-      } catch (e) { /* leave manual fallback visible on error */ }
+        return true;
+      } catch (e) {
+        connectCard.style.display = 'none';
+        manualPayoutCard.style.display = 'none';
+        payoutModeLoading.style.display = '';
+        payoutModeLoadingCopy.textContent = 'Payout setup is temporarily unavailable. Refresh this page to try again.';
+        return null;
+      }
     }
     document.getElementById('connect-setup-btn').addEventListener('click', async function() {
       var btn = this; var t0 = btn.textContent; btn.disabled = true; btn.textContent = 'Opening Stripe…';
@@ -478,7 +506,7 @@
         var resp = await fetch('/api/assembler/connect-login', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
         var data = await resp.json().catch(function(){ return {}; });
         if (!resp.ok || !data.url) throw new Error(data.error || 'Could not open payout management.');
-        window.open(data.url, '_blank', 'noopener');
+        window.location.assign(data.url);
       } catch (e) {
         showConnectStatus('error', e.message || 'Could not open payout management.');
       } finally { btn.disabled = false; btn.textContent = t0; }
@@ -525,8 +553,9 @@
         try {
           let token = await getToken();
           if (!token) { window.location.href = '/auth/login.html'; return false; }
-          let resp = await fetch('/api/assembler/earnings', {
+          let resp = await APP.privateFetch(privateUserId, '/api/assembler/earnings', {
             headers: { 'Authorization': 'Bearer ' + token },
+            cache: 'no-store',
           });
           // On 401: force-refresh once and retry before redirecting.
           if (resp.status === 401) {
@@ -534,7 +563,7 @@
               const { data: rd } = await supabaseClient.auth.refreshSession();
               if (rd.session.access_token) {
                 token = rd.session.access_token;
-                resp = await fetch('/api/assembler/earnings', { headers: { 'Authorization': 'Bearer ' + token } });
+                resp = await APP.privateFetch(privateUserId, '/api/assembler/earnings', { headers: { 'Authorization': 'Bearer ' + token }, cache: 'no-store' });
               }
             } catch {}
             if (resp.status === 401) { window.location.href = '/auth/login.html'; return false; }
@@ -560,9 +589,11 @@
 
     let initialToken = await getToken();
     if (!initialToken) { window.location.href = '/auth/login.html'; return; }
-    loadPayoutPreference(initialToken);
-    loadConnectStatus(initialToken);
-    await refreshEarnings(true);
+    var initialResults = await Promise.all([
+      loadConnectStatus(initialToken),
+      refreshEarnings(true),
+    ]);
+    if (initialResults[0] === false) await loadPayoutPreference(initialToken);
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') refreshEarnings(false);

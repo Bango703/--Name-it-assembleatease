@@ -330,8 +330,18 @@ assert.match(dashboardPage, /Job readiness could not be verified\. No job inform
   'dashboard must fail closed when readiness cannot be verified');
 const assignmentsPage = await load('assembler/my-assignments.html');
 assert.match(assignmentsPage, /Current contractor agreement required/);
-assert.match(assignmentsPage, /fetch\('\/api\/assembler\/readiness'/,
-  'assignment page must verify readiness before revealing job content');
+assert.match(assignmentsPage, /APP\.privateFetch\(boundUserId, '\/api\/assembler\/readiness'/,
+  'assignment page must verify readiness through the identity-bound request controller before revealing job content');
+const profileUpdateMigration = await load('api/migrations/059_easer_profile_update_projection.sql');
+const profileUpdateRevokeMigration = await load('api/migrations/060_revoke_legacy_easer_profile_update.sql');
+assert.match(profileUpdateMigration, /RETURNS TABLE \([\s\S]*id uuid,[\s\S]*full_name text,[\s\S]*is_available boolean[\s\S]*\)/,
+  'profile update response must use an explicit Easer-facing projection');
+assert.doesNotMatch(profileUpdateMigration, /RETURNS TABLE \([\s\S]*identity_resume_token|RETURNS TABLE \([\s\S]*stripe_connect_account_id|RETURNS TABLE \([\s\S]*w9_notes/,
+  'profile update response must exclude internal identity, payout, and tax fields');
+assert.match(profileUpdateRevokeMigration, /REVOKE ALL ON FUNCTION public\.update_own_easer_profile\(jsonb\) FROM PUBLIC, anon, authenticated, service_role/,
+  'authenticated browsers must lose direct access to the legacy full-row profile RPC');
+assert.match(profileUpdateMigration, /GRANT EXECUTE ON FUNCTION public\.update_own_easer_profile_safe\(jsonb\) TO authenticated/,
+  'authenticated Easers must retain access to the safe profile update RPC');
 const ownerDashboardPage = await load('owner/index.html');
 assert.doesNotMatch(ownerDashboardPage, /var dispatchEligible =/,
   'owner dashboard must not duplicate a partial browser-side dispatch eligibility rule');

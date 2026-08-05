@@ -1,6 +1,6 @@
 // AssembleAtEase Easer Service Worker
-const CACHE = 'aae-easer-v6';
-const OFFLINE_URL = '/assembler/';
+const CACHE = 'aae-easer-v7';
+const OFFLINE_URL = '/assembler/offline.html';
 
 // ── Install: cache the core Easer shell ──────────────────────────────
 self.addEventListener('install', function(e) {
@@ -9,7 +9,13 @@ self.addEventListener('install', function(e) {
       return cache.addAll([
         '/assembler/',
         '/assembler/my-assignments',
-        '/assets/css/dashboard.css',
+        '/assembler/payouts',
+        '/assembler/profile',
+        OFFLINE_URL,
+        '/assets/css/easer.css',
+        '/assets/status.css',
+        '/assets/js/app.js',
+        '/config.js',
         '/images/logo.jpg',
         '/images/logo.webp',
       ]).catch(function() { /* non-fatal */ });
@@ -49,7 +55,9 @@ self.addEventListener('fetch', function(e) {
   // Critical application code must refresh from the network. A cached fallback
   // keeps the Easer shell usable offline without pinning old auth or data logic
   // after a deployment.
-  if (e.request.destination === 'script' || url.pathname === '/config.js') {
+  if (e.request.destination === 'script'
+      || e.request.destination === 'style'
+      || url.pathname === '/config.js') {
     e.respondWith(
       fetch(e.request).then(function(resp) {
         if (resp && resp.status === 200) {
@@ -61,14 +69,14 @@ self.addEventListener('fetch', function(e) {
         }
         return resp;
       }).catch(function() {
-        return caches.match(e.request);
+        return caches.match(e.request, { ignoreSearch: true });
       })
     );
     return;
   }
   // Cache-first for static assets
   e.respondWith(
-    caches.match(e.request).then(function(cached) {
+    caches.match(e.request, { ignoreSearch: true }).then(function(cached) {
       return cached || fetch(e.request).then(function(resp) {
         if (resp && resp.status === 200) {
           var clone = resp.clone();

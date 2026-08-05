@@ -16,12 +16,12 @@
   <meta name="apple-mobile-web-app-title" content="Easer App" />
   <meta name="theme-color" content="#00BFFF" />
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
-  <style>body{visibility:hidden}</style>
+  <style>body.easer-booting>*{visibility:hidden}</style>
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260802a" defer></script>
-  <script src="../assets/js/app.js?v=20260802a" defer></script>
+  <script src="../config.js?v=20260804a" defer></script>
+  <script src="../assets/js/app.js?v=20260804a" defer></script>
   <style>
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
@@ -184,7 +184,7 @@
 
   </style>
 </head>
-<body class="theme-pro">
+<body class="theme-pro easer-booting">
 
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
@@ -311,6 +311,7 @@
   let earningsTruthLoaded = false;
   let currentFilter = 'all';
   let sessionToken = null;
+  let boundUserId = null;
   let selectedBookingId = null;
   var _pendingCompleteBookingId = null;
   var _completionInFlight = false;
@@ -340,12 +341,20 @@
       const { data: refreshed } = await supabaseClient.auth.refreshSession();
       if (refreshed.session.access_token) return refreshed.session.access_token;
     } catch {}
-    return sessionToken;
+    return APP.isPrivateSessionCurrent(boundUserId) ? sessionToken : null;
+  }
+
+  async function fetchAssignments(token) {
+    const bearerToken = token || await getToken();
+    return APP.privateFetch(boundUserId, '/api/booking/my-assignments', {
+      headers: { 'Authorization': 'Bearer ' + bearerToken },
+      cache: 'no-store',
+    });
   }
 
   async function refreshEarningsTruth(token) {
     try {
-      const response = await fetch('/api/assembler/earnings', {
+      const response = await APP.privateFetch(boundUserId, '/api/assembler/earnings', {
         headers: { 'Authorization': 'Bearer ' + (token || await getToken()) },
       });
       if (!response.ok) throw new Error('Payout status unavailable');
@@ -600,6 +609,8 @@
   document.addEventListener('DOMContentLoaded', async function() {
     const auth = await APP.requireAuth(["assembler"]);
     if (!auth) return;
+    if (!await APP.bindPrivateSession(auth.user.id)) return;
+    boundUserId = auth.user.id;
     const session = auth.session;
     // Set module-level sessionToken so getToken() (defined above) has a fallback
     sessionToken = session.access_token;
@@ -607,7 +618,7 @@
     // Verify readiness before revealing job content. A failed readiness lookup
     // fails closed; an outdated agreement may see only previously assigned work.
     try {
-      const readinessResponse = await fetch('/api/assembler/readiness', {
+      const readinessResponse = await APP.privateFetch(boundUserId, '/api/assembler/readiness', {
         headers: { 'Authorization': 'Bearer ' + sessionToken },
       });
       const readinessBody = await readinessResponse.json().catch(function(){ return {}; });
@@ -616,19 +627,19 @@
         && readinessBody.readiness.codeOfConductAccepted === true;
       document.getElementById('agreement-access-banner').style.display = agreementCurrent ? 'none' : 'block';
     } catch (readinessError) {
-      document.body.style.visibility = 'visible';
+      APP.revealPrivatePage();
       document.getElementById('assignments-list').innerHTML =
         '<div class="pro-error">Job readiness could not be verified. No job information was loaded. Please refresh.</div>';
       return;
     }
-    document.body.style.visibility = 'visible';
+    APP.revealPrivatePage();
 
     // ── Required-action banner (payout setup, etc.) — non-blocking, never gates jobs ──
     (async function loadRequiredActions() {
       try {
         var rToken = await getToken();
         if (!rToken) return;
-        var resp = await fetch('/api/assembler/required-actions', { headers: { 'Authorization': 'Bearer ' + rToken } });
+        var resp = await APP.privateFetch(boundUserId, '/api/assembler/required-actions', { headers: { 'Authorization': 'Bearer ' + rToken } });
         if (!resp.ok) return;
         var data = await resp.json();
         var actions = (data && data.actions) || [];
@@ -644,23 +655,6 @@
       } catch (e) {}
     })();
 
-    // ── Reconnect on visibility change (app returns from background) ──
-    document.addEventListener('visibilitychange', async function() {
-      if (document.visibilityState !== 'visible') return;
-      // Close any open modal to prevent stale data being visible after app wake
-      document.getElementById('asgn-modal').classList.remove('open');
-      try {
-        const tok = await getToken();
-        const r = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + tok } });
-        if (!r.ok) return;
-        const d = await r.json();
-        allAssignments = d.bookings || [];
-        await refreshEarningsTruth(tok);
-        const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
-        renderAssignments(filterList(allAssignments, cf));
-      } catch {}
-    });
-
     // ── Offline / online detection ────────────────────────────────────
     var offlineBanner = document.getElementById('e-offline');
     window.addEventListener('offline', function() { if (offlineBanner) offlineBanner.classList.add('show'); });
@@ -668,11 +662,12 @@
       if (offlineBanner) offlineBanner.classList.remove('show');
       try {
         const tok = await getToken();
-        const r = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + tok } });
+        const earningsPromise = refreshEarningsTruth(tok);
+        const r = await fetchAssignments(tok);
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
-        await refreshEarningsTruth(tok);
+        await earningsPromise;
         renderAssignments(allAssignments);
       } catch {}
     });
@@ -681,28 +676,11 @@
     // SOURCE OF TRUTH: a job is accepted ONLY when the Easer taps Accept in the app.
     // The notification just deep-links here; we open the offer so they can review
     // and decide. Legacy ?accept= / ?decline= links are treated the same (open only).
-    (async function() {
-      var params = new URLSearchParams(window.location.search);
-      var bookingId = params.get('offer') || params.get('accept') || params.get('decline');
-      if (!bookingId) return;
+    var params = new URLSearchParams(window.location.search);
+    var initialOfferBookingId = params.get('offer') || params.get('accept') || params.get('decline');
+    if (initialOfferBookingId) {
       history.replaceState({}, '', window.location.pathname); // clean URL, no params re-run
-      try {
-        var rf = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
-        if (rf.ok) {
-          var rd = await rf.json();
-          allAssignments = rd.bookings || [];
-          await refreshEarningsTruth();
-          var activePill = document.querySelector('.e-filter-pill.active');
-          var cf = activePill ? (activePill.dataset.filter || 'all') : 'all';
-          renderAssignments(filterList(allAssignments, cf));
-          updateFilterCounts(allAssignments);
-        }
-      } catch (e) {}
-      // Open the offer detail so the Easer can review and tap Accept themselves.
-      if (typeof window.openDetail === 'function') {
-        setTimeout(function(){ window.openDetail(bookingId); }, 150);
-      }
-    })();
+    }
 
     document.getElementById('sidebar-logout').addEventListener('click', async function(e) {
       e.preventDefault();
@@ -736,16 +714,15 @@
     try {
       let token = await getToken();
       if (!token) { window.location.href = '/auth/login.html'; return; }
-      let resp = await fetch('/api/booking/my-assignments', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
+      let earningsPromise = refreshEarningsTruth(token);
+      let resp = await fetchAssignments(token);
       // On 401: force-refresh once and retry before redirecting
       if (resp.status === 401) {
         try {
           const { data: rd } = await supabaseClient.auth.refreshSession();
           if (rd.session.access_token) {
             token = rd.session.access_token;
-            resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + token } });
+            resp = await fetchAssignments(token);
           }
         } catch {}
         if (resp.status === 401) { window.location.href = '/auth/login.html'; return; }
@@ -756,9 +733,12 @@
         document.getElementById('agreement-access-banner').style.display = 'block';
       }
       allAssignments = data.bookings || [];
-      await refreshEarningsTruth(token);
+      if (!await earningsPromise) await refreshEarningsTruth(token);
       renderAssignments(allAssignments);
       updateFilterCounts(allAssignments);
+      if (initialOfferBookingId && typeof window.openDetail === 'function') {
+        setTimeout(function(){ window.openDetail(initialOfferBookingId); }, 150);
+      }
     } catch (err) {
       document.getElementById('assignments-list').innerHTML =
         '<div class="pro-error">Could not load assignments. Please refresh.</div>';
@@ -767,13 +747,13 @@
     // Keep assignment list current with periodic polling (manual-refresh architecture).
     async function refreshAssignments(alertOnNew, oldPayload) {
       try {
-        const r = await fetch('/api/booking/my-assignments', {
-          headers: { 'Authorization': 'Bearer ' + (await getToken()) },
-        });
+        const token = await getToken();
+        const earningsPromise = refreshEarningsTruth(token);
+        const r = await fetchAssignments(token);
         if (!r.ok) return;
         const d = await r.json();
         allAssignments = d.bookings || [];
-        await refreshEarningsTruth();
+        await earningsPromise;
         const cf = document.querySelector('.e-filter-pill.active').dataset.filter || 'all';
         renderAssignments(filterList(allAssignments, cf));
         updateFilterCounts(allAssignments);
@@ -785,8 +765,10 @@
       refreshAssignments(false);
     }, 30000);
 
-    window.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') refreshAssignments(false);
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState !== 'visible') return;
+      document.getElementById('asgn-modal').classList.remove('open');
+      refreshAssignments(false);
     });
 
     window.addEventListener('beforeunload', () => clearInterval(assignmentsPoll));
@@ -1151,7 +1133,7 @@
           // Fresh fetch — replaces stale local mutation so assembler_due, payout_status,
           // and completed_at render correctly without waiting for the realtime event.
           try {
-            const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            const freshResp = await fetchAssignments();
             if (freshResp.ok) {
               const fd = await freshResp.json();
               allAssignments = fd.bookings || [];
@@ -1412,7 +1394,7 @@
             const d = await r.json();
             if (!r.ok || d.error) { APP.showAlert('page-alert', d.error || 'Failed to update status', 'error'); btn2.disabled = false; btn2.textContent = s.label; return; }
             // Refresh assignments
-            const freshResp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            const freshResp = await fetchAssignments();
             if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
             document.getElementById('asgn-modal').classList.remove('open');
           } catch { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); btn2.disabled = false; btn2.textContent = s.label; }
@@ -1472,7 +1454,7 @@
             }
             document.getElementById('asgn-modal').classList.remove('open');
             APP.showAlert('page-alert', d.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
-            const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+            const resp = await fetchAssignments();
             if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
           } catch {
             APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
@@ -1517,7 +1499,7 @@
           }
           document.getElementById('asgn-modal').classList.remove('open');
           APP.showAlert('page-alert', 'Job accepted! Check Active tab for details.', 'success');
-          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+          const resp = await fetchAssignments();
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
         } catch(e) {
           APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
@@ -1559,7 +1541,7 @@
           // Close modal, refresh list
           document.getElementById('asgn-modal').classList.remove('open');
           APP.showAlert('page-alert', 'Offer declined.', 'info');
-          const resp = await fetch('/api/booking/my-assignments', { headers: { 'Authorization': 'Bearer ' + (await getToken()) } });
+          const resp = await fetchAssignments();
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
         } catch { APP.showAlert('page-alert', 'Connection error', 'error'); declineBtn.disabled = false; declineBtn.textContent = 'Decline'; }
       }

@@ -3,7 +3,33 @@
 //  Auth helpers, nav builder, UI utilities
 // ============================================
 
+const EASER_BOOTSTRAP_PROFILE_FIELDS = [
+  'id',
+  'role',
+  'full_name',
+  'phone',
+  'city',
+  'state',
+  'zip',
+  'profile_photo',
+  'rating',
+  'review_count',
+  'created_at',
+  'tier',
+  'status',
+  'application_status',
+  'is_available',
+  'identity_verified',
+  'stripe_verification_id',
+  'account_closure_status',
+  'contractor_agreement_signed_at',
+].join(',');
+
 const APP = {
+
+  _privateSessionUserId: null,
+  _privateSessionSubscription: null,
+  _privateSessionAbortController: null,
 
   // ── AUTH ────────────────────────────────────────────────
 
@@ -16,7 +42,7 @@ const APP = {
 
         const { data: profile, error: profileError } = await supabaseClient
           .from('profiles')
-          .select('*')
+          .select(EASER_BOOTSTRAP_PROFILE_FIELDS)
           .eq('id', session.user.id)
           .single();
 
@@ -92,6 +118,76 @@ const APP = {
       }
       keys.forEach((key) => sessionStorage.removeItem(key));
     } catch {}
+  },
+
+  async bindPrivateSession(expectedUserId) {
+    const userId = String(expectedUserId || '').trim();
+    if (!userId) return false;
+
+    if (this._privateSessionSubscription) {
+      this._privateSessionSubscription.unsubscribe();
+      this._privateSessionSubscription = null;
+    }
+    this._privateSessionUserId = userId;
+    this.clearPrivateSessionData();
+    if (this._privateSessionAbortController) this._privateSessionAbortController.abort();
+    this._privateSessionAbortController = new AbortController();
+
+    const invalidate = (session) => {
+      if (this._privateSessionUserId !== userId) return;
+      if (session?.user?.id === userId) return;
+
+      this._privateSessionUserId = null;
+  if (this._privateSessionAbortController) this._privateSessionAbortController.abort();
+  this._privateSessionAbortController = null;
+      this.clearPrivateSessionData();
+      if (document.body) document.body.style.visibility = 'hidden';
+      try { window.stop(); } catch {}
+
+      const returnTo = window.location.pathname + window.location.search + window.location.hash;
+      const destination = session?.user
+        ? returnTo
+        : '/auth/login?return=' + encodeURIComponent(returnTo);
+      window.location.replace(destination);
+    };
+
+    const { data } = supabaseClient.auth.onAuthStateChange(function(_event, session) {
+      invalidate(session);
+    });
+    this._privateSessionSubscription = data?.subscription || null;
+
+    try {
+      const { data: sessionData, error } = await supabaseClient.auth.getSession();
+      if (error || sessionData?.session?.user?.id !== userId) {
+        invalidate(sessionData?.session || null);
+        return false;
+      }
+    } catch {
+      invalidate(null);
+      return false;
+    }
+
+    return this._privateSessionUserId === userId;
+  },
+
+  isPrivateSessionCurrent(expectedUserId) {
+    return this._privateSessionUserId === String(expectedUserId || '').trim();
+  },
+
+  privateFetch(expectedUserId, input, init = {}) {
+    if (!this.isPrivateSessionCurrent(expectedUserId) || !this._privateSessionAbortController) {
+      return Promise.reject(new DOMException('Private session changed', 'AbortError'));
+    }
+    return fetch(input, {
+      ...init,
+      signal: this._privateSessionAbortController.signal,
+    });
+  },
+
+  revealPrivatePage() {
+    if (!document.body) return;
+    document.body.style.visibility = 'visible';
+    document.body.classList.remove('easer-booting');
   },
 
   // ── PATH HELPERS ────────────────────────────────────────
@@ -177,6 +273,8 @@ const APP = {
     const el = document.getElementById(id);
     if (!el) return;
     el.className = `alert alert-${type}`;
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
     el.textContent = message;
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   },
@@ -204,12 +302,18 @@ const APP = {
     const input = document.getElementById(inputId);
     const errEl = document.getElementById(`${inputId}-error`);
     input?.classList.add('error');
+    input?.setAttribute('aria-invalid', 'true');
+    input?.setAttribute('aria-describedby', `${inputId}-error`);
     if (errEl) { errEl.textContent = message; errEl.classList.add('visible'); }
   },
 
   clearFieldErrors(formId) {
     const scope = formId ? document.getElementById(formId) : document;
-    scope?.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+    scope?.querySelectorAll('.form-control').forEach(el => {
+      el.classList.remove('error');
+      el.removeAttribute('aria-invalid');
+      if (el.getAttribute('aria-describedby') === `${el.id}-error`) el.removeAttribute('aria-describedby');
+    });
     scope?.querySelectorAll('.field-error').forEach(el => {
       el.textContent = ''; el.classList.remove('visible');
     });

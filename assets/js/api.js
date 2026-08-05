@@ -1,7 +1,7 @@
 // AssembleAtEase browser API surface.
 // Sensitive booking, dispatch, review, and payment mutations stay behind
 // authenticated server endpoints. The only direct profile write uses the
-// auth-bound, field-allowlisted RPC from migration 031/037.
+// auth-bound, field-allowlisted RPC from migration 059.
 
 const API = {
   async updateProfile(userId, updates) {
@@ -10,17 +10,17 @@ const API = {
       return { data: null, error: new Error('Profile ownership could not be verified') };
     }
     const { data, error } = await supabaseClient
-      .rpc('update_own_easer_profile', { p_updates: updates });
+      .rpc('update_own_easer_profile_safe', { p_updates: updates });
     return { data: Array.isArray(data) ? (data[0] || null) : data, error };
   },
 
-  async getReviews() {
+  async getReviews(userId) {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session?.access_token) {
       return { data: null, error: new Error('Authentication required') };
     }
     try {
-      const response = await fetch('/api/assembler/reviews', {
+      const response = await APP.privateFetch(userId, '/api/assembler/reviews', {
         headers: { Authorization: 'Bearer ' + session.access_token },
         cache: 'no-store',
       });

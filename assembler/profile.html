@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260802a" defer></script>
-  <script src="../assets/js/app.js?v=20260802a" defer></script>
-  <script src="../assets/js/api.js?v=20260802a" defer></script>
-  <style>body{visibility:hidden}
+  <script src="../config.js?v=20260804a" defer></script>
+  <script src="../assets/js/app.js?v=20260804a" defer></script>
+  <script src="../assets/js/api.js?v=20260804a" defer></script>
+  <style>body.easer-booting>*{visibility:hidden}
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--pro-teal-glow:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
     .logout-link:hover{color:var(--e-text)}
@@ -133,7 +133,7 @@
     .sheet-overlay.open { display: flex !important; }
   </style>
 </head>
-<body class="theme-pro">
+<body class="theme-pro easer-booting">
 
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
@@ -157,7 +157,7 @@
 
 <div class="easer-page">
     <div class="profile-wrap">
-      <div id="page-alert" class="alert hidden"></div>
+      <div id="page-alert" class="alert hidden" role="status" aria-live="polite"></div>
       <div id="account-status-notice" class="account-status-notice" role="status"></div>
 
       <!-- Profile hero card -->
@@ -180,7 +180,7 @@
         <!-- Stats strip -->
         <div style="display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--pro-border);border-radius:10px;overflow:hidden;margin-bottom:1rem">
           <div style="text-align:center;padding:0.7rem 0.5rem;border-right:1px solid var(--pro-border)">
-            <div id="prof-stat-jobs" style="font-size:1.2rem;font-weight:700;color:var(--pro-text);line-height:1">0</div>
+            <div id="prof-stat-jobs" style="font-size:1.2rem;font-weight:700;color:var(--pro-text);line-height:1">—</div>
             <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Jobs</div>
           </div>
           <div style="text-align:center;padding:0.7rem 0.5rem;border-right:1px solid var(--pro-border)">
@@ -188,14 +188,14 @@
             <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Rating</div>
           </div>
           <div style="text-align:center;padding:0.7rem 0.5rem">
-            <div id="prof-stat-earned" style="font-size:1.2rem;font-weight:700;color:var(--pro-teal);line-height:1">$0</div>
+            <div id="prof-stat-earned" style="font-size:1.2rem;font-weight:700;color:var(--pro-teal);line-height:1">—</div>
             <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Earned</div>
           </div>
         </div>
         <!-- Completion bar -->
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;color:var(--pro-muted);margin-bottom:6px">
-            <span>Profile completion</span><span id="completion-pct" style="font-weight:600;color:var(--pro-text)">0%</span>
+            <span>Contact profile</span><span id="completion-pct" style="font-weight:600;color:var(--pro-text)">—</span>
           </div>
           <div class="completion-bar"><div class="completion-fill" id="completion-fill" style="width:0%"></div></div>
           <div id="completion-checklist" style="margin-top:0.75rem;font-size:0.72rem;display:flex;flex-wrap:wrap;gap:0.35rem 0.75rem"></div>
@@ -241,6 +241,7 @@
                   <input type="text" id="zip" class="form-control" placeholder="78701" maxlength="10" inputmode="numeric" />
                 </div>
               </div>
+              <p id="verified-fields-note" class="locked-note" style="display:none;margin:0">Your verified name and location are locked. Contact service@assembleatease.com if they need to be corrected.</p>
             </div>
             <div style="margin-top:0.75rem">
               <button type="submit" id="save-btn" class="btn btn-teal" style="width:100%">Save</button>
@@ -260,7 +261,7 @@
         </div>
         <!-- Hidden elements retained for JS compatibility -->
         <span id="account-type-display" style="display:none">Easer</span>
-        <span id="jobs-done" style="display:none">0</span>
+        <span id="jobs-done" style="display:none">—</span>
         <span id="rating-display" style="display:none">New</span>
       </div>
 
@@ -271,7 +272,8 @@
         <div class="info-row"><span class="info-label">Identity verified</span><span class="info-value" id="identity-value">—</span></div>
         <!-- Shown when not yet verified -->
         <div id="identity-verify-section" style="display:none;margin-top:1.25rem;padding:1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:10px">
-          <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5"><strong>Identity verification pending.</strong> You will be notified by email once complete.</p>
+          <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5"><strong id="identity-help-title"></strong> <span id="identity-help-copy"></span></p>
+          <a id="identity-action" class="btn btn-teal btn-sm" href="/assembler/verify-identity" style="display:none;margin-bottom:0.75rem">Start identity verification</a>
           <p style="font-size:0.8rem;color:#92400e;margin:0">Need help? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
         </div>
       </div>
@@ -298,7 +300,7 @@
       <!-- Danger zone -->
       <div class="form-section danger-zone">
         <div class="form-section-title">Close account</div>
-        <p class="danger-text">Request account closure and stop receiving offers. AssembleAtEase will review active jobs, payouts, tax records, and legally required retention before removing access.</p>
+        <p class="danger-text">Request account closure and stop receiving offers. You will be notified when the request is complete. Your earnings and payout history remain available while it is processed.</p>
         <button class="btn btn-danger" id="delete-account-btn" type="button">Request account closure</button>
         <button class="btn btn-outline" id="cancel-closure-btn" type="button" style="display:none;margin-top:0.55rem">Cancel closure request</button>
       </div>
@@ -326,6 +328,7 @@
 
 <script>
   let photoBase64 = null;
+  let persistedProfilePhoto = '';
   let currentUserId = null;  // set after auth; lets the photo picker save immediately
   const usdFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -343,6 +346,38 @@
   function safeProfilePhoto(value) {
     var photo = String(value || '');
     return /^(https:\/\/[^"'<>\s]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+)$/i.test(photo) ? photo : '';
+  }
+
+  function renderProfileIdentity(fullName, photoValue) {
+    var name = String(fullName || '').trim() || 'Your Name';
+    var nameEl = document.getElementById('profile-id-name');
+    var avatarEl = document.getElementById('profile-id-avatar');
+    if (nameEl) nameEl.textContent = name;
+    if (!avatarEl) return;
+    avatarEl.textContent = '';
+    var safePhoto = safeProfilePhoto(photoValue);
+    if (safePhoto) {
+      var profileImage = document.createElement('img');
+      profileImage.src = safePhoto;
+      profileImage.alt = '';
+      profileImage.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+      avatarEl.appendChild(profileImage);
+      return;
+    }
+    avatarEl.textContent = name.split(' ').map(function(word) { return word[0]; }).slice(0, 2).join('').toUpperCase() || 'E';
+  }
+
+  function applySavedProfile(savedProfile) {
+    if (!savedProfile) return;
+    var fullName = String(savedProfile.full_name || document.getElementById('full-name').value || '').trim();
+    persistedProfilePhoto = safeProfilePhoto(savedProfile.profile_photo);
+    document.getElementById('full-name').value = fullName;
+    document.getElementById('phone').value = formatUsPhone(savedProfile.phone || '');
+    document.getElementById('city').value = savedProfile.city || '';
+    document.getElementById('state').value = savedProfile.state || '';
+    document.getElementById('zip').value = savedProfile.zip || '';
+    renderProfileIdentity(fullName, persistedProfilePhoto);
+    updateCompletion();
   }
 
   function normalizeUsPhone(value) {
@@ -379,11 +414,12 @@
     document.getElementById('basic-summary').style.display = 'none';
     document.getElementById('basic-fields').style.display = '';
     document.getElementById('basic-edit-btn').style.display = 'none';
-    document.getElementById('full-name').focus();
+    var fullName = document.getElementById('full-name');
+    (fullName.readOnly ? document.getElementById('phone') : fullName).focus();
   }
 
   function updateCompletion() {
-    const hasPhoto = !!photoBase64 || !!(document.getElementById('profile-id-avatar') && document.getElementById('profile-id-avatar').querySelector('img'));
+    const hasPhoto = !!persistedProfilePhoto;
     const checks = [
       { label: 'Name',        ok: !!(document.getElementById('full-name').value.trim()) },
       { label: 'Phone',       ok: normalizeUsPhone(document.getElementById('phone').value.trim()) !== null },
@@ -413,10 +449,10 @@
     if (note) {
       if (done === checks.length) {
         note.className = 'completion-note complete';
-        note.textContent = 'Profile complete. Your job contact details are already on file.';
+        note.textContent = 'Contact details complete. These details do not replace job-readiness requirements.';
       } else {
         note.className = 'completion-note';
-        note.textContent = 'Finish the remaining profile basics so your contact and support details stay current.';
+        note.textContent = 'Finish the remaining contact details so customers and support can reach you.';
       }
     }
   }
@@ -440,7 +476,7 @@
       reader.onload = (ev) => {
         const img = new Image();
         img.onload = async () => {
-          const MAX = 800;
+          const MAX = 384;
           let w = img.naturalWidth, h = img.naturalHeight;
           if (w > MAX || h > MAX) {
             if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -449,25 +485,36 @@
           const canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
-          document.getElementById('profile-id-avatar').innerHTML = `<img src="${photoBase64}" alt="Preview" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
-          updateCompletion();
+          photoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          if (photoBase64.length > 350000) photoBase64 = canvas.toDataURL('image/jpeg', 0.62);
+          if (photoBase64.length > 350000) {
+            photoBase64 = null;
+            APP.showAlert('page-alert', 'Photo could not be prepared. Choose a smaller image.', 'error');
+            return;
+          }
+          renderProfileIdentity(document.getElementById('full-name').value, photoBase64);
           // Save the photo immediately — don't rely on the separate form Save button.
           if (currentUserId) {
             APP.showAlert('page-alert', 'Saving photo…', 'info');
             try {
               const { data: saved, error: pErr } = await API.updateProfile(currentUserId, { profile_photo: photoBase64 });
               if (pErr || !saved) throw (pErr || new Error('not saved'));
-              photoBase64 = null; // persisted — clear so the form Save doesn't resend it
+              applySavedProfile(saved);
+              photoBase64 = null;
               APP.showAlert('page-alert', 'Photo saved!', 'success');
             } catch (pe) {
               console.error('[profile] photo auto-save failed:', pe);
+              photoBase64 = null;
+              renderProfileIdentity(document.getElementById('full-name').value, persistedProfilePhoto);
+              updateCompletion();
               APP.showAlert('page-alert', 'Photo could not be saved. Please try again.', 'error');
             }
           }
         };
+        img.onerror = function() { APP.showAlert('page-alert', 'That image could not be opened. Choose a JPG, PNG, or WebP file.', 'error'); };
         img.src = ev.target.result; // data: URL — CSP-safe
       };
+      reader.onerror = function() { APP.showAlert('page-alert', 'That image could not be read. Please try another file.', 'error'); };
       reader.readAsDataURL(file);
     });
   });
@@ -502,7 +549,7 @@
         }).join('');
       } else {
         countLabel.textContent = '';
-        list.innerHTML = '<p>No customer reviews yet for this Easer. Approved reviews will appear here after completed jobs.</p>';
+        list.innerHTML = '<p>No customer reviews yet. Feedback from completed jobs will appear here.</p>';
       }
     } catch (error) {
       console.warn('[profile] reviews load failed:', error);
@@ -519,8 +566,9 @@
     var total = document.getElementById('total-earned');
     var heroTotal = document.getElementById('prof-stat-earned');
     try {
-      var response = await fetch('/api/assembler/earnings', {
+      var response = await APP.privateFetch(currentUserId, '/api/assembler/earnings', {
         headers: { 'Authorization': 'Bearer ' + token },
+        cache: 'no-store',
       });
       if (!response.ok) throw new Error('Current performance summary unavailable');
       var data = await response.json();
@@ -548,7 +596,8 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['assembler']);
     if (!auth) return;
-    document.body.style.visibility = 'visible';
+    if (!await APP.bindPrivateSession(auth.user.id)) return;
+    APP.revealPrivatePage();
     const { user, profile, session } = auth;
     currentUserId = user.id;  // enable immediate photo auto-save
     var closureStatus = String(profile.account_closure_status || '').trim().toLowerCase();
@@ -563,9 +612,9 @@
       if (closureStatus === 'completed') {
         closureNotice.innerHTML = '<strong>Easer account closed</strong>New offers and availability are disabled. Contact support for questions about payout records or retained account information.';
       } else if (closureStatus === 'reviewing') {
-        closureNotice.innerHTML = '<strong>Account closure review in progress</strong>You remain Offline while support reviews payout, tax, and retention obligations.';
+        closureNotice.innerHTML = '<strong>Account closure in progress</strong>You remain Offline while the request is processed. You will be notified when the status changes.';
       } else {
-        closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
+        closureNotice.innerHTML = '<strong>Account closure requested</strong>You remain Offline and cannot receive new offers. You will be notified when the status changes.';
       }
     } else if (cancelClosureButton) {
       cancelClosureButton.style.display = 'none';
@@ -608,7 +657,7 @@
         var el = document.getElementById(id);
         if (el) el.readOnly = true;
       });
-
+      document.getElementById('verified-fields-note').style.display = '';
     }
 
     // Populate identity card
@@ -630,20 +679,8 @@
         idRating.textContent = 'No reviews yet';
       }
     }
-    if (idAvatar) {
-      var safePhoto = safeProfilePhoto(profile.profile_photo);
-      if (safePhoto) {
-        idAvatar.textContent = '';
-        var profileImage = document.createElement('img');
-        profileImage.src = safePhoto;
-        profileImage.alt = '';
-        profileImage.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
-        idAvatar.appendChild(profileImage);
-      } else {
-        var initials2 = (profile.full_name || 'E').split(' ').map(function(w){ return w[0]; }).slice(0,2).join('').toUpperCase();
-        idAvatar.textContent = initials2;
-      }
-    }
+    persistedProfilePhoto = safeProfilePhoto(profile.profile_photo);
+    renderProfileIdentity(profile.full_name, persistedProfilePhoto);
     document.getElementById('jobs-done').textContent      = '—';
     document.getElementById('rating-display').textContent = profile.rating
       ? Number(profile.rating).toFixed(1) + ' / 5' + (profile.review_count ? ' (' + profile.review_count + ' review' + (profile.review_count !== 1 ? 's' : '') + ')' : '')
@@ -656,7 +693,7 @@
     if (statRating) statRating.textContent = profile.rating ? Number(profile.rating).toFixed(1) : '\u2014';
     var statEarned = document.getElementById('prof-stat-earned');
     if (statEarned) statEarned.textContent = '—';
-    await loadCanonicalPerformance(session.access_token);
+    var performancePromise = loadCanonicalPerformance(session.access_token);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
@@ -677,19 +714,30 @@
         : '<span style="color:#64748b">Not started</span>';
 
     if (!profile.identity_verified) {
-      document.getElementById('identity-verify-section').style.display = '';
+      var identitySection = document.getElementById('identity-verify-section');
+      var identityTitle = document.getElementById('identity-help-title');
+      var identityCopy = document.getElementById('identity-help-copy');
+      var identityAction = document.getElementById('identity-action');
+      identitySection.style.display = '';
+      if (profile.stripe_verification_id) {
+        identityTitle.textContent = 'Verification in progress.';
+        identityCopy.textContent = 'No action is required unless Stripe asks for more information. You will be notified when the status changes.';
+      } else {
+        identityTitle.textContent = 'Identity verification is required.';
+        identityCopy.textContent = 'Complete the secure verification step before receiving jobs.';
+        identityAction.style.display = 'inline-flex';
+      }
     }
 
     // Easer membership enrollment is disabled. This request exists only to
     // expose a billing escape hatch if a legacy subscription is actually found.
-    (async function() {
+    var membershipPromise = (async function() {
       try {
         const { data: { session: ms } } = await supabaseClient.auth.getSession();
         const mToken = ms?.access_token || auth.session.access_token;
-        const mResp = await fetch('/api/assembler/membership', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mToken },
-          body: JSON.stringify({ action: 'status' }),
+        const mResp = await APP.privateFetch(currentUserId, '/api/assembler/membership', {
+          headers: { 'Authorization': 'Bearer ' + mToken },
+          cache: 'no-store',
         });
         const mData = await mResp.json();
         if (!mResp.ok || !mData.active) return;
@@ -731,6 +779,7 @@
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       APP.hideAlert('page-alert');
+      APP.clearFieldErrors('profile-form');
       const fullNameEl = document.getElementById('full-name');
       const fullName   = fullNameEl.value.trim();
       const phoneRaw   = document.getElementById('phone').value.trim();
@@ -764,8 +813,8 @@
           console.error('[profile] updateProfile returned no data — possible RLS policy missing or row not found');
           throw new Error('Profile could not be saved. You may need to sign out and back in.');
         }
+        applySavedProfile(savedData);
         photoBase64 = null;
-        document.getElementById('phone').value = formatUsPhone(phoneRaw);
         collapseBasicSection();
         APP.showAlert('page-alert', 'Profile saved successfully!', 'success');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -780,21 +829,49 @@
       const btn = document.getElementById('change-password-btn');
       btn.disabled = true; btn.textContent = 'Sending...';
       try {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/login' });
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin + '/auth/set-password' });
         if (error) throw error;
         APP.showAlert('page-alert', 'Password reset link sent to ' + user.email + '. Check your inbox to set a new password.', 'success');
       } catch (err) { APP.showAlert('page-alert', err.message, 'error'); }
       finally { btn.disabled = false; btn.textContent = 'Reset my Easer password'; }
     });
 
-    document.getElementById('delete-account-btn').addEventListener('click', () => {
-      document.getElementById('delete-sheet').classList.add('open');
-    });
-    document.getElementById('delete-sheet-cancel').addEventListener('click', () => {
-      document.getElementById('delete-sheet').classList.remove('open');
+    var deleteSheet = document.getElementById('delete-sheet');
+    var deleteSheetBox = deleteSheet.querySelector('.sheet-box');
+    var deleteSheetTrigger = document.getElementById('delete-account-btn');
+    var deleteSheetReturnFocus = null;
+    function closeDeleteSheet(restoreFocus) {
+      deleteSheet.classList.remove('open');
+      deleteSheet.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if (restoreFocus !== false && deleteSheetReturnFocus) deleteSheetReturnFocus.focus();
+    }
+    function openDeleteSheet() {
+      deleteSheetReturnFocus = document.activeElement;
+      deleteSheet.classList.add('open');
+      deleteSheet.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('delete-sheet-cancel').focus();
+    }
+    deleteSheetTrigger.addEventListener('click', openDeleteSheet);
+    document.getElementById('delete-sheet-cancel').addEventListener('click', function() { closeDeleteSheet(true); });
+    deleteSheet.addEventListener('click', function(event) { if (event.target === deleteSheet) closeDeleteSheet(true); });
+    deleteSheet.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDeleteSheet(true);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var focusable = Array.from(deleteSheetBox.querySelectorAll('button:not([disabled]), textarea:not([disabled]), a[href]'));
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
     document.getElementById('delete-sheet-confirm').addEventListener('click', async () => {
-      document.getElementById('delete-sheet').classList.remove('open');
+      closeDeleteSheet(false);
       APP.setLoading('delete-account-btn', true, 'Requesting...');
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -850,13 +927,31 @@
       });
     }
 
-    await loadReviews();
+    await Promise.all([performancePromise, membershipPromise, loadReviews()]);
+
+    async function refreshDerivedProfileData() {
+      try {
+        const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+        if (!currentSession?.access_token || !APP.isPrivateSessionCurrent(currentUserId)) return;
+        await Promise.all([
+          loadCanonicalPerformance(currentSession.access_token),
+          loadReviews(),
+        ]);
+      } catch {}
+    }
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') refreshDerivedProfileData();
+    });
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted) refreshDerivedProfileData();
+    });
   });
 </script>
-<div class="sheet-overlay" id="delete-sheet">
-  <div class="sheet-box">
-    <div class="sheet-title" style="color:#dc2626">Request Account Closure</div>
-    <div class="sheet-body">You will be switched Offline immediately and cannot receive new job offers. We will email you when your account status changes.</div>
+<div class="sheet-overlay" id="delete-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-sheet-title" aria-describedby="delete-sheet-body" aria-hidden="true">
+  <div class="sheet-box" tabindex="-1">
+    <div class="sheet-title" id="delete-sheet-title" style="color:#dc2626">Request Account Closure</div>
+    <div class="sheet-body" id="delete-sheet-body">You will be switched Offline immediately and cannot receive new job offers. We will email you when your account status changes.</div>
     <label for="closure-reason" style="display:block;font-size:0.78rem;font-weight:700;margin:0.8rem 0 0.35rem">Reason (optional)</label>
     <textarea id="closure-reason" maxlength="500" style="width:100%;min-height:76px;box-sizing:border-box" placeholder="Tell support anything needed to process this safely."></textarea>
     <div class="sheet-actions">

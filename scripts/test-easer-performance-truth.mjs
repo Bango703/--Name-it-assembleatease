@@ -58,10 +58,10 @@ assert.match(assignmentsApi, /booking\._return_visit_open/);
 assert.match(assignmentsApi, /ACTIVE_BOOKING_STATUSES\.includes\(booking\.status\) \|\| hasOpenReturnVisit/);
 assert.match(jobsUi, /function isFullyCompleted\(b\)/);
 assert.match(jobsUi, /label: 'Return Visit Open'/);
-assert.match(homeUi, /fetch\('\/api\/assembler\/earnings'/);
+assert.match(homeUi, /APP\.privateFetch\(currentUserId, '\/api\/assembler\/earnings'/);
 assert.match(homeUi, /loadCanonicalPerformance\(freshTok\)/);
 assert.doesNotMatch(homeUi, /var earnedCents=profile\.total_earned/);
-assert.match(profileUi, /fetch\('\/api\/assembler\/earnings'/);
+assert.match(profileUi, /APP\.privateFetch\(currentUserId, '\/api\/assembler\/earnings'/);
 assert.doesNotMatch(profileUi, /formatCents\(profile\.total_earned\)/);
 
 console.log('Easer performance and open-return truth tests: PASS');

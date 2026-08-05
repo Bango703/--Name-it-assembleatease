@@ -1315,7 +1315,7 @@ async function collectExperienceChecks(page, spec, width, observedApis) {
         hasRating: /5\.0\s*\/\s*5/i.test(text),
         hasRehireLabel: /Would hire again/i.test(text),
         hasValidDate: /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\b/.test(text),
-        hasEmptyCopy: /No customer reviews yet for this Easer\. Approved reviews will appear here after completed jobs\./i.test(text),
+        hasEmptyCopy: /No customer reviews yet\. Feedback from completed jobs will appear here\./i.test(text),
         hasLoadingOrFailure: /Loading reviews|could not be loaded|Retry|Invalid Date/i.test(text),
       };
     });

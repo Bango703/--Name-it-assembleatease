@@ -217,12 +217,15 @@ assert.doesNotMatch(browserApi, /\.from\(['"]bookings['"]\)/, 'Browser code must
 assert.doesNotMatch(browserApi, /\.from\(['"]reviews['"]\)/, 'Review reads and mutations must use the secured server APIs');
 assert.doesNotMatch(browserApi, /\.from\(['"](?:jobs|bids)['"]\)/, 'The retired browser marketplace must not expose direct job or bid mutations');
 assert.match(browserApi, /user\.id !== userId/);
-assert.match(browserApi, /rpc\(['"]update_own_easer_profile['"]/);
-assert.match(browserApi, /fetch\(['"]\/api\/assembler\/reviews['"][\s\S]*?cache:\s*['"]no-store['"]/, 'Easer reviews must bypass browser HTTP caches');
+assert.match(browserApi, /rpc\(['"]update_own_easer_profile_safe['"]/, 'Browser profile writes must use the allowlisted response RPC');
+assert.doesNotMatch(browserApi, /rpc\(['"]update_own_easer_profile['"]/, 'Browser profile writes must not call the legacy full-row response RPC');
+assert.match(browserApi, /APP\.privateFetch\(userId, ['"]\/api\/assembler\/reviews['"][\s\S]*?cache:\s*['"]no-store['"]/, 'Easer reviews must be identity-bound and bypass browser HTTP caches');
 
 const easerProfileReviewsPage = source('assembler/profile.html');
 const easerHomeApiPage = source('assembler/index.html');
-const easerCriticalAssetVersion = '20260802a';
+assert.doesNotMatch(easerHomeApiPage, /rpc\(['"]update_own_easer_profile['"]/, 'Home availability writes must not call the legacy full-row response RPC');
+assert.match(easerHomeApiPage, /rpc\(['"]update_own_easer_profile_safe['"]/, 'Home availability writes must use the allowlisted response RPC');
+const easerCriticalAssetVersion = '20260804a';
 const easerApiAssetVersion = (html) => html.match(/assets\/js\/api\.js\?v=([0-9A-Za-z_-]+)/)?.[1] || '';
 assert.equal(easerApiAssetVersion(easerProfileReviewsPage), easerCriticalAssetVersion, 'Easer profile must load the current secured browser API asset');
 assert.equal(easerApiAssetVersion(easerHomeApiPage), easerApiAssetVersion(easerProfileReviewsPage), 'Easer pages must use one browser API asset version');
@@ -241,9 +244,52 @@ for (const file of [
   }
 }
 assert.match(source('assets/js/app.js'), /if \(reg\) reg\.update\(\)/, 'Every current Easer route must ask the installed service worker to check for updates');
+const easerAppSource = source('assets/js/app.js');
+assert.doesNotMatch(easerAppSource, /from\(['"]profiles['"]\)[\s\S]{0,120}\.select\(['"]\*['"]\)/, 'Easer auth bootstrap must not select the full profile row');
+assert.match(easerAppSource, /bindPrivateSession\(expectedUserId\)/, 'Easer pages must have a shared identity-bound session guard');
+assert.match(easerAppSource, /document\.body\.style\.visibility = ['"]hidden['"]/, 'Identity changes must hide private Easer content before navigation');
+for (const file of [
+  'assembler/index.html',
+  'assembler/my-assignments.html',
+  'assembler/payouts.html',
+  'assembler/profile.html',
+]) {
+  assert.match(source(file), /APP\.bindPrivateSession\(/, `${file} must bind rendered private state to the authenticated Easer`);
+  assert.match(source(file), /easer-booting/, `${file} must render the non-private loading shell before private data`);
+}
+const assignmentsSource = source('api/booking/my-assignments.js');
+assert.match(assignmentsSource, /Cache-Control['"], ['"]private, no-store['"]/, 'Authenticated assignments must never be publicly cacheable');
+const easerHomeSource = source('assembler/index.html');
+assert.doesNotMatch(easerHomeSource, /writeDashboardCache|readDashboardCache|DASHBOARD_CACHE_TTL_MS/, 'Home must not restore full assignment snapshots before live truth');
+assert.equal((easerHomeSource.match(/loadEaserReadinessStatus\(freshTok\)/g) || []).length, 2, 'Home may check readiness once at bootstrap and once only when availability is changed');
+const easerJobsSource = source('assembler/my-assignments.html');
+assert.equal((easerJobsSource.match(/addEventListener\(['"]visibilitychange['"]/g) || []).length, 1, 'Jobs must have one resume refresh controller');
+assert.match(easerJobsSource, /fetchAssignments[\s\S]{0,300}cache: ['"]no-store['"]/, 'Every Jobs assignment read must bypass caches');
+const easerPayoutsSource = source('assembler/payouts.html');
+assert.match(easerPayoutsSource, /id=['"]manual-payout-card['"][^>]*style=['"]display:none['"]/, 'Manual payout controls must remain hidden until payout-mode truth loads');
+assert.match(easerPayoutsSource, /id=['"]payout-mode-loading['"]/, 'Earnings must show one neutral payout-mode loading state');
+assert.match(easerPayoutsSource, /window\.location\.assign\(data\.url\)/, 'Payout management must use reliable same-tab mobile navigation');
+assert.doesNotMatch(easerPayoutsSource, /window\.open\(data\.url/, 'Payout management must not use an async popup blocked by mobile browsers');
+const easerProfileSource = source('assembler/profile.html');
+assert.match(easerProfileSource, /No customer reviews yet\. Feedback from completed jobs will appear here\./, 'Profile review empty state must speak naturally to the current Easer');
+assert.doesNotMatch(easerProfileSource, /No customer reviews yet for this Easer/, 'Profile must not describe the signed-in person as this Easer');
+assert.match(easerProfileSource, /redirectTo: window\.location\.origin \+ ['"]\/auth\/set-password['"]/, 'Profile password recovery must open the canonical set-password flow');
+assert.doesNotMatch(easerProfileSource, /redirectTo: window\.location\.origin \+ ['"]\/auth\/login['"]/, 'Profile password recovery must not redirect to login');
+assert.match(easerProfileSource, />Contact profile</, 'Profile completion meter must describe contact details rather than job readiness');
+assert.match(easerProfileSource, /Contact details complete\. These details do not replace job-readiness requirements\./, 'Profile completion copy must not imply canonical job readiness');
+assert.match(easerProfileSource, /href=['"]\/assembler\/verify-identity['"]/, 'Not-started identity state must have a direct secure verification action');
+assert.match(easerProfileSource, /Verification in progress\.[\s\S]*No action is required unless Stripe asks for more information/, 'In-progress identity state must state whether action is required');
+assert.match(easerProfileSource, /const MAX = 384/, 'Profile avatars must be resized for mobile bootstrap payloads');
+assert.match(easerProfileSource, /renderProfileIdentity\(document\.getElementById\(['"]full-name['"]\)\.value, persistedProfilePhoto\)/, 'Failed profile-photo saves must restore the persisted avatar');
+assert.match(easerProfileSource, /applySavedProfile\(savedData\)/, 'Profile summary and identity UI must render from confirmed save truth');
+assert.match(easerProfileSource, /APP\.clearFieldErrors\(['"]profile-form['"]\)/, 'Profile validation must clear stale field errors before each submit');
+assert.match(easerProfileSource, /role=['"]dialog['"][^>]*aria-modal=['"]true['"]/, 'Account closure must expose modal dialog semantics');
+assert.match(easerProfileSource, /event\.key === ['"]Escape['"]/, 'Account closure dialog must support Escape');
+assert.match(easerProfileSource, /deleteSheetReturnFocus\.focus\(\)/, 'Account closure dialog must restore trigger focus');
 const easerServiceWorker = source('sw.js');
-assert.match(easerServiceWorker, /const CACHE = ['"]aae-easer-v6['"]/, 'Easer service-worker cache must invalidate the stale June shell');
-assert.match(easerServiceWorker, /e\.request\.destination === ['"]script['"][\s\S]*?fetch\(e\.request\)[\s\S]*?catch\(function\(\)\s*\{[\s\S]*?caches\.match\(e\.request\)/, 'Critical Easer scripts must be network-first with an offline cache fallback');
+assert.match(easerServiceWorker, /const CACHE = ['"]aae-easer-v7['"]/, 'Easer service-worker cache must invalidate the prior Easer shell');
+assert.match(easerServiceWorker, /const OFFLINE_URL = ['"]\/assembler\/offline\.html['"]/, 'Offline navigation must use a non-private Easer screen');
+assert.match(easerServiceWorker, /e\.request\.destination === ['"]script['"][\s\S]*?e\.request\.destination === ['"]style['"][\s\S]*?fetch\(e\.request\)[\s\S]*?caches\.match\(e\.request, \{ ignoreSearch: true \}\)/, 'Critical versioned Easer scripts and styles must be network-first with an offline cache fallback');
 const serviceWorkerListeners = {};
 const cachedScriptResponse = { source: 'cached' };
 const networkScriptResponse = { source: 'network', status: 200, clone() { return this; } };

@@ -15,11 +15,11 @@
   <meta name="apple-mobile-web-app-title" content="Easer App" />
   <meta name="theme-color" content="#00BFFF" />
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
-  <style>body{visibility:hidden}</style>
+  <style>body.easer-booting>*{visibility:hidden}</style>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260802a" defer></script>
-  <script src="../assets/js/app.js?v=20260802a" defer></script>
-  <script src="../assets/js/api.js?v=20260802a" defer></script>
+  <script src="../config.js?v=20260804a" defer></script>
+  <script src="../assets/js/app.js?v=20260804a" defer></script>
+  <script src="../assets/js/api.js?v=20260804a" defer></script>
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <style>
@@ -145,7 +145,7 @@
     .sheet-overlay.open { display: flex !important; }
   </style>
 </head>
-<body>
+<body class="easer-booting">
 
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
 
@@ -325,10 +325,6 @@
   function fmtDate(d){if(!d)return'TBD';try{var dt=new Date(String(d).includes('T')?d:d+'T12:00:00');var now=new Date();var today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12);var diff=Math.round((dt-today)/86400000);if(diff===0)return'Today';if(diff===1)return'Tomorrow';return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return d;}}
   function fmtPay(cents){var amount=Number(cents);if(!Number.isFinite(amount))return null;return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(amount/100);}
 
-  var DASHBOARD_CACHE_KEY_PREFIX = 'easer_dashboard_cache_v1:';
-  var DASHBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
-  var DASHBOARD_CACHE_STALE_MS = 60 * 60 * 1000;
-
   var available = false;
   var currentUserId = null;
   var currentProfile = null;
@@ -351,7 +347,6 @@
     retryCount: 0,
     inFlight: false,
     requestSeq: 0,
-    staleSnapshot: null,
     authRefreshAttempted: false,
   };
   var dashboardRetryTimer = null;
@@ -363,44 +358,10 @@
     dashboardRetryTimer = null;
   }
 
-  function readDashboardCache() {
-    try {
-      if (!currentUserId) return null;
-      var raw = sessionStorage.getItem(DASHBOARD_CACHE_KEY_PREFIX + currentUserId);
-      if (!raw) return null;
-      var parsed = JSON.parse(raw);
-      if (!parsed || parsed.userId !== currentUserId || !Array.isArray(parsed.bookings) || !parsed.savedAt) return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  }
-
-  function writeDashboardCache(bookings, meta) {
-    try {
-      if (!currentUserId) return;
-      sessionStorage.setItem(DASHBOARD_CACHE_KEY_PREFIX + currentUserId, JSON.stringify({
-        userId: currentUserId,
-        savedAt: new Date().toISOString(),
-        bookings: bookings || [],
-        meta: meta || null,
-      }));
-    } catch {}
-  }
-
   function clearDashboardCache() {
     try {
-      if (currentUserId) sessionStorage.removeItem(DASHBOARD_CACHE_KEY_PREFIX + currentUserId);
-      sessionStorage.removeItem('easer_dashboard_cache_v1');
       if (window.APP && typeof APP.clearPrivateSessionData === 'function') APP.clearPrivateSessionData();
     } catch {}
-  }
-
-  function getDashboardCachedAgeMs(cache) {
-    if (!cache || !cache.savedAt) return Infinity;
-    var ts = new Date(cache.savedAt).getTime();
-    if (isNaN(ts)) return Infinity;
-    return Date.now() - ts;
   }
 
   function classifyDashboardError(status) {
@@ -433,8 +394,8 @@
       title = 'Syncing your jobs…';
       body = 'Checking for active work, offers, and upcoming assignments.';
     } else if (mode === 'stale_data') {
-      title = 'Showing last synced jobs';
-      body = 'Live data is temporarily unavailable. You are seeing the most recent successful dashboard snapshot.';
+      title = 'Some job details are delayed';
+      body = 'The latest jobs are shown, but some offer details may still be updating.';
       actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Retry now</button>';
       tone = 'rgba(245,158,11,0.18)';
       bg = 'rgba(245,158,11,0.07)';
@@ -598,7 +559,7 @@
 
       for (var attempt = 0; attempt < 2; attempt++) {
         try {
-          lastResponse = await fetch('/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok}});
+          lastResponse = await APP.privateFetch(currentUserId, '/api/booking/my-assignments',{headers:{'Authorization':'Bearer '+freshTok},cache:'no-store'});
         } catch (err) {
           throw { kind: 'network_error', status: 0, message: err && err.message ? err.message : 'Network error' };
         }
@@ -644,37 +605,13 @@
       dashboardLoadState.retryCount = 0;
       dashboardLoadState.mode = 'success';
 
-      writeDashboardCache(bookings, meta);
       renderDashboardPayload(bookings, { warnings: meta && Array.isArray(meta.warnings) ? meta.warnings : [] });
       return;
     })().catch(function(error) {
       if (requestSeq !== dashboardLoadState.requestSeq) return;
 
-      var cache = readDashboardCache();
-      var cacheAgeMs = getDashboardCachedAgeMs(cache);
-      var canUseStale = cache && cacheAgeMs <= DASHBOARD_CACHE_STALE_MS;
-      var bookings = canUseStale ? cache.bookings : [];
-
       dashboardLoadState.lastError = error && error.message ? error.message : 'Dashboard load failed';
       dashboardLoadState.lastHttpStatus = error && error.status ? error.status : null;
-
-      if (canUseStale) {
-        dashboardLoadState.staleSnapshot = cache;
-        dashboardLoadState.mode = 'stale_data';
-        renderDashboardPayload(bookings, { warnings: (cache.meta && cache.meta.warnings) ? cache.meta.warnings : [] });
-        setDashboardStatus('stale_data', { extra: dashboardLoadState.retryCount >= 3 ? 'Auto-retry exhausted — tap Retry to try again.' : 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
-        if (dashboardLoadState.retryCount < 3) {
-          var retryDelays = [2000, 5000, 15000];
-          clearDashboardRetryTimer();
-          dashboardRetryTimer = setTimeout(function() {
-            if (document.visibilityState === 'visible') loadDashboardData('auto_retry');
-          }, retryDelays[dashboardLoadState.retryCount] || 15000);
-          dashboardLoadState.retryCount += 1;
-        }
-        return;
-      }
-
-      dashboardLoadState.staleSnapshot = null;
       dashboardLoadState.mode = error && error.kind ? error.kind : 'server_error';
       if (dashboardLoadState.mode === 'auth_error') {
         setDashboardStatus('auth_error');
@@ -728,7 +665,7 @@
     available = true;
     setAvailUI(true);
     try {
-      var res = await supabaseClient.rpc('update_own_easer_profile',{p_updates:{is_available:true}});
+      var res = await supabaseClient.rpc('update_own_easer_profile_safe',{p_updates:{is_available:true}});
       if (res.error) throw res.error;
     } catch(e) {
       available = false;
@@ -762,7 +699,7 @@
     var jobsEl = document.getElementById('stat-jobs');
     var earnedEl = document.getElementById('stat-earned');
     try {
-      var response = await fetch('/api/assembler/earnings', {
+      var response = await APP.privateFetch(currentUserId, '/api/assembler/earnings', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       if (!response.ok) throw new Error('Current earnings summary unavailable');
@@ -869,7 +806,7 @@
   async function loadEaserReadinessStatus(token) {
     currentReadinessError = null;
     try {
-      var response = await fetch('/api/assembler/readiness', {
+      var response = await APP.privateFetch(currentUserId, '/api/assembler/readiness', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       var data = await response.json().catch(function () { return {}; });
@@ -914,11 +851,11 @@
       title.textContent = 'Easer account closed';
       sub.textContent = 'New offers and availability are disabled. Contact support if you need help with a payout record or retained account information.';
     } else if (currentClosureStatus === 'reviewing') {
-      title.textContent = 'Account closure review in progress';
-      sub.textContent = 'You are Offline and cannot receive new offers. Support is reviewing payout, tax, and retention obligations.';
+      title.textContent = 'Account closure in progress';
+      sub.textContent = 'You are Offline and cannot receive new offers. You will be notified when the status changes.';
     } else {
       title.textContent = 'Account closure requested';
-      sub.textContent = 'You are Offline and cannot receive new offers while support reviews the request and any remaining payout obligations.';
+      sub.textContent = 'You are Offline and cannot receive new offers. You will be notified when the status changes.';
     }
     var jobsLink = document.querySelector('.easer-nav-item[href="/assembler/my-assignments"]');
     if (jobsLink) {
@@ -1130,16 +1067,15 @@
     var auth=await APP.requireAuth(['assembler']);
     if(!auth) return;
     var user=auth.user, session=auth.session, profile=auth.profile;
+    if(!await APP.bindPrivateSession(user.id)) return;
     currentUserId=user.id;
     currentProfile=profile;
     currentClosureStatus=normalizeClosureStatus(profile.account_closure_status);
     freshTok=session.access_token;
 
-    // Resolve the server-side readiness source of truth before revealing the
-    // dashboard. This prevents agreement/checklist flashes and keeps cached or
-    // private job content from rendering before eligibility is known.
-    await loadEaserReadinessStatus(freshTok);
-    document.body.style.visibility='visible';
+    var performancePromise=loadCanonicalPerformance(freshTok);
+    var readinessVerified=await loadEaserReadinessStatus(freshTok);
+    APP.revealPrivatePage();
 
     // Notification bell toggle
     var _notifPanel=document.getElementById('notif-panel');
@@ -1248,7 +1184,7 @@
       available = false;
       setAvailUI(false);
       try {
-        var res = await supabaseClient.rpc('update_own_easer_profile',{p_updates:{is_available:false}});
+        var res = await supabaseClient.rpc('update_own_easer_profile_safe',{p_updates:{is_available:false}});
         if (res.error) throw res.error;
       } catch(e) {
         available = true;
@@ -1407,7 +1343,6 @@
       }
     }catch(e){}
 
-    var readinessVerified = await loadEaserReadinessStatus(freshTok);
     if (!readinessVerified) {
       clearDashboardCache();
       document.querySelectorAll('.easer-nav-item:not([href="/assembler/"])').forEach(function(a){
@@ -1416,24 +1351,11 @@
       setDashboardStatus('server_error', { message: 'Job readiness could not be verified. No job information was loaded.' });
       return;
     }
-    if (currentReadiness.agreementCurrent !== true || currentReadiness.codeOfConductAccepted !== true) {
-      // Never render an older cached offer after the required agreement changes.
-      clearDashboardCache();
-    }
-
-    // Load assignments
-    var cache = readDashboardCache();
-    if (cache && getDashboardCachedAgeMs(cache) <= DASHBOARD_CACHE_TTL_MS) {
-      dashboardLoadState.staleSnapshot = cache;
-      renderDashboardPayload(cache.bookings || [], { warnings: cache.meta && Array.isArray(cache.meta.warnings) ? cache.meta.warnings : [] });
-      setDashboardStatus('stale_data', { extra: 'Last sync: ' + new Date(cache.savedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) });
-    } else {
-      setDashboardStatus('loading');
-    }
+    setDashboardStatus('loading');
 
     await Promise.all([
       loadDashboardData('initial_load'),
-      loadCanonicalPerformance(freshTok),
+      performancePromise,
     ]);
   });
 </script>

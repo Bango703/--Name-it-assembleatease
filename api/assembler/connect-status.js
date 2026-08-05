@@ -26,6 +26,7 @@ function deriveUiState(profile, requirementsDue) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  res.setHeader('Cache-Control', 'private, no-store');
 
   if (!isStripeConnectEnabled()) {
     return res.status(200).json({
@@ -55,8 +56,9 @@ export default async function handler(req, res) {
   let requirementsCurrentlyDue = [];
 
   const accountId = normalizeStripeConnectAccountId(profile.stripe_connect_account_id);
+  const shouldRefreshStripe = req.query?.refresh === 'true';
 
-  if (process.env.STRIPE_SECRET_KEY && accountId) {
+  if (process.env.STRIPE_SECRET_KEY && accountId && shouldRefreshStripe) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const account = await stripe.accounts.retrieve(accountId);
