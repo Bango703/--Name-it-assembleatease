@@ -27,6 +27,9 @@ export function isRecoverableConnectAccountError(err) {
     || code === 'parameter_invalid_string_empty'
     || type === 'invalid_request_error'
     || message.includes('no such account')
+    || message.includes('does not have access to account')
+    || message.includes('account does not exist')
+    || message.includes('application access may have been revoked')
     || message.includes('expected pattern')
     || message.includes('string did not match')
   );

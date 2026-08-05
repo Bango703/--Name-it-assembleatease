@@ -10,6 +10,8 @@ _Last reconciled: 2026-08-04_
 
 ## Now (top of stack)
 
+- [~] **P0 · Stripe Connect stale-account recovery blocks payout management** _(Finance, Easer, Ops, Security)_
+  A live Easer profile can retain a connected-account ID that the current Stripe application can no longer access, while stale capability flags keep the UI falsely "Enabled." Manage payout then returns HTTP 500 and future transfers can remain held. Fix recognizes Stripe's revoked/inaccessible-account response as recoverable so status sync clears only obsolete Connect state and lets the Easer restart Express onboarding. Local payment-hardening regression passes; push, deploy, and authenticated live restart validation remain required.
 - [~] **P1 · Distribution — work the move-in / referral channel for 30 days** _(CEO, VP Marketing)_
   Demand is the real bottleneck, not code. Kit is built (see Done). **Owner action:** approach top-2 partners (apartment/property managers, realtors), leave 5–10 QR counter-cards each, and track completed bookings with `utm_source=partner`. Double down on whichever partner drives the first jobs. This is where the first 25 jobs come from.
 

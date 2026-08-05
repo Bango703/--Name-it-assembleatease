@@ -10,6 +10,21 @@ const {
 } = await import('../api/_payment-security.js');
 const { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } = await import('../api/booking/_appt-date.js');
 const { getPayoutTransferIds } = await import('../api/assembler/stripe-webhook.js');
+const { isRecoverableConnectAccountError } = await import('../api/_stripe-connect.js');
+
+assert.equal(
+  isRecoverableConnectAccountError({
+    type: 'StripePermissionError',
+    message: "The provided key does not have access to account 'acct_stale' (or that account does not exist). Application access may have been revoked.",
+  }),
+  true,
+  'revoked or inaccessible Connect accounts must reset stale payout state',
+);
+assert.equal(
+  isRecoverableConnectAccountError({ type: 'StripePermissionError', message: 'This API key cannot perform this action.' }),
+  false,
+  'unrelated Stripe permission errors must not erase Connect state',
+);
 
 const payoutListCalls = [];
 const payoutTransferIds = await getPayoutTransferIds({
