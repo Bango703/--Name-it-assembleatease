@@ -10,8 +10,6 @@ _Last reconciled: 2026-08-04_
 
 ## Now (top of stack)
 
-- [~] **P0 · Stripe Connect stale-account recovery blocks payout management** _(Finance, Easer, Ops, Security)_
-  A live Easer profile can retain a connected-account ID that the current Stripe application can no longer access, while stale capability flags keep the UI falsely "Enabled." Manage payout then returns HTTP 500 and future transfers can remain held. Fix recognizes Stripe's revoked/inaccessible-account response as recoverable so status sync clears only obsolete Connect state and lets the Easer restart Express onboarding. Local payment-hardening regression passes; push, deploy, and authenticated live restart validation remain required.
 - [~] **P1 · Distribution — work the move-in / referral channel for 30 days** _(CEO, VP Marketing)_
   Demand is the real bottleneck, not code. Kit is built (see Done). **Owner action:** approach top-2 partners (apartment/property managers, realtors), leave 5–10 QR counter-cards each, and track completed bookings with `utm_source=partner`. Double down on whichever partner drives the first jobs. This is where the first 25 jobs come from.
 
@@ -53,6 +51,7 @@ _Last reconciled: 2026-08-04_
 
 ## Done (verified)
 
+- [x] **P0 · Stripe Connect inaccessible-account recovery fixed** — Stripe public support details and Express branding were completed; commit `a9d56984` recognizes revoked/inaccessible connected accounts as recoverable. Production self-healed the stale Easer state, created one correctly configured live Express account, and generated the branded onboarding link. The owner intentionally stopped before entering personal/bank details, so onboarding remains incomplete and no payout moved. Full launch regression and live status checks passed. _2026-08-04._
 - [x] **P0 · Easer announcement tables locked down** — migration 058 enabled RLS, revoked `anon`/`authenticated`, preserved `service_role`, and recorded schema state 57–58. Production zero-row probes return HTTP 401 publicly and HTTP 200 through the server credential. _2026-08-04._
 - [x] **P1 · Mobile — homepage pinch-zoom re-enabled** — removed `maximum-scale=1` from `index.html` viewport (was the only page of 339 blocking zoom; WCAG 1.4.4). _2026-08-02._
 - [x] **P2 · Mobile — waitlist input iOS-zoom fixed** — added `.waitlist-input` to the mobile 16px guard ([marketing.css:224](marketing.css#L224)). _2026-08-02._
