@@ -4,8 +4,8 @@ Generated from 372 HTML pages.
 
 ## Status Counts
 
-- PASS: 371
-- WARNING: 1
+- PASS: 372
+- WARNING: 0
 - FAIL: 0
 
 ## Page Types
@@ -29,8 +29,7 @@ Generated from 372 HTML pages.
 
 ## Highest-Risk Pages
 
-- assembler/offline.html — WARNING (0 fail, 1 warning)
-  - WARNING: Meta description is recommended for this page type.
+- No current failures or warnings.
 
 ## Output Files
 

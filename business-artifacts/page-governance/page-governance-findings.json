@@ -457,7 +457,7 @@
     ],
     "title": "Connection unavailable — Easer",
     "h1": "Connection unavailable",
-    "metaDescription": "",
+    "metaDescription": "You're offline. Reconnect to view your AssembleAtEase assignments, earnings, and payout status.",
     "canonical": "",
     "ogTitle": "",
     "ogDescription": "",
@@ -501,16 +501,10 @@
     "footerLegacyBusinessCustomCount": 0,
     "footerCompanyLabels": [],
     "footerServiceLabels": [],
-    "status": "WARNING",
+    "status": "PASS",
     "failCount": 0,
-    "warningCount": 1,
-    "issues": [
-      {
-        "severity": "warning",
-        "code": "recommended_meta_description",
-        "message": "Meta description is recommended for this page type."
-      }
-    ]
+    "warningCount": 0,
+    "issues": []
   },
   {
     "path": "assembler/payouts.html",
