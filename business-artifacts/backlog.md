@@ -4,38 +4,25 @@ The one source of truth for tracked work. Owned by the Product Manager seat (see
 
 **Legend:** `[ ]` open · `[~]` in progress · `[x]` verified complete (shipped + validated). P0 = launch/money/security · P1 = trust/conversion/ops · P2 = polish.
 
-_Last reconciled: 2026-08-04_
+_Last reconciled: 2026-08-05_
 
 ---
 
 ## Now (top of stack)
 
-- [~] **P0 · Easer session identity is not bound to rendered private state** _(Security, Easer, Engineering)_
-  Implemented locally: shared user-ID binding, immediate private-DOM/cache scrubbing, allowlisted profile bootstrap, and abortable private reads across all four pages. Focused security, full launch, and authenticated mobile checks pass; approved push and Production verification remain.
-- [~] **P0 · Authenticated assignments response is publicly cacheable** _(Security, Customer, Easer)_
-  Implemented locally: the API sets `private, no-store` before authentication and every Home/Jobs assignments read uses `cache: 'no-store'`. Regression coverage passes; approved push and Production header verification remain.
-- [~] **P1 · Easer Home paints stale actionable job snapshots and has a serial load waterfall** _(Easer, Ops, UX, Engineering)_
-  Implemented locally: full assignment snapshots were removed and erased from existing sessions, readiness is no longer duplicated, and independent earnings load in parallel. Authenticated 390px verification settled at about 1.6s versus 3.4-4.6s before; approved push and Production timing verification remain.
-- [~] **P1 · Easer Jobs duplicates resume refreshes and serializes earnings after assignments** _(Easer, Ops, Engineering)_
-  Implemented locally: one identity-bound refresh path now handles initial load, resume, reconnect, polling, and offer deep links; assignments and earnings run concurrently. One resume produced exactly one request per source; approved push and Production verification remain.
-- [~] **P1 · Easer Earnings flashes the legacy manual payout method before Connect truth** _(Easer, Finance, UX)_
-  Implemented locally: one neutral payout loading state gates both modes, routine status reads avoid Stripe reconciliation, and Manage payout uses mobile-safe same-tab navigation. Authenticated mobile and simulated login-link checks pass; approved push and Production verification remain.
-- [~] **P1 · Easer Profile flashes false zero/completion data and does not revalidate on wake** _(Easer, UX, Engineering)_
-  Implemented locally: neutral placeholders replace false zeroes, independent reads run concurrently, membership status is a GET, derived data refreshes on wake, and review/closure copy is Easer-facing. Authenticated mobile verification passes; approved push and Production verification remain.
-- [~] **P1 · Easer Profile save exposes the complete internal profile row** _(Security, Easer, Engineering)_
-  Implemented locally: migration 059 adds an eight-field response projection and all browser writes use it; migration 060 revokes browser access to the legacy full-row function after frontend rollout. Migration 059 is applied and catalog-verified; deployment, migration 060, and final Production verification remain.
-- [~] **P1 · Easer Profile password recovery redirects to the login page** _(Easer, Security, Support)_
-  Implemented locally: Profile now targets the canonical `/auth/set-password` recovery flow. Authenticated mobile interception and launch regression pass; deployment and Production verification remain.
-- [~] **P1 · Easer Profile identity and completion states can misdirect Easers** _(Easer, Ops, UX)_
-  Implemented locally: `Contact profile` is explicitly separate from job readiness, not-started identity shows the secure verification action, and in-progress identity states whether action is required. Mobile and launch regression pass; deployment and Production verification remain.
-- [~] **P1 · Easer Profile can display an unsaved photo as complete** _(Easer, UX, Reliability)_
-  Implemented locally: avatars are reduced to 384px with a strict encoded-size cap, confirmed save truth rerenders the page, and failed saves restore the persisted avatar and completion state. Simulated mobile failure rollback passes; deployment and Production verification remain.
-- [~] **P2 · Easer Profile form and closure sheet need accessible interaction states** _(Easer, Accessibility, UX)_
-  Implemented locally: semantic alerts and field errors, visible keyboard focus, verified-user edit focus, and closure-dialog semantics, Escape, containment, and focus return. Authenticated 390px interaction checks pass; deployment and Production verification remain.
-- [~] **P1 · Easer pages hide the whole body during auth instead of presenting a stable shell** _(Easer, UX, Reliability)_
-  Implemented locally: all four routes use a shared non-private loading shell and the Easer critical-asset version was advanced. Mobile verification and full launch regression pass; approved push and Production verification remain.
-- [~] **P2 · Easer service-worker shell/cache list is stale** _(Easer, PWA, Engineering)_
-  Implemented locally: cache v7 uses current Easer assets, network-first versioned scripts/styles, and a dedicated non-private offline screen. Service-worker and launch regressions pass; approved push and Production verification remain.
+- [x] **P0 · Easer session identity is bound to rendered private state** _(Security, Easer, Engineering)_ — shared user-ID binding, immediate private-DOM/cache scrubbing, allowlisted profile bootstrap, and abortable private reads are shipped and Production-verified across all four routes. _Commit `801bd16b`, 2026-08-05._
+- [x] **P0 · Authenticated assignments are privately cache-controlled** _(Security, Customer, Easer)_ — the API and every Home/Jobs assignment read use `private, no-store`; authenticated Production response verified. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Home stale snapshots and serial load waterfall removed** _(Easer, Ops, UX, Engineering)_ — full assignment snapshots are removed and erased from existing sessions, readiness is deduplicated, and independent earnings load concurrently; Production mobile metrics settle correctly. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Jobs resume refreshes and serial earnings loads removed** _(Easer, Ops, Engineering)_ — one identity-bound refresh path handles initial load, resume, reconnect, polling, and offer deep links while assignments and earnings load concurrently. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Earnings payout-mode flash and mobile management fixed** _(Easer, Finance, UX)_ — neutral loading gates mode truth, routine status reads avoid Stripe reconciliation, and payout management uses same-tab mobile navigation; Production manual card stays hidden. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Profile loading, wake refresh, and external copy stabilized** _(Easer, UX, Engineering)_ — neutral placeholders, concurrent truth reads, GET membership status, wake refresh, and professional review/closure copy are live. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Profile update response minimized** _(Security, Easer, Engineering)_ — migration 059 returns only eight Easer-facing fields, all browser writes use it, and migration 060 removes authenticated access to the legacy full-row response. _Production catalog and authenticated RPC behavior verified 2026-08-05._
+- [x] **P1 · Easer Profile password recovery repaired** _(Easer, Security, Support)_ — reset links target the canonical `/auth/set-password` flow; mobile behavior and Production source verified. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Profile identity and contact-completion states clarified** _(Easer, Ops, UX)_ — contact completion is separate from job readiness and identity guidance shows the correct next action. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer Profile photo save state hardened** _(Easer, UX, Reliability)_ — avatars are reduced to 384px with a strict encoded-size cap, confirmed save truth rerenders the page, and failed saves restore the persisted avatar and completion state. _Commit `801bd16b`, 2026-08-05._
+- [x] **P2 · Easer Profile form and closure accessibility completed** _(Easer, Accessibility, UX)_ — semantic alerts/errors, visible keyboard focus, correct edit focus, and closure-dialog semantics, Escape handling, focus containment, and focus return are shipped and mobile-verified. _Commit `801bd16b`, 2026-08-05._
+- [x] **P1 · Easer routes now show a stable non-private loading shell** _(Easer, UX, Reliability)_ — all four routes reveal private state only after identity binding, and the Easer critical-asset version is advanced; Production mobile verification passed. _Commit `801bd16b`, 2026-08-05._
+- [x] **P2 · Easer service-worker shell/cache repaired** _(Easer, PWA, Engineering)_ — cache v7 uses current Easer assets, network-first versioned scripts/styles, and a dedicated non-private offline screen; Production source verified. _Commit `801bd16b`, 2026-08-05._
 - [~] **P1 · Distribution — work the move-in / referral channel for 30 days** _(CEO, VP Marketing)_
   Demand is the real bottleneck, not code. Kit is built (see Done). **Owner action:** approach top-2 partners (apartment/property managers, realtors), leave 5–10 QR counter-cards each, and track completed bookings with `utm_source=partner`. Double down on whichever partner drives the first jobs. This is where the first 25 jobs come from.
 
