@@ -85,9 +85,9 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
   if (!easers || !easers.length) return { dispatched: 0, message: 'No eligible Easers in system' };
 
   // ── Filter by canonical readiness and service area ────────────────────────
-  // Manual payout mode does not require Connect. When Connect is enabled, the
-  // shared readiness predicate verifies the account live and fails closed on
-  // requirements or disabled capabilities.
+  // Payout setup (Stripe Connect) does NOT gate dispatch — offers still flow to
+  // approved Easers who haven't finished payout setup; their earnings are held
+  // at release (release-payouts) until Stripe payouts are ready.
   // Note: MAX_DAILY_JOBS cap is applied below with authoritative booking counts.
   // Do NOT filter on active_jobs_today here — the profile counter can be stale.
   const readinessPairs = await Promise.all(easers.map(async (easer) => ({

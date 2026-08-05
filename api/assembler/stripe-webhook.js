@@ -22,6 +22,7 @@ import {
   reconcileEaserApplicationFeeRefund,
 } from '../_easer-application-refund.js';
 import { isEaserMembershipEnabled } from '../_easer-membership.js';
+import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { finalizeEaserApplicationSubmission } from './apply.js';
 import { loadBookingStripeRefundTruth, refundPaymentStatus } from '../booking/_stripe-refund-truth.js';
 import { reconcileRefundAssembleCash } from '../booking/_refund-credits.js';
@@ -31,6 +32,27 @@ const STRIPE_DISPUTE_STATUSES = new Set([
   'warning_needs_response', 'warning_under_review', 'warning_closed',
   'needs_response', 'under_review', 'won', 'lost', 'prevented',
 ]);
+
+export async function getPayoutTransferIds(stripe, payoutId, connectedAccount) {
+  if (!payoutId || !connectedAccount) return [];
+
+  const transferIds = new Set();
+  const transactions = stripe.balanceTransactions.list(
+    { payout: payoutId, limit: 100 },
+    { stripeAccount: connectedAccount },
+  );
+
+  for await (const transaction of transactions) {
+    const sourceId = typeof transaction.source === 'string'
+      ? transaction.source
+      : transaction.source?.id;
+    if (transaction.type === 'transfer' && sourceId?.startsWith('tr_')) {
+      transferIds.add(sourceId);
+    }
+  }
+
+  return [...transferIds];
+}
 
 // Vercel: disable body parser so we can verify webhook signature
 export const config = { api: { bodyParser: false } };
@@ -1365,6 +1387,11 @@ export default async function handler(req, res) {
 
       // ── Stripe Connect account capability updates ──
       case 'account.updated': {
+        if (!isStripeConnectEnabled()) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { eventType: event.type, reason: 'stripe_connect_disabled' };
+          break;
+        }
         const acct = event.data.object;
         if (!acct?.id) break;
 
@@ -1385,6 +1412,81 @@ export default async function handler(req, res) {
         if (connectErr) {
           console.error('Connect account update sync failed:', connectErr.message);
         }
+        break;
+      }
+
+      // ── Stripe Connect: bank payout to the Easer SUCCEEDED ──
+      // Resolve the payout's exact balance transactions before advancing any
+      // booking. Account- or timestamp-wide updates can mark unrelated earnings
+      // paid when Stripe excludes funds from a payout.
+      case 'payout.paid': {
+        if (!isStripeConnectEnabled()) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { eventType: event.type, reason: 'stripe_connect_disabled' };
+          break;
+        }
+        const payout = event.data.object || {};
+        const connectedAccount = event.account;
+        if (!connectedAccount || !payout.id) { webhookOutcome = 'ignored'; webhookMetadata = { eventType: event.type, reason: 'missing_payout_context' }; break; }
+        const transferIds = await getPayoutTransferIds(stripe, payout.id, connectedAccount);
+        if (!transferIds.length) { webhookOutcome = 'ignored'; webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, reason: 'no_matching_transfers' }; break; }
+        const nowIso = new Date().toISOString();
+        const { data: paidRows, error: paidErr } = await sb.from('bookings').update({
+          payout_status: 'paid',
+          stripe_bank_payout_status: 'paid',
+          stripe_bank_payout_paid_at: nowIso,
+          paid_out_at: nowIso,
+        })
+          .eq('stripe_destination_account_id', connectedAccount)
+          .eq('payout_status', 'transferred')
+          .in('stripe_bank_payout_status', ['pending', 'failed'])
+          .in('stripe_transfer_id', transferIds)
+          .select('id, ref');
+        if (paidErr) { webhookOutcome = 'failed'; webhookError = paidErr.message; break; }
+        webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, transferCount: transferIds.length, marked_paid: paidRows?.length || 0 };
+        break;
+      }
+
+      // ── Stripe Connect: bank payout to the Easer FAILED ──
+      // The transfer to their Stripe balance succeeded, but the bank leg failed
+      // (closed/invalid account, etc.). Flag it and alert the owner; do NOT
+      // revert to pending — the funds are safe in the Easer's Stripe balance and
+      // Stripe retries once the Easer fixes their bank in the Express dashboard.
+      case 'payout.failed': {
+        if (!isStripeConnectEnabled()) {
+          webhookOutcome = 'ignored';
+          webhookMetadata = { eventType: event.type, reason: 'stripe_connect_disabled' };
+          break;
+        }
+        const payout = event.data.object || {};
+        const connectedAccount = event.account;
+        if (!connectedAccount || !payout.id) { webhookOutcome = 'ignored'; webhookMetadata = { eventType: event.type, reason: 'missing_payout_context' }; break; }
+        const transferIds = await getPayoutTransferIds(stripe, payout.id, connectedAccount);
+        if (!transferIds.length) { webhookOutcome = 'ignored'; webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, reason: 'no_matching_transfers' }; break; }
+        const { data: failedRows, error: failedErr } = await sb.from('bookings').update({
+          stripe_bank_payout_status: 'failed',
+        })
+          .eq('stripe_destination_account_id', connectedAccount)
+          .eq('payout_status', 'transferred')
+          .eq('stripe_bank_payout_status', 'pending')
+          .in('stripe_transfer_id', transferIds)
+          .select('id, ref');
+        if (failedErr) { webhookOutcome = 'failed'; webhookError = failedErr.message; break; }
+        const flagged = failedRows?.length || 0;
+        if (flagged > 0) {
+          try {
+            await sendEmail({
+              to: ownerEmail(),
+              from: 'AssembleAtEase <booking@assembleatease.com>',
+              subject: `Easer bank payout FAILED — ${flagged} payout(s) need attention`,
+              html: `<p>Stripe could not pay out to an Easer's bank (connected account ${esc(connectedAccount)}).</p>`
+                + `<p>Affected bookings: ${esc((failedRows || []).map((r) => r.ref).join(', '))}.</p>`
+                + `<p>The earnings are safe in the Easer's Stripe balance. Ask the Easer to fix their bank details in their payout dashboard; Stripe will retry automatically.</p>`,
+              meta: { notificationType: 'easer_payout_failed_owner', recipientType: 'owner' },
+            });
+          } catch (e) { console.error('Owner payout.failed alert error:', e); }
+        }
+        webhookMetadata = { eventType: event.type, account: connectedAccount, payoutId: payout.id, transferCount: transferIds.length, flagged };
         break;
       }
 

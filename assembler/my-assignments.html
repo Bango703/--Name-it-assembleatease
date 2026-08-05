@@ -209,6 +209,7 @@
 <div class="easer-page">
   <a href="#" id="sidebar-logout" style="display:none"></a>
   <div id="page-alert" class="alert hidden"></div>
+  <div id="required-action-banner" style="display:none;gap:0.85rem;align-items:center;flex-wrap:wrap;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(0,191,255,0.35);border-radius:12px;background:#eefaff"></div>
   <div id="agreement-access-banner" style="display:none;margin:0 0 1rem;padding:0.9rem 1rem;border:1px solid rgba(245,158,11,0.3);border-radius:10px;background:rgba(245,158,11,0.08);color:#78350f;font-size:0.82rem;line-height:1.5">
     <strong>Current contractor agreement required.</strong>
     New job offers are hidden until you review and accept the current agreement. Existing accepted work remains available so customers are not stranded.
@@ -621,6 +622,27 @@
       return;
     }
     document.body.style.visibility = 'visible';
+
+    // ── Required-action banner (payout setup, etc.) — non-blocking, never gates jobs ──
+    (async function loadRequiredActions() {
+      try {
+        var rToken = await getToken();
+        if (!rToken) return;
+        var resp = await fetch('/api/assembler/required-actions', { headers: { 'Authorization': 'Bearer ' + rToken } });
+        if (!resp.ok) return;
+        var data = await resp.json();
+        var actions = (data && data.actions) || [];
+        var el = document.getElementById('required-action-banner');
+        if (!el) return;
+        if (!actions.length) { el.style.display = 'none'; return; }
+        var a = actions[0];
+        var btn = a.actionUrl
+          ? '<a href="' + esc(a.actionUrl) + '" style="background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:0.62rem 1.1rem;border-radius:999px;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap">' + esc(a.actionLabel || 'Open') + ' &rarr;</a>'
+          : '';
+        el.innerHTML = '<div style="flex:1;min-width:0"><div style="font-weight:800;color:#0a1628;font-size:0.9rem">' + esc(a.title) + '</div><div style="font-size:0.8rem;color:#334155;line-height:1.45;margin-top:2px">' + esc(a.body) + '</div></div>' + btn;
+        el.style.display = 'flex';
+      } catch (e) {}
+    })();
 
     // ── Reconnect on visibility change (app returns from background) ──
     document.addEventListener('visibilitychange', async function() {

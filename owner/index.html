@@ -1240,6 +1240,7 @@
           <div style="background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:0.75rem 0.9rem;margin-bottom:0.9rem;font-size:0.76rem;color:var(--soft);line-height:1.55">
             <strong style="color:var(--text)">Manual payout process:</strong> send the exact Easer amount through the agreed external method first, then open that booking and record the confirmation reference. Recording a payout does not send money. Never store bank credentials in this dashboard.
           </div>
+          <div id="payout-adoption-card" style="display:none;background:#eff9ff;border:1px solid rgba(0,191,255,0.3);border-radius:9px;padding:0.85rem 0.9rem;margin-bottom:0.9rem;font-size:0.8rem;color:var(--soft);line-height:1.5"></div>
           <div class="finance-scroll">
             <table class="pro-table finance-table" id="ct-table">
               <thead><tr><th>Easer</th><th style="text-align:right">YTD Paid</th><th style="text-align:right">Payouts</th><th style="text-align:right">1099 Required</th></tr></thead>
@@ -2594,6 +2595,47 @@ window.intelQuick = intelQuick;
     }, extra || {});
   }
 
+  // ── Easer payout-setup adoption (Stripe Connect rollout) — fail-soft ──
+  async function loadPayoutAdoption() {
+    var card = document.getElementById('payout-adoption-card');
+    if (!card) return;
+    try {
+      var resp = await fetch('/api/owner/announcement-adoption', { headers: headers() });
+      if (!resp.ok) { card.style.display = 'none'; return; }
+      var data = await resp.json();
+      var anns = (data && data.announcements) || [];
+      if (!anns.length) { card.style.display = 'none'; return; }
+      var html = '';
+      anns.forEach(function(a) {
+        var pct = a.total > 0 ? Math.round((a.completed / a.total) * 100) : 0;
+        html += '<div style="margin-bottom:0.5rem"><strong style="color:var(--text)">' + esc(a.title) + '</strong> — '
+          + '<span style="color:var(--text);font-weight:800">' + a.completed + ' of ' + a.total + '</span> set up ('
+          + pct + '%)' + (a.pending ? ' · ' + a.pending + ' pending' : '') + '.</div>';
+        if (a.pendingEasers && a.pendingEasers.length) {
+          html += '<div style="max-height:180px;overflow:auto;border-top:1px solid rgba(0,191,255,0.2);padding-top:0.4rem;margin-top:0.3rem">';
+          a.pendingEasers.forEach(function(p) {
+            html += '<div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:center;padding:0.25rem 0;font-size:0.76rem">'
+              + '<span>' + esc(p.name || p.email || 'Easer') + '<span style="color:var(--muted)"> · ' + (p.reminderCount || 0) + ' reminder(s)</span></span>'
+              + '<button type="button" class="btn" style="padding:0.2rem 0.55rem;font-size:0.7rem" onclick="resendPayoutReminder(\'' + esc(a.key) + '\',\'' + esc(p.id) + '\',this)">Resend</button>'
+              + '</div>';
+          });
+          html += '</div>';
+        }
+      });
+      card.innerHTML = html;
+      card.style.display = '';
+    } catch (e) { card.style.display = 'none'; }
+  }
+  async function resendPayoutReminder(key, easerId, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Queued'; }
+    try {
+      await fetch('/api/owner/announcement-adoption', {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ action: 'resend', key: key, easerId: easerId }),
+      });
+    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Resend'; } }
+  }
+
   // ── Content Kit (one Blog -> ready-to-paste social posts) ──────────────
   let _ckLoaded = false;
   let _ckLast = null;
@@ -2928,6 +2970,7 @@ window.intelQuick = intelQuick;
     if (_bookingsTimer) clearInterval(_bookingsTimer);
     _bookingsTimer = setInterval(loadBookings, 60000);
     loadAssemblers();
+    loadPayoutAdoption();
     // Surface payable and held Easer earnings immediately. The owner should
     // not have to discover payout work by opening Financials first.
     loadPayoutLedger();

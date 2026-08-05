@@ -4,7 +4,7 @@ The one source of truth for tracked work. Owned by the Product Manager seat (see
 
 **Legend:** `[ ]` open · `[~]` in progress · `[x]` verified complete (shipped + validated). P0 = launch/money/security · P1 = trust/conversion/ops · P2 = polish.
 
-_Last reconciled: 2026-08-02_
+_Last reconciled: 2026-08-04_
 
 ---
 
@@ -51,6 +51,7 @@ _Last reconciled: 2026-08-02_
 
 ## Done (verified)
 
+- [x] **P0 · Easer announcement tables locked down** — migration 058 enabled RLS, revoked `anon`/`authenticated`, preserved `service_role`, and recorded schema state 57–58. Production zero-row probes return HTTP 401 publicly and HTTP 200 through the server credential. _2026-08-04._
 - [x] **P1 · Mobile — homepage pinch-zoom re-enabled** — removed `maximum-scale=1` from `index.html` viewport (was the only page of 339 blocking zoom; WCAG 1.4.4). _2026-08-02._
 - [x] **P2 · Mobile — waitlist input iOS-zoom fixed** — added `.waitlist-input` to the mobile 16px guard ([marketing.css:224](marketing.css#L224)). _2026-08-02._
 - [~] **Corrected (no change needed) · Easer field-input iOS zoom** — false alarm: `easer.css` already forces `input`/`select`/`textarea` to 16px under `@media (max-width:899px)` (lines 816–821), and all Easer pages load easer.css. No fix applied.

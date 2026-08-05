@@ -9,6 +9,29 @@ const {
   safeTokenHashMatch,
 } = await import('../api/_payment-security.js');
 const { appointmentTimestampMs, chicagoTodayIso, parseIsoCalendarDate } = await import('../api/booking/_appt-date.js');
+const { getPayoutTransferIds } = await import('../api/assembler/stripe-webhook.js');
+
+const payoutListCalls = [];
+const payoutTransferIds = await getPayoutTransferIds({
+  balanceTransactions: {
+    list(params, options) {
+      payoutListCalls.push({ params, options });
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield { type: 'transfer', source: 'tr_included_1' };
+          yield { type: 'charge', source: 'ch_unrelated' };
+          yield { type: 'transfer', source: { id: 'tr_included_2' } };
+          yield { type: 'transfer', source: 'tr_included_1' };
+        },
+      };
+    },
+  },
+}, 'po_test', 'acct_test');
+assert.deepEqual(payoutListCalls, [{
+  params: { payout: 'po_test', limit: 100 },
+  options: { stripeAccount: 'acct_test' },
+}]);
+assert.deepEqual(payoutTransferIds, ['tr_included_1', 'tr_included_2']);
 
 const booking = { id: '11111111-1111-4111-8111-111111111111', ref: 'AAE-TEST123', customer_email: 'customer@example.com' };
 const token = deriveGuestMutationToken({ bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
@@ -39,7 +62,7 @@ if (savedVercelEnv == null) delete process.env.VERCEL_ENV;
 else process.env.VERCEL_ENV = savedVercelEnv;
 
 const load = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
-const [bookingApi, confirmationApi, ownerConfirmApi, quoteApi, completeApi, assemblerCompleteApi, refundApi, payoutApi, webhookApi, migration] = await Promise.all([
+const [bookingApi, confirmationApi, ownerConfirmApi, quoteApi, completeApi, assemblerCompleteApi, refundApi, payoutApi, webhookApi, migration, announcementSecurityMigration] = await Promise.all([
   load('api/booking.js'),
   load('api/booking-confirmed.js'),
   load('api/booking/confirm.js'),
@@ -50,6 +73,7 @@ const [bookingApi, confirmationApi, ownerConfirmApi, quoteApi, completeApi, asse
   load('api/booking/payout.js'),
   load('api/assembler/stripe-webhook.js'),
   load('api/migrations/032_payment_truth_and_customer_consent.sql'),
+  load('api/migrations/058_easer_announcements_security.sql'),
 ]);
 
 // The launch tax-approval gate was intentionally removed (owner decision) so
@@ -75,8 +99,18 @@ assert.match(payoutApi, /booking\.payout_mode_snapshot !== 'manual'/, 'manual le
 assert.match(payoutApi, /This earning was assigned to Stripe Connect and cannot be recorded as a manual payout/, 'manual ledger must not impersonate Connect');
 assert.match(webhookApi, /payment_intent\.succeeded/, 'supported PaymentIntent success event must drive capture sync');
 assert.match(webhookApi, /Webhook processing failed and is retryable/, 'webhook processing failures must return retryable errors');
+assert.match(webhookApi, /balanceTransactions\.list\(\s*\{ payout: payoutId/, 'Connect bank payout reconciliation must load Stripe payout membership');
+assert.match(webhookApi, /\.in\('stripe_transfer_id', transferIds\)/, 'Connect bank payout updates must target exact Stripe transfer IDs');
+assert.match(webhookApi, /\.in\('stripe_bank_payout_status', \['pending', 'failed'\]\)/, 'a later successful bank payout must recover an earlier failed payout state');
+assert.equal((webhookApi.match(/if \(!isStripeConnectEnabled\(\)\)/g) || []).length, 3, 'all Connect webhook mutations must remain dormant while the feature flag is disabled');
+assert.equal((webhookApi.match(/reason: 'stripe_connect_disabled'/g) || []).length, 3, 'disabled Connect events must be explicitly audited as ignored');
+assert.doesNotMatch(webhookApi, /\.lte\('stripe_transfer_created_at'/, 'Connect bank payouts must not mark earnings paid by timestamp');
 assert.match(migration, /payment_status NOT IN \('captured', 'partially_refunded'\)/, 'database payout RPC must enforce captured funds');
 assert.match(migration, /p_payout_amount_cents IS DISTINCT FROM canonical_due_cents/, 'database payout RPC must enforce canonical amount');
 assert.match(migration, /stripe_bank_payout_status/, 'Connect transfer and bank payout states must be separate');
+assert.match(announcementSecurityMigration, /ALTER TABLE public\.easer_announcements ENABLE ROW LEVEL SECURITY/, 'announcement configuration must enforce RLS');
+assert.match(announcementSecurityMigration, /ALTER TABLE public\.easer_announcement_deliveries ENABLE ROW LEVEL SECURITY/, 'announcement delivery state must enforce RLS');
+assert.match(announcementSecurityMigration, /REVOKE ALL ON TABLE public\.easer_announcements FROM PUBLIC, anon, authenticated/, 'announcement configuration must not be publicly accessible');
+assert.match(announcementSecurityMigration, /REVOKE ALL ON TABLE public\.easer_announcement_deliveries FROM PUBLIC, anon, authenticated/, 'announcement delivery state must not be publicly accessible');
 
 console.log('payment-hardening-check: PASS');

@@ -206,6 +206,17 @@
     <div id="payout-preference-status" class="payout-preference-status" role="status" aria-live="polite"></div>
   </section>
 
+  <section class="payout-process-card" id="connect-payout-card" style="display:none" aria-labelledby="connect-payout-title">
+    <div class="payout-process-title" id="connect-payout-title">Get paid to your bank</div>
+    <p class="payout-process-copy" id="connect-payout-copy">Set up secure payouts so your earnings go straight to your bank account after each completed job.</p>
+    <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.6rem">
+      <button type="button" class="btn btn-teal" id="connect-setup-btn" style="min-height:44px;display:none">Set up payouts</button>
+      <button type="button" class="btn btn-outline" id="connect-manage-btn" style="min-height:44px;display:none">Manage payout account</button>
+    </div>
+    <div class="payout-preference-help" id="connect-payout-help">Your identity and bank details are entered securely on Stripe and are never stored by AssembleAtEase.</div>
+    <div id="connect-payout-status" class="payout-preference-status" role="status" aria-live="polite"></div>
+  </section>
+
   <div id="payouts-list">
     <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
     <div class="e-skeleton-card"><div class="e-skeleton" style="height:80px"></div></div>
@@ -412,6 +423,67 @@
       }
     });
 
+    // ── Stripe Connect payout setup (direct bank payouts) ──
+    // Shown only when Connect is enabled platform-wide; otherwise the manual
+    // preference card above stays visible as the fallback.
+    var connectCard = document.getElementById('connect-payout-card');
+    var manualPayoutCard = document.querySelector('.payout-process-card[aria-labelledby="payout-process-title"]');
+    function showConnectStatus(type, message) {
+      var s = document.getElementById('connect-payout-status');
+      s.className = 'payout-preference-status show ' + type;
+      s.textContent = message;
+    }
+    async function loadConnectStatus(token) {
+      try {
+        var resp = await fetch('/api/assembler/connect-status', { headers: { 'Authorization': 'Bearer ' + token } });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (!resp.ok) return;
+        if (!data.enabled) { connectCard.style.display = 'none'; return; }
+        connectCard.style.display = '';
+        if (manualPayoutCard) manualPayoutCard.style.display = 'none';
+        var setupBtn = document.getElementById('connect-setup-btn');
+        var manageBtn = document.getElementById('connect-manage-btn');
+        var copy = document.getElementById('connect-payout-copy');
+        if (data.payoutsEnabled) {
+          copy.textContent = 'Payouts are enabled. Your earnings are sent to your bank automatically after each completed job.';
+          setupBtn.style.display = 'none';
+          manageBtn.style.display = '';
+        } else {
+          copy.textContent = (data.connect && data.connect.message) || 'Set up secure payouts so your earnings go straight to your bank.';
+          setupBtn.textContent = data.accountId ? 'Finish payout setup' : 'Set up payouts';
+          setupBtn.style.display = '';
+          manageBtn.style.display = 'none';
+        }
+      } catch (e) { /* leave manual fallback visible on error */ }
+    }
+    document.getElementById('connect-setup-btn').addEventListener('click', async function() {
+      var btn = this; var t0 = btn.textContent; btn.disabled = true; btn.textContent = 'Opening Stripe…';
+      try {
+        var token = await getToken();
+        if (!token) throw new Error('Sign in again to set up payouts.');
+        var resp = await fetch('/api/assembler/connect-link', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (!resp.ok || !data.onboardingUrl) throw new Error(data.error || 'Could not start payout setup. Please try again.');
+        window.location.href = data.onboardingUrl;
+      } catch (e) {
+        showConnectStatus('error', e.message || 'Could not start payout setup.');
+        btn.disabled = false; btn.textContent = t0;
+      }
+    });
+    document.getElementById('connect-manage-btn').addEventListener('click', async function() {
+      var btn = this; var t0 = btn.textContent; btn.disabled = true; btn.textContent = 'Opening…';
+      try {
+        var token = await getToken();
+        if (!token) throw new Error('Sign in again to manage payouts.');
+        var resp = await fetch('/api/assembler/connect-login', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (!resp.ok || !data.url) throw new Error(data.error || 'Could not open payout management.');
+        window.open(data.url, '_blank', 'noopener');
+      } catch (e) {
+        showConnectStatus('error', e.message || 'Could not open payout management.');
+      } finally { btn.disabled = false; btn.textContent = t0; }
+    });
+
     var offlineBanner = document.getElementById('e-offline');
     window.addEventListener('offline', function() { if (offlineBanner) offlineBanner.classList.add('show'); });
     window.addEventListener('online', function() {
@@ -489,6 +561,7 @@
     let initialToken = await getToken();
     if (!initialToken) { window.location.href = '/auth/login.html'; return; }
     loadPayoutPreference(initialToken);
+    loadConnectStatus(initialToken);
     await refreshEarnings(true);
 
     document.addEventListener('visibilitychange', function() {

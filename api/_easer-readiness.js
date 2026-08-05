@@ -98,8 +98,11 @@ export function approvalReadinessError(readiness) {
 
 /**
  * One source of truth for whether an Easer may receive or accept jobs.
- * Manual payout mode intentionally ignores Stripe Connect. Connect mode fails
- * closed unless the connected account is verified live and has no blockers.
+ * Payout setup (Stripe Connect) does NOT gate job readiness — an approved Easer
+ * can work before finishing payout setup, and the earnings are held until their
+ * connected account is payouts-enabled (enforced at payout release, not here).
+ * Connect state is still returned (payoutSetupComplete / payoutSetupItems) to
+ * drive the payout-setup nudge.
  */
 export async function getEaserReadiness(profile = {}, options = {}) {
   const connectRequired = options.connectRequired ?? isStripeConnectEnabled();
@@ -179,16 +182,22 @@ export async function getEaserReadiness(profile = {}, options = {}) {
   if (!flags.phoneAvailable) missingItems.push('Valid 10-digit U.S. phone number on file');
   if (requireAvailability && !flags.available) missingItems.push('Online and available');
 
+  // Payout setup (Stripe Connect) does NOT block job offers. An approved Easer
+  // can receive and accept jobs before finishing payout setup; the earnings are
+  // simply held — release-payouts only transfers once the connected account is
+  // payouts-enabled. These items drive the payout-setup nudge, not readiness.
+  const payoutSetupItems = [];
   if (connectRequired) {
-    if (!connect.connectStarted) missingItems.push('Stripe Connect started');
-    if (!connect.connectVerified) missingItems.push('Stripe Connect status verified');
-    if (!connect.connectComplete) missingItems.push('Stripe Connect complete');
-    if (!connect.payoutsEnabled) missingItems.push('Stripe payouts enabled');
+    if (!connect.connectStarted) payoutSetupItems.push('Stripe Connect started');
+    if (!connect.connectVerified) payoutSetupItems.push('Stripe Connect status verified');
+    if (!connect.connectComplete) payoutSetupItems.push('Stripe Connect complete');
+    if (!connect.payoutsEnabled) payoutSetupItems.push('Stripe payouts enabled');
     if (connect.requirementsDueCount > 0) {
-      missingItems.push(`Stripe requirements due: ${connect.requirementsDueCount}`);
+      payoutSetupItems.push(`Stripe requirements due: ${connect.requirementsDueCount}`);
     }
-    if (connect.disabledReason) missingItems.push(`Stripe disabled reason: ${connect.disabledReason}`);
+    if (connect.disabledReason) payoutSetupItems.push(`Stripe disabled reason: ${connect.disabledReason}`);
   }
+  const payoutSetupComplete = !connectRequired || payoutSetupItems.length === 0;
 
   return {
     ...flags,
@@ -196,6 +205,9 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     tier,
     currentAgreementVersion: CONTRACTOR_AGREEMENT_VERSION,
     missingItems,
+    payoutSetupRequired: connectRequired,
+    payoutSetupComplete,
+    payoutSetupItems,
     isReady: missingItems.length === 0,
     finalStatus: missingItems.length === 0 ? 'READY FOR JOBS' : 'ACTION REQUIRED',
   };
