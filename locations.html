@@ -39,6 +39,7 @@
     .market-card>p,.request-card>p{color:var(--muted);line-height:1.75;font-size:.94rem}
     .city-list{display:flex;flex-wrap:wrap;gap:.55rem;margin:1.4rem 0}
     .city-list span{padding:.48rem .72rem;border-radius:999px;background:var(--cyan-light);border:1px solid rgba(0,153,204,.16);color:#075985;font-size:.8rem;font-weight:700}
+.city-tier{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan-dark);margin:1.3rem 0 -.55rem}
     .service-links{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:1.35rem}
     .service-links a{display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:46px;padding:.7rem .8rem;border:1px solid var(--border);border-radius:10px;color:var(--ink-soft);text-decoration:none;font-size:.82rem;font-weight:700;background:#fff}
     .service-links a:hover{border-color:var(--cyan);color:var(--cyan-dark)}
@@ -133,8 +134,13 @@
           <div class="market-status">Booking now</div>
           <h2>Texas statewide</h2>
           <p>Every valid Texas ZIP can complete checkout with clear pricing and secure card authorization. Central Texas is our established dispatch area; elsewhere in Texas, our team confirms an eligible local Easer before the appointment is assigned.</p>
+          <p class="city-tier">Dispatching now &middot; Central Texas</p>
           <div class="city-list" aria-label="Established Central Texas dispatch communities">
             <span>Austin</span><span>Round Rock</span><span>Cedar Park</span><span>Pflugerville</span><span>Georgetown</span><span>Leander</span><span>Buda</span><span>Kyle</span><span>Lakeway</span><span>Bee Cave</span><span>Hutto</span><span>Manor</span>
+          </div>
+          <p class="city-tier">Book statewide &middot; a local pro is confirmed for your city</p>
+          <div class="city-list" aria-label="Texas metros available with a confirmed local Easer">
+            <span>Houston</span><span>San Antonio</span><span>Dallas</span><span>Fort Worth</span><span>El Paso</span><span>Arlington</span><span>Corpus Christi</span><span>Plano</span><span>Frisco</span><span>Garland</span><span>Irving</span><span>Lubbock</span><span>Laredo</span><span>McKinney</span><span>Denton</span><span>Waco</span>
           </div>
           <div class="service-links" aria-label="Featured Texas service pages">
             <a href="/furniture-assembly-austin-tx">Furniture assembly <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></a>
