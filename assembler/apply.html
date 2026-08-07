@@ -1339,6 +1339,12 @@
 
   // -- Handle verification=complete return from Stripe Identity --
   var params = new URLSearchParams(window.location.search);
+  // Pre-fill the city when arriving from a city recruitment page (/easer-jobs-<city>-tx).
+  var cityParam = params.get('city');
+  if (cityParam) {
+    var cityInput = document.getElementById('city');
+    if (cityInput && !cityInput.value) cityInput.value = cityParam.slice(0, 60);
+  }
   if (params.get('verification') === 'complete') {
     var panel = document.getElementById('application-panel');
     if (panel) panel.style.display = 'none';

@@ -1,10 +1,10 @@
 # Page Governance Report
 
-Generated from 372 HTML pages.
+Generated from 427 HTML pages.
 
 ## Status Counts
 
-- PASS: 372
+- PASS: 427
 - WARNING: 0
 - FAIL: 0
 
@@ -24,6 +24,8 @@ Generated from 372 HTML pages.
 - owner_portal: 2
 - policy: 2
 - pricing: 1
+- recruit_city: 54
+- recruit_hub: 1
 - support: 4
 - utility: 1
 

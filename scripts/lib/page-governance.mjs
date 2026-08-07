@@ -85,6 +85,16 @@ export const PAGE_TYPE_RULES = {
     required: ['title', 'metaDescription', 'sharedCookieConsent'],
     recommended: ['canonical'],
   },
+  recruit_hub: {
+    visibility: 'public_hiring',
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'currentFacebookLink', 'sharedCookieConsent'],
+    recommended: ['bookLink', 'trackLink'],
+  },
+  recruit_city: {
+    visibility: 'public_hiring',
+    required: ['title', 'metaDescription', 'canonical', 'openGraphCore', 'currentFacebookLink', 'sharedCookieConsent'],
+    recommended: ['bookLink', 'trackLink'],
+  },
   assembler_portal: {
     visibility: 'private_assembler',
     required: ['title'],
@@ -242,6 +252,8 @@ export function classifyPage(pagePath) {
   if (path.startsWith('assembler/')) return 'assembler_portal';
   if (path === 'blog/index.html') return 'blog_index';
   if (path.startsWith('blog/')) return 'blog_article';
+  if (path === 'become-an-easer.html') return 'recruit_hub';
+  if (/^easer-jobs-[a-z-]+-tx\.html$/.test(path)) return 'recruit_city';
 
   const fileName = path.split('/').pop() || path;
   const matchedPrefix = locationServicePrefixes.find((prefix) => fileName.startsWith(`${prefix}-`) && fileName.endsWith('-tx.html'));
@@ -256,6 +268,7 @@ export function classifyPage(pagePath) {
 export function resolveGeneratorOwners(pagePath, pageType) {
   if (pageType === 'flagship_service') return ['scripts/build-flagship-service-pages.mjs'];
   if (pageType === 'city_service') return ['scripts/generate-location-pages.js', 'scripts/refresh-seo-and-promo-pages.mjs'];
+  if (pageType === 'recruit_hub' || pageType === 'recruit_city') return ['scripts/generate-easer-recruit-pages.js'];
   if (pageType === 'blog_article' || pageType === 'blog_index') return ['manual content', 'scripts/cleanup-blog-pages.mjs'];
   if (pageType === 'home' || pageType === 'pricing' || pageType === 'business' || pageType === 'booking') return ['manual core page'];
   if (pageType === 'core_marketing' || pageType === 'policy' || pageType === 'support') return ['manual marketing page'];
