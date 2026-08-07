@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 <body style="margin:0;background:#f4f7f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0d2430">
 <div style="max-width:480px;margin:0 auto;padding:28px 18px">
   <div style="background:#fff;border:1px solid #e5edf0;border-radius:14px;padding:28px 26px;text-align:center">
-    <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#0094c6">AssembleCash</p>
+    <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#0099cc">AssembleCash</p>
     <p style="margin:0 0 18px;font-size:15px;color:#5b6b73">Use this code to view or apply your AssembleCash balance:</p>
     <div style="font-size:34px;font-weight:800;letter-spacing:7px;color:#0d2430;background:#f6fafb;border:1px solid #e5edf0;border-radius:10px;padding:14px 0">${esc(code)}</div>
     <p style="margin:18px 0 0;font-size:13px;color:#73828a">This code expires in ${ASSEMBLECASH.CODE_TTL_MIN} minutes. If you didn't request it, you can ignore this email.</p>
