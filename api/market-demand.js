@@ -11,6 +11,20 @@ const US_STATE_CODES = new Set([
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
 ]);
 const ALLOWED_SOURCES = new Set(['booking_out_of_market', 'homepage_zip_checker', 'locations_page']);
+// A real person cannot read, decide, and submit this form in under a couple of
+// seconds. Bots do it instantly. Paired with the honeypot below.
+const MIN_HUMAN_FILL_MS = 2500;
+
+// Silent-drop response: shaped exactly like a real success so automated spam
+// gets no signal to adapt, but nothing is stored, emailed, or sent to the CRM.
+function botDropResponse(res) {
+  return res.status(200).json({
+    success: true,
+    requestRef: 'MR-' + Date.now().toString(36).toUpperCase() + '-' + randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(),
+    marketType: 'emerging',
+    message: 'Request received. We will contact you before scheduling or payment.',
+  });
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -18,6 +32,21 @@ export default async function handler(req, res) {
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!await rateLimit(ip, 'market-demand')) {
     return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+  }
+
+  // Bot filter — runs before any DB write, email, or CRM contact.
+  //  • Honeypot: a decoy field hidden from real users. If it has a value, a bot
+  //    auto-filled it.
+  //  • Timing: the form stamps its render time; a submit faster than a human
+  //    possibly could is a bot.
+  // Both fail OPEN — a missing/blank signal never blocks a real customer; we
+  // only drop on positive evidence of automation.
+  const body = req.body || {};
+  const honeypotTripped = String(body.company || body.website || '').trim().length > 0;
+  const formTs = Number(body.formTs);
+  const submittedTooFast = Number.isFinite(formTs) && formTs > 0 && (Date.now() - formTs) < MIN_HUMAN_FILL_MS;
+  if (honeypotTripped || submittedTooFast) {
+    return botDropResponse(res);
   }
 
   const payload = normalizeRequest(req.body || {});

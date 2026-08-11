@@ -3236,6 +3236,7 @@
 
 
         <div class="step-err" id="s5-err"></div>
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"><label>Company (leave this field blank)<input type="text" id="bk-company" tabindex="-1" autocomplete="off"/></label></div>
 
         <div class="confidence-strip" id="s5-confidence" style="display:none">
 
@@ -7614,7 +7615,8 @@ async function submitMarketDemand() {
         time: BOOK.time,
         details: BOOK.details,
         totalCents: BOOK._grandTotalCents || 0,
-        source: 'booking_out_of_market'
+        source: 'booking_out_of_market',
+        company: (document.getElementById('bk-company') || {}).value || ''
       })
     });
 

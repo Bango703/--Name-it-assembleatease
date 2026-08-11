@@ -220,6 +220,8 @@
           <h2>Request your city</h2>
           <p>Need service outside Texas? Tell us what you need. This records demand for a future market; it does not collect payment or promise an appointment.</p>
           <form id="market-request-form" novalidate>
+            <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"><label>Company (leave this field blank)<input type="text" name="company" id="market-company" tabindex="-1" autocomplete="off" /></label></div>
+            <input type="hidden" name="formTs" id="market-formts" />
             <div class="request-row">
               <div class="request-field"><label for="market-name">Name</label><input id="market-name" name="name" autocomplete="name" required /></div>
               <div class="request-field"><label for="market-email">Email</label><input id="market-email" name="email" type="email" autocomplete="email" required /></div>
@@ -316,6 +318,7 @@
 </footer>
 <script>document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());</script>
 <script>
+(function(){var _ft=document.getElementById('market-formts');if(_ft)_ft.value=Date.now();})();
 document.getElementById('market-request-form').addEventListener('submit',async function(event){
   event.preventDefault();
   var form=event.currentTarget;

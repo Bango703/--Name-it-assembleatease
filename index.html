@@ -1249,6 +1249,7 @@ section#service-area{display:block}
       </form>
       <div class="zipcheck-result" id="zip-result" role="status" aria-live="polite"></div>
       <form class="waitlist-form" id="waitlist-form" novalidate aria-label="Request service in your area">
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"><label>Company (leave this field blank)<input type="text" id="wl-company" tabindex="-1" autocomplete="off"/></label></div>
         <input class="wl-full" type="text" id="wl-name" placeholder="Full name" autocomplete="name" aria-label="Full name"/>
         <input type="email" id="wl-email" placeholder="Email" autocomplete="email" aria-label="Email"/>
         <input type="tel" id="wl-phone" placeholder="Phone" autocomplete="tel" aria-label="Phone"/>
@@ -1278,6 +1279,7 @@ section#service-area{display:block}
     var wlForm=document.getElementById('waitlist-form');
     var wlMsg=document.getElementById('wl-msg');
     var EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    var wlLoadTs=Date.now();
     // Homepage availability reads the same browser source used by booking.
     // The booking API performs the final authoritative server validation.
     function servedCity(zip){
@@ -1320,7 +1322,8 @@ section#service-area{display:block}
       var btn=wlForm.querySelector('button[type=submit]');btn.disabled=true;msg('Sending…');
       fetch('/api/market-demand',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         name:name,email:email,phone:phone,city:city,state:state,zip:wlForm.dataset.zip||'',
-        service:service||'General setup',source:'homepage_zip_checker'
+        service:service||'General setup',source:'homepage_zip_checker',
+        company:val('wl-company'),formTs:wlLoadTs
       })}).then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});}).then(function(o){
         if(o.ok&&o.d&&o.d.success){
           wlForm.innerHTML='<p class="waitlist-msg" style="color:var(--ink);font-size:0.95rem;line-height:1.6">You’re on the list. We’ll reach out before we launch near you — no payment, no obligation.</p>';
