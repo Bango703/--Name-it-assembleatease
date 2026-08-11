@@ -4,7 +4,7 @@
 // setup. Add a new required action by adding a TARGET_RULES entry + a seeded row
 // in easer_announcements — no other plumbing changes.
 
-import { isStripeConnectEnabled } from './_stripe-connect.js';
+import { isStripeConnectEnabled, refreshConnectPayoutState } from './_stripe-connect.js';
 
 // Each rule decides, from a plain profile row, whether an Easer still NEEDS the
 // action (`incomplete`) and how to bulk-select those Easers (`query`). `active`
@@ -19,11 +19,24 @@ export const TARGET_RULES = {
     },
     query(sb) {
       return sb.from('profiles')
-        .select('id, full_name, email, status, application_status, stripe_connect_payouts_enabled')
+        .select('id, full_name, email, status, application_status, stripe_connect_account_id, stripe_connect_payouts_enabled')
         .eq('role', 'assembler')
         .eq('status', 'active')
         .eq('application_status', 'approved')
         .not('stripe_connect_payouts_enabled', 'is', true);
+    },
+    // Live confirmation used by the reminder cron right before an email sends.
+    // The cached `stripe_connect_payouts_enabled` flag only refreshes when the
+    // Easer returns through the app or via webhook, so it can lag reality and nag
+    // someone whose Stripe payouts are already enabled. This re-reads the LIVE
+    // Stripe account, self-heals the cached flag, and reports whether the Easer
+    // is truly still incomplete. `verified:false` means we could not check
+    // (transient/misconfig) — the cron then skips rather than nag on uncertainty.
+    async confirmStillIncomplete(sb, profile = {}) {
+      const live = await refreshConnectPayoutState(sb, profile);
+      if (live.payoutsEnabled === true) return { stillIncomplete: false, verified: true };
+      if (live.payoutsEnabled === null) return { stillIncomplete: true, verified: false };
+      return { stillIncomplete: true, verified: true };
     },
   },
 };

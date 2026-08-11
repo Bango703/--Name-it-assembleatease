@@ -73,6 +73,24 @@ async function processAnnouncement(sb, a, counters) {
     const delivery = byEaser.get(easer.id) || null;
     if (!isReminderDue(delivery, a.reminder_days)) continue;
 
+    // Smart completion: before nagging, confirm against the LIVE source of truth
+    // (e.g. Stripe payouts_enabled) that the Easer genuinely still needs this —
+    // never email someone who already finished just because a cached flag lagged.
+    // Side effect: self-heals the cached flag, so the in-app banner clears too.
+    if (typeof rule.confirmStillIncomplete === 'function') {
+      const check = await rule.confirmStillIncomplete(sb, easer);
+      if (!check.stillIncomplete) {
+        if (delivery && !delivery.completed_at) {
+          await sb.from('easer_announcement_deliveries')
+            .update({ completed_at: nowIso, updated_at: nowIso })
+            .eq('id', delivery.id);
+        }
+        counters.completed += 1;
+        continue;
+      }
+      if (!check.verified) continue; // could not verify — don't nag on uncertainty
+    }
+
     const sent = new Set(delivery?.channels_sent || []);
     if (channels.includes('in_app')) sent.add('in_app'); // banner is always live
 

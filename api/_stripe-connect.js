@@ -1,3 +1,5 @@
+import Stripe from 'stripe';
+
 export function isStripeConnectEnabled() {
   return String(process.env.STRIPE_CONNECT_ENABLED || '').toLowerCase() === 'true';
 }
@@ -62,4 +64,47 @@ export async function getAssemblerConnectAccount(sb, assemblerId) {
     ok: true,
     accountId,
   };
+}
+
+// Retrieve the LIVE Connect account from Stripe and sync the cached capability
+// flags on the Easer's profile (same field mapping as connect-status.js). This
+// is the authoritative "is this Easer actually payouts-enabled right now?" read,
+// used where the cached flag can lag reality (e.g. the reminder cron). It is
+// self-healing: it writes the refreshed flags back so stale caches correct.
+//
+// Returns `payoutsEnabled`:
+//   true  → live Stripe confirms payouts are enabled (Easer is done)
+//   false → genuinely not enabled yet (no account, onboarding incomplete, or
+//           the account was revoked and has been reset)
+//   null  → could NOT verify (Stripe not configured / transient error); callers
+//           should treat this as "unknown" and not act on it.
+export async function refreshConnectPayoutState(sb, profile, options = {}) {
+  const accountId = normalizeStripeConnectAccountId(profile?.stripe_connect_account_id);
+  if (!accountId) {
+    return { ok: false, reason: 'missing-connect-account', payoutsEnabled: false };
+  }
+  if (!process.env.STRIPE_SECRET_KEY && !options.stripeClient) {
+    return { ok: false, reason: 'stripe-not-configured', payoutsEnabled: null };
+  }
+  try {
+    const stripe = options.stripeClient || new Stripe(process.env.STRIPE_SECRET_KEY);
+    const account = await stripe.accounts.retrieve(accountId);
+    const updates = {
+      stripe_connect_details_submitted: !!account.details_submitted,
+      stripe_connect_charges_enabled: !!account.charges_enabled,
+      stripe_connect_payouts_enabled: !!account.payouts_enabled,
+      stripe_connect_onboarding_complete: !!(account.details_submitted && account.charges_enabled && account.payouts_enabled),
+      stripe_connect_updated_at: new Date().toISOString(),
+    };
+    await sb.from('profiles').update(updates).eq('id', profile.id);
+    return { ok: true, payoutsEnabled: updates.stripe_connect_payouts_enabled };
+  } catch (err) {
+    if (isRecoverableConnectAccountError(err)) {
+      const reset = invalidConnectStateUpdate();
+      await sb.from('profiles').update(reset).eq('id', profile.id);
+      return { ok: true, reset: true, payoutsEnabled: false };
+    }
+    console.error('[refreshConnectPayoutState] retrieve failed:', err?.message || err);
+    return { ok: false, reason: 'stripe-retrieve-failed', payoutsEnabled: null };
+  }
 }
