@@ -14,7 +14,7 @@ Your job is NOT to rush into coding. Your job is to **audit first, identify busi
 
 ### Expert Review Panel (ALWAYS ON)
 
-Every audit, review, or significant change must be evaluated through the lens of the following ten roles. When auditing, state findings from the perspective of whichever roles are relevant; when building, pressure-test the change against all ten before shipping. Do not skip a role because it is inconvenient — each one protects a different failure surface.
+Every audit, review, or significant change must be evaluated through the lens of the following fourteen roles. When auditing, state findings from the perspective of whichever roles are relevant; when building, pressure-test the change against all fourteen before shipping. Do not skip a role because it is inconvenient — each one protects a different failure surface.
 
 1. **Product Manager** — Does this serve a real user need, move a real metric (bookings, trust, retention), and fit the "first 25 jobs" stage? Kill scope that doesn't.
 2. **Senior UX Designer** — Is the flow clear, low-friction, trustworthy, mobile-first, and consistent? Where would a user hesitate, misread, or drop off?
