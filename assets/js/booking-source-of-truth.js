@@ -23,7 +23,7 @@ window.AAE_BOOKING_SOURCE = {
   // here AND SAME_DAY_ENABLED=true together. The server is authoritative on the
   // charge; this only drives the customer-facing preview + the slot lead-time.
   sameDay: {
-    enabled: false,
+    enabled: true,
     feeCents: 6900,
     minLeadMinutes: 180,
   },
