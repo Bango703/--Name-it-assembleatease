@@ -4325,7 +4325,10 @@ function getDefaultPrimaryGroup(svc) {
 
 function getItemStagePath(svc) {
   if (!svc || svc === 'Other') return ['notes'];
-  var path = ['group', 'items'];
+  // Open straight into the item browser (which already shows category pills via
+  // renderSectionSwitcher). The old standalone 'group' category-card screen was a
+  // redundant extra step — removed. 'items' defaults its group via getDefaultPrimaryGroup.
+  var path = ['items'];
   if (serviceCanOfferExtras(svc)) path.push('extras');
   path.push('notes');
   return path;
@@ -4365,7 +4368,7 @@ function showItemScreen(svc, desiredStage) {
     if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
   }
 
-  BOOK.itemStage = desiredStage || (svc === 'Other' ? 'notes' : 'group');
+  BOOK.itemStage = desiredStage || (svc === 'Other' ? 'notes' : 'items');
   ensureValidItemStage(svc);
 
   document.getElementById('item-screen-heading').textContent = getDisplayServiceName(svc);
@@ -4594,7 +4597,7 @@ function buildServiceChipHtml(svc, active) {
   var displayName = getDisplayServiceName(svc);
   var countLabel = count > 0 ? (count === 1 ? '1 item' : count + ' items') : 'Open';
   return '<button type="button" class="selected-service-chip' + (active ? ' is-active' : '') + '"'
-    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service, \'' + (count > 0 ? 'items' : 'group') + '\')">'
+    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service, \'items\')">'
     + '<span>' + esc(displayName) + '</span>'
     + '<span class="selected-service-chip-count">' + esc(countLabel) + '</span>'
     + '</button>';
