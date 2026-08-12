@@ -18,6 +18,15 @@ window.AAE_BOOKING_SOURCE = {
       '78665', '78680', '78681', '78682', '78683', '78691',
     ],
   },
+  // Same-day service fee — MUST stay in sync with the server flag SAME_DAY_ENABLED
+  // and _source-of-truth.js SAME_DAY_*. To launch same-day, flip BOTH `enabled`
+  // here AND SAME_DAY_ENABLED=true together. The server is authoritative on the
+  // charge; this only drives the customer-facing preview + the slot lead-time.
+  sameDay: {
+    enabled: false,
+    feeCents: 6900,
+    minLeadMinutes: 180,
+  },
   // Room-Ready bundles — curated OUTCOMES built from existing catalog items.
   // Each `included`/`optionalAddons` entry references a real {service, name} in
   // `subcategories` below, so a bundle is priced exactly like hand-picked items —

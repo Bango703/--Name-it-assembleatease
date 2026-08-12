@@ -6,7 +6,7 @@ import { updateDealStage } from '../_hubspot.js';
 import { adjustActiveJobs } from './_active-jobs.js';
 import { logActivity } from './_activity.js';
 import { writeFinancialAudit } from '../_financial-audit.js';
-import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot } from '../_source-of-truth.js';
+import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, computeBookingSplitFromSnapshot, SALES_TAX_RATE } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
@@ -22,6 +22,22 @@ import { offlineMethodFeeCents } from '../owner/_offline-payment.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
+
+// Same-day fee is an ADDITIVE layer — it must never run through the 30/70 base
+// split. These parts EXCLUDE it from the split base (its tax cancels out exactly
+// in the subtraction, so the standard base stays penny-accurate); the fixed Easer
+// rush bonus and platform remainder are added back on top. See _source-of-truth.js.
+function sameDaySplitParts(booking) {
+  const feeCents = Math.max(0, Number(booking?.same_day_fee_cents || 0));
+  const bonusCents = Math.min(feeCents, Math.max(0, Number(booking?.same_day_easer_bonus_cents || 0)));
+  const taxCents = Math.round(feeCents * SALES_TAX_RATE);
+  return {
+    grossCents: feeCents + taxCents,      // remove from amountCharged
+    taxCents,                             // remove from taxCents
+    bonusCents,                           // add to assemblerDue
+    platformExtra: feeCents - bonusCents, // add to platformFee
+  };
+}
 
 /**
  * POST /api/booking/assembler-complete
@@ -285,12 +301,16 @@ export default async function handler(req, res) {
   // Canonical money split — tax is a pass-through liability and is EXCLUDED from
   // the fee/payout base. AssembleCash is funded by platform margin, so it must
   // never reduce the Easer's payout basis.
+  const sameDay = sameDaySplitParts(booking);
   const split = computeBookingSplitFromSnapshot({
-    amountChargedCents: finalAmount,
-    taxCents: booking.tax_amount || 0,
+    amountChargedCents: finalAmount - sameDay.grossCents,
+    taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
     feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
   });
+  // Add the same-day fee back on top of the standard split (additive layer).
+  split.platformFeeCents  += sameDay.platformExtra;
+  split.assemblerDueCents += sameDay.bonusCents;
   const PLATFORM_FEE_PCT = split.feePct;
   const platformFee      = split.platformFeeCents;
   const assemblerDue     = split.assemblerDueCents;
@@ -532,12 +552,16 @@ async function completeOfflineOwnerManualBooking(sb, res, {
 
   // Canonical split — tax is a pass-through liability, excluded from the payout
   // base, exactly like the online path. The owner-Easer earns the normal payout.
+  const sameDay = sameDaySplitParts(booking);
   const split = computeBookingSplitFromSnapshot({
-    amountChargedCents: totalCents,
-    taxCents: booking.tax_amount || 0,
+    amountChargedCents: totalCents - sameDay.grossCents,
+    taxCents: (booking.tax_amount || 0) - sameDay.taxCents,
     feePct: feeSnapshot.feePct,
     assemblecashRedeemedCents: booking.assemblecash_redeemed_cents || 0,
   });
+  // Add the same-day fee back on top of the standard split (additive layer).
+  split.platformFeeCents  += sameDay.platformExtra;
+  split.assemblerDueCents += sameDay.bonusCents;
   const now = new Date().toISOString();
 
   // This completion creates canonical earnings and payout state even though it

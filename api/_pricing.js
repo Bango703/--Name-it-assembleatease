@@ -18,7 +18,7 @@ export function getBookingCatalog() {
   return catalogCache;
 }
 
-export function calculateBookingPricing({ services, itemsByService, zip }) {
+export function calculateBookingPricing({ services, itemsByService, zip, sameDayFeeCents = 0 }) {
   const catalog = getBookingCatalog();
   const serviceSet = new Set((Array.isArray(services) ? services : []).map(cleanKey).filter(Boolean));
   const catalogByService = buildCatalogIndex(catalog);
@@ -89,7 +89,12 @@ export function calculateBookingPricing({ services, itemsByService, zip }) {
   const callZone = itemSubtotalCents > 0 ? getServiceCallZone(zip) : null;
   const serviceCallFeeCents = itemSubtotalCents > 0 ? getServiceCallFeeCents(zip) : 0;
   const normalizedServiceCallFeeCents = serviceCallFeeCents == null ? 0 : serviceCallFeeCents;
-  const taxableSubtotalCents = discountedItemSubtotalCents + normalizedServiceCallFeeCents;
+  // Same-day fee is additive and taxable, same treatment as the service-call fee.
+  // Only applies to a priced job (no upfront charge on a custom-quote-only cart).
+  const normalizedSameDayFeeCents = itemSubtotalCents > 0
+    ? Math.max(0, Math.round(Number(sameDayFeeCents) || 0))
+    : 0;
+  const taxableSubtotalCents = discountedItemSubtotalCents + normalizedServiceCallFeeCents + normalizedSameDayFeeCents;
   const taxCents = Math.round(taxableSubtotalCents * TX_TAX_RATE);
   const totalCents = taxableSubtotalCents + taxCents;
 
@@ -100,6 +105,7 @@ export function calculateBookingPricing({ services, itemsByService, zip }) {
     discountedItemSubtotalCents,
     taxableSubtotalCents,
     serviceCallFeeCents: normalizedServiceCallFeeCents,
+    sameDayFeeCents: normalizedSameDayFeeCents,
     callZone,
     taxCents,
     totalCents,

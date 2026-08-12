@@ -3621,7 +3621,9 @@ function isPublishedSlotAvailable(isoDate, slot) {
   if (slotIndex < 0 || weekday === 0 || (weekday === 6 && slotIndex >= 3)) return false;
   if (isoDate === todayIso) {
     var startMinutes = getSlotStartMinutes(slot);
-    if (startMinutes == null || startMinutes <= getChicagoMinutesNow()) return false;
+    var sdCfg = (window.AAE_BOOKING_SOURCE && window.AAE_BOOKING_SOURCE.sameDay) || {};
+    var leadMin = sdCfg.enabled ? Math.max(0, Number(sdCfg.minLeadMinutes || 0)) : 0;
+    if (startMinutes == null || startMinutes <= getChicagoMinutesNow() + leadMin) return false;
   }
   return true;
 }
@@ -3843,6 +3845,7 @@ function getLocalPricingPreview(snapshot) {
     itemSubtotalCents: centsFromDollars(snapshot.itemSubtotal),
     bundleDiscountCents: centsFromDollars(snapshot.discountAmount),
     serviceCallFeeCents: centsFromDollars(snapshot.serviceCallFee),
+    sameDayFeeCents: centsFromDollars(snapshot.sameDayFee),
     taxCents: centsFromDollars(snapshot.taxAmount),
     totalCents: centsFromDollars(snapshot.grandTotal),
     hasCustomQuote: !!snapshot.hasCustom,
@@ -3879,6 +3882,17 @@ function renderStep5OrderTotal() {
   var promoDiscountCents = promoApplied ? Math.max(0, Number(promoState.promo.discountCents || 0)) : 0;
   var assemblecashAppliedCents = promoState && promoState.assemblecash ? Math.max(0, Number(promoState.assemblecash.appliedCents || 0)) : 0;
   var pricing = promoState ? promoState.pricing : localPricing;
+  // Same-day fee is additive and client-known; ensure it shows on the promo path
+  // too (the server preview may omit it). The server stays authoritative at submit.
+  if (localPricing.sameDayFeeCents > 0 && !(pricing.sameDayFeeCents > 0)) {
+    var sdFeeCents = localPricing.sameDayFeeCents;
+    var sdTaxCents = Math.round(sdFeeCents * 0.0825);
+    pricing = Object.assign({}, pricing, {
+      sameDayFeeCents: sdFeeCents,
+      taxCents: (Number(pricing.taxCents) || 0) + sdTaxCents,
+      totalCents: (Number(pricing.totalCents) || 0) + sdFeeCents + sdTaxCents
+    });
+  }
   var itemsBlock = buildStep5ItemLinesHtml();
 
   BOOK._discountPct = snapshot.bundle.pct;
@@ -3904,12 +3918,16 @@ function renderStep5OrderTotal() {
   var callFeeLineHtml = pricing.serviceCallFeeCents > 0
     ? '<div class="booking-money-row"><span>Service call fee</span><span>' + dollars(pricing.serviceCallFeeCents / 100) + '</span></div>'
     : '';
+  var sameDayLineHtml = pricing.sameDayFeeCents > 0
+    ? '<div class="booking-money-row"><span>Same-day service<br><small style="color:var(--muted);font-weight:400">Priority scheduling &mdash; you booked for today</small></span><span>' + dollars(pricing.sameDayFeeCents / 100) + '</span></div>'
+    : '';
   var taxLineHtml = pricing.totalCents > 0
     ? '<div class="booking-money-row"><span>Subtotal</span><span>' + dollars(pricing.itemSubtotalCents / 100) + '</span></div>'
       + discountLineHtml
       + promoLineHtml
       + assemblecashLineHtml
       + callFeeLineHtml
+      + sameDayLineHtml
       + '<div class="booking-money-row"><span>Sales tax (8.25%)</span><span>' + dollars(pricing.taxCents / 100) + '</span></div>'
     : '';
   var totalDisplay = itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0
@@ -3961,7 +3979,10 @@ function getPricingSnapshot(zip) {
   var discountedSubtotal = Math.max(0, Math.round((itemSubtotal - discountAmount) * 100) / 100);
   var zoneInfo = getServiceCallZoneInfo(zip);
   var serviceCallFee = itemSubtotal > 0 && zoneInfo ? zoneInfo.fee : 0;
-  var taxableSubtotal = Math.round((discountedSubtotal + serviceCallFee) * 100) / 100;
+  var sameDayCfg = (window.AAE_BOOKING_SOURCE && window.AAE_BOOKING_SOURCE.sameDay) || {};
+  var sameDayApplies = !!sameDayCfg.enabled && itemSubtotal > 0 && !!BOOK.date && BOOK.date === getChicagoTodayIso();
+  var sameDayFee = sameDayApplies ? (Number(sameDayCfg.feeCents || 0) / 100) : 0;
+  var taxableSubtotal = Math.round((discountedSubtotal + serviceCallFee + sameDayFee) * 100) / 100;
   var taxAmount = Math.round(taxableSubtotal * 0.0825 * 100) / 100;
   var grandTotal = Math.round((taxableSubtotal + taxAmount) * 100) / 100;
 
@@ -3978,6 +3999,7 @@ function getPricingSnapshot(zip) {
     discountedSubtotal: discountedSubtotal,
     zoneInfo: zoneInfo,
     serviceCallFee: serviceCallFee,
+    sameDayFee: sameDayFee,
     taxableSubtotal: taxableSubtotal,
     taxAmount: taxAmount,
     grandTotal: grandTotal

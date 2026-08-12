@@ -5,7 +5,7 @@ import { rateLimit } from './_ratelimit.js';
 import { sendEmail, ownerEmail, esc } from './_email.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
-import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip } from './_source-of-truth.js';
+import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip, sameDayFeeForAppointment, SAME_DAY_EASER_BONUS_CENTS, SAME_DAY_MIN_LEAD_MINUTES } from './_source-of-truth.js';
 import {
   applyPromotionToPricing,
   isMissingColumnError,
@@ -102,6 +102,10 @@ export default async function handler(req, res) {
     });
   }
   const scheduledAuthorization = !quoteRequested && needsScheduledAuthorization(date);
+  // Same-day service fee — server-authoritative, decided from the appointment date
+  // (never the browser). Non-zero only when the feature is enabled AND the date is
+  // today in America/Chicago. It is additive and never enters the 30/70 split.
+  const sameDayFeeCentsForDate = sameDayFeeForAppointment(date);
 
   const weekday = requestedDate.getUTCDay();
   const weekdaySlots = [
@@ -122,6 +126,16 @@ export default async function handler(req, res) {
   if (appointmentMs == null || appointmentMs <= Date.now()) {
     return res.status(400).json({ error: 'That appointment time has already passed. Please choose a later time.' });
   }
+  // Same-day bookings need real lead time so the job can actually be staffed —
+  // closes the "book a slot starting in 30 minutes" gap. Quote requests are exempt
+  // (owner-reviewed, not instantly dispatched).
+  if (sameDayFeeCentsForDate > 0 && !quoteRequested
+      && (appointmentMs - Date.now()) < SAME_DAY_MIN_LEAD_MINUTES * 60000) {
+    return res.status(400).json({
+      error: `Same-day appointments need at least ${Math.round(SAME_DAY_MIN_LEAD_MINUTES / 60)} hours' notice. Please pick a later time today or the next available day.`,
+      code: 'SAME_DAY_LEAD_TIME',
+    });
+  }
 
   const KEY = process.env.RESEND_API_KEY;
   const TO  = ownerEmail();
@@ -140,7 +154,7 @@ export default async function handler(req, res) {
 
   // ── Supabase: save booking ──────────────────────────────────
   const sb = getSupabase();
-  const pricing = calculateBookingPricing({ services: serviceList, itemsByService: items, zip });
+  const pricing = calculateBookingPricing({ services: serviceList, itemsByService: items, zip, sameDayFeeCents: sameDayFeeCentsForDate });
   if (pricing.invalidItems.length) {
     return res.status(400).json({
       error: 'Some selected services are no longer available. Please refresh and try again.',
@@ -163,6 +177,10 @@ export default async function handler(req, res) {
   let taxableSubtotalCents = pricingWithPromo.taxableSubtotalCents;
   let taxCents = pricingWithPromo.taxCents;
   const serviceCallFeeCents = pricingWithPromo.serviceCallFeeCents;
+  // Applied same-day fee (0 on a custom-quote-only cart) and the fixed rush bonus
+  // the fulfiller earns from it. The business keeps the remainder.
+  const appliedSameDayFeeCents = Math.max(0, Number(pricingWithPromo.sameDayFeeCents || 0));
+  const sameDayEaserBonusCents = appliedSameDayFeeCents > 0 ? SAME_DAY_EASER_BONUS_CENTS : 0;
   const pricedBooking = amount > 0 && !quoteRequested;
   const shouldAuthorizeNow = pricedBooking && !scheduledAuthorization;
   let verifiedQuotePaymentMethodId = null;
@@ -278,7 +296,7 @@ export default async function handler(req, res) {
             marginFloorCents: minBookingCents || 0,
           });
           const refreshedAdjustedSubtotal = Math.max(0, pricingWithPromo.promoAdjustedItemSubtotalCents - refreshedRedeem);
-          const refreshedTaxableSubtotal = refreshedAdjustedSubtotal + serviceCallFeeCents;
+          const refreshedTaxableSubtotal = refreshedAdjustedSubtotal + serviceCallFeeCents + appliedSameDayFeeCents;
           const refreshedTax = Math.round(refreshedTaxableSubtotal * TX_TAX_RATE);
           const refreshedTotal = refreshedTaxableSubtotal + refreshedTax;
           return res.status(409).json({
@@ -308,7 +326,7 @@ export default async function handler(req, res) {
           });
         }
         const acAdjustedSubtotal = Math.max(0, pricingWithPromo.promoAdjustedItemSubtotalCents - reservedRedeem);
-        taxableSubtotalCents = acAdjustedSubtotal + serviceCallFeeCents;
+        taxableSubtotalCents = acAdjustedSubtotal + serviceCallFeeCents + appliedSameDayFeeCents;
         taxCents = Math.round(taxableSubtotalCents * TX_TAX_RATE);
         amount = taxableSubtotalCents + taxCents;
         assemblecashRedeemedCents = reservedRedeem;
@@ -346,6 +364,8 @@ export default async function handler(req, res) {
     total_price: amount,
     tax_amount: taxCents,
     service_call_fee: serviceCallFeeCents,
+    same_day_fee_cents: appliedSameDayFeeCents,
+    same_day_easer_bonus_cents: sameDayEaserBonusCents,
     call_zone: pricingWithPromo.callZone,
     dispatch_paused: scheduledAuthorization,
     needs_manual_dispatch: requiresOwnerAssignment,
@@ -376,6 +396,12 @@ export default async function handler(req, res) {
   if (insertErr && isMissingColumnError(insertErr) && /promo_|assemblecash|bundle_slug/i.test(String(insertErr.message || ''))) {
     const { promo_code, promo_discount_cents, assemblecash_redeemed_cents, bundle_slug, ...legacyBookingInsertPayload } = activeBookingInsertPayload;
     activeBookingInsertPayload = legacyBookingInsertPayload;
+    ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
+  }
+
+  if (insertErr && isMissingColumnError(insertErr) && /same_day_/i.test(String(insertErr.message || ''))) {
+    const { same_day_fee_cents, same_day_easer_bonus_cents, ...withoutSameDay } = activeBookingInsertPayload;
+    activeBookingInsertPayload = withoutSameDay;
     ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
   }
 

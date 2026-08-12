@@ -183,7 +183,10 @@ export function applyPromotionToPricing(pricing, promo) {
     Math.max(0, Number(pricing?.discountedItemSubtotalCents || 0)) - promoDiscountCents,
   );
   const serviceCallFeeCents = Math.max(0, Number(pricing?.serviceCallFeeCents || 0));
-  const taxableSubtotalCents = promoAdjustedItemSubtotalCents + serviceCallFeeCents;
+  // Same-day fee is additive and not discountable — carry it through the promo
+  // recompute exactly like the service-call fee, or it would vanish after a promo.
+  const sameDayFeeCents = Math.max(0, Number(pricing?.sameDayFeeCents || 0));
+  const taxableSubtotalCents = promoAdjustedItemSubtotalCents + serviceCallFeeCents + sameDayFeeCents;
   const taxCents = Math.round(taxableSubtotalCents * TX_TAX_RATE);
   const totalCents = taxableSubtotalCents + taxCents;
 
@@ -216,6 +219,7 @@ export function buildPromotionPreviewPayload(pricingWithPromo, promo) {
       itemSubtotalCents: Math.max(0, Number(pricingWithPromo?.itemSubtotalCents || 0)),
       bundleDiscountCents: Math.max(0, Number(pricingWithPromo?.discountCents || 0)),
       serviceCallFeeCents: Math.max(0, Number(pricingWithPromo?.serviceCallFeeCents || 0)),
+      sameDayFeeCents: Math.max(0, Number(pricingWithPromo?.sameDayFeeCents || 0)),
       taxCents: Math.max(0, Number(pricingWithPromo?.taxCents || 0)),
       totalCents: Math.max(0, Number(pricingWithPromo?.totalCents || 0)),
       hasCustomQuote: !!pricingWithPromo?.hasCustomQuote,

@@ -11,6 +11,7 @@ import {
   ACTIVE_BOOKING_STATUSES,
   VISIBLE_ASSIGNMENT_STATUSES,
   computeBookingSplitFromSnapshot,
+  SALES_TAX_RATE,
 } from '../_source-of-truth.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
@@ -34,6 +35,8 @@ const SAFE_OFFER_CITIES = new Map([
 
 const INTERNAL_FINANCIAL_FIELDS = [
   'amount_charged',
+  'same_day_fee_cents',
+  'same_day_easer_bonus_cents',
   'platform_fee',
   'platform_fee_pct',
   'payment_status',
@@ -139,7 +142,7 @@ export default async function handler(req, res) {
   // ── 1. Bookings assigned to this Easer ──────────────────────────────────
   let query = sb
     .from('bookings')
-    .select('id, ref, source, service, customer_name, customer_phone, customer_email, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot')
+    .select('id, ref, source, service, customer_name, customer_phone, customer_email, date, time, return_visit_required, return_visit_date, return_visit_time, return_visit_completed_scope, return_visit_remaining_scope, address, details, status, assigned_at, assembler_accepted_at, completed_at, cancelled_at, checked_in_at, en_route_at, job_started_at, assembler_due, amount_charged, platform_fee, platform_fee_pct, payment_status, refund_amount, refunded_at, payout_status, payout_mode_snapshot, payout_review_status, paid_out_at, payout_notes, stripe_transfer_status, stripe_transfer_created_at, stripe_bank_payout_status, stripe_bank_payout_paid_at, assignment_token, total_price, tax_amount, assemblecash_redeemed_cents, evidence_requested_at, cancellation_fee, cancellation_easer_due_cents, cancellation_easer_payout_status, easer_fee_snapshot_easer_id, easer_fee_pct_snapshot, easer_estimated_due_snapshot, same_day_fee_cents, same_day_easer_bonus_cents')
     .eq('assembler_id', user.id)
     .order('assigned_at', { ascending: false });
 
@@ -337,19 +340,26 @@ export default async function handler(req, res) {
     }
     const price = Number(b.amount_charged || b.total_price) || 0;
     if (price > 0) {
+      // Same-day fee is additive — exclude it from the 30/70 base and add the
+      // fixed rush bonus, exactly like completion, so the ESTIMATE matches PAYOUT.
+      const sdFee = Math.max(0, Number(b.same_day_fee_cents || 0));
+      const sdBonus = Math.min(sdFee, Math.max(0, Number(b.same_day_easer_bonus_cents || 0)));
+      const sdTax = Math.round(sdFee * SALES_TAX_RATE);
+      const rawCharged = b.amount_charged != null ? Number(b.amount_charged) : Number(b.total_price || 0);
       // Canonical split (tax excluded) — must match the completion payout exactly.
       const split = computeBookingSplitFromSnapshot({
-        amountChargedCents: b.amount_charged,
-        totalPriceCents: b.total_price,
-        taxCents: b.tax_amount || 0,
+        amountChargedCents: rawCharged - (sdFee + sdTax),
+        taxCents: (b.tax_amount || 0) - sdTax,
         isMember: easerIsMember,
         feePct: b.easer_fee_snapshot_easer_id === user.id
           ? b.easer_fee_pct_snapshot
           : null,
         assemblecashRedeemedCents: b.assemblecash_redeemed_cents || 0,
       });
-      b._pay_estimate_lo = split.assemblerDueCents;
-      b._pay_estimate_hi = split.assemblerDueCents;
+      const estimateDue = split.assemblerDueCents + sdBonus;
+      b._pay_estimate_lo = estimateDue;
+      b._pay_estimate_hi = estimateDue;
+      if (sdBonus > 0) b._same_day_bonus_cents = sdBonus;
     } else if (b.total_price === 0 || b.total_price === null) {
       b._custom_quote = true; // signal to UI: price TBD
     }

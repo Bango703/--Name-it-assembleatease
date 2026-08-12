@@ -117,6 +117,40 @@ export function normalizePlatformFeePct(feePct, isMember = false) {
 // the exact server-calculated tax in bookings.tax_amount.
 export const SALES_TAX_RATE = 0.0825;
 
+// ── Same-day service fee ─────────────────────────────────────────────────────
+// A premium the customer pays when the appointment is TODAY. It is an ADDITIVE
+// layer: it NEVER enters computeBookingSplit's 30/70 base. Of the fee the Easer
+// receives a fixed rush bonus and the business keeps the remainder; both are
+// stored on the booking (same_day_fee_cents, same_day_easer_bonus_cents).
+export const SAME_DAY_FEE_CENTS = 6900;          // $69.00 charged to the customer
+export const SAME_DAY_EASER_BONUS_CENTS = 3000;  // $30.00 rush bonus to the fulfiller
+export const SAME_DAY_MIN_LEAD_MINUTES = 180;    // a today slot must start >= 3h from now
+
+export function isSameDayServiceEnabled() {
+  return String(process.env.SAME_DAY_ENABLED || '').toLowerCase() === 'true';
+}
+
+// yyyy-mm-dd for "today" in America/Chicago (the booking service timezone).
+export function chicagoDateIso(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
+}
+
+// True when the appointment's calendar date is today in America/Chicago.
+export function isSameDayAppointment(isoDate, now = new Date()) {
+  return typeof isoDate === 'string' && isoDate.slice(0, 10) === chicagoDateIso(now);
+}
+
+// Server-authoritative same-day fee for an appointment: full fee only when the
+// feature is enabled AND the date is today; otherwise 0. The browser never sets
+// this — the server decides from the appointment date.
+export function sameDayFeeForAppointment(isoDate, now = new Date()) {
+  return isSameDayServiceEnabled() && isSameDayAppointment(isoDate, now)
+    ? SAME_DAY_FEE_CENTS
+    : 0;
+}
+
 /**
  * THE canonical money split for a priced booking. Every surface — completion,
  * payout, dashboard, estimate, email — must derive earnings from this so the

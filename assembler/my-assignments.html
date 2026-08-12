@@ -561,7 +561,7 @@
             '<div class="e-job-card-title">' + esc(b.service || 'Service') + '</div>' +
             '<div class="e-job-card-sub">' + (b.customer_name && b.assembler_accepted_at ? 'for ' + esc(customerName) : '') + (scheduleDate ? (b.assembler_accepted_at ? ' &bull; ' : '') + (b.return_visit_required ? 'Return ' : '') + formatDate(scheduleDate) + (scheduleTime ? ' at ' + esc(scheduleTime) : '') : '') + '</div>' +
           '</div>' +
-          (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small></div>' : '') +
+          (payStr && isPendingOffer ? '<div class="e-job-card-pay">' + payStr + '<small>Est. Payout</small>' + (b._same_day_bonus_cents > 0 ? '<small style="color:#059669;font-weight:700">incl. ' + formatMoneyCents(b._same_day_bonus_cents) + ' same-day bonus</small>' : '') + '</div>' : '') +
           (!isPendingOffer ? '<span class="sb ' + stageMeta.cls + '">' + stageMeta.label + '</span>' : '') +
         '</div>' +
         (b.assembler_accepted_at && b.address && !isCompleted ? '<div class="e-job-card-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.address) + '</div>' : '') +
