@@ -894,6 +894,10 @@
     /* -- Form fields -- */
 
     .form-fields { display: flex; flex-direction: column; gap: 1.1rem; }
+    /* Address-first in the schedule step: the ZIP determines serviceability, so
+       ask "where" before "when". form-fields is already flex-column, so a scoped
+       order rule reorders it without moving markup or touching any IDs/JS. */
+    #step-3 .address-card { order: -1; margin-top: 0 !important; }
 
     .form-group { display: flex; flex-direction: column; }
 
@@ -2850,9 +2854,9 @@
 
       <div class="step-panel hidden" id="step-3">
 
-        <div class="step-heading">When &amp; where</div>
+        <div class="step-heading">Where &amp; when</div>
 
-        <p class="step-sub">Choose a date, time, and service address.</p>
+        <p class="step-sub">Enter your service address, then pick a date and time.</p>
 
         <div class="job-plan-card" id="job-plan-preview" aria-live="polite"></div>
 
@@ -3151,18 +3155,20 @@
         </div>
 
         <div class="promo-box" id="s5-ac-box" style="margin-top:0">
-          <label class="promo-label">Have AssembleCash?</label>
-          <div id="s5-ac-step1">
-            <p style="font-size:0.82rem;color:var(--ink-soft);margin:0 0 0.5rem;line-height:1.45">Apply credit you earned on past jobs. We&rsquo;ll email a one-time code to confirm it&rsquo;s you.</p>
-            <button type="button" class="promo-apply" id="s5-ac-reqbtn" onclick="acCheckoutRequest()" style="width:100%">Email me a code</button>
-          </div>
-          <div id="s5-ac-step2" style="display:none">
-            <div class="promo-row">
-              <input type="text" class="promo-input" id="s5-ac-code" inputmode="numeric" maxlength="6" placeholder="6-digit code" oninput="this.value=this.value.replace(/\D/g,'')" />
-              <button type="button" class="promo-apply" id="s5-ac-applybtn" onclick="acCheckoutVerify()">Apply</button>
+          <button type="button" id="s5-ac-toggle" onclick="var w=document.getElementById('s5-ac-collapse');var isOpen=w.style.display==='none';w.style.display=isOpen?'':'none';this.setAttribute('aria-expanded',isOpen);" aria-expanded="false" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;color:var(--teal);font-weight:700;font-size:0.85rem;-webkit-tap-highlight-color:transparent">Have AssembleCash? Apply credit &rarr;</button>
+          <div id="s5-ac-collapse" style="display:none;margin-top:0.6rem">
+            <div id="s5-ac-step1">
+              <p style="font-size:0.82rem;color:var(--ink-soft);margin:0 0 0.5rem;line-height:1.45">Apply credit you earned on past jobs. We&rsquo;ll email a one-time code to confirm it&rsquo;s you.</p>
+              <button type="button" class="promo-apply" id="s5-ac-reqbtn" onclick="acCheckoutRequest()" style="width:100%">Email me a code</button>
             </div>
+            <div id="s5-ac-step2" style="display:none">
+              <div class="promo-row">
+                <input type="text" class="promo-input" id="s5-ac-code" inputmode="numeric" maxlength="6" placeholder="6-digit code" oninput="this.value=this.value.replace(/\D/g,'')" />
+                <button type="button" class="promo-apply" id="s5-ac-applybtn" onclick="acCheckoutVerify()">Apply</button>
+              </div>
+            </div>
+            <div class="promo-status" id="s5-ac-status"></div>
           </div>
-          <div class="promo-status" id="s5-ac-status"></div>
         </div>
         <script>
         window.acCheckoutRequest = async function(){
@@ -3261,7 +3267,7 @@
         </p>
         <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
           <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
-          <span>I understand that used or previously assembled items may have pre-existing wear that can affect reassembly. I agree to the <a href="/terms" target="_blank" style="color:var(--teal)">Terms</a>, including the item-condition and safe-use provisions.</span>
+          <span>I agree to the <a href="/terms" target="_blank" style="color:var(--teal)">Terms</a>, including the item-condition, reassembly, and safe-use provisions.</span>
         </label>
 
         <div class="step-actions">
