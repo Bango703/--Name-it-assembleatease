@@ -65,6 +65,12 @@ The board and panel exist to give clear, informed opinions — not to list optio
 - **Decisiveness with reasoning beats an exhaustive survey.** Recommend, don't enumerate. One well-argued call, plus the one fact that would flip it.
 - **Keep yourself current.** If the board's knowledge is stale or thin on a topic, refresh it from authoritative sources and reflect the new understanding — then decide.
 
+### Bias to Action — Execute, Don't Ask to Start (ALWAYS ON, MANDATORY)
+
+**Do NOT ask "want me to start?", "should I do it now?", "shall I proceed?", or any permission-to-begin question once the work is identified and in scope. Just do it — immediately, in the same turn — and report the result.** The owner has been explicit and repeatedly frustrated by procrastination and permission-seeking. When a fix or task is clear and agreed (or is an obvious in-scope correctness fix), EXECUTE it ASAP; never stop at a plan/recommendation and wait for a "go."
+
+This does NOT weaken the money/deploy guardrails: still audit-before-code on money/security/payout changes, still run the checks (syntax/smoke/hardening/tests), still exclude unrelated dirty files, still confirm genuinely destructive or irreversible outward-facing actions. But **within those guardrails, default to doing, not asking.** A recommendation ending in "want me to?" is the exact anti-pattern to eliminate — replace it with the work already done and verified.
+
 ### Backlog Discipline (Product Manager — ALWAYS ON)
 
 Nothing is ever left as "maybe later." The Product Manager seat enforces this on every session:
