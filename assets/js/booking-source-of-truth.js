@@ -185,8 +185,7 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Add-ons', items: [
         { name: 'Furniture disposal (per piece)', price: 49, addon: true, tags: ['convenience'], recoLabel: 'Haul away old furniture', recoWhy: 'We take the old piece' },
         { name: 'Move to another room (per piece)', price: 35, addon: true, tags: ['convenience'], recoLabel: 'Move it to another room', recoWhy: 'Placed exactly where you want' },
-        { name: 'Broken hardware repair / replacement', price: 39, addon: true },
-        { name: 'Rush / same-day assembly', price: 55, addon: true }
+        { name: 'Broken hardware repair / replacement', price: 39, addon: true }
       ]}
     ],
     'Mounting & Hanging': [
@@ -341,7 +340,6 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Add-ons', items: [
         { name: 'Anchoring / leveling / safety hardware', price: 99, addon: true, tags: ['safety'], appliesTo: ['playset','swing','trampoline','basketball','hoop','climbing','monkey','pergola','gazebo','shed','sandbox','playhouse'], recoLabel: 'Anchoring & leveling', recoWhy: 'Stable, level, safe install' },
         { name: 'Disassembly only (customer handles transport)', price: 119, addon: true },
-        { name: 'Same-day / rush outdoor assembly', price: 99, addon: true },
         { name: 'Heavy-duty material haul-away', price: 109, addon: true, tags: ['convenience'], recoLabel: 'Haul away packaging', recoWhy: 'No boxes left behind' }
       ]}
     ],
@@ -372,7 +370,6 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Monitor arm install (desk clamp)', price: 39, addon: true, tags: ['upgrade'], recoLabel: 'Add a monitor arm', recoWhy: 'Better ergonomics and more desk space' },
         { name: 'Wall anchoring / anti-tip hardware', price: 45, addon: true, tags: ['safety'], appliesTo: ['bookcase','shelving','file cabinet','storage','credenza','wall-mounted','cabinet'], recoLabel: 'Anti-tip anchoring', recoWhy: 'Secures tall units to the wall' },
         { name: 'Box breakdown / packaging cleanup', price: 35, addon: true, tags: ['convenience'], recoLabel: 'Box & packaging cleanup', recoWhy: 'No mess left behind' },
-        { name: 'Rush / same-day office assembly', price: 75, addon: true },
         { name: 'Furniture disposal / haul-away', price: 59, addon: true }
       ]}
     ],
@@ -397,8 +394,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Disassembly before move or storage', price: 65, addon: true },
         { name: 'Equipment move within home (same floor)', price: 55, addon: true },
         { name: 'Floor leveling / placement support', price: 45, addon: true, tags: ['safety'], recoLabel: 'Level and place it', recoWhy: 'Better stability before first use' },
-        { name: 'Safety anchoring / wall securing', price: 55, addon: true, tags: ['safety'], appliesTo: ['rack','squat','home gym','cable machine','multi-station'], recoLabel: 'Safety anchoring', recoWhy: 'Secures heavy equipment safely' },
-        { name: 'Same-day / rush fitness assembly', price: 85, addon: true }
+        { name: 'Safety anchoring / wall securing', price: 55, addon: true, tags: ['safety'], appliesTo: ['rack','squat','home gym','cable machine','multi-station'], recoLabel: 'Safety anchoring', recoWhy: 'Secures heavy equipment safely' }
       ]}
     ],
     'Other': [

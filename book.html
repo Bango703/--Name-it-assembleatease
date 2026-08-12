@@ -3216,7 +3216,7 @@
 
         <div class="auth-note" style="margin-top:0.85rem;background:#f0f9ff;border:1px solid #bae6fd">
           <span class="auth-note-icon"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:var(--teal-dark)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span>
-          <div><strong>Free cancellation up to 24 hours before your appointment.</strong> After that a 10% fee applies (15% once a pro is on the way) &mdash; on the service price only, never tax, and never the full amount.</div>
+          <div><strong>Free cancellation up to 24 hours before your appointment.</strong> After that, a small fee applies (10%, or 15% once a pro is on the way) &mdash; on the service price only, never tax.</div>
         </div>
 
 
@@ -5731,7 +5731,7 @@ function renderJobPlanCards() {
       + '<div class="job-plan-meta-item"><span>Appointment</span><strong>' + esc(appointment) + '</strong></div>'
       + '<div class="job-plan-meta-item"><span>Service address</span><strong>' + esc(BOOK.address || 'Address not saved yet') + '</strong></div>'
       + '</div>'
-      + '<div class="job-plan-note">You can still go back and adjust the plan. The server confirms the exact price and availability before the booking is submitted.</div>';
+      + '<div class="job-plan-note">You can still go back and adjust the plan. We&rsquo;ll verify the final price and availability before your booking is confirmed.</div>';
     ready.classList.add('show');
   }
 }
@@ -7084,7 +7084,7 @@ function saveContactEdit() {
 
     var firstRec = timesEl.querySelector('.dt-time-btn:not([disabled])');
 
-    if (firstRec) { firstRec.innerHTML += '<span class="slot-rec">Recommended</span>'; }
+    if (firstRec) { firstRec.innerHTML += '<span class="slot-rec">Earliest available</span>'; }
 
   }
 
