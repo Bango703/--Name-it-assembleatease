@@ -32,6 +32,17 @@ _Last reconciled: 2026-08-05_
 
 ## Mobile (P1 — 90% of traffic)
 
+- [~] **P1 · Booking-flow audit (external, verified) — friction/UX pass** _(UX, CPO, Growth)_ — audit rated the flow 8/10; architecture good, but too long/dense on mobile. **DONE + pushed:** removed 4 duplicate "rush/same-day" add-ons (collided with the automatic $69 same-day fee — double-charge risk), "the server confirms…"→"we'll verify…", slot badge "Recommended"→"Earliest available", tightened cancellation line, per-service running subtotal on the item rows. **Remaining:**
+  - **Step 2 reorder → ADDRESS first, then date/time** — ZIP determines serviceability; don't let someone pick a date then find their ZIP isn't served. (audit's biggest structural call)
+  - **Remove the redundant category-card screen** — open straight into item pills (removes a whole interaction).
+  - **Consolidate the Notes screen** into the extras step (one fewer click).
+  - **AssembleCash secondary** — collapse the giant full-width CTA into a "Have AssembleCash? Apply credit →" link so it stops competing with card→confirm.
+  - **Conditional consent (real trust ding)** — the "used/previously-assembled items may have wear" mandatory checkbox shows even for NEW furniture. Only surface it for used/reassembly/move/customer-supplied jobs; standard Terms otherwise. Touches mandatory consent — design carefully (General Counsel).
+  - **Rename "Service call fee"** only if a clearer name is accurate to what it covers.
+- [ ] **P2 · "server" dev-jargon sweep** _(UX)_ — same language on apply.html ("The server currently confirms no application fee"). Replace platform-internal wording with customer/Easer language sitewide.
+- [ ] **P2 · Confirm TX taxability of the service-call + same-day fees with a CPA** _(VP Finance, General Counsel)_ — code taxes the $5 service-call fee (and $69 same-day) inside the taxable subtotal; internally consistent and likely correct (labor on TPP), but get the per-service ruling.
+
+
 - [ ] **P1 · Homepage "double-talk": value props repeated 4–7× ** _(UX, Growth, CPO)_ — "Upfront pricing", "reviewed local pros", and "pay after completion" each recur across the hero, the "Why choose" band, trust items, every service card, how-it-works, and FAQ (grep-confirmed on `index.html`). On mobile you scroll the same three promises repeatedly across 9+ sections → the "double-talk / gotta-scroll / not friendly" the owner reported. Violates the existing no-repeated-value-props rule. Fix = **subtraction**: each benefit once; shorten the mobile homepage so the service tiles / book CTA arrive sooner. Highest-traffic page — plan the cut carefully, don't blind-edit.
 - [ ] **P2 · Homepage load-in animation timing** _(UX)_ — service cards use staggered `mCardIn` fade (`animation:...both`); on slow phones content can read as "not there yet" briefly. Verify on a real mid-tier device; consider trimming stagger.
 - [ ] **P1 · Horizontal-swipe carousels hide content on mobile** _(UX, Growth)_ — confirmed on real 390px renders: the **pricing "service menu"** (6 service categories) and the **homepage reviews strip** are sideways-swipe carousels. Users routinely don't discover off-screen cards → this is the owner's "can't see certain things, gotta scroll." Dots + a peeking next-card help but many still miss it. Fix: on mobile prefer stacked/vertical or make the swipe affordance unmistakable.

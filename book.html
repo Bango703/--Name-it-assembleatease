@@ -4428,8 +4428,15 @@ function updateSvcRows() {
     row.classList.toggle('has-items', itemCount > 0);
     var badge = row.querySelector('.svc-row-badge');
     if (badge) {
+      var svcSubtotal = 0;
+      (BOOK.selectedItems[svc] || []).forEach(function(it) {
+        if (it.customQuote) return;
+        var unit = Number(it.price || 0);
+        var qty = Math.min(99, Math.max(1, parseInt(it.qty, 10) || 1));
+        if (unit > 0) svcSubtotal += unit * qty;
+      });
       badge.textContent = itemCount > 0
-        ? (itemCount === 1 ? '1 item selected' : itemCount + ' items selected')
+        ? ((itemCount === 1 ? '1 item' : itemCount + ' items') + (svcSubtotal > 0 ? ' · $' + svcSubtotal.toFixed(0) : ''))
         : '';
     }
   });
