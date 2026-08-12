@@ -3426,6 +3426,29 @@
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
 
 <script src="/assets/js/booking-source-of-truth.js"></script>
+<script>
+/* Single source of truth: the same-day flag comes from the SERVER, not a
+   hardcoded browser value, so the customer preview can never drift from what the
+   server actually charges. The value in booking-source-of-truth.js is only a safe
+   (disabled) fallback until this resolves. Human "flip one flag, forget the other"
+   drift is now impossible — SAME_DAY_ENABLED in Vercel is the only control. */
+(function(){
+  try {
+    fetch('/api/booking-config', { cache: 'no-store' })
+      .then(function(r){ return r && r.ok ? r.json() : null; })
+      .then(function(cfg){
+        if (cfg && cfg.sameDay && window.AAE_BOOKING_SOURCE) {
+          window.AAE_BOOKING_SOURCE.sameDay = {
+            enabled: !!cfg.sameDay.enabled,
+            feeCents: Number(cfg.sameDay.feeCents) || 0,
+            minLeadMinutes: Number(cfg.sameDay.minLeadMinutes) || 0
+          };
+        }
+      })
+      .catch(function(){});
+  } catch(e) {}
+})();
+</script>
 <script src="/assets/js/aae-location.js"></script>
 
 <script>

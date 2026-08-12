@@ -18,12 +18,13 @@ window.AAE_BOOKING_SOURCE = {
       '78665', '78680', '78681', '78682', '78683', '78691',
     ],
   },
-  // Same-day service fee — MUST stay in sync with the server flag SAME_DAY_ENABLED
-  // and _source-of-truth.js SAME_DAY_*. To launch same-day, flip BOTH `enabled`
-  // here AND SAME_DAY_ENABLED=true together. The server is authoritative on the
-  // charge; this only drives the customer-facing preview + the slot lead-time.
+  // Same-day service fee — the SERVER is the single source of truth. book.html
+  // fetches /api/booking-config on load and overwrites this from the real
+  // SAME_DAY_ENABLED value, so the preview can never drift from what the server
+  // charges. This hardcoded value is only a SAFE (disabled) fallback until that
+  // fetch resolves — there is no longer a second flag to keep in sync by hand.
   sameDay: {
-    enabled: true,
+    enabled: false,
     feeCents: 6900,
     minLeadMinutes: 180,
   },
