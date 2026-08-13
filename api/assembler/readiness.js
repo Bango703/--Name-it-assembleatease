@@ -23,6 +23,8 @@ export function toPublicEaserReadiness(readiness = {}) {
     agreementCurrent: readiness.agreementCurrent === true,
     codeOfConductAccepted: readiness.codeOfConductAccepted === true,
     missingItems: publicMissingItems(readiness),
+    accountStatus: readiness.accountStatus || null,
+    suspended: readiness.accountStatus === 'suspended',
   };
 }
 

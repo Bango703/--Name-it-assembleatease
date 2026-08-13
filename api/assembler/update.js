@@ -961,6 +961,7 @@ export default async function handler(req, res) {
           heading: 'Account paused',
           firstName,
           bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Your AssembleAtEase Easer account has been <strong>paused</strong>. While it's paused you won't appear in dispatch or receive new job offers.</p>
+            ${suspensionNotes && suspensionNotes.trim() ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin:0 0 16px"><p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#92400e">Reason</p><p style="margin:0;font-size:14px;color:#92400e;line-height:1.6">${esc(suspensionNotes.trim())}</p></div>` : ''}
             <p style="color:#52525b;line-height:1.7;margin:0 0 8px">If you think this was a mistake, or you'd like to talk about getting back to active, just reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>. We're glad to help.</p>`,
         }),
         meta: { notificationType: 'easer_suspended', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },

@@ -365,7 +365,8 @@
   }
 
   function classifyDashboardError(status) {
-    if (status === 401 || status === 403) return 'auth_error';
+    if (status === 401) return 'auth_error';               // session invalid → re-login
+    if (status === 403) return 'account_inactive';         // authenticated but not active (e.g. suspended) → NEVER bounce to login
     if (status >= 500) return 'server_error';
     if (status > 0) return 'server_error';
     return 'network_error';
@@ -376,7 +377,7 @@
     if (!el) return;
     // During a silent background poll, never flash a loading/stale/error banner —
     // only let 'success'/'empty' through (they just hide the banner).
-    if (_silentLoad && mode !== 'success' && mode !== 'empty') return;
+    if (_silentLoad && mode !== 'success' && mode !== 'empty' && mode !== 'account_inactive') return;
 
     if (mode === 'success' || mode === 'empty') {
       el.style.display = 'none';
@@ -404,6 +405,21 @@
       body = 'Please sign in again to continue loading your dashboard.';
       actionHtml = '<button type="button" id="dashboard-retry-btn" class="eh-banner-btn" style="margin-top:0.75rem">Sign in again</button>';
       tone = 'rgba(239,68,68,0.18)';
+      bg = 'rgba(239,68,68,0.07)';
+    } else if (mode === 'account_inactive') {
+      var acctStatus = payload && payload.accountStatus ? payload.accountStatus : null;
+      if (acctStatus === 'suspended') {
+        title = 'Your account is suspended';
+        body = 'Your Easer account is paused, so you can’t receive or view jobs right now. Check your email for details, or contact support to reactivate.';
+      } else if (acctStatus === 'pending') {
+        title = 'Your account is under review';
+        body = 'Your Easer account isn’t active yet. We’ll email you as soon as it’s approved.';
+      } else {
+        title = 'Your account isn’t active';
+        body = 'Your Easer account isn’t active for jobs right now. Contact support if you think this is a mistake.';
+      }
+      actionHtml = '<a href="mailto:service@assembleatease.com" class="eh-banner-btn" style="margin-top:0.75rem;text-decoration:none">Contact support</a>';
+      tone = 'rgba(239,68,68,0.2)';
       bg = 'rgba(239,68,68,0.07)';
     } else if (mode === 'network_error') {
       title = 'Can\'t reach the server';
@@ -590,6 +606,7 @@
         throw {
           kind: errorKind,
           status: lastResponse.status,
+          accountStatus: responseBody && responseBody.accountStatus ? responseBody.accountStatus : null,
           message: responseBody && responseBody.error ? responseBody.error : 'Dashboard load failed',
         };
       }
@@ -613,6 +630,13 @@
       dashboardLoadState.lastError = error && error.message ? error.message : 'Dashboard load failed';
       dashboardLoadState.lastHttpStatus = error && error.status ? error.status : null;
       dashboardLoadState.mode = error && error.kind ? error.kind : 'server_error';
+      dashboardLoadState.accountStatus = error && error.accountStatus ? error.accountStatus : null;
+      // Authenticated but not active (e.g. suspended): show a clear status and STOP.
+      // Do not redirect to login (that caused a login↔dashboard loop) and do not retry.
+      if (dashboardLoadState.mode === 'account_inactive') {
+        setDashboardStatus('account_inactive', { accountStatus: dashboardLoadState.accountStatus });
+        return;
+      }
       if (dashboardLoadState.mode === 'auth_error') {
         setDashboardStatus('auth_error');
         window.location.href = '/auth/login?return=' + encodeURIComponent('/assembler/');
@@ -657,6 +681,10 @@
         APP.showAlert('page-alert', 'Job readiness could not be verified. Retry before going Online.', 'error');
         return;
       }
+    }
+    if (currentReadiness.suspended === true || currentReadiness.accountStatus === 'suspended') {
+      APP.showAlert('page-alert', 'Your account is suspended, so you can’t go Online. Contact support at service@assembleatease.com to reactivate.', 'error');
+      return;
     }
     if (currentReadiness.isReady !== true) {
       APP.showAlert('page-alert', 'Complete your readiness actions before going Online: ' + (currentReadiness.missingItems || []).join(', '), 'error');

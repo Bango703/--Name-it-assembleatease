@@ -203,6 +203,7 @@ export async function getEaserReadiness(profile = {}, options = {}) {
     ...flags,
     ...connect,
     tier,
+    accountStatus: clean(profile.status),
     currentAgreementVersion: CONTRACTOR_AGREEMENT_VERSION,
     missingItems,
     payoutSetupRequired: connectRequired,

@@ -108,7 +108,15 @@ async function requireEaserProfile(req, options, predicate, deniedMessage) {
     return { ok: false, status: 503, error: 'Easer access could not be verified. Please try again.' };
   }
   if (!profile || !predicate(profile)) {
-    return { ok: false, status: 403, error: deniedMessage };
+    // Carry the raw account status so the client can distinguish "authenticated
+    // but suspended/inactive" (403) from "session invalid" (401) and show a clear
+    // account-status message instead of bouncing the Easer to the login screen.
+    return {
+      ok: false,
+      status: 403,
+      error: deniedMessage,
+      accountStatus: profile ? String(profile.status || '').trim().toLowerCase() : null,
+    };
   }
 
   return {
@@ -138,7 +146,7 @@ export async function requireAssignedWorkEaser(req, options = {}) {
 }
 
 export function respondWithEaserAccessError(res, access) {
-  return res.status(access?.status || 403).json({
-    error: access?.error || 'Easer access denied',
-  });
+  const body = { error: access?.error || 'Easer access denied' };
+  if (access?.accountStatus) body.accountStatus = access.accountStatus;
+  return res.status(access?.status || 403).json(body);
 }
