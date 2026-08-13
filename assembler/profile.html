@@ -977,11 +977,22 @@
       } catch {}
     }
 
+    // Reset the derived UI (stats + reviews) to a neutral loading state so a
+    // bfcache-restored page never flashes the PREVIOUS values before the refresh lands.
+    function scrubDerivedProfileUI() {
+      ['prof-stat-jobs','prof-stat-rating','prof-stat-earned','total-earned'].forEach(function(id){
+        var el = document.getElementById(id); if (el) el.textContent = '—';
+      });
+      var rv = document.getElementById('my-reviews-list'); if (rv) rv.textContent = 'Loading reviews…';
+    }
+
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') refreshDerivedProfileData();
     });
     window.addEventListener('pageshow', function(event) {
-      if (event.persisted) refreshDerivedProfileData();
+      if (!event.persisted) return;      // normal load already renders fresh
+      scrubDerivedProfileUI();           // hide stale stats before the async refresh
+      refreshDerivedProfileData();
     });
   });
 </script>

@@ -39,6 +39,9 @@
     /* Online/Offline pill toggle */
     .eh-avail-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--e-border-md);border-radius:999px;padding:0.38rem 0.875rem;background:var(--e-surface);cursor:pointer;font-family:var(--e-font);font-size:0.8rem;font-weight:500;color:var(--e-text);white-space:nowrap;flex-shrink:0;transition:all 0.2s;-webkit-tap-highlight-color:transparent;visibility:visible}
     .eh-avail-pill *{visibility:visible}
+    /* While booting, the pill must not animate — otherwise it visibly slides from the
+       default Offline look to the real state on first paint ("shows mid while loading"). */
+    body.easer-booting .eh-avail-pill,body.easer-booting .eh-avail-pill *{transition:none!important}
     .eh-avail-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;transition:background 0.2s}
     .eh-avail-pill.on{border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.06)}
     .eh-avail-pill.on .eh-avail-dot{background:#22c55e}
@@ -1103,6 +1106,11 @@
 
     var performancePromise=loadCanonicalPerformance(freshTok);
     var readinessVerified=await loadEaserReadinessStatus(freshTok);
+    // Set availability BEFORE revealing so the toggle paints its real Online/Offline
+    // state on first paint (no default-Offline flash, no mid-animation).
+    available=isClosureHeld() ? false : (profile.is_available||false);
+    setAvailUI(available);
+    applyClosureState();
     APP.revealPrivatePage();
 
     // Notification bell toggle
@@ -1115,11 +1123,6 @@
       _notifPanel.style.display==='none'?showNotif():hideNotif();
     });
     document.addEventListener('click',function(){ if(_notifPanel&&_notifPanel.style.display!=='none') hideNotif(); });
-
-    // Availability
-    available=isClosureHeld() ? false : (profile.is_available||false);
-    setAvailUI(available);
-    applyClosureState();
 
     // Avatar
     var avatarEl=document.getElementById('eh-avatar');
