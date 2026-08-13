@@ -8,8 +8,8 @@ import { authenticateBearerUser, respondWithEaserAccessError } from '../_easer-a
 const TIER_ORDER = ['starter', 'professional', 'elite'];
 const TIER_LABEL = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro' };
 const NEXT_GATE = {
-  starter:      { tier: 'professional', jobs: 10, rating: 4.5, acceptance: 80 },
-  professional: { tier: 'elite',        jobs: 30, rating: 4.8, acceptance: 85 },
+  starter:      { tier: 'professional', jobs: 10, rating: 4.5, acceptance: 80, completion: 90 },
+  professional: { tier: 'elite',        jobs: 30, rating: 4.8, acceptance: 85, completion: 95 },
 };
 const TIER_PERKS = {
   professional: ['Higher priority on offers', 'First look at same-day jobs', 'Professional badge to customers'],
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: p, error } = await sb
     .from('profiles')
-    .select('role, tier, completed_jobs, rating, acceptance_rate')
+    .select('role, tier, completed_jobs, rating, acceptance_rate, completion_rate')
     .eq('id', auth.user.id)
     .maybeSingle();
   if (error || !p || p.role !== 'assembler') return res.status(403).json({ error: 'Easer access required' });
@@ -35,6 +35,8 @@ export default async function handler(req, res) {
   const jobs = Number(p.completed_jobs || 0);
   const rating = p.rating != null ? Number(p.rating) : null;
   const acceptance = p.acceptance_rate != null ? Number(p.acceptance_rate) : null;
+  // null completion = no accepted-job failures yet = passes (matches the engine).
+  const completion = p.completion_rate != null ? Number(p.completion_rate) : null;
   const gate = NEXT_GATE[tier] || null;
 
   let next = null;
@@ -50,6 +52,8 @@ export default async function handler(req, res) {
       ratingMet: rating != null && rating >= gate.rating,
       acceptanceNeed: gate.acceptance,
       acceptanceMet: acceptance != null && acceptance >= gate.acceptance,
+      completionNeed: gate.completion,
+      completionMet: completion == null || completion >= gate.completion,
       perks: TIER_PERKS[gate.tier] || [],
     };
   }
@@ -61,6 +65,7 @@ export default async function handler(req, res) {
     completedJobs: jobs,
     rating,
     acceptanceRate: acceptance,
+    completionRate: completion,
     perks: TIER_PERKS[tier] || [],
     next,
   });

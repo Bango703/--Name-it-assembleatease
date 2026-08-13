@@ -167,3 +167,38 @@ distribution of *customers* is the gate for the business.
 - New: promotion/grace/demotion emails via `_email.js` + `_announcements.js`.
 - Decision required (VP Finance): the Elite earnings benefit — bonus %, or same-day
   priority only.
+
+---
+
+## 10. SHIPPED (2026-08) — engine + reliability floor + UI
+
+**Canonical tier names (use everywhere):** Starter Pro · Professional · Elite Pro.
+Standardized across the Easer app, the customer badge, and every email. Do not
+reintroduce "Elite Easer" / bare "Elite" / "Starter" — one name per tier.
+
+**Tier gates (ALL must hold):**
+- Professional: 10+ jobs · 4.5★ · 80% acceptance · **90% completion** · identity verified
+- Elite Pro:    30+ jobs · 4.8★ · 85% acceptance · **95% completion** · identity verified
+- acceptance_rate null (fewer than 3 scored offers) = fails (can't vouch yet).
+- completion_rate null (no accepted-job failures yet) = passes.
+
+**Reliability floor (the enforcement layer — closes the gap vs DoorDash completion
+rate / Uber cancellation rate / TaskRabbit reliability rate):**
+- `completion_rate` = completed / (completed + no-shows), computed daily by
+  `tier-check` from real `activity_logs` `no_show_flagged` events. It's the 4th
+  tier gate — you can't hold the top tier if you strand customers.
+- **Owner-in-the-loop, never silent auto-suspend at launch:** the cron ALERTS the
+  owner on a repeat no-show (2+) or a chronic decliner (<50% acceptance) with a
+  recommended action; the owner decides. Dedup via `reliability_alert_count` /
+  `acceptance_alert_at`.
+- **Coaching:** the Easer gets one email (30-day cooldown) when acceptance slips
+  into [50,70)% — help before it costs a tier.
+
+**Files:** `api/cron/tier-check.js` (engine), `api/assembler/tier-status.js` +
+`assembler/profile.html` Pro Path meter (progress incl. Reliability), `api/booking/track.js`
++ `track.html` (customer badge), migrations `062_easer_tier_program.sql` +
+`063_easer_reliability.sql`. Activates by DATA (no flag). **Run 062 + 063 in Supabase.**
+
+**Still open (tracked in backlog):** surface tier + reliability metrics on the OWNER
+dashboard (currently owner learns via alert emails); real Reviews module once review
+data exists.

@@ -189,13 +189,13 @@
           </div>
           <div style="text-align:center;padding:0.7rem 0.5rem">
             <div id="prof-stat-earned" style="font-size:1.2rem;font-weight:700;color:var(--pro-teal);line-height:1">—</div>
-            <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Earned</div>
+            <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Lifetime</div>
           </div>
         </div>
         <!-- Completion bar -->
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;color:var(--pro-muted);margin-bottom:6px">
-            <span>Contact profile</span><span id="completion-pct" style="font-weight:600;color:var(--pro-text)">—</span>
+            <span>Profile completion</span><span id="completion-pct" style="font-weight:600;color:var(--pro-text)">—</span>
           </div>
           <div class="completion-bar"><div class="completion-fill" id="completion-fill" style="width:0%"></div></div>
           <div id="completion-checklist" style="margin-top:0.75rem;font-size:0.72rem;display:flex;flex-wrap:wrap;gap:0.35rem 0.75rem"></div>
@@ -254,31 +254,26 @@
 
       </form>
 
-      <!-- Account settings -->
-      <div class="form-section">
-        <div class="form-section-title">Account</div>
+      <!-- Account & Security — email, identity, member since, password in one place -->
+      <div class="form-section" id="tier-section">
+        <div class="form-section-title">Account &amp; Security</div>
         <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="email-display" style="font-size:0.82rem;word-break:break-all">—</span></div>
+        <div class="info-row"><span class="info-label">Identity</span><span class="info-value" id="identity-value">—</span></div>
         <div class="info-row"><span class="info-label">Member since</span><span class="info-value" id="member-since">—</span></div>
         <div style="margin-top:1rem">
           <button class="btn btn-outline btn-sm" id="change-password-btn" type="button">Reset password</button>
         </div>
-        <!-- Hidden elements retained for JS compatibility -->
-        <span id="account-type-display" style="display:none">Easer</span>
-        <span id="jobs-done" style="display:none">—</span>
-        <span id="rating-display" style="display:none">New</span>
-      </div>
-
-      <!-- Tier & Verification -->
-      <div class="form-section" id="tier-section">
-        <div class="form-section-title">Tier &amp; Verification</div>
-        <div class="info-row"><span class="info-label">Tier</span><span class="info-value" id="tier-value">—</span></div>
-        <div class="info-row"><span class="info-label">Identity verified</span><span class="info-value" id="identity-value">—</span></div>
         <!-- Shown when not yet verified -->
         <div id="identity-verify-section" style="display:none;margin-top:1.25rem;padding:1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:10px">
           <p style="font-size:0.875rem;color:#78350f;margin:0 0 0.75rem;line-height:1.5"><strong id="identity-help-title"></strong> <span id="identity-help-copy"></span></p>
           <a id="identity-action" class="btn btn-teal btn-sm" href="/assembler/verify-identity" style="display:none;margin-bottom:0.75rem">Start identity verification</a>
           <p style="font-size:0.8rem;color:#92400e;margin:0">Need help? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
         </div>
+        <!-- Hidden elements retained for JS compatibility (tier shows in the hero + Pro Path) -->
+        <span id="account-type-display" style="display:none">Easer</span>
+        <span id="tier-value" style="display:none">—</span>
+        <span id="jobs-done" style="display:none">—</span>
+        <span id="rating-display" style="display:none">New</span>
       </div>
 
       <!-- Billing escape hatch for an accidental/legacy subscription only. -->
@@ -296,16 +291,14 @@
       </div>
 
       <!-- Sign out -->
-      <div class="form-section" style="text-align:center;padding-top:0.5rem">
+      <div class="form-section" style="padding-top:0.85rem;padding-bottom:0.85rem">
         <a href="#" id="sidebar-logout" class="btn btn-outline" style="width:100%;justify-content:center">Sign out</a>
       </div>
 
-      <!-- Danger zone -->
-      <div class="form-section danger-zone">
-        <div class="form-section-title">Close account</div>
-        <p class="danger-text">Request account closure and stop receiving offers. You will be notified when the request is complete. Your earnings and payout history remain available while it is processed.</p>
-        <button class="btn btn-danger" id="delete-account-btn" type="button">Request account closure</button>
-        <button class="btn btn-outline" id="cancel-closure-btn" type="button" style="display:none;margin-top:0.55rem">Cancel closure request</button>
+      <!-- Close account — small link at the very bottom; opens the confirmation sheet -->
+      <div style="text-align:center;margin:0.25rem 0 0.5rem">
+        <button id="delete-account-btn" type="button" style="background:none;border:none;color:#dc2626;font-size:0.82rem;font-weight:600;cursor:pointer;padding:0.6rem;text-decoration:underline;text-underline-offset:2px">Close account</button>
+        <button class="btn btn-outline btn-sm" id="cancel-closure-btn" type="button" style="display:none;margin-top:0.35rem">Cancel closure request</button>
       </div>
     </div>
 </div><!-- /easer-page -->
@@ -452,7 +445,7 @@
     if (note) {
       if (done === checks.length) {
         note.className = 'completion-note complete';
-        note.textContent = 'Contact details complete. These details do not replace job-readiness requirements.';
+        note.textContent = 'Your profile information is complete.';
       } else {
         note.className = 'completion-note';
         note.textContent = 'Finish the remaining contact details so customers and support can reach you.';
@@ -625,6 +618,7 @@
           + '<div>' + (n.jobsHave >= n.jobsNeed ? '✓' : '•') + ' Jobs: ' + n.jobsHave + ' / ' + n.jobsNeed + '</div>'
           + '<div>' + (n.ratingMet ? '✓' : '•') + ' Rating: ' + Number(n.ratingNeed).toFixed(1) + '★+ ' + (n.ratingMet ? 'met' : 'needed') + '</div>'
           + '<div>' + (n.acceptanceMet ? '✓' : '•') + ' Acceptance: ' + n.acceptanceNeed + '%+ ' + (n.acceptanceMet ? 'met' : 'needed') + '</div>'
+          + '<div>' + (n.completionMet ? '✓' : '•') + ' Reliability: ' + n.completionNeed + '%+ ' + (n.completionMet ? 'met' : 'needed') + '</div>'
           + '</div>'
           + '<div style="margin-top:0.7rem;font-size:0.72rem;color:var(--pro-muted)">Unlocks: ' + (n.perks || []).map(function(x){ return _e(x); }).join(' · ') + '</div>';
       }
@@ -710,7 +704,7 @@
     var idRating = document.getElementById('profile-id-rating');
     if (idName) idName.textContent = profile.full_name || 'Your Name';
     if (idTier && profile.tier) {
-      var tierMap = { starter: 'Starter', professional: 'Professional', elite: 'Elite Easer', verified: 'Verified' };
+      var tierMap = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro', verified: 'Verified' };
       idTier.textContent = tierMap[profile.tier] || profile.tier;
     }
     if (idRating) {
@@ -741,13 +735,13 @@
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
     // Tier & verification
-    var tierLabels = { pending: 'Pending Review', starter: 'Starter', professional: 'Professional', elite: 'Elite', suspended: 'Suspended' };
+    var tierLabels = { pending: 'Pending Review', starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro', suspended: 'Suspended' };
     document.getElementById('tier-value').textContent = tierLabels[profile.tier] || profile.tier || '—';
 
     // Account type — dynamic based on tier
     var accountTypeEl = document.getElementById('account-type-display');
     if (accountTypeEl) {
-      var accountTypeMap = { pending: 'Easer (Pending Review)', starter: 'Easer — Starter', professional: 'Easer — Professional', elite: 'Elite Easer', suspended: 'Easer (Suspended)' };
+      var accountTypeMap = { pending: 'Easer (Pending Review)', starter: 'Easer — Starter Pro', professional: 'Easer — Professional', elite: 'Easer — Elite Pro', suspended: 'Easer (Suspended)' };
       accountTypeEl.textContent = accountTypeMap[profile.tier] || (profile.tier ? 'Easer — ' + profile.tier : 'Easer');
     }
     document.getElementById('identity-value').innerHTML = profile.identity_verified
