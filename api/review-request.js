@@ -1,10 +1,14 @@
-﻿import { getSupabase } from './_supabase.js';
-import { verifyOwner, sendEmail, ownerEmail, esc } from './_email.js';
+import { getSupabase } from './_supabase.js';
+import { verifyOwner, sendEmail, ownerEmail } from './_email.js';
 import { issueReviewToken } from './_review-token.js';
+import { buildReviewEmail, completionPhotoUrl } from './_review-email.js';
 import { logActivity } from './booking/_activity.js';
 
-const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
-
+// Owner-triggered manual review request ("Request Review" / "Resend Review Request"
+// in the dashboard). Deliberately OVERRIDES the automatic suppressions: the owner
+// can send even during an open dispute — that's the intended manual escape hatch.
+// Uses the same upgraded email (clickable stars + completion photo + pro name) as
+// the cron, via the shared api/_review-email.js builder.
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!verifyOwner(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -41,28 +45,14 @@ export default async function handler(req, res) {
   }
   const reviewUrl = `https://www.assembleatease.com/review?ref=${encodeURIComponent(b.ref)}&email=${encodeURIComponent(b.customer_email)}&token=${encodeURIComponent(reviewToken)}`;
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:1px solid #e4e4e7"><tr><td style="padding:20px 24px;text-align:center">
-    <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-    <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#1a1a1a">AssembleAtEase</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
-    <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#1a1a1a">How was your experience?</p>
-    <p style="margin:0 0 8px;font-size:15px;color:#52525b;line-height:1.7">Your <strong>${esc(b.service)}</strong> service is complete.</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your secure booking details are already filled in. Select a rating and share any feedback about the service.</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px"><tr><td style="background:#00BFFF;border-radius:8px"><a href="${reviewUrl}" style="display:inline-block;padding:16px 40px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;border-radius:8px">Leave Your Review</a></td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6;text-align:center">Thank you for choosing AssembleAtEase.</p>
-  </td></tr></table>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:16px 24px;text-align:center;font-size:11px;color:#a1a1aa">
-    Ref: ${esc(b.ref)} &bull; AssembleAtEase &bull; Serving customers across Texas
-  </td></tr></table>
-</div></body></html>`;
+  const photoUrl = await completionPhotoUrl(sb, b);
+  const proFirst = (b.assembler_name || '').split(' ')[0] || '';
+  const { subject, html } = buildReviewEmail(1, b, reviewUrl, { photoUrl, proFirst });
 
   const result = await sendEmail({
     to:      b.customer_email,
     from:    'AssembleAtEase <booking@assembleatease.com>',
-    subject: `Review your completed service — ${b.ref}`,
+    subject,
     html,
     replyTo: ownerEmail(),
     meta:    { bookingId, notificationType: 'review_request', recipientType: 'customer', disableDedupe: resend },
@@ -73,11 +63,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Review email delivery was not accepted. Nothing was marked sent.' });
   }
 
-  // Mark as sent so the cron doesn't double-send
+  // Mark as sent AND advance the shared counter so the automatic cron treats this as
+  // a completed step (never re-sends step 1 on top of a manual send).
   const sentAt = new Date().toISOString();
+  const nextCount = Math.min(Number(b.review_request_count || 0) + 1, 3);
   const { error: updateError } = await sb
     .from('bookings')
-    .update({ review_requested_at: sentAt })
+    .update({ review_requested_at: sentAt, review_request_count: nextCount })
     .eq('id', b.id);
   await logActivity(sb, {
     bookingId: b.id,
