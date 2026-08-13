@@ -668,6 +668,17 @@ function renderBooking(b) {
     var terminal = ['cancelled', 'completed', 'declined'].includes((b.status || '').toLowerCase());
     if (b.pro_first_name && !terminal) {
       document.getElementById('bProName').textContent = b.pro_first_name;
+      // Customer-facing tier badge next to the pro's name (Professional / Elite only).
+      var _oldTierBadge = document.getElementById('bProTierBadge');
+      if (_oldTierBadge) _oldTierBadge.remove();
+      if (b.pro_tier === 'elite' || b.pro_tier === 'professional') {
+        var _tb = document.createElement('span');
+        _tb.id = 'bProTierBadge';
+        var _isElite = b.pro_tier === 'elite';
+        _tb.textContent = _isElite ? 'Elite Pro ⭐' : 'Professional';
+        _tb.style.cssText = 'display:inline-block;margin-left:8px;font-size:0.68rem;font-weight:800;letter-spacing:0.02em;padding:2px 9px;border-radius:999px;vertical-align:middle;' + (_isElite ? 'background:#00BFFF;color:#04222c' : 'background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd');
+        document.getElementById('bProName').insertAdjacentElement('afterend', _tb);
+      }
       var av = document.getElementById('bProAvatar');
       var safePhoto = safeProfilePhoto(b.pro_photo);
       if (safePhoto) {

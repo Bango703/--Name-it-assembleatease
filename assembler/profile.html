@@ -203,6 +203,9 @@
         </div>
       </div>
 
+      <!-- Pro Path — tier progress toward the next status (rendered by renderProPath) -->
+      <div id="pro-path-card" style="display:none;background:#fff;border:1px solid var(--pro-border);border-radius:16px;padding:1.15rem 1.25rem;margin-bottom:1rem"></div>
+
       <form id="profile-form">
         <!-- Basic info -->
         <div class="form-section">
@@ -593,6 +596,45 @@
     }
   }
 
+  async function renderProPath(token) {
+    var card = document.getElementById('pro-path-card');
+    if (!card) return;
+    var _e = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+    try {
+      var resp = await APP.privateFetch(currentUserId, '/api/assembler/tier-status', {
+        headers: { 'Authorization': 'Bearer ' + token },
+        cache: 'no-store',
+      });
+      if (!resp.ok) throw new Error('tier status unavailable');
+      var t = await resp.json();
+      var isElite = t.tier === 'elite';
+      var head = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">'
+        + '<div style="font-size:0.7rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-muted)">The Pro Path</div>'
+        + '<span style="font-size:0.68rem;font-weight:800;padding:0.18rem 0.6rem;border-radius:999px;' + (isElite ? 'background:#00BFFF;color:#04222c' : 'background:rgba(0,191,255,0.1);color:#00BFFF;border:1px solid rgba(0,191,255,0.2)') + '">' + _e(t.tierLabel) + (isElite ? ' ⭐' : '') + '</span></div>';
+      var body;
+      if (!t.next) {
+        body = '<div style="font-size:0.9rem;font-weight:700;color:var(--pro-text);margin-bottom:0.3rem">You’re at the top — Elite Pro ⭐</div>'
+          + '<div style="font-size:0.78rem;color:var(--pro-muted);line-height:1.5">Keep your rating and acceptance up to hold your status and the perks that come with it.</div>';
+      } else {
+        var n = t.next;
+        body = '<div style="font-size:0.88rem;color:var(--pro-text);margin-bottom:0.5rem">'
+          + (n.jobsRemaining > 0 ? '<strong>' + n.jobsRemaining + '</strong> job' + (n.jobsRemaining === 1 ? '' : 's') + ' from <strong>' + _e(n.tierLabel) + '</strong>' : 'Almost at <strong>' + _e(n.tierLabel) + '</strong>')
+          + '</div>'
+          + '<div style="height:8px;border-radius:999px;background:var(--pro-elevated);overflow:hidden;margin-bottom:0.6rem"><div style="height:100%;width:' + (Number(n.jobsPct) || 0) + '%;background:#00BFFF"></div></div>'
+          + '<div style="font-size:0.75rem;color:var(--pro-muted);line-height:1.7">'
+          + '<div>' + (n.jobsHave >= n.jobsNeed ? '✓' : '•') + ' Jobs: ' + n.jobsHave + ' / ' + n.jobsNeed + '</div>'
+          + '<div>' + (n.ratingMet ? '✓' : '•') + ' Rating: ' + Number(n.ratingNeed).toFixed(1) + '★+ ' + (n.ratingMet ? 'met' : 'needed') + '</div>'
+          + '<div>' + (n.acceptanceMet ? '✓' : '•') + ' Acceptance: ' + n.acceptanceNeed + '%+ ' + (n.acceptanceMet ? 'met' : 'needed') + '</div>'
+          + '</div>'
+          + '<div style="margin-top:0.7rem;font-size:0.72rem;color:var(--pro-muted)">Unlocks: ' + (n.perks || []).map(function(x){ return _e(x); }).join(' · ') + '</div>';
+      }
+      card.innerHTML = head + body;
+      card.style.display = '';
+    } catch (e) {
+      card.style.display = 'none';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     const auth = await APP.requireAuth(['assembler']);
     if (!auth) return;
@@ -694,6 +736,7 @@
     var statEarned = document.getElementById('prof-stat-earned');
     if (statEarned) statEarned.textContent = '—';
     var performancePromise = loadCanonicalPerformance(session.access_token);
+    renderProPath(session.access_token);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 

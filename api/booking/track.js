@@ -127,12 +127,12 @@ export default async function handler(req, res) {
 
   // Pro trust details — photo, rating, jobs done — once a Pro has accepted.
   // Builds confidence before a stranger arrives. First name + these only; no PII.
-  let proPhoto = null, proRating = null, proJobs = null, proVerified = false;
+  let proPhoto = null, proRating = null, proJobs = null, proVerified = false, proTier = null;
   if (booking.assembler_accepted_at && booking.assembler_id) {
     try {
       const { data: pro } = await sb
         .from('profiles')
-        .select('profile_photo, rating, completed_jobs, identity_verified')
+        .select('profile_photo, rating, completed_jobs, identity_verified, tier')
         .eq('id', booking.assembler_id)
         .maybeSingle();
       if (pro) {
@@ -140,6 +140,9 @@ export default async function handler(req, res) {
         proRating = (pro.rating != null && pro.rating > 0) ? Number(pro.rating) : null;
         proJobs   = (pro.completed_jobs != null) ? Number(pro.completed_jobs) : null;
         proVerified = pro.identity_verified === true;
+        // Customer-facing tier badge — only the earned status tiers, never 'starter'
+        // (absence of a badge is neutral; a badge is a positive signal only).
+        proTier = (pro.tier === 'elite' || pro.tier === 'professional') ? pro.tier : null;
       }
     } catch (e) { /* non-fatal */ }
   }
@@ -188,6 +191,7 @@ export default async function handler(req, res) {
     pro_photo: proPhoto,
     pro_rating: proRating,
     pro_jobs: proJobs,
+    pro_tier: proTier,
   };
 
   return res.status(200).json({ booking: safe });
