@@ -33,13 +33,10 @@ _Last reconciled: 2026-08-05_
 
 ## Mobile (P1 — 90% of traffic)
 
-- [~] **P1 · Booking-flow audit (external, verified) — friction/UX pass** _(UX, CPO, Growth)_ — audit rated the flow 8/10; architecture good, but too long/dense on mobile. **DONE + pushed:** removed 4 duplicate "rush/same-day" add-ons (collided with the automatic $69 same-day fee — double-charge risk), "the server confirms…"→"we'll verify…", slot badge "Recommended"→"Earliest available", tightened cancellation line, per-service running subtotal on the item rows. **Remaining:**
-  - **Step 2 reorder → ADDRESS first, then date/time** — ZIP determines serviceability; don't let someone pick a date then find their ZIP isn't served. (audit's biggest structural call)
-  - **Remove the redundant category-card screen** — open straight into item pills (removes a whole interaction).
-  - **Consolidate the Notes screen** into the extras step (one fewer click).
-  - **AssembleCash secondary** — collapse the giant full-width CTA into a "Have AssembleCash? Apply credit →" link so it stops competing with card→confirm.
-  - **Conditional consent (real trust ding)** — the "used/previously-assembled items may have wear" mandatory checkbox shows even for NEW furniture. Only surface it for used/reassembly/move/customer-supplied jobs; standard Terms otherwise. Touches mandatory consent — design carefully (General Counsel).
-  - **Rename "Service call fee"** only if a clearer name is accurate to what it covers.
+- [x] **P1 · Booking-flow audit (external, verified) — friction/UX pass** _(UX, CPO, Growth)_ — audit rated the flow 8/10. **SHIPPED to production:** removed 4 duplicate "rush/same-day" add-ons (double-charge risk); "the server confirms…"→"we'll verify…"; slot badge "Recommended"→"Earliest available"; tightened cancellation line; per-service running subtotal; **address-first schedule** (ZIP before date/time); **AssembleCash → secondary link**; **consent reworded** (no longer alarming on new furniture, still binds the Terms); **category-card screen removed** (opens straight into the item browser with pills). Plus the **same-day flag hardened to a single source of truth** (server-driven via `/api/booking-config`). **Board decisions on the remainder:**
+  - **Notes consolidation — DEFERRED** _(CTO/QA)_: high-risk item-selector restructure with multiple edge cases (custom-quote/notes-only services), saves one click = low value. Not worth the sacred-path risk now.
+  - **Conditional consent, full logic — DEFERRED** _(General Counsel)_: the reword already resolved the customer-facing concern; the full "show only for used/reassembly jobs" detection touches mandatory legal consent and is a careful legal-design task, not a bug.
+  - **Rename "Service call fee" — KEPT** _(CX/Design)_: low value; the name is referenced in policy, receipt, and owner dashboard — renaming a $5 line for marginal clarity isn't worth the consistency risk at this stage.
 - [ ] **P2 · "server" dev-jargon sweep** _(UX)_ — same language on apply.html ("The server currently confirms no application fee"). Replace platform-internal wording with customer/Easer language sitewide.
 - [ ] **P2 · Confirm TX taxability of the service-call + same-day fees with a CPA** _(VP Finance, General Counsel)_ — code taxes the $5 service-call fee (and $69 same-day) inside the taxable subtotal; internally consistent and likely correct (labor on TPP), but get the per-service ruling.
 
