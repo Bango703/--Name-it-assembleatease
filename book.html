@@ -3426,6 +3426,29 @@
 <script>document.getElementById('book-year').textContent=new Date().getFullYear();</script>
 
 <script src="/assets/js/booking-source-of-truth.js"></script>
+<script>
+/* Single source of truth: the same-day flag comes from the SERVER, not a
+   hardcoded browser value, so the customer preview can never drift from what the
+   server actually charges. The value in booking-source-of-truth.js is only a safe
+   (disabled) fallback until this resolves. Human "flip one flag, forget the other"
+   drift is now impossible — SAME_DAY_ENABLED in Vercel is the only control. */
+(function(){
+  try {
+    fetch('/api/booking-config', { cache: 'no-store' })
+      .then(function(r){ return r && r.ok ? r.json() : null; })
+      .then(function(cfg){
+        if (cfg && cfg.sameDay && window.AAE_BOOKING_SOURCE) {
+          window.AAE_BOOKING_SOURCE.sameDay = {
+            enabled: !!cfg.sameDay.enabled,
+            feeCents: Number(cfg.sameDay.feeCents) || 0,
+            minLeadMinutes: Number(cfg.sameDay.minLeadMinutes) || 0
+          };
+        }
+      })
+      .catch(function(){});
+  } catch(e) {}
+})();
+</script>
 <script src="/assets/js/aae-location.js"></script>
 
 <script>
@@ -4325,7 +4348,10 @@ function getDefaultPrimaryGroup(svc) {
 
 function getItemStagePath(svc) {
   if (!svc || svc === 'Other') return ['notes'];
-  var path = ['group', 'items'];
+  // Open straight into the item browser (which already shows category pills via
+  // renderSectionSwitcher). The old standalone 'group' category-card screen was a
+  // redundant extra step — removed. 'items' defaults its group via getDefaultPrimaryGroup.
+  var path = ['items'];
   if (serviceCanOfferExtras(svc)) path.push('extras');
   path.push('notes');
   return path;
@@ -4365,7 +4391,7 @@ function showItemScreen(svc, desiredStage) {
     if (!BOOK.selectedItems[svc]) BOOK.selectedItems[svc] = [];
   }
 
-  BOOK.itemStage = desiredStage || (svc === 'Other' ? 'notes' : 'group');
+  BOOK.itemStage = desiredStage || (svc === 'Other' ? 'notes' : 'items');
   ensureValidItemStage(svc);
 
   document.getElementById('item-screen-heading').textContent = getDisplayServiceName(svc);
@@ -4594,7 +4620,7 @@ function buildServiceChipHtml(svc, active) {
   var displayName = getDisplayServiceName(svc);
   var countLabel = count > 0 ? (count === 1 ? '1 item' : count + ' items') : 'Open';
   return '<button type="button" class="selected-service-chip' + (active ? ' is-active' : '') + '"'
-    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service, \'' + (count > 0 ? 'items' : 'group') + '\')">'
+    + ' data-service="' + escAttr(svc) + '" onclick="showItemScreen(this.dataset.service, \'items\')">'
     + '<span>' + esc(displayName) + '</span>'
     + '<span class="selected-service-chip-count">' + esc(countLabel) + '</span>'
     + '</button>';
