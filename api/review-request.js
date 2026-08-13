@@ -67,10 +67,18 @@ export default async function handler(req, res) {
   // a completed step (never re-sends step 1 on top of a manual send).
   const sentAt = new Date().toISOString();
   const nextCount = Math.min(Number(b.review_request_count || 0) + 1, 3);
-  const { error: updateError } = await sb
+  let { error: updateError } = await sb
     .from('bookings')
     .update({ review_requested_at: sentAt, review_request_count: nextCount })
     .eq('id', b.id);
+  // Deploy-order-safe: if review_request_count (migration 064) isn't applied yet,
+  // retry with just the timestamp so a manual send never fails on the missing column.
+  if (updateError && (updateError.code === '42703' || /review_request_count/.test(updateError.message || ''))) {
+    ({ error: updateError } = await sb
+      .from('bookings')
+      .update({ review_requested_at: sentAt })
+      .eq('id', b.id));
+  }
   await logActivity(sb, {
     bookingId: b.id,
     eventType: resend ? 'review_request_resent' : 'review_request_sent',

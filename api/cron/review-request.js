@@ -23,13 +23,29 @@ export default async function handler(req, res) {
   const now = Date.now();
 
   // Candidates: completed within the age window, not yet at the request cap.
-  const { data: bookings, error } = await sb
+  const COLS_BASE = 'id, ref, service, customer_email, completed_at, review_requested_at, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required';
+  const cutoff = new Date(now - MAX_AGE_DAYS * 86400000).toISOString();
+
+  // Deploy-order-safe: review_request_count (migration 064) may not be applied yet.
+  // Try with it; if the column is missing, fall back to single-send behavior so the
+  // cron never errors — the 3-send cadence activates automatically once 064 is run.
+  let hasCount = true;
+  let { data: bookings, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_email, completed_at, review_requested_at, review_request_count, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required')
+    .select(COLS_BASE + ', review_request_count')
     .eq('status', 'completed')
-    .gte('completed_at', new Date(now - MAX_AGE_DAYS * 86400000).toISOString())
+    .gte('completed_at', cutoff)
     .or(`review_request_count.is.null,review_request_count.lt.${MAX_REQUESTS}`)
     .limit(100);
+  if (error && (error.code === '42703' || /review_request_count/.test(error.message || ''))) {
+    hasCount = false;
+    ({ data: bookings, error } = await sb
+      .from('bookings')
+      .select(COLS_BASE)
+      .eq('status', 'completed')
+      .gte('completed_at', cutoff)
+      .limit(100));
+  }
 
   if (error) {
     console.error('Review request cron error:', error);
@@ -69,9 +85,11 @@ export default async function handler(req, res) {
       if (b.return_visit_required === true) continue; // work isn't truly finished — don't ask yet
       if (!b.customer_email) continue;
 
-      // How many have we already sent? (fall back to review_requested_at for rows
-      // that predate the counter column.)
-      const count = Number(b.review_request_count ?? (b.review_requested_at ? 1 : 0));
+      // How many have we already sent? Without the counter column (064 not applied),
+      // degrade to single-send: send once, then stop.
+      const count = hasCount
+        ? Number(b.review_request_count ?? (b.review_requested_at ? 1 : 0))
+        : (b.review_requested_at ? MAX_REQUESTS : 0);
       if (count >= MAX_REQUESTS) continue;
 
       const lastSent = b.review_requested_at ? new Date(b.review_requested_at).getTime() : null;
@@ -106,10 +124,10 @@ export default async function handler(req, res) {
       });
       if (!emailResult?.ok) throw new Error(emailResult?.error || 'Review email delivery failed');
 
-      const { error: updErr } = await sb
-        .from('bookings')
-        .update({ review_requested_at: new Date().toISOString(), review_request_count: step })
-        .eq('id', b.id);
+      const upd = hasCount
+        ? { review_requested_at: new Date().toISOString(), review_request_count: step }
+        : { review_requested_at: new Date().toISOString() };
+      const { error: updErr } = await sb.from('bookings').update(upd).eq('id', b.id);
       if (updErr) throw updErr;
 
       sent++;
