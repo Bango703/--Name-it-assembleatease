@@ -30,6 +30,30 @@ import { logActivity } from '../booking/_activity.js';
 const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const SITE = 'https://www.assembleatease.com';
 
+// Branded Easer account email — always carries the AAE logo in the header so the
+// message reads as AssembleAtEase, not a bare text note. Used for suspend /
+// reinstate and any other Easer account-status notice.
+function buildEaserAccountEmail({ heading, firstName, bodyHtml, ctaText, ctaUrl }) {
+  const cta = (ctaText && ctaUrl)
+    ? `<div style="text-align:center;margin:1.75rem 0 0.5rem"><a href="${ctaUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:13px 34px;border-radius:8px;text-decoration:none;font-size:0.95rem;font-weight:700">${ctaText}</a></div>`
+    : '';
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:1.5rem 2rem;text-align:center">
+      <img src="${LOGO}" alt="AssembleAtEase" width="44" height="44" style="border-radius:50%;display:inline-block"/>
+      <h1 style="color:#fff;margin:10px 0 0;font-size:1.25rem">${esc(heading)}</h1>
+    </div>
+    <div style="padding:2rem">
+      <p style="font-size:1rem;font-weight:700;margin:0 0 12px">Hi ${esc(firstName)},</p>
+      ${bodyHtml}
+      ${cta}
+    </div>
+  </div>
+  <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px">AssembleAtEase &bull; Austin, TX</p>
+</div></body></html>`;
+}
+
 function applicationDecisionSnapshot(profile = {}) {
   return {
     status: profile.status ?? null,
@@ -920,11 +944,36 @@ export default async function handler(req, res) {
     const { suspensionNotes } = req.body;
     if (suspensionNotes?.trim()) console.log(`[suspend] ${profile.full_name} (${assemblerId}): ${suspensionNotes.trim()}`);
 
+    // Notify the Easer they've been paused — Rule 10 (an Easer must ALWAYS know
+    // their status). Previously suspension sent NO email at all, so a suspended
+    // Easer was left guessing why offers stopped while reinstatement DID email.
+    // Only email on a fresh suspension, never re-nag an already-suspended account.
+    // Email failure must never block the suspension itself.
+    let suspendEmailDelivered = false;
+    if (suspension.result_action === 'suspended') {
+      const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+      const suspendEmail = await sendEmail({
+        to: profile.email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: 'An update on your AssembleAtEase Easer account',
+        replyTo: 'service@assembleatease.com',
+        html: buildEaserAccountEmail({
+          heading: 'Account paused',
+          firstName,
+          bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Your AssembleAtEase Easer account has been <strong>paused</strong>. While it's paused you won't appear in dispatch or receive new job offers.</p>
+            <p style="color:#52525b;line-height:1.7;margin:0 0 8px">If you think this was a mistake, or you'd like to talk about getting back to active, just reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>. We're glad to help.</p>`,
+        }),
+        meta: { notificationType: 'easer_suspended', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+      }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+      suspendEmailDelivered = suspendEmail?.ok === true && !suspendEmail?.suppressed;
+    }
+
     return res.status(200).json({
       ok: true,
       alreadySuspended: suspension.result_action === 'already_suspended',
       action: 'suspended',
       previous_tier: suspension.previous_tier || null,
+      emailDelivered: suspendEmailDelivered,
     });
   }
 
@@ -952,13 +1001,20 @@ export default async function handler(req, res) {
     if (!reinstatedProfile) return respondWithOwnerClosureRace(res);
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
-    const tierLabel = { starter: 'Starter', professional: 'Professional', elite: 'Elite' }[restoredTier] || restoredTier;
+    const tierLabel = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro' }[restoredTier] || restoredTier;
     const reinstateEmail = await sendEmail({
       to: profile.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Your AssembleAtEase account has been reinstated',
       replyTo: 'service@assembleatease.com',
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem"><h2 style="color:#00BFFF">Account Reinstated</h2><p>Hi ${esc(firstName)},</p><p>Your account has been reinstated as a <strong>${esc(tierLabel)}</strong> Easer. Review your readiness checklist, then switch to Online when you are ready to receive offers.</p><p><a href="${SITE}/assembler/" style="color:#00BFFF">Open your dashboard</a></p></div>`,
+      html: buildEaserAccountEmail({
+        heading: 'Welcome back',
+        firstName,
+        bodyHtml: `<p style="color:#52525b;line-height:1.7;margin:0 0 16px">Good news — your AssembleAtEase Easer account has been <strong>reinstated</strong> as a <strong>${esc(tierLabel)}</strong> Easer.</p>
+          <p style="color:#52525b;line-height:1.7;margin:0 0 8px">Review your readiness checklist, then switch to <strong>Online</strong> when you're ready to receive offers again.</p>`,
+        ctaText: 'Open your dashboard',
+        ctaUrl: `${SITE}/assembler/`,
+      }),
       meta: { notificationType: 'easer_reinstated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
     }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 

@@ -477,6 +477,38 @@ ${proTripCutCents > 0 ? '<p style="background:#eff6ff;border:1px solid #bfdbfe;b
     });
   } catch (e) { console.error('Owner notify error:', e); }
 
+  // Notify the ASSIGNED EASER — Rule 10. Guest cancellations are the primary cancel
+  // path (customers have no accounts), so without this an assigned Easer would most
+  // often never learn their job was called off. Additive + guarded; never blocks cancel.
+  if (booking.assembler_id) {
+    try {
+      const { data: pro } = await sb.from('profiles').select('email, full_name').eq('id', booking.assembler_id).maybeSingle();
+      if (pro?.email) {
+        const proFirst = (pro.full_name || '').split(' ')[0] || 'there';
+        const wasAccepted = !!booking.assembler_accepted_at;
+        await sendEmail({
+          to: pro.email,
+          from: 'AssembleAtEase <booking@assembleatease.com>',
+          subject: `Job cancelled — ${booking.ref}`,
+          replyTo: ownerEmail(),
+          html: buildStatusEmail({
+            customerName: proFirst,
+            ref: booking.ref,
+            status: 'CANCELLED',
+            statusColor: '#71717a',
+            statusBg: '#f4f4f5',
+            headline: 'A job on your schedule was cancelled.',
+            bodyHtml: `
+              <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.7">The customer cancelled <strong>${esc(booking.service)}</strong> on <strong>${esc(booking.date)}</strong>${booking.time ? ' at ' + esc(booking.time) : ''}.${wasAccepted ? ' You had accepted this one, so please take it off your plans — no need to travel.' : ''}</p>
+              ${proTripCutCents > 0 ? '<p style="margin:0 0 16px;font-size:14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:12px 16px;color:#1e3a8a">Because you were already committed, a trip payment of <strong>$' + (proTripCutCents / 100).toFixed(2) + '</strong> is owed to you and will be included in your next payout.</p>' : ''}
+              <p style="margin:0;font-size:14px;color:#52525b">New offers will come through as they become available.</p>`,
+          }),
+          meta: { bookingId: booking.id, notificationType: 'easer_job_cancelled', recipientType: 'easer', recipientUserId: booking.assembler_id, disableDedupe: true },
+        });
+      }
+    } catch (e) { console.error('Easer cancel notify error (guest):', e); }
+  }
+
   console.log(JSON.stringify({
     audit: true, action: 'booking_cancel', actor: 'guest',
     bookingId: booking.id, ref: booking.ref,

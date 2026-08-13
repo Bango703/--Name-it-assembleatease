@@ -27,6 +27,7 @@ const TIER_ORDER = ['starter', 'professional', 'elite'];
 const TIER_LABEL = { starter: 'Starter Pro', professional: 'Professional', elite: 'Elite Pro' };
 const GRACE_DAYS = 30;
 const SITE = 'https://www.assembleatease.com';
+const LOGO = SITE + '/images/logo.jpg';
 const JOBS_URL = SITE + '/assembler/my-assignments';
 
 function tierIndex(t) { const i = TIER_ORDER.indexOf(t); return i === -1 ? 0 : i; }
@@ -74,6 +75,7 @@ const TIER_BENEFITS = {
 function shell(inner) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0d1b2a">
 <div style="max-width:560px;margin:0 auto;padding:24px 16px">
+  <div style="text-align:center;margin-bottom:14px"><img src="${LOGO}" alt="AssembleAtEase" width="40" height="40" style="border-radius:50%;display:inline-block"/></div>
   <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">${inner}</div>
   <p style="font-size:12px;color:#64748b;text-align:center;margin-top:14px">You're receiving this about your AssembleAtEase Easer status.</p>
 </div></body></html>`;
