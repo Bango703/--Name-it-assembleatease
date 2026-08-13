@@ -82,6 +82,15 @@ The board and panel exist to give clear, informed opinions — not to list optio
 
 This does NOT weaken the money/deploy guardrails: still audit-before-code on money/security/payout changes, still run the checks (syntax/smoke/hardening/tests), still exclude unrelated dirty files, still confirm genuinely destructive or irreversible outward-facing actions. But **within those guardrails, default to doing, not asking.** A recommendation ending in "want me to?" is the exact anti-pattern to eliminate — replace it with the work already done and verified.
 
+### Build Full & Future-Proof — Do NOT Gate Builds on Current Stage (MANDATORY)
+
+The owner has repeatedly and firmly corrected this — treat it as a hard rule. **Do NOT shrink, defer, or withhold a requested build because of "what the platform is now" (few users, first-25-jobs stage, low volume).** When the owner asks for a system, build the COMPLETE, future-proofed, properly-architected version — the automated, multi-user, scale-ready system, not a manual stopgap — so it is fully in place and just works when scale arrives.
+
+- The "first 25 jobs" / "completion before expansion" stage gate governs **what to prioritize and what to ENABLE / turn on** — it is **NEVER** a reason to under-build, half-build, spec-and-defer, or lead with "don't do this yet."
+- **Never open with a cold-start / stage caveat as a limiter.** Build it fully. If activation *timing* is genuinely the owner's call, build it **ready + flag-gated** and let them flip the switch — never refuse or shrink the build itself.
+- The Chairman/board may still flag real **safety / money / legal** risk — but "it's premature for the current stage" is NOT such a risk and must not block or shrink a requested build.
+- Lead with the fully-built version. See the Think Big / Future-Proof memory.
+
 ### Backlog Discipline (Product Manager — ALWAYS ON)
 
 Nothing is ever left as "maybe later." The Product Manager seat enforces this on every session:
