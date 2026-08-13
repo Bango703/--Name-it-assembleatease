@@ -109,7 +109,7 @@ export default async function handler(req, res) {
   // Candidates: completed within the age window, not yet at the request cap.
   const { data: bookings, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_email, completed_at, review_requested_at, review_request_count, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status')
+    .select('id, ref, service, customer_email, completed_at, review_requested_at, review_request_count, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required')
     .eq('status', 'completed')
     .gte('completed_at', new Date(now - MAX_AGE_DAYS * 86400000).toISOString())
     .or(`review_request_count.is.null,review_request_count.lt.${MAX_REQUESTS}`)
@@ -141,6 +141,7 @@ export default async function handler(req, res) {
   for (const b of bookings) {
     try {
       if (reviewed.has(b.id)) continue;             // customer already reviewed → stop the sequence
+      if (b.return_visit_required === true) continue; // work isn't truly finished — don't ask yet
       if (!b.customer_email) continue;
 
       // How many have we already sent? (fall back to review_requested_at for rows
