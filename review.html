@@ -105,6 +105,10 @@ textarea.form-control{resize:vertical;min-height:120px}
     <h1 class="page-title">How did your Pro do?</h1>
     <p class="page-desc">Takes 30 seconds. Your honest feedback helps us improve and helps other homeowners find reliable help.</p>
     <div id="service-chip" style="display:none"><span class="service-chip" id="service-chip-text"></span></div>
+    <div id="review-photo-wrap" style="display:none;margin:1.1rem auto 0;max-width:360px">
+      <img id="review-photo" alt="Your completed service" style="width:100%;border-radius:12px;border:1px solid rgba(0,0,0,0.08);display:block"/>
+      <p style="font-size:0.72rem;color:var(--muted);margin:0.4rem 0 0;text-align:center">The work your pro completed</p>
+    </div>
   </div>
 </section>
 
@@ -261,32 +265,51 @@ function paintStars(n, persist) {
   stars.forEach(function(b) { b.classList.toggle('lit', +b.dataset.val <= n); });
 }
 
+// Select a rating programmatically (used by the ?rating= deep link from the email
+// stars, so a single tap in the inbox arrives with the rating already chosen).
+function selectRating(n) {
+  if (!(n >= 1 && n <= 5)) return;
+  selectedRating = n;
+  paintStars(n, true);
+  document.getElementById('star-label').textContent = labels[n] + (n === 5 ? ' (5/5)' : '');
+}
+
 // Read URL params — hide verify fields if both present
 (function() {
   var p = new URLSearchParams(window.location.search);
   var ref   = p.get('ref');
   var email = p.get('email');
   reviewToken = p.get('token') || '';
+  var ratingParam = parseInt(p.get('rating'), 10);
   if (window.history && window.history.replaceState) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
   if (ref)   document.getElementById('r-ref').value   = ref.toUpperCase();
   if (email) document.getElementById('r-email').value = email;
+  if (ratingParam >= 1 && ratingParam <= 5) selectRating(ratingParam);
 
   if (ref && email && reviewToken) {
     prefilled = true;
     document.getElementById('verify-fields').style.display = 'none';
 
-    // Fetch service name to show in the hero chip
+    // Fetch booking context — service, pro name, and the completed-work photo
     fetch('/api/booking/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: ref.toUpperCase(), email: email })
     }).then(function(r){ return r.json(); }).then(function(d){
-      if (d.booking && d.booking.service) {
-        var chip = document.getElementById('service-chip');
+      if (!d || !d.booking) return;
+      if (d.booking.service) {
         document.getElementById('service-chip-text').textContent = d.booking.service;
-        chip.style.display = 'block';
+        document.getElementById('service-chip').style.display = 'block';
+      }
+      if (d.booking.pro_first_name) {
+        var title = document.querySelector('.page-title');
+        if (title) title.textContent = 'How did ' + d.booking.pro_first_name + ' do?';
+      }
+      if (d.booking.completion_photo_url) {
+        document.getElementById('review-photo').src = d.booking.completion_photo_url;
+        document.getElementById('review-photo-wrap').style.display = 'block';
       }
     }).catch(function(){});
   } else if (!reviewToken) {

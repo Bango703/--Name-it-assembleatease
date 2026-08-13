@@ -3,6 +3,7 @@ import { rateLimit } from '../_ratelimit.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 import { safeTokenHashMatch } from '../_payment-security.js';
 import { bookingEmailMatches } from './_guest-booking-auth.js';
+import { loadCurrentCompletionEvidence } from './_completion-evidence.js';
 
 /**
  * POST /api/booking/track
@@ -147,6 +148,22 @@ export default async function handler(req, res) {
     } catch (e) { /* non-fatal */ }
   }
 
+  // Completion photo — the Easer's proof-of-work image, shown to the customer once
+  // the job is done (on the review page and the tracking page). Signed URL, 7-day
+  // expiry; only generated for completed jobs so normal lookups stay cheap.
+  let completionPhotoUrl = null;
+  if (booking.status === BOOKING_STATUS.COMPLETED) {
+    try {
+      const { evidence } = await loadCurrentCompletionEvidence(sb, booking, { allowHistoricalOwnerManual: true });
+      if (evidence?.storage_path) {
+        const { data: signed } = await sb.storage
+          .from('booking-evidence')
+          .createSignedUrl(evidence.storage_path, 60 * 60 * 24 * 7);
+        completionPhotoUrl = signed?.signedUrl || null;
+      }
+    } catch (e) { /* non-fatal — photo is a bonus, never blocks tracking */ }
+  }
+
   // Return only safe/public fields — never expose Stripe IDs, phone, raw payment data
   const safe = {
     id: booking.id,
@@ -192,6 +209,7 @@ export default async function handler(req, res) {
     pro_rating: proRating,
     pro_jobs: proJobs,
     pro_tier: proTier,
+    completion_photo_url: completionPhotoUrl,
   };
 
   return res.status(200).json({ booking: safe });
