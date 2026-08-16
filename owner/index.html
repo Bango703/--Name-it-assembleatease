@@ -1764,6 +1764,20 @@ window.intelQuick = intelQuick;
 </div>
 
 <!-- ─── Add Easer (Fee Waived) Modal ─── -->
+<!-- ─── Rebook Email Preview Modal ─── -->
+<div class="modal-overlay" id="rebook-preview-modal">
+  <div class="modal" style="max-width:640px">
+    <h3>Preview rebook email</h3>
+    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:0.6rem">This is exactly what <strong id="rbp-to"></strong> will receive. Nothing is sent until you click <strong>Send Email</strong>.</p>
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem"><strong style="color:var(--text)">Subject:</strong> <span id="rbp-subject"></span></div>
+    <iframe id="rbp-frame" title="Email preview" style="width:100%;height:440px;border:1px solid var(--border);border-radius:8px;background:#f4f4f5"></iframe>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn" id="rbp-cancel" type="button">Cancel</button>
+      <button class="btn btn-teal" id="rbp-send" type="button">Send Email</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="add-easer-modal">
   <div class="modal" style="max-width:520px">
     <h3>Add Easer — Fee Waived</h3>
@@ -6739,17 +6753,41 @@ window.intelQuick = intelQuick;
   window.filterCustomers = filterCustomers;
 
   // Send a past customer a branded "book again" email with a prefilled booking link
-  // (in-app, logged, on-brand — not a plain mailto). They complete a real booking.
+  // (in-app, logged, on-brand — not a plain mailto). Shows an exact PREVIEW first;
+  // nothing is sent until the owner confirms in the preview modal.
+  var _rebookTarget = null;
   window.rebookCustomer = async function(email, name, phone) {
     if (!email) { toast('No email on file for this customer.', 'error'); return; }
-    if (!confirm('Send ' + (name || email) + ' a branded "book again" email with a prefilled booking link?')) return;
+    _rebookTarget = { email: email, name: name, phone: phone };
     try {
-      var r = await fetch('/api/owner/rebook-invite', { method: 'POST', headers: headers(), body: JSON.stringify({ email: email, name: name, phone: phone }) });
+      var r = await fetch('/api/owner/rebook-invite', { method: 'POST', headers: headers(), body: JSON.stringify({ email: email, name: name, phone: phone, preview: true }) });
       var d = await r.json();
-      if (!r.ok || d.error) { toast(d.error || 'Failed to send rebook email', 'error'); return; }
-      toast('Rebook email sent to ' + (name || email), 'success');
-    } catch (e) { toast('Failed to send rebook email', 'error'); }
+      if (!r.ok || !d.preview) { toast(d.error || 'Could not load the email preview', 'error'); return; }
+      document.getElementById('rbp-to').textContent = name ? (name + ' (' + email + ')') : email;
+      document.getElementById('rbp-subject').textContent = d.subject || '';
+      document.getElementById('rbp-frame').srcdoc = d.html || '';
+      document.getElementById('rebook-preview-modal').classList.add('open');
+    } catch (e) { toast('Could not load the email preview', 'error'); }
   };
+  (function wireRebookPreview() {
+    var cancel = document.getElementById('rbp-cancel');
+    var send = document.getElementById('rbp-send');
+    if (cancel) cancel.addEventListener('click', function() { document.getElementById('rebook-preview-modal').classList.remove('open'); });
+    if (send) send.addEventListener('click', async function() {
+      if (!_rebookTarget) return;
+      send.disabled = true; send.textContent = 'Sending…';
+      try {
+        var r = await fetch('/api/owner/rebook-invite', { method: 'POST', headers: headers(), body: JSON.stringify(_rebookTarget) });
+        var d = await r.json();
+        if (!r.ok || d.error) { toast(d.error || 'Failed to send rebook email', 'error'); }
+        else {
+          toast('Rebook email sent to ' + (_rebookTarget.name || _rebookTarget.email), 'success');
+          document.getElementById('rebook-preview-modal').classList.remove('open');
+        }
+      } catch (e) { toast('Failed to send rebook email', 'error'); }
+      send.disabled = false; send.textContent = 'Send Email';
+    });
+  })();
 
   // ─── MARKETING VIEW ───
   var marketingSocialSnapshot = null;
