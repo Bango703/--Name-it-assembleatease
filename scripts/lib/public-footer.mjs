@@ -31,8 +31,8 @@ const COMPANY_LINKS = [
 
 const SUPPORT_LINKS = [
   ['/#faq', 'FAQ'],
-  ['/track', 'Track My Booking'],
   ['/contact', 'Contact'],
+  ['/track', 'Track My Booking'],
   ['/assembler/apply', 'Become an Easer'],
 ];
 
