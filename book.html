@@ -3573,6 +3573,28 @@ function captureBookingAttribution() {
 
 var BOOKING_ATTRIBUTION = captureBookingAttribution();
 
+// Owner "rebook" links (utm_campaign=rebook) prefill the customer's contact step from
+// the URL so a returning customer lands ready to go. Additive: only fills empty fields,
+// never overwrites anything the customer types.
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    var rp = new URLSearchParams(window.location.search || '');
+    var rName = (rp.get('name') || '').trim();
+    var rEmail = (rp.get('email') || '').trim();
+    var rPhone = (rp.get('phone') || '').trim();
+    if (rName) {
+      var rParts = rName.split(/\s+/);
+      var rf = document.getElementById('s4-first'); if (rf && !rf.value) rf.value = rParts.shift() || '';
+      var rl = document.getElementById('s4-last'); if (rl && !rl.value) rl.value = rParts.join(' ');
+    }
+    if (rEmail) { var re = document.getElementById('s4-email'); if (re && !re.value) re.value = rEmail; }
+    if (rPhone) {
+      var rph = document.getElementById('s4-phone');
+      if (rph && !rph.value) { rph.value = (typeof formatUsPhone === 'function') ? formatUsPhone(rPhone) : rPhone; }
+    }
+  } catch (e) {}
+});
+
 function trackBookingFunnelOnce(eventName, params) {
   try {
     var key = 'aaeFunnel:' + eventName;

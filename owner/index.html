@@ -1018,6 +1018,7 @@
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Net Payments</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Service</th>
                 <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Last Booking</th>
+                <th style="padding:0.6rem 1rem;color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)">Rebook</th>
               </tr>
             </thead>
             <tbody id="cust-tbody"></tbody>
@@ -4488,6 +4489,9 @@ window.intelQuick = intelQuick;
       } else if (b.customer_email) {
         btns.push('<button class="btn btn-teal" data-action="request-review" data-id="' + b.id + '">Request Review</button>');
       }
+      if (b.status === 'completed' && b.customer_email) {
+        btns.push('<button class="btn" onclick="rebookCustomer(\'' + jsAttr(b.customer_email) + '\',\'' + jsAttr(b.customer_name || '') + '\',\'' + jsAttr(b.customer_phone || '') + '\')">Email to Rebook</button>');
+      }
       if (b.assembler_id && !b.evidence_requested_at) {
         btns.push('<button class="btn btn-amber" data-action="request-evidence" data-id="' + b.id + '">Request Evidence</button>');
       } else if (b.evidence_requested_at) {
@@ -6686,7 +6690,7 @@ window.intelQuick = intelQuick;
       return !q || (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
     });
     var tbody = document.getElementById('cust-tbody');
-    if(!filtered.length){ tbody.innerHTML='<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">No customers found.</td></tr>'; return; }
+    if(!filtered.length){ tbody.innerHTML='<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--muted)">No customers found.</td></tr>'; return; }
     tbody.innerHTML = filtered.map(function(c){
       var date = c.lastDate ? new Date(c.lastDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
       return '<tr style="border-bottom:1px solid var(--border)">'
@@ -6696,10 +6700,24 @@ window.intelQuick = intelQuick;
         +'<td style="padding:0.7rem 1rem;font-size:0.875rem;color:var(--text)">'+fmt$(c.spent)+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--soft)">'+esc(c.lastService)+'</td>'
         +'<td style="padding:0.7rem 1rem;font-size:0.8rem;color:var(--muted)">'+date+'</td>'
+        +'<td style="padding:0.7rem 1rem;white-space:nowrap">'+(c.email ? '<button class="btn" style="font-size:0.72rem;padding:3px 10px" onclick="rebookCustomer(\''+jsAttr(c.email)+'\',\''+jsAttr(c.name||'')+'\',\''+jsAttr(c.phone||'')+'\')">Email to rebook</button>' : '<span style="color:var(--muted);font-size:0.75rem">No email</span>')+'</td>'
       +'</tr>';
     }).join('');
   }
   window.filterCustomers = filterCustomers;
+
+  // Send a past customer a branded "book again" email with a prefilled booking link
+  // (in-app, logged, on-brand — not a plain mailto). They complete a real booking.
+  window.rebookCustomer = async function(email, name, phone) {
+    if (!email) { toast('No email on file for this customer.', 'error'); return; }
+    if (!confirm('Send ' + (name || email) + ' a branded "book again" email with a prefilled booking link?')) return;
+    try {
+      var r = await fetch('/api/owner/rebook-invite', { method: 'POST', headers: headers(), body: JSON.stringify({ email: email, name: name, phone: phone }) });
+      var d = await r.json();
+      if (!r.ok || d.error) { toast(d.error || 'Failed to send rebook email', 'error'); return; }
+      toast('Rebook email sent to ' + (name || email), 'success');
+    } catch (e) { toast('Failed to send rebook email', 'error'); }
+  };
 
   // ─── MARKETING VIEW ───
   var marketingSocialSnapshot = null;
