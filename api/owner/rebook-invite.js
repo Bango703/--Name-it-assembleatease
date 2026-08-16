@@ -17,6 +17,7 @@ export default async function handler(req, res) {
   const email = String(body.email || '').trim();
   const name = String(body.name || '').trim();
   const phone = String(body.phone || '').trim();
+  const preview = body.preview === true;   // return the exact email without sending
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     return res.status(400).json({ error: 'A valid customer email is required.' });
@@ -46,10 +47,18 @@ export default async function handler(req, res) {
   </td></tr></table>
 </div></body></html>`;
 
+  const subject = 'Ready to book AssembleAtEase again?';
+
+  // Preview mode: hand back the exact subject + HTML the customer would receive, so the
+  // owner can review it in the dashboard before anything is sent. Nothing leaves here.
+  if (preview) {
+    return res.status(200).json({ ok: true, preview: true, to: email, subject, html });
+  }
+
   const result = await sendEmail({
     to: email,
     from: 'AssembleAtEase <booking@assembleatease.com>',
-    subject: 'Ready to book AssembleAtEase again?',
+    subject,
     html,
     replyTo: ownerEmail(),
     meta: { notificationType: 'customer_rebook_invite', recipientType: 'customer', disableDedupe: true },

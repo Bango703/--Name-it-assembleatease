@@ -3273,7 +3273,10 @@ window.intelQuick = intelQuick;
 
     var completed = allBookings.filter(function(b){return b.status==='completed';});
     var unresolvedCompleted = completed.filter(function(b){return !completedFinanceReady(b);});
-    var totGross=0, totFee=0, totPayout=0, totTax=0;
+    var reconciledCompleted = completed.filter(completedFinanceReady);
+    var cancelledCount = allBookings.filter(function(b){return b.status==='cancelled';}).length;
+    var totGross=0, totFee=0, totPayout=0, totTax=0, totProfit=0;
+    var reconciledGross=0, reconciledFee=0, reconciledTax=0;
     completed.forEach(function(b){
       var fs=b.financial_summary||{};
       var received = actualNetPaymentsCents(b);
@@ -3282,107 +3285,136 @@ window.intelQuick = intelQuick;
         totTax+=Number(fs.taxCollectedCents)||0;
         totFee+=Number(fs.processingFeeCents)||0;
       }
-      if (completedFinanceReady(b)) totPayout+=Number(fs.easerCostCents)||0;
+      if (completedFinanceReady(b)) {
+        totPayout+=Number(fs.easerCostCents)||0;
+        totProfit+=Number(fs.platformGrossCents)||0;
+        reconciledGross+=received;
+        reconciledTax+=Number(fs.taxCollectedCents)||0;
+        reconciledFee+=Number(fs.processingFeeCents)||0;
+      }
     });
     var totNet = totGross - totTax - totFee;   // net after sales tax + Stripe
-    var totProfit = totNet - totPayout;        // = platform commission - Stripe fee
+    var activityDates = completed.map(function(b){
+      var raw = String(b.date||'');
+      var parsed = new Date(raw.includes('T') ? raw : raw+'T12:00:00');
+      return Number.isFinite(parsed.getTime()) ? { raw:raw, timestamp:parsed.getTime() } : null;
+    }).filter(Boolean).sort(function(a,b){return a.timestamp-b.timestamp;});
+    var reportPeriod = activityDates.length
+      ? fmtDate(activityDates[0].raw)+(activityDates[0].raw===activityDates[activityDates.length-1].raw ? '' : ' - '+fmtDate(activityDates[activityDates.length-1].raw))
+      : 'No completed activity';
+    var reconciliationSubject = unresolvedCompleted.length===1
+      ? '1 completed booking is'
+      : unresolvedCompleted.length+' completed bookings are';
 
-    var rows = allBookings.map(function(b) {
-      var fs = b.status==='completed' ? (b.financial_summary||{}) : {};
-      var g = b.status==='completed' ? actualNetPaymentsCents(b) : 0;
+    var rows = completed.map(function(b) {
+      var fs = b.financial_summary||{};
+      var g = actualNetPaymentsCents(b);
       var tax = g > 0 ? (Number(fs.taxCollectedCents)||0) : 0;
       var f = g > 0 ? (Number(fs.processingFeeCents)||0) : 0;
       var n = g - tax - f;
       var financeReady = completedFinanceReady(b);
       var p = financeReady ? (Number(fs.easerCostCents)||0) : 0;
       var profit = financeReady ? (Number(fs.platformGrossCents)||0) : 0;
-      var statusColor = {completed:'#065f46',confirmed:'#0369a1',pending:'#92400e',cancelled:'#475569',declined:'#be123c',refunded:'#c2410c',en_route:'#1d4ed8',in_progress:'#059669'}[b.status]||'#374151';
-      var statusBg = {completed:'#d1fae5',confirmed:'#e0f2fe',pending:'#fef3c7',cancelled:'#f1f5f9',declined:'#fff1f2',refunded:'#fff7ed',en_route:'#dbeafe',in_progress:'#d1fae5'}[b.status]||'#f4f4f5';
+      var statusColor = financeReady ? '#0f6b5b' : '#92400e';
+      var statusBg = financeReady ? '#e5f5f0' : '#fff8ed';
       return '<tr>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:11px;color:#6b7280">'+esc(b.ref)+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+esc(b.customer_name)+'</div><div style="color:#9ca3af;font-size:10px">'+esc(b.service)+'</div></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:9px;color:#6b7280;white-space:nowrap">'+esc(b.ref)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+esc(b.service||'Service')+'</div><div style="color:#9ca3af;font-size:10px">Completed service</div></td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+esc(fmtDate(b.date))+(b.time ? '<br><span style="color:#9ca3af">'+esc(b.time)+'</span>' : '')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+esc(b.assembler_name||'Owner')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g ? dollars(g) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#ef4444">'+(f ? '-'+dollars(f) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(tax ? '('+dollars(tax)+')' : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(f ? '('+dollars(f)+')' : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n ? dollars(n) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#f59e0b">'+(financeReady ? (p ? '-'+dollars(p) : dollars(0)) : (b.status==='completed' ? 'Review' : '—'))+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:'+(profit>=0 ? '#065f46' : '#ef4444')+'">'+(financeReady ? dollars(profit) : (b.status==='completed' ? 'Review' : '—'))+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+esc(b.status)+'</span></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(financeReady ? (p ? '('+dollars(p)+')' : dollars(0)) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:#0f6b5b">'+(financeReady ? dollars(profit) : '—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:8px;font-weight:700;padding:3px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+(financeReady ? 'Reconciled' : 'Action required')+'</span></td>'
         +'</tr>';
     }).join('');
 
     var reportDate = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"/><title>AssembleAtEase Financial Report</title>'
-      +'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-      +'@page{size:landscape;margin:0.6in}'
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"/><title>AssembleAtEase Financial Performance Summary</title>'
+      +'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      +'@page{size:letter landscape;margin:0.42in 0.48in}thead{display:table-header-group}tfoot{display:table-row-group}tr{break-inside:avoid;page-break-inside:avoid}'
       +'@media print{.no-print{display:none}}'
       +'</style></head><body>'
-      +'<div style="max-width:1100px;margin:0 auto;padding:2rem 0">'
+      +'<div style="max-width:1100px;margin:0 auto;padding:0.35rem 0">'
 
       // Header
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:3px solid #00BFFF">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;padding-bottom:0.9rem;border-bottom:2px solid #0b2538">'
         +'<div>'
-          +'<div style="font-size:22px;font-weight:800;color:#0d1117;letter-spacing:-0.5px">AssembleAtEase</div>'
-          +'<div style="font-size:12px;color:#6b7280;margin-top:2px">Professional Assembly &amp; Handyman Services &bull; Austin, TX</div>'
-          +'<div style="font-size:18px;font-weight:700;color:#0d1117;margin-top:12px">Financial Report</div>'
-          +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Generated '+reportDate+'</div>'
+          +'<div style="font-size:22px;font-weight:800;color:#0b2538;letter-spacing:-0.5px">AssembleAtEase LLC</div>'
+          +'<div style="font-size:11px;color:#64748b;margin-top:2px">Professional assembly and installation marketplace &bull; Texas operations</div>'
+          +'<div style="font-size:18px;font-weight:700;color:#0f172a;margin-top:10px">Financial Performance Summary</div>'
+          +'<div style="font-size:10px;color:#64748b;margin-top:2px">Management-prepared and unaudited &bull; Generated '+reportDate+'</div>'
         +'</div>'
-        +'<div style="text-align:right">'
-          +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:4px">Financial source</div>'
-          +'<div style="font-size:12px;color:#374151">Recorded customer payments and fees</div>'
+        +'<div style="text-align:right;border-left:3px solid #00BFFF;padding-left:14px">'
+          +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin-bottom:4px">Reporting period</div>'
+          +'<div style="font-size:11px;font-weight:600;color:#0f172a">'+esc(reportPeriod)+'</div>'
+          +'<div style="font-size:9px;color:#64748b;margin-top:3px">All recorded completed cash activity</div>'
         +'</div>'
       +'</div>'
 
-      +(unresolvedCompleted.length ? '<div style="margin:-0.75rem 0 1.25rem;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:11px;font-weight:600">Reconciliation required: '+unresolvedCompleted.length+' completed booking(s) are missing final payment or Easer-cost truth. Their platform gross is shown as Review and excluded from profit totals.</div>' : '')
+      +(unresolvedCompleted.length ? '<div style="margin:0 0 0.75rem;padding:8px 11px;background:#fff8ed;border:1px solid #f1d2a5;border-radius:6px;color:#92400e;font-size:9.5px"><strong>Data-quality notice:</strong> '+reconciliationSubject+' excluded from contractor-cost and platform-gross totals until financial reconciliation is complete.</div>' : '')
 
       // Summary cards
-      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:2rem">'
+      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:1rem">'
         +[
-          ['Net Customer Revenue',dollars(totGross),'#00BFFF'],
-          ['Sales Tax (owed to state)','-'+dollars(totTax),'#7c3aed'],
-          ['Processing Fees','-'+dollars(totFee),'#ef4444'],
-          ['Net After Tax+Fees',dollars(totNet),'#374151'],
-          ['Known Easer Cost',unresolvedCompleted.length ? 'Incomplete' : '-'+dollars(totPayout),'#f59e0b'],
-          ['Platform Gross',unresolvedCompleted.length ? 'Incomplete' : dollars(totProfit),'#065f46'],
+          ['Customer Payments Collected',dollars(totGross),'#0b2538'],
+          ['Sales Tax Liability','('+dollars(totTax)+')','#334155'],
+          ['Processing Costs','('+dollars(totFee)+')','#334155'],
+          ['After Tax &amp; Processing',dollars(totNet),'#0b2538'],
+          ['Known Contractor Costs','('+dollars(totPayout)+')','#334155'],
+          ['Reconciled Platform Gross',dollars(totProfit),'#0f6b5b'],
         ].map(function(c){
-          return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px">'
-            +'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:6px">'+c[0]+'</div>'
-            +'<div style="font-size:20px;font-weight:800;color:'+c[2]+'">'+c[1]+'</div>'
+          return '<div style="background:#f5f8fa;border:1px solid #dbe3ea;border-radius:7px;padding:11px 12px;min-height:68px">'
+            +'<div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:6px">'+c[0]+'</div>'
+            +'<div style="font-size:18px;font-weight:800;color:'+c[2]+'">'+c[1]+'</div>'
           +'</div>';
         }).join('')
       +'</div>'
 
       // Table
-      +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:#f9fafb;border-top:1px solid #e5e7eb;border-bottom:2px solid #e5e7eb">'
-          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Ref</th>'
-          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Customer / Service</th>'
-          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Date</th>'
-          +'<th style="padding:10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Net Charged</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Processing Fee</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Net</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Easer Pay</th>'
-          +'<th style="padding:10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#00BFFF">Profit</th>'
-          +'<th style="padding:10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af">Status</th>'
+      +'<div style="margin-bottom:0.9rem;padding:8px 11px;border:1px solid #bdefff;border-left:3px solid #00BFFF;background:#f2fbfe;display:flex;align-items:center;justify-content:space-between;gap:18px">'
+        +'<div><div style="font-size:10px;font-weight:700;color:#0b2538">Reconciled gross formula</div><div style="font-size:8.5px;color:#64748b">Payments - sales tax - processing costs - contractor costs = platform gross</div></div>'
+        +'<div style="font-size:11px;font-weight:700;color:#0f172a;white-space:nowrap">'+dollars(reconciledGross)+' - ('+dollars(reconciledTax)+') - ('+dollars(reconciledFee)+') - ('+dollars(totPayout)+') = '+dollars(totProfit)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5px"><div style="font-size:11px;font-weight:700;color:#0b2538">Completed Booking Detail</div><div style="font-size:8.5px;color:#64748b">'+completed.length+' completed &bull; '+cancelledCount+' cancelled excluded</div></div>'
+      +'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px"><colgroup><col style="width:12%"><col style="width:17%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:10%"></colgroup>'
+        +'<thead><tr style="background:#0b2538;border-bottom:2px solid #0b2538">'
+          +'<th style="padding:8px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Reference</th>'
+          +'<th style="padding:8px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Service</th>'
+          +'<th style="padding:8px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Service Date</th>'
+          +'<th style="padding:8px;text-align:right;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Payments Collected</th>'
+          +'<th style="padding:8px;text-align:right;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Sales Tax</th>'
+          +'<th style="padding:8px;text-align:right;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Processing</th>'
+          +'<th style="padding:8px;text-align:right;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">After Tax &amp; Fees</th>'
+          +'<th style="padding:8px;text-align:right;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Contractor Cost</th>'
+          +'<th style="padding:8px;text-align:right;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Platform Gross</th>'
+          +'<th style="padding:8px;text-align:center;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Financial Status</th>'
         +'</tr></thead>'
         +'<tbody>'+rows+'</tbody>'
         // Totals row
-        +'<tfoot><tr style="background:#f0fdf4;border-top:2px solid #00BFFF">'
-          +'<td colspan="4" style="padding:10px;font-size:12px;font-weight:700;color:#065f46">TOTALS — Completed Jobs ('+completed.length+')</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:800;color:#111">'+dollars(totGross)+'</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:700;color:#ef4444">-'+dollars(totFee)+'</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:700;color:#374151">'+dollars(totNet)+'</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:700;color:#f59e0b">'+(unresolvedCompleted.length ? 'Incomplete' : '-'+dollars(totPayout))+'</td>'
-          +'<td style="padding:10px;text-align:right;font-weight:800;color:#065f46">'+(unresolvedCompleted.length ? 'Incomplete' : dollars(totProfit))+'</td>'
+        +'<tfoot><tr style="background:#eef4f6;border-top:2px solid #0b2538">'
+          +'<td colspan="3" style="padding:9px;font-size:10px;font-weight:700;color:#0b2538">RECORDED COMPLETED ACTIVITY ('+completed.length+')</td>'
+          +'<td style="padding:9px;text-align:right;font-weight:800;color:#0f172a">'+dollars(totGross)+'</td>'
+          +'<td style="padding:9px;text-align:right;font-weight:700;color:#475569">('+dollars(totTax)+')</td>'
+          +'<td style="padding:9px;text-align:right;font-weight:700;color:#475569">('+dollars(totFee)+')</td>'
+          +'<td style="padding:9px;text-align:right;font-weight:700;color:#334155">'+dollars(totNet)+'</td>'
+          +'<td style="padding:9px;text-align:right;font-weight:700;color:#475569">('+dollars(totPayout)+')</td>'
+          +'<td style="padding:9px;text-align:right;font-weight:800;color:#0f6b5b">'+dollars(totProfit)+'</td>'
           +'<td></td>'
         +'</tr></tfoot>'
       +'</table>'
 
-      +'<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af">'
-        +'<span>AssembleAtEase &bull; service@assembleatease.com &bull; 737-290-6129 &bull; Austin, TX</span>'
-        +'<span>Confidential — For Internal Use Only</span>'
+      +'<div style="margin-top:0.8rem;padding-top:0.65rem;border-top:1px solid #dbe3ea;display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:8.2px;color:#64748b">'
+        +'<div><strong style="color:#475569">Platform gross:</strong> customer payments less sales tax liability, payment-processing costs, and recorded contractor costs.</div>'
+        +'<div><strong style="color:#475569">Operating profit:</strong> not shown; marketing, insurance, software, overhead, income tax, and other operating expenses are excluded.</div>'
+        +'<div><strong style="color:#475569">Reconciliation:</strong> unresolved completed bookings remain visible but are excluded from contractor-cost and platform-gross totals.</div>'
+        +'<div><strong style="color:#475569">Privacy:</strong> customer names are intentionally omitted from this management summary.</div>'
+      +'</div>'
+      +'<div style="margin-top:0.65rem;padding-top:0.55rem;border-top:1px solid #dbe3ea;display:flex;justify-content:space-between;font-size:8px;color:#94a3b8">'
+        +'<span>AssembleAtEase LLC &bull; 9169 W State St #3847, Garden City, ID 83714<br>Texas operations &bull; service@assembleatease.com &bull; 737-290-6129</span>'
+        +'<span style="text-align:right">Confidential management report<br>Management-prepared; not audited or reviewed by an independent accountant</span>'
       +'</div>'
     +'</div>'
     +'<script>window.onload=function(){window.print();}<\/script>'

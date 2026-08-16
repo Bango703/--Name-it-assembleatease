@@ -205,13 +205,14 @@ if (!ownerDashboard.includes('/api/owner/site-chat') || !ownerDashboard.includes
 if (!ownerDashboard.includes('/api/owner/promo') || !ownerDashboard.includes('Promo Control')) {
   throw new Error('Owner dashboard must expose live promo controls');
 }
-const reportRowsStart = ownerDashboard.indexOf('var rows = allBookings.map(function(b)');
+const reportRowsStart = ownerDashboard.indexOf('var rows = completed.map(function(b)');
 const reportRowsEnd = ownerDashboard.indexOf('var reportDate =', reportRowsStart);
 const reportRows = ownerDashboard.slice(reportRowsStart, reportRowsEnd);
 if (reportRowsStart < 0 || reportRowsEnd < 0
-    || !reportRows.includes('esc(b.customer_name)')
-    || !reportRows.includes('esc(b.service)')) {
-  throw new Error('Owner financial report must escape customer-controlled names and services');
+    || !reportRows.includes('esc(b.ref)')
+    || !reportRows.includes("esc(b.service||'Service')")
+    || reportRows.includes('esc(b.customer_name)')) {
+  throw new Error('Owner financial report must escape references and services without exposing customer names');
 }
 
 const bookingPage = readFileSync('book.html', 'utf8');
