@@ -3,6 +3,11 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/choose-assembly-pro",
+      "destination": "/compare-assembly-options",
+      "permanent": true
+    },
+    {
       "source": "/blog/furniture-assembly-steiner-ranch-austin-tx",
       "destination": "/furniture-assembly-austin-tx",
       "permanent": true

@@ -40,6 +40,7 @@ const SUPPORT_LINKS = [
 // already owns the single /blog/ index link ("Guides"), so this list never
 // repeats that destination under a second label.
 const RESOURCES_LINKS = [
+  ['/compare-assembly-options', 'Compare your options'],
   ['/blog/new-home-setup-checklist-austin', 'New home setup checklist'],
   ['/blog/ikea-assembly-cost-austin', 'IKEA assembly cost guide'],
   ['/blog/tv-mounting-costs-austin', 'TV mounting cost guide'],
