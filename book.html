@@ -1203,6 +1203,32 @@
       #svc-screen .svc-list { grid-template-columns: 1fr; }
     }
 
+    .service-picker-complete {
+      position: sticky;
+      bottom: 0;
+      z-index: 18;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid rgba(0,191,255,0.24);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.97);
+      box-shadow: 0 -8px 24px rgba(15,23,42,0.08);
+    }
+    .service-picker-complete[hidden] { display: none !important; }
+    #svc-screen .svc-row[hidden] { display: none !important; }
+    .service-picker-complete-copy { min-width: 0; }
+    .service-picker-complete-copy strong { display: block; color: var(--ink); font-size: 0.9rem; }
+    .service-picker-complete-copy span { display: block; margin-top: 0.18rem; color: var(--ink-soft); font-size: 0.78rem; line-height: 1.45; }
+    .service-picker-complete .btn-next { flex: 0 0 auto; min-width: 190px; }
+    @media (max-width: 640px) {
+      .service-picker-complete { align-items: stretch; flex-direction: column; padding-bottom: max(0.85rem, env(safe-area-inset-bottom)); }
+      .service-picker-complete .btn-next { width: 100%; min-width: 0; }
+    }
+
     .item-intro-line {
       font-size: 0.85rem;
       color: var(--muted);
@@ -2596,9 +2622,9 @@
         <div id="svc-screen">
 
         <div class="svc-screen-head">
-          <div class="step-kicker">Start your booking</div>
-          <h1 class="step-heading">What do you need done?</h1>
-          <p class="step-sub">Pick the kind of help you need, then choose the exact items in the next step.</p>
+          <div class="step-kicker" id="svc-screen-kicker">Start your booking</div>
+          <h1 class="step-heading" id="svc-screen-title">What do you need done?</h1>
+          <p class="step-sub" id="svc-screen-subtitle">Pick the kind of help you need, then choose the exact items in the next step.</p>
         </div>
 
         <div class="bundle-welcome" id="bundle-welcome-services"></div>
@@ -2676,6 +2702,14 @@
             <svg class="svc-row-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
 
+        </div>
+
+        <div class="service-picker-complete" id="service-picker-complete" hidden>
+          <div class="service-picker-complete-copy">
+            <strong>Your current selections are saved.</strong>
+            <span>Choose another service above, or continue with what you already selected.</span>
+          </div>
+          <button type="button" class="btn-next" id="service-picker-done" onclick="finishAddingServices()">Done adding services</button>
         </div>
 
         </div><!-- /svc-screen -->
@@ -3497,6 +3531,8 @@ var BOOK = {
   currentSvc: null,
   currentGroup: '',
   itemStage: 'service',
+  servicePickerMode: 'initial',
+  servicePickerReturnSvc: '',
 
   details: '',
 
@@ -4272,31 +4308,6 @@ var SUBCAT_NOTES = {
   'Add-ons': 'Add-ons are for the same visit after a main item is selected.'
 };
 
-var BUNDLE_SERVICE_RULES = {
-  'Furniture Assembly': [
-    { service: 'Smart Home', label: 'Add smart home setup', why: 'Locks, doorbells, cameras, and thermostats can be handled in one stop.' },
-    { service: 'Mounting & Hanging', label: 'Add TV mounting', why: 'A common same-visit combo for media consoles, shelving, and move-ins.', whenAny: ['tv stand', 'media console', 'entertainment'] }
-  ],
-  'Mounting & Hanging': [
-    { service: 'Furniture Assembly', label: 'Add furniture assembly', why: 'Pair the mount with a console, TV stand, desk, or shelf assembly.' },
-    { service: 'Smart Home', label: 'Add smart home setup', why: 'Doorbells, cameras, and streaming gear are easy same-visit adds.' }
-  ],
-  'Smart Home': [
-    { service: 'Mounting & Hanging', label: 'Add wall mounting', why: 'TVs, shelves, and mirrors pair well with device installs.' },
-    { service: 'Furniture Assembly', label: 'Add furniture assembly', why: 'Desks, media consoles, and bedroom pieces can be handled the same visit.' }
-  ],
-  'Office Assembly': [
-    { service: 'Mounting & Hanging', label: 'Add wall mounting', why: 'Whiteboards, shelves, and displays are easy to bundle with office installs.' },
-    { service: 'Smart Home', label: 'Add Wi-Fi or hub setup', why: 'Mesh Wi-Fi and device setup pair well with office setups.' }
-  ],
-  'Fitness Equipment': [
-    { service: 'Furniture Assembly', label: 'Add storage assembly', why: 'Shelving, benches, and storage pieces can be finished on the same visit.' }
-  ],
-  'Outdoor & Playsets': [
-    { service: 'Smart Home', label: 'Add outdoor camera or doorbell setup', why: 'Outdoor installs often pair with a doorbell, floodlight camera, or Wi-Fi device setup.' }
-  ]
-};
-
 function startCustomQuoteFlow() {
   var quoteItemName = 'Describe your project in the notes below (custom quote)';
   BOOK.selectedServices = ['Other'];
@@ -4346,7 +4357,7 @@ function hasSelectedPrimaryItems(svc) {
 }
 
 function serviceCanOfferExtras(svc) {
-  return getExtraGroups(svc).length > 0 || (BUNDLE_SERVICE_RULES[svc] || []).length > 0;
+  return !!svc && svc !== 'Other';
 }
 
 function getDefaultPrimaryGroup(svc) {
@@ -4446,10 +4457,65 @@ function showItemScreen(svc, desiredStage) {
   if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function getFirstSelectedServiceWithItems() {
+  for (var i = 0; i < BOOK.selectedServices.length; i++) {
+    var svc = BOOK.selectedServices[i];
+    if (getSelectedItemCountForService(svc) > 0) return svc;
+  }
+  return '';
+}
+
+function renderServicePickerMode() {
+  var adding = BOOK.servicePickerMode === 'add';
+  var kicker = document.getElementById('svc-screen-kicker');
+  var title = document.getElementById('svc-screen-title');
+  var subtitle = document.getElementById('svc-screen-subtitle');
+  var complete = document.getElementById('service-picker-complete');
+  var customQuote = document.querySelector('.svc-row[data-service="Other"]');
+
+  if (kicker) kicker.textContent = adding ? 'Build your visit' : 'Start your booking';
+  if (title) title.textContent = adding ? 'Add another service' : 'What do you need done?';
+  if (subtitle) {
+    subtitle.textContent = adding
+      ? 'Choose another service, or continue with your current selections.'
+      : 'Pick the kind of help you need, then choose the exact items in the next step.';
+  }
+  if (complete) complete.hidden = !adding;
+  if (customQuote) customQuote.hidden = adding;
+}
+
+function openAddServicePicker() {
+  BOOK.details = (document.getElementById('s1-details') || {}).value || BOOK.details;
+  BOOK.wantsQuote = !!((document.getElementById('s1-quote') || {}).checked);
+  BOOK.servicePickerMode = 'add';
+  BOOK.servicePickerReturnSvc = BOOK.currentSvc || getFirstSelectedServiceWithItems();
+  showSvcScreen();
+}
+
+function finishAddingServices() {
+  var returnSvc = BOOK.servicePickerReturnSvc;
+  if (!returnSvc || getSelectedItemCountForService(returnSvc) === 0) {
+    returnSvc = getFirstSelectedServiceWithItems();
+  }
+
+  BOOK.servicePickerMode = 'initial';
+  BOOK.servicePickerReturnSvc = '';
+
+  if (!returnSvc) {
+    showSvcScreen();
+    return;
+  }
+
+  showItemScreen(returnSvc, 'notes');
+}
+
 function showSvcScreen() {
 
   if (BOOK.currentSvc) {
     var items = BOOK.selectedItems[BOOK.currentSvc] || [];
+    if (BOOK.servicePickerMode === 'add' && items.length > 0) {
+      BOOK.servicePickerReturnSvc = BOOK.currentSvc;
+    }
     if (items.length === 0 && !BOOK.wantsQuote) {
       var idx = BOOK.selectedServices.indexOf(BOOK.currentSvc);
       if (idx !== -1) BOOK.selectedServices.splice(idx, 1);
@@ -4466,6 +4532,7 @@ function showSvcScreen() {
   document.getElementById('item-screen').style.display = 'none';
   document.getElementById('svc-screen').style.display = '';
 
+  renderServicePickerMode();
   updateSvcRows();
   updateOrderSummary();
 
@@ -4488,7 +4555,7 @@ function updateSvcRows() {
         if (unit > 0) svcSubtotal += unit * qty;
       });
       badge.textContent = itemCount > 0
-        ? ((itemCount === 1 ? '1 item' : itemCount + ' items') + (svcSubtotal > 0 ? ' · $' + svcSubtotal.toFixed(0) : ''))
+        ? ('Selected - ' + (itemCount === 1 ? '1 item' : itemCount + ' items') + (svcSubtotal > 0 ? ' - $' + svcSubtotal.toFixed(0) : ''))
         : '';
     }
   });
@@ -4650,13 +4717,16 @@ function renderSelectedServiceStrip() {
   var strip = document.getElementById('selected-service-strip');
   if (!strip) return;
 
-  if (BOOK.selectedServices.length <= 1) {
+  if (BOOK.selectedServices.length === 0
+      || (BOOK.selectedServices.length === 1 && BOOK.servicePickerMode !== 'add')) {
     strip.classList.remove('show');
     strip.innerHTML = '';
     return;
   }
 
-  var copy = BOOK.selectedServices.length + ' services in this visit.';
+  var copy = BOOK.selectedServices.length === 1
+    ? '1 service selected for this visit.'
+    : BOOK.selectedServices.length + ' services selected for this visit.';
 
   strip.innerHTML = '<div class="selected-service-copy">' + copy + '</div>'
     + '<div class="selected-service-chips">' + BOOK.selectedServices.map(function(svc) {
@@ -4902,9 +4972,7 @@ function goBackInServiceFlow() {
 }
 
 function handleServiceSecondaryAction() {
-  BOOK.details = (document.getElementById('s1-details') || {}).value || BOOK.details;
-  BOOK.wantsQuote = !!((document.getElementById('s1-quote') || {}).checked);
-  showSvcScreen();
+  openAddServicePicker();
 }
 
 function handleServiceStageContinue() {
@@ -5596,16 +5664,6 @@ function recommendItems(svc) {
   };
 }
 
-function recommendBundleServices(svc) {
-  if (!svc || svc === "Other" || !hasSelectedBaseItems(svc)) return [];
-  var selectedNames = getSelectedItemNamesLower(svc);
-  return (BUNDLE_SERVICE_RULES[svc] || []).filter(function(rule) {
-    if (!rule || !rule.service || rule.service === svc) return false;
-    if (rule.whenAny && !appliesToSelection(rule.whenAny, selectedNames)) return false;
-    return true;
-  }).slice(0, 2);
-}
-
 function renderRecoItemSection(title, entries) {
   if (!entries.length) return "";
   var html = "<div class=\"reco-shelf-block\"><div class=\"reco-shelf-head\">" + esc(title) + "</div><div class=\"reco-shelf-row\">";
@@ -5629,24 +5687,18 @@ function renderRecoItemSection(title, entries) {
   return html + "</div></div>";
 }
 
-function renderRecoBundleSection(entries) {
-  if (!entries.length) return "";
-  var html = "<div class=\"reco-shelf-block\">"
-    + "<div class=\"reco-shelf-head\">Same-visit bundles</div>"
-    + "<div class=\"reco-shelf-note\">Bundle savings start at 3+ priced items across 2 services.</div>"
-    + "<div class=\"reco-shelf-row\">";
-  entries.forEach(function(entry) {
-    var alreadySelected = BOOK.selectedServices.indexOf(entry.service) !== -1;
-    html += "<button type=\"button\" class=\"reco-chip\""
-      + " data-service=\"" + escAttr(entry.service) + "\""
-      + " onclick=\"recoBundle(this)\">"
-      + "<span class=\"reco-chip-text\"><span class=\"reco-chip-name\">" + esc(entry.label || entry.service) + "</span>"
-      + "<span class=\"reco-chip-why\">" + esc(entry.why || "") + "</span></span>"
-      + "<span class=\"reco-chip-price action\">" + (alreadySelected ? "Open" : "Browse") + "</span>"
-      + "<span class=\"reco-chip-add\" aria-hidden=\"true\">&rarr;</span>"
-      + "</button>";
-  });
-  return html + "</div></div>";
+function renderAddServiceChoice() {
+  return "<div class=\"reco-shelf-block\">"
+    + "<div class=\"reco-shelf-head\">Optional</div>"
+    + "<div class=\"reco-shelf-title\">Add another service</div>"
+    + "<div class=\"reco-shelf-note\">Browse all available services and choose only what you need for this visit.</div>"
+    + "<div class=\"reco-shelf-row\">"
+    + "<button type=\"button\" class=\"reco-chip\" onclick=\"openAddServicePicker()\">"
+    + "<span class=\"reco-chip-text\"><span class=\"reco-chip-name\">Browse all services</span>"
+    + "<span class=\"reco-chip-why\">Your current selections will stay saved.</span></span>"
+    + "<span class=\"reco-chip-price action\">Browse</span>"
+    + "<span class=\"reco-chip-add\" aria-hidden=\"true\">&rarr;</span>"
+    + "</button></div></div>";
 }
 
 function renderRecoShelf(svc) {
@@ -5663,19 +5715,11 @@ function renderRecoShelf(svc) {
     return;
   }
   var itemSections = recommendItems(svc);
-  var bundles = recommendBundleServices(svc);
   var isExtrasStage = BOOK.itemStage === "extras";
   var html = "";
 
   if (isExtrasStage) {
-    if (bundles.length) {
-      html = ""
-        + "<div class=\"reco-shelf-block\">"
-        + "<div class=\"reco-shelf-title\">Bundle another service</div>"
-        + "<div class=\"reco-shelf-note\">Only if you want us to handle another service on the same visit.</div>"
-        + "</div>"
-        + renderRecoBundleSection(bundles);
-    }
+    html = renderAddServiceChoice();
   } else {
     html = ""
       + "<div class=\"reco-shelf-block\">"
@@ -5683,8 +5727,7 @@ function renderRecoShelf(svc) {
       + "<div class=\"reco-shelf-note\">Pick any extras that belong on the same appointment.</div>"
       + "</div>"
       + renderRecoItemSection("Add to this visit", itemSections.addOns)
-      + renderRecoItemSection("Upgrade the finish", itemSections.upgrades)
-      + renderRecoBundleSection(bundles);
+      + renderRecoItemSection("Upgrade the finish", itemSections.upgrades);
   }
 
   if (!html) {
@@ -5705,13 +5748,6 @@ function recoAdd(btn) {
     btn.getAttribute("data-addon") === "true",
     false);
 }
-
-function recoBundle(btn) {
-  var svc = btn && btn.getAttribute("data-service");
-  if (!svc) return;
-  showItemScreen(svc, 'items');
-}
-
 
 function changeQty(svc, name, delta) {
 

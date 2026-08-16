@@ -4,6 +4,7 @@
   "description": "AssembleAtEase - Assembly services marketplace connecting customers with skilled assemblers",
   "scripts": {
     "test": "node scripts/smoke-check.mjs",
+    "test:booking-add-service": "node scripts/test-booking-add-service-flow.mjs",
     "test:owner-audit": "node scripts/test-owner-demand-damage-discount-and-texas-content.mjs",
     "test:owner-financial-report": "node scripts/test-owner-financial-report.mjs",
     "pretest:launch": "node scripts/test-growth-booking-window.mjs",
