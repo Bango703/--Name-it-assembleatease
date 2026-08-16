@@ -4266,6 +4266,19 @@ window.intelQuick = intelQuick;
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
   }
 
+  // Money-neutral post-completion customer actions — IDENTICAL for online and owner-
+  // manual bookings, so a completed job always offers Review + Rebook regardless of lane.
+  // (Neither touches payment/payout; both no-op safely when there's no customer email.)
+  function addCompletedCustomerActions(b, btns) {
+    if (!b.customer_email) return;
+    if (b.review_requested_at) {
+      btns.push('<button class="btn" data-action="request-review" data-id="' + b.id + '">Resend Review Request</button>');
+    } else {
+      btns.push('<button class="btn btn-teal" data-action="request-review" data-id="' + b.id + '">Request Review</button>');
+    }
+    btns.push('<button class="btn" onclick="rebookCustomer(\'' + jsAttr(b.customer_email) + '\',\'' + jsAttr(b.customer_name || '') + '\',\'' + jsAttr(b.customer_phone || '') + '\')">Email to Rebook</button>');
+  }
+
   function renderActions(b) {
     function renderOwnerActionCollection(notices, btns) {
       var actionPriority = [
@@ -4443,6 +4456,9 @@ window.intelQuick = intelQuick;
           notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--muted)">Add the Easer who completed this work before recording contractor earnings.</div>');
         }
       }
+      // Same money-neutral post-completion actions as an online completed booking, so
+      // offline jobs can also request a review and rebook the customer.
+      if (b.status === 'completed') addCompletedCustomerActions(b, btns);
       renderOwnerActionCollection(notices, btns);
       return;
     }
@@ -4532,14 +4548,7 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Damage payout hold:</strong> review the saved damage evidence and document the outcome before any Easer payout. Resolving this review does not send money or change earnings.</div>');
         btns.push('<button class="btn btn-amber" data-action="damage-review" data-id="' + b.id + '">Resolve Damage Review</button>');
       }
-      if (b.review_requested_at && b.customer_email) {
-        btns.push('<button class="btn" data-action="request-review" data-id="' + b.id + '">Resend Review Request</button>');
-      } else if (b.customer_email) {
-        btns.push('<button class="btn btn-teal" data-action="request-review" data-id="' + b.id + '">Request Review</button>');
-      }
-      if (b.status === 'completed' && b.customer_email) {
-        btns.push('<button class="btn" onclick="rebookCustomer(\'' + jsAttr(b.customer_email) + '\',\'' + jsAttr(b.customer_name || '') + '\',\'' + jsAttr(b.customer_phone || '') + '\')">Email to Rebook</button>');
-      }
+      addCompletedCustomerActions(b, btns);
       if (b.assembler_id && !b.evidence_requested_at) {
         btns.push('<button class="btn btn-amber" data-action="request-evidence" data-id="' + b.id + '">Request Evidence</button>');
       } else if (b.evidence_requested_at) {
