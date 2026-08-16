@@ -93,11 +93,11 @@ assert.equal(redacted[0].assignment_token, null, 'terminal jobs must not retain 
 assert.equal(redacted[1].customer_email, null, 'unaccepted jobs must not expose customer PII');
 assert.equal(redacted[2].address, 'Private', 'accepted active jobs need operational address access');
 
-assert.equal(validatePublishedRescheduleSlot('2026-07-13', '7:00 AM – 9:00 AM').ok, true, 'weekday slot');
-assert.equal(validatePublishedRescheduleSlot('2026-07-18', '11:00 AM – 1:00 PM').ok, true, 'Saturday morning slot');
-assert.equal(validatePublishedRescheduleSlot('2026-07-18', '1:00 PM – 3:00 PM').ok, false, 'Saturday afternoon closed');
-assert.equal(validatePublishedRescheduleSlot('2026-07-19', '9:00 AM – 11:00 AM').ok, false, 'Sunday closed');
-assert.equal(validatePublishedRescheduleSlot('2026-02-31', '9:00 AM – 11:00 AM').ok, false, 'rolled-over calendar dates must be rejected');
+assert.equal(validatePublishedRescheduleSlot('2026-07-13', '8:00 AM – 10:00 AM').ok, true, 'weekday slot');
+assert.equal(validatePublishedRescheduleSlot('2026-07-18', '6:00 PM – 8:00 PM').ok, true, 'Saturday evening slot now open (8 AM–8 PM every day)');
+assert.equal(validatePublishedRescheduleSlot('2026-07-19', '10:00 AM – 12:00 PM').ok, true, 'Sunday now open (8 AM–8 PM every day)');
+assert.equal(validatePublishedRescheduleSlot('2026-07-13', '9:00 AM – 11:00 AM').ok, false, 'retired 9 AM slot is rejected');
+assert.equal(validatePublishedRescheduleSlot('2026-02-31', '10:00 AM – 12:00 PM').ok, false, 'rolled-over calendar dates must be rejected');
 
 const [monitorSource, statusSource, assignmentUiSource, evidenceSource] = await Promise.all([
   readFile(new URL('../api/owner/monitor.js', import.meta.url), 'utf8'),

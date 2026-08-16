@@ -11,13 +11,13 @@ import { bookingEmailMatches } from './_guest-booking-auth.js';
 
 const MAX_RESCHEDULES = 2;
 const TIME_SLOTS = [
-  '7:00 AM - 9:00 AM',
-  '9:00 AM - 11:00 AM',
-  '11:00 AM - 1:00 PM',
-  '1:00 PM - 3:00 PM',
-  '3:00 PM - 5:00 PM',
+  '8:00 AM - 10:00 AM',
+  '10:00 AM - 12:00 PM',
+  '12:00 PM - 2:00 PM',
+  '2:00 PM - 4:00 PM',
+  '4:00 PM - 6:00 PM',
+  '6:00 PM - 8:00 PM',
 ];
-const SATURDAY_TIME_SLOTS = TIME_SLOTS.slice(0, 3);
 const SITE = 'https://www.assembleatease.com';
 
 function normalizeSlot(value) {
@@ -30,13 +30,8 @@ export function validatePublishedRescheduleSlot(date, time) {
   if (!requestedDate || !TIME_SLOTS.includes(normalizedTime)) {
     return { ok: false, normalizedTime, error: 'Please choose a valid appointment date and time.' };
   }
-  const requestedDay = requestedDate.getUTCDay();
-  if (requestedDay === 0) {
-    return { ok: false, normalizedTime, error: 'Sunday appointments are not available. Please choose Monday through Saturday.' };
-  }
-  if (requestedDay === 6 && !SATURDAY_TIME_SLOTS.includes(normalizedTime)) {
-    return { ok: false, normalizedTime, error: 'Saturday appointments are available from 7:00 AM through 1:00 PM.' };
-  }
+  // Published service hours: 8 AM–8 PM, every day. Membership in TIME_SLOTS above is
+  // the only slot gate; no weekday restriction.
   return { ok: true, normalizedTime, error: null };
 }
 

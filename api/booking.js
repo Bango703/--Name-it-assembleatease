@@ -107,18 +107,15 @@ export default async function handler(req, res) {
   // today in America/Chicago. It is additive and never enters the 30/70 split.
   const sameDayFeeCentsForDate = sameDayFeeForAppointment(date);
 
-  const weekday = requestedDate.getUTCDay();
-  const weekdaySlots = [
-    '7:00 AM – 9:00 AM', '9:00 AM – 11:00 AM', '11:00 AM – 1:00 PM',
-    '1:00 PM – 3:00 PM', '3:00 PM – 5:00 PM',
+  // Published service hours: 8 AM–8 PM, every day (Mon–Sun). Kept in exact sync with
+  // book.html TIME_SLOTS and the reschedule validator.
+  const allowedSlots = [
+    '8:00 AM – 10:00 AM', '10:00 AM – 12:00 PM', '12:00 PM – 2:00 PM',
+    '2:00 PM – 4:00 PM', '4:00 PM – 6:00 PM', '6:00 PM – 8:00 PM',
   ];
-  const saturdaySlots = weekdaySlots.slice(0, 3);
-  const allowedSlots = weekday === 0 ? [] : (weekday === 6 ? saturdaySlots : weekdaySlots);
   if (!allowedSlots.includes(time)) {
     return res.status(400).json({
-      error: weekday === 0
-        ? 'Online appointments are closed on Sunday. Please choose Monday through Saturday.'
-        : 'Please choose a time within published service hours (Monday–Friday 7 AM–5 PM; Saturday 7 AM–1 PM).',
+      error: 'Please choose a time within published service hours (every day, 8 AM–8 PM).',
       code: 'INVALID_SERVICE_HOURS',
     });
   }

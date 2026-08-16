@@ -801,7 +801,7 @@ function closeCancelModal() {
 }
 
 // ── Reschedule modal ───────────────────────────────────────
-var RS_TIME_SLOTS = ['7:00 AM – 9:00 AM','9:00 AM – 11:00 AM','11:00 AM – 1:00 PM','1:00 PM – 3:00 PM','3:00 PM – 5:00 PM'];
+var RS_TIME_SLOTS = ['8:00 AM – 10:00 AM','10:00 AM – 12:00 PM','12:00 PM – 2:00 PM','2:00 PM – 4:00 PM','4:00 PM – 6:00 PM','6:00 PM – 8:00 PM'];
 
 var RS_CHICAGO_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -853,8 +853,7 @@ function rsSlotAvailable(isoDate, slot) {
   var latest = rsAddDays(today, savedCardWindow ? 30 : 6);
   if (isoDate < earliest || isoDate > latest) return false;
   var slotIndex = RS_TIME_SLOTS.map(rsNormalizeSlot).indexOf(rsNormalizeSlot(slot));
-  var weekday = parsed.getUTCDay();
-  if (slotIndex < 0 || weekday === 0 || (weekday === 6 && slotIndex >= 3)) return false;
+  if (slotIndex < 0) return false;   // 8 AM–8 PM, every day; past same-day slots filtered below
   if (isoDate === today) {
     var clock = rsParts(RS_CHICAGO_TIME_FORMATTER, new Date());
     var nowMinutes = (parseInt(clock.hour, 10) || 0) * 60 + (parseInt(clock.minute, 10) || 0);

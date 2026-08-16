@@ -3476,7 +3476,6 @@ var ACTIVE_MARKET_LABEL = 'Statewide Texas booking coverage';
 
 (function() {
   var d = new Date(); d.setDate(d.getDate() + 1);
-  if (d.getDay() === 0) d.setDate(d.getDate() + 1); // skip Sunday
   var label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   var el = document.getElementById('urgency-next');
   if (el) el.textContent = label;
@@ -3543,7 +3542,7 @@ var BOOK = {
 
 
 
-var TIME_SLOTS = ['7:00 AM \u2013 9:00 AM','9:00 AM \u2013 11:00 AM','11:00 AM \u2013 1:00 PM','1:00 PM \u2013 3:00 PM','3:00 PM \u2013 5:00 PM'];
+var TIME_SLOTS = ['8:00 AM \u2013 10:00 AM','10:00 AM \u2013 12:00 PM','12:00 PM \u2013 2:00 PM','2:00 PM \u2013 4:00 PM','4:00 PM \u2013 6:00 PM','6:00 PM \u2013 8:00 PM'];
 var BOOKING_WINDOW_DAYS = 30;
 var IMMEDIATE_AUTHORIZATION_DAYS = 6;
 
@@ -3646,8 +3645,7 @@ function isPublishedSlotAvailable(isoDate, slot) {
   var maxIso = addIsoDays(todayIso, BOOKING_WINDOW_DAYS);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(isoDate || '')) || isoDate < todayIso || isoDate > maxIso) return false;
   var slotIndex = TIME_SLOTS.indexOf(slot);
-  var weekday = getIsoWeekday(isoDate);
-  if (slotIndex < 0 || weekday === 0 || (weekday === 6 && slotIndex >= 3)) return false;
+  if (slotIndex < 0) return false;   // 8 AM–8 PM, every day; only past same-day slots are filtered below
   if (isoDate === todayIso) {
     var startMinutes = getSlotStartMinutes(slot);
     var sdCfg = (window.AAE_BOOKING_SOURCE && window.AAE_BOOKING_SOURCE.sameDay) || {};
@@ -6598,7 +6596,7 @@ async function saveDtEdit() {
   if (!isPublishedSlotAvailable(dateInp.value, _s5SelTime)) {
     var scheduleErr = document.getElementById('s5-err');
     if (scheduleErr) {
-      scheduleErr.textContent = 'Choose an available time within the next 30 days: Monday–Friday 7 AM–5 PM, Saturday 7 AM–1 PM, closed Sunday.';
+      scheduleErr.textContent = 'Choose an available time within the next 30 days. We book every day, 8 AM–8 PM.';
       scheduleErr.classList.add('show');
     }
     return;
@@ -7049,7 +7047,7 @@ function saveContactEdit() {
 
       var dateStr = curYear+'-'+pad(curMonth+1)+'-'+pad(d);
 
-      var disabled = dateStr < todayIso || dateStr > maxIso || getIsoWeekday(dateStr) === 0;
+      var disabled = dateStr < todayIso || dateStr > maxIso;
 
       var cls = 'dt-day' + (dateStr === todayIso ? ' today' : '') + (BOOK.date === dateStr ? ' selected' : '');
 
