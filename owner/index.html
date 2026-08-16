@@ -3319,6 +3319,7 @@ window.intelQuick = intelQuick;
     var reconciliationSubject = unresolvedCompleted.length===1
       ? '1 completed booking is'
       : unresolvedCompleted.length+' completed bookings are';
+    var unreconciledGross = totGross - reconciledGross;
 
     var rows = completed.map(function(b) {
       var fs = b.financial_summary||{};
@@ -3331,17 +3332,18 @@ window.intelQuick = intelQuick;
       var profit = financeReady ? (Number(fs.platformGrossCents)||0) : 0;
       var statusColor = financeReady ? '#0f6b5b' : '#92400e';
       var statusBg = financeReady ? '#e5f5f0' : '#fff8ed';
-      return '<tr>'
+      var serviceLabel = esc(b.service||'Service').replace(/\//g, '/<wbr>');
+      return '<tr style="vertical-align:top">'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:9px;color:#6b7280;white-space:nowrap">'+esc(b.ref)+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px"><div style="font-weight:600;color:#111">'+esc(b.service||'Service')+'</div><div style="color:#9ca3af;font-size:10px">Completed service</div></td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:11px;color:#374151">'+esc(fmtDate(b.date))+(b.time ? '<br><span style="color:#9ca3af">'+esc(b.time)+'</span>' : '')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;overflow-wrap:anywhere;word-break:normal"><div style="font-size:10.5px;line-height:1.3;font-weight:600;color:#111;overflow-wrap:anywhere">'+serviceLabel+'</div></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:10.5px;line-height:1.35;color:#374151;overflow-wrap:anywhere">'+esc(fmtDate(b.date))+(b.time ? '<br><span style="color:#7c8798">'+esc(b.time)+'</span>' : '')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:600;color:#111">'+(g ? dollars(g) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(tax ? '('+dollars(tax)+')' : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(f ? '('+dollars(f)+')' : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#374151">'+(n ? dollars(n) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;color:#475569">'+(financeReady ? (p ? '('+dollars(p)+')' : dollars(0)) : '—')+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:12px;font-weight:700;color:#0f6b5b">'+(financeReady ? dollars(profit) : '—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';font-size:8px;font-weight:700;padding:3px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em">'+(financeReady ? 'Reconciled' : 'Action required')+'</span></td>'
+        +'<td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center"><span style="display:inline-block;white-space:nowrap;background:'+statusBg+';color:'+statusColor+';font-size:7.5px;font-weight:700;padding:3px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:0.035em">'+(financeReady ? 'Reconciled' : 'Action required')+'</span></td>'
         +'</tr>';
     }).join('');
 
@@ -3364,11 +3366,11 @@ window.intelQuick = intelQuick;
         +'<div style="text-align:right;border-left:3px solid #00BFFF;padding-left:14px">'
           +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin-bottom:4px">Reporting period</div>'
           +'<div style="font-size:11px;font-weight:600;color:#0f172a">'+esc(reportPeriod)+'</div>'
-          +'<div style="font-size:9px;color:#64748b;margin-top:3px">All recorded completed cash activity</div>'
+          +'<div style="font-size:9px;color:#64748b;margin-top:3px">Recorded completed-job payment activity</div>'
         +'</div>'
       +'</div>'
 
-      +(unresolvedCompleted.length ? '<div style="margin:0 0 0.75rem;padding:8px 11px;background:#fff8ed;border:1px solid #f1d2a5;border-radius:6px;color:#92400e;font-size:9.5px"><strong>Data-quality notice:</strong> '+reconciliationSubject+' excluded from contractor-cost and platform-gross totals until financial reconciliation is complete.</div>' : '')
+      +(unresolvedCompleted.length ? '<div style="margin:0 0 0.75rem;padding:8px 11px;background:#fff8ed;border:1px solid #f1d2a5;border-radius:6px;color:#92400e;font-size:9.5px"><strong>Data-quality notice:</strong> '+reconciliationSubject+' excluded from contractor-cost and platform-gross totals until financial reconciliation is complete. Excluded recorded payments: <strong>'+dollars(unreconciledGross)+'</strong>.</div>' : '')
 
       // Summary cards
       +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:1rem">'
@@ -3389,11 +3391,11 @@ window.intelQuick = intelQuick;
 
       // Table
       +'<div style="margin-bottom:0.9rem;padding:8px 11px;border:1px solid #bdefff;border-left:3px solid #00BFFF;background:#f2fbfe;display:flex;align-items:center;justify-content:space-between;gap:18px">'
-        +'<div><div style="font-size:10px;font-weight:700;color:#0b2538">Reconciled gross formula</div><div style="font-size:8.5px;color:#64748b">Payments - sales tax - processing costs - contractor costs = platform gross</div></div>'
+        +'<div><div style="font-size:10px;font-weight:700;color:#0b2538">Reconciled platform gross formula</div><div style="font-size:8.5px;color:#64748b">'+reconciledCompleted.length+' of '+completed.length+' completed bookings have complete financial records</div></div>'
         +'<div style="font-size:11px;font-weight:700;color:#0f172a;white-space:nowrap">'+dollars(reconciledGross)+' - ('+dollars(reconciledTax)+') - ('+dollars(reconciledFee)+') - ('+dollars(totPayout)+') = '+dollars(totProfit)+'</div>'
       +'</div>'
-      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5px"><div style="font-size:11px;font-weight:700;color:#0b2538">Completed Booking Detail</div><div style="font-size:8.5px;color:#64748b">'+completed.length+' completed &bull; '+cancelledCount+' cancelled excluded</div></div>'
-      +'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px"><colgroup><col style="width:12%"><col style="width:17%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:10%"></colgroup>'
+      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5px"><div style="font-size:11px;font-weight:700;color:#0b2538">Completed Booking Financial Detail</div><div style="font-size:8.5px;color:#64748b">'+completed.length+' completed &bull; '+cancelledCount+' cancelled excluded</div></div>'
+      +'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px"><colgroup><col style="width:11%"><col style="width:19%"><col style="width:10%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:10%"></colgroup>'
         +'<thead><tr style="background:#0b2538;border-bottom:2px solid #0b2538">'
           +'<th style="padding:8px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Reference</th>'
           +'<th style="padding:8px;text-align:left;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff">Service</th>'

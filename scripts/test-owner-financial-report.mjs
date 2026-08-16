@@ -27,6 +27,10 @@ assert.match(reportSource, /@page\{size:letter landscape/);
 assert.match(reportSource, /break-inside:avoid/);
 assert.match(reportSource, /Reporting period/);
 assert.match(reportSource, /white-space:nowrap/);
+assert.match(reportSource, /overflow-wrap:anywhere/);
+assert.match(reportSource, /replace\(\/\\\/\/g, '\/<wbr>'\)/);
+assert.match(reportSource, /Recorded completed-job payment activity/);
+assert.match(reportSource, /Excluded recorded payments/);
 assert.doesNotMatch(reportSource, /Net Customer Revenue/);
 assert.doesNotMatch(reportSource, /Known Easer Cost/);
 assert.doesNotMatch(reportSource, /Their platform gross is shown as Review/);
@@ -39,7 +43,7 @@ const bookings = [
   {
     status: 'completed',
     ref: 'AAE-RECONCILED',
-    service: 'Furniture Assembly',
+    service: 'Trampoline/Disassembly/Moving/Reassembly',
     customer_name: 'Private Customer One',
     date: '2026-08-10',
     time: '10:00 AM - 12:00 PM',
@@ -127,11 +131,13 @@ assert.match(renderedHtml, /\$245\.50/);
 assert.match(renderedHtml, /\$89\.80/);
 assert.match(renderedHtml, /\$374\.00 - \(\$28\.50\) - \(\$10\.20\) - \(\$245\.50\) = \$89\.80/);
 assert.match(renderedHtml, /AAE-RECONCILED/);
+assert.match(renderedHtml, /Trampoline\/<wbr>Disassembly\/<wbr>Moving\/<wbr>Reassembly/);
 assert.match(renderedHtml, /AAE-PENDING/);
 assert.match(renderedHtml, /Sales Tax/);
 assert.match(renderedHtml, /Action required/);
 assert.match(renderedHtml, /Aug 10, 2026 - Aug 11, 2026/);
 assert.match(renderedHtml, /1 completed booking is excluded/);
+assert.match(renderedHtml, /Excluded recorded payments: <strong>\$153\.00<\/strong>/);
 assert.doesNotMatch(renderedHtml, /AAE-CANCELLED|Cancelled Service/);
 assert.doesNotMatch(renderedHtml, /Private Customer/);
 
