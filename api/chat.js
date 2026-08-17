@@ -54,6 +54,8 @@ const ROOT_ROUTES = Object.freeze({
 
 const SITE_CHAT_EVENT_USER = 'website_chat_user';
 const SITE_CHAT_EVENT_AI = 'website_chat_ai';
+const SITE_CHAT_RETENTION_DAYS = 30;
+let lastChatRetentionSweepAt = 0;
 
 function loadBlogRoutes() {
   try {
@@ -182,6 +184,16 @@ async function logWebsiteChatTurn({ role, content, context }) {
   if (!text) return;
   try {
     const sb = getSupabase();
+    if (Date.now() - lastChatRetentionSweepAt > 6 * 60 * 60 * 1000) {
+      lastChatRetentionSweepAt = Date.now();
+      const cutoff = new Date(Date.now() - SITE_CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      const { error: retentionError } = await sb
+        .from('activity_logs')
+        .delete()
+        .in('event_type', [SITE_CHAT_EVENT_USER, SITE_CHAT_EVENT_AI])
+        .lt('created_at', cutoff);
+      if (retentionError) console.error('Sora chat retention sweep error:', retentionError.message || retentionError);
+    }
     await sb.from('activity_logs').insert({
       booking_id: null,
       event_type: role === 'assistant' ? SITE_CHAT_EVENT_AI : SITE_CHAT_EVENT_USER,

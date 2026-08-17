@@ -3296,12 +3296,12 @@
 
         <p id="s5-stripe-note" style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:0.4rem;line-height:1.5">
 
-          Secured by <strong>Stripe</strong>. By confirming you agree to our <a href="/terms" style="color:var(--teal)">Terms</a> and <a href="/privacy" style="color:var(--teal)">Privacy Policy</a>.
+          Secured by <strong>Stripe</strong>. Review the agreement below before confirming.
 
         </p>
         <label id="s5-ack-label" style="display:flex;align-items:flex-start;gap:0.55rem;font-size:0.8rem;color:var(--muted);line-height:1.55;margin-top:0.7rem;text-align:left;cursor:pointer">
           <input type="checkbox" id="s5-ack" style="accent-color:var(--teal);width:16px;height:16px;flex:0 0 auto;margin-top:2px">
-          <span>I agree to the <a href="/terms" target="_blank" style="color:var(--teal)">Terms</a>, including the item-condition, reassembly, and safe-use provisions.</span>
+          <span>I agree to the current <a href="/terms" target="_blank" rel="noopener" style="color:var(--teal)">Terms</a>, including the displayed total, payment and cancellation policy, reassembly terms, and item-condition and safe-use provisions, and I acknowledge the <a href="/privacy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy Notice</a>.</span>
         </label>
 
         <div class="step-actions">
@@ -7443,9 +7443,20 @@ async function submitBooking() {
 
   var ackEl = document.getElementById('s5-ack');
   if (ackEl && !ackEl.checked) {
-    errEl.textContent = 'Please check the box to acknowledge the reassembly and product-use terms before continuing.';
+    errEl.textContent = 'Review and accept the current Terms and acknowledge the Privacy Notice before continuing.';
     errEl.classList.add('show');
     try { ackEl.focus(); } catch (e) {}
+    return;
+  }
+
+  var legalConfig;
+  try {
+    var legalResp = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
+    legalConfig = await legalResp.json();
+    if (!legalResp.ok || !legalConfig.customerTermsVersion || !legalConfig.privacyNoticeVersion) throw new Error();
+  } catch (e) {
+    errEl.textContent = 'The current Terms could not be verified. Please refresh and try again.';
+    errEl.classList.add('show');
     return;
   }
 
@@ -7573,6 +7584,12 @@ async function submitBooking() {
         bundleSlug: BOOK.bundleSlug || '',
 
         isQuoteRequest: BOOK._isQuoteFlow || false,
+
+        termsAccepted: ackEl.checked === true,
+
+        termsVersion: legalConfig.customerTermsVersion,
+
+        privacyNoticeVersion: legalConfig.privacyNoticeVersion,
 
         setupIntentId: (BOOK._isQuoteFlow || BOOK._scheduledAuthorization) ? savedSetupIntentId : null,
         attribution: BOOKING_ATTRIBUTION

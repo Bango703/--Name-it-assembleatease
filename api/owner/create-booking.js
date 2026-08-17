@@ -1,11 +1,12 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
 import { TX_TAX_RATE } from '../_pricing.js';
-import { randomToken, guestMutationTokenHash } from '../_payment-security.js';
+import { deriveGuestMutationToken, randomToken, guestMutationTokenHash } from '../_payment-security.js';
 import { normalizeUsPhone } from '../_phone.js';
 import { logActivity } from '../booking/_activity.js';
 import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_offline-payment.js';
 import { isMissingServiceLocationColumn, parseServiceLocation } from '../_booking-location.js';
+import { buildCustomerConsentRecord, validateCustomerLegalConsent } from '../_legal-consent.js';
 
 // Owner-created offline bookings never touch Stripe capture or automated
 // dispatch. They can remain unassigned for the owner's direct completion path,
@@ -47,7 +48,19 @@ export default async function handler(req, res) {
     note,
     sendConfirmation,
     alreadyCompleted,
+    customerTermsAcceptedByOwner,
+    termsVersion,
+    privacyNoticeVersion,
   } = req.body || {};
+
+  const legalConsent = validateCustomerLegalConsent({
+    termsAccepted: customerTermsAcceptedByOwner,
+    termsVersion,
+    privacyNoticeVersion,
+  });
+  if (!legalConsent.ok) {
+    return res.status(legalConsent.status).json({ error: legalConsent.error, code: legalConsent.code });
+  }
 
   // ── Service (free text so the owner can log the exact job) ──
   const cleanService = String(service || '').trim().replace(/\s+/g, ' ').slice(0, 120);
@@ -160,6 +173,7 @@ export default async function handler(req, res) {
     price_override_reason: reason,
     standard_price_cents: standardCents,
     owner_booking_note: cleanNote,
+    ...buildCustomerConsentRecord(req, 'owner_attested_customer_agreement'),
   };
 
   let { data: saved, error: insertErr } = await sb
@@ -173,6 +187,12 @@ export default async function handler(req, res) {
 
   if (insertErr || !saved) {
     console.error('Owner create-booking insert error:', insertErr);
+    if (insertErr && /customer_terms_|customer_privacy_notice_/i.test(String(insertErr.message || ''))) {
+      return res.status(503).json({
+        error: 'Customer consent records are not installed. Apply migration 065_customer_legal_consent.sql before creating owner bookings.',
+        code: 'LEGAL_CONSENT_MIGRATION_REQUIRED',
+      });
+    }
     if (insertErr && /column .* does not exist|source|payment_method|price_override_reason/i.test(String(insertErr.message || ''))) {
       return res.status(503).json({
         error: 'Owner-booking columns are missing. Apply migration 038_owner_manual_bookings.sql, then retry.',
@@ -182,6 +202,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to save the booking. Please try again.' });
   }
   const bookingId = saved.id;
+  const guestMutationToken = cleanEmail
+    ? deriveGuestMutationToken({ bookingId, ref, email: cleanEmail })
+    : null;
 
   // Guest tracking token so a customer with an email can view/cancel via /track.
   if (cleanEmail) {
@@ -205,8 +228,24 @@ export default async function handler(req, res) {
       subtotalCents,
       priceOverrideReason: reason,
       paymentMethod: method,
+      customerTermsVersion: termsVersion,
+      privacyNoticeVersion,
+      customerTermsAcceptanceMethod: 'owner_attested_customer_agreement',
     },
   }).catch(e => console.warn('Owner booking activity log skipped:', e?.message || e));
+
+  await logActivity(sb, {
+    bookingId,
+    eventType: 'customer_terms_attested',
+    actorType: 'owner',
+    actorName: 'Owner',
+    description: `Owner attested that the customer agreed to Terms ${termsVersion}, the displayed total and cancellation policy, and received Privacy Notice ${privacyNoticeVersion}.`,
+    metadata: {
+      termsVersion,
+      privacyNoticeVersion,
+      acceptanceMethod: 'owner_attested_customer_agreement',
+    },
+  }).catch(e => console.warn('Owner customer-consent activity skipped:', e?.message || e));
 
   await logActivity(sb, {
     bookingId,
@@ -276,7 +315,8 @@ export default async function handler(req, res) {
       </table>
       <p>${paymentLine}</p>
       <p><strong>What to expect:</strong> your pro arrives within the scheduled window, confirms the work, completes the assembly, and cleans up. We'll follow up if anything about the appointment changes.</p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(ref)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>
+      <p style="font-size:13px;color:#52525b;line-height:1.6">This booking was arranged directly with AssembleAtEase under our current <a href="https://www.assembleatease.com/terms">Terms &amp; Conditions</a> and <a href="https://www.assembleatease.com/privacy">Privacy Notice</a>. Contact us before service if any booking detail is incorrect.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(cleanEmail)}&token=${encodeURIComponent(guestMutationToken)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Review and track booking</a></td></tr></table>
       <p style="margin-top:18px">Questions? Reply to this email, call <a href="tel:+17372906129">737-290-6129</a>, or write <a href="mailto:service@assembleatease.com">service@assembleatease.com</a>.</p>`;
     try {
       const emailResult = await sendEmail({

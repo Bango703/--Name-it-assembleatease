@@ -8,6 +8,16 @@
   var HUBSPOT_SCRIPT_ID = 'hs-script-loader';
   var analyticsLoaded = false;
 
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments); };
+  window.gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    wait_for_update: 500
+  });
+
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
     var style = document.createElement('style');
@@ -26,6 +36,12 @@
 
   function getBanner() {
     return document.getElementById(BANNER_ID);
+  }
+
+  function updateBannerCopy() {
+    var banner = getBanner();
+    var copy = banner && banner.querySelector('span');
+    if (copy) copy.innerHTML = 'Optional analytics, advertising measurement, and CRM cookies help us improve booking. You can accept or decline them. See our <a href="/privacy">Privacy Notice</a>.';
   }
 
   function hideBanner() {
@@ -65,6 +81,12 @@
   function loadAnalytics() {
     if (analyticsLoaded) return;
     analyticsLoaded = true;
+    window.gtag('consent', 'update', {
+      analytics_storage: 'granted',
+      ad_storage: 'granted',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied'
+    });
 
     if (!document.getElementById(GTAG_SCRIPT_ID)) {
       var script = document.createElement('script');
@@ -88,31 +110,63 @@
   function acceptCookies() {
     setConsent('accepted');
     hideBanner();
+    window._hsq = window._hsq || [];
+    window._hsq.push(['doNotTrack', { track: true }]);
     loadAnalytics();
   }
 
   function declineCookies() {
     setConsent('declined');
+    window.gtag('consent', 'update', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied'
+    });
+    window._hsq = window._hsq || [];
+    window._hsq.push(['doNotTrack']);
     hideBanner();
+  }
+
+  function globalPrivacyControlEnabled() {
+    return navigator.globalPrivacyControl === true;
+  }
+
+  function openCookiePreferences() {
+    injectStyles();
+    updateBannerCopy();
+    bindBannerActions();
+    showBanner();
   }
 
   function bindBannerActions() {
     document.querySelectorAll('[data-cookie-accept]').forEach(function (button) {
+      if (button.dataset.cookieConsentBound === 'true') return;
+      button.dataset.cookieConsentBound = 'true';
       button.addEventListener('click', acceptCookies);
     });
     document.querySelectorAll('[data-cookie-decline]').forEach(function (button) {
+      if (button.dataset.cookieConsentBound === 'true') return;
+      button.dataset.cookieConsentBound = 'true';
       button.addEventListener('click', declineCookies);
     });
   }
 
   function initConsent() {
     injectStyles();
+    updateBannerCopy();
     bindBannerActions();
 
     var storedConsent = null;
     try {
       storedConsent = localStorage.getItem(CONSENT_KEY);
     } catch (error) {}
+
+    if (globalPrivacyControlEnabled()) {
+      setConsent('declined');
+      declineCookies();
+      return;
+    }
 
     if (storedConsent === 'accepted') {
       hideBanner();
@@ -130,6 +184,7 @@
 
   window.acceptCookies = acceptCookies;
   window.declineCookies = declineCookies;
+  window.openCookiePreferences = openCookiePreferences;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initConsent);

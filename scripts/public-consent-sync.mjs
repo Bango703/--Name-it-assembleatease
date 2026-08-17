@@ -5,6 +5,7 @@ import { collectPageFacts, listHtmlPages, writeReportFile } from './lib/page-gov
 import { ROOT } from './lib/site-governance.mjs';
 
 const HEAD_BOOTSTRAP_PATTERN = /<script>\(function\(\)\{if\(localStorage\.getItem\('cookie-consent'\)==='accepted'\)[\s\S]*?<\/script>\s*/i;
+const DIRECT_HUBSPOT_PATTERN = /<script[^>]+id=["']hs-script-loader["'][^>]*><\/script>\s*/gi;
 const SHARED_COOKIE_SCRIPT_PATTERN = /<script src="\/assets\/js\/cookie-consent\.js" defer><\/script>\s*/gi;
 const STANDALONE_COOKIE_STYLE_PATTERN = /<style>\s*#cookie-banner[\s\S]*?<\/style>\s*/gi;
 const INLINE_COOKIE_BLOCK_PATTERN = /<div id="cookie-banner"[\s\S]*?<\/div>\s*<script>[\s\S]*?function acceptCookies[\s\S]*?<\/script>\s*/i;
@@ -23,6 +24,7 @@ function syncConsent(relativePath) {
   let next = original;
 
   next = next.replace(HEAD_BOOTSTRAP_PATTERN, '');
+  next = next.replace(DIRECT_HUBSPOT_PATTERN, '');
   next = next.replace(SHARED_COOKIE_SCRIPT_PATTERN, '');
   next = next.replace(STANDALONE_COOKIE_STYLE_PATTERN, '');
 

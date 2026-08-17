@@ -25,6 +25,7 @@ import {
   attachRedemptionToBooking,
   releasePendingRedemption,
 } from './_assemblecash.js';
+import { buildCustomerConsentRecord, validateCustomerLegalConsent } from './_legal-consent.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -56,7 +57,15 @@ export default async function handler(req, res) {
     assemblecashToken,
     bundleSlug,
     attribution,
+    termsAccepted,
+    termsVersion,
+    privacyNoticeVersion,
   } = req.body;
+
+  const legalConsent = validateCustomerLegalConsent({ termsAccepted, termsVersion, privacyNoticeVersion });
+  if (!legalConsent.ok) {
+    return res.status(legalConsent.status).json({ error: legalConsent.error, code: legalConsent.code });
+  }
 
   const phone = normalizeUsPhone(rawPhone);
   const quoteRequested = isQuoteRequest === true;
@@ -379,6 +388,7 @@ export default async function handler(req, res) {
     assemblecash_redeemed_cents: assemblecashRedeemedCents,
     bundle_slug: (typeof bundleSlug === 'string' && bundleSlug) ? bundleSlug.slice(0, 64) : null,
     booking_attribution: cleanBookingAttribution(attribution),
+    ...buildCustomerConsentRecord(req),
   };
 
   let activeBookingInsertPayload = bookingInsertPayload;
@@ -408,6 +418,16 @@ export default async function handler(req, res) {
     ({ data: savedBooking, error: insertErr } = await sb.from('bookings').insert(activeBookingInsertPayload).select('id').single());
   }
 
+  if (insertErr && isMissingColumnError(insertErr) && /customer_terms_|customer_privacy_notice_/i.test(String(insertErr.message || ''))) {
+    if (assemblecashRedeemedCents > 0) {
+      await releasePendingRedemption(sb, { bookingRef: ref, customerEmail: email, reason: 'reverse:legal_consent_schema_missing' });
+    }
+    return res.status(503).json({
+      error: 'Booking consent records are being updated. No booking was created; please try again shortly.',
+      code: 'LEGAL_CONSENT_MIGRATION_REQUIRED',
+    });
+  }
+
   if (insertErr) {
     if (assemblecashRedeemedCents > 0) {
       await releasePendingRedemption(sb, { bookingRef: ref, customerEmail: email, reason: 'reverse:booking_insert_failed' });
@@ -417,6 +437,18 @@ export default async function handler(req, res) {
   }
 
   const bookingId = savedBooking.id;
+  await logActivity(sb, {
+    bookingId,
+    eventType: 'customer_terms_accepted',
+    actorType: 'customer',
+    actorName: name,
+    description: `Customer accepted Terms ${termsVersion} and acknowledged Privacy Notice ${privacyNoticeVersion} at checkout.`,
+    metadata: {
+      termsVersion,
+      privacyNoticeVersion,
+      acceptanceMethod: 'online_checkout_checkbox',
+    },
+  }).catch(error => console.warn('Customer consent activity log skipped:', error?.message || error));
   const guestMutationToken = deriveGuestMutationToken({ bookingId, ref, email });
   const { error: guestTokenErr } = await sb.from('bookings').update({
     guest_mutation_token_hash: guestMutationTokenHash({ id: bookingId, ref, customer_email: email }),

@@ -302,7 +302,6 @@ ${nav()}
 </main>
 ${footer()}
 ${cookieBanner()}
-<script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
 `;
@@ -374,7 +373,6 @@ ${cards}
 </main>
 ${footer()}
 ${cookieBanner()}
-<script type="text/javascript" id="hs-script-loader" async defer src="https://js-na2.hs-scripts.com/245917212.js"></script>
 </body>
 </html>
 `;

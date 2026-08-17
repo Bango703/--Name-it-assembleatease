@@ -96,6 +96,7 @@ const [
   ownerSource,
   createBookingSource,
   migrationSource,
+  currentAgreementMigrationSource,
   liveReadinessSource,
 ] = await Promise.all([
   readFile(new URL('../api/assembler/update.js', import.meta.url), 'utf8'),
@@ -105,6 +106,7 @@ const [
   readFile(new URL('../owner/index.html', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/create-booking.js', import.meta.url), 'utf8'),
   readFile(new URL('../api/migrations/043_separate_easer_approval_from_job_readiness.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../api/migrations/066_contractor_agreement_2026_08_16.sql', import.meta.url), 'utf8'),
   readFile(new URL('../api/owner/live-readiness-check.js', import.meta.url), 'utf8'),
 ]);
 
@@ -152,8 +154,13 @@ assert.match(approvalFunction, /is_available = FALSE/);
 assert.match(migrationSource, /contractor_agreement_version IS DISTINCT FROM '2026-07-13'/);
 assert.match(migrationSource, /profiles_guard_current_agreement_online/);
 assert.match(migrationSource, /SET is_available = FALSE/);
-assert.match(liveReadinessSource, /REQUIRED_SCHEMA_MIGRATION = 55/);
-assert.match(liveReadinessSource, /Apply migrations 038-055 in order/);
+assert.match(currentAgreementMigrationSource, /v_new_version CONSTANT TEXT := '2026-08-16'/);
+assert.match(currentAgreementMigrationSource, /contractor_agreement_version IS DISTINCT FROM '2026-08-16'/);
+assert.match(currentAgreementMigrationSource, /SET is_available = FALSE/);
+assert.doesNotMatch(currentAgreementMigrationSource, /application_status\s*=/);
+assert.doesNotMatch(currentAgreementMigrationSource, /status\s*=/);
+assert.match(liveReadinessSource, /REQUIRED_SCHEMA_MIGRATION = 66/);
+assert.match(liveReadinessSource, /Apply migrations 038-066 in order/);
 assert.equal((migrationSource.match(/^BEGIN;$/gm) || []).length, 1);
 assert.equal((migrationSource.match(/^COMMIT;$/gm) || []).length, 1);
 assert.equal((migrationSource.match(/\$\$/g) || []).length % 2, 0);

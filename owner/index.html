@@ -1755,6 +1755,10 @@ window.intelQuick = intelQuick;
       <input type="checkbox" id="ocb-already-completed" style="width:15px;height:15px;accent-color:var(--teal)"/>
       Job already completed - create as completed and send the completion email instead of the booking confirmation
     </label>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.65rem;line-height:1.5">
+      <input type="checkbox" id="ocb-customer-terms" style="width:15px;height:15px;accent-color:var(--teal);margin-top:3px;flex:0 0 auto"/>
+      <span>I confirmed the customer agreed to the current <a href="/terms" target="_blank" rel="noopener">Terms</a>, including the displayed total and cancellation policy, and received the current <a href="/privacy" target="_blank" rel="noopener">Privacy Notice</a>. This records my owner attestation.</span>
+    </label>
     <div class="modal-error" id="ocb-error" style="display:none;margin-top:0.75rem"></div>
     <div class="modal-actions" style="margin-top:1.2rem">
       <button class="btn" id="ocb-cancel">Cancel</button>
@@ -3531,6 +3535,17 @@ window.intelQuick = intelQuick;
         : Math.max(0, bookedTotal - Number(collectedAmount || 0)))
       : null;
     var offlineFullyCollected = !isOfflinePayment || b.payment_collected === true;
+    var consentMethodLabels = {
+      online_checkout_checkbox: 'Customer checkout',
+      secure_tracking_confirmation: 'Customer secure confirmation',
+      owner_attested_customer_agreement: 'Owner attestation of customer agreement',
+    };
+    var customerAgreement = b.customer_terms_accepted_at
+      ? '<span style="color:#065f46;font-weight:600">Recorded</span> &bull; '
+        + esc(consentMethodLabels[b.customer_terms_acceptance_method] || String(b.customer_terms_acceptance_method || 'Recorded acceptance'))
+        + ' &bull; ' + esc(formatDateTime(b.customer_terms_accepted_at))
+        + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
+      : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>';
     $detailGrid.innerHTML = [
       field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
@@ -3582,6 +3597,7 @@ window.intelQuick = intelQuick;
       b.details ? field('Details', esc(b.details)) : '',
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
+      field('Customer Agreement', customerAgreement),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
     renderActions(b);
@@ -4142,6 +4158,8 @@ window.intelQuick = intelQuick;
     if (sendConfirmation) sendConfirmation.checked = true;
     var alreadyCompleted = document.getElementById('ocb-already-completed');
     if (alreadyCompleted) alreadyCompleted.checked = false;
+    var customerTerms = document.getElementById('ocb-customer-terms');
+    if (customerTerms) customerTerms.checked = false;
     var paymentMethodLabel = document.getElementById('ocb-payment-method-label');
     if (paymentMethodLabel) paymentMethodLabel.textContent = 'Payment Method';
     var errEl = document.getElementById('ocb-error');
@@ -4197,10 +4215,30 @@ window.intelQuick = intelQuick;
 
     var standardPriceCents = centsFromDollarsInput(document.getElementById('ocb-standard').value);
     var alreadyCompleted = !!document.getElementById('ocb-already-completed').checked;
+    var customerTermsAcceptedByOwner = !!document.getElementById('ocb-customer-terms').checked;
+    if (!customerTermsAcceptedByOwner) {
+      if (errEl) {
+        errEl.textContent = 'Confirm the customer agreed to the current total, cancellation policy, Terms, and Privacy Notice.';
+        errEl.style.display = '';
+      }
+      return;
+    }
     var ownerBookingPaymentMethod = (document.getElementById('ocb-payment-method').value || '') || null;
     if (alreadyCompleted && !ownerBookingPaymentMethod) {
       if (errEl) {
         errEl.textContent = 'Select how the customer paid before creating an already-completed booking.';
+        errEl.style.display = '';
+      }
+      return;
+    }
+    var legalConfig;
+    try {
+      var legalResponse = await fetch('/api/legal-config', { headers: { 'Accept': 'application/json' } });
+      legalConfig = await legalResponse.json();
+      if (!legalResponse.ok || !legalConfig.customerTermsVersion || !legalConfig.privacyNoticeVersion) throw new Error();
+    } catch (_) {
+      if (errEl) {
+        errEl.textContent = 'Current legal versions could not be verified. Refresh before creating the booking.';
         errEl.style.display = '';
       }
       return;
@@ -4221,6 +4259,9 @@ window.intelQuick = intelQuick;
       note: (document.getElementById('ocb-note').value || '').trim() || null,
       sendConfirmation: !!(document.getElementById('ocb-send-confirmation').checked),
       alreadyCompleted: alreadyCompleted,
+      customerTermsAcceptedByOwner: customerTermsAcceptedByOwner,
+      termsVersion: legalConfig.customerTermsVersion,
+      privacyNoticeVersion: legalConfig.privacyNoticeVersion,
     };
 
     btn.disabled = true;
