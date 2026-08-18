@@ -34,6 +34,7 @@ const SUPPORT_LINKS = [
   ['/contact', 'Contact'],
   ['/track', 'Track My Booking'],
   ['/assembler/apply', 'Become an Easer'],
+  ['/auth/login', 'Easer Login'],
 ];
 
 // Each Resources link points to a distinct, real guide. The Company column
