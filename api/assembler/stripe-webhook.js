@@ -606,7 +606,7 @@ export default async function handler(req, res) {
           webhookBookingId = bookingId;
 
           const { data: currentBooking, error: bookingLookupError } = await sb.from('bookings')
-            .select('id, payment_status, status, customer_name, customer_email, ref, service, total_price, quote_amount_cents, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
+            .select('id, payment_status, status, customer_name, customer_email, customer_phone, ref, service, date, time, total_price, quote_amount_cents, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
             .eq('id', bookingId)
             .maybeSingle();
 
@@ -734,7 +734,7 @@ export default async function handler(req, res) {
               to: ownerEmail(),
               from: 'AssembleAtEase <booking@assembleatease.com>',
               subject: `Payment Failed — ${esc(currentBooking.ref || bookingId)}`,
-              html: buildOwnerPaymentFailEmail(currentBooking.ref || bookingId, reason, currentBooking.customer_name),
+              html: buildOwnerPaymentFailEmail(currentBooking, reason),
               meta: { bookingId, notificationType: 'payment_failed_owner', recipientType: 'owner' },
             });
           } catch (e) { console.error('Owner payment fail email error:', e); }
@@ -2459,7 +2459,28 @@ function buildOwnerDisputeEmail(dispute, amountDisplay, booking) {
 </div></body></html>`;
 }
 
-function buildOwnerPaymentFailEmail(ref, reason, customerName) {
+function buildOwnerPaymentFailEmail(booking, reason) {
+  const b = booking || {};
+  const ref = b.ref || b.id || '';
+  const email = b.customer_email || '';
+  const phone = b.customer_phone || '';
+  const service = b.service || '';
+  const when = [b.date, b.time].filter(Boolean).join(' at ');
+  const amountCents = Number(b.total_price || 0);
+  const amountDisplay = amountCents > 0 ? `$${(amountCents / 100).toFixed(2)}` : '';
+  const r = String(reason || '').toLowerCase();
+  const hint = r.includes('insufficient')
+    ? 'Their bank declined it for insufficient funds — they just need a different or funded card.'
+    : (r.includes('not support') || r.includes('card_not_supported'))
+      ? 'That card can’t be used for a hold (often a prepaid card) — they’ll need a standard credit or debit card.'
+      : 'Their card issuer declined the authorization — a different card should work.';
+  const contactParts = [];
+  if (email) contactParts.push(`<a href="mailto:${esc(email)}" style="color:#0099CC;text-decoration:none">${esc(email)}</a>`);
+  if (phone) contactParts.push(`<a href="tel:${esc(phone)}" style="color:#0099CC;text-decoration:none">${esc(phone)}</a>`);
+  const contact = contactParts.join(' &bull; ');
+  const row = (label, value) => value
+    ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px;vertical-align:top">${label}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${value}</td></tr>`
+    : '';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px 8px 0 0;border-bottom:3px solid #00BFFF"><tr>
@@ -2470,16 +2491,25 @@ function buildOwnerPaymentFailEmail(ref, reason, customerName) {
     <td style="padding:20px 24px;text-align:right;font-size:12px;color:#71717a">Internal Alert</td>
   </tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
-    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Payment Failed</p>
-    <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#1a1a1a">Card authorization failed — ${esc(ref)}</p>
+    <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Payment Failed &mdash; Recoverable</p>
+    <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#1a1a1a">Card authorization failed &mdash; ${esc(ref)}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px">
       <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#dc2626">Authorization failed</p>
-      <p style="margin:0;font-size:13px;color:#991b1b;line-height:1.6">Reason: ${esc(reason)}</p>
+      <p style="margin:0 0 6px;font-size:13px;color:#991b1b;line-height:1.6">Reason: ${esc(reason)}</p>
+      <p style="margin:0;font-size:12px;color:#b45309;line-height:1.6">${hint}</p>
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
-      <tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:120px">Booking Ref</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(ref)}</td></tr>
-      ${customerName ? `<tr><td style="padding:8px 0;color:#71717a">Customer</td><td style="padding:8px 0">${esc(customerName)}</td></tr>` : ''}
+      ${row('Customer', esc(b.customer_name || '') + (contact ? `<div style="font-weight:400;margin-top:3px">${contact}</div>` : ''))}
+      ${row('Service', esc(service))}
+      ${row('Appointment', esc(when))}
+      ${row('Amount attempted', esc(amountDisplay))}
+      ${row('Booking Ref', esc(ref))}
     </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-top:20px"><tr><td style="padding:14px 18px">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#1e40af">What to do next</p>
+      <p style="margin:0 0 12px;font-size:13px;color:#1e3a8a;line-height:1.6">This customer <strong>wanted to book</strong> but their bank declined the card. Reach out and help them finish with a different card, or send them a secure payment link from the dashboard.</p>
+      <a href="https://www.assembleatease.com/owner/" style="display:inline-block;background:#00BFFF;color:#fff;font-weight:700;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:13px">Open Dashboard</a>
+    </td></tr></table>
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px"><tr><td style="padding:14px 24px;text-align:center;font-size:11px;color:#a1a1aa">
     AssembleAtEase &bull; Texas Professional Network
