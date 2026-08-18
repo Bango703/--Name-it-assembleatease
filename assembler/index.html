@@ -18,7 +18,7 @@
   <style>body.easer-booting>*{visibility:hidden}</style>
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js?v=20260804a" defer></script>
-  <script src="../assets/js/app.js?v=20260804a" defer></script>
+  <script src="../assets/js/app.js?v=20260818a" defer></script>
   <script src="../assets/js/api.js?v=20260804a" defer></script>
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
@@ -500,7 +500,7 @@
           +'<div style="flex:1;min-width:0">'
             +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
             +'<div class="eh-upcoming-service">'+esc(b.service||'Service')+'</div>'
-            +'<div class="eh-upcoming-addr">'+esc(b.address||'Address TBD')+'</div>'
+            +'<div class="eh-upcoming-addr">'+esc(b.address?APP.formatAddress(b.address):'Address TBD')+'</div>'
           +'</div>'
           +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
         +'</div>';
@@ -926,7 +926,7 @@
     var effectiveTime = lj.return_visit_required ? lj.return_visit_time : lj.time;
     var dateStr      = effectiveDate ? new Date(effectiveDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     var timeStr      = effectiveTime || '—';
-    var addrStr      = lj.address || 'Address on file';
+    var addrStr      = lj.address ? APP.formatAddress(lj.address) : 'Address on file';
     var customerName = lj.customer_name || lj.customer_email || '';
     var mapsUrl      = lj.address ? 'https://maps.google.com/q='+encodeURIComponent(lj.address) : '#';
     var callUrl      = lj.customer_phone ? 'tel:'+lj.customer_phone : '#';

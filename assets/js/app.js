@@ -269,6 +269,20 @@ const APP = {
   // ── ALERTS ──────────────────────────────────────────────
 
   // showAlert('auth-alert', 'Something went wrong', 'error')
+  // Presentational address formatter — mirrors the server-side formatAddress()
+  // in api/_email.js so a street address reads the same clean, capitalized way
+  // on-screen as it does in emails: "3301 e pecan st" -> "3301 E PECAN ST".
+  // Not a validator; keep the raw value for map/geocode queries.
+  formatAddress(raw) {
+    if (!raw) return '';
+    return String(raw)
+      .split(',')
+      .map((part) => part.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .join(', ')
+      .toUpperCase();
+  },
+
   showAlert(id, message, type = 'error') {
     const el = document.getElementById(id);
     if (!el) return;
