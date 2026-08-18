@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
   <script src="../config.js?v=20260804a" defer></script>
-  <script src="../assets/js/app.js?v=20260804a" defer></script>
+  <script src="../assets/js/app.js?v=20260818a" defer></script>
   <script src="../assets/js/api.js?v=20260804a" defer></script>
   <style>body.easer-booting>*{visibility:hidden}
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--pro-teal-glow:rgba(0,191,255,0.08);--teal:#00BFFF}
@@ -516,6 +516,20 @@
   });
 
   var reviewsLoading = false;
+  function waitForStableProfilePaint(promises, timeoutMs) {
+    return new Promise(function(resolve) {
+      var finished = false;
+      var finish = function() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeoutId);
+        resolve();
+      };
+      var timeoutId = setTimeout(finish, Number(timeoutMs || 4000));
+      Promise.allSettled(promises).then(finish);
+    });
+  }
+
   async function loadReviews() {
     if (reviewsLoading) return;
     reviewsLoading = true;
@@ -633,7 +647,6 @@
     const auth = await APP.requireAuth(['assembler']);
     if (!auth) return;
     if (!await APP.bindPrivateSession(auth.user.id)) return;
-    APP.revealPrivatePage();
     const { user, profile, session } = auth;
     currentUserId = user.id;  // enable immediate photo auto-save
     var closureStatus = String(profile.account_closure_status || '').trim().toLowerCase();
@@ -730,7 +743,7 @@
     var statEarned = document.getElementById('prof-stat-earned');
     if (statEarned) statEarned.textContent = '—';
     var performancePromise = loadCanonicalPerformance(session.access_token);
-    renderProPath(session.access_token);
+    var proPathPromise = renderProPath(session.access_token);
     document.getElementById('member-since').textContent   = profile.created_at
       ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—';
 
@@ -964,35 +977,43 @@
       });
     }
 
-    await Promise.all([performancePromise, membershipPromise, loadReviews()]);
+    var reviewsPromise = loadReviews();
+    await waitForStableProfilePaint([
+      performancePromise,
+      proPathPromise,
+      membershipPromise,
+      reviewsPromise,
+    ], 4000);
+    if (APP.isPrivateSessionCurrent(currentUserId)) APP.revealPrivatePage();
 
     async function refreshDerivedProfileData() {
       try {
         const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
-        if (!currentSession?.access_token || !APP.isPrivateSessionCurrent(currentUserId)) return;
-        await Promise.all([
+        if (!currentSession?.access_token || !APP.isPrivateSessionCurrent(currentUserId)) return false;
+        await waitForStableProfilePaint([
           loadCanonicalPerformance(currentSession.access_token),
+          renderProPath(currentSession.access_token),
           loadReviews(),
-        ]);
-      } catch {}
-    }
-
-    // Reset the derived UI (stats + reviews) to a neutral loading state so a
-    // bfcache-restored page never flashes the PREVIOUS values before the refresh lands.
-    function scrubDerivedProfileUI() {
-      ['prof-stat-jobs','prof-stat-rating','prof-stat-earned','total-earned'].forEach(function(id){
-        var el = document.getElementById(id); if (el) el.textContent = '—';
-      });
-      var rv = document.getElementById('my-reviews-list'); if (rv) rv.textContent = 'Loading reviews…';
+        ], 4000);
+        return APP.isPrivateSessionCurrent(currentUserId);
+      } catch {
+        return false;
+      }
     }
 
     document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') refreshDerivedProfileData();
+      if (document.visibilityState === 'visible' && !document.body.classList.contains('easer-booting')) {
+        refreshDerivedProfileData();
+      }
     });
-    window.addEventListener('pageshow', function(event) {
-      if (!event.persisted) return;      // normal load already renders fresh
-      scrubDerivedProfileUI();           // hide stale stats before the async refresh
-      refreshDerivedProfileData();
+    window.addEventListener('pagehide', function(event) {
+      if (event.persisted) document.body.classList.add('easer-booting');
+    });
+    window.addEventListener('pageshow', async function(event) {
+      if (!event.persisted) return;
+      document.body.classList.add('easer-booting');
+      await refreshDerivedProfileData();
+      if (APP.isPrivateSessionCurrent(currentUserId)) APP.revealPrivatePage();
     });
   });
 </script>
