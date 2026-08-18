@@ -50,7 +50,7 @@ function buildEaserAccountEmail({ heading, firstName, bodyHtml, ctaText, ctaUrl 
       ${cta}
     </div>
   </div>
-  <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px">AssembleAtEase &bull; Austin, TX</p>
+  <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px">AssembleAtEase &bull; Serving Easers across Texas</p>
 </div></body></html>`;
 }
 

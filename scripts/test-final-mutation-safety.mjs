@@ -79,15 +79,21 @@ assert.match(reminders, /\.eq\('reminder_sent', false\)/);
 assert.match(reminders, /booking\.time == null[\s\S]*\.is\('time', null\)[\s\S]*\.eq\('time', booking\.time\)/);
 assert.match(reminders, /if \(!flaggedRows\?\.length\)/);
 
-const starterPromotion = section(tierCheck, ".update({ tier: 'professional' })", "// professional");
-assert.match(starterPromotion, /\.eq\('status', 'active'\)/);
-assert.match(starterPromotion, /\.eq\('tier', 'starter'\)/);
-assert.match(starterPromotion, /\.select\('id'\)/);
-assert.match(starterPromotion, /promoted\.toProfessional = promotedRows\?\.length \|\| 0/);
-const elitePromotion = section(tierCheck, ".update({ tier: 'elite' })", "console.log('Tier-check complete:'");
-assert.match(elitePromotion, /\.eq\('status', 'active'\)/);
-assert.match(elitePromotion, /\.eq\('tier', 'professional'\)/);
-assert.match(elitePromotion, /\.select\('id'\)/);
-assert.match(elitePromotion, /promoted\.toElite = promotedRows\?\.length \|\| 0/);
+const promotionMutation = section(tierCheck, 'if (di > ci)', '} else if (di < ci)');
+assert.match(promotionMutation, /\.update\(\{ tier: deserved,/);
+assert.match(promotionMutation, /\.eq\('id', p\.id\)/);
+assert.match(promotionMutation, /\.eq\('status', 'active'\)/);
+assert.match(promotionMutation, /\.eq\('tier', current\)/);
+assert.match(promotionMutation, /\.select\('id'\)/);
+assert.match(promotionMutation, /results\.promoted\+\+/);
+
+const demotionMutation = section(tierCheck, '} else if (di < ci)', '} else if (p.tier_grace_started_at)');
+assert.match(demotionMutation, /const newTier = TIER_ORDER\[ci - 1\]/);
+assert.match(demotionMutation, /\.update\(\{ tier: newTier,/);
+assert.match(demotionMutation, /\.eq\('id', p\.id\)/);
+assert.match(demotionMutation, /\.eq\('status', 'active'\)/);
+assert.match(demotionMutation, /\.eq\('tier', current\)/);
+assert.match(demotionMutation, /\.select\('id'\)/);
+assert.match(demotionMutation, /results\.demoted\+\+/);
 
 console.log('final mutation safety tests: PASS');

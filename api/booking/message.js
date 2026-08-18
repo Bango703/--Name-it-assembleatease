@@ -8,8 +8,47 @@ import {
   respondWithEaserAccessError,
 } from '../_easer-access.js';
 import { customerOwnsBooking } from './_customer-booking-auth.js';
+import {
+  OPERATION_CASE_SEVERITIES,
+  OPERATION_CASE_SOURCES,
+  OPERATION_CASE_TYPES,
+  createOperationCase,
+  operationCasePublicStatus,
+} from '../_operation-cases.js';
 
 const SITE = 'https://www.assembleatease.com';
+const EASER_SUPPORT_TYPES = Object.freeze({
+  job_issue: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.NORMAL,
+    subject: 'Easer reported a job issue',
+    notificationType: 'easer_job_issue',
+  },
+  cannot_make: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.HIGH,
+    subject: 'Easer requested release from an assignment',
+    notificationType: 'easer_release_request',
+  },
+  customer_unavailable: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.HIGH,
+    subject: 'Customer unavailable at appointment',
+    notificationType: 'easer_customer_unavailable',
+  },
+  safety_concern: {
+    caseType: OPERATION_CASE_TYPES.SAFETY,
+    severity: OPERATION_CASE_SEVERITIES.CRITICAL,
+    subject: 'Urgent Easer safety concern',
+    notificationType: 'easer_safety_concern',
+  },
+  other: {
+    caseType: OPERATION_CASE_TYPES.SUPPORT,
+    severity: OPERATION_CASE_SEVERITIES.NORMAL,
+    subject: 'Easer requested job support',
+    notificationType: 'easer_support_request',
+  },
+});
 
 export default async function handler(req, res) {
   // GET — owner or the active, approved Easer assigned to the booking.
@@ -74,13 +113,18 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { bookingId, ref, body: msgBody, sender, target } = req.body || {};
+  const { bookingId, ref, body: msgBody, sender, target, supportType: rawSupportType } = req.body || {};
   if (!bookingId && !ref) return res.status(400).json({ error: 'bookingId or ref is required' });
   const messageText = typeof msgBody === 'string' ? msgBody.trim() : '';
   if (!messageText) return res.status(400).json({ error: 'Message body is required' });
   if (messageText.length > 2000) return res.status(400).json({ error: 'Message must be 2000 characters or fewer' });
 
   const sb = getSupabase();
+  const supportType = String(rawSupportType || '').trim().toLowerCase();
+  const supportDefinition = supportType ? EASER_SUPPORT_TYPES[supportType] : null;
+  if (supportType && !supportDefinition) {
+    return res.status(400).json({ error: 'Invalid support request type' });
+  }
 
   // Authenticate before looking up a caller-supplied booking identifier.
   let resolvedSender;
@@ -107,6 +151,9 @@ export default async function handler(req, res) {
     authenticatedUser = authenticated.user;
     resolvedSender = 'customer';
     resolvedRecipient = 'owner';
+  }
+  if (supportType && resolvedSender !== 'assembler') {
+    return res.status(400).json({ error: 'Structured support requests require an assigned Easer' });
   }
 
   let query = sb.from('bookings').select('*');
@@ -148,6 +195,50 @@ export default async function handler(req, res) {
   if (insertErr) {
     console.error('Message insert error:', insertErr);
     return res.status(500).json({ error: 'Failed to save message' });
+  }
+
+  // Structured Easer exceptions become durable Operations Cases linked to the
+  // exact saved message. The message remains the communication source of truth;
+  // the case adds owner workflow, severity, and an auditable resolution path.
+  let operationCase = null;
+  let operationCaseWarning = null;
+  if (supportDefinition) {
+    try {
+      operationCase = await createOperationCase(sb, {
+        caseType: supportDefinition.caseType,
+        source: OPERATION_CASE_SOURCES.EASER_REPORT,
+        sourceRef: `easer-support-message:${message.id}`,
+        severity: supportDefinition.severity,
+        subject: supportDefinition.subject,
+        description: messageText,
+        bookingId: booking.id,
+        customerName: booking.customer_name,
+        customerEmail: booking.customer_email,
+        customerPhone: booking.customer_phone,
+        easerId: authenticatedUser.id,
+        createdByType: 'easer',
+        createdByName: booking.assembler_name || 'Easer',
+        metadata: {
+          messageId: message.id,
+          supportType,
+          bookingRef: booking.ref || null,
+          bookingStatus: booking.status || null,
+          appointmentDate: booking.date || null,
+          appointmentTime: booking.time || null,
+        },
+      });
+    } catch (caseError) {
+      operationCaseWarning = 'Your message was saved, but its support status is temporarily unavailable.';
+      console.error('Easer support Operations Case creation failed:', caseError?.message || caseError);
+      await logActivity(sb, {
+        bookingId: booking.id,
+        eventType: 'easer_support_case_link_failed',
+        actorType: 'system',
+        actorName: 'Operations Cases',
+        description: 'An Easer support message was saved, but its Operations Case could not be created.',
+        metadata: { messageId: message.id, supportType, error: caseError?.message || String(caseError) },
+      }).catch(() => {});
+    }
   }
 
   // Send notification email to the other party. Message persistence remains
@@ -239,25 +330,29 @@ export default async function handler(req, res) {
       });
     } else if (resolvedSender === 'assembler') {
       // Notify owner about assembler message
+      const ownerSubject = supportDefinition
+        ? `${supportDefinition.severity === OPERATION_CASE_SEVERITIES.CRITICAL ? 'Urgent: ' : ''}${supportDefinition.subject} — ${booking.ref}`
+        : 'Easer Message — ' + booking.ref;
       notificationResult = await sendEmail({
         to: ownerEmail(),
         from: 'AssembleAtEase Bookings <booking@assembleatease.com>',
-        subject: 'Easer Message — ' + booking.ref,
+        subject: ownerSubject,
         html: `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:28px 24px">
     <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a">Booking ${esc(booking.ref)} &mdash; Easer Message</p>
-    <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a1a">Message from your Easer</p>
+    <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a1a">${esc(supportDefinition?.subject || 'Message from the assigned Easer')}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:16px"><tr><td style="padding:16px 18px">
       <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.7">${sBody}</p>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a">Service: ${esc(booking.service)} &bull; Customer: ${esc(booking.customer_name)}</p>
+    <p style="margin:0;font-size:13px;color:#71717a">Service: ${esc(booking.service)} &bull; Customer: ${esc(booking.customer_name)} &bull; Appointment: ${esc(booking.date || '')} ${esc(booking.time || '')} &bull; Status: ${esc(booking.status || '')}</p>
   </td></tr></table>
 </div></body></html>`,
         replyTo: ownerEmail(),
         meta: {
           bookingId: booking.id,
-          notificationType: 'easer_message',
+          operationCaseId: operationCase?.id || null,
+          notificationType: supportDefinition?.notificationType || 'easer_message',
           recipientType: 'owner',
           disableDedupe: true,
         },
@@ -324,6 +419,16 @@ export default async function handler(req, res) {
     success: true,
     message: { id: message.id, sender: resolvedSender, recipientType: resolvedRecipient },
   };
+  if (operationCase) {
+    const publicCaseStatus = operationCasePublicStatus(operationCase.status, 'easer');
+    response.supportRequest = {
+      ref: operationCase.case_ref,
+      status: publicCaseStatus.code,
+      statusLabel: publicCaseStatus.label,
+    };
+  } else if (operationCaseWarning) {
+    response.supportRequest = { status: 'received', statusLabel: 'Received', warning: operationCaseWarning };
+  }
   if (resolvedSender === 'owner') {
     response.notification = notificationFailure
       ? { delivered: false, warning: 'Message saved, but the notification was not delivered.' }

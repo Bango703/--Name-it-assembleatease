@@ -19,9 +19,9 @@
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260804a" defer></script>
+  <script src="../config.js?v=20260818a" defer></script>
   <script src="../assets/js/app.js?v=20260818a" defer></script>
-  <script src="../assets/js/api.js?v=20260804a" defer></script>
+  <script src="../assets/js/api.js?v=20260818a" defer></script>
   <style>body.easer-booting>*{visibility:hidden}
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--pro-teal-glow:rgba(0,191,255,0.08);--teal:#00BFFF}
     .logout-link{font-size:0.72rem;color:var(--e-muted);text-decoration:none;font-weight:500;white-space:nowrap;padding:0.4rem 0}
@@ -181,7 +181,7 @@
         <div style="display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--pro-border);border-radius:10px;overflow:hidden;margin-bottom:1rem">
           <div style="text-align:center;padding:0.7rem 0.5rem;border-right:1px solid var(--pro-border)">
             <div id="prof-stat-jobs" style="font-size:1.2rem;font-weight:700;color:var(--pro-text);line-height:1">—</div>
-            <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Jobs</div>
+            <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Completed</div>
           </div>
           <div style="text-align:center;padding:0.7rem 0.5rem;border-right:1px solid var(--pro-border)">
             <div id="prof-stat-rating" style="font-size:1.2rem;font-weight:700;color:var(--pro-text);line-height:1">—</div>
@@ -189,7 +189,7 @@
           </div>
           <div style="text-align:center;padding:0.7rem 0.5rem">
             <div id="prof-stat-earned" style="font-size:1.2rem;font-weight:700;color:var(--pro-teal);line-height:1">—</div>
-            <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Lifetime</div>
+            <div style="font-size:0.6rem;color:var(--pro-muted);text-transform:uppercase;letter-spacing:0.07em;margin-top:3px">Earned</div>
           </div>
         </div>
         <!-- Completion bar -->
@@ -215,8 +215,8 @@
           </div>
           <div id="basic-summary" style="display:none">
             <div id="basic-summary-name" style="font-size:0.875rem;color:var(--pro-text);font-weight:600;margin-bottom:0.25rem"></div>
-            <div id="basic-summary-phone" style="font-size:0.82rem;color:var(--pro-muted);margin-bottom:0.2rem"></div>
-            <div id="basic-summary-location" style="font-size:0.82rem;color:var(--pro-muted)"></div>
+            <div id="basic-summary-location" style="font-size:0.82rem;color:var(--pro-muted);margin-bottom:0.2rem"></div>
+            <div id="basic-summary-phone" style="font-size:0.82rem;color:var(--pro-muted)"></div>
           </div>
           <div id="basic-fields">
             <div class="form-fields">
@@ -288,6 +288,16 @@
       <div class="form-section">
         <div class="form-section-title">My Reviews <span id="review-count-label" style="font-weight:400;font-size:0.82rem;color:var(--pro-muted)"></span></div>
         <div id="my-reviews-list" class="review-state" style="font-size:0.875rem;color:var(--pro-muted)" aria-live="polite">Loading reviews...</div>
+      </div>
+
+      <!-- Account-level support stays available even when no job is open. -->
+      <div class="form-section" id="profile-support">
+        <div class="form-section-title">Help &amp; Support</div>
+        <p style="font-size:0.83rem;color:var(--pro-muted);line-height:1.55;margin:0 0 0.85rem">Get help with your account, jobs, or payouts.</p>
+        <div style="display:flex;gap:0.65rem;flex-wrap:wrap">
+          <a class="btn btn-outline btn-sm" href="mailto:service@assembleatease.com">Email support</a>
+          <a class="btn btn-outline btn-sm" href="tel:+17372906129">Call 737-290-6129</a>
+        </div>
       </div>
 
       <!-- Sign out -->
@@ -542,7 +552,7 @@
       const reviewList = Array.isArray(reviews) ? reviews : [];
       if (reviewList.length) {
         countLabel.textContent = '(' + reviewList.length + ')';
-        list.innerHTML = reviewList.map(function(r) {
+        list.innerHTML = reviewList.slice(0, 2).map(function(r) {
           var reviewerName = ((r && r.reviewer && r.reviewer.full_name) || 'Customer').toString();
           var name = escapeHtml(reviewerName.split(' ')[0]);
           var ratingLabel = Number(r.rating || 0).toFixed(1) + ' / 5';
@@ -614,14 +624,20 @@
       });
       if (!resp.ok) throw new Error('tier status unavailable');
       var t = await resp.json();
-      var isElite = t.tier === 'elite';
-      var head = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">'
-        + '<div style="font-size:0.7rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-muted)">The Pro Path</div>'
-        + '<span style="font-size:0.68rem;font-weight:800;padding:0.18rem 0.6rem;border-radius:999px;' + (isElite ? 'background:#00BFFF;color:#04222c' : 'background:rgba(0,191,255,0.1);color:#00BFFF;border:1px solid rgba(0,191,255,0.2)') + '">' + _e(t.tierLabel) + (isElite ? ' ⭐' : '') + '</span></div>';
+      var metricText = function(label, value, suffix) {
+        var numeric = Number(value);
+        return label + ' ' + (value == null || !Number.isFinite(numeric) ? '—' : numeric.toFixed(label === 'Rating' ? 1 : 0) + (suffix || ''));
+      };
+      var head = '<div style="font-size:0.7rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-muted);margin-bottom:0.55rem">The Pro Path</div>'
+        + '<div style="font-size:0.92rem;font-weight:700;color:var(--pro-text);margin-bottom:0.35rem">' + _e(t.tierLabel) + '</div>';
       var body;
       if (!t.next) {
-        body = '<div style="font-size:0.9rem;font-weight:700;color:var(--pro-text);margin-bottom:0.3rem">You’re at the top — Elite Pro ⭐</div>'
-          + '<div style="font-size:0.78rem;color:var(--pro-muted);line-height:1.5">Keep your rating and acceptance up to hold your status and the perks that come with it.</div>';
+        body = '<div style="font-size:0.8rem;color:var(--pro-text);margin-bottom:0.45rem">You’re at the highest tier.</div>'
+          + '<div style="font-size:0.75rem;color:var(--pro-muted);line-height:1.6;margin-bottom:0.45rem">'
+          + _e(metricText('Rating', t.rating, '')) + ' · '
+          + _e(metricText('Acceptance', t.acceptanceRate, '%')) + ' · '
+          + _e(metricText('Completion', t.completionRate, '%')) + '</div>'
+          + '<div style="font-size:0.78rem;color:var(--pro-muted);line-height:1.5">Maintain strong performance and reliable service to keep your status.</div>';
       } else {
         var n = t.next;
         body = '<div style="font-size:0.88rem;color:var(--pro-text);margin-bottom:0.5rem">'
@@ -630,9 +646,9 @@
           + '<div style="height:8px;border-radius:999px;background:var(--pro-elevated);overflow:hidden;margin-bottom:0.6rem"><div style="height:100%;width:' + (Number(n.jobsPct) || 0) + '%;background:#00BFFF"></div></div>'
           + '<div style="font-size:0.75rem;color:var(--pro-muted);line-height:1.7">'
           + '<div>' + (n.jobsHave >= n.jobsNeed ? '✓' : '•') + ' Jobs: ' + n.jobsHave + ' / ' + n.jobsNeed + '</div>'
-          + '<div>' + (n.ratingMet ? '✓' : '•') + ' Rating: ' + Number(n.ratingNeed).toFixed(1) + '★+ ' + (n.ratingMet ? 'met' : 'needed') + '</div>'
-          + '<div>' + (n.acceptanceMet ? '✓' : '•') + ' Acceptance: ' + n.acceptanceNeed + '%+ ' + (n.acceptanceMet ? 'met' : 'needed') + '</div>'
-          + '<div>' + (n.completionMet ? '✓' : '•') + ' Reliability: ' + n.completionNeed + '%+ ' + (n.completionMet ? 'met' : 'needed') + '</div>'
+          + '<div>' + (n.ratingMet ? '✓' : '•') + ' Rating: ' + (t.rating == null ? '—' : Number(t.rating).toFixed(1)) + ' / ' + Number(n.ratingNeed).toFixed(1) + ' required</div>'
+          + '<div>' + (n.acceptanceMet ? '✓' : '•') + ' Acceptance: ' + (t.acceptanceRate == null ? '—' : Math.round(Number(t.acceptanceRate)) + '%') + ' / ' + n.acceptanceNeed + '% required</div>'
+          + '<div>' + (n.completionMet ? '✓' : '•') + ' Completion: ' + (t.completionRate == null ? 'No scored misses' : Math.round(Number(t.completionRate)) + '%') + ' / ' + n.completionNeed + '% required</div>'
           + '</div>'
           + '<div style="margin-top:0.7rem;font-size:0.72rem;color:var(--pro-muted)">Unlocks: ' + (n.perks || []).map(function(x){ return _e(x); }).join(' · ') + '</div>';
       }
@@ -1020,7 +1036,7 @@
 <div class="sheet-overlay" id="delete-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-sheet-title" aria-describedby="delete-sheet-body" aria-hidden="true">
   <div class="sheet-box" tabindex="-1">
     <div class="sheet-title" id="delete-sheet-title" style="color:#dc2626">Request Account Closure</div>
-    <div class="sheet-body" id="delete-sheet-body">You will be switched Offline immediately and cannot receive new job offers. We will email you when your account status changes.</div>
+    <div class="sheet-body" id="delete-sheet-body">Closure is not immediate. Submitting this request switches you Offline and stops new offers. Existing scheduled jobs must be completed or reassigned, and outstanding payouts must be resolved before closure can finish. Payment, tax, safety, and job records may be retained as required. We will email you when your account is closed.</div>
     <label for="closure-reason" style="display:block;font-size:0.78rem;font-weight:700;margin:0.8rem 0 0.35rem">Reason (optional)</label>
     <textarea id="closure-reason" maxlength="500" style="width:100%;min-height:76px;box-sizing:border-box" placeholder="Tell support anything needed to process this safely."></textarea>
     <div class="sheet-actions">

@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { evaluateEaserAppointmentGate } from '../api/booking/_appointment-gates.js';
 
 const jobsPage = await readFile(new URL('../assembler/my-assignments.html', import.meta.url), 'utf8');
 const assignmentsApi = await readFile(new URL('../api/booking/my-assignments.js', import.meta.url), 'utf8');
+const appointmentGates = await readFile(new URL('../api/booking/_appointment-gates.js', import.meta.url), 'utf8');
+const messageApi = await readFile(new URL('../api/booking/message.js', import.meta.url), 'utf8');
+const dropApi = await readFile(new URL('../api/booking/drop-job.js', import.meta.url), 'utf8');
 
 assert.match(jobsPage, /data-filter="scheduled"[^>]*>Scheduled/,
   'Jobs must distinguish accepted scheduled work.');
@@ -21,6 +25,8 @@ assert.match(jobsPage, /function physicalWorkItem\(item\)[\s\S]*exactPack[\s\S]*
   'Per-item pack sizes must become physical workload quantities.');
 assert.match(jobsPage, /queueWorkloadSummary\(b\._booking_items \|\| \[\]\)/,
   'Cards must summarize the real booking workload.');
+assert.doesNotMatch(jobsPage, /const workloadLine =|workloadLine \?/,
+  'The detail header must not duplicate the item list rendered below it.');
 assert.match(jobsPage, /Trampoline Move & Reassembly/,
   'Internal trampoline service labels must be translated for Easers.');
 
@@ -43,5 +49,71 @@ assert.match(jobsPage, /scheduleParts\.push\('Completed ' \+ formatDate/,
   'Completed cards must show a stable calendar date.');
 assert.match(jobsPage, /queuePayoutCents\(b, isCompleted\)/,
   'Cards must use one payout resolver for estimates and final earnings.');
+assert.match(jobsPage, /accepted \? 'Your payout' : 'Estimated payout'/,
+  'Accepted jobs must label the current amount as the Easer payout.');
+
+assert.match(assignmentsApi, /evaluateEaserAppointmentGate/,
+  'The assignments API must reuse the server appointment gate.');
+assert.match(assignmentsApi, /booking\._stage_availability = Object\.fromEntries/,
+  'The read-only assignment payload must expose server-calculated stage availability.');
+assert.match(jobsPage, /stageAvailabilityDisplay\(b\._stage_availability && b\._stage_availability\[s\.stage\]/,
+  'The detail sheet must apply the server-calculated stage gate before a tap.');
+assert.match(jobsPage, /setStageButtonReady\(!availability\.disabled\)/,
+  'Unavailable stage actions must render disabled.');
+assert.match(jobsPage, /setStageMessage\(stageMessage, 'Not available yet'/,
+  'Early-stage guidance must render inside the active job sheet.');
+assert.match(jobsPage, /d\.code === 'APPOINTMENT_STAGE_TOO_EARLY'/,
+  'A server rejection must remain inside the job sheet even when browser state is stale.');
+assert.doesNotMatch(appointmentGates, /Contact the owner before updating this job/,
+  'Easer-facing appointment errors must not expose the internal owner role.');
+
+assert.equal(
+  (jobsPage.match(/Need help with this job\?/g) || []).length,
+  1,
+  'The job sheet must expose one quiet support entry point.',
+);
+assert.doesNotMatch(jobsPage, /id="drop-section"|id="drop-toggle"|Need to drop this job\?/,
+  'The duplicate drop card and escape link must not return.');
+assert.match(jobsPage, /id="support-body" style="display:none"/,
+  'Support must stay subordinate to the normal job workflow.');
+for (const supportType of ['job_issue', 'cannot_make', 'customer_unavailable', 'safety_concern', 'other']) {
+  assert.match(jobsPage, new RegExp(`data-support-type="${supportType}"`));
+}
+assert.match(jobsPage, /function renderSupportWorkflow\(type\)/);
+assert.match(jobsPage, /postSupportMessage\(body, _selectedSupportType \|\| null\)/,
+  'Follow-up messages must not create duplicate Operations Cases.');
+assert.match(jobsPage, /The booking, appointment, current job status, and request time will be attached automatically/);
+assert.match(jobsPage, /Your assignment remains active until support confirms a change/,
+  'A release request must not imply that the booking was already mutated.');
+assert.match(jobsPage, /If anyone is in immediate danger, call 911/);
+assert.match(jobsPage, />Send Urgent Report</);
+assert.match(jobsPage, /canSelfDrop[\s\S]*minsSinceAcceptance <= 15/,
+  'The existing 15-minute self-drop remains available only inside the routed exception flow.');
+
+assert.match(messageApi, /const EASER_SUPPORT_TYPES = Object\.freeze/);
+assert.match(messageApi, /safety_concern:[\s\S]*OPERATION_CASE_TYPES\.SAFETY[\s\S]*OPERATION_CASE_SEVERITIES\.CRITICAL/);
+assert.match(messageApi, /supportType && resolvedSender !== 'assembler'/,
+  'Only the assigned Easer path may create structured Easer support cases.');
+assert.match(messageApi, /createOperationCase\(sb,[\s\S]*sourceRef: `easer-support-message:\$\{message\.id\}`/);
+assert.match(messageApi, /operationCaseId: operationCase\?\.id \|\| null/,
+  'Owner notification attempts must link back to the operations case when available.');
+assert.match(dropApi, /const DROP_REASONS = new Set/);
+assert.match(dropApi, /reason: reason \|\| null,[\s\S]*note: note \|\| null/,
+  'A valid self-drop reason must remain in the booking audit trail.');
+
+const earlyGate = evaluateEaserAppointmentGate({
+  date: '2026-08-20',
+  time: '10:00 AM - 12:00 PM',
+  stage: 'en_route',
+  nowMs: 0,
+});
+const earliestEnRouteMs = Date.parse(earlyGate.earliestAt);
+assert.equal(earlyGate.earlyWindowMinutes, 120, 'On My Way must retain the two-hour window.');
+assert.equal(evaluateEaserAppointmentGate({
+  date: '2026-08-20', time: '10:00 AM - 12:00 PM', stage: 'en_route', nowMs: earliestEnRouteMs - 1,
+}).allowed, false, 'On My Way must remain blocked immediately before the two-hour boundary.');
+assert.equal(evaluateEaserAppointmentGate({
+  date: '2026-08-20', time: '10:00 AM - 12:00 PM', stage: 'en_route', nowMs: earliestEnRouteMs,
+}).allowed, true, 'On My Way must open exactly two hours before the appointment.');
 
 console.log('Easer Jobs queue checks passed');

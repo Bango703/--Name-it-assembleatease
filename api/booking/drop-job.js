@@ -13,12 +13,13 @@ const SITE = 'https://www.assembleatease.com';
 // after acceptance. After it closes, they must contact support to be released —
 // this is the anti-flake commitment rule.
 const DROP_WINDOW_MIN = parseInt(process.env.EASER_DROP_WINDOW_MINUTES || '15', 10);
+const DROP_REASONS = new Set(['Emergency', 'Vehicle issue', 'Running too late', 'Schedule conflict', 'Other']);
 
 /**
  * POST /api/booking/drop-job
  * Easer drops (cancels) a job they accepted, within the 15-minute grace window.
  * Requires Easer JWT — the assembler is taken from the verified token.
- * Body: { bookingId }
+ * Body: { bookingId, reason?, note? }
  *
  * On success: the booking is unassigned, returned to the pool, and re-dispatched
  * fresh to all other online Pros (the dropper is excluded from that re-offer).
@@ -34,8 +35,12 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await userClient.auth.getUser(auth.replace('Bearer ', ''));
   if (authErr || !user) return res.status(401).json({ error: 'Invalid or expired token' });
 
-  const { bookingId } = req.body || {};
+  const { bookingId, reason: rawReason, note: rawNote } = req.body || {};
   if (!bookingId) return res.status(400).json({ error: 'bookingId is required' });
+  const reason = String(rawReason || '').trim();
+  const note = String(rawNote || '').trim();
+  if (reason && !DROP_REASONS.has(reason)) return res.status(400).json({ error: 'Choose a valid drop reason' });
+  if (note.length > 1200) return res.status(400).json({ error: 'Additional details must be 1,200 characters or fewer' });
 
   const sb = getSupabase();
   const now = new Date();
@@ -145,7 +150,12 @@ export default async function handler(req, res) {
     actorId: user.id,
     actorName: easerName,
     description: `${easerName} dropped the job within the ${DROP_WINDOW_MIN}-min window — re-dispatching to other Pros`,
-    metadata: { elapsed_min: Math.round(elapsedMin), ref: booking.ref },
+    metadata: {
+      elapsed_min: Math.round(elapsedMin),
+      ref: booking.ref,
+      reason: reason || null,
+      note: note || null,
+    },
   });
 
   // ── Re-dispatch fresh to all OTHER online Pros ────────────────────────────
@@ -223,6 +233,7 @@ export default async function handler(req, res) {
       html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:2rem">
         <h3 style="color:#f59e0b">Pro Dropped a Job (within 15-min window)</h3>
         <p><strong>${esc(easerName)}</strong> dropped booking <strong>${esc(booking.ref || '')}</strong> (${esc(booking.service || '')}) ${Math.round(elapsedMin)} min after accepting.</p>
+        ${reason ? `<p><strong>Reason:</strong> ${esc(reason)}${note ? `<br/><strong>Additional details:</strong> ${esc(note)}` : ''}</p>` : ''}
         <p>${safelyRematching ? 'The job is being matched to other online Pros.' : 'Automatic redispatch needs owner review.'} The customer was not notified.</p>
         <p><a href="${SITE}/owner/" style="color:#00BFFF">View in owner dashboard</a></p>
       </div>`,

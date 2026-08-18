@@ -14,6 +14,9 @@ import {
   SALES_TAX_RATE,
 } from '../_source-of-truth.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
+import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
+
+const EASER_JOB_STAGES = Object.freeze(['en_route', 'arrived', 'in_progress']);
 
 const SAFE_OFFER_CITIES = new Map([
   ['austin', 'Austin'],
@@ -282,6 +285,21 @@ export default async function handler(req, res) {
     booking._return_visit_open = booking.status === BOOKING_STATUS.COMPLETED
       && booking.return_visit_required === true;
     booking._can_self_drop = !isOwnerManualLiveFlow(booking, easerProfile);
+    const appointmentDate = booking.return_visit_required ? booking.return_visit_date : booking.date;
+    const appointmentTime = booking.return_visit_required ? booking.return_visit_time : booking.time;
+    booking._stage_availability = Object.fromEntries(EASER_JOB_STAGES.map(stage => {
+      const gate = evaluateEaserAppointmentGate({
+        date: appointmentDate,
+        time: appointmentTime,
+        stage,
+      });
+      return [stage, {
+        allowed: gate.allowed === true,
+        code: gate.code || null,
+        earliestAt: gate.earliestAt || null,
+        earlyWindowMinutes: Number(gate.earlyWindowMinutes || 0),
+      }];
+    }));
     delete booking.source;
   });
 

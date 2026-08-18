@@ -67,6 +67,8 @@ assert.deepEqual(publicReadiness, {
   agreementCurrent: true,
   codeOfConductAccepted: true,
   missingItems: ['Application approved', 'Payout setup complete'],
+  accountStatus: null,
+  suspended: false,
 });
 assert.doesNotMatch(JSON.stringify(publicReadiness), internalLanguage);
 

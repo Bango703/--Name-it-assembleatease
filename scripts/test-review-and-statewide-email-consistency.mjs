@@ -7,6 +7,7 @@ const [
   ownerUi,
   reviewApi,
   cronReviewApi,
+  reviewEmail,
   emailHelpers,
   reviewPage,
   vercelConfig,
@@ -19,6 +20,7 @@ const [
   read('owner/index.html'),
   read('api/review-request.js'),
   read('api/cron/review-request.js'),
+  read('api/_review-email.js'),
   read('api/_email.js'),
   read('review.html'),
   read('vercel.json'),
@@ -38,9 +40,11 @@ assert.match(ownerUi, /b\.status === 'completed'[\s\S]*?Resend Review Request[\s
 
 // Owner and automatic requests both lead to the secure platform review first.
 // Google remains an optional second step only after the platform review submits.
-assert.match(reviewApi, /href="\$\{reviewUrl\}"/);
-assert.match(cronReviewApi, /href="\$\{internalReviewUrl\}"[\s\S]*?>Review Your Service</);
+assert.match(reviewApi, /buildReviewEmail\(1, b, reviewUrl/);
+assert.match(cronReviewApi, /buildReviewEmail\(step, b, url/);
+assert.match(reviewEmail, /href="\$\{url\}/);
 assert.doesNotMatch(cronReviewApi, /GOOGLE_REVIEW_URL|googleReviewUrl|Leave a Google Review/);
+assert.doesNotMatch(reviewEmail, /GOOGLE_REVIEW_URL|googleReviewUrl|Leave a Google Review/);
 const completionReviewCopy = emailHelpers.slice(emailHelpers.indexOf('export function buildReviewCta'));
 assert.doesNotMatch(completionReviewCopy, /GOOGLE_REVIEW_URL|g\.page|Leave a Google review/);
 assert.match(reviewPage, /Also Leave a Google Review/);
@@ -88,8 +92,7 @@ for (const path of transactionalEmailFiles) {
 }
 
 assert.match(emailHelpers, /Serving customers across Texas/);
-assert.match(reviewApi, /Serving customers across Texas/);
-assert.match(cronReviewApi, /Serving customers across Texas/);
+assert.match(reviewEmail, /Serving customers across Texas/);
 
 const purchasedMailbox = /ASSEMBLEATEASE LLC, 9169 W State St #3847, Garden City, ID 83714/;
 assert.match(broadcastHelpers, purchasedMailbox);

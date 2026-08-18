@@ -370,7 +370,13 @@ await check('owner UI offers only the exact rewards retry during a cancellation 
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-  const renderActions = new Function('$detailAct', 'esc', `${renderActionsSource}\nreturn renderActions;`)(detail, esc);
+  const renderActions = new Function(
+    '$detailAct',
+    'esc',
+    'allBookings',
+    'addCompletedCustomerActions',
+    `${renderActionsSource}\nreturn renderActions;`,
+  )(detail, esc, [], () => {});
 
   renderActions({
     id: 'booking-cancelled-reward-hold',

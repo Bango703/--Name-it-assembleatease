@@ -12,8 +12,8 @@ const NEXT_GATE = {
   professional: { tier: 'elite',        jobs: 30, rating: 4.8, acceptance: 85, completion: 95 },
 };
 const TIER_PERKS = {
-  professional: ['Higher priority on offers', 'First look at same-day jobs', 'Professional badge to customers'],
-  elite:        ['Top priority — best jobs first', 'First dibs on same-day jobs', 'Elite Pro ⭐ badge to customers', 'Priority support + quarterly owner call'],
+  professional: ['Higher priority on eligible offers', 'Earlier access to same-day jobs', 'Professional badge visible to customers'],
+  elite:        ['Top priority on eligible offers', 'Earliest access to same-day jobs', 'Elite Pro badge visible to customers', 'Priority support'],
 };
 
 export default async function handler(req, res) {

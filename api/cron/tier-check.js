@@ -320,25 +320,27 @@ export default async function handler(req, res) {
       // PROMOTE — jump straight up to the deserved tier. Guarded on current tier.
       const { data: rows } = await sb.from('profiles')
         .update({ tier: deserved, tier_updated_at: nowIso, tier_grace_started_at: null })
-        .eq('id', p.id).eq('tier', current).select('id');
+        .eq('id', p.id).eq('status', 'active').eq('tier', current).select('id');
       if (rows?.length) { results.promoted++; await sendTierEmail(p, 'promoted', deserved); }
     } else if (di < ci) {
       // BELOW current tier — 30-day grace, then step down ONE tier.
       const graceStart = p.tier_grace_started_at ? new Date(p.tier_grace_started_at).getTime() : null;
       if (graceStart == null) {
         const { data: rows } = await sb.from('profiles')
-          .update({ tier_grace_started_at: nowIso }).eq('id', p.id).is('tier_grace_started_at', null).select('id');
+          .update({ tier_grace_started_at: nowIso })
+          .eq('id', p.id).eq('status', 'active').eq('tier', current).is('tier_grace_started_at', null).select('id');
         if (rows?.length) { results.graceStarted++; await sendTierEmail(p, 'grace', current); }
       } else if (nowMs - graceStart >= GRACE_DAYS * 86400000) {
         const newTier = TIER_ORDER[ci - 1];
         const { data: rows } = await sb.from('profiles')
           .update({ tier: newTier, tier_updated_at: nowIso, tier_grace_started_at: null })
-          .eq('id', p.id).eq('tier', current).select('id');
+          .eq('id', p.id).eq('status', 'active').eq('tier', current).select('id');
         if (rows?.length) { results.demoted++; await sendTierEmail(p, 'demoted', newTier); }
       }
     } else if (p.tier_grace_started_at) {
       // Back at/above their tier — clear any grace flag, no email.
-      await sb.from('profiles').update({ tier_grace_started_at: null }).eq('id', p.id);
+      await sb.from('profiles').update({ tier_grace_started_at: null })
+        .eq('id', p.id).eq('status', 'active').eq('tier', current);
       results.graceCleared++;
     }
 

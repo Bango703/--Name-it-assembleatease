@@ -39,7 +39,7 @@ export function esc(s) {
 // Normalize a free-typed street address into a clean, consistent, professional
 // format for every customer/Easer/owner surface. Collapses stray whitespace,
 // fixes comma spacing, drops trailing commas, and uppercases (mailing-label
-// style) so "3301 e pecan st,  austin, tx" reads "3301 E PECAN ST, AUSTIN, TX".
+// style) so "500 main st,  dallas, tx" reads "500 MAIN ST, DALLAS, TX".
 // Not a validator — purely presentational. Escape the result with esc() before
 // embedding in HTML.
 export function formatAddress(raw) {

@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <script src="https://unpkg.com/@supabase/supabase-js@2.49.4/dist/umd/supabase.js" integrity="sha384-rwykjmWNwVxboyFmvK9OXN0wj9hnMHA2aAHtits54DuACyCq0M2PrSNxhRb+hvXT" crossorigin="anonymous" defer></script>
-  <script src="../config.js?v=20260804a" defer></script>
+  <script src="../config.js?v=20260818a" defer></script>
   <script src="../assets/js/app.js?v=20260818a" defer></script>
   <style>
     :root{--pro-bg:#f8fafc;--pro-surface:#ffffff;--pro-elevated:#f1f5f9;--pro-border:#e2e8f0;--pro-border-md:#cbd5e1;--pro-text:#0d1117;--pro-muted:#64748b;--pro-soft:#374151;--pro-teal:#00BFFF;--pro-teal-dim:rgba(0,191,255,0.08);--teal:#00BFFF}
@@ -359,27 +359,30 @@
       <div id="payout-info-note" style="font-size:0.72rem;color:#047857;margin-top:0.2rem;line-height:1.5"></div>
     </div>
     <div id="support-section" style="margin-top:0.5rem;border-top:1px solid var(--pro-border)">
-      <button type="button" id="support-toggle" onclick="(function(){var b=document.getElementById('support-body');var c=document.getElementById('support-chevron');var open=b.style.display!=='none';b.style.display=open?'none':'block';c.style.transform=open?'rotate(0deg)':'rotate(180deg)';})()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
-        <div style="text-align:left">
-          <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text)">Support</div>
-          <div style="font-size:0.72rem;color:var(--pro-muted);margin-top:1px">Message our support team</div>
-        </div>
+      <button type="button" id="support-toggle" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:1rem 0 0.75rem;-webkit-tap-highlight-color:transparent">
+        <div style="text-align:left;font-size:0.8rem;color:var(--pro-muted)">Need help with this job? <span style="color:var(--pro-teal);font-weight:700">Contact Support &rarr;</span></div>
         <svg id="support-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pro-teal)" stroke-width="2" style="flex-shrink:0;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div id="support-body" style="display:none">
+        <div style="font-size:0.9rem;font-weight:700;color:var(--pro-text);margin-bottom:0.15rem">Support</div>
+        <div style="font-size:0.76rem;color:var(--pro-muted);margin-bottom:0.7rem">What do you need help with?</div>
         <div id="support-reasons" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
-          <button type="button" class="support-reason" data-reason="Job issue" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Job issue</button>
-          <button type="button" class="support-reason" data-reason="Can't make the appointment" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Can't make it</button>
-          <button type="button" class="support-reason" data-reason="Customer unavailable" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Customer unavailable</button>
-          <button type="button" class="support-reason" data-reason="Safety concern" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Safety concern</button>
-          <button type="button" class="support-reason" data-reason="Other" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Other</button>
+          <button type="button" class="support-reason" data-support-type="job_issue" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Job issue</button>
+          <button type="button" class="support-reason" data-support-type="cannot_make" data-active-only="true" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Can't make it</button>
+          <button type="button" class="support-reason" data-support-type="customer_unavailable" data-active-only="true" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Customer unavailable</button>
+          <button type="button" class="support-reason" data-support-type="safety_concern" data-active-only="true" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Safety concern</button>
+          <button type="button" class="support-reason" data-support-type="other" style="padding:0.35rem 0.7rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.75rem;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">Other</button>
         </div>
-        <div class="msg-thread" id="asgn-msg-thread"></div>
-        <div class="msg-input-row">
-          <textarea id="asgn-msg-input" rows="2" placeholder="Message support…"></textarea>
-          <button class="btn btn-teal" id="asgn-msg-send" style="min-width:60px;border-radius:10px">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
+        <div id="support-workflow" style="display:none"></div>
+        <div id="support-status" role="status" aria-live="polite" style="display:none;font-size:0.76rem;line-height:1.5;margin:0.65rem 0"></div>
+        <div id="support-conversation" style="display:none">
+          <div class="msg-thread" id="asgn-msg-thread" style="display:none"></div>
+          <div class="msg-input-row">
+            <textarea id="asgn-msg-input" rows="2" maxlength="2000" placeholder="Add details for support"></textarea>
+            <button type="button" class="btn btn-teal" id="asgn-msg-send" aria-label="Send message to support" style="min-width:60px;border-radius:10px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -407,6 +410,9 @@
   var _damageBookingId = null;
   var _damagePhotoFile = null;
   var _damageInFlight = false;
+  var _supportContext = null;
+  var _selectedSupportType = '';
+  var _supportRequestInFlight = false;
 
   // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
   // sessionToken is set to the initial session access_token once auth completes.
@@ -485,6 +491,65 @@
     }).format(amount / 100);
   }
 
+  function formatCentralAvailability(isoTimestamp) {
+    const d = new Date(isoTimestamp);
+    if (Number.isNaN(d.getTime())) return '';
+    const date = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago', month: 'short', day: 'numeric',
+    }).format(d);
+    const time = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true,
+    }).format(d);
+    return date + ' at ' + time;
+  }
+
+  function friendlyEarlyWindow(minutes) {
+    const mins = Number(minutes || 0);
+    if (mins === 120) return 'two hours';
+    if (mins === 60) return 'one hour';
+    return mins + ' minutes';
+  }
+
+  function stageAvailabilityDisplay(gate, stage) {
+    if (!gate || gate.allowed === true) return { disabled: false };
+    const earliestMs = Date.parse(gate.earliestAt || '');
+    if (Number.isFinite(earliestMs) && Date.now() >= earliestMs) return { disabled: false };
+    if (gate.code === 'APPOINTMENT_STAGE_TOO_EARLY' && Number.isFinite(earliestMs)) {
+      const stageLabel = stage === 'en_route' ? 'On My Way' : (stage === 'arrived' ? 'Arrived' : 'Start Job');
+      return {
+        disabled: true,
+        earliestMs,
+        message: 'Available ' + formatCentralAvailability(gate.earliestAt)
+          + ' — ' + friendlyEarlyWindow(gate.earlyWindowMinutes) + ' before your appointment.',
+        detail: 'You can mark ' + stageLabel + ' starting then.',
+      };
+    }
+    return {
+      disabled: true,
+      message: 'This action is unavailable until the appointment time can be verified.',
+      detail: 'Contact support if the appointment information looks incorrect.',
+    };
+  }
+
+  function setStageMessage(element, title, message, tone) {
+    if (!element) return;
+    element.replaceChildren();
+    const strong = document.createElement('strong');
+    strong.textContent = title;
+    const body = document.createElement('span');
+    body.textContent = message;
+    element.append(strong, body);
+    element.style.display = 'grid';
+    element.style.gap = '0.15rem';
+    element.style.padding = '0.65rem 0.75rem';
+    element.style.borderRadius = '10px';
+    element.style.fontSize = '0.75rem';
+    element.style.lineHeight = '1.45';
+    element.style.background = tone === 'error' ? '#fef2f2' : '#f8fafc';
+    element.style.border = tone === 'error' ? '1px solid #fecaca' : '1px solid var(--pro-border)';
+    element.style.color = tone === 'error' ? '#991b1b' : 'var(--pro-soft)';
+  }
+
   const LIVE_STATUSES   = ['en_route', 'arrived', 'in_progress'];
 
   function hasOpenReturnVisit(b) {
@@ -559,23 +624,6 @@
     var exactPack = rawName.match(/\(\s*per\s+(\d+)\s+[^)]*\)/i);
     if (exactPack) quantity *= Number(exactPack[1]);
     return { name: cleanItemName(rawName), quantity: quantity };
-  }
-
-  // One-line headline of what's actually being assembled, for the top of the
-  // detail screen: "2 × Bar Stool · 1 × Desk". Add-ons stay out of the headline.
-  function workloadSummary(scopeGroups) {
-    if (!Array.isArray(scopeGroups)) return '';
-    var parts = [];
-    scopeGroups.forEach(function(g) {
-      (Array.isArray(g.items) ? g.items : []).forEach(function(it) {
-        if (it.isAddOn) return;
-        var workItem = physicalWorkItem(it);
-        if (!workItem.name) return;
-        parts.push((workItem.quantity > 1 ? workItem.quantity + ' × ' : '') + workItem.name);
-      });
-    });
-    if (!parts.length) return '';
-    return parts.slice(0, 3).join('  ·  ') + (parts.length > 3 ? '  ·  +' + (parts.length - 3) + ' more' : '');
   }
 
   function pluralizeWorkItem(name, quantity) {
@@ -673,7 +721,7 @@
 
     if (!groupsHtml) return '';
 
-    return '<div style="margin-bottom:1rem">'
+    return '<div style="margin-bottom:0.65rem">'
       + '<div style="font-size:0.8rem;font-weight:800;color:var(--pro-text);margin-bottom:0.55rem">What the customer booked</div>'
       + '<div style="display:grid;gap:0.65rem">' + groupsHtml + '</div>'
       + '</div>';
@@ -1327,21 +1375,25 @@
       }
     });
 
+    // Support stays collapsed until the Easer asks for help. Selecting a reason
+    // reveals only the workflow relevant to that exception.
+    document.getElementById('support-toggle').addEventListener('click', function() {
+      setSupportPanelOpen(document.getElementById('support-body').style.display === 'none');
+    });
+
     // Message send
     document.getElementById('asgn-msg-send').addEventListener('click', sendMsg);
     document.getElementById('asgn-msg-input').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
     });
-    // Reason chips prefill the message so support/owner gets a categorized report.
+    // Reason chips route to a purpose-built flow instead of exposing a blank
+    // conversation before the Easer has identified the problem.
     var supportReasons = document.getElementById('support-reasons');
     if (supportReasons) {
       supportReasons.addEventListener('click', function(e) {
         var chip = e.target.closest('.support-reason');
         if (!chip) return;
-        var ta = document.getElementById('asgn-msg-input');
-        if (!ta) return;
-        ta.value = '[' + chip.getAttribute('data-reason') + '] ';
-        ta.focus();
+        renderSupportWorkflow(chip.getAttribute('data-support-type'));
       });
     }
 
@@ -1349,21 +1401,18 @@
       const input = document.getElementById('asgn-msg-input');
       const body = input.value.trim();
       if (!body || !selectedBookingId) return;
-      input.value = '';
+      var sendButton = document.getElementById('asgn-msg-send');
+      sendButton.disabled = true;
       try {
-        const r = await fetch('/api/booking/message', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: selectedBookingId, body, sender: 'assembler' }),
-        });
-        const d = await r.json();
-        if (!r.ok || !d.success) {
-          APP.showAlert('page-alert', d.error || 'Failed to send message.', 'error');
-          input.value = body;
-        } else {
-          refreshThread(selectedBookingId);
-        }
-      } catch { alert('Failed to send message'); input.value = body; }
+        await postSupportMessage(body, _selectedSupportType || null);
+        input.value = '';
+        _selectedSupportType = '';
+        showSupportStatus('Message sent. Support has the job details and will follow up here.', 'success');
+      } catch (error) {
+        showSupportStatus(error.message || 'Message could not be sent. Please try again.', 'error');
+      } finally {
+        sendButton.disabled = false;
+      }
     }
   });
 
@@ -1377,8 +1426,11 @@
         if (!response.ok) throw new Error(data.error || 'Could not load messages.');
         var msgs = Array.isArray(data.messages) ? data.messages : [];
         if (!msgs.length) {
-          thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">No messages yet.</div>';
+          thread.innerHTML = '';
+          thread.style.display = 'none';
         } else {
+          thread.style.display = 'block';
+          document.getElementById('support-conversation').style.display = 'block';
           thread.innerHTML = msgs.map(function(m) {
             var isMe = m.sender === 'assembler';
             return '<div style="display:flex;justify-content:' + (isMe ? 'flex-end' : 'flex-start') + ';margin-bottom:0.6rem">'
@@ -1388,7 +1440,210 @@
           thread.scrollTop = thread.scrollHeight;
         }
     } catch (error) {
+      thread.style.display = 'block';
       thread.innerHTML = '<div style="color:var(--pro-muted);font-size:0.8rem;text-align:center;padding:1rem">Could not load messages.</div>';
+    }
+  }
+
+  function setSupportPanelOpen(open) {
+    var body = document.getElementById('support-body');
+    var chevron = document.getElementById('support-chevron');
+    if (body) body.style.display = open ? 'block' : 'none';
+    if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
+
+  function showSupportStatus(message, tone) {
+    var status = document.getElementById('support-status');
+    if (!status) return;
+    status.style.display = message ? 'block' : 'none';
+    status.textContent = message || '';
+    status.style.color = tone === 'error' ? '#991b1b' : tone === 'success' ? '#166534' : 'var(--pro-muted)';
+  }
+
+  function showSupportConversation(placeholder) {
+    var conversation = document.getElementById('support-conversation');
+    var input = document.getElementById('asgn-msg-input');
+    if (conversation) conversation.style.display = 'block';
+    if (input) {
+      input.placeholder = placeholder || 'Add details for support';
+      setTimeout(function() { input.focus(); }, 50);
+    }
+  }
+
+  function supportPanelHtml(title, copy, extra) {
+    return '<div style="border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.8rem 0.9rem;margin-top:0.65rem">'
+      + '<div style="font-size:0.82rem;font-weight:700;color:var(--pro-text);margin-bottom:0.25rem">' + esc(title) + '</div>'
+      + '<div style="font-size:0.75rem;color:var(--pro-muted);line-height:1.55">' + esc(copy) + '</div>'
+      + (extra || '') + '</div>';
+  }
+
+  function renderSupportWorkflow(type) {
+    if (!_supportContext) return;
+    _selectedSupportType = type || '';
+    showSupportStatus('', 'info');
+    var workflow = document.getElementById('support-workflow');
+    var conversation = document.getElementById('support-conversation');
+    var input = document.getElementById('asgn-msg-input');
+    if (conversation) conversation.style.display = 'none';
+    if (input) input.value = '';
+    document.querySelectorAll('.support-reason').forEach(function(button) {
+      var selected = button.getAttribute('data-support-type') === type;
+      button.style.borderColor = selected ? 'var(--pro-teal)' : 'var(--pro-border-md)';
+      button.style.background = selected ? 'rgba(0,191,255,0.08)' : '#fff';
+      button.style.color = selected ? 'var(--pro-teal)' : 'var(--pro-soft)';
+    });
+
+    if (type === 'cannot_make') {
+      var canSelfDrop = _supportContext.canSelfDrop;
+      workflow.innerHTML = supportPanelHtml(
+        'Can\'t make this job?',
+        canSelfDrop
+          ? 'You are still within the 15-minute self-drop window. Select a reason before releasing the job.'
+          : 'The 15-minute self-drop window has passed. Support can help release you from the job.',
+        '<div id="release-reasons" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.7rem">'
+          + ['Emergency', 'Vehicle issue', 'Running too late', 'Schedule conflict', 'Other'].map(function(reason) {
+            return '<button type="button" class="release-reason" data-release-reason="' + esc(reason) + '" style="padding:0.35rem 0.65rem;border:1px solid var(--pro-border-md);border-radius:999px;background:#fff;color:var(--pro-soft);font-size:0.73rem;font-weight:600;cursor:pointer">' + esc(reason) + '</button>';
+          }).join('')
+          + '</div>'
+          + '<textarea id="release-note" maxlength="1200" rows="2" placeholder="Tell us anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
+          + '<button type="button" id="release-submit" class="btn btn-teal" disabled style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">' + (canSelfDrop ? 'Drop this job' : 'Request release') + '</button>'
+      );
+      workflow.style.display = 'block';
+      var selectedReason = '';
+      workflow.querySelectorAll('.release-reason').forEach(function(button) {
+        button.addEventListener('click', function() {
+          selectedReason = button.getAttribute('data-release-reason');
+          workflow.querySelectorAll('.release-reason').forEach(function(item) {
+            var chosen = item === button;
+            item.style.borderColor = chosen ? 'var(--pro-teal)' : 'var(--pro-border-md)';
+            item.style.background = chosen ? 'rgba(0,191,255,0.08)' : '#fff';
+          });
+          document.getElementById('release-submit').disabled = false;
+        });
+      });
+      document.getElementById('release-submit').addEventListener('click', async function() {
+        if (!selectedReason || _supportRequestInFlight) return;
+        var note = document.getElementById('release-note').value.trim();
+        if (canSelfDrop) {
+          if (!confirm('Drop this job? You will be removed from the assignment and the job will be rematched.')) return;
+          await dropCurrentJob(this, selectedReason, note);
+          return;
+        }
+        var message = '[Release request]\nReason: ' + selectedReason
+          + (note ? '\nAdditional details: ' + note : '')
+          + '\nPlease help release me from this assignment.';
+        await submitStructuredSupport(this, message, 'cannot_make', 'Release request sent. Your assignment remains active until support confirms a change.');
+      });
+      return;
+    }
+
+    if (type === 'customer_unavailable') {
+      workflow.innerHTML = supportPanelHtml(
+        'Customer unavailable',
+        'The booking, appointment, current job status, and request time will be attached automatically.',
+        '<textarea id="customer-unavailable-note" maxlength="1200" rows="2" placeholder="Add anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
+          + '<button type="button" id="customer-unavailable-submit" class="btn btn-teal" style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">Notify Support</button>'
+      );
+      workflow.style.display = 'block';
+      document.getElementById('customer-unavailable-submit').addEventListener('click', async function() {
+        var note = document.getElementById('customer-unavailable-note').value.trim();
+        var message = '[Customer unavailable]\nI cannot reach the customer at the appointment.' + (note ? '\nAdditional details: ' + note : '');
+        await submitStructuredSupport(this, message, 'customer_unavailable', 'Support has been notified. Continue following the job instructions unless the situation is unsafe.');
+      });
+      return;
+    }
+
+    if (type === 'safety_concern') {
+      workflow.innerHTML = '<div style="border:1px solid #fecaca;border-radius:12px;background:#fef2f2;padding:0.8rem 0.9rem;margin-top:0.65rem">'
+        + '<div style="font-size:0.82rem;font-weight:700;color:#991b1b;margin-bottom:0.25rem">Safety concern</div>'
+        + '<div style="font-size:0.75rem;color:#7f1d1d;line-height:1.55">If anyone is in immediate danger, call 911. Stop work and move to a safe location before reporting the concern.</div>'
+        + '<textarea id="safety-note" maxlength="1600" rows="3" placeholder="Tell us what is happening" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid #fca5a5;border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.55rem">'
+        + '<a class="btn" href="tel:+17372906129" style="min-height:44px;border-color:#fca5a5;color:#991b1b">Call Support</a>'
+        + '<button type="button" id="safety-submit" class="btn" style="min-height:44px;background:#b91c1c;border-color:#b91c1c;color:#fff">Send Urgent Report</button>'
+        + '</div></div>';
+      workflow.style.display = 'block';
+      document.getElementById('safety-submit').addEventListener('click', async function() {
+        var note = document.getElementById('safety-note').value.trim();
+        if (note.length < 10) {
+          showSupportStatus('Briefly describe the safety concern before sending.', 'error');
+          return;
+        }
+        await submitStructuredSupport(this, '[Safety concern]\n' + note, 'safety_concern', 'Urgent report sent. Remain in a safe location; support will follow up.');
+      });
+      return;
+    }
+
+    workflow.innerHTML = supportPanelHtml(
+      type === 'job_issue' ? 'Job issue' : 'Other support request',
+      'The booking and appointment details will be attached automatically. Tell us what you need help with.'
+    );
+    workflow.style.display = 'block';
+    showSupportConversation(type === 'job_issue' ? 'Describe the job issue' : 'Tell support how we can help');
+  }
+
+  async function postSupportMessage(body, supportType) {
+    var response = await fetch('/api/booking/message', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (await getToken()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: selectedBookingId, body: body, sender: 'assembler', supportType: supportType || null }),
+    });
+    var data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Support request could not be sent.');
+    await refreshThread(selectedBookingId);
+    return data;
+  }
+
+  async function submitStructuredSupport(button, message, supportType, successMessage) {
+    if (_supportRequestInFlight) return;
+    _supportRequestInFlight = true;
+    button.disabled = true;
+    var originalText = button.textContent;
+    button.textContent = 'Sending...';
+    showSupportStatus('', 'info');
+    try {
+      await postSupportMessage(message, supportType);
+      showSupportStatus(successMessage, 'success');
+      showSupportConversation('Add more details (optional)');
+      _selectedSupportType = '';
+      button.textContent = 'Sent';
+    } catch (error) {
+      showSupportStatus(error.message || 'Support request could not be sent. Please try again.', 'error');
+      button.disabled = false;
+      button.textContent = originalText;
+    } finally {
+      _supportRequestInFlight = false;
+    }
+  }
+
+  async function dropCurrentJob(button, reason, note) {
+    if (_supportRequestInFlight || !_supportContext) return;
+    _supportRequestInFlight = true;
+    button.disabled = true;
+    button.textContent = 'Dropping...';
+    try {
+      var response = await fetch('/api/booking/drop-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
+        body: JSON.stringify({ bookingId: _supportContext.bookingId, reason: reason, note: note || null }),
+      });
+      var data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || 'Could not drop this job.');
+      document.getElementById('asgn-modal').classList.remove('open');
+      APP.showAlert('page-alert', data.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
+      var assignmentsResponse = await fetchAssignments();
+      if (assignmentsResponse.ok) {
+        var assignmentsData = await assignmentsResponse.json();
+        allAssignments = assignmentsData.bookings || [];
+        renderAssignments(filterList(allAssignments, currentFilter));
+        updateFilterCounts(allAssignments);
+      }
+    } catch (error) {
+      showSupportStatus(error.message || 'Could not drop this job. Please try again.', 'error');
+      button.disabled = false;
+      button.textContent = 'Drop this job';
+    } finally {
+      _supportRequestInFlight = false;
     }
   }
 
@@ -1420,15 +1675,13 @@
         : formatMoneyCents(b._pay_estimate_lo) + '–' + formatMoneyCents(b._pay_estimate_hi))
       : (!isCompleted && b.assembler_due != null ? formatMoneyCents(b.assembler_due) : null);
 
-    // Tightened hierarchy: What (service + workload) -> When -> Where (tap for
-    // directions) -> Customer (call/text) -> details -> Earning (right before the
-    // On-My-Way action, which renders just after this body).
-    const workloadLine = workloadSummary(b._booking_items || []);
+    // Tightened hierarchy: status -> when -> where -> customer -> booked scope
+    // -> payout -> next job action.
     const mapsHref = b.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.address) : '';
     const pinSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
     const payoutPill = isCompleted
       ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.9rem;margin-bottom:1rem"><strong style="color:var(--pro-teal)">' + esc(completedPayoutLabel) + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">Payout status</span></div>'
-      : (payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:1rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">Estimated payout</span></div>' : '');
+      : (payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>' : '');
     const customerContact = (accepted && !isCompleted && (b.customer_name || b.customer_phone))
       ? '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1rem;padding:0.7rem 0.85rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff">'
         + '<div style="min-width:0">'
@@ -1449,7 +1702,6 @@
         '<div class="asgn-detail-title">' + esc(displayServiceName(b.service) || 'Job') + '</div>',
         '<span class="sb asgn-detail-status ' + stageMeta.cls + '">' + stageMeta.label + '</span>',
       '</div>',
-      workloadLine ? '<div style="font-size:1.02rem;font-weight:700;color:var(--pro-text);margin:-0.1rem 0 0.9rem;line-height:1.3">' + esc(workloadLine) + '</div>' : '',
 
       // WHEN / WHERE
       '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;font-size:0.875rem">',
@@ -1464,6 +1716,9 @@
 
       scopeHtml,
 
+      // Keep the Easer's money immediately below the booked scope.
+      payoutPill,
+
       b.return_visit_required ? '<div style="margin-bottom:1rem;border:1px solid #c7d2fe;border-radius:12px;background:#eef2ff;padding:0.85rem 0.9rem">'
         + '<div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#3730a3;margin-bottom:0.4rem">Return visit required</div>'
         + '<div style="font-size:0.84rem;color:var(--pro-text);line-height:1.55"><strong>Completed:</strong> ' + esc(b.return_visit_completed_scope || 'Previously completed work') + '</div>'
@@ -1471,9 +1726,6 @@
         + '</div>' : '',
 
       accepted && !isCompleted && b.details ? '<div style="margin-bottom:1rem;border:1px solid var(--pro-border);border-radius:12px;background:#f8fafc;padding:0.85rem 0.9rem"><div style="font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--pro-teal);margin-bottom:0.3rem">Customer notes</div><div style="font-size:0.86rem;color:var(--pro-text);line-height:1.6">' + esc(b.details) + '</div></div>' : '',
-
-      // EARNING — sits right before the On-My-Way action (pipeline renders next)
-      payoutPill,
 
       // Offer expiry countdown
       isPendingOffer && b._offer_expires_at ? '<div id="offer-timer-box-' + b.id + '" style="display:flex;align-items:center;gap:6px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.6rem 0.875rem;margin-bottom:0.875rem;font-size:0.82rem">'
@@ -1580,12 +1832,47 @@
       const stages = [];
       if (!b.en_route_at && !b.checked_in_at) stages.push({ stage: 'en_route',    label: 'On My Way',   color: 'var(--pro-teal)', hint: 'Tap when you\'re leaving for the customer\'s location.' });
       if (b.en_route_at && !b.checked_in_at)  stages.push({ stage: 'arrived',     label: 'Arrived',      color: 'var(--pro-teal)', hint: 'Tap when you\'ve arrived at the address.' });
-      if (b.checked_in_at && !b.job_started_at) stages.push({ stage: 'in_progress', label: 'Job Started', color: '#059669', hint: 'Tap when you start the work.' });
+      if (b.checked_in_at && !b.job_started_at) stages.push({ stage: 'in_progress', label: 'Start Job', color: '#059669', hint: 'Tap when you start the work.' });
       stages.forEach(function(s) {
+        const stageBlock = document.createElement('div');
+        stageBlock.style.cssText = 'display:grid;gap:0.4rem';
         const btn2 = document.createElement('button');
         btn2.className = 'btn';
-        btn2.style.cssText = 'background:' + s.color + ';color:#fff;font-weight:600;min-height:48px;border-radius:12px;font-size:0.95rem';
+        btn2.style.cssText = 'font-weight:600;min-height:48px;border-radius:12px;font-size:0.95rem';
         btn2.textContent = s.label;
+        const stageMessage = document.createElement('div');
+        stageMessage.id = 'stage-message-' + s.stage;
+
+        function setStageButtonReady(ready) {
+          btn2.disabled = !ready;
+          btn2.style.background = ready ? s.color : '#e2e8f0';
+          btn2.style.borderColor = ready ? s.color : '#cbd5e1';
+          btn2.style.color = ready ? '#fff' : '#64748b';
+          btn2.style.cursor = ready ? 'pointer' : 'not-allowed';
+        }
+
+        function showReadyHint() {
+          stageMessage.replaceChildren();
+          stageMessage.textContent = s.hint;
+          stageMessage.style.cssText = 'display:block;font-size:0.72rem;color:var(--pro-muted);text-align:center;line-height:1.4';
+        }
+
+        const availability = stageAvailabilityDisplay(b._stage_availability && b._stage_availability[s.stage], s.stage);
+        setStageButtonReady(!availability.disabled);
+        if (availability.disabled) {
+          setStageMessage(stageMessage, 'Not available yet', availability.message + ' ' + availability.detail, 'info');
+          if (Number.isFinite(availability.earliestMs)) {
+            const waitMs = availability.earliestMs - Date.now();
+            if (waitMs > 0 && waitMs < 2147483000) setTimeout(function() {
+              if (!btn2.isConnected) return;
+              setStageButtonReady(true);
+              showReadyHint();
+            }, waitMs + 250);
+          }
+        } else {
+          showReadyHint();
+        }
+
         btn2.addEventListener('click', async function() {
           btn2.disabled = true; btn2.textContent = 'Updating…';
           try {
@@ -1595,20 +1882,33 @@
               body: JSON.stringify({ bookingId: b.id, stage: s.stage }),
             });
             const d = await r.json();
-            if (!r.ok || d.error) { APP.showAlert('page-alert', d.error || 'Failed to update status', 'error'); btn2.disabled = false; btn2.textContent = s.label; return; }
+            if (!r.ok || d.error) {
+              btn2.textContent = s.label;
+              if (d.code === 'APPOINTMENT_STAGE_TOO_EARLY') {
+                setStageButtonReady(false);
+                const availableAt = formatCentralAvailability(d.earliestAt);
+                const message = availableAt
+                  ? 'Available ' + availableAt + ' — ' + friendlyEarlyWindow(d.earlyWindowMinutes) + ' before your appointment.'
+                  : (d.error || 'This action is not available yet.');
+                setStageMessage(stageMessage, 'Not available yet', message, 'info');
+              } else {
+                setStageButtonReady(true);
+                setStageMessage(stageMessage, 'Could not update status', d.error || 'Please try again.', 'error');
+              }
+              return;
+            }
             // Refresh assignments
             const freshResp = await fetchAssignments();
             if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
             document.getElementById('asgn-modal').classList.remove('open');
-          } catch { APP.showAlert('page-alert', 'Connection error. Please try again.', 'error'); btn2.disabled = false; btn2.textContent = s.label; }
+          } catch {
+            btn2.textContent = s.label;
+            setStageButtonReady(true);
+            setStageMessage(stageMessage, 'Connection problem', 'Please check your connection and try again.', 'error');
+          }
         });
-        pipeline.appendChild(btn2);
-        if (s.hint) {
-          const cap = document.createElement('div');
-          cap.style.cssText = 'font-size:0.72rem;color:var(--pro-muted);text-align:center;margin:-0.15rem 0 0.2rem;line-height:1.4';
-          cap.textContent = s.hint;
-          pipeline.appendChild(cap);
-        }
+        stageBlock.append(btn2, stageMessage);
+        pipeline.appendChild(stageBlock);
       });
       if (pipeline.children.length) {
         const completeSection = document.getElementById('complete-section');
@@ -1616,85 +1916,37 @@
       }
     }
 
-    // Drop-job section — only for an accepted job that hasn't started yet.
-    // Within 15 min of acceptance the Pro can self-drop; after that it's support-only.
-    const existingDrop = document.getElementById('drop-section');
-    if (existingDrop) existingDrop.remove();
-    if (accepted && b.status === 'confirmed' && b._can_self_drop !== false) {
-      const acceptedAt = b.assembler_accepted_at ? new Date(b.assembler_accepted_at).getTime() : null;
-      const minsSince  = acceptedAt ? (Date.now() - acceptedAt) / 60000 : 999;
-      const canDrop    = !!acceptedAt && minsSince <= 15;
-      const minsLeft   = Math.max(0, Math.ceil(15 - minsSince));
-      const dropEl = document.createElement('div');
-      dropEl.id = 'drop-section';
-      dropEl.style.cssText = 'margin-top:0.75rem';
-      // Exception path — kept quiet so it never competes with the primary action.
-      // A subtle line expands to the real drop UI (same 15-min policy underneath).
-      dropEl.innerHTML =
-        '<button type="button" id="drop-toggle" style="width:100%;background:none;border:none;padding:0.5rem 0;cursor:pointer;text-align:center;color:var(--pro-muted);font-size:0.78rem;-webkit-tap-highlight-color:transparent">Can\'t make this job? <span style="color:var(--pro-teal);font-weight:600">Get help &rarr;</span></button>'
-        + '<div id="drop-details" style="display:none;margin-top:0.5rem">'
-        + (canDrop
-          ? '<button type="button" id="drop-job-btn" class="btn" style="width:100%;min-height:44px;border-radius:12px;color:#dc2626;border:1px solid rgba(239,68,68,0.3);background:#fff;font-size:0.9rem;font-weight:600">Drop this job</button>'
-            + '<div style="font-size:0.72rem;color:var(--pro-muted);text-align:center;margin-top:0.4rem;line-height:1.5">You can drop within 15 min of accepting (about ' + minsLeft + ' min left). After that, contact support to be released.</div>'
-          : '<div style="background:#fff7ed;border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:0.75rem 0.9rem">'
-            + '<div style="font-size:0.8rem;font-weight:700;color:#92400e;margin-bottom:0.2rem">Need to drop this job?</div>'
-            + '<div style="font-size:0.74rem;color:#92400e;line-height:1.5;margin-bottom:0.6rem">The 15-minute window to drop has passed. Contact support below and we\'ll release you.</div>'
-            + '<button type="button" id="drop-contact-support" class="btn btn-teal" style="width:100%;min-height:42px;border-radius:10px;font-size:0.85rem">Contact Support</button>'
-            + '</div>')
-        + '</div>';
-      const supportSection = document.getElementById('support-section');
-      if (supportSection && supportSection.parentNode) {
-        supportSection.parentNode.insertBefore(dropEl, supportSection);
-      }
-      const dropToggle = document.getElementById('drop-toggle');
-      const dropDetails = document.getElementById('drop-details');
-      if (dropToggle && dropDetails) {
-        dropToggle.addEventListener('click', function() {
-          dropDetails.style.display = dropDetails.style.display === 'none' ? 'block' : 'none';
-        });
-      }
-
-      const dropBtn = document.getElementById('drop-job-btn');
-      if (dropBtn) {
-        dropBtn.addEventListener('click', async function() {
-          if (!confirm('Drop this job? You will be removed from the assignment. You can only do this within 15 minutes of accepting.')) return;
-          dropBtn.disabled = true; dropBtn.textContent = 'Dropping…';
-          try {
-            const r = await fetch('/api/booking/drop-job', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (await getToken()) },
-              body: JSON.stringify({ bookingId: b.id }),
-            });
-            const d = await r.json();
-            if (!r.ok || d.error) {
-              APP.showAlert('page-alert', d.error || 'Could not drop this job.', 'error');
-              dropBtn.disabled = false; dropBtn.textContent = 'Drop this job'; return;
-            }
-            document.getElementById('asgn-modal').classList.remove('open');
-            APP.showAlert('page-alert', d.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
-            const resp = await fetchAssignments();
-            if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
-          } catch {
-            APP.showAlert('page-alert', 'Connection error. Please try again.', 'error');
-            dropBtn.disabled = false; dropBtn.textContent = 'Drop this job';
-          }
-        });
-      }
-
-      const dropSupportBtn = document.getElementById('drop-contact-support');
-      if (dropSupportBtn) {
-        dropSupportBtn.addEventListener('click', function() {
-          const sBody = document.getElementById('support-body');
-          const sChev = document.getElementById('support-chevron');
-          if (sBody) sBody.style.display = 'block';
-          if (sChev) sChev.style.transform = 'rotate(180deg)';
-          const supSec = document.getElementById('support-section');
-          if (supSec) supSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          const ta = document.getElementById('asgn-msg-input');
-          if (ta) setTimeout(function() { ta.focus(); }, 300);
-        });
-      }
-    }
+    // One support route owns every exception. The valid 15-minute self-drop
+    // remains available inside "Can't make it"; once it closes, submitting the
+    // same flow creates a support case without mutating the assignment.
+    const acceptedAt = b.assembler_accepted_at ? new Date(b.assembler_accepted_at).getTime() : null;
+    const minsSinceAcceptance = acceptedAt ? (Date.now() - acceptedAt) / 60000 : Number.POSITIVE_INFINITY;
+    const hasActiveAssignmentForSupport = accepted
+      && !isCompleted
+      && (['confirmed', 'en_route', 'arrived', 'in_progress'].includes(b.status) || openReturnVisit);
+    _supportContext = {
+      bookingId: b.id,
+      canSelfDrop: hasActiveAssignmentForSupport
+        && b.status === 'confirmed'
+        && b._can_self_drop !== false
+        && !!acceptedAt
+        && minsSinceAcceptance <= 15,
+    };
+    _selectedSupportType = '';
+    _supportRequestInFlight = false;
+    setSupportPanelOpen(false);
+    showSupportStatus('', 'info');
+    document.getElementById('support-workflow').style.display = 'none';
+    document.getElementById('support-workflow').innerHTML = '';
+    document.getElementById('support-conversation').style.display = 'none';
+    document.getElementById('asgn-msg-input').value = '';
+    document.querySelectorAll('.support-reason').forEach(function(button) {
+      var activeOnly = button.getAttribute('data-active-only') === 'true';
+      button.style.display = activeOnly && !hasActiveAssignmentForSupport ? 'none' : '';
+      button.style.borderColor = 'var(--pro-border-md)';
+      button.style.background = '#fff';
+      button.style.color = 'var(--pro-soft)';
+    });
 
     // Accept job button
     const acceptBtn = document.getElementById('accept-job-btn');
@@ -1770,12 +2022,9 @@
     }
 
     document.getElementById('asgn-modal').classList.add('open');
-    // Support section: auto-expand for active/live jobs, collapsed otherwise
-    var _sb = document.getElementById('support-body');
-    var _sc = document.getElementById('support-chevron');
-    const isLiveJob = LIVE_STATUSES.includes(b.status) && b.assembler_accepted_at;
-    if (_sb) _sb.style.display = isLiveJob ? '' : 'none';
-    if (_sc) _sc.style.transform = isLiveJob ? 'rotate(180deg)' : 'rotate(0deg)';
+    // Keep exceptions subordinate to the normal job flow. Existing messages
+    // remain available after the Easer deliberately opens Support.
+    setSupportPanelOpen(false);
     // Load messages from Supabase
     refreshThread(bookingId);
   };

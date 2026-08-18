@@ -39,7 +39,7 @@ export function evaluateEaserAppointmentGate({ date, time, stage, nowMs = Date.n
     return {
       allowed: false,
       code: 'APPOINTMENT_TIME_INVALID',
-      error: 'The appointment date or time could not be verified. Contact the owner before updating this job.',
+      error: 'The appointment date or time could not be verified. Contact support before updating this job.',
     };
   }
 
