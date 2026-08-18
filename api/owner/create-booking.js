@@ -7,6 +7,8 @@ import { logActivity } from '../booking/_activity.js';
 import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_offline-payment.js';
 import { isMissingServiceLocationColumn, parseServiceLocation } from '../_booking-location.js';
 import { buildCustomerConsentRecord, validateCustomerLegalConsent } from '../_legal-consent.js';
+import { chicagoDateIso } from '../_source-of-truth.js';
+import { normalizeRebookSourceId, validateOwnerRebookSource } from './_rebook.js';
 
 // Owner-created offline bookings never touch Stripe capture or automated
 // dispatch. They can remain unassigned for the owner's direct completion path,
@@ -39,6 +41,7 @@ export default async function handler(req, res) {
     phone: rawPhone,
     email,
     address,
+    details,
     date,
     time,
     standardPriceCents,
@@ -51,6 +54,7 @@ export default async function handler(req, res) {
     customerTermsAcceptedByOwner,
     termsVersion,
     privacyNoticeVersion,
+    rebookedFromBookingId,
   } = req.body || {};
 
   const legalConsent = validateCustomerLegalConsent({
@@ -88,6 +92,7 @@ export default async function handler(req, res) {
   const cleanAddress = String(address || '').trim().replace(/\s+/g, ' ').slice(0, 240);
   if (!cleanAddress) return res.status(400).json({ error: 'Service address is required.' });
   const serviceLocation = parseServiceLocation({ address: cleanAddress });
+  const cleanDetails = String(details || '').trim().replace(/\s+/g, ' ').slice(0, 2000) || null;
 
   // ── Appointment date required (YYYY-MM-DD); time optional. Owner sets freely. ──
   const cleanDate = String(date || '').trim().slice(0, 10);
@@ -136,6 +141,44 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
+  let rebookSource = null;
+  if (rebookedFromBookingId != null && String(rebookedFromBookingId).trim() !== '') {
+    const sourceId = normalizeRebookSourceId(rebookedFromBookingId);
+    if (!sourceId) {
+      return res.status(400).json({
+        error: 'The cancelled booking reference is invalid.',
+        code: 'REBOOK_SOURCE_ID_INVALID',
+      });
+    }
+    const { data: sourceBooking, error: sourceError } = await sb.from('bookings')
+      .select('id, ref, status, source, payment_status, payment_collected, amount_charged, refund_amount, stripe_payment_intent_id, stripe_deposit_intent_id, stripe_balance_payment_intent_id, financial_operation_key, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
+      .eq('id', sourceId)
+      .maybeSingle();
+    if (sourceError || !sourceBooking) {
+      return res.status(404).json({
+        error: 'The cancelled booking could not be found. Refresh and try again.',
+        code: 'REBOOK_SOURCE_NOT_FOUND',
+      });
+    }
+    const sourceValidation = validateOwnerRebookSource(sourceBooking);
+    if (!sourceValidation.ok) {
+      return res.status(409).json({ error: sourceValidation.error, code: sourceValidation.code });
+    }
+    if (isAlreadyCompleted) {
+      return res.status(409).json({
+        error: 'A cancelled booking must be rebooked as a new appointment, not as completed work.',
+        code: 'REBOOK_MUST_BE_NEW_APPOINTMENT',
+      });
+    }
+    if (cleanDate < chicagoDateIso()) {
+      return res.status(400).json({
+        error: 'Choose today or a future date for the replacement booking.',
+        code: 'REBOOK_DATE_IN_PAST',
+      });
+    }
+    rebookSource = sourceBooking;
+  }
+
   const ref = 'AAE-' + randomToken(8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
   const now = new Date().toISOString();
 
@@ -151,7 +194,7 @@ export default async function handler(req, res) {
     service_zip: serviceLocation.zip,
     date: cleanDate,
     time: cleanTime,
-    details: null,
+    details: cleanDetails,
     status: isAlreadyCompleted ? 'completed' : 'confirmed',
     payment_status: 'offline_recorded',
     confirmed_by: 'owner_manual',
@@ -175,6 +218,7 @@ export default async function handler(req, res) {
     owner_booking_note: cleanNote,
     ...buildCustomerConsentRecord(req, 'owner_attested_customer_agreement'),
   };
+  if (rebookSource) insertPayload.rebooked_from_booking_id = rebookSource.id;
 
   let { data: saved, error: insertErr } = await sb
     .from('bookings').insert(insertPayload).select('id').single();
@@ -187,6 +231,26 @@ export default async function handler(req, res) {
 
   if (insertErr || !saved) {
     console.error('Owner create-booking insert error:', insertErr);
+    if (rebookSource && String(insertErr?.code || '') === '23505') {
+      const { data: existingRebook } = await sb.from('bookings')
+        .select('id, ref')
+        .eq('rebooked_from_booking_id', rebookSource.id)
+        .maybeSingle();
+      return res.status(409).json({
+        error: existingRebook?.ref
+          ? `Cancelled booking ${rebookSource.ref} was already rebooked as ${existingRebook.ref}.`
+          : `Cancelled booking ${rebookSource.ref} already has a replacement booking. Refresh before continuing.`,
+        code: 'REBOOK_ALREADY_CREATED',
+        existingBookingId: existingRebook?.id || null,
+        existingRef: existingRebook?.ref || null,
+      });
+    }
+    if (rebookSource && /rebooked_from_booking_id|cancelled_booking_rebook_lineage/i.test(String(insertErr?.message || ''))) {
+      return res.status(503).json({
+        error: 'Rebooking linkage is unavailable. Apply migration 067_cancelled_booking_rebook_lineage.sql and retry.',
+        code: 'REBOOK_MIGRATION_REQUIRED',
+      });
+    }
     if (insertErr && /customer_terms_|customer_privacy_notice_/i.test(String(insertErr.message || ''))) {
       return res.status(503).json({
         error: 'Customer consent records are not installed. Apply migration 065_customer_legal_consent.sql before creating owner bookings.',
@@ -219,9 +283,11 @@ export default async function handler(req, res) {
     eventType: 'booking_created',
     actorType: 'owner',
     actorName: 'Owner',
-    description: `Owner-created booking for ${customerName} — ${cleanService}. ${standardCents != null ? `Standard ${money(standardCents)} → ` : ''}${money(finalCents)}${reason ? ` (${reason.replace(/_/g, ' ')})` : ''}. Payment: ${method ? PAYMENT_METHOD_LABELS[method] : 'to be collected'}.`,
+    description: `${rebookSource ? `Owner-created rebooking from cancelled ${rebookSource.ref}` : 'Owner-created booking'} for ${customerName} — ${cleanService}. ${standardCents != null ? `Standard ${money(standardCents)} → ` : ''}${money(finalCents)}${reason ? ` (${reason.replace(/_/g, ' ')})` : ''}. Payment: ${method ? PAYMENT_METHOD_LABELS[method] : 'to be collected'}.`,
     metadata: {
       source: 'owner_manual',
+      rebookedFromBookingId: rebookSource?.id || null,
+      rebookedFromRef: rebookSource?.ref || null,
       standardPriceCents: standardCents,
       finalPriceCents: finalCents,
       taxCents,
@@ -233,6 +299,22 @@ export default async function handler(req, res) {
       customerTermsAcceptanceMethod: 'owner_attested_customer_agreement',
     },
   }).catch(e => console.warn('Owner booking activity log skipped:', e?.message || e));
+
+  if (rebookSource) {
+    await logActivity(sb, {
+      bookingId: rebookSource.id,
+      eventType: 'booking_rebooked',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: `Owner created replacement booking ${ref}. The cancelled booking and its financial history remain unchanged.`,
+      metadata: {
+        replacementBookingId: bookingId,
+        replacementRef: ref,
+        paymentReused: false,
+        assignmentReused: false,
+      },
+    }).catch(e => console.warn('Cancelled booking rebook activity log skipped:', e?.message || e));
+  }
 
   await logActivity(sb, {
     bookingId,
@@ -289,9 +371,10 @@ export default async function handler(req, res) {
   await sendEmail({
     to: ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
-    subject: `Owner booking created — ${ref} — ${money(finalCents)}`,
-    html: `<p>You created a manual booking <strong>${esc(ref)}</strong> for <strong>${esc(customerName)}</strong>.</p>
+    subject: `${rebookSource ? 'Rebooking' : 'Owner booking'} created — ${ref} — ${money(finalCents)}`,
+    html: `<p>You created ${rebookSource ? `a replacement booking <strong>${esc(ref)}</strong> from cancelled booking <strong>${esc(rebookSource.ref)}</strong>` : `a manual booking <strong>${esc(ref)}</strong>`} for <strong>${esc(customerName)}</strong>.</p>
       <p>${esc(cleanService)} · ${esc(cleanDate)}${cleanTime ? ` · ${esc(cleanTime)}` : ''}<br>${esc(cleanAddress)}</p>
+      ${cleanDetails ? `<p><strong>Job details:</strong> ${esc(cleanDetails)}</p>` : ''}
       <p>Total ${money(finalCents)} (subtotal ${money(subtotalCents)} + tax ${money(taxCents)}). Payment: ${method ? esc(PAYMENT_METHOD_LABELS[method]) : 'to be collected'}.</p>
       ${cleanNote ? `<p><em>${esc(cleanNote)}</em></p>` : ''}
       <p>If you are using your owner-Easer account, assign and complete it through the Easer dashboard. Otherwise use Mark Complete here. Record the customer payment separately once the funds are actually collected.</p>`,
@@ -307,10 +390,12 @@ export default async function handler(req, res) {
       : 'Payment will be arranged directly with AssembleAtEase after the job is completed.';
     const bodyHtml = `
       <p>Thanks for booking with AssembleAtEase. Your appointment is confirmed.</p>
+      ${rebookSource ? `<p style="margin:0 0 16px;font-size:14px;background:#f8fafc;border:1px solid #dbe3ea;border-radius:6px;padding:12px 16px;color:#334155">This is a new appointment replacing cancelled booking <strong>${esc(rebookSource.ref)}</strong>. No payment or authorization from the cancelled booking was reused.</p>` : ''}
       <table style="width:100%;font-size:14px;border-collapse:collapse;margin:14px 0">
         <tr><td style="padding:6px 0;color:#52525b">Service</td><td style="padding:6px 0;text-align:right"><strong>${esc(cleanService)}</strong></td></tr>
         <tr><td style="padding:6px 0;color:#52525b">Date</td><td style="padding:6px 0;text-align:right">${esc(cleanDate)}${cleanTime ? ` · ${esc(cleanTime)}` : ''}</td></tr>
         <tr><td style="padding:6px 0;color:#52525b">Address</td><td style="padding:6px 0;text-align:right">${esc(cleanAddress)}</td></tr>
+        ${cleanDetails ? `<tr><td style="padding:6px 0;color:#52525b">Job details</td><td style="padding:6px 0;text-align:right">${esc(cleanDetails)}</td></tr>` : ''}
         <tr><td style="padding:8px 0;color:#52525b;border-top:1px solid #eee"><strong>Agreed total</strong></td><td style="padding:8px 0;text-align:right;border-top:1px solid #eee"><strong>${money(finalCents)}</strong> <span style="color:#52525b;font-weight:400">(tax included)</span></td></tr>
       </table>
       <p>${paymentLine}</p>
@@ -389,6 +474,7 @@ export default async function handler(req, res) {
     subtotalCents,
     taxCents,
     totalCents: finalCents,
+    rebookedFrom: rebookSource ? { id: rebookSource.id, ref: rebookSource.ref } : null,
     confirmationEmailed,
     confirmationEmailError,
     completionEmailed,

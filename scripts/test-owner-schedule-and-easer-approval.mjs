@@ -159,8 +159,8 @@ assert.match(currentAgreementMigrationSource, /contractor_agreement_version IS D
 assert.match(currentAgreementMigrationSource, /SET is_available = FALSE/);
 assert.doesNotMatch(currentAgreementMigrationSource, /application_status\s*=/);
 assert.doesNotMatch(currentAgreementMigrationSource, /status\s*=/);
-assert.match(liveReadinessSource, /REQUIRED_SCHEMA_MIGRATION = 66/);
-assert.match(liveReadinessSource, /Apply migrations 038-066 in order/);
+assert.match(liveReadinessSource, /REQUIRED_SCHEMA_MIGRATION = 67/);
+assert.match(liveReadinessSource, /Apply migrations 038-067 in order/);
 assert.equal((migrationSource.match(/^BEGIN;$/gm) || []).length, 1);
 assert.equal((migrationSource.match(/^COMMIT;$/gm) || []).length, 1);
 assert.equal((migrationSource.match(/\$\$/g) || []).length % 2, 0);

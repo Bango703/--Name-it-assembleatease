@@ -1671,8 +1671,10 @@ window.intelQuick = intelQuick;
 <!-- ─── Owner Create Booking Modal (record-only offline lane) ─── -->
 <div class="modal-overlay" id="owner-create-booking-modal">
   <div class="modal" style="max-width:560px">
-    <h3>Create Owner Booking</h3>
-    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.1rem">For phone/text jobs not booked on the website. Stored as owner manual, tax-inclusive pricing.</p>
+    <h3 id="ocb-title">Create Owner Booking</h3>
+    <p id="ocb-description" style="font-size:0.82rem;color:var(--soft);margin-bottom:1.1rem">For phone/text jobs not booked on the website. Stored as owner manual, tax-inclusive pricing.</p>
+    <input type="hidden" id="ocb-rebooked-from"/>
+    <div id="ocb-rebook-notice" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.7rem 0.8rem;margin:-0.25rem 0 1rem;color:#1e40af;font-size:0.78rem;line-height:1.5"></div>
     <div class="modal-row">
       <div>
         <label class="modal-label">Customer First Name *</label>
@@ -1695,6 +1697,8 @@ window.intelQuick = intelQuick;
     </div>
     <label class="modal-label">Service *</label>
     <input type="text" class="modal-input" id="ocb-service" placeholder="King Bed Frame Assembly"/>
+    <label class="modal-label">Job Details</label>
+    <textarea class="modal-input" id="ocb-details" placeholder="Items, scope, access notes, or other details the Easer needs" rows="2" style="resize:vertical"></textarea>
     <label class="modal-label">Address *</label>
     <input type="text" class="modal-input" id="ocb-address" placeholder="124 Blue Hibiscus Dr, Georgetown, TX 78642"/>
     <div class="modal-row">
@@ -1751,7 +1755,7 @@ window.intelQuick = intelQuick;
       <input type="checkbox" id="ocb-send-confirmation" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
       Email confirmation to customer if email is provided
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.35rem">
+    <label id="ocb-completed-row" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.35rem">
       <input type="checkbox" id="ocb-already-completed" style="width:15px;height:15px;accent-color:var(--teal)"/>
       Job already completed - create as completed and send the completion email instead of the booking confirmation
     </label>
@@ -3513,6 +3517,9 @@ window.intelQuick = intelQuick;
     var bookedTax = Number(b.tax_amount || 0);
     var bookedSubtotal = Math.max(0, bookedTotal - bookedTax);
     var financial = b.financial_summary || {};
+    var rebookedFrom = b.rebooked_from_booking_id
+      ? allBookings.find(function(item){ return item.id === b.rebooked_from_booking_id; })
+      : null;
     var isOfflinePayment = b.source === 'owner_manual' && b.payment_status === 'offline_recorded';
     var manualPaymentEvents = isOfflinePayment && Array.isArray(b.payment_events) ? b.payment_events : [];
     var eventDiscountCents = manualPaymentEvents.reduce(function(sum, event) {
@@ -3597,6 +3604,7 @@ window.intelQuick = intelQuick;
       b.details ? field('Details', esc(b.details)) : '',
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
+      b.rebooked_from_booking_id ? field('Rebooked From', esc(rebookedFrom && rebookedFrom.ref ? rebookedFrom.ref : 'Cancelled booking')) : '',
       field('Customer Agreement', customerAgreement),
       field('Created', formatDateTime(b.created_at)),
     ].join('');
@@ -4139,17 +4147,20 @@ window.intelQuick = intelQuick;
     if (modal) modal.classList.remove('open');
   }
 
-  function openOwnerCreateBookingModal() {
+  function openOwnerCreateBookingModal(rebookSource) {
     var modal = document.getElementById('owner-create-booking-modal');
     if (!modal) return;
     var today = ownerBusinessDate || chicagoBusinessDate(new Date());
-    var ids = ['ocb-first','ocb-last','ocb-phone','ocb-email','ocb-service','ocb-address','ocb-time','ocb-standard','ocb-final','ocb-note'];
+    var ids = ['ocb-first','ocb-last','ocb-phone','ocb-email','ocb-service','ocb-details','ocb-address','ocb-time','ocb-standard','ocb-final','ocb-note'];
     ids.forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.value = '';
     });
     var dateInput = document.getElementById('ocb-date');
-    if (dateInput) dateInput.value = today;
+    if (dateInput) {
+      dateInput.min = today;
+      dateInput.value = today;
+    }
     var reasonInput = document.getElementById('ocb-reason');
     if (reasonInput) reasonInput.value = '';
     var methodInput = document.getElementById('ocb-payment-method');
@@ -4164,6 +4175,53 @@ window.intelQuick = intelQuick;
     if (paymentMethodLabel) paymentMethodLabel.textContent = 'Payment Method';
     var errEl = document.getElementById('ocb-error');
     if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    var sourceInput = document.getElementById('ocb-rebooked-from');
+    var notice = document.getElementById('ocb-rebook-notice');
+    var title = document.getElementById('ocb-title');
+    var description = document.getElementById('ocb-description');
+    var submit = document.getElementById('ocb-submit');
+    if (sourceInput) sourceInput.value = '';
+    if (notice) { notice.style.display = 'none'; notice.textContent = ''; }
+    if (title) title.textContent = 'Create Owner Booking';
+    if (description) description.textContent = 'For phone/text jobs not booked on the website. Stored as owner manual, tax-inclusive pricing.';
+    if (submit) submit.textContent = 'Create Booking';
+    var completedRow = document.getElementById('ocb-completed-row');
+    if (completedRow) completedRow.style.display = 'flex';
+
+    if (rebookSource && rebookSource.status === 'cancelled') {
+      var nameParts = String(rebookSource.customer_name || '').trim().split(/\s+/).filter(Boolean);
+      var firstName = nameParts.shift() || '';
+      var lastName = nameParts.join(' ');
+      var setValue = function(id, value) {
+        var el = document.getElementById(id);
+        if (el) el.value = value == null ? '' : String(value);
+      };
+      setValue('ocb-first', firstName);
+      setValue('ocb-last', lastName);
+      setValue('ocb-phone', rebookSource.customer_phone || '');
+      setValue('ocb-email', rebookSource.customer_email || '');
+      setValue('ocb-service', rebookSource.service || '');
+      setValue('ocb-details', rebookSource.details || '');
+      setValue('ocb-address', rebookSource.address || '');
+      setValue('ocb-time', rebookSource.time || '');
+      setValue('ocb-standard', Number(rebookSource.standard_price_cents || rebookSource.total_price || 0) > 0
+        ? (Number(rebookSource.standard_price_cents || rebookSource.total_price) / 100).toFixed(2)
+        : '');
+      setValue('ocb-final', Number(rebookSource.total_price || 0) > 0
+        ? (Number(rebookSource.total_price) / 100).toFixed(2)
+        : '');
+      if (dateInput) dateInput.value = String(rebookSource.date || '') >= today ? rebookSource.date : '';
+      if (sourceInput) sourceInput.value = rebookSource.id || '';
+      if (title) title.textContent = 'Review and Rebook';
+      if (description) description.textContent = 'Review every copied detail before creating a separate owner booking. The cancelled record remains unchanged.';
+      if (notice) {
+        notice.style.display = '';
+        notice.textContent = 'Copied from cancelled booking ' + (rebookSource.ref || '') + '. Confirm the new date, time, current price, address, payment arrangement, and customer agreement. No old payment or Easer assignment will be reused.';
+      }
+      if (submit) submit.textContent = 'Create New Booking';
+      if (completedRow) completedRow.style.display = 'none';
+    }
     updateOwnerCreateTaxPreview();
     modal.classList.add('open');
     setTimeout(function(){ var f = document.getElementById('ocb-first'); if (f) f.focus(); }, 50);
@@ -4250,6 +4308,7 @@ window.intelQuick = intelQuick;
       phone: (document.getElementById('ocb-phone').value || '').trim() || null,
       email: (document.getElementById('ocb-email').value || '').trim() || null,
       address: address,
+      details: (document.getElementById('ocb-details').value || '').trim() || null,
       date: date,
       time: (document.getElementById('ocb-time').value || '').trim() || null,
       standardPriceCents: standardPriceCents,
@@ -4262,6 +4321,7 @@ window.intelQuick = intelQuick;
       customerTermsAcceptedByOwner: customerTermsAcceptedByOwner,
       termsVersion: legalConfig.customerTermsVersion,
       privacyNoticeVersion: legalConfig.privacyNoticeVersion,
+      rebookedFromBookingId: (document.getElementById('ocb-rebooked-from').value || '').trim() || null,
     };
 
     btn.disabled = true;
@@ -4274,6 +4334,13 @@ window.intelQuick = intelQuick;
         body: JSON.stringify(payload),
       });
       var d = await r.json().catch(function(){ return {}; });
+      if (d.code === 'REBOOK_ALREADY_CREATED' && d.existingBookingId) {
+        closeOwnerCreateBookingModal();
+        await loadBookings();
+        selectBooking(d.existingBookingId);
+        toast('Existing replacement booking opened: ' + (d.existingRef || 'saved'), 'success');
+        return;
+      }
       if (!r.ok || d.error) throw new Error(d.error || 'Create booking failed');
 
       closeOwnerCreateBookingModal();
@@ -4618,6 +4685,16 @@ window.intelQuick = intelQuick;
       }
     }
     if (b.status === 'cancelled' || b.status === 'declined') {
+      if (b.status === 'cancelled') {
+        var existingReplacement = allBookings.find(function(item) {
+          return item.rebooked_from_booking_id === b.id;
+        });
+        if (existingReplacement) {
+          btns.push('<button class="btn btn-teal" data-action="open-rebooking" data-id="' + existingReplacement.id + '">Open Rebooking</button>');
+        } else {
+          btns.push('<button class="btn btn-teal" data-action="rebook" data-id="' + b.id + '">Review &amp; Rebook</button>');
+        }
+      }
       if (b.status === 'cancelled'
           && b.assembler_id
           && Number(b.cancellation_easer_due_cents || 0) > 0
@@ -4706,6 +4783,26 @@ window.intelQuick = intelQuick;
       await window.dispatchWithConfirm(id);
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
+    } else if (action === 'rebook') {
+      var rebookSource = allBookings.find(function(x){ return x.id == id; });
+      if (!rebookSource || rebookSource.status !== 'cancelled') {
+        toast('Only a cancelled booking can be rebooked.', 'error');
+        return;
+      }
+      if (rebookSource.financial_operation_key
+          || rebookSource.financial_reconciliation_required_at
+          || rebookSource.cancellation_reconciliation_required_at) {
+        toast('Finish the cancelled booking financial reconciliation before rebooking.', 'error');
+        return;
+      }
+      openOwnerCreateBookingModal(rebookSource);
+    } else if (action === 'open-rebooking') {
+      var existingRebooking = allBookings.find(function(x){ return x.id == id; });
+      if (!existingRebooking) {
+        toast('The replacement booking is not available. Refresh and try again.', 'error');
+        return;
+      }
+      selectBooking(existingRebooking.id);
     } else if (action === 'edit') {
       var bEdit = allBookings.find(function(x){ return x.id == id; });
       if (!bEdit) return;
