@@ -16,6 +16,18 @@ const STAGE_LABELS = Object.freeze({
   completed: 'Complete Job',
 });
 
+function friendlyWindow(mins) {
+  if (mins % 60 === 0) { const h = mins / 60; return `${h} hour${h > 1 ? 's' : ''}`; }
+  return `${mins} minutes`;
+}
+
+function friendlyDate(dateStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr || ''));
+  if (!m) return String(dateStr || '');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}`;
+}
+
 export function evaluateEaserAppointmentGate({ date, time, stage, nowMs = Date.now() } = {}) {
   const earlyMinutes = EASER_STAGE_EARLY_WINDOW_MINUTES[stage];
   if (!Number.isFinite(earlyMinutes)) {
@@ -36,7 +48,7 @@ export function evaluateEaserAppointmentGate({ date, time, stage, nowMs = Date.n
     return {
       allowed: false,
       code: 'APPOINTMENT_STAGE_TOO_EARLY',
-      error: `${STAGE_LABELS[stage]} is not available yet for this Austin appointment.`,
+      error: `You can mark "${STAGE_LABELS[stage]}" starting ${friendlyWindow(earlyMinutes)} before the appointment — ${friendlyDate(date)}${time ? ' at ' + time : ''}. Check back then.`,
       appointmentAt: new Date(appointmentMs).toISOString(),
       earliestAt: new Date(earliestMs).toISOString(),
       earlyWindowMinutes: earlyMinutes,
