@@ -1,5 +1,5 @@
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 import { appointmentTimestampMs } from '../booking/_appt-date.js';
 import { logCron } from './_cron-logger.js';
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       <table width="100%"><tr><td style="padding:4px 0;color:#71717a;width:90px">Customer</td><td style="padding:4px 0">${esc(b.customer_name || '')}${customerPhone ? ' &bull; <a href="tel:' + esc(b.customer_phone) + '" style="color:#00BFFF">' + esc(customerPhone) + '</a>' : ''}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">Easer</td><td style="padding:4px 0">${easer}${easerPhone ? ' &bull; <a href="tel:' + esc(easerPhoneRaw) + '" style="color:#00BFFF">' + esc(easerPhone) + '</a>' : ''}</td></tr>
         <tr><td style="padding:4px 0;color:#71717a">When</td><td style="padding:4px 0">${esc(b.date)} at ${esc(b.time)}</td></tr>
-        <tr><td style="padding:4px 0;color:#71717a">Address</td><td style="padding:4px 0">${esc(b.address || '')}</td></tr>
+        <tr><td style="padding:4px 0;color:#71717a">Address</td><td style="padding:4px 0">${esc(formatAddress(b.address || ''))}</td></tr>
       </table>
     </td></tr></table>
     <p style="margin:0 0 4px;font-size:13px;color:#52525b;line-height:1.7"><strong>What to do:</strong> Call the Easer first. If they can't make it, reassign the job from your dashboard.</p>

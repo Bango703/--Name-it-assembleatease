@@ -1,6 +1,7 @@
 ﻿import { createClient } from '@supabase/supabase-js';
 import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
+import { guestManageUrl } from '../_payment-security.js';
 import { sendPushToUser } from '../_push.js';
 import { logActivity } from './_activity.js';
 import { adjustActiveJobs } from './_active-jobs.js';
@@ -499,9 +500,9 @@ async function sendNotifications(sb, booking, easer, assemblerId) {
         statusColor: '#065f46',
         statusBg: '#d1fae5',
         headline: 'Your Easer is confirmed.',
-        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc((booking.customer_name || '').split(' ')[0])}, good news — <strong>${esc(easerFirstName)}</strong> will be handling ${esc(appointmentDescription)} on <strong>${esc(appointmentDate)}</strong> at <strong>${esc(appointmentTime || 'the scheduled time')}</strong>. We'll send another note when they're on the way.</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="https://www.assembleatease.com/track?ref=${encodeURIComponent(booking.ref)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>
-        <p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Questions before then? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>`,
+        bodyHtml: `<p style="margin:0;font-size:15px;color:#52525b;line-height:1.7">Hi ${esc((booking.customer_name || '').split(' ')[0])}, good news — <strong>${esc(easerFirstName)}</strong> will be handling ${esc(appointmentDescription)} on <strong>${esc(appointmentDate)}</strong> at <strong>${esc(appointmentTime || 'the scheduled time')}</strong>. We'll let you know as soon as they're on the way.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${esc(guestManageUrl(booking))}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">View or manage your booking</a></td></tr></table>
+        <p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reschedule or cancel? You can do it yourself anytime from the button above. Questions? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a>.</p>`,
       }),
       replyTo: ownerEmail(),
       meta: { bookingId, notificationType: 'job_accepted', recipientType: 'customer' },

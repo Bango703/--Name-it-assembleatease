@@ -2,7 +2,7 @@
 import { getSupabase } from './_supabase.js';
 import { upsertContact, createDeal } from './_hubspot.js';
 import { rateLimit } from './_ratelimit.js';
-import { sendEmail, ownerEmail, esc } from './_email.js';
+import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { calculateBookingPricing, TX_TAX_RATE } from './_pricing.js';
 import { getMinimumPretaxBookingCents, isActiveInstantBookingZip, isAutomaticDispatchZip, sameDayFeeForAppointment, SAME_DAY_EASER_BONUS_CENTS, SAME_DAY_MIN_LEAD_MINUTES } from './_source-of-truth.js';
@@ -648,7 +648,7 @@ export default async function handler(req, res) {
   const sName = esc(name);
   const sPhone = esc(formatUsPhone(phone));
   const sEmail = esc(email);
-  const sAddress = esc(address);
+  const sAddress = esc(formatAddress(address));
   const sDate = esc(date);
   const sTime = esc(time);
   const sDetails = esc(details);
@@ -743,7 +743,7 @@ export default async function handler(req, res) {
       ` : `
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Email confirmation</strong> — We'll follow up to confirm date, time, and scope.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your technician arrives</strong> — On the scheduled date, a reviewed local pro arrives with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${scheduledAuthorization ? 'Payment method saved' : (clientSecret ? 'Secure checkout' : 'Payment reviewed after confirmation')}</strong> &mdash; ${scheduledAuthorization ? 'We will verify your card five days before the appointment. If your bank needs anything else, we will send a secure link.' : (clientSecret ? 'Your payment method is verified securely by Stripe. Payment is processed after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.')}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">${scheduledAuthorization ? 'Card saved for later' : (clientSecret ? 'Card safely on file' : 'Payment reviewed after confirmation')}</strong> &mdash; ${scheduledAuthorization ? 'We will set up your card five days before the appointment. If your bank needs anything else, we will send a secure link.' : (clientSecret ? 'Your card is safely on file — you are only charged after the job is complete.' : 'If payment is needed, we will send secure payment steps before the work is scheduled.')}</td></tr>
       `}
     </table>
 

@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { updateDealStage } from '../_hubspot.js';
 import { dispatchBooking } from './_dispatch-internal.js';
 import { logActivity } from './_activity.js';
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
           <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service)}</td></tr>
           <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.date)}</td></tr>
           <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.time)}</td></tr>
-          <tr><td style="padding:10px 0;color:#71717a">Address</td><td style="padding:10px 0">${esc(booking.address)}</td></tr>
+          <tr><td style="padding:10px 0;color:#71717a">Address</td><td style="padding:10px 0">${esc(formatAddress(booking.address))}</td></tr>
         </table>
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
           <strong style="color:#1a1a1a">Cancellation policy:</strong> We ask for at least 24 hours' notice to cancel or reschedule.

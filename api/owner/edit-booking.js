@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc } from '../_email.js';
+import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
             <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:20px">
               <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:140px">Service</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(booking.service)}</td></tr>
               <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(booking.date || 'TBD')}</td></tr>
-              <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">${esc(booking.address || 'TBD')}</td></tr>
+              <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">${esc(booking.address ? formatAddress(booking.address) : 'TBD')}</td></tr>
               <tr><td style="padding:10px 0;color:#71717a">Quote Total</td><td style="padding:10px 0;font-weight:800;font-size:18px;color:#065f46">$${esc(quoteDollars)}</td></tr>
             </table>
             ${quoteNote ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:16px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">${esc(quoteNote)}</td></tr></table>` : ''}
@@ -216,7 +216,7 @@ export default async function handler(req, res) {
         const changed = [];
         if (date && date !== booking.date) changed.push('Date updated to <strong>' + esc(date) + '</strong>');
         if (time && time !== booking.time) changed.push('Time updated to <strong>' + esc(time) + '</strong>');
-        if (address && address !== booking.address) changed.push('Address updated to <strong>' + esc(address) + '</strong>');
+        if (address && address !== booking.address) changed.push('Address updated to <strong>' + esc(formatAddress(address)) + '</strong>');
         if (service && service !== booking.service) changed.push('Service updated to <strong>' + esc(service) + '</strong>');
         if (typeof totalPrice === 'number' && totalPrice !== booking.total_price) {
           changed.push('Price updated to <strong>$' + (totalPrice / 100).toFixed(2) + '</strong>');

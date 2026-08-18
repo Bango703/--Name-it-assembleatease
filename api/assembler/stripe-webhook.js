@@ -1,6 +1,7 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, ownerEmail, esc } from '../_email.js';
+import { sendEmail, ownerEmail, esc, formatAddress } from '../_email.js';
+import { guestManageUrl } from '../_payment-security.js';
 import { logActivity } from '../booking/_activity.js';
 import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
@@ -386,7 +387,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = pi.id;
 
         const { data: existing, error: existingError } = await sb.from('bookings')
-          .select('id, ref, payment_status, status, payment_authorized_at, confirmed_at, dispatch_status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type')
+          .select('id, ref, payment_status, status, payment_authorized_at, confirmed_at, dispatch_status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, guest_mutation_token_hash')
           .eq('id', bookingId)
           .maybeSingle();
 
@@ -2582,7 +2583,8 @@ function buildPaymentFailEmail(firstName, reason) {
 
 function buildBookingConfirmEmail(booking, totalDisplay) {
   const firstName = esc((booking.customer_name || '').split(' ')[0]);
-  const paymentNote = `Your payment method has been verified securely for <strong>${totalDisplay}</strong>. Payment is processed after the job is complete.`;
+  const paymentNote = `You're all set — nothing is charged today. We'll charge the <strong>${totalDisplay}</strong> total only after your Easer completes the job to your satisfaction.`;
+  const manageUrl = guestManageUrl(booking);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#1a1a1a">
 <div style="max-width:600px;margin:0 auto;padding:24px 16px">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #e4e4e7"><tr><td style="padding:32px 24px">
@@ -2594,13 +2596,16 @@ function buildBookingConfirmEmail(booking, totalDisplay) {
         <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Service</td><td style="font-weight:600;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.service)}</td></tr>
         <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Date</td><td style="font-weight:700;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.date)}</td></tr>
         <tr><td style="color:#71717a;padding:6px 0;border-bottom:1px solid #f0f0f0">Time</td><td style="font-weight:700;padding:6px 0;border-bottom:1px solid #f0f0f0">${esc(booking.time)}</td></tr>
-        <tr><td style="color:#71717a;padding:6px 0">Address</td><td style="padding:6px 0">${esc(booking.address)}</td></tr>
+        <tr><td style="color:#71717a;padding:6px 0">Address</td><td style="padding:6px 0">${esc(formatAddress(booking.address))}</td></tr>
       </table>
     </td></tr></table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
-      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your appointment for a full release. Inside 24 hours, a late-cancel fee may apply because a pro has already reserved the time.
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr><td style="text-align:center">
+      <a href="${esc(manageUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:700;padding:12px 32px;border-radius:6px;text-decoration:none">Manage your booking</a>
     </td></tr></table>
-    <p style="margin:0;font-size:13px;color:#71717a">Questions? Reply to this email or contact <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
+      <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Manage your booking</strong> above — no need to email us. Rescheduling is free. Cancel at least 24 hours ahead for a full release; inside 24 hours a small late-cancel fee may apply since a pro has reserved the time.
+    </td></tr></table>
+    <p style="margin:0;font-size:13px;color:#71717a">Questions? Contact us at <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a>.</p>
   </td></tr></table>
 </div></body></html>`;
 }

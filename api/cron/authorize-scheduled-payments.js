@@ -332,7 +332,7 @@ async function sendAuthorizationSuccess(booking) {
     subject: `Your appointment is ready — ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
     meta: { bookingId: booking.id, notificationType: 'scheduled_payment_authorized', recipientType: 'customer' },
-    html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your card has been verified for your ${esc(booking.service)} appointment on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time)}</strong>.</p><p>No payment has been collected. Payment is processed after completed work.</p>`,
+    html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your card is safely on file for your ${esc(booking.service)} appointment on <strong>${esc(booking.date)}</strong> at <strong>${esc(booking.time)}</strong>.</p><p>Nothing has been charged — you're only charged after the work is complete.</p>`,
   });
 }
 

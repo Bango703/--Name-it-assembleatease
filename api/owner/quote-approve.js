@@ -427,7 +427,7 @@ async function finalizeQuote({ req, res, sb, booking, pi, tokenHash }) {
       to: booking.customer_email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: `Quote approved and booking confirmed — ${booking.ref}`,
-      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>Your card is authorized, not charged. Payment is captured only after completed work, except for disclosed cancellation fees.</p>`,
+      html: `<p>Your quote for <strong>${esc(booking.service)}</strong> was approved for <strong>${amountDisplay}</strong>.</p><p>Your card is safely on file — nothing is charged now. You're only charged after completed work, except for any disclosed cancellation fee.</p>`,
       replyTo: ownerEmail(),
       meta: { bookingId: booking.id, notificationType: 'quote_approved', recipientType: 'customer' },
     }),

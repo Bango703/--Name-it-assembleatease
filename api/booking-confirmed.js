@@ -1,6 +1,6 @@
 ﻿import Stripe from 'stripe';
 import { getSupabase } from './_supabase.js';
-import { sendEmail, ownerEmail, esc } from './_email.js';
+import { sendEmail, ownerEmail, esc, formatAddress } from './_email.js';
 import { guardCustomerFacing } from './_customer-error-alert.js';
 import { rateLimit } from './_ratelimit.js';
 import { dispatchBooking } from './booking/_dispatch-internal.js';
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
 
   const sName    = esc(name);
   const sService = esc(service);
-  const sAddress = esc(address);
+  const sAddress = esc(formatAddress(address));
   const sDate    = esc(date);
   const sTime    = esc(time);
   const sDetails = esc(details);
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
   const guestTrackUrl = `${SITE}/track?ref=${encodeURIComponent(ref)}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(guestMutationToken)}`;
 
   const paymentLine = amount > 0
-    ? `Your payment method has been verified securely for $${(amount / 100).toFixed(2)}. Payment is processed after the job is complete.`
+    ? `Nothing is charged today — we'll charge the $${(amount / 100).toFixed(2)} total only after your Easer completes the job to your satisfaction.`
     : `No payment has been collected for this request.`;
   const assignmentLine = booking.needs_manual_dispatch
     ? `Our team is reviewing local Easer availability for your requested appointment. We&rsquo;ll email you as soon as an Easer accepts the job; the appointment is not assigned until then.`
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
   </td></tr></table>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e4e4e7;border-right:1px solid #e4e4e7"><tr><td style="padding:32px 24px 24px">
     <p style="margin:0 0 6px;font-size:24px;font-weight:700;color:#1a1a1a">Request received, ${sName}!</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">Your payment method has been verified securely and the full total is on record. We process payment after the job is complete. ${assignmentLine}</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.7">You're all set — nothing is charged today. We'll charge the full total only after your Easer completes the job to your satisfaction. ${assignmentLine}</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:24px"><tr><td style="padding:18px 20px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px">Booking Reference</td><td style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#71717a;padding-bottom:6px;text-align:right">Status</td></tr>
@@ -219,10 +219,10 @@ export default async function handler(req, res) {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
       <tr><td style="width:28px;vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">1</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">We match you with an Easer</strong> — We review availability for your address. You'll get a confirmation email when an eligible Easer accepts the job.</td></tr>
       <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">2</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Your Easer arrives</strong> — Once assigned, a reviewed Easer arrives on the confirmed date with the tools needed for the job.</td></tr>
-      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card authorized — charged after completion</strong> — ${paymentLine}</td></tr>
+      <tr><td style="vertical-align:top;padding:6px 0"><div style="width:22px;height:22px;background:#00BFFF;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#fff">3</div></td><td style="padding:6px 0 6px 10px;font-size:14px;color:#52525b;line-height:1.6"><strong style="color:#1a1a1a">Card safely on file — charged after completion</strong> — ${paymentLine}</td></tr>
     </table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:1px solid #fde68a;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#92400e;line-height:1.6">
-      <strong>Need to change plans?</strong> Reply to this email. Cancel at least 24 hours before your requested appointment at no charge. Inside 24 hours, a late-cancel fee may apply under the cancellation policy.
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px;font-size:13px;color:#52525b;line-height:1.6">
+      <strong style="color:#1a1a1a">Need to reschedule or cancel?</strong> Do it yourself anytime from <strong>Track or manage your booking</strong> below — no need to email us. Rescheduling is free. Cancel at least 24 hours ahead at no charge; inside 24 hours a small late-cancel fee may apply under the cancellation policy.
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="text-align:center;padding:8px 0">
       <a href="${esc(guestTrackUrl)}" style="display:inline-block;background:#00BFFF;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">Track or manage your booking</a>
@@ -274,7 +274,7 @@ export default async function handler(req, res) {
     </td></tr></table>
     <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a;width:110px">Customer</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(name)}</td></tr>
-      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(address)}</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Address</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">${esc(formatAddress(address))}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Date</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(date)}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Time</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:700">${esc(time)}</td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#71717a">Payment</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${paymentStatus}</span></td></tr>

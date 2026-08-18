@@ -1,6 +1,6 @@
 ﻿import { getSupabase } from '../_supabase.js';
 import { requireAssignedWorkEaser, respondWithEaserAccessError } from '../_easer-access.js';
-import { sendEmail, ownerEmail, esc, buildStatusEmail } from '../_email.js';
+import { sendEmail, ownerEmail, esc, buildStatusEmail, formatAddress } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { evaluateEaserAppointmentGate } from './_appointment-gates.js';
 import {
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
     to: ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `${label} — ${esc(booking.ref)} · ${esc(booking.service)}`,
-    html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem"><p style="font-size:1.1rem;font-weight:700;color:#00BFFF">${label}</p><p><strong>${esc(booking.assembler_name||'Easer')}</strong> — ${esc(booking.service)}<br>Customer: ${esc(booking.customer_name)}<br>Address: ${esc(booking.address)}</p><p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View Dashboard</a></p></div>`,
+    html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:1.5rem"><p style="font-size:1.1rem;font-weight:700;color:#00BFFF">${label}</p><p><strong>${esc(booking.assembler_name||'Easer')}</strong> — ${esc(booking.service)}<br>Customer: ${esc(booking.customer_name)}<br>Address: ${esc(formatAddress(booking.address))}</p><p><a href="https://www.assembleatease.com/owner/" style="color:#00BFFF">View Dashboard</a></p></div>`,
     meta: { bookingId, notificationType: stage, recipientType: 'owner' },
   }).catch(err => ({ ok: false, error: err?.message || String(err) }));
 

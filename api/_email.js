@@ -36,6 +36,22 @@ export function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Normalize a free-typed street address into a clean, consistent, professional
+// format for every customer/Easer/owner surface. Collapses stray whitespace,
+// fixes comma spacing, drops trailing commas, and uppercases (mailing-label
+// style) so "3301 e pecan st,  austin, tx" reads "3301 E PECAN ST, AUSTIN, TX".
+// Not a validator — purely presentational. Escape the result with esc() before
+// embedding in HTML.
+export function formatAddress(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .split(',')
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join(', ')
+    .toUpperCase();
+}
+
 function inferNotificationType(subject, explicitType) {
   if (explicitType) return String(explicitType).toLowerCase();
   const s = String(subject || '').toLowerCase();

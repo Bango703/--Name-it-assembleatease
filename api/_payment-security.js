@@ -38,6 +38,25 @@ export function guestMutationTokenHash(booking) {
   }));
 }
 
+// Build the customer's self-serve "manage booking" link for Track My Booking.
+// When the deterministic token still matches the stored hash (i.e. it has NOT
+// been rotated by a reschedule/recovery), embed it so the customer can reschedule
+// or cancel in ONE click — no email round-trip. If it was rotated, fall back to a
+// tokenless track link (status view + "request a secure link"), never a stale one.
+// Requires booking { id, ref, customer_email, guest_mutation_token_hash }.
+export function guestManageUrl(booking, site = 'https://www.assembleatease.com') {
+  const ref = String(booking?.ref || '');
+  const email = String(booking?.customer_email || '');
+  const base = `${site}/track?ref=${encodeURIComponent(ref)}`;
+  try {
+    const token = deriveGuestMutationToken({ bookingId: booking.id, ref, email });
+    if (booking.guest_mutation_token_hash && sha256(token) === booking.guest_mutation_token_hash) {
+      return `${base}&email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`;
+    }
+  } catch (_) { /* fall through to tokenless link */ }
+  return email ? `${base}&email=${encodeURIComponent(email)}` : base;
+}
+
 export function safeTokenHashMatch(token, expectedHash) {
   if (!token || !expectedHash) return false;
   const actual = Buffer.from(sha256(token), 'hex');
