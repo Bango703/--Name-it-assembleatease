@@ -95,4 +95,40 @@ The number that matters is **completed jobs from a partner**, not cards printed.
 
 ---
 
-*Counter-card (print-ready, with the scannable QR) is generated as a separate artifact. Reprint/adjust the QR target with `scripts`-side segno if the link changes.*
+## 7. Starter target list — Austin (start here this week)
+
+Researched, real, local. **Do not blast.** Send 1:1 and personalized from your real address, or walk in. Find the specific contact on the company site or LinkedIn; if unsure, call and ask *"who handles resident/customer partnerships?"* Aim for **10 contacts a week**.
+
+**Movers — the easiest yes** (they carry boxes but don't assemble; you're the hand-off, not a competitor). Use **Template C**.
+- Einstein Moving Company — large, very well-known Austin local
+- The Moving Kings ATX
+- ATX Movers
+- Busy Bee Moving & Storage
+- Harder's Movers
+- Austin Pro Moving (family-owned, 20+ yrs)
+- Infinity Moving
+→ Reach the owner or dispatcher; offer reciprocal referrals (you'll send moving leads their way too).
+
+**Apartment communities / property managers** — recurring move-in volume, one relationship = many residents. Use **Template A**; for leasing offices, walking in with cards beats email.
+- Big multifamily: drive your service-area ZIPs and note every leasing office — each large complex has one and turns over leases constantly. Also pull communities from apartments.com for your ZIPs.
+- Management firms: Rollingwood Management, PMI Austin, Keyrenter Austin, Eanes Properties, HomeRiver Group, Stream Realty (more commercial).
+→ Best contact: Community Manager / Resident Experience / Leasing Manager.
+
+**Realtors** — the "closing gift" angle. Use **Template B**.
+- Warmest path first: any agent you or a friend already know.
+- Then high-volume buyer's agents/teams (find via Zillow / Realtor.com "top Austin agents"). Target buyer's agents — their clients are the ones moving into empty homes.
+
+**Find 20 real prospects in 30 minutes:** Google Maps → search *"apartments"*, *"moving company"*, *"real estate agent"* in each of your service ZIPs → grab name, phone, website → movers/realtors get a 1:1 email or DM; apartments get a walk-in or leasing-office call → log every one in the tracker below.
+
+## 8. Simple tracker (keep in a sheet)
+
+| Partner | Type | Contact / role | Reached (how + date) | Response | Cards left? | Bookings |
+|---|---|---|---|---|---|---|
+| Einstein Moving | Mover | | | | | |
+| _(add as you go)_ | | | | | | |
+
+The only column that ultimately matters is **Bookings**. Ten quality contacts a week, followed up once after 4–5 days, is the whole game.
+
+---
+
+*Counter-card (print-ready, with the scannable QR to `/book?bundle=move-in-ready&utm_source=partner`) is referenced above but **not yet generated** — ask Claude to build it before your first leasing-office walk-in.*
