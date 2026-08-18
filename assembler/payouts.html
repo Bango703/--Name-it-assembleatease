@@ -178,6 +178,7 @@
   <div class="e-earn-hero-card" id="summary-bar">
     <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.65)">Total Earned</div>
     <div class="e-earn-total" id="earn-total-val" style="min-height:2.75rem"></div>
+    <div id="earn-total-definition" style="font-size:0.72rem;line-height:1.45;color:rgba(255,255,255,0.7);margin-top:0.15rem">Includes all recorded earnings, whether paid, awaiting payout, or on hold.</div>
     <div class="e-earn-split" id="earn-split">
       <div class="e-earn-split-item"><strong>—</strong><span>Jobs</span></div>
       <div class="e-earn-split-item"><strong>—</strong><span>Paid Out</span></div>
@@ -337,7 +338,7 @@
       return '<div class="earn-tx-row">' +
         '<div class="earn-tx-icon ' + (isPaid ? 'paid' : (needsReview ? 'review' : (isTransferred ? 'processing' : 'pending'))) + '">' + (isPaid ? checkIcon : clockIcon) + '</div>' +
         '<div class="earn-tx-info">' +
-          '<div class="earn-tx-name">' + (isCancellation ? 'Cancellation trip earnings — ' : '') + esc(b.service || 'Service') + '</div>' +
+          '<div class="earn-tx-name">' + (isCancellation ? 'Cancellation trip earnings — ' : '') + esc(APP.formatServiceLabel(b.service)) + '</div>' +
           '<div class="earn-tx-date">' + dateLabel + '</div>' +
           ((isZero && !isPaid) ? '<div style="font-size:0.68rem;color:#d97706;margin-top:2px;line-height:1.4">Amount unavailable. Check back soon.</div>' : '') +
         '</div>' +

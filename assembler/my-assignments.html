@@ -306,8 +306,8 @@
 </div>
 
 <!-- Assignment Detail Modal -->
-<div class="modal-overlay" id="asgn-modal">
-  <div class="modal-box">
+<div class="modal-overlay" id="asgn-modal" role="dialog" aria-modal="true" aria-labelledby="asgn-detail-title" aria-hidden="true">
+  <div class="modal-box" tabindex="-1">
     <!-- drag handle -->
     <div style="width:40px;height:4px;border-radius:999px;background:var(--pro-border-md);margin:0 auto 1.25rem"></div>
     <button class="modal-close" id="asgn-modal-close" aria-label="Close">
@@ -413,6 +413,104 @@
   var _supportContext = null;
   var _selectedSupportType = '';
   var _supportRequestInFlight = false;
+  var _detailReturnFocus = null;
+
+  function setAssignmentSheetOpen(sheetId, open, focusId) {
+    var sheet = document.getElementById(sheetId);
+    if (!sheet) return;
+    if (open) {
+      var active = document.activeElement;
+      sheet._returnFocus = active instanceof HTMLElement && active.getAttribute('type') !== 'file' ? active : null;
+    }
+    sheet.classList.toggle('open', !!open);
+    sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open && focusId) {
+      requestAnimationFrame(function() {
+        var target = document.getElementById(focusId);
+        if (target) target.focus();
+      });
+    } else if (sheet._returnFocus && document.contains(sheet._returnFocus)) {
+      sheet._returnFocus.focus();
+      sheet._returnFocus = null;
+    } else if (!open) {
+      var fallback = document.getElementById('asgn-modal-close');
+      if (fallback) fallback.focus();
+    }
+  }
+
+  function openAssignmentModal() {
+    var modal = document.getElementById('asgn-modal');
+    if (!modal) return;
+    _detailReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(function() {
+      var closeButton = document.getElementById('asgn-modal-close');
+      if (closeButton) closeButton.focus();
+    });
+  }
+
+  function closeAssignmentModal(restoreFocus) {
+    var modal = document.getElementById('asgn-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    if (restoreFocus !== false && _detailReturnFocus && document.contains(_detailReturnFocus)) {
+      _detailReturnFocus.focus();
+    }
+    _detailReturnFocus = null;
+  }
+
+  function trapFocus(event, container) {
+    if (event.key !== 'Tab' || !container) return;
+    var focusable = Array.from(container.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(function(element) {
+      return element.offsetParent !== null;
+    });
+    if (!focusable.length) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  async function copyBookingReference(reference, button) {
+    if (!reference || !button) return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(reference);
+      } else {
+        var textArea = document.createElement('textarea');
+        textArea.value = reference;
+        textArea.setAttribute('readonly', '');
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        if (!document.execCommand('copy')) throw new Error('Copy unavailable');
+        textArea.remove();
+      }
+      button.textContent = 'Copied';
+      button.setAttribute('aria-label', 'Booking reference copied');
+      setTimeout(function() {
+        if (!document.contains(button)) return;
+        button.textContent = 'Copy';
+        button.setAttribute('aria-label', 'Copy booking reference ' + reference);
+      }, 1600);
+    } catch (error) {
+      button.textContent = 'Copy failed';
+      setTimeout(function() {
+        if (!document.contains(button)) return;
+        button.textContent = 'Copy';
+      }, 1800);
+    }
+  }
 
   // getToken must be module-scope so window.openDetail (outside DOMContentLoaded) can call it.
   // sessionToken is set to the initial session access_token once auth completes.
@@ -651,34 +749,14 @@
   }
 
   function displayServiceName(service) {
-    var raw = String(service || '').trim();
-    var key = raw.toLowerCase().replace(/\s+/g, '');
-    if (key === 'trampoline/disassembly/moving/reassembly') return 'Trampoline Move & Reassembly';
-    return raw || 'Service';
+    return APP.formatServiceLabel(service);
   }
 
   // APP.formatAddress intentionally uses all caps in some customer documents.
   // The job queue needs a calm, readable postal style without changing that
   // shared behavior elsewhere in the platform.
   function formatJobAddress(rawAddress) {
-    var suffixes = {
-      st: 'St', street: 'St', rd: 'Rd', road: 'Rd', ave: 'Ave', avenue: 'Ave',
-      blvd: 'Blvd', boulevard: 'Blvd', dr: 'Dr', drive: 'Dr', ln: 'Ln', lane: 'Ln',
-      ct: 'Ct', court: 'Ct', cir: 'Cir', circle: 'Cir', pkwy: 'Pkwy', parkway: 'Pkwy',
-      hwy: 'Hwy', highway: 'Hwy', way: 'Way', pl: 'Pl', place: 'Pl',
-      unit: 'Unit', apt: 'Apt', apartment: 'Apt', suite: 'Suite', ste: 'Ste'
-    };
-    var uppercase = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw', 'tx', 'us', 'usa']);
-    return String(rawAddress || '').split(',').map(function(part) {
-      return part.trim().split(/\s+/).map(function(word) {
-        var lower = word.toLowerCase();
-        if (!lower) return '';
-        if (/^#?\d/.test(word)) return word.toUpperCase();
-        if (uppercase.has(lower)) return lower.toUpperCase();
-        if (suffixes[lower]) return suffixes[lower];
-        return lower.charAt(0).toUpperCase() + lower.slice(1);
-      }).join(' ');
-    }).filter(Boolean).join(', ');
+    return APP.formatPostalAddress(rawAddress);
   }
 
   function queuePayoutCents(b, completed) {
@@ -730,7 +808,14 @@
   function renderAssignments(list) {
     const el = document.getElementById('assignments-list');
     if (!list || !list.length) {
-      el.innerHTML = '<div class="e-empty"><div class="e-empty-title">No jobs here</div><div class="e-empty-desc">Jobs will appear when assigned to you.</div></div>';
+      const emptyState = {
+        offers: ['No offers right now', 'New job offers will appear here.'],
+        scheduled: ['No scheduled jobs', 'Accepted jobs that have not started will appear here.'],
+        in_progress: ['No jobs in progress', 'Jobs appear here after you begin the arrival workflow.'],
+        completed: ['No completed jobs yet', 'Finished jobs and their payout status will appear here.'],
+        all: ['No jobs yet', 'Offers and accepted jobs will appear here.'],
+      }[currentFilter] || ['No jobs yet', 'Jobs will appear here when available.'];
+      el.innerHTML = '<div class="e-empty"><div class="e-empty-title">' + emptyState[0] + '</div><div class="e-empty-desc">' + emptyState[1] + '</div></div>';
       return;
     }
 
@@ -985,7 +1070,7 @@
 
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState !== 'visible') return;
-      document.getElementById('asgn-modal').classList.remove('open');
+      closeAssignmentModal(false);
       refreshAssignments(false);
     });
 
@@ -1019,13 +1104,32 @@
 
     // Modal close
     document.getElementById('asgn-modal-close').addEventListener('click', function() {
-      document.getElementById('asgn-modal').classList.remove('open');
+      closeAssignmentModal(true);
     });
     document.getElementById('asgn-modal').addEventListener('click', function(e) {
-      if (e.target === this) this.classList.remove('open');
+      if (e.target === this) closeAssignmentModal(true);
+    });
+    document.addEventListener('keydown', function(e) {
+      var openSheet = document.querySelector('.sheet-overlay.open');
+      if (e.key === 'Escape') {
+        if (openSheet) {
+          var cancelButton = openSheet.querySelector('.sheet-btn-cancel');
+          if (cancelButton) cancelButton.click();
+          return;
+        }
+        var modal = document.getElementById('asgn-modal');
+        if (modal && modal.classList.contains('open')) closeAssignmentModal(true);
+        return;
+      }
+      if (openSheet) {
+        trapFocus(e, openSheet);
+        return;
+      }
+      var modal = document.getElementById('asgn-modal');
+      if (modal && modal.classList.contains('open')) trapFocus(e, modal);
     });
 
-    // Mark Complete — opens bottom sheet instead of window.confirm()
+    // Mark Complete opens the accessible in-app confirmation sheet.
     // (_completionInFlight and photo state vars are declared at module scope above — openDetail needs them)
     function _resetPhotoState() {
       _photoFile = null;
@@ -1054,7 +1158,7 @@
     });
 
     document.getElementById('complete-sheet-cancel').addEventListener('click', function() {
-      document.getElementById('complete-sheet').classList.remove('open');
+      setAssignmentSheetOpen('complete-sheet', false);
       _pendingCompleteBookingId = null;
       _resetPhotoState();
     });
@@ -1083,7 +1187,7 @@
       // This fires after camera returns so the browser allows it.
       var sheet = document.getElementById('complete-sheet');
       if (_pendingCompleteBookingId && !sheet.classList.contains('open')) {
-        sheet.classList.add('open');
+        setAssignmentSheetOpen('complete-sheet', true);
       }
       var reader = new FileReader();
       reader.onload = function(ev) {
@@ -1095,7 +1199,12 @@
         if (previewArea) previewArea.style.display = 'block';
         if (pickBtn) pickBtn.style.display = 'none';
         var yesBtn = document.getElementById('complete-sheet-yes');
-        if (yesBtn) { yesBtn.disabled = false; yesBtn.style.opacity = ''; yesBtn.style.cursor = ''; }
+        if (yesBtn) {
+          yesBtn.disabled = false;
+          yesBtn.style.opacity = '';
+          yesBtn.style.cursor = '';
+          yesBtn.focus();
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -1329,7 +1438,7 @@
       }
 
       // ── Close sheet and call assembler-complete ───────────────────────────
-      document.getElementById('complete-sheet').classList.remove('open');
+      setAssignmentSheetOpen('complete-sheet', false);
       if (sheetYesBtn) { sheetYesBtn.disabled = false; sheetYesBtn.textContent = 'Yes, all work is done'; }
       if (sheetCancelBtn) sheetCancelBtn.disabled = false;
       _pendingCompleteBookingId = null;
@@ -1507,6 +1616,13 @@
           + '</div>'
           + '<textarea id="release-note" maxlength="1200" rows="2" placeholder="Tell us anything else we should know (optional)" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:1px solid var(--pro-border-md);border-radius:9px;padding:0.65rem;font:inherit;font-size:0.78rem;resize:vertical"></textarea>'
           + '<button type="button" id="release-submit" class="btn btn-teal" disabled style="width:100%;min-height:44px;margin-top:0.55rem;border-radius:10px">' + (canSelfDrop ? 'Drop this job' : 'Request release') + '</button>'
+          + (canSelfDrop ? '<div id="release-confirmation" role="group" aria-labelledby="release-confirmation-title" style="display:none;margin-top:0.65rem;padding:0.75rem;border:1px solid #fecaca;border-radius:10px;background:#fff7f7">'
+            + '<div id="release-confirmation-title" style="font-size:0.82rem;font-weight:700;color:#991b1b">Drop this job?</div>'
+            + '<div style="font-size:0.75rem;color:#7f1d1d;line-height:1.5;margin-top:0.2rem">You will be removed from the assignment and the job will be offered to another Easer.</div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.65rem">'
+            + '<button type="button" id="release-confirm-back" class="btn btn-outline" style="min-height:44px">Go back</button>'
+            + '<button type="button" id="release-confirm-submit" class="btn btn-danger" style="min-height:44px">Confirm drop</button>'
+            + '</div></div>' : '')
       );
       workflow.style.display = 'block';
       var selectedReason = '';
@@ -1525,8 +1641,10 @@
         if (!selectedReason || _supportRequestInFlight) return;
         var note = document.getElementById('release-note').value.trim();
         if (canSelfDrop) {
-          if (!confirm('Drop this job? You will be removed from the assignment and the job will be rematched.')) return;
-          await dropCurrentJob(this, selectedReason, note);
+          var confirmation = document.getElementById('release-confirmation');
+          this.style.display = 'none';
+          confirmation.style.display = 'block';
+          document.getElementById('release-confirm-submit').focus();
           return;
         }
         var message = '[Release request]\nReason: ' + selectedReason
@@ -1534,6 +1652,18 @@
           + '\nPlease help release me from this assignment.';
         await submitStructuredSupport(this, message, 'cannot_make', 'Release request sent. Your assignment remains active until support confirms a change.');
       });
+      if (canSelfDrop) {
+        document.getElementById('release-confirm-back').addEventListener('click', function() {
+          document.getElementById('release-confirmation').style.display = 'none';
+          var releaseButton = document.getElementById('release-submit');
+          releaseButton.style.display = '';
+          releaseButton.focus();
+        });
+        document.getElementById('release-confirm-submit').addEventListener('click', async function() {
+          var note = document.getElementById('release-note').value.trim();
+          await dropCurrentJob(this, selectedReason, note);
+        });
+      }
       return;
     }
 
@@ -1619,6 +1749,7 @@
   async function dropCurrentJob(button, reason, note) {
     if (_supportRequestInFlight || !_supportContext) return;
     _supportRequestInFlight = true;
+    var originalText = button.textContent;
     button.disabled = true;
     button.textContent = 'Dropping...';
     try {
@@ -1629,7 +1760,7 @@
       });
       var data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || 'Could not drop this job.');
-      document.getElementById('asgn-modal').classList.remove('open');
+      closeAssignmentModal(false);
       APP.showAlert('page-alert', data.message || 'Job dropped. You will not receive further updates for this assignment.', 'info');
       var assignmentsResponse = await fetchAssignments();
       if (assignmentsResponse.ok) {
@@ -1641,7 +1772,7 @@
     } catch (error) {
       showSupportStatus(error.message || 'Could not drop this job. Please try again.', 'error');
       button.disabled = false;
-      button.textContent = 'Drop this job';
+      button.textContent = originalText;
     } finally {
       _supportRequestInFlight = false;
     }
@@ -1666,9 +1797,6 @@
     const detailEarningTruth = isCompleted && earningsTruthLoaded
       ? earningsByBookingId.get(b.id)
       : null;
-    const completedPayoutLabel = detailEarningTruth && detailEarningTruth.payout
-      ? detailEarningTruth.payout.status_label
-      : 'Payout Status';
     const payEst = !isCompleted && b._pay_estimate_lo != null
       ? (b._pay_estimate_lo === b._pay_estimate_hi
         ? formatMoneyCents(b._pay_estimate_lo)
@@ -1679,9 +1807,9 @@
     // -> payout -> next job action.
     const mapsHref = b.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.address) : '';
     const pinSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
-    const payoutPill = isCompleted
-      ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.9rem;margin-bottom:1rem"><strong style="color:var(--pro-teal)">' + esc(completedPayoutLabel) + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">Payout status</span></div>'
-      : (payEst ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>' : '');
+    const payoutPill = !isCompleted && payEst
+      ? '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.18);border-radius:999px;padding:0.35rem 0.9rem;font-size:0.95rem;margin-bottom:0.75rem"><strong style="color:var(--pro-teal)">' + payEst + '</strong><span style="color:var(--pro-muted);font-size:0.72rem">' + (accepted ? 'Your payout' : 'Estimated payout') + '</span></div>'
+      : '';
     const customerContact = (accepted && !isCompleted && (b.customer_name || b.customer_phone))
       ? '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1rem;padding:0.7rem 0.85rem;border:1px solid var(--pro-border);border-radius:12px;background:#fff">'
         + '<div style="min-width:0">'
@@ -1699,7 +1827,7 @@
     document.getElementById('asgn-modal-body').innerHTML = [
       // Header row: service title + status badge
       '<div class="asgn-detail-header">',
-        '<div class="asgn-detail-title">' + esc(displayServiceName(b.service) || 'Job') + '</div>',
+        '<div class="asgn-detail-title" id="asgn-detail-title">' + esc(displayServiceName(b.service) || 'Job') + '</div>',
         '<span class="sb asgn-detail-status ' + stageMeta.cls + '">' + stageMeta.label + '</span>',
       '</div>',
 
@@ -1708,7 +1836,7 @@
         scheduleDate ? '<div style="display:flex;align-items:center;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span style="color:var(--pro-text)">' + (b.return_visit_required ? '<strong>Return visit:</strong> ' : '') + formatDate(scheduleDate) + (scheduleTime ? ' &nbsp;&bull;&nbsp; ' + esc(scheduleTime) : '') + '</span></div>' : '',
         !accepted && b._offer_location ? '<div style="display:flex;align-items:flex-start;gap:8px;color:var(--pro-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="color:var(--pro-text)">Service area: ' + esc(b._offer_location) + '</span></div>' : '',
         accepted && b.address && !isCompleted ? '<a href="' + mapsHref + '" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:8px;text-decoration:none">' + pinSvg + '<span><span style="color:var(--pro-text)">' + esc(formatJobAddress(b.address)) + '</span> <span style="color:var(--pro-teal);font-weight:700;white-space:nowrap">&middot; Directions &rarr;</span></span></a>' : '',
-        b.ref ? '<div style="font-size:0.72rem;color:var(--pro-muted)">Ref: ' + esc(b.ref) + '</div>' : '',
+        b.ref ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.35rem 0.55rem;font-size:0.72rem;color:var(--pro-muted)"><span>Booking reference: <strong style="color:var(--pro-soft);font-weight:600">' + esc(b.ref) + '</strong></span><button type="button" class="booking-ref-copy" data-booking-ref="' + esc(b.ref) + '" aria-label="Copy booking reference ' + esc(b.ref) + '" style="border:1px solid var(--pro-border-md);border-radius:7px;background:#fff;color:var(--pro-teal);min-height:36px;padding:0.3rem 0.65rem;font:inherit;font-weight:700;cursor:pointer">Copy</button></div>' : '',
       '</div>',
 
       // CUSTOMER — de-emphasized, phone-first (Call / Text)
@@ -1900,7 +2028,7 @@
             // Refresh assignments
             const freshResp = await fetchAssignments();
             if (freshResp.ok) { const fd = await freshResp.json(); allAssignments = fd.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
-            document.getElementById('asgn-modal').classList.remove('open');
+            closeAssignmentModal(false);
           } catch {
             btn2.textContent = s.label;
             setStageButtonReady(true);
@@ -1967,7 +2095,7 @@
             APP.showAlert('page-alert', msg, 'error');
             acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Job'; return;
           }
-          document.getElementById('asgn-modal').classList.remove('open');
+          closeAssignmentModal(false);
           APP.showAlert('page-alert', 'Job accepted! Check Active tab for details.', 'success');
           const resp = await fetchAssignments();
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
@@ -1987,15 +2115,15 @@
       const declineReasons = document.getElementById('decline-reason-list');
 
       declineBtn.addEventListener('click', function() {
-        declineSheet.classList.add('open');
+        setAssignmentSheetOpen('decline-sheet', true, 'decline-sheet-cancel');
       });
 
       declineCancel.addEventListener('click', function() {
-        declineSheet.classList.remove('open');
+        setAssignmentSheetOpen('decline-sheet', false);
       });
 
       async function doDecline(reasonCode) {
-        declineSheet.classList.remove('open');
+        setAssignmentSheetOpen('decline-sheet', false);
         declineBtn.disabled = true; declineBtn.textContent = 'Declining…';
         try {
           const r = await fetch('/api/booking/decline-dispatch', {
@@ -2009,7 +2137,7 @@
             declineBtn.disabled = false; declineBtn.textContent = 'Decline'; return;
           }
           // Close modal, refresh list
-          document.getElementById('asgn-modal').classList.remove('open');
+          closeAssignmentModal(false);
           APP.showAlert('page-alert', 'Offer declined.', 'info');
           const resp = await fetchAssignments();
           if (resp.ok) { const d2 = await resp.json(); allAssignments = d2.bookings || []; renderAssignments(filterList(allAssignments, currentFilter)); updateFilterCounts(allAssignments); }
@@ -2021,7 +2149,14 @@
       });
     }
 
-    document.getElementById('asgn-modal').classList.add('open');
+    var copyReferenceButton = document.querySelector('#asgn-modal-body .booking-ref-copy');
+    if (copyReferenceButton) {
+      copyReferenceButton.addEventListener('click', function() {
+        copyBookingReference(this.getAttribute('data-booking-ref'), this);
+      });
+    }
+
+    openAssignmentModal();
     // Keep exceptions subordinate to the normal job flow. Existing messages
     // remain available after the Easer deliberately opens Support.
     setSupportPanelOpen(false);
@@ -2050,9 +2185,9 @@
 </nav>
 
 <!-- Complete job confirmation sheet -->
-<div class="sheet-overlay" id="complete-sheet">
-  <div class="sheet-box">
-    <div class="sheet-title">Take a completion photo</div>
+<div class="sheet-overlay" id="complete-sheet" role="dialog" aria-modal="true" aria-labelledby="complete-sheet-title" aria-hidden="true">
+  <div class="sheet-box" tabindex="-1">
+    <div class="sheet-title" id="complete-sheet-title">Take a completion photo</div>
     <div class="sheet-body" id="complete-sheet-body">Take a clear photo of the finished work. This is required before the job can be marked complete.</div>
     <div id="photo-prompt-section" style="margin:0.75rem 0;border:1px dashed #e2e8f0;border-radius:10px;padding:0.875rem;background:#f8fafc">
       <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.5rem">Completion photo <span style="font-weight:400;color:#dc2626">(required to submit)</span></div>
@@ -2075,9 +2210,9 @@
 </div>
 
 <!-- Decline offer reason sheet -->
-<div class="sheet-overlay" id="decline-sheet">
-  <div class="sheet-box">
-    <div class="sheet-title">Why are you declining</div>
+<div class="sheet-overlay" id="decline-sheet" role="dialog" aria-modal="true" aria-labelledby="decline-sheet-title" aria-hidden="true">
+  <div class="sheet-box" tabindex="-1">
+    <div class="sheet-title" id="decline-sheet-title">Why are you declining?</div>
     <div class="sheet-body">This helps us improve future job matching. Optional.</div>
     <div class="sheet-actions" id="decline-reason-list">
       <button class="decline-reason-btn" data-reason="scheduling_conflict">Scheduling conflict</button>

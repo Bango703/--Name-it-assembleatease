@@ -125,7 +125,7 @@
     .eh-offer-decline:active{opacity:0.8}
 
     /* Upcoming cards */
-    .eh-upcoming-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.875rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .eh-upcoming-card{background:var(--e-surface);border:1px solid var(--e-border);border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.875rem;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent}
     .eh-upcoming-card:active{background:var(--e-elevated)}
     .eh-upcoming-when{font-size:0.72rem;font-weight:700;color:var(--e-teal);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
     .eh-upcoming-service{font-size:0.875rem;font-weight:500;color:var(--e-text)}
@@ -342,6 +342,7 @@
   var _homePhotoFile = null;
   var _homePhotoDataUrl = null;
   var _homePhotoUploaded = false;
+  var _pendingDeclineOffer = null;
   var dashboardLoadState = {
     mode: 'loading',
     lastSuccessAt: null,
@@ -355,6 +356,72 @@
   var dashboardRetryTimer = null;
   var dashboardPendingPromise = null;
   var _silentLoad = false; // true during background polling — suppress loading/error banners
+
+  function setHomeSheetOpen(sheetId, open, focusId) {
+    var sheet = document.getElementById(sheetId);
+    if (!sheet) return;
+    if (open) {
+      var active = document.activeElement;
+      sheet._returnFocus = active instanceof HTMLElement && active.getAttribute('type') !== 'file' ? active : null;
+    }
+    sheet.classList.toggle('open', !!open);
+    sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open && focusId) {
+      requestAnimationFrame(function() {
+        var target = document.getElementById(focusId);
+        if (target) target.focus();
+      });
+    } else if (sheet._returnFocus && document.contains(sheet._returnFocus)) {
+      sheet._returnFocus.focus();
+      sheet._returnFocus = null;
+    } else if (!open) {
+      var fallback = document.getElementById('eh-cta-btn') || document.getElementById('avail-toggle');
+      if (fallback) fallback.focus();
+    }
+  }
+
+  function trapHomeSheetFocus(event, sheet) {
+    if (event.key !== 'Tab' || !sheet) return;
+    var focusable = Array.from(sheet.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(function(element) { return element.offsetParent !== null; });
+    if (!focusable.length) return;
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function setHomeCompletionStatus(message, tone) {
+    var status = document.getElementById('home-complete-status');
+    if (!status) return;
+    status.textContent = message || '';
+    status.style.display = message ? 'block' : 'none';
+    status.style.color = tone === 'error' ? '#b91c1c' : 'var(--e-muted)';
+  }
+
+  function resetHomeCompletionUi() {
+    _homePhotoFile = null;
+    _homePhotoDataUrl = null;
+    _homePhotoUploaded = false;
+    var input = document.getElementById('home-photo-input');
+    var preview = document.getElementById('home-photo-preview');
+    var image = document.getElementById('home-photo-img');
+    var confirmButton = document.getElementById('home-complete-yes');
+    if (input) input.value = '';
+    if (preview) preview.style.display = 'none';
+    if (image) image.removeAttribute('src');
+    if (confirmButton) {
+      confirmButton.disabled = false;
+      confirmButton.textContent = 'Yes, job is complete';
+    }
+    setHomeCompletionStatus('');
+  }
 
   function clearDashboardRetryTimer() {
     if (dashboardRetryTimer) clearTimeout(dashboardRetryTimer);
@@ -496,14 +563,14 @@
         var upcomingTime = b.return_visit_required ? b.return_visit_time : b.time;
         var dateStr=fmtDate(upcomingDate);
         var when=(b.return_visit_required ? 'Return: ' : '') + dateStr + (upcomingTime ? ' · ' + upcomingTime : '');
-        return '<div class="eh-upcoming-card" onclick="window.location.href=\'/assembler/my-assignments\'">'
+        return '<a class="eh-upcoming-card" href="/assembler/my-assignments" aria-label="Open ' + esc(APP.formatServiceLabel(b.service)) + ' job details">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="eh-upcoming-when">'+esc(when)+'</div>'
-            +'<div class="eh-upcoming-service">'+esc(b.service||'Service')+'</div>'
-            +'<div class="eh-upcoming-addr">'+esc(b.address?APP.formatAddress(b.address):'Address TBD')+'</div>'
+            +'<div class="eh-upcoming-service">'+esc(APP.formatServiceLabel(b.service))+'</div>'
+            +'<div class="eh-upcoming-addr">'+esc(b.address?APP.formatPostalAddress(b.address):'Address TBD')+'</div>'
           +'</div>'
           +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--e-border-md)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
-        +'</div>';
+        +'</a>';
       }).join('');
     } else if(liveJobs.length===0&&pendingOffers.length===0){
       var ws=document.getElementById('waiting-state');
@@ -674,7 +741,7 @@
     }
     if (available) {
       // Going offline — ask for confirmation
-      document.getElementById('go-offline-sheet').classList.add('open');
+      setHomeSheetOpen('go-offline-sheet',true,'go-offline-confirm');
       return;
     }
     // Going online — immediate
@@ -926,7 +993,7 @@
     var effectiveTime = lj.return_visit_required ? lj.return_visit_time : lj.time;
     var dateStr      = effectiveDate ? new Date(effectiveDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     var timeStr      = effectiveTime || '—';
-    var addrStr      = lj.address ? APP.formatAddress(lj.address) : 'Address on file';
+    var addrStr      = lj.address ? APP.formatPostalAddress(lj.address) : 'Address on file';
     var customerName = lj.customer_name || lj.customer_email || '';
     var mapsUrl      = lj.address ? 'https://maps.google.com/q='+encodeURIComponent(lj.address) : '#';
     var callUrl      = lj.customer_phone ? 'tel:'+lj.customer_phone : '#';
@@ -957,7 +1024,7 @@
       +'</div>'
       +'<div class="eh-job-main">'
         +'<div class="eh-job-title-row">'
-          +'<div class="eh-job-title">'+esc(lj.service||'Active Job')+'</div>'
+          +'<div class="eh-job-title">'+esc(APP.formatServiceLabel(lj.service)||'Active Job')+'</div>'
           +'<span class="sb '+statusClass+'" style="flex-shrink:0;font-size:0.68rem">'+esc(statusLabel)+'</span>'
         +'</div>'
         +(customerName ? '<div class="eh-job-customer">for '+esc(customerName)+'</div>' : '')
@@ -1036,7 +1103,7 @@
       ctaBtn.addEventListener('click', function(e){
         if(!lj.id){ e.preventDefault(); return; }
         _pendingCompleteBookingId = lj.id;
-        _homePhotoFile = null; _homePhotoDataUrl = null; _homePhotoUploaded = false;
+        resetHomeCompletionUi();
         // Label default behavior opens home-photo-input natively — no .click() needed
       });
     }
@@ -1064,7 +1131,7 @@
             +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="1.75"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
           +'</div>'
           +'<div class="eh-offer-info">'
-            +'<div class="eh-offer-title">'+esc(b.service||'Service Job')+'</div>'
+            +'<div class="eh-offer-title">'+esc(APP.formatServiceLabel(b.service)||'Service Job')+'</div>'
             +(b.description ? '<div class="eh-offer-spec">'+esc(b.description.substring(0,50))+'</div>' : '')
             +(b._offer_location ? '<div class="eh-offer-detail"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Service area: '+esc(b._offer_location)+'</div>' : '')
             +(expiresAt ? '<div class="eh-offer-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-expires-at="'+esc(expiresAt)+'">—</span></div>' : '')
@@ -1135,8 +1202,12 @@
     }
   }
 
-  async function declineOfferInline(bid, token, btn){
-    if(!window.confirm('Decline this job? It will be offered to another Easer.')) return;
+  function declineOfferInline(bid, token, btn){
+    _pendingDeclineOffer={bid:bid,token:token,button:btn};
+    setHomeSheetOpen('home-decline-sheet',true,'home-decline-confirm');
+  }
+
+  async function performDeclineOfferInline(bid, token, btn){
     if(btn){btn.disabled=true;btn.textContent='Declining…';}
     var sib=btn?btn.parentNode.querySelector('[data-act="accept"]'):null;
     if(sib) sib.disabled=true;
@@ -1275,16 +1346,17 @@
 
     // Complete job sheet handlers
     document.getElementById('home-complete-cancel').addEventListener('click',function(){
-      document.getElementById('home-complete-sheet').classList.remove('open');
+      setHomeSheetOpen('home-complete-sheet',false);
       _pendingCompleteBookingId=null;
+      resetHomeCompletionUi();
     });
 
     // Go offline confirmation sheet handlers
     document.getElementById('go-offline-cancel').addEventListener('click',function(){
-      document.getElementById('go-offline-sheet').classList.remove('open');
+      setHomeSheetOpen('go-offline-sheet',false);
     });
     document.getElementById('go-offline-confirm').addEventListener('click',async function(){
-      document.getElementById('go-offline-sheet').classList.remove('open');
+      setHomeSheetOpen('go-offline-sheet',false);
       available = false;
       setAvailUI(false);
       try {
@@ -1295,10 +1367,37 @@
         setAvailUI(true);
       }
     });
+
+    document.getElementById('home-decline-cancel').addEventListener('click',function(){
+      setHomeSheetOpen('home-decline-sheet',false);
+      _pendingDeclineOffer=null;
+    });
+    document.getElementById('home-decline-confirm').addEventListener('click',async function(){
+      var pending=_pendingDeclineOffer;
+      if(!pending)return;
+      _pendingDeclineOffer=null;
+      setHomeSheetOpen('home-decline-sheet',false);
+      await performDeclineOfferInline(pending.bid,pending.token,pending.button);
+    });
+
+    document.addEventListener('keydown',function(event){
+      var openSheet=document.querySelector('.sheet-overlay.open');
+      if(!openSheet)return;
+      if(event.key==='Escape'){
+        var cancelButton=openSheet.querySelector('.sheet-btn-cancel');
+        if(cancelButton)cancelButton.click();
+        return;
+      }
+      trapHomeSheetFocus(event,openSheet);
+    });
     document.getElementById('home-photo-input').addEventListener('change', function(){
       var file = this.files && this.files[0];
       if(!file || !_pendingCompleteBookingId) return;
-      if(file.size > 5 * 1024 * 1024){ alert('Photo must be under 5 MB.'); this.value=''; return; }
+      if(file.size > 5 * 1024 * 1024){
+        APP.showAlert('page-alert','Photo must be under 5 MB. Please choose a smaller image.','error');
+        this.value='';
+        return;
+      }
       _homePhotoFile = file;
       _homePhotoUploaded = false;
       var reader = new FileReader();
@@ -1308,16 +1407,20 @@
         var preview = document.getElementById('home-photo-preview');
         if(img) img.src = _homePhotoDataUrl;
         if(preview) preview.style.display = '';
-        document.getElementById('home-complete-sheet').classList.add('open');
+        setHomeCompletionStatus('');
+        setHomeSheetOpen('home-complete-sheet',true,'home-complete-yes');
       };
       reader.readAsDataURL(file);
+      this.value='';
     });
 
     document.getElementById('home-complete-yes').addEventListener('click',async function(){
       var bookingId=_pendingCompleteBookingId;
       if(!bookingId) return;
-      document.getElementById('home-complete-sheet').classList.remove('open');
-      _pendingCompleteBookingId=null;
+      var confirmButton=document.getElementById('home-complete-yes');
+      confirmButton.disabled=true;
+      confirmButton.textContent='Uploading photo…';
+      setHomeCompletionStatus('');
       var btn=document.getElementById('eh-cta-btn');
       if(btn){btn.style.pointerEvents='none';btn.textContent='Uploading photo…';}
       // Upload photo first if we have one
@@ -1331,12 +1434,14 @@
           _homePhotoUploaded=true;
         }catch(upErr){
           if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-          alert((upErr&&upErr.message)||'Photo upload failed — please try again.');
-          _pendingCompleteBookingId=bookingId;
+          confirmButton.disabled=false;
+          confirmButton.textContent='Yes, job is complete';
+          setHomeCompletionStatus((upErr&&upErr.message)||'Photo upload failed. Please try again.','error');
           return;
         }
       }
       if(btn) btn.textContent='Completing…';
+      confirmButton.textContent='Completing…';
       try{
         var r=await fetch('/api/booking/assembler-complete',{
           method:'POST',
@@ -1346,13 +1451,18 @@
         var d=await r.json();
         if(!r.ok||d.error){
           if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-          alert(d.error||'Could not complete job. Please try again.');
+          confirmButton.disabled=false;
+          confirmButton.textContent='Yes, job is complete';
+          setHomeCompletionStatus(d.error||'Could not complete job. Please try again.','error');
           return;
         }
+        _pendingCompleteBookingId=null;
         window.location.reload();
       }catch(e){
         if(btn){btn.style.pointerEvents='';btn.textContent='Mark Job Complete';}
-        alert('Network error — please try again.');
+        confirmButton.disabled=false;
+        confirmButton.textContent='Yes, job is complete';
+        setHomeCompletionStatus('Connection problem. Check your connection and try again.','error');
       }
     });
 
@@ -1468,14 +1578,15 @@
 <input type="file" id="home-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" style="display:none">
 
 <!-- Complete job confirmation sheet -->
-<div class="sheet-overlay" id="home-complete-sheet">
-  <div class="sheet-box">
-    <div class="sheet-title">Confirm job complete</div>
+<div class="sheet-overlay" id="home-complete-sheet" role="dialog" aria-modal="true" aria-labelledby="home-complete-title" aria-hidden="true">
+  <div class="sheet-box" tabindex="-1">
+    <div class="sheet-title" id="home-complete-title">Confirm job complete</div>
     <div class="sheet-body">All work is done and the customer is satisfied.</div>
     <div id="home-photo-preview" style="margin:0.75rem 0;border-radius:10px;overflow:hidden;display:none">
       <img id="home-photo-img" style="width:100%;max-height:160px;object-fit:cover;display:block" alt="Completion photo">
       <label for="home-photo-input" style="display:block;text-align:center;padding:0.4rem;font-size:0.75rem;color:var(--e-muted);cursor:pointer;background:var(--e-surface)">Retake photo</label>
     </div>
+    <div id="home-complete-status" role="alert" aria-live="assertive" style="display:none;font-size:0.8rem;line-height:1.5;margin:0 0 0.75rem"></div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="home-complete-yes">Yes, job is complete</button>
       <button class="sheet-btn-cancel" id="home-complete-cancel">Cancel</button>
@@ -1484,13 +1595,25 @@
 </div>
 
 <!-- Go offline confirmation sheet -->
-<div class="sheet-overlay" id="go-offline-sheet">
-  <div class="sheet-box">
-    <div class="sheet-title">Go offline</div>
+<div class="sheet-overlay" id="go-offline-sheet" role="dialog" aria-modal="true" aria-labelledby="go-offline-title" aria-hidden="true">
+  <div class="sheet-box" tabindex="-1">
+    <div class="sheet-title" id="go-offline-title">Go offline</div>
     <div class="sheet-body">You won't receive new job offers while offline. You can go back online anytime.</div>
     <div class="sheet-actions">
       <button class="sheet-btn-primary" id="go-offline-confirm">Yes, go offline</button>
       <button class="sheet-btn-cancel" id="go-offline-cancel">Stay online</button>
+    </div>
+  </div>
+</div>
+
+<!-- Decline offer confirmation sheet -->
+<div class="sheet-overlay" id="home-decline-sheet" role="dialog" aria-modal="true" aria-labelledby="home-decline-title" aria-hidden="true">
+  <div class="sheet-box" tabindex="-1">
+    <div class="sheet-title" id="home-decline-title">Decline this offer?</div>
+    <div class="sheet-body">The job will be offered to another Easer. You can still receive future offers.</div>
+    <div class="sheet-actions">
+      <button class="sheet-btn-danger" id="home-decline-confirm">Decline offer</button>
+      <button class="sheet-btn-cancel" id="home-decline-cancel">Keep offer</button>
     </div>
   </div>
 </div>

@@ -98,6 +98,7 @@ function buildNav(desktopLinks, mobileLinks, activeHref) {
     <ul class="nav-links">
 ${renderDesktopLinks(links)}
     </ul>
+    <a href="/auth/login" class="nav-auth-link">Easer Login</a>
     <a href="/book" class="nav-book-cta">Book Now &rarr;</a>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
@@ -105,6 +106,7 @@ ${renderDesktopLinks(links)}
   </div>
 </nav>
 <div class="nav-mobile" id="mobileNav">
+  <a href="/auth/login">Easer Login</a>
 ${renderMobileLinks(mobileLinks)}
 </div>
 <script src="/assets/js/mobile-nav.js" defer></script>`;
