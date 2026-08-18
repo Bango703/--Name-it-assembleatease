@@ -283,6 +283,37 @@ const APP = {
       .toUpperCase();
   },
 
+  // Easer-facing presentation helpers. Keep stored values unchanged; these
+  // only translate internal labels and normalize postal casing for display.
+  formatServiceLabel(service) {
+    const raw = String(service || '').trim();
+    const key = raw.toLowerCase().replace(/\s+/g, '');
+    if (key === 'trampoline/disassembly/moving/reassembly') {
+      return 'Trampoline Move & Reassembly';
+    }
+    return raw || 'Service';
+  },
+
+  formatPostalAddress(raw) {
+    if (!raw) return '';
+    const suffixes = {
+      st: 'St', street: 'St', rd: 'Rd', road: 'Rd', ave: 'Ave', avenue: 'Ave',
+      blvd: 'Blvd', boulevard: 'Blvd', dr: 'Dr', drive: 'Dr', ln: 'Ln', lane: 'Ln',
+      ct: 'Ct', court: 'Ct', cir: 'Cir', circle: 'Cir', pkwy: 'Pkwy', parkway: 'Pkwy',
+      hwy: 'Hwy', highway: 'Hwy', way: 'Way', pl: 'Pl', place: 'Pl',
+      unit: 'Unit', apt: 'Apt', apartment: 'Apt', suite: 'Suite', ste: 'Ste',
+    };
+    const uppercase = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw', 'tx', 'us', 'usa']);
+    return String(raw).split(',').map((part) => part.trim().split(/\s+/).map((word) => {
+      const lower = word.toLowerCase();
+      if (!lower) return '';
+      if (/^#?\d/.test(word)) return word.toUpperCase();
+      if (uppercase.has(lower)) return lower.toUpperCase();
+      if (suffixes[lower]) return suffixes[lower];
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    }).join(' ')).filter(Boolean).join(', ');
+  },
+
   showAlert(id, message, type = 'error') {
     const el = document.getElementById(id);
     if (!el) return;

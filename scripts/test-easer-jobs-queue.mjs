@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { evaluateEaserAppointmentGate } from '../api/booking/_appointment-gates.js';
 
 const jobsPage = await readFile(new URL('../assembler/my-assignments.html', import.meta.url), 'utf8');
+const homePage = await readFile(new URL('../assembler/index.html', import.meta.url), 'utf8');
+const earningsPage = await readFile(new URL('../assembler/payouts.html', import.meta.url), 'utf8');
+const appJs = await readFile(new URL('../assets/js/app.js', import.meta.url), 'utf8');
 const assignmentsApi = await readFile(new URL('../api/booking/my-assignments.js', import.meta.url), 'utf8');
 const appointmentGates = await readFile(new URL('../api/booking/_appointment-gates.js', import.meta.url), 'utf8');
 const messageApi = await readFile(new URL('../api/booking/message.js', import.meta.url), 'utf8');
@@ -27,13 +30,19 @@ assert.match(jobsPage, /queueWorkloadSummary\(b\._booking_items \|\| \[\]\)/,
   'Cards must summarize the real booking workload.');
 assert.doesNotMatch(jobsPage, /const workloadLine =|workloadLine \?/,
   'The detail header must not duplicate the item list rendered below it.');
-assert.match(jobsPage, /Trampoline Move & Reassembly/,
-  'Internal trampoline service labels must be translated for Easers.');
+assert.match(appJs, /formatServiceLabel\(service\)[\s\S]*Trampoline Move & Reassembly/,
+  'Internal service labels must have one shared Easer-facing translator.');
+for (const surface of [homePage, jobsPage, earningsPage]) {
+  assert.match(surface, /APP\.formatServiceLabel/,
+    'Every core Easer surface must use the shared service-label translator.');
+}
 
 assert.match(jobsPage, /function formatJobAddress\(rawAddress\)/,
   'Jobs need a readable local address formatter.');
 assert.doesNotMatch(jobsPage, /APP\.formatAddress\(b\.address\)/,
   'Job cards and details must not force accepted-job addresses to all caps.');
+assert.match(homePage, /APP\.formatPostalAddress/,
+  'Home must use the same readable postal address casing as Jobs.');
 assert.match(jobsPage, /e-job-card-chevron/,
   'Cards need a visible open-details cue.');
 assert.doesNotMatch(jobsPage, /renderPipeline5|card-help-btn/,
@@ -51,6 +60,33 @@ assert.match(jobsPage, /queuePayoutCents\(b, isCompleted\)/,
   'Cards must use one payout resolver for estimates and final earnings.');
 assert.match(jobsPage, /accepted \? 'Your payout' : 'Estimated payout'/,
   'Accepted jobs must label the current amount as the Easer payout.');
+assert.match(jobsPage, /const payoutPill = !isCompleted && payEst/,
+  'Completed details must not repeat the payout status above the authoritative payout card.');
+assert.match(earningsPage, /Includes all recorded earnings, whether paid, awaiting payout, or on hold\./,
+  'Total Earned must explain that it includes every payout disposition.');
+
+assert.match(jobsPage, /Booking reference:/,
+  'The detail sheet must spell out the booking reference label.');
+assert.match(jobsPage, /class="booking-ref-copy"/,
+  'The booking reference must be easy to copy for support.');
+assert.doesNotMatch(jobsPage, />Ref: /,
+  'The abbreviated booking reference label must not return.');
+assert.match(jobsPage, /id="asgn-modal" role="dialog" aria-modal="true"[\s\S]*aria-hidden="true"/,
+  'Job details must expose correct dialog semantics.');
+assert.match(jobsPage, /function openAssignmentModal\(\)[\s\S]*asgn-modal-close[\s\S]*\.focus\(\)/,
+  'Opening job details must move keyboard focus into the dialog.');
+assert.doesNotMatch(jobsPage, /\bconfirm\(/,
+  'Jobs must use an in-app confirmation instead of a native browser prompt.');
+assert.match(jobsPage, /id="release-confirmation"[\s\S]*id="release-confirm-submit"/,
+  'Self-drop must require an explicit in-app confirmation.');
+assert.doesNotMatch(homePage, /window\.confirm|\balert\(/,
+  'Home must not interrupt job work with native browser dialogs.');
+assert.match(homePage, /id="home-decline-sheet" role="dialog"/,
+  'Declining a Home offer must use an accessible in-app confirmation.');
+assert.match(homePage, /id="home-complete-status" role="alert"/,
+  'Completion errors must remain visible inside the completion sheet.');
+assert.match(homePage, /<a class="eh-upcoming-card" href="\/assembler\/my-assignments"/,
+  'Upcoming jobs must be native keyboard-accessible links.');
 
 assert.match(assignmentsApi, /evaluateEaserAppointmentGate/,
   'The assignments API must reuse the server appointment gate.');
