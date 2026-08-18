@@ -42,6 +42,7 @@ const SUPPORT_LINKS = [
 // repeats that destination under a second label.
 const RESOURCES_LINKS = [
   ['/compare-assembly-options', 'Compare your options'],
+  ['/furniture-stores-texas', 'Furniture stores in Texas'],
   ['/blog/new-home-setup-checklist-austin', 'New home setup checklist'],
   ['/blog/ikea-assembly-cost-austin', 'IKEA assembly cost guide'],
   ['/blog/tv-mounting-costs-austin', 'TV mounting cost guide'],
