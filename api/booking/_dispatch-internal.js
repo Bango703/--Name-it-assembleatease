@@ -1,6 +1,6 @@
 ﻿import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
-import { sendEmail, esc } from '../_email.js';
+import { sendEmail, esc, ownerEmail } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { BOOKING_STATUS, ACTIVE_BOOKING_STATUSES, DISPATCH_OFFER_STATUS, computeBookingSplitFromSnapshot, isBookingPaymentReadyForDispatch } from '../_source-of-truth.js';
 import { getEaserReadiness } from '../_easer-readiness.js';
@@ -15,6 +15,63 @@ const OFFER_TTL_MIN    = parseInt(process.env.DISPATCH_OFFER_TTL_MINUTES  || '20
 const BATCH_SIZE       = parseInt(process.env.DISPATCH_BATCH_SIZE         || '3',  10);
 const MAX_ATTEMPTS     = parseInt(process.env.DISPATCH_MAX_ATTEMPTS       || '3',  10);
 const MAX_DAILY_JOBS   = parseInt(process.env.DISPATCH_MAX_DAILY_JOBS     || '3',  10);
+
+// ── Soft supply nudge ────────────────────────────────────────────────────────
+// When a job is dispatched, near-ready pros in the area (identity-verified but OFFLINE
+// or with a pending agreement/setup) don't get the real offer. This gives them a gentle,
+// job-detail-free "work is available near you — come Online" email so they activate and
+// start receiving offers. Never sent to online-ready pros (they don't need it), or to
+// suspended/rejected/closed accounts. Throttled to once per Easer per day via email dedupe.
+function buildWorkAvailableNudge(firstName) {
+  const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0d1b2a">
+<div style="max-width:520px;margin:0 auto;padding:24px 16px">
+  <div style="text-align:center;margin-bottom:14px"><img src="${LOGO}" alt="AssembleAtEase" width="40" height="40" style="border-radius:50%;display:inline-block"/></div>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+    <div style="padding:22px 24px;border-bottom:3px solid #00BFFF">
+      <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#00BFFF">Work available near you</div>
+      <div style="font-size:20px;font-weight:800;margin-top:6px">A job just came in near you, ${esc(firstName)}.</div>
+    </div>
+    <div style="padding:24px">
+      <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 12px">You didn’t get this one because your account isn’t set to receive offers yet — but jobs like it are coming into your area. Get ready and you’ll be matched automatically.</p>
+      <p style="font-size:14px;line-height:1.7;color:#334155;margin:0 0 4px"><strong>To start receiving offers:</strong> open the app, come <strong>Online</strong>, and finish any remaining setup (like accepting the current agreement).</p>
+      <p style="margin:22px 0 4px"><a href="${SITE}/assembler/" style="display:inline-block;background:#00BFFF;color:#04222c;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:999px">Open the app &amp; go Online</a></p>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:14px">You’re receiving this because you’re registered as an AssembleAtEase Easer.</p>
+</div></body></html>`;
+}
+
+async function sendSoftJobNudges(sb, offeredEaserIds, bookingZip) {
+  try {
+    const zipPrefix = String(bookingZip || '').trim().slice(0, 3);
+    if (!/^\d{3}$/.test(zipPrefix)) return; // no usable service area → skip
+    const { data: candidates, error } = await sb.from('profiles')
+      .select('id, full_name, email, zip, is_available')
+      .eq('role', 'assembler')
+      .in('status', ['active', 'pending'])
+      .eq('identity_verified', true)
+      .or('account_closure_status.is.null,account_closure_status.eq.cancelled');
+    if (error || !candidates?.length) return;
+    const offered = new Set(offeredEaserIds || []);
+    for (const e of candidates) {
+      if (offered.has(e.id) || !e.email) continue;      // already got the real offer
+      if (e.is_available === true) continue;            // already online — no nudge needed
+      if (String(e.zip || '').trim().slice(0, 3) !== zipPrefix) continue; // different service area
+      const first = String(e.full_name || 'there').split(' ')[0] || 'there';
+      await sendEmail({
+        to: e.email,
+        from: 'AssembleAtEase <booking@assembleatease.com>',
+        subject: 'A job is available near you — come Online',
+        html: buildWorkAvailableNudge(first),
+        replyTo: ownerEmail(),
+        meta: { notificationType: 'easer_work_available', recipientType: 'easer', recipientUserId: e.id, dedupeWindowMin: 1440 },
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.error('sendSoftJobNudges failed:', e?.message || e);
+  }
+}
 
 /**
  * Dispatch a confirmed booking to the best available Easers.
@@ -395,6 +452,10 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
       });
     }
   }
+
+  // Soft supply nudge — pull near-ready pros in the area toward going Online. Fire-and-
+  // forget, never blocks or affects the real dispatch; throttled + job-detail-free.
+  sendSoftJobNudges(sb, top.map(e => e.id), bookingZip).catch(err => console.error('soft job nudge error:', err?.message || err));
 
   await logActivity(sb, {
     bookingId,
