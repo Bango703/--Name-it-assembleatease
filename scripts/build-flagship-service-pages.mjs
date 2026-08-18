@@ -33,6 +33,7 @@ const SERVICE_PLANNING = {
     heading: 'Furniture assembly planning',
     summary: 'Common requests include flat-pack furniture, IKEA pieces, beds, dressers, desks, dining tables, shelving, and multi-item move-in setups. Share the brand or model, item count, box location, and final room for each piece so the appointment reflects the actual build.',
     requestTypes: 'Furniture assembly service, furniture installation, IKEA assembly, bed assembly, crib assembly, dresser assembly, wardrobe assembly, sofa assembly, and desk assembly are all handled through the same item-based booking catalog.',
+    austinGuide: { href: '/blog/ikea-assembly-cost-austin', label: 'Compare current IKEA assembly prices in Austin' },
   },
   'tv-mounting': {
     heading: 'TV mounting planning',
@@ -493,7 +494,7 @@ ${menu}
       <h2 class="fa-h2">${escapeHtml(servicePlanning.heading)} in ${escapeHtml(city.name)}</h2>
       <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.summary)}</p>
       <p class="fa-lead" style="margin-left:auto;margin-right:auto">${escapeHtml(servicePlanning.requestTypes)}</p>
-      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>
+${city.name === 'Austin' && servicePlanning.austinGuide ? `      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><a href="${servicePlanning.austinGuide.href}">${escapeHtml(servicePlanning.austinGuide.label)}</a> before choosing your items.</p>\n` : ''}      <p class="fa-lead" style="margin-left:auto;margin-right:auto"><strong style="color:var(--ink-soft)">Planning your ${escapeHtml(city.name)} appointment:</strong> ${escapeHtml(marketContext)}${city.bio ? ` ${escapeHtml(bookingGuidance)}` : ''}</p>
     </div>
     <div class="fa-mini-facts">
       <div class="fa-mini-fact"><strong class="fa-mini-fact-title">${city.name === 'Austin' ? 'Reviewed local pro' : 'Screened Easers'}</strong><span>Assigned and confirmed before the visit.</span></div>

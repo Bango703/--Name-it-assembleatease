@@ -1,10 +1,11 @@
 # Public Footer Sync Report
 
-Changed 356 file(s).
+Changed 412 file(s).
 
 - 404.html
 - about.html
 - assemblecash.html
+- become-an-easer.html
 - blog/bed-frame-assembly-austin.html
 - blog/best-furniture-assembly-austin.html
 - blog/crate-and-barrel-furniture-assembly-austin.html
@@ -25,7 +26,62 @@ Changed 356 file(s).
 - blog/why-hire-handyman-austin.html
 - bundles.html
 - business.html
+- compare-assembly-options.html
 - contact.html
+- easer-jobs-abilene-tx.html
+- easer-jobs-allen-tx.html
+- easer-jobs-amarillo-tx.html
+- easer-jobs-arlington-tx.html
+- easer-jobs-austin-tx.html
+- easer-jobs-baytown-tx.html
+- easer-jobs-beaumont-tx.html
+- easer-jobs-bee-cave-tx.html
+- easer-jobs-brownsville-tx.html
+- easer-jobs-bryan-tx.html
+- easer-jobs-buda-tx.html
+- easer-jobs-cedar-park-tx.html
+- easer-jobs-college-station-tx.html
+- easer-jobs-conroe-tx.html
+- easer-jobs-corpus-christi-tx.html
+- easer-jobs-dallas-tx.html
+- easer-jobs-denton-tx.html
+- easer-jobs-edinburg-tx.html
+- easer-jobs-el-paso-tx.html
+- easer-jobs-fort-worth-tx.html
+- easer-jobs-frisco-tx.html
+- easer-jobs-garland-tx.html
+- easer-jobs-georgetown-tx.html
+- easer-jobs-grand-prairie-tx.html
+- easer-jobs-houston-tx.html
+- easer-jobs-hutto-tx.html
+- easer-jobs-irving-tx.html
+- easer-jobs-killeen-tx.html
+- easer-jobs-kyle-tx.html
+- easer-jobs-lakeway-tx.html
+- easer-jobs-laredo-tx.html
+- easer-jobs-league-city-tx.html
+- easer-jobs-leander-tx.html
+- easer-jobs-lubbock-tx.html
+- easer-jobs-manor-tx.html
+- easer-jobs-mcallen-tx.html
+- easer-jobs-mckinney-tx.html
+- easer-jobs-mesquite-tx.html
+- easer-jobs-midland-tx.html
+- easer-jobs-new-braunfels-tx.html
+- easer-jobs-odessa-tx.html
+- easer-jobs-pasadena-tx.html
+- easer-jobs-pearland-tx.html
+- easer-jobs-pflugerville-tx.html
+- easer-jobs-plano-tx.html
+- easer-jobs-richardson-tx.html
+- easer-jobs-round-rock-tx.html
+- easer-jobs-san-angelo-tx.html
+- easer-jobs-san-antonio-tx.html
+- easer-jobs-sugar-land-tx.html
+- easer-jobs-temple-tx.html
+- easer-jobs-the-woodlands-tx.html
+- easer-jobs-tyler-tx.html
+- easer-jobs-waco-tx.html
 - fitness-equipment-assembly-abilene-tx.html
 - fitness-equipment-assembly-allen-tx.html
 - fitness-equipment-assembly-amarillo-tx.html
