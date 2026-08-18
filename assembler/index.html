@@ -1057,6 +1057,7 @@
       var pay = b._pay_estimate_lo != null ? fmtPay(b._pay_estimate_lo)
         : (b.assembler_due != null ? fmtPay(b.assembler_due) : 'Estimate pending');
       var expiresAt = b._offer_expires_at || b.offer_expires_at || b.dispatch_offered_at;
+      var offerTok = b._offer_token || b.dispatch_token || b.assignment_token || '';
       return '<div class="eh-offer-card">'
         +'<div class="eh-offer-card-top">'
           +'<div class="eh-offer-icon">'
@@ -1074,7 +1075,10 @@
           +'</div>'
         +'</div>'
         +'<div class="eh-offer-actions">'
-          +'<a class="eh-offer-accept" href="/assembler/my-assignments?offer='+encodeURIComponent(b.id)+'" style="display:block;text-align:center;text-decoration:none">Review offer</a>'
+          +(offerTok
+            ? '<button class="eh-offer-accept eh-offer-act" data-act="accept" data-bid="'+esc(b.id)+'" data-token="'+esc(offerTok)+'">Accept job</button>'
+              +'<button class="eh-offer-decline eh-offer-act" data-act="decline" data-bid="'+esc(b.id)+'" data-token="'+esc(offerTok)+'">Decline</button>'
+            : '<a class="eh-offer-accept" href="/assembler/my-assignments?offer='+encodeURIComponent(b.id)+'" style="display:block;text-align:center;text-decoration:none">Review offer</a>')
         +'</div>'
       +'</div>';
     }).join('');
@@ -1093,6 +1097,75 @@
     updateTimers();
     offerTimerInterval=setInterval(updateTimers,1000);
   }
+
+  // Inline offer actions on Home — accept/decline right on the card so the Easer
+  // never has to jump to the Jobs page to act. Uses the same server endpoints and
+  // per-offer token as My Assignments (atomic accept-dispatch / decline-dispatch).
+  async function getFreshActionToken(){
+    try{
+      var fs=await supabaseClient.auth.getSession();
+      if(fs.data&&fs.data.session){
+        var s=fs.data.session; var now=Math.floor(Date.now()/1000);
+        if(s.expires_at&&s.expires_at<=now+60){var r=await supabaseClient.auth.refreshSession();if(r.data&&r.data.session)s=r.data.session;}
+        if(s&&s.access_token) freshTok=s.access_token;
+      }
+    }catch(e){}
+    return freshTok;
+  }
+
+  async function acceptOfferInline(bid, token, btn){
+    if(btn){btn.disabled=true;btn.textContent='Accepting…';}
+    var sib=btn?btn.parentNode.querySelector('[data-act="decline"]'):null;
+    if(sib) sib.disabled=true;
+    try{
+      var tok=await getFreshActionToken();
+      var r=await fetch('/api/booking/accept-dispatch',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({bookingId:bid,token:token})});
+      var d=await r.json().catch(function(){return {};});
+      if(!r.ok||d.error){
+        var msg=r.status===409?'This job was just accepted by another Easer.':(d.error||'Could not accept — please try again.');
+        APP.showAlert('page-alert',msg,'error');
+        if(btn){btn.disabled=false;btn.textContent='Accept job';} if(sib) sib.disabled=false;
+        return;
+      }
+      APP.showAlert('page-alert','Job accepted — it is now in your Jobs.','success');
+      await loadDashboardData('offer-accept');
+    }catch(e){
+      APP.showAlert('page-alert','Connection error. Please try again.','error');
+      if(btn){btn.disabled=false;btn.textContent='Accept job';} if(sib) sib.disabled=false;
+    }
+  }
+
+  async function declineOfferInline(bid, token, btn){
+    if(!window.confirm('Decline this job? It will be offered to another Easer.')) return;
+    if(btn){btn.disabled=true;btn.textContent='Declining…';}
+    var sib=btn?btn.parentNode.querySelector('[data-act="accept"]'):null;
+    if(sib) sib.disabled=true;
+    try{
+      var tok=await getFreshActionToken();
+      var r=await fetch('/api/booking/decline-dispatch',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({bookingId:bid,token:token,reason:null})});
+      var d=await r.json().catch(function(){return {};});
+      if(!r.ok||d.error){
+        APP.showAlert('page-alert',d.error||'Could not decline — please try again.','error');
+        if(btn){btn.disabled=false;btn.textContent='Decline';} if(sib) sib.disabled=false;
+        return;
+      }
+      APP.showAlert('page-alert','Offer declined.','info');
+      await loadDashboardData('offer-decline');
+    }catch(e){
+      APP.showAlert('page-alert','Connection error. Please try again.','error');
+      if(btn){btn.disabled=false;btn.textContent='Decline';} if(sib) sib.disabled=false;
+    }
+  }
+
+  // One delegated listener for all current + future offer cards.
+  document.addEventListener('click', function(e){
+    var el=e.target.closest('.eh-offer-act'); if(!el) return;
+    e.preventDefault();
+    var bid=el.getAttribute('data-bid'), token=el.getAttribute('data-token');
+    if(!bid||!token) return;
+    if(el.getAttribute('data-act')==='accept') acceptOfferInline(bid,token,el);
+    else declineOfferInline(bid,token,el);
+  });
 
   document.addEventListener('DOMContentLoaded', async function(){
     var auth=await APP.requireAuth(['assembler']);
