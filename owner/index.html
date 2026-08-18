@@ -8005,7 +8005,7 @@ window.intelQuick = intelQuick;
         ? '<button type="button" class="btn" style="font-size:0.72rem;padding:0.25rem 0.5rem" onclick="openDemandBooking(\'' + esc(String(r.bookingId)) + '\')">' + ref + '</button>'
         : ref;
       var status = r.recordType === 'booking'
-        ? 'BOOKING · ' + String(r.status || 'pending').toUpperCase()
+        ? 'BOOKING · ' + (String(r.paymentStatus || '').toLowerCase() === 'failed' ? 'PAYMENT FAILED' : String(r.status || 'pending').toUpperCase())
         : String(r.status || 'new').toUpperCase();
       return '<tr>'
         + '<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-weight:700;color:var(--text)">' + refCell + '</td>'

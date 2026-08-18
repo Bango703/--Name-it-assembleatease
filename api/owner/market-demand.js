@@ -60,7 +60,20 @@ export default async function handler(req, res) {
   const requests = requestsResult.data || [];
   const bookedIds = new Set(bookings.map(booking => booking.id));
   const unbookedRequests = requests.filter(request => !request.converted_booking_id || !bookedIds.has(request.converted_booking_id));
-  const bookingSignals = bookings.map(formatBookingSignal);
+  // Collapse duplicate booking attempts from the same customer for the same job — a
+  // customer retrying after a declined card creates a NEW booking each time, which
+  // otherwise shows up as several identical "pending" demand rows. Keep the most recent
+  // (bookings are ordered created_at desc); never collapse rows with no email.
+  const bookingSignalsRaw = bookings.map(formatBookingSignal);
+  const seenDemandKeys = new Set();
+  const bookingSignals = bookingSignalsRaw.filter(signal => {
+    const emailKey = String(signal.customerEmail || '').trim().toLowerCase();
+    if (!emailKey) return true;
+    const key = [emailKey, String(signal.requestedService || ''), String(signal.requestedDate || ''), String(signal.zip || '')].join('|');
+    if (seenDemandKeys.has(key)) return false;
+    seenDemandKeys.add(key);
+    return true;
+  });
   const requestSignals = unbookedRequests.map(request => formatRequest({ ...request, recordType: 'request' }));
   const demandSignals = [...bookingSignals, ...requestSignals]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
