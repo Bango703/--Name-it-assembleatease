@@ -8756,6 +8756,7 @@ window.intelQuick = intelQuick;
     // Status is now the authority — build buttons based on status + tier cleanly
     var idStatus = a.id_verification_status || (a.identity_verified ? 'verified' : 'pending');
     var actionBtns = '';
+    var dangerBtns = '';
     var closureHeld = ['requested','reviewing','completed'].includes(a.account_closure_status);
 
     // APPLICATION ACTIONS (pending status)
@@ -8767,7 +8768,7 @@ window.intelQuick = intelQuick;
       actionBtns += (idStatus === 'verified' && easerApprovalFeeSatisfied(a))
         ? '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'approve\')">Approve Application</button> '
         : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="' + (idStatus !== 'verified' ? 'Verify ID first' : 'Reconcile application fee or refund truth first') + '">Approve Application</button> ';
-      actionBtns += '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button> ';
+      dangerBtns += '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button> ';
     }
 
     // TIER ACTIONS (active status)
@@ -8776,15 +8777,15 @@ window.intelQuick = intelQuick;
       if (a.tier === 'starter') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'professional\')">Promote to Professional</button> ';
       if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';
       if (a.tier === 'elite') actionBtns += '<button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'professional\')">Demote to Professional</button> ';
-      actionBtns += '<button class="btn btn-red" onclick="suspendFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Suspend</button> ';
-      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (closes access)</button> ';
+      dangerBtns += '<button class="btn btn-red" onclick="suspendFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Suspend</button> ';
+      dangerBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (closes access)</button> ';
     }
 
     // REINSTATE + hard DEACTIVATE (suspended)
     if (a.status === 'suspended' && !closureHeld) {
       var prevLabel = { starter:'Starter', professional:'Professional', elite:'Elite' }[a.previous_tier] || 'Starter';
       actionBtns += '<button class="btn btn-teal" onclick="reinstateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\',\'' + prevLabel + '\')">Reinstate (' + prevLabel + ')</button> ';
-      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (closes access)</button> ';
+      dangerBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (closes access)</button> ';
     }
 
     // DEACTIVATED (reversible hard lock — restore login)
@@ -8794,15 +8795,15 @@ window.intelQuick = intelQuick;
 
     // REJECTED actions
     if (a.status === 'rejected') {
-      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Archive Application</button> ';
+      dangerBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Archive Application</button> ';
     }
 
     // ALWAYS available
     if (!closureHeld) actionBtns += '<button class="btn" onclick="sendResetPassword(\'' + jsAttr(a.email) + '\')">Reset Password</button>';
     if (a.status !== 'rejected' && a.account_closure_status !== 'completed') {
-      actionBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">' + (closureHeld ? 'Complete Account Closure' : 'Close Easer Account') + '</button>';
+      dangerBtns += '<button class="btn btn-red" onclick="deleteEaser(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">' + (closureHeld ? 'Complete Account Closure' : 'Close Easer Account') + '</button>';
     } else if (a.account_closure_status === 'completed' && !a.auth_access_revoked_at) {
-      actionBtns += '<button class="btn btn-red" onclick="retryEaserAccessRevocation(\'' + a.id + '\')">Retry Sign-In Revocation</button>';
+      dangerBtns += '<button class="btn btn-red" onclick="retryEaserAccessRevocation(\'' + a.id + '\')">Retry Sign-In Revocation</button>';
     }
 
     // Dispatch chip: three states — N/A (not active), Eligible, Ineligible
@@ -8920,7 +8921,10 @@ window.intelQuick = intelQuick;
         + (a.previous_tier ? '<br><strong>Previous tier:</strong> ' + tierBadge(a.previous_tier) : '')
         + '</div>',
       // Actions
-      '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--border)">' + actionBtns + '</div>',
+      '<div style="margin-top:0.75rem;padding-top:0.85rem;border-top:1px solid var(--border)">'
+        + (actionBtns ? '<div style="display:flex;gap:0.5rem;flex-wrap:wrap">' + actionBtns + '</div>' : '')
+        + (dangerBtns ? '<div style="margin-top:' + (actionBtns ? '0.9rem' : '0') + ';padding-top:0.75rem;border-top:1px dashed #f1c9c9"><div style="font-size:0.64rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#b91c1c;margin-bottom:0.55rem">Sensitive actions</div><div style="display:flex;gap:0.5rem;flex-wrap:wrap">' + dangerBtns + '</div></div>' : '')
+        + '</div>',
     ].filter(Boolean).join('');
     document.getElementById('asm-detail-modal').classList.add('open');
     loadEaserOnboardingReadiness(a.id);

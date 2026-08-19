@@ -12,6 +12,11 @@ export function deriveAssemblerStatus(profile = {}) {
   const applicationStatus = String(profile.application_status || '').trim().toLowerCase();
 
   if (status === 'rejected' || applicationStatus === 'rejected' || tier === 'rejected') return 'rejected';
+  // 'deactivated' must win over the tier==='suspended' marker: deactivating an
+  // active Easer parks their tier at 'suspended' while status becomes 'deactivated',
+  // so this check MUST precede the suspended check or a deactivated account is
+  // mislabeled Suspended everywhere downstream (badge, tabs, action buttons).
+  if (status === 'deactivated') return 'deactivated';
   if (status === 'suspended' || tier === 'suspended') return 'suspended';
   if (status === 'pending' || applicationStatus === 'pending') return 'pending';
   if (status === 'active') return 'active';
