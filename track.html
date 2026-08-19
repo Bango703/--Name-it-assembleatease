@@ -99,6 +99,15 @@
 #trackForm #trackSubmit{margin-top:auto}
 .ac-card #acStepEmail{display:flex;flex-direction:column;flex:1 1 auto}
 .ac-card #acStepEmail .ac-action{margin-top:auto}
+.track-form-shell #trackForm{flex:0 0 auto}
+.track-code-alt{margin-top:1.5rem}
+.track-alt-divider{display:flex;align-items:center;text-align:center;gap:0.75rem;margin-bottom:1rem;color:var(--muted);font-size:0.8rem;font-weight:600}
+.track-alt-divider::before,.track-alt-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+#tcChooser{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.9rem}
+.tc-choice{text-align:left;border:1.5px solid var(--border);border-radius:12px;padding:0.7rem 0.85rem;background:#fff;cursor:pointer;font:inherit;transition:border-color .15s,background .15s}
+.tc-choice:hover{border-color:var(--cyan);background:var(--off-white)}
+.tc-choice-service{font-weight:700;color:var(--ink);font-size:0.9rem}
+.tc-choice-meta{font-size:0.78rem;color:var(--muted);margin-top:2px}
 .track-tool-kicker{display:inline-flex;align-items:center;font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan-dark)}
 .track-tool-title{font-family:var(--font-display);font-size:1.42rem;line-height:1.15;color:var(--ink);margin:0.35rem 0 0.45rem}
 .track-tool-copy{font-size:0.89rem;color:var(--muted);line-height:1.65;margin:0 0 1.25rem}
@@ -226,6 +235,26 @@
           Look Up My Booking
         </button>
       </form>
+
+      <!-- No reference or link handy? Prove your email with a one-time code and
+           jump straight in — no back-and-forth. -->
+      <div class="track-code-alt">
+        <div class="track-alt-divider"><span>Don&rsquo;t have your reference or link?</span></div>
+        <div id="tcStepEmail">
+          <label for="tc-email" style="display:block;font-size:0.83rem;font-weight:600;margin-bottom:6px">View instantly with a code</label>
+          <input type="email" id="tc-email" class="form-control" placeholder="you@example.com" autocomplete="email"/>
+          <button type="button" class="btn btn-cyan btn-full" id="tcReqBtn" style="margin-top:0.7rem" onclick="tcRequestCode()">Email me a code</button>
+        </div>
+        <div id="tcStepCode" style="display:none">
+          <label for="tc-code" style="display:block;font-size:0.83rem;font-weight:600;margin-bottom:6px">Enter the 6-digit code we just emailed you</label>
+          <input type="text" id="tc-code" class="form-control" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" oninput="this.value=this.value.replace(/\D/g,'')"/>
+          <button type="button" class="btn btn-cyan btn-full" id="tcVerBtn" style="margin-top:0.7rem" onclick="tcVerifyCode()">View my booking</button>
+          <button type="button" class="new-lookup-btn" style="margin-top:0.5rem" onclick="tcReset()">Use a different email</button>
+        </div>
+        <div id="tcChooser" style="display:none"></div>
+        <div class="form-err" id="tcErr" style="margin-top:0.85rem"></div>
+      </div>
+
       <p style="text-align:left;margin-top:1.15rem;font-size:0.83rem;color:var(--muted)">Need help <a href="/contact" style="color:var(--cyan-dark);font-weight:600">Contact us &rarr;</a></p>
     </div>
     <div class="track-tool-card ac-card">
@@ -627,6 +656,79 @@ async function lookupBooking(e) {
   }
 }
 
+// ── Code-based lookup (no reference / no link needed) ──────────
+// Customer proves they own the inbox with a 6-digit code, then jumps straight in.
+// The token returned per booking is an ordinary mutation token, so view /
+// reschedule / cancel still run through the same rule-enforcing endpoints.
+function tcReset() {
+  document.getElementById('tcStepCode').style.display = 'none';
+  document.getElementById('tcChooser').style.display = 'none';
+  document.getElementById('tcStepEmail').style.display = '';
+  document.getElementById('tcErr').textContent = '';
+  document.getElementById('tc-code').value = '';
+}
+async function tcRequestCode() {
+  const email = (document.getElementById('tc-email').value || '').trim();
+  const err = document.getElementById('tcErr'); err.textContent = '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { err.textContent = 'Enter a valid email address.'; return; }
+  const btn = document.getElementById('tcReqBtn'); btn.disabled = true; const old = btn.textContent; btn.textContent = 'Sending…';
+  try {
+    const r = await fetch('/api/track/request-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) });
+    if (r.status === 429) { err.textContent = 'Too many requests. Please wait a few minutes and try again.'; }
+    else {
+      document.getElementById('tcStepEmail').style.display = 'none';
+      document.getElementById('tcStepCode').style.display = '';
+      document.getElementById('tc-code').focus();
+    }
+  } catch (e) { err.textContent = 'Could not send a code right now. Please try again.'; }
+  btn.disabled = false; btn.textContent = old;
+}
+async function tcVerifyCode() {
+  const email = (document.getElementById('tc-email').value || '').trim();
+  const code = (document.getElementById('tc-code').value || '').trim();
+  const err = document.getElementById('tcErr'); err.textContent = '';
+  if (!/^\d{6}$/.test(code)) { err.textContent = 'Enter the 6-digit code from your email.'; return; }
+  const btn = document.getElementById('tcVerBtn'); btn.disabled = true; const old = btn.textContent; btn.textContent = 'Checking…';
+  try {
+    const r = await fetch('/api/track/verify-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, code: code }) });
+    const d = await r.json().catch(function () { return {}; });
+    if (!r.ok) { err.textContent = (d && d.error) || 'That code is invalid or expired. Request a new one.'; }
+    else {
+      const list = (d && d.bookings) || [];
+      if (!list.length) { err.textContent = 'No recent bookings found for this email.'; }
+      else if (list.length === 1) { tcLoadBooking(email, list[0]); }
+      else { tcShowChooser(email, list); }
+    }
+  } catch (e) { err.textContent = 'Could not verify right now. Please try again shortly.'; }
+  btn.disabled = false; btn.textContent = old;
+}
+function tcShowChooser(email, list) {
+  const wrap = document.getElementById('tcChooser');
+  document.getElementById('tcStepCode').style.display = 'none';
+  wrap.innerHTML = '<div style="font-size:0.83rem;font-weight:600;margin-bottom:0.2rem">Choose a booking to view</div>';
+  list.forEach(function (b) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tc-choice';
+    btn.innerHTML = '<div class="tc-choice-service">' + (b.service || 'Booking') + '</div>'
+      + '<div class="tc-choice-meta">' + (b.ref || '') + ' · ' + formatDate(b.date) + (b.time ? ' · ' + b.time : '') + '</div>';
+    btn.onclick = function () { tcLoadBooking(email, b); };
+    wrap.appendChild(btn);
+  });
+  wrap.style.display = '';
+}
+function tcLoadBooking(email, b) {
+  currentMutationToken = b.token;
+  document.getElementById('t-email').value = email;
+  document.getElementById('t-ref').value = b.ref;
+  autoLookupPending = true;
+  document.getElementById('tcChooser').style.display = 'none';
+  document.getElementById('tcStepCode').style.display = 'none';
+  document.getElementById('tcErr').textContent = '';
+  document.getElementById('trackForm').dispatchEvent(new Event('submit', { cancelable: true }));
+  document.getElementById('trackResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ── Render ─────────────────────────────────────────────────
 function renderBooking(b) {
   document.getElementById('bRef').textContent      = b.ref;
@@ -710,7 +812,7 @@ function renderBooking(b) {
   const addrEl = document.getElementById('bAddress');
   const addrWrap = document.getElementById('bAddressWrap');
   if (b.address || b.city) {
-    addrEl.textContent = [b.address, b.city].filter(Boolean).join(', ');
+    addrEl.textContent = formatAddress([b.address, b.city].filter(Boolean).join(', '));
     addrWrap.style.display = '';
   } else {
     addrWrap.style.display = 'none';
@@ -1104,6 +1206,18 @@ function formatDate(str) {
 
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+// Mirrors formatAddress() in api/_email.js so the address reads the same
+// everywhere the customer sees it (confirmation email + this page).
+function formatAddress(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .split(',')
+    .map(function (part) { return part.replace(/\s+/g, ' ').trim(); })
+    .filter(Boolean)
+    .join(', ')
+    .toUpperCase();
 }
 
 function isWithin24hrs(dateStr, timeStr) {

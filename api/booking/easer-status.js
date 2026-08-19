@@ -11,6 +11,7 @@ import {
   isBookingPaymentReadyForDispatch,
 } from '../_source-of-truth.js';
 import { getTransitionError } from './_workflow-engine.js';
+import { guestManageUrl } from '../_payment-security.js';
 import { isOwnerManualLiveFlow } from '../_owner-easer.js';
 
 const STAGES = {
@@ -127,7 +128,10 @@ export default async function handler(req, res) {
 
   // Notify customer at key stages — same branded template as every other email,
   // with a Track button and (while the pro is inbound) a way to reach us.
-  const trackUrl = `https://www.assembleatease.com/track?ref=${encodeURIComponent(booking.ref)}`;
+  // Auto-populating link: carries ref + email (and the mutation token when still
+  // valid) so one tap opens the customer's booking with no re-typing. This is the
+  // highest-anxiety click ("is my pro here?") — it must never dead-end on a form.
+  const trackUrl = guestManageUrl(booking);
   const trackButton = `<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr><td style="text-align:center"><a href="${trackUrl}" style="display:inline-block;background:#00BFFF;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:6px;text-decoration:none">Track your booking</a></td></tr></table>`;
   const reachUs = `<p style="margin:18px 0 0;font-size:14px;color:#52525b;line-height:1.7">Need to reach ${esc(easerFirstName)}? Call or text us at <a href="tel:+17372906129" style="color:#00BFFF;text-decoration:none">737-290-6129</a> and we'll connect you.</p>`;
   const customerMessages = {
