@@ -85,7 +85,24 @@ export default async function handler(req, res) {
     }
     const { data: msgs, error: msgsErr } = await messagesQuery
       .order('created_at', { ascending: true });
-    if (msgsErr) return res.status(500).json({ error: 'Failed to fetch messages' });
+    if (msgsErr) {
+      // Code-before-schema safety: if migration 037's message columns (recipient_type,
+      // sender_user_id, recipient_user_id, read_at) aren't present on this database yet,
+      // the full select 500s. For an OWNER request, fall back to the base columns so the
+      // thread still loads (owner already sees every message for the booking). A non-owner
+      // request can't be safely filtered without those columns, so it stays an error.
+      const missingCol = msgsErr.code === '42703' || msgsErr.code === 'PGRST204'
+        || /column .* does not exist/i.test(msgsErr.message || '');
+      if (missingCol && ownerRequest) {
+        const baseRes = await sb.from('messages')
+          .select('id, booking_id, sender, body, created_at')
+          .eq('booking_id', bk.id)
+          .order('created_at', { ascending: true });
+        if (baseRes.error) return res.status(500).json({ error: 'Failed to fetch messages' });
+        return res.status(200).json({ messages: baseRes.data || [] });
+      }
+      return res.status(500).json({ error: 'Failed to fetch messages' });
+    }
 
     const readRecipient = ownerRequest ? 'owner' : 'assembler';
     const unreadIds = (msgs || [])
@@ -104,8 +121,9 @@ export default async function handler(req, res) {
       }
       const { error: readError } = await readQuery.is('read_at', null);
       if (readError) {
+        // Non-fatal: the thread already loaded. Marking-as-read is a nicety and must
+        // never block the owner (or Easer) from actually seeing their messages.
         console.error('Message read-state update error:', readError);
-        return res.status(503).json({ error: 'Messages loaded, but read state could not be secured. Please retry.' });
       }
     }
     return res.status(200).json({ messages: msgs || [] });

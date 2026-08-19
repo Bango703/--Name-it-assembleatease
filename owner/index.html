@@ -5926,8 +5926,8 @@ window.intelQuick = intelQuick;
           + '</div>';
       }).join('');
       $msgThread.scrollTop = $msgThread.scrollHeight;
-    } catch {
-      $msgThread.innerHTML = '<div class="msg-empty">Failed to load messages</div>';
+    } catch (err) {
+      $msgThread.innerHTML = '<div class="msg-empty">Couldn\'t load messages — ' + esc(err && err.message ? err.message : 'please retry') + '</div>';
     }
   }
 
