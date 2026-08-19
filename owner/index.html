@@ -1147,6 +1147,12 @@
 
       <!-- ─── ANALYTICS VIEW ─── -->
       <div id="analytics-view" style="display:none">
+        <div class="fin-subtabs" id="fin-subtabs" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.1rem;border-bottom:1px solid var(--border);padding-bottom:0.9rem">
+          <button class="tab active" data-fin-tab="money" type="button">Money</button>
+          <button class="tab" data-fin-tab="tax" type="button">Tax &amp; Compliance</button>
+          <button class="tab" data-fin-tab="growth" type="button">Growth</button>
+          <button class="tab" data-fin-tab="insights" type="button">Insights</button>
+        </div>
         <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:1rem;margin-bottom:1rem" class="content-grid">
           <div class="detail-panel open" style="background:#001f2b;color:#fff;border-color:#00394d">
             <div class="detail-section-title" style="color:rgba(255,255,255,0.62);margin-bottom:0.55rem">Financial North Star</div>
@@ -7457,6 +7463,57 @@ window.intelQuick = intelQuick;
     renderAnalytics();
   };
 
+  // Financials sub-tabs (Money / Tax & Compliance / Growth / Insights). Each section
+  // card in #analytics-view is classified by a marker element inside it and shown only
+  // under its tab, so the view stops being one endless scroll and Expansion/Tax get
+  // their own space. Classification, not DOM surgery — safe and reversible.
+  var _finTab = 'money';
+  function finGroupOf(el) {
+    if (!el) return 'money';
+    // "has" matches the card itself OR any descendant (some cards ARE their marker,
+    // e.g. #clawback-panel; others carry a marker child, e.g. #an-expansion-summary).
+    var has = function (sel) { return (el.matches && el.matches(sel)) || (el.querySelector && el.querySelector(sel)); };
+    if (has('#an-expansion-summary')) return 'growth';
+    if (has('#ct-year, #clawback-panel, [id^="tax-"]')) return 'tax';
+    if (has('#an-services, #an-monthly, #an-status, #an-rev-service')) return 'insights';
+    return 'money';
+  }
+  function applyFinTab() {
+    var view = document.getElementById('analytics-view');
+    if (!view) return;
+    // The Financials view mixes structures: some sections are direct children, some
+    // are bare (a header + a stats grid), and several sit inside ONE shared wrapper
+    // grid. Build a flat list of section "units": each direct child, except a wrapper
+    // grid that holds multiple different-group panels, which we descend into.
+    var MIXED = '#an-expansion-summary, #an-services, #an-monthly, #an-status, #an-rev-service';
+    var units = [];
+    Array.prototype.forEach.call(view.children, function(child) {
+      if (child.id === 'fin-subtabs') return;
+      if (child.classList && child.classList.contains('content-grid')
+          && child.querySelectorAll('.detail-panel').length > 1
+          && child.querySelector(MIXED)) {
+        Array.prototype.forEach.call(child.children, function(gc) { units.push(gc); });
+      } else {
+        units.push(child);
+      }
+    });
+    units.forEach(function(el) {
+      el.style.display = (finGroupOf(el) === _finTab) ? '' : 'none';
+    });
+  }
+  function setFinTab(tab) {
+    _finTab = tab || 'money';
+    var bar = document.getElementById('fin-subtabs');
+    if (bar) Array.prototype.forEach.call(bar.querySelectorAll('.tab'), function(b) {
+      b.classList.toggle('active', b.getAttribute('data-fin-tab') === _finTab);
+    });
+    applyFinTab();
+  }
+  document.addEventListener('click', function(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-fin-tab]') : null;
+    if (t) setFinTab(t.getAttribute('data-fin-tab'));
+  });
+
   async function renderAnalytics() {
     var tbody = document.getElementById('an-ledger-body');
     if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="padding:1.5rem;text-align:center;color:var(--muted)">Loading financial dashboard...</td></tr>';
@@ -7489,6 +7546,7 @@ window.intelQuick = intelQuick;
 
     loadPayoutLedger();
     loadTaxReport();
+    applyFinTab();
   }
 
   function nextQuarterlyDue(now) {
