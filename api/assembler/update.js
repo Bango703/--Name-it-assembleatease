@@ -1088,7 +1088,19 @@ export default async function handler(req, res) {
     }
 
     const { deactivationReason } = req.body;
-    if (deactivationReason?.trim()) console.log(`[deactivate] ${profile.full_name} (${assemblerId}): ${deactivationReason.trim()}`);
+    const deactReason = (deactivationReason || '').trim();
+    // Durable, owner-visible audit — the reason must survive beyond a server log
+    // for owner recall and dispute defensibility.
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_deactivated',
+      actorType: 'owner',
+      actorId: assemblerId,
+      actorName: 'Owner',
+      description: `${profile.full_name || assemblerId} was deactivated — sign-in access closed and removed from dispatch.`
+        + (deactReason ? ` Reason: ${deactReason}` : ' No reason recorded.'),
+      metadata: { reason: deactReason || null, previousStatus: profile.status },
+    }).catch((e) => console.error('deactivate logActivity error:', e?.message || e));
 
     const dFirstName = (profile.full_name || '').split(' ')[0] || 'there';
     const deactivateEmail = await sendEmail({
@@ -1125,6 +1137,15 @@ export default async function handler(req, res) {
     if (reErr || !reRows?.length) {
       return res.status(409).json({ error: 'The Easer state changed during reactivation. Refresh and retry.', code: 'EASER_REACTIVATION_CONFLICT' });
     }
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_reactivated',
+      actorType: 'owner',
+      actorId: assemblerId,
+      actorName: 'Owner',
+      description: `${profile.full_name || assemblerId} was reactivated — sign-in access restored; returned to suspended for review.`,
+      metadata: { restoredTo: 'suspended' },
+    }).catch((e) => console.error('reactivate logActivity error:', e?.message || e));
     const rFirstName = (profile.full_name || '').split(' ')[0] || 'there';
     const reEmail = await sendEmail({
       to: profile.email,
