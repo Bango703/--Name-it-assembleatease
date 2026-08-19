@@ -1111,7 +1111,17 @@ export default async function handler(req, res) {
       html: buildEaserAccountEmail({
         heading: 'Account deactivated',
         firstName: dFirstName,
-        bodyHtml: 'Your AssembleAtEase Easer account has been deactivated and sign-in access has been closed. If you believe this is a mistake, reply to this email or contact service@assembleatease.com.',
+        bodyHtml: `<p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">We're writing to let you know that your AssembleAtEase Easer account has been deactivated. Your access to the Easer app is now closed, and you won't receive new job offers.</p>
+      <div style="background:#f8fafc;border:1px solid #e4e4e7;border-radius:10px;padding:16px 18px;margin:0 0 16px">
+        <div style="font-size:0.8rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#0099CC;margin-bottom:10px">What this means</div>
+        <table cellpadding="0" cellspacing="0" style="width:100%;font-size:0.9rem;color:#52525b;line-height:1.6">
+          <tr><td style="padding:4px 0;vertical-align:top;width:22px;color:#0099CC">&bull;</td><td style="padding:4px 0">You can no longer sign in to the Easer app.</td></tr>
+          <tr><td style="padding:4px 0;vertical-align:top;color:#0099CC">&bull;</td><td style="padding:4px 0">You won't be sent any new job offers.</td></tr>
+          <tr><td style="padding:4px 0;vertical-align:top;color:#0099CC">&bull;</td><td style="padding:4px 0">Records from any completed work stay on file &mdash; this doesn't affect earnings you've already made.</td></tr>
+        </table>
+      </div>
+      <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">If you believe this was made in error, or you'd like to talk it through, we're glad to help. Reply to this email or reach us at <a href="mailto:service@assembleatease.com" style="color:#0099CC;font-weight:600;text-decoration:none">service@assembleatease.com</a>.</p>
+      <p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0">Thank you for the time you spent with AssembleAtEase.</p>`,
       }),
       meta: { notificationType: 'easer_deactivated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
     }).catch(e => ({ ok: false, error: e?.message || String(e) }));
@@ -1161,6 +1171,50 @@ export default async function handler(req, res) {
     }).catch(e => ({ ok: false, error: e?.message || String(e) }));
 
     return res.status(200).json({ ok: true, action: 'reactivated', status: 'suspended', emailDelivered: reEmail?.ok === true && !reEmail?.suppressed });
+  }
+
+  // ── REQUEST NEW PROFILE PHOTO (clears a poor photo + asks the Easer to re-upload) ──
+  if (action === 'request_photo') {
+    const { photoNote } = req.body;
+    const note = (photoNote || '').trim();
+    // Remove the current photo so a poor or unclear one stops showing to customers
+    // (e.g. on the tracking page) right away; the Easer re-uploads from their profile.
+    const { error: clearErr } = await sb.from('profiles')
+      .update({ profile_photo: null })
+      .eq('id', assemblerId)
+      .eq('role', 'assembler');
+    if (clearErr) {
+      return res.status(503).json({ error: 'Could not update the profile photo. Please retry.', code: 'PHOTO_UPDATE_FAILED' });
+    }
+    const pFirstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const photoEmail = await sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Please update your AssembleAtEase profile photo',
+      replyTo: 'service@assembleatease.com',
+      html: buildEaserAccountEmail({
+        heading: 'Update your profile photo',
+        firstName: pFirstName,
+        bodyHtml: `<p style="font-size:0.95rem;color:#3f3f46;line-height:1.75;margin:0 0 16px">Your profile photo is one of the first things a customer sees before you arrive at their home, so it needs to be clear and professional. We've removed your current photo and would like you to upload a new one.</p>`
+          + (note ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px 16px;margin:0 0 16px"><div style="font-size:0.8rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#0369a1;margin-bottom:6px">What we need</div><div style="font-size:0.92rem;color:#334155;line-height:1.6">${esc(note)}</div></div>` : '')
+          + `<p style="font-size:0.9rem;color:#52525b;line-height:1.7;margin:0">A good photo is a clear, well-lit headshot of your face &mdash; no sunglasses, hats, logos, or group shots. Tap below to update it in your profile.</p>`,
+        ctaText: 'Update my photo',
+        ctaUrl: 'https://www.assembleatease.com/assembler/profile',
+      }),
+      meta: { notificationType: 'easer_photo_request', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+
+    await logActivity(sb, {
+      bookingId: null,
+      eventType: 'easer_photo_requested',
+      actorType: 'owner',
+      actorId: assemblerId,
+      actorName: 'Owner',
+      description: `Requested a new profile photo from ${profile.full_name || assemblerId} and cleared the previous one.` + (note ? ` Note: ${note}` : ''),
+      metadata: { note: note || null },
+    }).catch((e) => console.error('request_photo logActivity error:', e?.message || e));
+
+    return res.status(200).json({ ok: true, action: 'photo_requested', emailDelivered: photoEmail?.ok === true && !photoEmail?.suppressed });
   }
 
   // ── PROMOTE / DEMOTE ─────────────────────────────────────────────────────

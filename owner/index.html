@@ -5812,6 +5812,25 @@ window.intelQuick = intelQuick;
       return;
     }
 
+    if (pendingAction.type === 'request-photo-assembler') {
+      var photoNote = reason;
+      var aIdPhoto = pendingAction.assemblerId;
+      var reopenPhotoDetail = !!pendingAction.reopenDetail;
+      $reasonModal.classList.remove('open');
+      $reasonText.style.display = '';
+      pendingAction = null;
+      try {
+        var photoBody = { assemblerId: aIdPhoto, action: 'request_photo' };
+        if (photoNote) photoBody.photoNote = photoNote;
+        var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(photoBody) });
+        var data = await r.json();
+        if (!r.ok || data.error) { toast(data.error || 'Failed to request a new photo', 'error'); return; }
+        toast(data.emailDelivered === false ? 'Photo removed; email needs manual follow-up' : 'Photo removed — new-photo request emailed', data.emailDelivered === false ? 'error' : 'success');
+        await reloadAssemblersAndMaybeRefreshDetail(aIdPhoto, reopenPhotoDetail);
+      } catch { toast('Action failed — check connection', 'error'); }
+      return;
+    }
+
     if (pendingAction.type === 'delete-assembler') {
       var aIdDel = pendingAction.assemblerId;
       var delName = pendingAction.name;
@@ -8401,8 +8420,8 @@ window.intelQuick = intelQuick;
     var applicationStatus = String(a.application_status || '').trim().toLowerCase();
 
     if (status === 'rejected' || applicationStatus === 'rejected' || tier === 'rejected') status = 'rejected';
-    else if (status === 'suspended' || tier === 'suspended') status = 'suspended';
     else if (status === 'deactivated') status = 'deactivated';
+    else if (status === 'suspended' || tier === 'suspended') status = 'suspended';
     else if (status === 'pending' || applicationStatus === 'pending') status = 'pending';
     else if (status === 'active') status = 'active';
     else if (['starter', 'professional', 'elite'].includes(tier)) status = 'active';
@@ -8826,6 +8845,7 @@ window.intelQuick = intelQuick;
       (a.profile_photo
         ? '<div style="text-align:center;margin-bottom:0.75rem"><img src="' + esc(a.profile_photo) + '" alt="' + esc(a.full_name) + '" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" onerror="this.parentNode.innerHTML=\'&lt;div style=&quot;width:96px;height:96px;border-radius:50%;background:#e4e4e7;color:#71717a;display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700&quot;&gt;' + esc((a.full_name||'?').trim().charAt(0).toUpperCase()) + '&lt;/div&gt;\'"></div>'
         : '<div style="text-align:center;margin-bottom:0.75rem"><div style="width:96px;height:96px;border-radius:50%;background:#e4e4e7;color:#71717a;display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700">' + esc((a.full_name||'?').trim().charAt(0).toUpperCase()) + '</div><div style="font-size:0.72rem;color:var(--muted);margin-top:4px">No photo uploaded</div></div>'),
+      '<div style="text-align:center;margin:-0.35rem 0 0.85rem"><button class="btn" style="font-size:0.72rem;padding:4px 11px;color:var(--muted);border:1px solid var(--border);background:#fff" onclick="requestPhotoFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Request new profile photo</button></div>',
       (['requested','reviewing'].includes(a.account_closure_status)
         ? '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.7rem 0.8rem;margin-bottom:0.75rem;color:#9a3412"><strong>Account closure requested.</strong> Review active work, unpaid earnings, W-9/tax retention, and access before completing or removing this Easer.'
           + (a.account_closure_requested_at ? '<br><span style="font-size:0.75rem">Requested ' + esc(formatDate(a.account_closure_requested_at)) + '</span>' : '') + '</div>'
@@ -9086,6 +9106,20 @@ window.intelQuick = intelQuick;
     document.getElementById('reason-confirm').textContent = 'Reactivate & restore login';
     document.getElementById('reason-confirm').className = 'btn btn-teal';
     $reasonText.style.display = 'none';
+    $reasonText.value = '';
+    $reasonModal.classList.add('open');
+  };
+
+  window.requestPhotoFromDetail = function(id, name) {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    prepareReasonModal();
+    pendingAction = { type: 'request-photo-assembler', assemblerId: id, reopenDetail:true };
+    document.getElementById('reason-modal-title').textContent = 'Request a new profile photo — ' + name;
+    document.getElementById('reason-modal-desc').textContent = 'This removes ' + name + '’s current photo (so a poor or unclear one stops showing to customers) and emails them to upload a new one. Add a short note on what’s needed — it’s included in the email.';
+    document.getElementById('reason-confirm').textContent = 'Remove photo & request new';
+    document.getElementById('reason-confirm').className = 'btn btn-teal';
+    $reasonText.style.display = '';
+    $reasonText.placeholder = 'What’s needed? e.g. "clear, well-lit headshot of your face — no sunglasses or logos"';
     $reasonText.value = '';
     $reasonModal.classList.add('open');
   };
