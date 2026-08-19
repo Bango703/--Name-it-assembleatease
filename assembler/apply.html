@@ -1053,6 +1053,24 @@
             <span class="field-error" id="transport-error"></span>
           </div>
           <div class="form-group">
+            <label>Do you own or work for another home-services, repair, handyman, or contracting business? *</label>
+            <div class="radio-row">
+              <label class="radio-option">
+                <input type="radio" name="competing" value="yes" />
+                <span class="choice-mark"></span>
+                <span class="choice-text"><strong>Yes</strong><small>I run or work for another home-services business.</small></span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="competing" value="no" />
+                <span class="choice-mark"></span>
+                <span class="choice-text"><strong>No</strong><small>AssembleAtEase only.</small></span>
+              </label>
+            </div>
+            <input type="text" id="competing-details" class="form-control" placeholder="If yes: business name and website" style="margin-top:0.6rem" />
+            <span class="field-hint">Running your own business is fine &mdash; approved Easers simply agree not to solicit or divert AssembleAtEase customers to it (see the Independent Contractor Agreement).</span>
+            <span class="field-error" id="competing-error"></span>
+          </div>
+          <div class="form-group">
             <label for="bio">Tell us about your work</label>
             <textarea id="bio" class="form-control" rows="4" placeholder="Share the types of jobs you have handled, tools you use, and what makes your work careful."></textarea>
             <span class="field-hint">Optional, but strong details help us review your application faster.</span>
@@ -1172,7 +1190,7 @@
     <div class="success-icon">&#10003;</div>
     <h2 id="success-heading">Application submitted</h2>
     <p id="success-msg">Thank you for applying. Check your email for the time-limited secure identity-verification link and next steps.</p>
-    <div id="verification-complete-section" class="verification-complete">Verification submitted. Our team will review your application and email you when a decision is made.</div>
+    <div id="verification-complete-section" class="verification-complete">Verification submitted. We will email you when your application status changes.</div>
   </div>
 </div>
 
@@ -1355,7 +1373,7 @@
     var successEl = document.getElementById('success-state');
     successEl.style.display = 'block';
     document.getElementById('success-heading').textContent = 'Verification submitted';
-    document.getElementById('success-msg').textContent = 'Your identity verification has been submitted. Our team will review your application shortly.';
+    document.getElementById('success-msg').textContent = 'Your identity verification has been submitted. We will email you when your application status changes.';
     document.getElementById('verification-complete-section').style.display = 'block';
   }
 
@@ -1529,6 +1547,8 @@
       toolsHidden: toolsHidden,
       toolsVal: toolsVal,
       transportVal: transportVal,
+      competingVal: (document.querySelector('input[name="competing"]:checked') || {}).value || '',
+      competingDetails: (document.getElementById('competing-details') || {}).value ? document.getElementById('competing-details').value.trim() : '',
     };
   }
 
@@ -1546,6 +1566,7 @@
     if (!data.services.length) { fieldError('services', 'Select at least one service'); hasErr = true; }
     if (!data.toolsHidden && !data.toolsVal) { fieldError('tools', 'Required'); hasErr = true; }
     if (!data.transportVal) { fieldError('transport', 'Required'); hasErr = true; }
+    if (!data.competingVal) { fieldError('competing', 'Required'); hasErr = true; }
     if (!data.contractorAgreed) { fieldError('contractor', 'You must read and sign the Contractor Agreement to continue'); hasErr = true; }
     if (!data.conduct) { fieldError('conduct', 'You must agree to continue'); hasErr = true; }
     if (!applicationAttemptId) {
@@ -1665,7 +1686,12 @@
         hasTools: data.toolsVal === 'yes',
         hasTransport: data.transportVal === 'yes',
         yearsExperience: Number(data.years),
-        bio: data.bio || null,
+        bio: ([
+          (data.competingVal === 'yes'
+            ? ('⚠ Competing home-services business disclosed: ' + (data.competingDetails || 'not specified'))
+            : 'No competing home-services business disclosed.'),
+          (data.bio || '')
+        ].filter(Boolean).join('\n\n')) || null,
         codeOfConduct: true,
         contractorAgreementSigned: true,
         applicationAttemptId: applicationAttemptId,
