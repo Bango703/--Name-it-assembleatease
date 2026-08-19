@@ -388,8 +388,8 @@ export default async function handler(req, res) {
         to: rawProfile.email,
         from: 'AssembleAtEase <booking@assembleatease.com>',
         replyTo: ownerEmail(),
-        subject: 'Application Fee Review Complete - AssembleAtEase',
-        html: '<p>AssembleAtEase completed the Stripe review on your application fee. The financial hold has been cleared.</p><p>Your availability remains offline and your current application/account status has not otherwise changed. Contact support if you have questions.</p>',
+        subject: 'Your application payment hold was cleared',
+        html: '<p>The temporary payment hold on your application has been cleared.</p><p>Your availability remains Offline until you choose to go Online, and your other account settings have not changed. Contact support if you have questions.</p>',
         meta: {
           notificationType: 'easer_application_fee_hold_cleared',
           recipientType: 'easer',
@@ -1022,6 +1022,126 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, action: 'reinstated', status: 'active', tier: restoredTier, emailDelivered: reinstateEmail?.ok === true && !reinstateEmail?.suppressed });
   }
 
+  // ── DEACTIVATE (reversible hard lock — revokes sign-in access) ────────────
+  // Distinct from Suspend: suspend is a reversible PAUSE where the Easer can
+  // still log in and see their status. Deactivate BANS the auth user so they
+  // cannot log in at all, and removes them from every pool. Reversible only by
+  // the owner via `reactivate` (which unbans and returns them to suspended).
+  if (action === 'deactivate') {
+    if (profile.status === 'deactivated') {
+      return res.status(200).json({ ok: true, alreadyDeactivated: true, action: 'deactivated', status: 'deactivated' });
+    }
+    if (!['active', 'suspended'].includes(profile.status)) {
+      return res.status(400).json({ error: 'Only active or suspended Easers can be deactivated.' });
+    }
+
+    // For an ACTIVE Easer, reuse the atomic active-jobs guard to move them to
+    // suspended first — this refuses if a job is in flight and saves previous_tier.
+    if (profile.status === 'active') {
+      const { data: suspensionData, error: suspendErr } = await sb.rpc('suspend_easer_if_no_active_jobs', {
+        p_assembler_id: assemblerId,
+        p_expected_status: rawProfile.status ?? null,
+        p_expected_tier: rawProfile.tier ?? null,
+      });
+      if (suspendErr) {
+        const conflict = suspendErr.code === '40001' || suspendErr.code === '23514'
+          || /changed|active job|assignment|decision/i.test(suspendErr.message || '');
+        return res.status(conflict ? 409 : 503).json({
+          error: conflict
+            ? 'The Easer state changed while deactivating. Refresh and review current assignments.'
+            : 'The suspension safety migration is required before deactivating an Easer.',
+          code: conflict ? 'EASER_DEACTIVATION_CONFLICT' : 'EASER_SUSPENSION_DATABASE_REQUIRED',
+        });
+      }
+      const suspension = Array.isArray(suspensionData) ? suspensionData[0] : suspensionData;
+      if (suspension?.result_action === 'active_jobs') {
+        const activeJobs = Array.isArray(suspension.active_jobs) ? suspension.active_jobs : [];
+        return res.status(409).json({
+          error: `Cannot deactivate — this Easer has ${activeJobs.length} active job(s). Reassign or complete them first.`,
+          activeJobs, code: 'EASER_HAS_ACTIVE_JOBS',
+        });
+      }
+      if (!['suspended', 'already_suspended'].includes(suspension?.result_action)) {
+        return res.status(503).json({ error: 'Deactivation could not confirm a safe paused state first.', code: 'EASER_SUSPENSION_DATABASE_REQUIRED' });
+      }
+    }
+
+    // Reversible sign-in lock: long ban (unbanned on reactivate).
+    const ban = await setEaserAuthBan(sb, assemblerId, true);
+    if (!ban.ok) {
+      return res.status(503).json({
+        error: 'Sign-in access could not be locked. The Easer is paused but not fully deactivated; retry.',
+        code: 'EASER_AUTH_LOCK_FAILED',
+      });
+    }
+
+    const { data: deactivatedRows, error: deactivateErr } = await sb.from('profiles')
+      .update({ status: 'deactivated', is_available: false })
+      .eq('id', assemblerId)
+      .eq('role', 'assembler')
+      .in('status', ['active', 'suspended'])
+      .select('id');
+    if (deactivateErr || !deactivatedRows?.length) {
+      // Never leave someone locked out without a deactivated record — roll back the ban.
+      await setEaserAuthBan(sb, assemblerId, false).catch(() => {});
+      return res.status(409).json({ error: 'The Easer state changed during deactivation. The sign-in lock was rolled back; refresh and retry.', code: 'EASER_DEACTIVATION_CONFLICT' });
+    }
+
+    const { deactivationReason } = req.body;
+    if (deactivationReason?.trim()) console.log(`[deactivate] ${profile.full_name} (${assemblerId}): ${deactivationReason.trim()}`);
+
+    const dFirstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const deactivateEmail = await sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'An update on your AssembleAtEase Easer account',
+      replyTo: 'service@assembleatease.com',
+      html: buildEaserAccountEmail({
+        heading: 'Account deactivated',
+        firstName: dFirstName,
+        bodyHtml: 'Your AssembleAtEase Easer account has been deactivated and sign-in access has been closed. If you believe this is a mistake, reply to this email or contact service@assembleatease.com.',
+      }),
+      meta: { notificationType: 'easer_deactivated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+
+    return res.status(200).json({ ok: true, action: 'deactivated', status: 'deactivated', emailDelivered: deactivateEmail?.ok === true && !deactivateEmail?.suppressed });
+  }
+
+  // ── REACTIVATE (restore sign-in; returns to suspended for owner review) ──
+  if (action === 'reactivate') {
+    if (profile.status !== 'deactivated') {
+      return res.status(400).json({ error: 'Only deactivated Easers can be reactivated.' });
+    }
+    const unban = await setEaserAuthBan(sb, assemblerId, false);
+    if (!unban.ok) {
+      return res.status(503).json({ error: 'Sign-in access could not be restored. Retry.', code: 'EASER_AUTH_UNLOCK_FAILED' });
+    }
+    const { data: reRows, error: reErr } = await sb.from('profiles')
+      .update({ status: 'suspended', is_available: false })
+      .eq('id', assemblerId)
+      .eq('role', 'assembler')
+      .eq('status', 'deactivated')
+      .select('id');
+    if (reErr || !reRows?.length) {
+      return res.status(409).json({ error: 'The Easer state changed during reactivation. Refresh and retry.', code: 'EASER_REACTIVATION_CONFLICT' });
+    }
+    const rFirstName = (profile.full_name || '').split(' ')[0] || 'there';
+    const reEmail = await sendEmail({
+      to: profile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'An update on your AssembleAtEase Easer account',
+      replyTo: 'service@assembleatease.com',
+      html: buildEaserAccountEmail({
+        heading: 'Account access restored',
+        firstName: rFirstName,
+        bodyHtml: 'Your AssembleAtEase Easer account has been reactivated and you can sign in again. Your account is currently paused pending review; we will follow up with any next steps.',
+      }),
+      meta: { notificationType: 'easer_reactivated', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
+    }).catch(e => ({ ok: false, error: e?.message || String(e) }));
+
+    return res.status(200).json({ ok: true, action: 'reactivated', status: 'suspended', emailDelivered: reEmail?.ok === true && !reEmail?.suppressed });
+  }
+
   // ── PROMOTE / DEMOTE ─────────────────────────────────────────────────────
   if (action === 'promote' || action === 'demote') {
     if (profile.status !== 'active') {
@@ -1302,6 +1422,23 @@ export default async function handler(req, res) {
       ? 'auth_access_revocation_failed'
       : (revokeResult.diagnosticPersistenceError ? 'auth_access_revocation_audit_failed' : null);
 
+    const closureNotice = await sendEmail({
+      to: rawProfile.email,
+      from: 'AssembleAtEase <booking@assembleatease.com>',
+      subject: 'Your Easer account has been closed',
+      html: buildEaserAccountEmail({
+        heading: 'Account closed',
+        firstName: String(rawProfile.full_name || 'there').trim().split(/\s+/)[0],
+        bodyHtml: '<p>Your Easer account closure is complete. You will no longer receive job offers, and sign-in access has been removed.</p><p>Business and payment records that must be retained remain protected in accordance with our policies.</p>',
+      }),
+      meta: {
+        notificationType: 'easer_account_closed',
+        recipientType: 'easer',
+        recipientUserId: assemblerId,
+        disableDedupe: true,
+      },
+    }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+
     return res.status(200).json({
       ok: true,
       action: 'account_archived',
@@ -1309,6 +1446,7 @@ export default async function handler(req, res) {
       accessRevoked: revokeResult.revoked,
       authAccess: revokeResult,
       warning,
+      notificationAccepted: closureNotice?.ok === true && !closureNotice?.suppressed,
     });
   }
 
@@ -1467,6 +1605,22 @@ function isMissingAuthUserError(error) {
   const status = Number(error?.status || error?.statusCode || 0);
   const message = String(error?.message || error || '');
   return status === 404 || /user[^\n]*not found|not found[^\n]*user/i.test(message);
+}
+
+// Reversible sign-in lock for Deactivate/Reactivate. Banning the Supabase auth
+// user blocks ALL authentication (they cannot log in); unbanning fully restores
+// it. Unlike revokeEaserAuthAccess (which DELETES the auth user and is terminal),
+// this is cleanly reversible — that's why Deactivate uses a ban, not a delete.
+async function setEaserAuthBan(sb, assemblerId, banned) {
+  try {
+    const { error } = await sb.auth.admin.updateUserById(assemblerId, {
+      ban_duration: banned ? '876000h' : 'none',
+    });
+    if (error && !isMissingAuthUserError(error)) throw error;
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || 'Auth ban update failed').slice(0, 500) };
+  }
 }
 
 async function revokeEaserAuthAccess(sb, assemblerId, revokedAt) {

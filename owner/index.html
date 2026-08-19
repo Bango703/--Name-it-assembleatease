@@ -890,6 +890,7 @@
           <button class="tab" data-tier="professional">Professional</button>
           <button class="tab" data-tier="elite">Elite</button>
           <button class="tab" data-tier="suspended">Suspended</button>
+          <button class="tab" data-tier="deactivated">Deactivated</button>
           <button class="tab" data-tier="rejected">Rejected</button>
         </div>
         <div style="overflow-x:auto">
@@ -3815,7 +3816,7 @@ window.intelQuick = intelQuick;
       el.innerHTML = timelineWarning + '<div style="padding-left:18px;border-left:2px solid var(--border)">'
         + items.map(function(a) {
           var isNotif = a._source === 'notification';
-          var isFailed = isNotif && a._status === 'failed';
+          var isFailed = isNotif && ['failed','bounced','complained','delivery_delayed'].includes(a._status);
           var dotColor = isNotif
             ? (isFailed ? '#ef4444' : '#94a3b8')
             : (dotColors[a.event_type] || '#6b7280');
@@ -5772,6 +5773,45 @@ window.intelQuick = intelQuick;
       return;
     }
 
+    if (pendingAction.type === 'deactivate-assembler') {
+      var deactNotes = reason;
+      var aIdDeact = pendingAction.assemblerId;
+      var reopenDeactDetail = !!pendingAction.reopenDetail;
+      $reasonModal.classList.remove('open');
+      $reasonText.style.display = '';
+      pendingAction = null;
+      try {
+        var deactBody = { assemblerId: aIdDeact, action: 'deactivate' };
+        if (deactNotes) deactBody.deactivationReason = deactNotes;
+        var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify(deactBody) });
+        var data = await r.json();
+        if (!r.ok || data.error) {
+          toast(data.error || 'Failed to deactivate Easer account', 'error');
+          if (data.activeJobs) alert('Active jobs:\n' + data.activeJobs.map(function(j) { return '  ' + j.ref + ' — ' + j.service; }).join('\n'));
+          return;
+        }
+        toast('Easer deactivated — sign-in access locked', 'success');
+        await reloadAssemblersAndMaybeRefreshDetail(aIdDeact, reopenDeactDetail);
+      } catch { toast('Action failed — check connection', 'error'); }
+      return;
+    }
+
+    if (pendingAction.type === 'reactivate-assembler') {
+      var aIdReact = pendingAction.assemblerId;
+      var reopenReactDetail = !!pendingAction.reopenDetail;
+      $reasonModal.classList.remove('open');
+      $reasonText.style.display = '';
+      pendingAction = null;
+      try {
+        var r = await fetch('/api/assembler/update', { method: 'POST', headers: headers(), body: JSON.stringify({ assemblerId: aIdReact, action: 'reactivate' }) });
+        var data = await r.json();
+        if (!r.ok || data.error) { toast(data.error || 'Failed to reactivate', 'error'); return; }
+        toast('Easer reactivated — sign-in restored, account paused for review', 'success');
+        await reloadAssemblersAndMaybeRefreshDetail(aIdReact, reopenReactDetail);
+      } catch { toast('Action failed — check connection', 'error'); }
+      return;
+    }
+
     if (pendingAction.type === 'delete-assembler') {
       var aIdDel = pendingAction.assemblerId;
       var delName = pendingAction.name;
@@ -6020,10 +6060,11 @@ window.intelQuick = intelQuick;
 
   function easerAccountBadge(status) {
     var map = {
-      pending:   ['ea-pending',   'Pending Review'],
-      active:    ['ea-active',    'Active'],
-      suspended: ['ea-suspended', 'Suspended'],
-      rejected:  ['ea-rejected',  'Rejected'],
+      pending:     ['ea-pending',   'Pending Review'],
+      active:      ['ea-active',    'Active'],
+      suspended:   ['ea-suspended', 'Suspended'],
+      deactivated: ['ea-rejected',  'Deactivated'],
+      rejected:    ['ea-rejected',  'Rejected'],
     };
     var v = map[status] || ['ea-pending', status || '—'];
     return '<span class="sb ' + v[0] + '">' + esc(v[1]) + '</span>';
@@ -8361,6 +8402,7 @@ window.intelQuick = intelQuick;
 
     if (status === 'rejected' || applicationStatus === 'rejected' || tier === 'rejected') status = 'rejected';
     else if (status === 'suspended' || tier === 'suspended') status = 'suspended';
+    else if (status === 'deactivated') status = 'deactivated';
     else if (status === 'pending' || applicationStatus === 'pending') status = 'pending';
     else if (status === 'active') status = 'active';
     else if (['starter', 'professional', 'elite'].includes(tier)) status = 'active';
@@ -8458,6 +8500,7 @@ window.intelQuick = intelQuick;
     else if (f === 'pending') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'pending'; });
     else if (f === 'active') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'active'; });
     else if (f === 'suspended') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'suspended'; });
+    else if (f === 'deactivated') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'deactivated'; });
     else if (f === 'rejected') filtered = allAssemblerProfiles.filter(function(a){ return a.status === 'rejected'; });
     else if (f === 'starter') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'starter'; });
     else if (f === 'professional') filtered = allAssemblerProfiles.filter(function(a){ return a.tier === 'professional'; });
@@ -8470,6 +8513,7 @@ window.intelQuick = intelQuick;
         : s === 'active' ? allAssemblerProfiles.filter(function(a){ return a.status === 'active'; }).length
         : s === 'pending' ? allAssemblerProfiles.filter(function(a){ return a.status === 'pending'; }).length
         : s === 'suspended' ? allAssemblerProfiles.filter(function(a){ return a.status === 'suspended'; }).length
+        : s === 'deactivated' ? allAssemblerProfiles.filter(function(a){ return a.status === 'deactivated'; }).length
         : s === 'rejected' ? allAssemblerProfiles.filter(function(a){ return a.status === 'rejected'; }).length
         : allAssemblerProfiles.filter(function(a){ return a.tier === s; }).length;
       var span = t.querySelector('.tab-count');
@@ -8714,12 +8758,19 @@ window.intelQuick = intelQuick;
       if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';
       if (a.tier === 'elite') actionBtns += '<button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'professional\')">Demote to Professional</button> ';
       actionBtns += '<button class="btn btn-red" onclick="suspendFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Suspend</button> ';
+      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (locks login)</button> ';
     }
 
-    // REINSTATE (suspended)
+    // REINSTATE + hard DEACTIVATE (suspended)
     if (a.status === 'suspended' && !closureHeld) {
       var prevLabel = { starter:'Starter', professional:'Professional', elite:'Elite' }[a.previous_tier] || 'Starter';
       actionBtns += '<button class="btn btn-teal" onclick="reinstateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\',\'' + prevLabel + '\')">Reinstate (' + prevLabel + ')</button> ';
+      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (locks login)</button> ';
+    }
+
+    // DEACTIVATED (reversible hard lock — restore login)
+    if (a.status === 'deactivated') {
+      actionBtns += '<button class="btn btn-teal" onclick="reactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Reactivate (restore login)</button> ';
     }
 
     // REJECTED actions
@@ -9006,6 +9057,33 @@ window.intelQuick = intelQuick;
     document.getElementById('reason-modal-title').textContent = 'Reinstate Easer — ' + name;
     document.getElementById('reason-modal-desc').textContent = name + ' will be reinstated as a ' + prevTier + ' Easer and will receive a notification email.';
     document.getElementById('reason-confirm').textContent = 'Reinstate';
+    document.getElementById('reason-confirm').className = 'btn btn-teal';
+    $reasonText.style.display = 'none';
+    $reasonText.value = '';
+    $reasonModal.classList.add('open');
+  };
+
+  window.deactivateFromDetail = function(id, name) {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    prepareReasonModal();
+    pendingAction = { type: 'deactivate-assembler', assemblerId: id, reopenDetail:true };
+    document.getElementById('reason-modal-title').textContent = 'Deactivate account — ' + name;
+    document.getElementById('reason-modal-desc').textContent = 'This LOCKS ' + name + ' out of their account — they cannot sign in and are removed from all job dispatch. This is stronger than Suspend. It is reversible: you can Reactivate them later. Reassign any active jobs first.';
+    document.getElementById('reason-confirm').textContent = 'Deactivate & lock login';
+    document.getElementById('reason-confirm').className = 'btn btn-red';
+    $reasonText.style.display = '';
+    $reasonText.placeholder = 'Reason (for your records)';
+    $reasonText.value = '';
+    $reasonModal.classList.add('open');
+  };
+
+  window.reactivateFromDetail = function(id, name) {
+    document.getElementById('asm-detail-modal').classList.remove('open');
+    prepareReasonModal();
+    pendingAction = { type: 'reactivate-assembler', assemblerId: id, reopenDetail:true };
+    document.getElementById('reason-modal-title').textContent = 'Reactivate account — ' + name;
+    document.getElementById('reason-modal-desc').textContent = name + ' will be able to sign in again. Their account is returned to Suspended (paused) so you can review before reinstating them to active.';
+    document.getElementById('reason-confirm').textContent = 'Reactivate & restore login';
     document.getElementById('reason-confirm').className = 'btn btn-teal';
     $reasonText.style.display = 'none';
     $reasonText.value = '';
