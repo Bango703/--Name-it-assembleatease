@@ -2,6 +2,8 @@ import { randomUUID } from 'crypto';
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, buildStatusEmail, ownerEmail, esc, formatAddress } from '../_email.js';
 import { logActivity } from '../booking/_activity.js';
+import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { validateBookingWindowDate } from '../booking/_booking-window.js';
 
 const SITE = process.env.PUBLIC_SITE_URL || 'https://www.assembleatease.com';
 
@@ -51,6 +53,12 @@ export default async function handler(req, res) {
       code: 'FINANCIAL_OPERATION_IN_PROGRESS',
     });
   }
+  if (booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
+    return res.status(409).json({
+      error: 'This booking needs payment or cancellation reconciliation before it can be edited.',
+      code: 'BOOKING_RECONCILIATION_REQUIRED',
+    });
+  }
 
   if (typeof totalPrice === 'number') {
     if (booking.stripe_payment_intent_id
@@ -68,6 +76,12 @@ export default async function handler(req, res) {
 
   const serviceChanged = Boolean(service && service !== booking.service);
   const addressChanged = Boolean(address && address !== booking.address);
+  if (booking.rebooked_from_booking_id && (serviceChanged || addressChanged)) {
+    return res.status(409).json({
+      error: 'The service and address are locked on a replacement appointment because they determine price, tax, and payment terms. Cancel this replacement and rebook again if the scope or location changed.',
+      code: 'REBOOK_SCOPE_LOCKED',
+    });
+  }
   const assignmentExists = Boolean(booking.assembler_id || booking.assigned_at || booking.assembler_accepted_at);
   if (!recordOnlyOwnerManual && (serviceChanged || addressChanged) && (hasBookingPaymentState(booking) || assignmentExists)) {
     return res.status(409).json({
@@ -88,6 +102,28 @@ export default async function handler(req, res) {
     (date && date !== booking.date)
     || (time && time !== booking.time),
   );
+  if (scheduleChanged && booking.rebooked_from_booking_id) {
+    const nextDate = date || booking.date;
+    const nextTime = time || booking.time;
+    const dateWindow = validateBookingWindowDate(nextDate);
+    const appointmentMs = appointmentTimestampMs(nextDate, nextTime);
+    if (!dateWindow.ok || appointmentMs == null || appointmentMs <= Date.now()) {
+      return res.status(400).json({
+        error: 'Choose a valid future appointment within the current 30-day booking window.',
+        code: !dateWindow.ok ? dateWindow.code : 'REBOOK_APPOINTMENT_INVALID',
+      });
+    }
+  }
+  if (scheduleChanged
+      && booking.rebooked_from_booking_id
+      && booking.status === 'pending'
+      && booking.payment_status === 'pending'
+      && booking.stripe_payment_intent_id) {
+    return res.status(409).json({
+      error: 'The customer already opened this rebooking payment link, so its appointment details are locked to the linked authorization. Cancel this replacement and create a new rebooking if the schedule changed.',
+      code: 'REBOOK_SCHEDULE_LOCKED_AFTER_PAYMENT_STARTED',
+    });
+  }
   const easerReconfirmationRequired = Boolean(!recordOnlyOwnerManual && scheduleChanged && booking.assembler_id);
   const nextAssignmentToken = easerReconfirmationRequired ? randomUUID() : booking.assignment_token;
   const currentDispatchAttempt = Number(booking.dispatch_attempt || 0);

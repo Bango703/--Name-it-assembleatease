@@ -129,6 +129,36 @@ const pastOutcome = await authorizeScheduledBooking({
 assert.deepEqual(pastOutcome, { ok: false, reason: 'outside_authorization_window', actionRequired: true });
 assert.equal(pastSb.state.booking.payment_status, 'card_saved');
 
+const actionBooking = {
+  ...booking,
+  guest_mutation_token_hash: 'existing-secure-token-hash',
+  financial_reconciliation_required_at: null,
+  cancellation_reconciliation_required_at: null,
+};
+const actionSb = fakeSupabase(actionBooking);
+const priorResendKey = process.env.RESEND_API_KEY;
+delete process.env.RESEND_API_KEY;
+const actionOutcome = await authorizeScheduledBooking({
+  sb: actionSb,
+  stripe: {
+    paymentIntents: {
+      async create() { return structuredClone(intent); },
+      async confirm() { return { ...structuredClone(intent), status: 'requires_action' }; },
+      async cancel() { throw new Error('A linked customer-action authorization must not be cancelled.'); },
+    },
+  },
+  booking: actionBooking,
+  expectedLivemode: false,
+  todayIso: '2026-08-15',
+});
+if (priorResendKey == null) delete process.env.RESEND_API_KEY;
+else process.env.RESEND_API_KEY = priorResendKey;
+assert.deepEqual(actionOutcome, { ok: false, reason: 'customer_authentication_required', actionRequired: true });
+assert.equal(actionSb.state.booking.payment_status, 'pending');
+assert.equal(actionSb.state.booking.dispatch_status, 'payment_hold');
+assert.equal(actionSb.state.booking.dispatch_paused, true);
+assert.equal(actionSb.state.booking.guest_mutation_token_hash, 'existing-secure-token-hash', 'failed recovery email must restore the prior customer token');
+
 const [bookHtml, bookingApi, setupApi, cronApi, ownerApi, marketApi, attributionScript, migration, vercel] = await Promise.all([
   source('book.html'), source('api/booking.js'), source('api/booking/setup-intent.js'),
   source('api/cron/authorize-scheduled-payments.js'), source('api/owner/live-ops.js'),

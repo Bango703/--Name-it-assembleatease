@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const { data: booking, error: bookingError } = await sb.from('bookings')
-    .select('id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, created_at, financial_operation_key, financial_operation_type, financial_operation_started_at')
+    .select('id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, total_price, stripe_payment_intent_id, stripe_customer_id, guest_mutation_token_hash, created_at, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -128,6 +128,8 @@ export default async function handler(req, res) {
       .is('financial_operation_key', null)
       .is('financial_operation_type', null)
       .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null)
       .select('id');
     if (linkError || !linkedRows?.length) {
       const { data: current, error: currentError } = await sb.from('bookings')
@@ -169,6 +171,8 @@ export default async function handler(req, res) {
           .is('financial_operation_key', null)
           .is('financial_operation_type', null)
           .is('financial_operation_started_at', null)
+          .is('financial_reconciliation_required_at', null)
+          .is('cancellation_reconciliation_required_at', null)
           .select('id');
         linkedByRecoveryCas = !recoveryError && !!recoveryRows?.length;
         if (!linkedByRecoveryCas) {
@@ -242,6 +246,8 @@ export default async function handler(req, res) {
       .is('financial_operation_key', null)
       .is('financial_operation_type', null)
       .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null)
       .select('id');
     if (resetError) return res.status(503).json({ error: 'The recoverable payment state could not be saved. No email was sent.' });
     if (!resetRows?.length) {
@@ -262,7 +268,9 @@ export default async function handler(req, res) {
     .eq('stripe_payment_intent_id', intent.id)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
-    .is('financial_operation_started_at', null);
+    .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null)
+    .is('cancellation_reconciliation_required_at', null);
   tokenRotation = booking.guest_mutation_token_hash
     ? tokenRotation.eq('guest_mutation_token_hash', booking.guest_mutation_token_hash)
     : tokenRotation.is('guest_mutation_token_hash', null);
@@ -308,6 +316,8 @@ export default async function handler(req, res) {
       .is('financial_operation_key', null)
       .is('financial_operation_type', null)
       .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null)
       .select('id');
     tokenRollbackFailed = !!rollbackError || !rollbackRows?.length;
     if (!tokenRollbackFailed) {
@@ -366,7 +376,9 @@ async function ownerRecoveryStillUnlocked({ sb, booking, paymentIntentId, paymen
     .eq('stripe_payment_intent_id', paymentIntentId)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
-    .is('financial_operation_started_at', null);
+    .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null)
+    .is('cancellation_reconciliation_required_at', null);
   query = booking.guest_mutation_token_hash
     ? query.eq('guest_mutation_token_hash', booking.guest_mutation_token_hash)
     : query.is('guest_mutation_token_hash', null);
@@ -385,6 +397,18 @@ async function cancelProvenUnlinkedPaymentIntent({ stripe, sb, bookingId, paymen
     throw new Error(`Stripe returned ${cancelled?.status || 'unknown'} after cancellation`);
   } catch (error) {
     console.error(`[${context}] Unlinked PaymentIntent needs reconciliation:`, error?.message || error);
+    await sb.from('bookings').update({
+      dispatch_paused: true,
+      needs_manual_dispatch: true,
+      financial_reconciliation_required_at: new Date().toISOString(),
+      financial_reconciliation_reason: 'An unlinked Stripe PaymentIntent could not be confirmed cancelled.',
+    })
+      .eq('id', bookingId)
+      .is('financial_operation_key', null)
+      .is('financial_operation_type', null)
+      .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null);
     await logPaymentReconciliation(sb, {
       bookingId,
       eventType: 'payment_recovery_unlinked_intent_reconciliation_required',
@@ -417,7 +441,9 @@ function hasActiveFinancialOperation(booking) {
   return Boolean(
     booking?.financial_operation_key
     || booking?.financial_operation_type
-    || booking?.financial_operation_started_at,
+    || booking?.financial_operation_started_at
+    || booking?.financial_reconciliation_required_at
+    || booking?.cancellation_reconciliation_required_at,
   );
 }
 

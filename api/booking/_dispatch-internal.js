@@ -95,8 +95,9 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
       code: 'DISPATCH_PAYMENT_NOT_VERIFIED',
     };
   }
-  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at) {
-    return { dispatched: 0, message: 'Booking locked by a financial operation' };
+  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
+      || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
+    return { dispatched: 0, message: 'Booking locked by a financial operation or reconciliation review' };
   }
   if (booking.assembler_id) return { dispatched: 0, message: 'Already assigned' };
   if (booking.dispatch_paused) return { dispatched: 0, message: 'Dispatch paused by owner' };

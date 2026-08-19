@@ -247,7 +247,7 @@ assert.ok(migrationCompact.includes("RETURN QUERY SELECT 'financial_operation'::
 assert.ok(migrationCompact.includes('AND financial_operation_key IS NULL'));
 assert.ok(acceptCompact.includes(".is('financial_operation_key', null)"));
 assert.ok(assignCompact.includes(".is('financial_operation_key', null)"));
-assert.ok(dispatchSource.includes('if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at)'));
+assert.match(dispatchSource, /if \(booking\.financial_operation_key \|\| booking\.financial_operation_type \|\| booking\.financial_operation_started_at[\s\S]{0,160}?financial_reconciliation_required_at/);
 assert.ok(dispatchSource.includes('if (!isBookingPaymentReadyForDispatch(booking))'));
 assert.ok(dispatchSource.includes("code: 'DISPATCH_PAYMENT_NOT_VERIFIED'"));
 assert.ok(dispatchCompact.includes(".is('financial_operation_key', null)"));

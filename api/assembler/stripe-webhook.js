@@ -6,6 +6,7 @@ import { logActivity } from '../booking/_activity.js';
 import { claimStripeWebhookEvent, finalizeStripeWebhookEvent, writeFinancialAudit } from '../_financial-audit.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { validateBookingPaymentIntent } from '../booking/_pending-payment-recovery.js';
+import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 import {
   buildIdentityResumeUrl,
   ensureIdentityResumeToken,
@@ -387,7 +388,7 @@ export default async function handler(req, res) {
         webhookPaymentIntentId = pi.id;
 
         const { data: existing, error: existingError } = await sb.from('bookings')
-          .select('id, ref, payment_status, status, payment_authorized_at, confirmed_at, dispatch_status, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, guest_mutation_token_hash')
+          .select('id, ref, payment_status, status, payment_authorized_at, confirmed_at, dispatch_status, dispatch_paused, needs_manual_dispatch, call_zone, service_zip, customer_name, customer_email, service, address, date, time, total_price, deposit_amount, is_deposit, assembler_id, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at, guest_mutation_token_hash')
           .eq('id', bookingId)
           .maybeSingle();
 
@@ -401,7 +402,8 @@ export default async function handler(req, res) {
           webhookMetadata = { ...webhookMetadata, reason: 'booking-not-found', bookingId };
           break;
         }
-        if (existing.financial_operation_key) {
+        if (existing.financial_operation_key || existing.financial_operation_type || existing.financial_operation_started_at
+            || existing.financial_reconciliation_required_at || existing.cancellation_reconciliation_required_at) {
           webhookOutcome = 'ignored';
           webhookMetadata = { ...webhookMetadata, reason: 'financial-operation-will-reconcile-authorization', bookingId, financialOperationType: existing.financial_operation_type || null };
           break;
@@ -481,6 +483,8 @@ export default async function handler(req, res) {
         const authorizedAt = new Date().toISOString();
         // Repair either half of the confirmed/authorized state pair. Stripe is
         // validated first, and the linked PaymentIntent participates in the CAS.
+        const requiresOwnerAssignment = existing.call_zone === 'texas_statewide'
+          || !isAutomaticDispatchZip(existing.service_zip || '');
         const authorizationUpdate = {
           payment_status: 'authorized',
           payment_authorized_at: existing.payment_authorized_at || authorizedAt,
@@ -491,7 +495,7 @@ export default async function handler(req, res) {
           ...(existing.dispatch_status === 'payment_hold' ? {
             dispatch_status: null,
             dispatch_paused: false,
-            needs_manual_dispatch: false,
+            needs_manual_dispatch: requiresOwnerAssignment,
           } : {}),
         };
         const { error: authErr, data: authRows } = await sb.from('bookings').update(authorizationUpdate)
@@ -500,6 +504,10 @@ export default async function handler(req, res) {
           .eq('payment_status', existing.payment_status)
           .eq('stripe_payment_intent_id', pi.id)
           .is('financial_operation_key', null)
+          .is('financial_operation_type', null)
+          .is('financial_operation_started_at', null)
+          .is('financial_reconciliation_required_at', null)
+          .is('cancellation_reconciliation_required_at', null)
           .select('id');
 
         if (authErr) {

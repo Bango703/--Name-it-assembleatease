@@ -352,7 +352,7 @@ assert.match(bookingApi, /requiresOwnerAssignment = !isAutomaticDispatchZip\(zip
 assert.match(bookingApi, /needs_manual_dispatch: requiresOwnerAssignment/, 'Booking creation must persist statewide manual-dispatch truth');
 const bookingConfirmedApi = source('api/booking-confirmed.js');
 assert.match(bookingConfirmedApi, /booking\.needs_manual_dispatch\) return/, 'Payment confirmation must not auto-dispatch owner-assigned statewide jobs');
-assert.match(bookingConfirmedApi, /booking\.call_zone === 'texas_statewide'/, 'Payment-hold recovery must preserve statewide manual assignment');
+assert.match(bookingConfirmedApi, /!\['austin_core', 'near_suburb'\]\.includes\(booking\.call_zone\)/, 'Payment-hold recovery must preserve statewide or unknown-zone manual assignment');
 assert.match(bookingConfirmedApi, /booking\.needs_manual_dispatch = updatePayload\.needs_manual_dispatch/, 'Recovered dispatch truth must update the current request before dispatch runs');
 const homePage = source('index.html');
 assert.doesNotMatch(homePage, /p===['"]788['"]|786xx through 788xx/);

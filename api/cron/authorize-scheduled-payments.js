@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { getSupabase } from '../_supabase.js';
 import { esc, ownerEmail, sendEmail } from '../_email.js';
-import { deriveGuestMutationToken } from '../_payment-security.js';
+import { randomToken, sha256 } from '../_payment-security.js';
 import { isAutomaticDispatchZip } from '../_source-of-truth.js';
 import { dispatchBooking } from '../booking/_dispatch-internal.js';
 import { addIsoDays, SCHEDULED_AUTHORIZATION_LEAD_DAYS } from '../booking/_booking-window.js';
@@ -224,8 +224,19 @@ export async function authorizeScheduledBooking({ sb, stripe, booking, expectedL
       await sendOwnerAlert(booking, 'Customer-action payment could not be linked. Reconcile before dispatch.').catch(() => {});
       return { ok: false, reason: 'payment_recovery_link_failed', actionRequired: true };
     }
-    await sendCustomerRecovery(booking).catch(error => console.error('[scheduled-auth] customer recovery email failed:', error?.message || error));
-    await sendOwnerAlert(booking, 'The customer was sent a secure link to verify their card. Dispatch remains paused.').catch(() => {});
+    const recoveryBooking = {
+      ...booking,
+      payment_status: 'pending',
+      stripe_payment_intent_id: intent.id,
+    };
+    const recoveryResult = await sendCustomerRecovery(sb, recoveryBooking)
+      .catch(error => ({ ok: false, error: error?.message || String(error) }));
+    await sendOwnerAlert(
+      recoveryBooking,
+      recoveryResult?.ok
+        ? 'The customer was sent a secure link to verify their card. Dispatch remains paused.'
+        : 'The customer payment needs another confirmation, but the secure email was not delivered. Resend it from the booking before dispatch.',
+    ).catch(() => {});
     return { ok: false, reason: 'customer_authentication_required', actionRequired: true };
   }
 
@@ -317,12 +328,16 @@ async function cancelIntent(stripe, intent, expectedLivemode, idempotencyKey) {
 }
 
 async function markReconciliation(sb, booking, operationKey, reason) {
-  await sb.from('bookings').update({
+  let query = sb.from('bookings').update({
     dispatch_paused: true,
     needs_manual_dispatch: true,
     financial_reconciliation_required_at: new Date().toISOString(),
     financial_reconciliation_reason: reason,
-  }).eq('id', booking.id).eq('financial_operation_key', operationKey);
+  }).eq('id', booking.id);
+  query = operationKey
+    ? query.eq('financial_operation_key', operationKey)
+    : query.is('financial_operation_key', null);
+  await query;
 }
 
 async function sendAuthorizationSuccess(booking) {
@@ -336,17 +351,56 @@ async function sendAuthorizationSuccess(booking) {
   });
 }
 
-async function sendCustomerRecovery(booking) {
-  const token = deriveGuestMutationToken({ id: booking.id, bookingId: booking.id, ref: booking.ref, email: booking.customer_email });
+async function sendCustomerRecovery(sb, booking) {
+  const previousHash = booking.guest_mutation_token_hash || null;
+  const token = randomToken(32);
+  const nextHash = sha256(token);
+  let tokenQuery = sb.from('bookings').update({ guest_mutation_token_hash: nextHash })
+    .eq('id', booking.id)
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'pending')
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null)
+    .is('cancellation_reconciliation_required_at', null);
+  tokenQuery = previousHash
+    ? tokenQuery.eq('guest_mutation_token_hash', previousHash)
+    : tokenQuery.is('guest_mutation_token_hash', null);
+  const { data: tokenRows, error: tokenError } = await tokenQuery.select('id');
+  if (tokenError || !tokenRows?.length) {
+    return { ok: false, error: tokenError?.message || 'Booking state changed before the secure link was saved.' };
+  }
+
   const url = `${SITE}/api/booking/payment-recovery?bookingId=${encodeURIComponent(booking.id)}&token=${encodeURIComponent(token)}`;
-  return sendEmail({
+  const emailResult = await sendEmail({
     to: booking.customer_email,
     from: 'AssembleAtEase <booking@assembleatease.com>',
     subject: `Confirm your card for ${booking.ref}`,
     replyTo: 'service@assembleatease.com',
-    meta: { bookingId: booking.id, notificationType: 'scheduled_payment_action_required', recipientType: 'customer' },
+    meta: { bookingId: booking.id, notificationType: 'scheduled_payment_action_required', recipientType: 'customer', dedupeWindowMin: 2 },
     html: `<p>Hi ${esc(booking.customer_name)},</p><p>Your bank needs one more confirmation before your ${esc(booking.service)} appointment on <strong>${esc(booking.date)}</strong>.</p><p><a href="${esc(url)}">Confirm your card securely</a></p><p>No payment is collected until completed work.</p>`,
-  });
+  }).catch(error => ({ ok: false, error: error?.message || String(error) }));
+
+  const delivered = emailResult?.ok === true && emailResult?.suppressed !== true;
+  if (delivered) return { ok: true };
+
+  let rollbackQuery = sb.from('bookings').update({ guest_mutation_token_hash: previousHash })
+    .eq('id', booking.id)
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'pending')
+    .eq('stripe_payment_intent_id', booking.stripe_payment_intent_id)
+    .eq('guest_mutation_token_hash', nextHash)
+    .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null);
+  const { data: rollbackRows, error: rollbackError } = await rollbackQuery.select('id');
+  if (rollbackError || !rollbackRows?.length) {
+    await markReconciliation(sb, booking, null, 'Scheduled customer payment email failed and secure-link rollback could not be verified.');
+    return { ok: false, error: 'Secure-link rollback could not be verified.' };
+  }
+  return { ok: false, error: emailResult?.error || 'Customer payment email was not delivered.' };
 }
 
 async function sendOwnerAlert(booking, message) {

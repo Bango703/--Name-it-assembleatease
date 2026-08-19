@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   const sb = getSupabase();
   const { data: booking, error } = await sb
     .from('bookings')
-    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type')
+    .select('id, ref, service, customer_name, customer_phone, customer_email, address, date, time, details, total_price, call_zone, stripe_payment_intent_id, stripe_customer_id, payment_status, status, dispatch_status, dispatch_paused, needs_manual_dispatch, assembler_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
     .eq('id', bookingId)
     .single();
 
@@ -51,7 +51,8 @@ export default async function handler(req, res) {
   if (!safeTokenHashMatch(guestMutationToken, booking.guest_mutation_token_hash)) {
     return res.status(403).json({ error: 'Invalid secure booking confirmation token.' });
   }
-  if (booking.financial_operation_key) {
+  if (booking.financial_operation_key || booking.financial_operation_type || booking.financial_operation_started_at
+      || booking.financial_reconciliation_required_at || booking.cancellation_reconciliation_required_at) {
     return res.status(409).json({
       error: 'A cancellation or payment action is already being reconciled for this booking. Refresh the tracking page before continuing.',
       code: 'BOOKING_FINANCIAL_OPERATION_IN_PROGRESS',
@@ -110,7 +111,7 @@ export default async function handler(req, res) {
     confirmed_by: 'payment',
   };
   if (booking.dispatch_status === 'payment_hold') {
-    const requiresOwnerAssignment = booking.call_zone === 'texas_statewide';
+    const requiresOwnerAssignment = !['austin_core', 'near_suburb'].includes(booking.call_zone);
     updatePayload.dispatch_status = null;
     updatePayload.dispatch_paused = false;
     updatePayload.needs_manual_dispatch = requiresOwnerAssignment;
@@ -125,6 +126,10 @@ export default async function handler(req, res) {
     .in('status', ['pending', 'confirmed'])
     .in('payment_status', ['pending', 'failed', 'authorized'])
     .is('financial_operation_key', null)
+    .is('financial_operation_type', null)
+    .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null)
+    .is('cancellation_reconciliation_required_at', null)
     .select('id');
 
   if (updateErr) {

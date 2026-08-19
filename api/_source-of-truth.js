@@ -32,6 +32,11 @@ export const DISPATCH_PAYMENT_STATUSES = Object.freeze([
 export function isBookingPaymentReadyForDispatch(booking = {}, {
   vercelEnv = process.env.VERCEL_ENV,
 } = {}) {
+  if (booking.financial_operation_key
+      || booking.financial_operation_type
+      || booking.financial_operation_started_at
+      || booking.financial_reconciliation_required_at
+      || booking.cancellation_reconciliation_required_at) return false;
   const disputeStatus = String(booking.stripe_dispute_status || '').toLowerCase();
   if (booking.stripe_dispute_id && !['won', 'warning_closed', 'prevented'].includes(disputeStatus)) return false;
   const totalCents = Number(booking.total_price || 0);

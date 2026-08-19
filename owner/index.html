@@ -1736,7 +1736,7 @@ window.intelQuick = intelQuick;
           <option value="other">Other</option>
         </select>
       </div>
-      <div>
+      <div id="ocb-payment-method-block">
         <label class="modal-label" id="ocb-payment-method-label">Payment Method</label>
         <select class="modal-input" id="ocb-payment-method">
           <option value="">To be collected</option>
@@ -1755,7 +1755,7 @@ window.intelQuick = intelQuick;
     <textarea class="modal-input" id="ocb-note" placeholder="Optional internal note" rows="2" style="resize:vertical"></textarea>
     <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer">
       <input type="checkbox" id="ocb-send-confirmation" checked style="width:15px;height:15px;accent-color:var(--teal)"/>
-      Email confirmation to customer if email is provided
+      <span id="ocb-send-confirmation-copy">Email confirmation to customer if email is provided</span>
     </label>
     <label id="ocb-completed-row" style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--soft);cursor:pointer;margin-top:0.35rem">
       <input type="checkbox" id="ocb-already-completed" style="width:15px;height:15px;accent-color:var(--teal)"/>
@@ -4166,9 +4166,13 @@ window.intelQuick = intelQuick;
     var reasonInput = document.getElementById('ocb-reason');
     if (reasonInput) reasonInput.value = '';
     var methodInput = document.getElementById('ocb-payment-method');
-    if (methodInput) methodInput.value = '';
+    if (methodInput) { methodInput.value = ''; methodInput.disabled = false; }
+    var paymentMethodBlock = document.getElementById('ocb-payment-method-block');
+    if (paymentMethodBlock) paymentMethodBlock.style.display = '';
     var sendConfirmation = document.getElementById('ocb-send-confirmation');
-    if (sendConfirmation) sendConfirmation.checked = true;
+    if (sendConfirmation) { sendConfirmation.checked = true; sendConfirmation.disabled = false; }
+    var sendConfirmationCopy = document.getElementById('ocb-send-confirmation-copy');
+    if (sendConfirmationCopy) sendConfirmationCopy.textContent = 'Email confirmation to customer if email is provided';
     var alreadyCompleted = document.getElementById('ocb-already-completed');
     if (alreadyCompleted) alreadyCompleted.checked = false;
     var customerTerms = document.getElementById('ocb-customer-terms');
@@ -4216,12 +4220,16 @@ window.intelQuick = intelQuick;
       if (dateInput) dateInput.value = String(rebookSource.date || '') >= today ? rebookSource.date : '';
       if (sourceInput) sourceInput.value = rebookSource.id || '';
       if (title) title.textContent = 'Review and Rebook';
-      if (description) description.textContent = 'Review every copied detail before creating a separate owner booking. The cancelled record remains unchanged.';
+      if (description) description.textContent = 'Review the replacement appointment. The customer must add a payment method before the booking can be confirmed or assigned.';
       if (notice) {
         notice.style.display = '';
-        notice.textContent = 'Copied from cancelled booking ' + (rebookSource.ref || '') + '. Confirm the new date, time, current price, address, payment arrangement, and customer agreement. No old payment or Easer assignment will be reused.';
+        notice.textContent = 'Copied from cancelled booking ' + (rebookSource.ref || '') + '. Confirm the new date, time, current price, address, and customer agreement. A secure payment-method email will be sent; no old payment or Easer assignment will be reused.';
       }
-      if (submit) submit.textContent = 'Create New Booking';
+      if (submit) submit.textContent = 'Create and Email Payment Link';
+      if (methodInput) methodInput.disabled = true;
+      if (paymentMethodBlock) paymentMethodBlock.style.display = 'none';
+      if (sendConfirmation) { sendConfirmation.checked = true; sendConfirmation.disabled = true; }
+      if (sendConfirmationCopy) sendConfirmationCopy.textContent = 'Send the secure payment-method email to the customer';
       if (completedRow) completedRow.style.display = 'none';
     }
     updateOwnerCreateTaxPreview();
@@ -4275,6 +4283,19 @@ window.intelQuick = intelQuick;
 
     var standardPriceCents = centsFromDollarsInput(document.getElementById('ocb-standard').value);
     var alreadyCompleted = !!document.getElementById('ocb-already-completed').checked;
+    var rebookedFromBookingId = (document.getElementById('ocb-rebooked-from').value || '').trim() || null;
+    if (rebookedFromBookingId) {
+      var rebookEmail = (document.getElementById('ocb-email').value || '').trim();
+      var rebookPhone = (document.getElementById('ocb-phone').value || '').trim();
+      var rebookTime = (document.getElementById('ocb-time').value || '').trim();
+      if (!rebookEmail || !rebookPhone || !rebookTime) {
+        if (errEl) {
+          errEl.textContent = 'Customer email, phone, and appointment time are required to send a secure rebooking payment link.';
+          errEl.style.display = '';
+        }
+        return;
+      }
+    }
     var customerTermsAcceptedByOwner = !!document.getElementById('ocb-customer-terms').checked;
     if (!customerTermsAcceptedByOwner) {
       if (errEl) {
@@ -4323,7 +4344,7 @@ window.intelQuick = intelQuick;
       customerTermsAcceptedByOwner: customerTermsAcceptedByOwner,
       termsVersion: legalConfig.customerTermsVersion,
       privacyNoticeVersion: legalConfig.privacyNoticeVersion,
-      rebookedFromBookingId: (document.getElementById('ocb-rebooked-from').value || '').trim() || null,
+      rebookedFromBookingId: rebookedFromBookingId,
     };
 
     btn.disabled = true;
@@ -4352,12 +4373,15 @@ window.intelQuick = intelQuick;
             return 'stored as pending compatibility record because migration 038 is not applied';
           }
           if (code === 'confirmation_email_failed') return 'customer confirmation email failed';
+          if (code === 'rebook_payment_email_failed') return 'secure customer payment email failed; resend it from the booking';
           if (code === 'completion_email_failed') return 'customer completion email failed';
           return code;
         }).join('; ');
         toast('Booking created (' + (d.ref || 'no ref') + ') with warnings: ' + warningText, 'error');
       } else {
-        toast('Owner booking created: ' + (d.ref || 'saved'), 'success');
+        toast(d.rebookedFrom
+          ? 'Rebooking prepared and secure payment link emailed: ' + (d.ref || 'saved')
+          : 'Owner booking created: ' + (d.ref || 'saved'), 'success');
       }
       await loadBookings();
       if (d.bookingId) selectBooking(d.bookingId);
@@ -4606,7 +4630,11 @@ window.intelQuick = intelQuick;
     if (b.status === 'pending') {
       // A pending booking is not paid. Keep quote, authorization, and failed
       // checkout states visibly separate so the owner never dispatches it.
-      if (b.payment_status === 'card_saved' || !b.total_price || b.total_price === 0) {
+      var pendingRebooking = b.source === 'online' && !!b.rebooked_from_booking_id;
+      if (pendingRebooking && b.payment_status === 'pending') {
+        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Awaiting customer:</strong> the replacement appointment is not confirmed. The customer must add a payment method and complete the required Stripe authorization before assignment or dispatch.</div>');
+        btns.push('<button class="btn btn-teal" data-action="send-rebook-payment" data-id="' + b.id + '">Resend Payment Method Link</button>');
+      } else if (b.payment_status === 'card_saved' || !b.total_price || b.total_price === 0) {
         notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Quote request:</strong> the customer has not been charged. Price the request and send it for approval.</div>');
         btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">Send Quote for Customer Approval</button>');
       } else if (b.payment_status === 'authorized') {
@@ -4631,9 +4659,14 @@ window.intelQuick = intelQuick;
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
     }
     if (b.status === 'confirmed') {
-      if (b.payment_status !== 'authorized') {
+      if (b.payment_status === 'card_saved') {
+        // A future booking with a saved card is intentionally confirmed but
+        // remains dispatch-paused until the scheduled authorization succeeds.
+      } else if (b.payment_status !== 'authorized') {
         notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Confirmed/payment mismatch:</strong> do not dispatch. Verify the linked Stripe authorization and repair both states together.</div>');
-        if (b.stripe_payment_intent_id && ['pending', 'failed', 'authorized'].includes(b.payment_status)) {
+        if (b.stripe_payment_intent_id && ['pending', 'failed'].includes(b.payment_status) && b.dispatch_status === 'payment_hold') {
+          btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
+        } else if (b.stripe_payment_intent_id && b.payment_status === 'authorized') {
           btns.push('<button class="btn btn-amber" data-action="reconcile-payment" data-id="' + b.id + '">Reconcile Stripe Authorization</button>');
         }
       } else if (!b.assembler_id) {
@@ -4927,6 +4960,29 @@ window.intelQuick = intelQuick;
           if (bk) { bk.evidence_requested_at = new Date().toISOString(); renderActions(bk); }
         })
         .catch(function(){ toast('Failed to send — check your connection', 'error'); btn.disabled=false; btn.textContent='Request Evidence'; });
+    } else if (action === 'send-rebook-payment') {
+      var rebookPaymentBooking = allBookings.find(function(item){ return item.id == id; });
+      if (!rebookPaymentBooking) return;
+      if (!confirm('Send a fresh secure payment-method link to ' + rebookPaymentBooking.customer_email + '? The prior link will stop working.')) return;
+      btn.disabled = true;
+      var originalRebookPaymentText = btn.textContent;
+      btn.textContent = 'Sending...';
+      try {
+        var rebookPaymentResponse = await fetch('/api/owner/send-rebook-payment', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ bookingId: id }),
+        });
+        var rebookPaymentData = await rebookPaymentResponse.json().catch(function(){ return {}; });
+        if (!rebookPaymentResponse.ok || rebookPaymentData.error) throw new Error(rebookPaymentData.error || 'Payment-method email could not be sent');
+        toast('Fresh payment-method link emailed to the customer', 'success');
+        loadTimeline(id);
+      } catch (rebookPaymentError) {
+        toast(rebookPaymentError.message || 'Payment-method email could not be sent', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalRebookPaymentText;
+      }
     } else if (action === 'send-payment') {
       var recoveryBooking = allBookings.find(function(item){ return item.id == id; });
       if (!recoveryBooking) return;

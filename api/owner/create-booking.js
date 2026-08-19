@@ -7,7 +7,10 @@ import { logActivity } from '../booking/_activity.js';
 import { normalizeOwnerOfflinePaymentMethod, offlineMethodFeeCents } from './_offline-payment.js';
 import { isMissingServiceLocationColumn, parseServiceLocation } from '../_booking-location.js';
 import { buildCustomerConsentRecord, validateCustomerLegalConsent } from '../_legal-consent.js';
-import { chicagoDateIso } from '../_source-of-truth.js';
+import { chicagoDateIso, getServiceCallZone, isAutomaticDispatchZip } from '../_source-of-truth.js';
+import { appointmentTimestampMs } from '../booking/_appt-date.js';
+import { validateBookingWindowDate } from '../booking/_booking-window.js';
+import { sendRebookPaymentEmail } from '../booking/_rebook-payment-email.js';
 import { normalizeRebookSourceId, validateOwnerRebookSource } from './_rebook.js';
 
 // Owner-created offline bookings never touch Stripe capture or automated
@@ -176,12 +179,57 @@ export default async function handler(req, res) {
         code: 'REBOOK_DATE_IN_PAST',
       });
     }
+    const dateWindow = validateBookingWindowDate(cleanDate);
+    if (!dateWindow.ok) {
+      return res.status(400).json({
+        error: 'Choose a replacement appointment within the current 30-day booking window.',
+        code: dateWindow.code,
+      });
+    }
+    if (!cleanEmail) {
+      return res.status(400).json({
+        error: 'A customer email is required so the secure payment-method link can be delivered.',
+        code: 'REBOOK_CUSTOMER_EMAIL_REQUIRED',
+      });
+    }
+    if (!phone) {
+      return res.status(400).json({
+        error: 'A valid customer phone number is required for a marketplace rebooking.',
+        code: 'REBOOK_CUSTOMER_PHONE_REQUIRED',
+      });
+    }
+    if (!cleanTime || appointmentTimestampMs(cleanDate, cleanTime) == null) {
+      return res.status(400).json({
+        error: 'Enter a valid appointment time, such as 10:00 AM - 12:00 PM.',
+        code: 'REBOOK_APPOINTMENT_TIME_REQUIRED',
+      });
+    }
+    if (appointmentTimestampMs(cleanDate, cleanTime) <= Date.now()) {
+      return res.status(400).json({
+        error: 'Choose a future appointment time for the replacement booking.',
+        code: 'REBOOK_APPOINTMENT_IN_PAST',
+      });
+    }
+    if (!serviceLocation.zip || serviceLocation.state !== 'TX' || !getServiceCallZone(serviceLocation.zip)) {
+      return res.status(400).json({
+        error: 'Enter a complete Texas service address with a valid ZIP code.',
+        code: 'REBOOK_TEXAS_ADDRESS_REQUIRED',
+      });
+    }
+    if (method) {
+      return res.status(409).json({
+        error: 'Rebookings use the secure customer payment link. Do not select an offline payment method.',
+        code: 'REBOOK_SECURE_PAYMENT_REQUIRED',
+      });
+    }
     rebookSource = sourceBooking;
   }
 
   const ref = 'AAE-' + randomToken(8).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
   const now = new Date().toISOString();
 
+  const isCardRebook = !!rebookSource;
+  const rebookCallZone = isCardRebook ? getServiceCallZone(serviceLocation.zip) : null;
   const insertPayload = {
     ref,
     service: cleanService,
@@ -195,10 +243,10 @@ export default async function handler(req, res) {
     date: cleanDate,
     time: cleanTime,
     details: cleanDetails,
-    status: isAlreadyCompleted ? 'completed' : 'confirmed',
-    payment_status: 'offline_recorded',
-    confirmed_by: 'owner_manual',
-    confirmed_at: now,
+    status: isCardRebook ? 'pending' : (isAlreadyCompleted ? 'completed' : 'confirmed'),
+    payment_status: isCardRebook ? 'pending' : 'offline_recorded',
+    confirmed_by: isCardRebook ? null : 'owner_manual',
+    confirmed_at: isCardRebook ? null : now,
     completed_at: isAlreadyCompleted ? now : null,
     total_price: finalCents,
     tax_amount: taxCents,
@@ -211,14 +259,20 @@ export default async function handler(req, res) {
     payment_collected: isAlreadyCompleted,
     payment_collected_at: isAlreadyCompleted ? now : null,
     payment_collected_by: isAlreadyCompleted ? 'owner' : null,
-    source: 'owner_manual',
-    payment_method: method,
+    source: isCardRebook ? 'online' : 'owner_manual',
+    payment_method: isCardRebook ? null : method,
     price_override_reason: reason,
     standard_price_cents: standardCents,
     owner_booking_note: cleanNote,
     ...buildCustomerConsentRecord(req, 'owner_attested_customer_agreement'),
   };
-  if (rebookSource) insertPayload.rebooked_from_booking_id = rebookSource.id;
+  if (rebookSource) {
+    insertPayload.rebooked_from_booking_id = rebookSource.id;
+    insertPayload.call_zone = rebookCallZone;
+    insertPayload.dispatch_paused = true;
+    insertPayload.dispatch_status = 'payment_hold';
+    insertPayload.needs_manual_dispatch = !isAutomaticDispatchZip(serviceLocation.zip);
+  }
 
   let { data: saved, error: insertErr } = await sb
     .from('bookings').insert(insertPayload).select('id').single();
@@ -275,6 +329,21 @@ export default async function handler(req, res) {
     const { error: tokenErr } = await sb.from('bookings').update({
       guest_mutation_token_hash: guestMutationTokenHash({ id: bookingId, ref, customer_email: cleanEmail }),
     }).eq('id', bookingId);
+    if (tokenErr && rebookSource) {
+      const { data: removedRows, error: cleanupError } = await sb.from('bookings').delete()
+        .eq('id', bookingId)
+        .eq('status', 'pending')
+        .eq('payment_status', 'pending')
+        .is('stripe_payment_intent_id', null)
+        .select('id');
+      const removed = !cleanupError && removedRows?.length === 1;
+      return res.status(503).json({
+        error: removed
+          ? 'The secure customer payment link could not be created. No rebooking was saved.'
+          : 'The secure customer payment link could not be created, and cleanup could not be verified. Review the pending replacement before retrying.',
+        code: removed ? 'REBOOK_PAYMENT_TOKEN_FAILED' : 'REBOOK_TOKEN_CLEANUP_REVIEW_REQUIRED',
+      });
+    }
     if (tokenErr) console.warn('Owner booking guest-token setup skipped:', tokenErr.message || tokenErr);
   }
 
@@ -283,9 +352,9 @@ export default async function handler(req, res) {
     eventType: 'booking_created',
     actorType: 'owner',
     actorName: 'Owner',
-    description: `${rebookSource ? `Owner-created rebooking from cancelled ${rebookSource.ref}` : 'Owner-created booking'} for ${customerName} — ${cleanService}. ${standardCents != null ? `Standard ${money(standardCents)} → ` : ''}${money(finalCents)}${reason ? ` (${reason.replace(/_/g, ' ')})` : ''}. Payment: ${method ? PAYMENT_METHOD_LABELS[method] : 'to be collected'}.`,
+    description: `${rebookSource ? `Owner prepared rebooking from cancelled ${rebookSource.ref}` : 'Owner-created booking'} for ${customerName} — ${cleanService}. ${standardCents != null ? `Standard ${money(standardCents)} → ` : ''}${money(finalCents)}${reason ? ` (${reason.replace(/_/g, ' ')})` : ''}. Payment: ${rebookSource ? 'awaiting secure customer card setup' : (method ? PAYMENT_METHOD_LABELS[method] : 'to be collected')}.`,
     metadata: {
-      source: 'owner_manual',
+      source: rebookSource ? 'online' : 'owner_manual',
       rebookedFromBookingId: rebookSource?.id || null,
       rebookedFromRef: rebookSource?.ref || null,
       standardPriceCents: standardCents,
@@ -329,19 +398,21 @@ export default async function handler(req, res) {
     },
   }).catch(e => console.warn('Owner customer-consent activity skipped:', e?.message || e));
 
-  await logActivity(sb, {
-    bookingId,
-    eventType: 'confirmed',
-    actorType: 'owner',
-    actorName: 'Owner',
-    description: isAlreadyCompleted
-      ? 'Owner recorded the offline booking as confirmed before importing its completed state.'
-      : 'Owner confirmed the offline booking. Automatic marketplace dispatch remains disabled.',
-    metadata: {
-      source: 'owner_manual',
-      paymentStatus: 'offline_recorded',
-    },
-  }).catch(e => console.warn('Owner booking confirmation activity skipped:', e?.message || e));
+  if (!rebookSource) {
+    await logActivity(sb, {
+      bookingId,
+      eventType: 'confirmed',
+      actorType: 'owner',
+      actorName: 'Owner',
+      description: isAlreadyCompleted
+        ? 'Owner recorded the offline booking as confirmed before importing its completed state.'
+        : 'Owner confirmed the offline booking. Automatic marketplace dispatch remains disabled.',
+      metadata: {
+        source: 'owner_manual',
+        paymentStatus: 'offline_recorded',
+      },
+    }).catch(e => console.warn('Owner booking confirmation activity skipped:', e?.message || e));
+  }
 
   if (isAlreadyCompleted) {
     await logActivity(sb, {
@@ -371,20 +442,45 @@ export default async function handler(req, res) {
   await sendEmail({
     to: ownerEmail(),
     from: 'AssembleAtEase <booking@assembleatease.com>',
-    subject: `${rebookSource ? 'Rebooking' : 'Owner booking'} created — ${ref} — ${money(finalCents)}`,
-    html: `<p>You created ${rebookSource ? `a replacement booking <strong>${esc(ref)}</strong> from cancelled booking <strong>${esc(rebookSource.ref)}</strong>` : `a manual booking <strong>${esc(ref)}</strong>`} for <strong>${esc(customerName)}</strong>.</p>
+    subject: `${rebookSource ? 'Rebooking prepared' : 'Owner booking created'} — ${ref} — ${money(finalCents)}`,
+    html: `<p>You created ${rebookSource ? `a pending replacement booking <strong>${esc(ref)}</strong> from cancelled booking <strong>${esc(rebookSource.ref)}</strong>` : `a manual booking <strong>${esc(ref)}</strong>`} for <strong>${esc(customerName)}</strong>.</p>
       <p>${esc(cleanService)} · ${esc(cleanDate)}${cleanTime ? ` · ${esc(cleanTime)}` : ''}<br>${esc(cleanAddress)}</p>
       ${cleanDetails ? `<p><strong>Job details:</strong> ${esc(cleanDetails)}</p>` : ''}
-      <p>Total ${money(finalCents)} (subtotal ${money(subtotalCents)} + tax ${money(taxCents)}). Payment: ${method ? esc(PAYMENT_METHOD_LABELS[method]) : 'to be collected'}.</p>
+      <p>Total ${money(finalCents)} (subtotal ${money(subtotalCents)} + tax ${money(taxCents)}). Payment: ${rebookSource ? 'awaiting the customer payment method and Stripe authorization' : (method ? esc(PAYMENT_METHOD_LABELS[method]) : 'to be collected')}.</p>
       ${cleanNote ? `<p><em>${esc(cleanNote)}</em></p>` : ''}
-      <p>If you are using your owner-Easer account, assign and complete it through the Easer dashboard. Otherwise use Mark Complete here. Record the customer payment separately once the funds are actually collected.</p>`,
+      <p>${rebookSource ? 'Do not assign or dispatch this replacement until the dashboard shows its card requirement completed.' : 'If you are using your owner-Easer account, assign and complete it through the Easer dashboard. Otherwise use Mark Complete here. Record the customer payment separately once the funds are actually collected.'}</p>`,
     meta: { bookingId, notificationType: 'owner_booking_created_notice', recipientType: 'owner', disableDedupe: true },
   }).catch(e => console.warn('Owner booking owner-notice email skipped:', e?.message || e));
 
   // Customer confirmation (only if we have an email and it wasn't opted out)
   let confirmationEmailed = false;
   let confirmationEmailError = null;
-  if (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false) {
+  if (rebookSource && cleanEmail) {
+    try {
+      const emailResult = await sendRebookPaymentEmail({
+        booking: {
+          id: bookingId,
+          ref,
+          service: cleanService,
+          customer_name: customerName,
+          customer_email: cleanEmail,
+          address: cleanAddress,
+          date: cleanDate,
+          time: cleanTime,
+          details: cleanDetails,
+          total_price: finalCents,
+          tax_amount: taxCents,
+        },
+        token: guestMutationToken,
+        disableDedupe: true,
+      });
+      confirmationEmailed = emailResult?.ok === true && !emailResult?.suppressed;
+      if (!confirmationEmailed) confirmationEmailError = emailResult?.error || emailResult?.reason || 'Payment-method email was not delivered';
+    } catch (emailError) {
+      confirmationEmailError = emailError?.message || String(emailError);
+      console.error('Rebooking payment-method email failed after booking save:', confirmationEmailError);
+    }
+  } else if (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false) {
     const paymentLine = method
       ? `Payment will be handled directly with AssembleAtEase — ${esc(PAYMENT_METHOD_LABELS[method])}. You will not be charged online.`
       : 'Payment will be arranged directly with AssembleAtEase after the job is completed.';
@@ -461,8 +557,10 @@ export default async function handler(req, res) {
     }
   }
 
-  const warnings = (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false && !confirmationEmailed)
-    ? ['confirmation_email_failed']
+  const warnings = (rebookSource && !confirmationEmailed)
+    ? ['rebook_payment_email_failed']
+    : (!isAlreadyCompleted && cleanEmail && sendConfirmation !== false && !confirmationEmailed)
+      ? ['confirmation_email_failed']
     : (isAlreadyCompleted && cleanEmail && !completionEmailed)
       ? ['completion_email_failed']
     : [];
@@ -477,6 +575,7 @@ export default async function handler(req, res) {
     rebookedFrom: rebookSource ? { id: rebookSource.id, ref: rebookSource.ref } : null,
     confirmationEmailed,
     confirmationEmailError,
+    paymentLinkEmailed: rebookSource ? confirmationEmailed : null,
     completionEmailed,
     completionEmailError,
     warnings,

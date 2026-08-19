@@ -9,7 +9,7 @@ import {
   validateBookingPaymentIntent,
 } from './_pending-payment-recovery.js';
 
-const BOOKING_SELECT = 'id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, address, total_price, stripe_payment_intent_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at';
+const BOOKING_SELECT = 'id, ref, service, status, payment_status, dispatch_status, customer_name, customer_email, address, total_price, stripe_payment_intent_id, guest_mutation_token_hash, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at';
 
 export default async function handler(req, res) {
   setSecurityHeaders(res);
@@ -70,11 +70,13 @@ async function startRecovery(req, res) {
       .is('financial_operation_key', null)
       .is('financial_operation_type', null)
       .is('financial_operation_started_at', null)
+      .is('financial_reconciliation_required_at', null)
+      .is('cancellation_reconciliation_required_at', null)
       .select('id');
     if (resetError) return res.status(503).json({ error: 'Payment recovery could not be prepared. Please try again.' });
     if (!resetRows?.length) {
       const { data: current } = await sb.from('bookings')
-        .select('id, status, payment_status, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at')
+        .select('id, status, payment_status, stripe_payment_intent_id, financial_operation_key, financial_operation_type, financial_operation_started_at, financial_reconciliation_required_at, cancellation_reconciliation_required_at')
         .eq('id', booking.id)
         .maybeSingle();
       const safelyResetByConcurrentRequest = current?.status === booking.status
@@ -185,6 +187,8 @@ async function verifyRecoveryStillUnlocked({ sb, booking, intent }) {
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)
     .is('financial_operation_started_at', null)
+    .is('financial_reconciliation_required_at', null)
+    .is('cancellation_reconciliation_required_at', null)
     .maybeSingle();
   if (error) return { ok: false, status: 503 };
   return data ? { ok: true } : { ok: false, status: 409 };
@@ -194,7 +198,9 @@ function hasActiveFinancialOperation(booking) {
   return Boolean(
     booking?.financial_operation_key
     || booking?.financial_operation_type
-    || booking?.financial_operation_started_at,
+    || booking?.financial_operation_started_at
+    || booking?.financial_reconciliation_required_at
+    || booking?.cancellation_reconciliation_required_at,
   );
 }
 
