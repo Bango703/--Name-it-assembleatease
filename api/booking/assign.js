@@ -42,7 +42,15 @@ export default async function handler(req, res) {
     && booking.status === BOOKING_STATUS.COMPLETED
     && booking.payment_status === 'offline_recorded';
   const ownerManualConfirmed = booking.source === 'owner_manual' && booking.status === BOOKING_STATUS.CONFIRMED;
-  if (booking.status !== BOOKING_STATUS.CONFIRMED && !recordOnlyOwnerManualCompleted) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
+  // Owner emergency reassign: once a job is underway (en route / arrived / in
+  // progress) the owner can still hand it to another Easer — e.g. the assigned
+  // Easer can't finish. The job is reset to CONFIRMED for a clean fresh assignment;
+  // the same booking and payment authorization carry over, so no money moves here.
+  // Any partial pay owed to the previous Easer is settled manually. Customers and
+  // Easers cannot do this — owner-only, verified above.
+  const activeReassignStatuses = [BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS];
+  const activeReassign = reassign === true && !!booking.assembler_id && activeReassignStatuses.includes(booking.status);
+  if (booking.status !== BOOKING_STATUS.CONFIRMED && !activeReassign && !recordOnlyOwnerManualCompleted) return res.status(400).json({ error: 'Only confirmed bookings can be assigned' });
   // The Stripe payment gate is enforced below, AFTER the Easer profile is loaded,
   // because the owner's own Easer account is the one exception (offline job whose
   // payment the owner collects directly). See isOwnerManualLiveFlow.
@@ -140,6 +148,16 @@ export default async function handler(req, res) {
       dispatch_paused: true,
       needs_manual_dispatch: false,
     });
+    // Reassigning an in-flight job: reset it to CONFIRMED and clear the previous
+    // Easer's progress timestamps so the new Easer starts clean.
+    if (activeReassign) {
+      Object.assign(baseUpdates, {
+        status: BOOKING_STATUS.CONFIRMED,
+        en_route_at: null,
+        checked_in_at: null,
+        job_started_at: null,
+      });
+    }
   } else {
     // The job is already finished and its price is final, so the snapshot taken
     // above IS the earnings truth. Promote it to the same money columns the
@@ -180,7 +198,7 @@ export default async function handler(req, res) {
 
   let updateQuery = sb.from('bookings').update(baseUpdates)
     .eq('id', bookingId)
-    .eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)
+    .eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : booking.status)
     .eq('source', booking.source)
     .is('financial_operation_key', null)
     .is('financial_operation_type', null)

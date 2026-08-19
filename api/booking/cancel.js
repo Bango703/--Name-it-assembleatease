@@ -195,7 +195,17 @@ export default async function handler(req, res) {
   }
   const transitionErr = getTransitionError(booking.status, BOOKING_STATUS.CANCELLED);
   if (transitionErr) return res.status(400).json({ error: transitionErr });
-  if (booking.status === BOOKING_STATUS.IN_PROGRESS || booking.job_started_at) {
+  // Work-started jobs are normally locked — payment must be finished, then any
+  // adjustment goes through the reviewed refund workflow. But the OWNER must ALWAYS
+  // keep an emergency exit (a safety issue in the home, a wrong address, an Easer
+  // who can't finish). ownerOverride bypasses this lock and NEVER auto-charges a
+  // mid-job fee (waiveFee is forced below): an open hold is released, and any money
+  // already captured is fully refunded. Customers and Easers stay locked out — the
+  // customer/guest cancel routes keep their block; only the verified owner reaches
+  // this override.
+  const workStarted = booking.status === BOOKING_STATUS.IN_PROGRESS || !!booking.job_started_at;
+  const ownerOverride = req.body.ownerOverride === true;
+  if (workStarted && !ownerOverride) {
     return res.status(409).json({
       error: 'Work has already started. Finish the job payment workflow first, then use the reviewed refund workflow for any customer adjustment. Automatic cancellation fees are disabled after work starts.',
       code: 'WORK_STARTED_CANCELLATION_REVIEW_REQUIRED',
@@ -211,7 +221,9 @@ export default async function handler(req, res) {
   }
 
   // ── Tiered cancellation fee (% of pre-tax service subtotal, never tax) ────
-  const waiveFee = req.body.waiveFee === true;
+  // An owner override on a started job never auto-charges a fee — the owner
+  // settles any adjustment manually through the reviewed refund workflow.
+  const waiveFee = req.body.waiveFee === true || (workStarted && ownerOverride);
   let wasRescheduled = false;
   try {
     ({ wasRescheduled } = loadBookingRescheduleTruth(booking));
@@ -614,7 +626,8 @@ export default async function handler(req, res) {
     console.error('Cancel email error:', emailErr);
   }
 
-  const timelineResult = await logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ', ' + policy.feePct + '% ' + policy.tier + ')' : ''}${proTripCutCents ? ' (pro trip cut owed: $' + (proTripCutCents/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount, tier: policy.tier, feePct: policy.feePct, proTripCutCents, ownerRecoveryTakeover: takeover } });
+  const overrideNote = workStarted && ownerOverride ? ' [owner override — work already started; no auto-fee]' : '';
+  const timelineResult = await logActivity(sb, { bookingId: booking.id, eventType: 'cancelled', actorType: 'owner', actorName: 'Owner', description: `Booking cancelled${reason ? ': ' + reason : ''}${overrideNote}${feeCaptured ? ' (fee charged: $' + (feeCaptured/100).toFixed(2) + ', ' + policy.feePct + '% ' + policy.tier + ')' : ''}${proTripCutCents ? ' (pro trip cut owed: $' + (proTripCutCents/100).toFixed(2) + ')' : ''}${refundAmount ? ' (refunded: $' + (refundAmount/100).toFixed(2) + ')' : ''}`, metadata: { reason, feeCaptured, refundAmount, tier: policy.tier, feePct: policy.feePct, proTripCutCents, ownerRecoveryTakeover: takeover, ownerOverrideWorkStarted: workStarted && ownerOverride } });
   const operationalFollowupRequired = !!dispatchCleanupError || !timelineResult.ok;
 
   return res.status(cancellationCredits.ok ? 200 : 202).json({ success: true, booking: { id: booking.id, ref: booking.ref, status: BOOKING_STATUS.CANCELLED }, refundAmount, feeCaptured, withinCancellationWindow, tier: policy.tier, feePct: policy.feePct, proTripCutCents, rewardsReconciliationRequired: !cancellationCredits.ok, operationalFollowupRequired });

@@ -4541,7 +4541,8 @@ window.intelQuick = intelQuick;
         notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Live job in progress:</strong> continue status updates from the Easer dashboard. Cancellation is still available until work starts.</div>');
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
       } else if (b.status === 'in_progress') {
-        notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Work underway:</strong> upload completion evidence and finish from the Easer dashboard. Any cancellation or customer adjustment now requires owner review after completion.</div>');
+        notices.push('<div style="flex-basis:100%;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:0.65rem 0.8rem;color:#155e75;font-size:0.78rem;line-height:1.5"><strong>Work underway:</strong> upload completion evidence and finish from the Easer dashboard. If something has gone wrong and you must stop the job, use Owner Override — no fee is charged and you settle any adjustment manually.</div>');
+        btns.push('<button class="btn btn-red" data-action="cancel-override" data-id="' + b.id + '">Owner Override: Cancel Job</button>');
       } else if (b.status === 'completed') {
         btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit Booking Details</button>');
         var offlineCustomerTotalCents = Number(b.amount_charged ?? b.total_price ?? 0);
@@ -4688,7 +4689,8 @@ window.intelQuick = intelQuick;
         btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
       }
       if (b.status === 'in_progress' || b.job_started_at) {
-        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Work started:</strong> automatic cancellation fees are disabled. Complete the payment workflow first, then use the reviewed refund workflow for any customer adjustment.</div>');
+        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Work started:</strong> automatic cancellation fees are disabled. Best options: complete the job, or reassign it to another Easer (below). If something has gone wrong and you must stop the job, use Owner Override — no fee is charged, the hold is released or captured money refunded, and you settle any partial Easer pay manually.</div>');
+        btns.push('<button class="btn btn-red" data-action="cancel-override" data-id="' + b.id + '">Owner Override: Cancel Job</button>');
       } else {
         btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
       }
@@ -5224,6 +5226,19 @@ window.intelQuick = intelQuick;
       pendingAction.withinWindow = withinWindow;
       $reasonText.value = '';
       document.getElementById('waive-fee-row').style.display = withinWindow ? '' : 'none';
+      $reasonModal.classList.add('open');
+    } else if (action === 'cancel-override') {
+      // Emergency owner exit for a job that has already started. No automatic fee
+      // is ever charged; the server releases the hold or refunds captured money and
+      // the owner settles any partial Easer pay / customer adjustment manually.
+      $reasonText.style.display = '';
+      pendingAction = { path: '/cancel', id: id, ownerOverride: true };
+      document.getElementById('reason-modal-title').textContent = 'Owner Override — Cancel Job';
+      document.getElementById('reason-modal-desc').textContent = 'This job has already started, so normal cancellation is locked. Owner override cancels it anyway: no fee is charged, the card hold is released (or captured money refunded), and you settle any partial Easer pay or customer adjustment manually. Add a reason for the record.';
+      document.getElementById('reason-confirm').textContent = 'Cancel Job (Override)';
+      document.getElementById('reason-confirm').className = 'btn btn-red';
+      $reasonText.value = '';
+      document.getElementById('waive-fee-row').style.display = 'none';
       $reasonModal.classList.add('open');
     }
   });
@@ -5869,6 +5884,7 @@ window.intelQuick = intelQuick;
     var actionBody = { bookingId: pendingAction.id };
     if (reason) actionBody.reason = reason;
     if (waiveFee) actionBody.waiveFee = true;
+    if (pendingAction.ownerOverride) actionBody.ownerOverride = true;
     var msg = pendingAction.path === '/decline'
       ? 'Booking declined'
       : (pendingAction.type === 'refund-recovery' ? 'Refund workflow reconciled' : 'Booking cancelled');
@@ -6380,7 +6396,12 @@ window.intelQuick = intelQuick;
       && b.return_visit_required !== true
       && b.payment_collected === true
       && Number(b.remaining_balance_cents || 0) === 0;
-    if (b.status !== 'confirmed' && !allowOwnerManualCompleted) { section.style.display = 'none'; return; }
+    // Owner emergency reassign: a job that is already underway (en route / arrived /
+    // in progress) can still be handed to another Easer. The section stays visible
+    // so the Reassign control is reachable; the server resets the job to confirmed
+    // for a clean handoff.
+    var activeReassignable = ['en_route', 'arrived', 'in_progress'].includes(b.status) && !!b.assembler_id && !ownerEaserOnly;
+    if (b.status !== 'confirmed' && !allowOwnerManualCompleted && !activeReassignable) { section.style.display = 'none'; return; }
     section.style.display = '';
     if (b.assembler_id) {
       var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; })
