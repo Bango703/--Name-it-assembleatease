@@ -40,11 +40,14 @@ body.nav-open{overflow:hidden}
 .nav-mobile a{min-height:44px;display:flex;align-items:center;font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
 .nav-mobile a:last-child{border-bottom:none}
 .nav-mobile .btn{justify-content:center;margin-top:0.5rem;text-align:center}
-.nav-mobile-pros{display:flex;flex-direction:column;gap:0.1rem;margin-top:1rem;padding:0.7rem 1rem 0.85rem;background:#0a1628;border-radius:12px}
-.nav-mobile-pros-label{font-size:0.66rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan);padding:0.15rem 0 0.35rem}
-.nav-mobile-pros a{min-height:42px;border-bottom:1px solid rgba(255,255,255,0.1);color:#fff;font-size:0.95rem;font-weight:600}
-.nav-mobile-pros a:last-child{border-bottom:none}
-.nav-mobile-pros a:hover{color:var(--cyan)}
+/* Scoped under #mobileNav so these beat any per-page inline "critical CSS"
+   .nav-mobile a override (which is dark and would render the pro links
+   invisible on the dark navy panel). ID specificity wins regardless of order. */
+#mobileNav .nav-mobile-pros{display:flex;flex-direction:column;gap:0.1rem;margin-top:1rem;padding:0.7rem 1rem 0.9rem;background:#0a1628;border-radius:12px}
+#mobileNav .nav-mobile-pros-label{font-size:0.66rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan);padding:0.15rem 0.25rem 0.4rem}
+#mobileNav .nav-mobile-pros a{min-height:42px;padding:0 0.25rem;border-bottom:1px solid rgba(255,255,255,0.12);color:#ffffff;font-size:0.95rem;font-weight:600}
+#mobileNav .nav-mobile-pros a:last-child{border-bottom:none}
+#mobileNav .nav-mobile-pros a:hover{color:var(--cyan)}
 body.nav-open #cookie-banner{display:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
 .btn-cyan{background:var(--cyan);color:#fff}
