@@ -25,7 +25,6 @@ const CORE_MOBILE_LINKS = [
   { href: '/track', label: 'Track My Booking' },
   { href: '/about', label: 'About Us' },
   { href: '/contact', label: 'Contact' },
-  { href: '/assembler/apply', label: 'Become an Easer' },
   { href: '/book', label: 'Book Now &rarr;', className: 'btn btn-cyan btn-full' },
 ];
 
@@ -43,7 +42,6 @@ const BLOG_MOBILE_LINKS = [
   { href: '/track', label: 'Track My Booking' },
   { href: '/about', label: 'About Us' },
   { href: '/contact', label: 'Contact' },
-  { href: '/assembler/apply', label: 'Become an Easer' },
   { href: '/book', label: 'Book Now &rarr;', className: 'btn btn-cyan btn-full' },
 ];
 
@@ -63,7 +61,6 @@ const SERVICE_MOBILE_LINKS = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/about', label: 'About Us' },
   { href: '/track', label: 'Track My Booking' },
-  { href: '/assembler/apply', label: 'Become an Easer' },
   { href: '/book', label: 'Book Now &rarr;', className: 'btn btn-cyan btn-full' },
 ];
 
@@ -106,8 +103,12 @@ ${renderDesktopLinks(links)}
   </div>
 </nav>
 <div class="nav-mobile" id="mobileNav">
-  <a href="/auth/login">Easer Login</a>
 ${renderMobileLinks(mobileLinks)}
+  <div class="nav-mobile-pros">
+    <span class="nav-mobile-pros-label">For pros</span>
+    <a href="/assembler/apply">Become an Easer</a>
+    <a href="/auth/login">Easer Login</a>
+  </div>
 </div>
 <script src="/assets/js/mobile-nav.js" defer></script>`;
 }

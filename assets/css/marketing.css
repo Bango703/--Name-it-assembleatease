@@ -40,6 +40,10 @@ body.nav-open{overflow:hidden}
 .nav-mobile a{min-height:44px;display:flex;align-items:center;font-size:1rem;font-weight:500;color:var(--ink-soft);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border)}
 .nav-mobile a:last-child{border-bottom:none}
 .nav-mobile .btn{justify-content:center;margin-top:0.5rem;text-align:center}
+.nav-mobile-pros{display:flex;flex-direction:column;gap:0.15rem;margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid var(--border)}
+.nav-mobile-pros-label{font-size:0.68rem;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);padding:0.1rem 0 0.2rem}
+.nav-mobile-pros a{min-height:40px;border-bottom:none;color:var(--muted);font-size:0.92rem;font-weight:600}
+.nav-mobile-pros a:hover{color:var(--cyan-dark)}
 body.nav-open #cookie-banner{display:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0.65rem 1.5rem;border-radius:999px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s}
 .btn-cyan{background:var(--cyan);color:#fff}
