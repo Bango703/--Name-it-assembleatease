@@ -283,7 +283,14 @@
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
           alertEl.className = 'alert alert-error';
-          alertEl.textContent = error.message || 'Login failed. Please check your credentials and try again.';
+          // A deactivated Easer's sign-in is closed at the auth layer. When the
+          // system signals that (rather than a plain wrong-password), show a
+          // respectful, specific message instead of "Invalid login credentials".
+          const accessClosed = error.code === 'user_banned'
+            || /banned|deactiv|disabled|no longer active|not active/i.test(error.message || '');
+          alertEl.textContent = accessClosed
+            ? 'This account is no longer active. If you believe this is a mistake, contact service@assembleatease.com.'
+            : (error.message || 'Login failed. Please check your credentials and try again.');
           btn.disabled = false; btn.textContent = 'Log in';
           return;
         }

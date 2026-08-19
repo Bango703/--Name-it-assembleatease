@@ -5790,7 +5790,7 @@ window.intelQuick = intelQuick;
           if (data.activeJobs) alert('Active jobs:\n' + data.activeJobs.map(function(j) { return '  ' + j.ref + ' — ' + j.service; }).join('\n'));
           return;
         }
-        toast('Easer deactivated — sign-in access locked', 'success');
+        toast('Easer deactivated — sign-in access closed', 'success');
         await reloadAssemblersAndMaybeRefreshDetail(aIdDeact, reopenDeactDetail);
       } catch { toast('Action failed — check connection', 'error'); }
       return;
@@ -8758,14 +8758,14 @@ window.intelQuick = intelQuick;
       if (a.tier === 'professional') actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'promote\',\'elite\')">Promote to Elite</button> <button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'starter\')">Demote to Starter</button> ';
       if (a.tier === 'elite') actionBtns += '<button class="btn btn-amber" onclick="asmAction(\'' + a.id + '\',\'demote\',\'professional\')">Demote to Professional</button> ';
       actionBtns += '<button class="btn btn-red" onclick="suspendFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Suspend</button> ';
-      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (locks login)</button> ';
+      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (closes access)</button> ';
     }
 
     // REINSTATE + hard DEACTIVATE (suspended)
     if (a.status === 'suspended' && !closureHeld) {
       var prevLabel = { starter:'Starter', professional:'Professional', elite:'Elite' }[a.previous_tier] || 'Starter';
       actionBtns += '<button class="btn btn-teal" onclick="reinstateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\',\'' + prevLabel + '\')">Reinstate (' + prevLabel + ')</button> ';
-      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (locks login)</button> ';
+      actionBtns += '<button class="btn btn-red" style="background:#0f172a;border-color:#0f172a" onclick="deactivateFromDetail(\'' + a.id + '\',\'' + jsAttr(a.full_name) + '\')">Deactivate account (closes access)</button> ';
     }
 
     // DEACTIVATED (reversible hard lock — restore login)
@@ -9068,8 +9068,8 @@ window.intelQuick = intelQuick;
     prepareReasonModal();
     pendingAction = { type: 'deactivate-assembler', assemblerId: id, reopenDetail:true };
     document.getElementById('reason-modal-title').textContent = 'Deactivate account — ' + name;
-    document.getElementById('reason-modal-desc').textContent = 'This LOCKS ' + name + ' out of their account — they cannot sign in and are removed from all job dispatch. This is stronger than Suspend. It is reversible: you can Reactivate them later. Reassign any active jobs first.';
-    document.getElementById('reason-confirm').textContent = 'Deactivate & lock login';
+    document.getElementById('reason-modal-desc').textContent = 'This closes ' + name + '’s account access — they can’t sign in and are removed from all job dispatch. It is stronger than Suspend, and reversible: you can Reactivate them later. Reassign any active jobs first.';
+    document.getElementById('reason-confirm').textContent = 'Deactivate & close access';
     document.getElementById('reason-confirm').className = 'btn btn-red';
     $reasonText.style.display = '';
     $reasonText.placeholder = 'Reason (for your records)';
