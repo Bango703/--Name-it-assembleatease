@@ -521,9 +521,50 @@ function formatUsdCents(value){
 // ── State ──────────────────────────────────────────────────
 let currentBooking = null;
 let currentEmail   = null;
+let currentRef     = '';
 const initialTrackParams = new URLSearchParams(window.location.search);
 let currentMutationToken = initialTrackParams.get('token') || '';
 let autoLookupPending = false;
+let _trackPollTimer = null;
+
+// Auto-update: once a booking is loaded, quietly re-fetch it so the customer sees
+// status changes (confirmed → on the way → arrived → done) without refreshing the
+// page. Polls only while the booking is still in progress, and also refreshes the
+// moment the tab regains focus. This is polling, not realtime — no sockets.
+function isTerminalBooking(b) {
+  return ['cancelled', 'completed', 'declined', 'refunded'].includes(String((b && b.status) || '').toLowerCase());
+}
+function stopTrackPolling() {
+  if (_trackPollTimer) { clearInterval(_trackPollTimer); _trackPollTimer = null; }
+}
+function startTrackPolling() {
+  stopTrackPolling();
+  if (!currentEmail || !currentRef) return;
+  if (currentBooking && isTerminalBooking(currentBooking)) return;
+  _trackPollTimer = setInterval(silentRefreshBooking, 25000);
+}
+async function silentRefreshBooking() {
+  if (!currentEmail || !currentRef) return;
+  try {
+    const res = await fetch('/api/booking/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, ref: currentRef, token: currentMutationToken }),
+    });
+    if (!res.ok) return; // stay silent on transient errors — never disrupt the view
+    const data = await res.json();
+    if (data && data.booking) {
+      currentBooking = data.booking;
+      renderBooking(data.booking);
+      if (isTerminalBooking(data.booking)) stopTrackPolling();
+    }
+  } catch (_) { /* silent */ }
+}
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && currentBooking && !isTerminalBooking(currentBooking)) {
+    silentRefreshBooking();
+  }
+});
 
 function safeProfilePhoto(value) {
   var photo = String(value || '');
@@ -568,12 +609,14 @@ async function lookupBooking(e) {
 
     currentBooking = data.booking;
     currentEmail   = email;
+    currentRef     = ref;
     if (autoLookupPending) {
       infoEl.textContent = 'Booking loaded from your confirmation link.';
       infoEl.style.display = 'block';
       autoLookupPending = false;
     }
     renderBooking(data.booking);
+    startTrackPolling();
   } catch (err) {
     errEl.textContent = err.message;
     errEl.style.display = 'block';
