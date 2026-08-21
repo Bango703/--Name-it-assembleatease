@@ -307,12 +307,12 @@ window.AAE_BOOKING_SOURCE = {
     'Outdoor & Playsets': [
       { group: 'Playsets & Backyard Structures', items: [
         { name: 'Swing set / backyard playset assembly', price: 299, priceMax: 379, popular: true },
-        { name: 'Trampoline assembly (up to 10 ft)', price: 229 },
-        { name: 'Trampoline assembly (11–14 ft)', price: 279 },
-        { name: 'Trampoline assembly (15 ft+)', price: 329 },
+        { name: 'Trampoline assembly (up to 10 ft)', price: 279 },
+        { name: 'Trampoline assembly (11–14 ft)', price: 349 },
+        { name: 'Trampoline assembly (15 ft+)', price: 399 },
         { name: 'Trampoline relocation (disassembly, transport & reassembly) — custom quote', price: 0, customQuote: true },
-        { name: 'Pergola / gazebo kit assembly', price: 599, priceMax: 1199 },
-        { name: 'Storage shed (small kit)', price: 499, priceMax: 799 },
+        { name: 'Pergola / gazebo kit assembly — custom quote', price: 0, customQuote: true },
+        { name: 'Storage shed assembly — custom quote', price: 0, customQuote: true },
         { name: 'Monkey bars / climbing frame', price: 269 },
         { name: 'Sandbox / outdoor playhouse', price: 169 }
       ]},
