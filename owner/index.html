@@ -2038,6 +2038,7 @@ window.intelQuick = intelQuick;
   window._ownerSelectedId = null;
   let _msgTarget = 'customer';
   let _messageSending = false;
+  let _currentMessages = [];
   let currentStatus = 'all';
   let searchQuery = '';
   let siteChatConversations = [];
@@ -3632,6 +3633,7 @@ window.intelQuick = intelQuick;
     var $targetRow = document.getElementById('msg-target-row');
     if ($targetRow) $targetRow.style.display = b.assembler_id ? '' : 'none';
     _msgTarget = 'customer';
+    _currentMessages = [];
     applyMsgTarget('customer');
     // Notes handled by Notes tab (api/booking/notes.js)
     loadMessages(b.id);
@@ -5935,21 +5937,44 @@ window.intelQuick = intelQuick;
         updateStats();
         renderList();
       }
-      if (!msgs.length) { $msgThread.innerHTML = '<div class="msg-empty">No messages yet</div>'; return; }
-      $msgThread.innerHTML = msgs.map(function(m) {
-        var senderClass = m.sender === 'owner' ? 'owner' : 'customer';
-        var senderLabel = m.sender === 'owner'
-          ? 'You to ' + (m.recipient_type === 'assembler' ? 'Easer' : m.recipient_type === 'customer' ? 'Customer' : 'recipient')
-          : m.sender === 'assembler' ? 'Easer to Owner' : 'Customer to Owner';
-        return '<div class="msg ' + senderClass + '">'
-          + '<div>' + esc(m.body) + '</div>'
-          + '<div class="msg-time">' + senderLabel + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
-          + '</div>';
-      }).join('');
-      $msgThread.scrollTop = $msgThread.scrollHeight;
+      _currentMessages = msgs;
+      renderMessageThread();
     } catch (err) {
+      _currentMessages = [];
       $msgThread.innerHTML = '<div class="msg-empty">Couldn\'t load messages — ' + esc(err && err.message ? err.message : 'please retry') + '</div>';
     }
+  }
+
+  // The owner is the hub between two SEPARATE conversations. Show only the thread
+  // for the party currently selected (_msgTarget) so a customer never sees the
+  // Easer's messages here and vice versa, and the owner can't misread which
+  // conversation they're in. Legacy rows without a recipient_type are never hidden.
+  function messageInSelectedThread(m, target) {
+    if (m.recipient_type == null && m.sender === 'owner') return true;
+    if (target === 'assembler') {
+      return m.sender === 'assembler' || (m.sender === 'owner' && m.recipient_type === 'assembler');
+    }
+    return m.sender === 'customer' || (m.sender === 'owner' && m.recipient_type === 'customer');
+  }
+  function renderMessageThread() {
+    var target = _msgTarget;
+    var msgs = (_currentMessages || []).filter(function(m){ return messageInSelectedThread(m, target); });
+    var who = target === 'assembler' ? 'Easer' : 'customer';
+    if (!msgs.length) {
+      $msgThread.innerHTML = '<div class="msg-empty">No messages with this ' + who + ' yet</div>';
+      return;
+    }
+    $msgThread.innerHTML = msgs.map(function(m) {
+      var senderClass = m.sender === 'owner' ? 'owner' : 'customer';
+      var senderLabel = m.sender === 'owner'
+        ? 'You to ' + (m.recipient_type === 'assembler' ? 'Easer' : m.recipient_type === 'customer' ? 'Customer' : 'recipient')
+        : m.sender === 'assembler' ? 'Easer to Owner' : 'Customer to Owner';
+      return '<div class="msg ' + senderClass + '">'
+        + '<div>' + esc(m.body) + '</div>'
+        + '<div class="msg-time">' + senderLabel + ' &bull; ' + formatDateTime(m.created_at) + '</div>'
+        + '</div>';
+    }).join('');
+    $msgThread.scrollTop = $msgThread.scrollHeight;
   }
 
   document.getElementById('msg-send').addEventListener('click', sendMessage);
@@ -5976,6 +6001,8 @@ window.intelQuick = intelQuick;
     send.style.background = color;
     send.style.borderColor = color;
     send.style.color = '#fff';
+    // Show only the newly-selected party's conversation.
+    renderMessageThread();
   }
   function requestMsgTarget(t) {
     if (!['customer', 'assembler'].includes(t) || t === _msgTarget) return;
