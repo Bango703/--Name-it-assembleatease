@@ -2262,9 +2262,14 @@ window.intelQuick = intelQuick;
     showManualPaymentFallback(false, true);
   }
 
-  function manualPaymentRelativeTime(value) {
+  // One relative-time format for the whole dashboard. Live Ops used to print raw
+  // minutes here, so a booking stuck for three days read as "4118min ago".
+  function relativeAge(value) {
+    // new Date(null) is epoch 0, which is finite — guard the value itself or a
+    // missing timestamp renders as "20685 days ago".
+    if (!value) return 'recently';
     var time = new Date(value).getTime();
-    if (!Number.isFinite(time)) return 'recently';
+    if (!Number.isFinite(time) || time <= 0) return 'recently';
     var seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
     if (seconds < 60) return 'just now';
     var minutes = Math.floor(seconds / 60);
@@ -2284,7 +2289,7 @@ window.intelQuick = intelQuick;
 
   function manualPaymentCandidateLabel(candidate) {
     return fmt$(Number(candidate.amountCents || 0))
-      + ' / ' + manualPaymentRelativeTime(candidate.createdAt)
+      + ' / ' + relativeAge(candidate.createdAt)
       + ' / ' + manualPaymentCardLabel(candidate);
   }
 
@@ -3495,7 +3500,7 @@ window.intelQuick = intelQuick;
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
-        + (b.needs_manual_dispatch ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
+        + (b.needs_manual_dispatch && !isTerminalBooking(b) ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#ef4444;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block"></span>Needs manual assignment</div>' : '')
         + '<div class="card-meta">'
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
@@ -3691,7 +3696,7 @@ window.intelQuick = intelQuick;
       }
       ctrls += '<button class="btn btn-red" onclick="dispatchControl(\'' + bookingId + '\',\'cancel\')" style="font-size:0.78rem">Cancel Offers</button>';
     }
-    if (booking && booking.needs_manual_dispatch && !ownerManualOffline) {
+    if (booking && booking.needs_manual_dispatch && !isTerminalBooking(booking) && !ownerManualOffline) {
       ctrls = '<span style="color:#ef4444;font-size:0.78rem;font-weight:600">Needs Manual Assignment</span> ' + ctrls;
     }
     if (ctrlEl) ctrlEl.innerHTML = ctrls;
@@ -6061,6 +6066,12 @@ window.intelQuick = intelQuick;
   //   violet=dispatching  teal=easer confirmed  green=in-progress
   //   orange=recoverable warning  red=permanent failure  slate=neutral terminal
 
+  // Cancelled and completed bookings are settled. Dispatch alerts on them are noise —
+  // the owner cannot act on a job that is already closed.
+  function isTerminalBooking(b) {
+    return b && (b.status === 'cancelled' || b.status === 'completed' || b.status === 'declined' || b.status === 'refunded');
+  }
+
   function bookingBadge(b) {
     // Derives the richest possible booking state from available fields
     var s = b.status;
@@ -6681,14 +6692,13 @@ window.intelQuick = intelQuick;
       var html = '';
       if (pending.length) {
         html += pending.map(function(b) {
-          var age = Math.round((Date.now() - new Date(b.created_at).getTime()) / 60000);
           return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
             + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
             + '<div><div style="font-size:0.875rem;font-weight:600;color:var(--text)">'+esc(b.service)+'</div>'
             + '<div style="font-size:0.78rem;color:var(--muted)">'+esc(b.ref)+' &bull; '+esc(b.customer_name||'Customer')+(b.date ? ' &bull; '+esc(b.date) : '')+'</div></div>'
             + '<span style="background:#f8fafc;color:'+esc(b._ownerColor)+';border:1px solid '+esc(b._ownerColor)+';font-size:0.68rem;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap">'+esc(b._ownerLabel)+'</span>'
             + '</div>'
-            + '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Submitted '+age+'min ago. '+esc(b._ownerDescription)+'</div>'
+            + '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Submitted '+esc(relativeAge(b.created_at))+'. '+esc(b._ownerDescription)+'</div>'
             + '<button onclick="opsAction(\'review_timeline\',\''+b.id+'\')" class="btn" style="font-size:0.7rem;padding:2px 9px;margin-top:7px">Open Booking</button>'
             + '</div>';
         }).join('');

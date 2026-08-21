@@ -76,6 +76,18 @@ export function classifyCronFailures(rows = []) {
   return { active, resolved };
 }
 
+// How long a booking has been stuck, in the same shape the owner dashboard's
+// relativeAge() uses -- floored the same way, so both read "2 days". Raw hours
+// were fine for a morning but reported "for 69h" beside a panel saying "2 days ago".
+function formatAlertAge(ms) {
+  const minutes = Math.max(0, Math.floor(ms / 60000));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? '1 day' : `${days} days`;
+}
+
 /**
  * GET /api/owner/live-ops
  * Real-time operational snapshot for the Live Ops command center.
@@ -541,7 +553,7 @@ export default async function handler(req, res) {
     severity: b.stripe_payment_intent_id ? 'medium' : 'high',
     ref: b.ref,
     bookingId: b.id,
-    message: `${b.ref} — ${b.payment_status === 'failed' ? 'card authorization failed' : 'card authorization incomplete'} for ${Math.round((now_ts - new Date(b.created_at).getTime()) / 3600000)}h`,
+    message: `${b.ref} — ${b.payment_status === 'failed' ? 'card authorization failed' : 'card authorization incomplete'} for ${formatAlertAge(now_ts - new Date(b.created_at).getTime())}`,
     action: 'review_timeline',
   }));
 

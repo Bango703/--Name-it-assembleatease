@@ -25,7 +25,7 @@
   <meta name="twitter:title" content="Book a Service &mdash; AssembleAtEase" />
   <meta name="twitter:description" content="Choose your service, see item pricing and required fees, then reserve online with secure checkout." />
   <meta name="twitter:image" content="https://www.assembleatease.com/images/booking-service-furniture-assembly.jpg" />
-  <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="icon" href="/favicon.ico" sizes="any"/><link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96.png"/><link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
   
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 
@@ -2892,7 +2892,7 @@
 
         <div class="step-heading">Where &amp; when</div>
 
-        <p class="step-sub">Enter your service address, then pick a date and time.</p>
+        <p class="step-sub">Pick your date and time, then enter your service address.</p>
 
         <div class="job-plan-card" id="job-plan-preview" aria-live="polite"></div>
 
@@ -7163,7 +7163,7 @@ function saveContactEdit() {
 
     timesEl.querySelectorAll('.dt-time-btn:not([disabled])').forEach(function(btn) {
 
-      btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); var st=document.getElementById('s3-street'); if(st) setTimeout(function(){ st.scrollIntoView({behavior:'smooth',block:'center'}); }, 120); });
+      btn.addEventListener('click', function() { BOOK.time=this.dataset.time; renderTimes(); hideErr('s3-time-err'); setTimeout(function(){ var st=document.getElementById('s3-street'); var city=document.getElementById('s3-city'); var zip=document.getElementById('s3-zip'); var addressDone=st&&st.value.trim()&&city&&city.value.trim()&&zip&&zip.value.trim(); if(addressDone){ var act=document.querySelector('#step-3 .step-actions'); if(act) act.scrollIntoView({behavior:'smooth',block:'center'}); } else if(st){ var card=st.closest('.address-card')||st; card.scrollIntoView({behavior:'smooth',block:'start'}); } }, 120); });
 
     });
 
@@ -7546,9 +7546,38 @@ async function submitBooking() {
 
   }
 
+  // A declined card does not undo the booking /api/booking already created. It
+  // stays on the server as pending+unpaid, so re-POSTing on the retry mints a
+  // second one — three declines used to leave three pending bookings, three
+  // references, and three cancellation emails when the owner cleaned them up.
+  // Stripe puts a declined PaymentIntent back into requires_payment_method and
+  // its client secret stays valid, so as long as the order has not changed we
+  // reuse the booking and intent we already hold instead of making new ones.
+  var orderFingerprint = JSON.stringify({
+    services: BOOK.selectedServices,
+    items: itemsPayload,
+    email: BOOK.email,
+    address: BOOK.address,
+    zip: BOOK.zip,
+    date: BOOK.date,
+    time: BOOK.time,
+    totalCents: totalCents,
+    promoCode: BOOK.promoCode || '',
+    assemblecashToken: BOOK.assemblecashToken || '',
+    bundleSlug: BOOK.bundleSlug || ''
+  });
+
+  var reusablePayment = (BOOK._pendingPayment && BOOK._pendingPayment.fingerprint === orderFingerprint)
+    ? BOOK._pendingPayment.data
+    : null;
+
   var data;
 
-  try {
+  if (reusablePayment) {
+
+    data = reusablePayment;
+
+  } else try {
 
     var resp = await fetch('/api/booking', {
 
@@ -7643,6 +7672,9 @@ async function submitBooking() {
       throw new Error(data.error || 'Server error. Please try again.');
     }
 
+    // Hold the created booking so a card retry reuses it instead of creating another.
+    BOOK._pendingPayment = { fingerprint: orderFingerprint, data: data };
+
   } catch(e) {
 
     errEl.textContent = e.message; errEl.classList.add('show');
@@ -7709,6 +7741,7 @@ async function submitBooking() {
       var confirmData = await confirmResp.json();
       if (!confirmResp.ok) throw new Error(confirmData.error || 'Payment was authorized, but the booking is still being confirmed.');
       sessionStorage.removeItem('aaePaymentRecovery');
+      BOOK._pendingPayment = null;
     } catch(e) {
       console.error('booking-confirmed error:', e);
       showConfirmationPending(data.ref, e.message);

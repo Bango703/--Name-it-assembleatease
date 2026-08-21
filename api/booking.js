@@ -26,6 +26,12 @@ import {
   releasePendingRedemption,
 } from './_assemblecash.js';
 import { buildCustomerConsentRecord, validateCustomerLegalConsent } from './_legal-consent.js';
+import {
+  cartAllowsBookingReuse,
+  classifyExistingIntent,
+  isReusableBookingRow,
+  UNPAID_BOOKING_REUSE_WINDOW_MS,
+} from './booking/_duplicate-booking-guard.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -189,6 +195,71 @@ export default async function handler(req, res) {
   const sameDayEaserBonusCents = appliedSameDayFeeCents > 0 ? SAME_DAY_EASER_BONUS_CENTS : 0;
   const pricedBooking = amount > 0 && !quoteRequested;
   const shouldAuthorizeNow = pricedBooking && !scheduledAuthorization;
+
+  // ── Retry guard: reuse an unpaid booking rather than duplicating it ────────
+  // A declined card does not remove the booking this endpoint already created.
+  // It stays pending/unpaid, so a customer who retries after a refresh or in a
+  // new tab (where the page cannot reuse its cached PaymentIntent) used to mint
+  // a second booking, a second AAE- reference, and a second row in the owner's
+  // queue on every attempt.
+  //
+  // Reuse is deliberately narrow — same person, same slot, same service, same
+  // address, same server-computed total, nothing assigned, and no promo or
+  // AssembleCash on the original. Those two hold redemption reservations tied
+  // to the original ref; re-deriving them here is not worth the money risk, so
+  // those carts fall through and create a fresh booking as before.
+  if (shouldAuthorizeNow && !quoteRequested) {
+    try {
+      const reused = await reuseUnpaidBooking(sb, {
+        email, date, time, service, address, amount,
+        hasPromo: !!promo.applied,
+        hasAssembleCash: !!assemblecashToken,
+      });
+      if (reused?.conflict) {
+        return res.status(409).json({
+          error: 'This booking is already authorized on your card. Refresh the page to see its status instead of paying again.',
+          code: 'BOOKING_ALREADY_AUTHORIZED',
+          ref: reused.booking.ref,
+        });
+      }
+      if (reused?.booking) {
+        const reusedRef = reused.booking.ref;
+        const reusedId = reused.booking.id;
+        await logActivity(sb, {
+          bookingId: reusedId,
+          eventType: 'payment_retry_reused_booking',
+          actorType: 'customer',
+          description: 'Customer retried payment; reused the existing unpaid booking instead of creating a duplicate.',
+          metadata: { paymentIntentId: reused.paymentIntentId || null },
+        }).catch(() => {});
+        return res.status(200).json({
+          success: true,
+          ref: reusedRef,
+          bookingId: reusedId,
+          guestMutationToken: deriveGuestMutationToken({ bookingId: reusedId, ref: reusedRef, email }),
+          clientSecret: reused.clientSecret,
+          scheduledAuthorization: false,
+          isDeposit: false,
+          depositAmountCents: null,
+          reusedExistingBooking: true,
+          pricing: {
+            itemSubtotalCents: subtotalCents,
+            discountCents,
+            discountPct: pricing.discountPct,
+            serviceCallFeeCents,
+            taxableSubtotalCents,
+            taxCents,
+            totalCents: amount,
+            minimumPretaxCents: getMinimumPretaxBookingCents(pricingWithPromo.callZone),
+          },
+        });
+      }
+    } catch (reuseErr) {
+      // Never block a booking because the dedupe lookup failed. Worst case we
+      // fall through and behave exactly as before this guard existed.
+      console.error('Unpaid-booking reuse check failed:', reuseErr?.message || reuseErr);
+    }
+  }
   let verifiedQuotePaymentMethodId = null;
   let verifiedQuoteCustomerId = null;
 
@@ -873,6 +944,52 @@ function buildBookingItemRows({ bookingId, itemsByService }) {
   }
 
   return rows;
+}
+
+// Look for an unpaid booking this same customer just created for this same job,
+// so a payment retry lands on it instead of minting a duplicate. The decision
+// rules live in ./booking/_duplicate-booking-guard.js; this function is the I/O
+// around them.
+//
+// Returns one of:
+//   null                        — nothing safe to reuse; create a new booking
+//   { booking, clientSecret }   — reuse this booking and confirm this intent
+//   { conflict: true, booking } — the card already authorized; do not charge again
+async function reuseUnpaidBooking(sb, { email, date, time, service, address, amount, hasPromo, hasAssembleCash }) {
+  if (!cartAllowsBookingReuse({ hasPromo, hasAssembleCash })) return null;
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+
+  const since = new Date(Date.now() - UNPAID_BOOKING_REUSE_WINDOW_MS).toISOString();
+  const { data: rows, error } = await sb.from('bookings')
+    .select('id, ref, total_price, stripe_payment_intent_id, stripe_customer_id, created_at, promo_code, assemblecash_redeemed_cents')
+    .eq('customer_email', email)
+    .eq('date', date)
+    .eq('time', time)
+    .eq('service', service)
+    .eq('address', address)
+    .eq('status', 'pending')
+    .in('payment_status', ['pending', 'failed'])
+    .is('assembler_id', null)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error || !rows?.length) return null;
+
+  const booking = rows[0];
+  if (!isReusableBookingRow(booking, { amountCents: amount })) return null;
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const intent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
+
+  switch (classifyExistingIntent(intent, { amountCents: amount })) {
+    case 'already_authorized':
+      return { conflict: true, booking };
+    case 'reuse':
+      return { booking, clientSecret: intent.client_secret, paymentIntentId: intent.id };
+    default:
+      return null;
+  }
 }
 
 function cleanText(value, maxLength) {

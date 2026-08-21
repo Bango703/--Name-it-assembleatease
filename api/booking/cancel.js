@@ -541,6 +541,9 @@ export default async function handler(req, res) {
     payout_review_status: proTripCutCents > 0 ? 'not_required' : booking.payout_review_status,
     cancellation_reconciliation_required_at: null,
     cancellation_reconciliation_reason: null,
+    // A cancelled job needs no Easer. Leaving this set kept a red "Needs manual
+    // assignment" alert on a settled booking and counted it as outstanding work.
+    needs_manual_dispatch: false,
   };
   let updateQuery = sb.from('bookings').update(cancellationUpdate)
     .eq('id', booking.id)
@@ -578,8 +581,33 @@ export default async function handler(req, res) {
     await adjustActiveJobs(sb, booking.assembler_id, -1);
   }
 
-  // Send cancellation email to customer
-  try {
+  // Send cancellation email to customer.
+  //
+  // Skip it when the customer was never told the booking existed. /api/booking
+  // deliberately sends no email while a card authorization is still pending, so
+  // a booking stuck at pending/unpaid is an abandoned checkout the customer
+  // never saw a reference for. Emailing "your booking has been cancelled" for
+  // one of those announces a booking they never knew they had — and a customer
+  // whose card failed three times used to get three of them.
+  //
+  // Money always overrides silence: if any fee was captured or any refund
+  // issued, the customer is told regardless of how the booking started.
+  const customerWasNeverNotified = !booking.confirmed_at
+    && booking.status === BOOKING_STATUS.PENDING
+    && ['pending', 'failed'].includes(String(booking.payment_status || ''));
+  const suppressCancellationEmail = customerWasNeverNotified && refundAmount === 0 && feeCaptured === 0;
+
+  if (suppressCancellationEmail) {
+    await logActivity(sb, {
+      bookingId: booking.id,
+      eventType: 'cancellation_email_skipped',
+      actorType: 'system',
+      description: 'No cancellation email sent — the booking never completed card authorization, so the customer was never notified it existed.',
+      metadata: { paymentStatus: booking.payment_status || null, priorStatus: booking.status },
+    }).catch(() => {});
+  }
+
+  if (!suppressCancellationEmail) try {
     const reasonHtml = reason
       ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:6px;margin-bottom:20px"><tr><td style="padding:14px 18px">
            <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;color:#71717a">Reason</p>
