@@ -3256,9 +3256,9 @@
 
         </div>
 
-        <div class="auth-note" style="margin-top:0.85rem;background:#f0f9ff;border:1px solid #bae6fd">
-          <span class="auth-note-icon"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:var(--teal-dark)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span>
-          <div><strong>Free cancellation up to 24 hours before your appointment.</strong> After that, a small fee applies (10%, or 15% once a pro is on the way) &mdash; on the service price only, never tax.</div>
+        <div class="auth-note" style="margin-top:0.7rem;padding:0.5rem 0.7rem;gap:0.5rem;font-size:0.75rem;line-height:1.45;background:#f0f9ff;border:1px solid #bae6fd">
+          <span class="auth-note-icon" style="margin-top:0"><svg viewBox="0 0 24 24" width="13" height="13" style="fill:var(--teal-dark)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span>
+          <div><strong>Free cancellation</strong> up to 24 hours before your appointment; after that a small fee applies (10%, or 15% once a pro is on the way) on the service price only, never tax.</div>
         </div>
 
 
@@ -6313,7 +6313,7 @@ async function goToStep5Payment() {
 
 
 
-  function editRow(id, icon, label, displayHtml, formHtml) {
+  function editRow(id, icon, label, displayHtml, formHtml, editOnclick) {
 
     return '<div class="summary-row" id="srow-' + id + '">'
 
@@ -6323,7 +6323,7 @@ async function goToStep5Payment() {
 
       + '<div class="summary-row-label">' + label
 
-      + '<button class="summary-row-edit" onclick="toggleS5Edit(\'' + id + '\')">Edit</button>'
+      + '<button class="summary-row-edit" onclick="' + (editOnclick || ('toggleS5Edit(\'' + id + '\')')) + '">Edit</button>'
 
       + '</div>'
 
@@ -6401,15 +6401,17 @@ async function goToStep5Payment() {
 
 
 
-    // Address row: inline text input
+    // Address row: edits route back to the one validated step-3 address form
+    // (structured street/city/ZIP + service-area check). A free-text inline edit
+    // here could not re-validate the ZIP or keep pricing/tax correct.
 
     editRow('addr', SVGPIN, 'Address',
 
       esc(BOOK.address),
 
-      '<input type="text" class="summary-addr-input" id="s5-addr-input" value="' + escAttr(BOOK.address) + '" />'
+      '',
 
-      + '<button onclick="saveAddrEdit()" class="summary-addr-save" style="margin-top:0.5rem">Save</button>'
+      'editAddressOnStep3()'
 
     ) +
 
@@ -6693,28 +6695,19 @@ async function saveDtEdit() {
 
 
 
-function saveAddrEdit() {
-
-  var inp = document.getElementById('s5-addr-input');
-
-  if (!inp) return;
-
-  var val = inp.value.trim();
-
-  if (!val) return;
-
-  BOOK.address = val;
-
-  var valEl = document.getElementById('s5-addr-val');
-
-  if (valEl) valEl.textContent = val;
-
-  var s3inp = document.getElementById('s3-address');
-
-  if (s3inp) s3inp.value = val;
-
-  toggleS5Edit('addr');
-
+// Editing the address returns to the single validated step-3 form (structured
+// street/city/ZIP + service-area check + autocomplete), pre-filled with the
+// customer's current values. Continuing from there rebuilds BOOK.address and
+// re-checks the ZIP, so an edit always sticks and can never book an out-of-area
+// or mispriced address.
+function editAddressOnStep3() {
+  goToStep(3);
+  setTimeout(function() {
+    var card = document.querySelector('#step-3 .address-card');
+    var st = document.getElementById('s3-street');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (st) { try { st.focus({ preventScroll: true }); } catch (e) {} }
+  }, 140);
 }
 
 
