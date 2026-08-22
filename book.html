@@ -4426,9 +4426,9 @@ function getItemStagePath(svc) {
   // Open straight into the item browser (which already shows category pills via
   // renderSectionSwitcher). The old standalone 'group' category-card screen was a
   // redundant extra step — removed. 'items' defaults its group via getDefaultPrimaryGroup.
-  var path = ['items'];
-  if (serviceCanOfferExtras(svc)) path.push('extras');
-  path.push('notes');
+  // Add-ons are folded into the items list (no separate 'extras' stage), so the
+  // flow is just items → notes — one fewer transition, no "Continue to extras".
+  var path = ['items', 'notes'];
   return path;
 }
 
@@ -4920,7 +4920,14 @@ function renderBrowserPane(svc, stage) {
     kicker.textContent = 'Pick what you need';
     title.textContent = activeName || 'Choose items';
     copy.textContent = (SUBCAT_NOTES[activeName] || 'Choose the exact items in this section.');
-    wrap.innerHTML = group ? buildStaticGroupHtml(svc, group, group.items.length) : '';
+    var itemsHtml = group ? buildStaticGroupHtml(svc, group, group.items.length) : '';
+    // Fold same-visit add-ons in at the bottom of the same list — no separate
+    // "extras" stage/transition. Each extra group keeps its own header.
+    var foldedExtraGroups = getExtraGroups(svc);
+    if (foldedExtraGroups.length) {
+      itemsHtml += foldedExtraGroups.map(function(g) { return buildStaticGroupHtml(svc, g, g.items.length); }).join('');
+    }
+    wrap.innerHTML = itemsHtml;
     if (searchWrap) searchWrap.style.display = '';
     if (searchInput) searchInput.placeholder = 'Search items... e.g. queen bed';
     if (searchInput && searchInput.value) BOOK.itemSearchOpen = true;
@@ -4978,7 +4985,7 @@ function updateItemStageActions(svc) {
       nextBtn.disabled = true;
       nextBtn.innerHTML = 'Choose an item first';
     } else {
-      nextBtn.innerHTML = (getExtraGroups(svc).length ? 'Continue to extras' : 'Continue to notes') + ' <span>&#8594;</span>';
+      nextBtn.innerHTML = 'Continue to notes <span>&#8594;</span>';
     }
   }
   else if (stage === 'extras') nextBtn.innerHTML = 'Continue to notes <span>&#8594;</span>';
@@ -5047,11 +5054,8 @@ function handleServiceStageContinue() {
       return;
     }
 
-    if (serviceCanOfferExtras(BOOK.currentSvc) && hasSelectedBaseItems(BOOK.currentSvc)) {
-      BOOK.itemStage = 'extras';
-    } else {
-      BOOK.itemStage = 'notes';
-    }
+    // Add-ons now live inline in the items list, so continue goes straight to notes.
+    BOOK.itemStage = 'notes';
     renderItemScreen(BOOK.currentSvc);
     return;
   }
