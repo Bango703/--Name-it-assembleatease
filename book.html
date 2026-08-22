@@ -5119,9 +5119,12 @@ function syncMobileItemAssistivePanels(stage) {
     BOOK.itemSearchOpen = true;
   }
 
-  tools.style.display = '';
-  searchWrap.style.display = BOOK.itemSearchOpen ? '' : 'none';
-  searchBtn.textContent = BOOK.itemSearchOpen ? 'Hide search' : 'Search items';
+  // Phones keep the compact search visible at all times — no "Hide search"
+  // toggle (a control whose only job is hiding another control is needless
+  // friction). Customers can filter items immediately.
+  BOOK.itemSearchOpen = true;
+  tools.style.display = 'none';
+  searchWrap.style.display = '';
 }
 
 function toggleItemSearch(forceOpen) {
