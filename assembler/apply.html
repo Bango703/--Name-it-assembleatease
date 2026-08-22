@@ -806,8 +806,13 @@
       .nav-link { display: none; }
       .hero-title { font-size: clamp(1.95rem, 8.6vw, 2.35rem); line-height: 1.05; max-width: min(100%, 330px); overflow-wrap: break-word; }
       .hero-copy { font-size: 0.95rem; max-width: min(100%, 340px); }
-      .hero-actions { display: grid; grid-template-columns: 1fr; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; justify-items: center; }
       .hero-btn { width: 100%; }
+      /* Center the hero on phones so the capped title/copy don't lean left. */
+      .hero-grid > div { text-align: center; }
+      .hero-kicker { justify-content: center; }
+      .hero-title, .hero-copy { margin-left: auto; margin-right: auto; }
+      .easer-value-preview .easer-value-item { text-align: left; }
       .hero-photo { min-height: 285px; border-radius: 14px; }
       .hero-photo img { min-height: 285px; object-position: center; }
       .photo-note {

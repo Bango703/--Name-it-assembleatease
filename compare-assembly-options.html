@@ -136,7 +136,17 @@ body.guide-page .nav{position:relative}
 .rf-item{display:flex;align-items:flex-start;gap:0.7rem;background:#fff5f5;border:1px solid #fecaca;border-radius:14px;padding:1.05rem 1.15rem;font-size:0.92rem;font-weight:600;color:#7f1d1d;line-height:1.4}
 .rf-item svg{width:20px;height:20px;stroke:#dc2626;stroke-width:2.4;fill:none;flex-shrink:0;margin-top:1px}
 @media(max-width:860px){.q-grid{grid-template-columns:1fr 1fr}.rf-grid{grid-template-columns:1fr}}
-@media(max-width:620px){.q-grid{grid-template-columns:1fr}.guide{padding:3.25rem 1rem}}
+@media(max-width:620px){.q-grid{grid-template-columns:1fr}.guide{padding:3.25rem 1rem}
+  /* Shrink the comparison chart to fit the phone so every column is visible
+     without side-scrolling (cells are mostly small ✓/~/✗ marks). */
+  .cmp{min-width:0;font-size:0.68rem}
+  .cmp thead th,.cmp tbody th,.cmp tbody td{padding:0.5rem 0.28rem}
+  .cmp thead th{font-size:0.58rem;padding:0.6rem 0.26rem}
+  .cmp thead th.col-aae{font-size:0.62rem}
+  .cmp thead th:first-child{width:30%}
+  .cmp tbody th{font-size:0.66rem}
+  .cmp-mark{width:19px;height:19px;font-size:0.66rem}
+  .cmp-scroll{border-radius:14px}}
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What should I ask before hiring a furniture assembly pro?","acceptedAnswer":{"@type":"Answer","text":"Ask whether the price is clear before you book, whether the pro is identity-verified, when you pay (ideally after the work is done), what happens if something is wrong, and whether you can see real reviews."}},{"@type":"Question","name":"Is it cheaper to assemble furniture myself?","acceptedAnswer":{"@type":"Answer","text":"DIY is cheapest in cash for simple items, but it costs time and tools, and complex builds like beds, wardrobes, and mounted TVs are where mistakes get expensive. Hiring a pro is usually worth it for anything large, wall-mounted, or safety-related."}},{"@type":"Question","name":"What are red flags when choosing an assembly service?","acceptedAnswer":{"@type":"Answer","text":"No clear price until they arrive, large upfront cash deposits, no identity verification, no reviews anywhere, pressure to pay before the work is done, and no plan for rework or damage."}}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.assembleatease.com"},{"@type":"ListItem","position":2,"name":"Compare Assembly Options","item":"https://www.assembleatease.com/compare-assembly-options"}]}</script>
