@@ -280,10 +280,26 @@ assert.ok(
 );
 assert.ok(!/assembler_due:\s*0\b/.test(assignCompact), 'an assigned Easer must never be recorded as earning zero');
 
-// The status is pinned on both branches. A record-only owner-manual link may
-// only land on an already-COMPLETED offline job; every other assignment still
-// requires CONFIRMED, so a live booking can never be assigned off a stale read.
-assert.ok(assignCompact.includes(".eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : BOOKING_STATUS.CONFIRMED)"));
+// The status CAS pins the ACTUAL read status on both branches, so a booking that
+// changed since it was read can never be assigned off a stale read. WHICH statuses
+// are assignable is gated separately below: a record-only link needs a COMPLETED
+// offline job; a normal assignment needs CONFIRMED; owner reassign of an in-flight
+// job is the only path that accepts en_route/arrived/in_progress, and only with
+// reassign=true on an already-assigned booking.
+assert.ok(assignCompact.includes(".eq('status', recordOnlyOwnerManualCompleted ? BOOKING_STATUS.COMPLETED : booking.status)"),
+  'assignment CAS must pin the actual read status (race-safe)');
+assert.ok(
+  assignCompact.includes('const activeReassignStatuses = [BOOKING_STATUS.EN_ROUTE, BOOKING_STATUS.ARRIVED, BOOKING_STATUS.IN_PROGRESS]'),
+  'owner reassign must be limited to in-flight statuses',
+);
+assert.ok(
+  assignCompact.includes('const activeReassign = reassign === true && !!booking.assembler_id && activeReassignStatuses.includes(booking.status)'),
+  'active reassign requires reassign=true on an already-assigned in-flight booking',
+);
+assert.ok(
+  assignCompact.includes('if (booking.status !== BOOKING_STATUS.CONFIRMED && !activeReassign && !recordOnlyOwnerManualCompleted) return'),
+  'assignment must reject any status that is not confirmed, an owner active-reassign, or a record-only completed link',
+);
 // Both branches pin the money inputs they consume. Online assignments pin Stripe
 // linkage; record-only offline attribution pins collection/method/amount truth.
 const assignMoneyCas = assignCompact.slice(

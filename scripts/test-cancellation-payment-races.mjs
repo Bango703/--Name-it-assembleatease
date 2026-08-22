@@ -434,8 +434,9 @@ const [ownerCancel, customerCancel, guestCancel, operationHelper, financialOpera
 ]);
 
 await check('in-progress or job-started bookings are blocked before any financial reservation', () => {
+  // Customer and guest can NEVER cancel a work-started job — unconditional guard,
+  // and they must not carry any owner-override escape hatch.
   for (const [name, source] of [
-    ['owner', ownerCancel],
     ['customer', customerCancel],
     ['guest', guestCancel],
   ]) {
@@ -446,10 +447,37 @@ await check('in-progress or job-started bookings are blocked before any financia
         .map(marker => source.indexOf(marker))
         .filter(index => index >= 0),
     );
-    assert.ok(workGuard >= 0, `${name} cancellation needs a work-started guard`);
+    assert.ok(workGuard >= 0, `${name} cancellation needs an unconditional work-started guard`);
     assert.ok(workGuard < payoutGuard, `${name} work-started guard must precede payout queries`);
     assert.ok(workGuard < reservation, `${name} work-started guard must precede financial reservation`);
+    assert.ok(!source.includes('ownerOverride'), `${name} cancellation must NOT have an override escape hatch`);
   }
+
+  // Owner keeps the same work-started guard, but with a deliberate, owner-only
+  // emergency override (verifyOwner is enforced earlier in the handler) that
+  // FORCES no automatic mid-job fee. The guard must still block a normal owner
+  // cancel of a started job and precede any payout query / financial reservation.
+  const workStartedCalc = ownerCancel.indexOf('const workStarted = booking.status === BOOKING_STATUS.IN_PROGRESS');
+  const ownerGuard = ownerCancel.indexOf('if (workStarted && !ownerOverride)');
+  const ownerPayoutGuard = ownerCancel.indexOf('await assertCancellationPayoutUnsettled(sb, booking)');
+  const ownerReservation = Math.min(
+    ...['await reserveBookingFinancialOperation(sb', 'await claimBookingCancellationRecovery(sb']
+      .map(marker => ownerCancel.indexOf(marker))
+      .filter(index => index >= 0),
+  );
+  assert.ok(workStartedCalc >= 0, 'owner cancellation must compute a work-started flag');
+  assert.ok(ownerGuard >= 0, 'owner cancellation needs a work-started guard (blocks normal cancel of a started job)');
+  assert.ok(ownerGuard < ownerPayoutGuard, 'owner work-started guard must precede payout queries');
+  assert.ok(ownerGuard < ownerReservation, 'owner work-started guard must precede financial reservation');
+  assert.ok(
+    ownerCancel.indexOf('if (!verifyOwner(req))') < ownerGuard,
+    'owner override must be reachable only after verifyOwner',
+  );
+  assert.match(
+    ownerCancel,
+    /const waiveFee = req\.body\.waiveFee === true \|\| \(workStarted && ownerOverride\)/,
+    'owner override on a started job must force waiveFee (no automatic mid-job fee)',
+  );
 });
 
 await check('every cancellation route requires durable financial audit truth for fee recovery', () => {
