@@ -1145,7 +1145,9 @@
     .svc-row.quote-row .svc-row-icon { background: var(--teal); color: #fff; }
     .svc-row.quote-row .svc-row-meta strong { color: var(--ink); font-weight: 800; }
     /* === Screen A: minimal service tiles (Puls-style). #svc-screen scope wins over old breakpoint rules. === */
-    #svc-screen .svc-screen-head { margin-bottom: 1.25rem; }
+    #svc-screen .svc-screen-head { margin-bottom: 1.25rem; text-align: center; }
+    #svc-screen .svc-screen-head .step-kicker { justify-content: center; }
+    #svc-screen .svc-screen-head .step-sub { margin-left: auto; margin-right: auto; }
     #svc-screen .svc-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; }
     #svc-screen .svc-row {
       display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
@@ -2386,7 +2388,7 @@
       .step-sub { max-width: calc(100vw - 4rem); }
 
       @media (max-width: 520px) {
-        .step-sub { width: 300px; max-width: calc(100vw - 4rem); }
+        .step-sub { width: 100%; max-width: calc(100vw - 4rem); }
       }
 
       .service-section-note { text-align: left; max-width: none; font-size: 0.76rem; overflow-wrap: break-word; }
