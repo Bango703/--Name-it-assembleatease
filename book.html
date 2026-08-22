@@ -758,9 +758,15 @@
 
     }
 
-    .subcat-item:hover {
-      background: #f6fbff;
-      border-color: rgba(0,191,255,0.18);
+    /* Only show hover tint on real pointer devices. On touch, :hover "sticks"
+       after a tap, so the tapped row stayed blue AND the selected row was blue —
+       two highlights that looked dirty. Now a tap shows only the clean .selected
+       state. */
+    @media (hover: hover) and (pointer: fine) {
+      .subcat-item:hover {
+        background: #f6fbff;
+        border-color: rgba(0,191,255,0.18);
+      }
     }
 
     .subcat-item.selected {
