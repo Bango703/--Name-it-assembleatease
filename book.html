@@ -2550,6 +2550,18 @@
       .book-progress { position: sticky; top: 0; z-index: 50; }
       #item-stage-browser-pane .item-pane-kicker { display: none; }
       #item-stage-browser-pane .item-pane-copy { margin-bottom: 0.5rem; }
+      /* Tighten the item-screen header into a compact context strip so the
+         products sit near the top: back arrow, then service name + price. */
+      .item-screen-nav { margin-bottom: 0.3rem; }
+      .item-back-btn { font-size: 0.8rem; min-height: 34px; }
+      .item-screen-heading { font-size: 1.3rem; }
+      .item-screen-from { margin-bottom: 0.65rem; font-size: 0.8rem; }
+      /* Drop the blue container around the search — just the clean white field. */
+      .subcat-search-wrap {
+        --search-wrap-pad-y: 0; --search-wrap-pad-x: 0;
+        padding: 0; margin: 0 0 0.7rem;
+        border: none; background: none; box-shadow: none; border-radius: 0;
+      }
     }
 
   </style>
