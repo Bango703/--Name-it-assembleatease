@@ -2539,6 +2539,19 @@
       }
     }
 
+    /* ── Mobile booking chrome cleanup ───────────────────────────────────────
+       Reclaim vertical space on phones so the actual choices show sooner. This
+       REMOVES redundant layers (it does not shrink the products themselves):
+       the site header is dropped in favor of the step bar, which becomes a
+       compact sticky booking header so context is never lost after scrolling;
+       and the redundant "Choose items" kicker above the product list is hidden. */
+    @media (max-width: 640px) {
+      .book-nav { display: none; }
+      .book-progress { position: sticky; top: 0; z-index: 50; }
+      #item-stage-browser-pane .item-pane-kicker { display: none; }
+      #item-stage-browser-pane .item-pane-copy { margin-bottom: 0.5rem; }
+    }
+
   </style>
 
 </head>
