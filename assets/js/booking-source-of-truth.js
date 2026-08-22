@@ -126,8 +126,8 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Seating & Sofas', items: [
         { name: 'Accent chair / armchair', price: 89 },
         { name: 'Sofa (2–3 seat, standard)', price: 119 },
-        { name: 'Sectional sofa (L-shape)', price: 159, priceMax: 199, popular: true },
-        { name: 'Sectional sofa (U-shape / oversized)', price: 219, priceMax: 269 },
+        { name: 'Sectional sofa (L-shape)', price: 159, popular: true },
+        { name: 'Sectional sofa (U-shape / oversized)', price: 219 },
         { name: 'Sleeper sofa / sofa bed', price: 139 },
         { name: 'Ottoman (storage)', price: 79 },
         { name: 'Bench (entryway or bedroom)', price: 79 }
@@ -138,13 +138,13 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Bed frame — king / cal king', price: 139 },
         { name: 'Bed frame with storage drawers', price: 159 },
         { name: 'Platform bed with upholstered headboard', price: 169 },
-        { name: 'Bunk bed / loft bed', price: 229, priceMax: 299 },
+        { name: 'Bunk bed / loft bed', price: 229 },
         { name: 'Trundle bed', price: 129 },
         { name: 'Crib / toddler bed', price: 99 },
         { name: 'Nightstand (single)', price: 79 },
         { name: 'Dresser (up to 6 drawers)', price: 109 },
         { name: 'Dresser (7+ drawers / double)', price: 149 },
-        { name: 'Wardrobe / armoire (freestanding)', price: 129, priceMax: 159 },
+        { name: 'Wardrobe / armoire (freestanding)', price: 129 },
         { name: 'IKEA PAX wardrobe (single unit)', price: 199, popular: true },
         { name: 'IKEA PAX wardrobe (per additional unit)', price: 99, addon: true },
         { name: 'Vanity with mirror', price: 119 }
@@ -179,7 +179,7 @@ window.AAE_BOOKING_SOURCE = {
       { group: 'Storage & Entryway', items: [
         { name: 'Storage cabinet / pantry cabinet', price: 109 },
         { name: 'Shoe cabinet / entryway organizer', price: 89 },
-        { name: 'Closet organizer system (basic kit)', price: 149, priceMax: 199 },
+        { name: 'Closet organizer system (basic kit)', price: 149 },
         { name: 'Bathroom cabinet / over-toilet storage', price: 89 },
         { name: 'Toy storage / cube organizer', price: 79 }
       ]},
@@ -196,7 +196,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'TV 56"–65" (standard wall)', price: 149 },
         { name: 'TV 66"–75" (standard wall)', price: 189 },
         { name: 'TV 76"–85" (standard wall)', price: 229 },
-        { name: 'TV 86"+ / commercial display', price: 249, priceMax: 329 },
+        { name: 'TV 86"+ / commercial display', price: 249 },
         { name: 'Second TV (same visit)', price: 69, addon: true, tags: ['convenience'], appliesTo: ['tv'], recoLabel: 'Add a second TV', recoWhy: 'Cheaper than booking another trip' }
       ]},
       { group: 'Wall Type Upgrades', items: [
@@ -277,7 +277,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Floodlight camera (hardwired replacement)', price: 169 },
         { name: 'Camera system — 2 cameras', price: 169 },
         { name: 'Camera system — 4 cameras', price: 279, popular: true },
-        { name: 'Camera system — 6+ cameras', price: 379, priceMax: 499 },
+        { name: 'Camera system — 6+ cameras', price: 379 },
         { name: 'NVR / DVR setup + camera config', price: 129 }
       ]},
       { group: 'Lighting', items: [
@@ -306,7 +306,7 @@ window.AAE_BOOKING_SOURCE = {
     ],
     'Outdoor & Playsets': [
       { group: 'Playsets & Backyard Structures', items: [
-        { name: 'Swing set / backyard playset assembly', price: 299, priceMax: 379, popular: true },
+        { name: 'Swing set / backyard playset assembly', price: 299, popular: true },
         { name: 'Trampoline assembly (up to 10 ft)', price: 279 },
         { name: 'Trampoline assembly (11–14 ft)', price: 349 },
         { name: 'Trampoline assembly (15 ft+)', price: 399 },
@@ -349,7 +349,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Desk (simple flat-pack)', price: 99 },
         { name: 'Desk (L-shape / executive)', price: 179, popular: true },
         { name: 'Standing desk (electric)', price: 199 },
-        { name: 'Cubicle workstation / multi-desk setup', price: 399, priceMax: 599 }
+        { name: 'Cubicle workstation / multi-desk setup', price: 399 }
       ]},
       { group: 'Seating & Storage', items: [
         { name: 'Office chair (standard)', price: 89 },
@@ -361,8 +361,8 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Credenza / sideboard', price: 149 }
       ]},
       { group: 'Conference & Specialty', items: [
-        { name: 'Conference table', price: 229, priceMax: 329 },
-        { name: 'Reception desk / front counter', price: 399, priceMax: 599 },
+        { name: 'Conference table', price: 229 },
+        { name: 'Reception desk / front counter', price: 399 },
         { name: 'Wall-mounted storage / overhead cabinet', price: 119 },
         { name: 'Office partition / divider install', price: 189 }
       ]},
@@ -388,7 +388,7 @@ window.AAE_BOOKING_SOURCE = {
         { name: 'Power rack / squat rack', price: 239 },
         { name: 'Punching bag stand', price: 129 },
         { name: 'Dumbbell / weight set assembly', price: 139 },
-        { name: 'Home gym / cable machine', price: 329, priceMax: 449 },
+        { name: 'Home gym / cable machine', price: 329 },
         { name: 'Multi-station gym', price: 0, customQuote: true }
       ]},
       { group: 'Add-ons', items: [
