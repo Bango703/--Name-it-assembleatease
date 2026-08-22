@@ -2202,6 +2202,17 @@
 
       .item-stage-rail { display: none; }
 
+      /* Category pills as ONE horizontal, swipeable row — never wrap into
+         several rows that push the actual items below the fold. */
+      .item-section-switcher {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.2rem;
+        margin-bottom: 0.7rem;
+      }
+      .item-section-btn { flex: 0 0 auto; white-space: nowrap; }
+
       .item-stage-status {
         align-items: flex-start;
         flex-direction: column;
