@@ -6793,7 +6793,7 @@ window.intelQuick = intelQuick;
       });
       var d = await r.json();
       if (!r.ok || d.error) { toast(d.error || 'Could not release the assignment', 'error'); return; }
-      toast(d.message || 'Assignment released', d.notificationDelivered === false ? 'error' : 'success');
+      toast(d.message || 'Assignment released', 'success');
       await loadBookings(true);
       if (selectedId) selectBooking(selectedId);
       loadAssemblers();

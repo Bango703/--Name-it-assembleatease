@@ -1,6 +1,5 @@
 import { getSupabase } from '../_supabase.js';
-import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
-import { sendPushToUser } from '../_push.js';
+import { verifyOwner } from '../_email.js';
 import { logActivity } from './_activity.js';
 import { BOOKING_STATUS } from '../_source-of-truth.js';
 
@@ -105,43 +104,18 @@ export default async function handler(req, res) {
       + (reason ? ` — ${String(reason).slice(0, 300)}` : ''),
   }).catch(() => {});
 
-  // Tell the Easer their offer is gone. Notification failure must never leave the
-  // booking stuck, so it is reported but not fatal — the release already happened.
-  let notified = false;
-  try {
-    const { data: easer } = await sb.from('profiles')
-      .select('email, full_name').eq('id', previousEaserId).maybeSingle();
-    if (easer?.email) {
-      const result = await sendEmail({
-        to: easer.email,
-        from: 'AssembleAtEase <booking@assembleatease.com>',
-        subject: `Job no longer assigned to you — ${booking.ref}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0a1628">
-          <h2 style="margin:0 0 12px">This job has been reassigned</h2>
-          <p style="font-size:15px;line-height:1.6;color:#334155">Hi ${esc((easer.full_name || '').split(' ')[0] || 'there')} — the ${esc(booking.service || 'job')} on ${esc(booking.date || 'the scheduled date')}${booking.time ? ' at ' + esc(booking.time) : ''} (${esc(booking.ref)}) is no longer assigned to you, because it had not been accepted yet.</p>
-          <p style="font-size:14px;line-height:1.6;color:#334155">Nothing is owed or held against you. You are still online and eligible for other jobs.</p>
-        </div>`,
-        replyTo: ownerEmail(),
-        meta: { notificationType: 'easer_assignment_released', recipientType: 'easer', recipientUserId: previousEaserId, disableDedupe: true },
-      });
-      notified = result?.ok === true;
-    }
-  } catch (notifyErr) {
-    console.error('Release notification error:', notifyErr?.message || notifyErr);
-  }
-  try {
-    await sendPushToUser(previousEaserId, {
-      title: 'Job reassigned',
-      body: `${booking.ref} is no longer assigned to you.`,
-      url: '/assembler/my-assignments',
-    });
-  } catch { /* push is best-effort */ }
+  // NO notification is sent. Release only ever applies to an Easer who has NOT
+  // accepted, so there is no commitment to withdraw and nothing to apologise for
+  // — telling someone a job they never took is 'no longer theirs' is noise about
+  // a thing that never happened. This also matches how the platform already
+  // behaves: an unaccepted dispatch offer that expires notifies nobody either.
+  // The job simply leaves their queue. An Easer who HAS accepted cannot be
+  // released at all (guarded above) — that path is Reassign, which does notify.
 
   return res.status(200).json({
     ok: true,
     released: true,
     previousEaserName,
-    notificationDelivered: notified,
     message: `Released from ${previousEaserName}. The booking is unassigned and ready to dispatch or assign.`,
   });
 }
