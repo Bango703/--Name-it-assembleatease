@@ -1673,11 +1673,13 @@ window.intelQuick = intelQuick;
     <h3 id="qm-title">Set &amp; Send Quote</h3>
     <p id="qm-note" style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.</p>
     <input type="hidden" id="qm-id"/>
-    <!-- Filled by openQuoteModal. Pricing must never happen without the
-         customer's selected items and add-ons visible on the same screen. -->
-    <div id="qm-scope" style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.9rem;max-height:210px;overflow-y:auto"></div>
-    <label class="modal-label">Quote Amount ($) *</label>
-    <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01"/>
+    <!-- Filled by openQuoteModal. The owner must never have to total a list by
+         hand: the amount below is PRE-FILLED from the customer's actual line
+         items and add-ons, and this strip says what that number is made of. -->
+    <div id="qm-scope" style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.9rem"></div>
+    <label class="modal-label">Quote Amount ($) — total including tax *</label>
+    <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01" oninput="updateQuoteBreakdown()"/>
+    <div id="qm-breakdown" style="font-size:0.76rem;color:var(--muted);margin-top:-0.4rem;margin-bottom:0.4rem"></div>
     <div id="qm-error" style="font-size:0.82rem;color:var(--red);margin-top:0.75rem;display:none"></div>
     <div class="modal-actions" style="margin-top:1.25rem">
       <button class="btn" id="qm-cancel">Cancel</button>
@@ -4157,13 +4159,18 @@ window.intelQuick = intelQuick;
     // amount, so start from what the customer was last quoted rather than blank.
     var existingCents = Number(quoteBooking && quoteBooking.quote_amount_cents || 0);
     var reissuing = existingCents > 0;
+    var quoted = quoteItemTotals(quoteBooking);
     var scopeBox = document.getElementById('qm-scope');
-    if (scopeBox) {
-      scopeBox.innerHTML = '<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px">Customer selected</div>'
-        + bookingScopeHtml(quoteBooking || {});
-    }
+    if (scopeBox) scopeBox.innerHTML = quoteScopeSummaryHtml(quoteBooking, quoted);
     document.getElementById('qm-id').value = bookingId;
-    document.getElementById('qm-amount').value = reissuing ? (existingCents / 100).toFixed(2) : '';
+    // Pre-fill from real line items so the owner adjusts a number instead of
+    // deriving one. Showing the add-ons without doing this arithmetic just moved
+    // the work onto the owner, which is worse than not showing them at all.
+    // A re-issue keeps the amount already quoted.
+    document.getElementById('qm-amount').value = reissuing
+      ? (existingCents / 100).toFixed(2)
+      : (quoted.totalCents > 0 ? (quoted.totalCents / 100).toFixed(2) : '');
+    updateQuoteBreakdown();
     document.getElementById('qm-error').style.display = 'none';
     document.getElementById('qm-title').textContent = reissuing ? 'Reprice & Resend Quote' : 'Set & Send Quote';
     document.getElementById('qm-note').textContent = reissuing
@@ -6331,6 +6338,67 @@ window.intelQuick = intelQuick;
     }
     return html;
   }
+
+  // Sum what the customer actually selected. line_total is PRE-TAX unit x qty;
+  // a custom-quote item stores 0, which is exactly the part the owner must price.
+  function quoteItemTotals(b) {
+    var groups = (b && b._booking_items) || [];
+    var pricedCents = 0, addOnCents = 0, addOns = 0, unpriced = 0;
+    groups.forEach(function(g) {
+      g.items.forEach(function(it) {
+        var line = Number(it.lineTotalCents || 0);
+        if (line > 0) { pricedCents += line; if (it.isAddOn) { addOnCents += line; addOns++; } }
+        else unpriced++;
+      });
+    });
+    var taxRate = (window.AAE_RATES && window.AAE_RATES.SALES_TAX_RATE) || 0.0825;
+    var taxCents = Math.round(pricedCents * taxRate);
+    return {
+      pricedCents: pricedCents,
+      addOnCents: addOnCents,
+      addOns: addOns,
+      unpriced: unpriced,
+      taxCents: taxCents,
+      totalCents: pricedCents > 0 ? pricedCents + taxCents : 0,
+      unavailable: b && b._booking_items === null,
+    };
+  }
+
+  function quoteScopeSummaryHtml(b, t) {
+    if (t.unavailable) {
+      return '<div style="font-size:0.78rem;color:var(--red)">Item scope could not be loaded &mdash; do not price this booking until it does.</div>';
+    }
+    if (!t.pricedCents && !t.unpriced) {
+      return '<div style="font-size:0.78rem;color:var(--muted)">No itemised scope recorded. Price this from the job details.</div>';
+    }
+    var rows = '<div style="display:flex;justify-content:space-between;font-size:0.79rem"><span style="color:var(--muted)">Priced items'
+      + (t.addOns ? ' (incl. ' + t.addOns + ' add-on' + (t.addOns === 1 ? '' : 's') + ' ' + fmt$(t.addOnCents) + ')' : '')
+      + '</span><strong>' + fmt$(t.pricedCents) + '</strong></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:0.79rem"><span style="color:var(--muted)">Sales tax</span><span>' + fmt$(t.taxCents) + '</span></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-top:3px;padding-top:3px;border-top:1px solid var(--border)"><span style="font-weight:700">Pre-filled below</span><strong>' + fmt$(t.totalCents) + '</strong></div>';
+    if (t.unpriced) {
+      rows += '<div style="font-size:0.74rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 8px;margin-top:6px">'
+        + '<strong>' + t.unpriced + ' custom item' + (t.unpriced === 1 ? '' : 's') + '</strong> have no catalog price &mdash; add your labour for those on top of the figure below.</div>';
+    }
+    return rows
+      + '<details style="margin-top:6px"><summary style="font-size:0.74rem;color:var(--teal);cursor:pointer">See the ' + (t.addOns + t.unpriced > 0 ? 'items and add-ons' : 'items') + '</summary>'
+      + '<div style="margin-top:5px">' + bookingScopeHtml(b, { showPrices: true }) + '</div></details>';
+  }
+
+  // Live split so the typed total is never a mystery: the server derives subtotal
+  // and tax by dividing by 1.0825, and this shows the same derivation.
+  function updateQuoteBreakdown() {
+    var el = document.getElementById('qm-breakdown');
+    var amount = parseFloat(document.getElementById('qm-amount').value);
+    if (!el) return;
+    if (!isFinite(amount) || amount <= 0) { el.textContent = ''; return; }
+    var taxRate = (window.AAE_RATES && window.AAE_RATES.SALES_TAX_RATE) || 0.0825;
+    var totalCents = Math.round(amount * 100);
+    var subtotal = Math.round(totalCents / (1 + taxRate));
+    el.innerHTML = 'Customer sees ' + fmt$(subtotal) + ' + ' + fmt$(totalCents - subtotal) + ' tax = <strong>' + fmt$(totalCents) + '</strong>';
+  }
+
+  window.updateQuoteBreakdown = updateQuoteBreakdown;
 
   function wideField(label, value) {
     return '<div class="detail-field" style="grid-column:1/-1"><label>' + label + '</label><span>' + value + '</span></div>';
