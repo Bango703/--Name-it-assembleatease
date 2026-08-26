@@ -76,7 +76,15 @@ export default async function handler(req, res) {
       });
     }
   }
-  if (booking.assembler_id && !reassign) return res.status(400).json({ error: 'Booking already assigned. Pass reassign:true to override.' });
+  // Owner-facing wording, not an API instruction. This string reached the
+  // dashboard toast verbatim and told the operator to 'Pass reassign:true'.
+  if (booking.assembler_id && !reassign) {
+    return res.status(400).json({
+      error: `This booking is already assigned to ${booking.assembler_name || 'an Easer'}. Use Reassign to hand it to someone else, or Release it first if they have not accepted.`,
+      code: 'ALREADY_ASSIGNED',
+      assignedTo: booking.assembler_name || null,
+    });
+  }
 
   // Verify assembler exists and is eligible
   const { data: assembler, error: aErr } = await sb

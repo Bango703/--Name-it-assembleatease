@@ -3004,7 +3004,21 @@ window.intelQuick = intelQuick;
   async function apiPost(path, body) {
     const r = await fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
     if (r.status === 401) { logout(true); throw new Error('Unauthorized'); }
-    return r.json();
+    // A gateway timeout, a crashed function, or a Vercel error page returns HTML,
+    // and a bare r.json() then throws "Unexpected token '<'" — a raw parser error
+    // shown to the owner in place of what actually went wrong. Read the body
+    // defensively and report the real HTTP failure instead.
+    const raw = await r.text();
+    let data = null;
+    if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+    if (data === null) {
+      if (r.ok) return {};
+      const detail = r.status === 504 || r.status === 502
+        ? 'The server took too long to respond. The action may still have completed — refresh before retrying.'
+        : 'The server returned an unexpected response.';
+      throw new Error(detail + ' (HTTP ' + r.status + ')');
+    }
+    return data;
   }
 
   // ─── Login / Logout ───
@@ -6819,12 +6833,30 @@ window.intelQuick = intelQuick;
   document.getElementById('assign-btn').addEventListener('click', async function() {
     var assemblerId = document.getElementById('assign-select').value;
     if (!assemblerId || !selectedId) return;
-    var isReassign = this.dataset.reassign === 'true';
+    // Derive this from the booking, not from a sticky flag on the button. The
+    // flag only got set by clicking Reassign, so whenever the cached list was
+    // behind the server — after a release, an acceptance, or a dispatch landing —
+    // the request went without it and the owner was shown the raw developer
+    // string "Booking already assigned. Pass reassign:true to override."
+    var assignTarget = allBookings.find(function(item){ return item.id === selectedId; });
+    var isReassign = this.dataset.reassign === 'true' || !!(assignTarget && assignTarget.assembler_id);
     this.disabled = true; this.textContent = isReassign ? 'Reassigning...' : 'Assigning...';
     try {
       var body = { bookingId: selectedId, assemblerId: assemblerId };
       if (isReassign) body.reassign = true;
       var data = await apiPost('/assign', body);
+      // Last-resort recovery: the server saw an assignment this page did not know
+      // about. Confirm and retry as a reassignment rather than leaving the owner
+      // holding an instruction meant for a developer.
+      if (data.error && data.code === 'ALREADY_ASSIGNED' && !body.reassign) {
+        if (confirm('This booking already has an Easer assigned — your view was out of date.\n\nReassign it to the Easer you selected?')) {
+          data = await apiPost('/assign', Object.assign({}, body, { reassign: true }));
+        } else {
+          await loadBookings(true);
+          if (selectedId) selectBooking(selectedId);
+          return;
+        }
+      }
       if (data.error) { toast(data.error, 'error'); return; }
       toast((isReassign ? 'Reassigned' : 'Assigned') + ' to ' + (data.assignedTo || 'Easer'), 'success');
       delete this.dataset.reassign;
