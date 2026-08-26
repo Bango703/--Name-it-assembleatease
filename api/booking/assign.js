@@ -345,7 +345,12 @@ export default async function handler(req, res) {
       to: assembler.email,
       from: 'AssembleAtEase <booking@assembleatease.com>',
       replyTo: ownerEmail(),
-      subject: `You've got a new job — ${esc(booking.service)}`,
+      // The booking ref MUST be in the subject. sendEmail dedupes on
+      // recipient + notificationType + SUBJECT, so a ref-less subject made two
+      // different jobs of the same service look identical: assign an Easer to a
+      // second Fitness Equipment job and the email was silently suppressed as a
+      // duplicate. Reassigning the same booking after a release hit it too.
+      subject: `You've got a new job — ${esc(booking.service)} (${esc(booking.ref)})`,
       html: buildAssignmentEmail({
         firstName,
         service: booking.service,
@@ -356,7 +361,10 @@ export default async function handler(req, res) {
         declineUrl,
         ref: booking.ref,
       }),
-      meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: assemblerId },
+      // An assignment is a discrete operational event, not a reminder. An Easer
+      // must always be told about a job they have been given (Rule 10), so this
+      // one is never collapsed into an earlier send.
+      meta: { bookingId: booking.id, notificationType: 'assignment_confirmation', recipientType: 'easer', recipientUserId: assemblerId, disableDedupe: true },
     });
   } catch (e) {
     console.error('Assignment email error:', e);

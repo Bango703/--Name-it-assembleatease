@@ -404,10 +404,14 @@ export async function dispatchBooking(bookingId, { dryRun = false, excludeEaserI
       emailResult = await sendEmail({
         to:       easer.email,
         from:     'AssembleAtEase <booking@assembleatease.com>',
-        subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity}`,
+        // Ref in the subject for the same reason as assign.js: dedupe keys on
+        // subject, so two same-service offers in one city collapsed into one.
+        subject:  `New Job Available — ${booking.service || 'Service'} in ${bookingCity} (${booking.ref})`,
         html:     buildOfferEmail(easer, booking, bookingCity, offerUrl, expiresAt),
         replyTo:  'service@assembleatease.com',
-        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id },
+        // A dispatch offer is time-boxed and job-specific — never collapse one
+        // into an earlier offer. Retries after expiry are legitimate re-offers.
+        meta:     { bookingId, notificationType: 'dispatch_offer', recipientType: 'easer', recipientUserId: easer.id, disableDedupe: true },
       });
     } catch (err) {
       console.error('Dispatch email error:', easer.email, err.message);

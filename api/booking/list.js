@@ -1,4 +1,5 @@
 import { getSupabase } from '../_supabase.js';
+import { loadBookingItems, countAddOns } from './_booking-items.js';
 import { verifyOwner } from '../_email.js';
 import {
   allocateCollectedTaxCents,
@@ -158,6 +159,23 @@ export default async function handler(req, res) {
         code: 'MESSAGE_NOTIFICATION_TRUTH_UNAVAILABLE',
       });
     }
+    // The owner must see exactly the scope the customer bought and the Easer
+    // will be shown — including add-ons. Without this the owner priced quotes
+    // blind while the Easer had the full list.
+    try {
+      const itemsByBooking = await loadBookingItems(bookingIds, { sb, includePricing: true });
+      data.forEach(booking => {
+        const groups = itemsByBooking.get(booking.id) || [];
+        booking._booking_items = groups;
+        booking._add_on_count = countAddOns(groups);
+      });
+    } catch (itemsError) {
+      console.error('Owner booking-items lookup error:', itemsError);
+      // Null (not []) so the dashboard can say "could not load" rather than
+      // silently render an empty scope that looks like "no add-ons".
+      data.forEach(booking => { booking._booking_items = null; booking._add_on_count = null; });
+    }
+
     if (unreadMsgs && unreadMsgs.length) {
       const unreadByBooking = new Map();
       unreadMsgs.forEach(message => {

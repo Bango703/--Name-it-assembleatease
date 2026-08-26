@@ -22,8 +22,23 @@ assert.match(jobsPage, /function isScheduledAssignment\(b\)[\s\S]*b\.status === 
 assert.match(jobsPage, /function isInProgressAssignment\(b\)[\s\S]*LIVE_STATUSES\.includes\(b\.status\)/,
   'In Progress must use the existing live booking statuses.');
 
-assert.match(assignmentsApi, /\.from\('booking_items'\)[\s\S]*item_name, quantity, is_add_on/,
-  'The queue requires real booking-item scope from the authenticated assignments API.');
+// Item scope now comes from the shared loader, so the OWNER dashboard and the
+// EASER app read the same rows. They previously did not: the Easer got the full
+// itemised scope while the owner list never queried booking_items at all, and a
+// custom quote was priced without the customer's add-ons. Assert the guarantee
+// (one loader, both consumers, add-on flag preserved) rather than one call site.
+const itemsLoader = await readFile(new URL('../api/booking/_booking-items.js', import.meta.url), 'utf8');
+const ownerListApi = await readFile(new URL('../api/booking/list.js', import.meta.url), 'utf8');
+assert.match(itemsLoader, /\.from\('booking_items'\)/,
+  'The shared loader must read from booking_items.');
+assert.match(itemsLoader, /item_name, quantity, is_add_on/,
+  'The shared loader must select the item name, quantity and add-on flag.');
+assert.match(assignmentsApi, /loadBookingItems\(/,
+  'The Easer assignments API must take its item scope from the shared loader.');
+assert.match(ownerListApi, /loadBookingItems\(/,
+  'The owner booking list must take its item scope from the SAME shared loader, so the owner can never price a quote without the add-ons the Easer will be shown.');
+assert.doesNotMatch(assignmentsApi, /includePricing/,
+  'The Easer must never receive customer pricing with the item scope (Rule 3).');
 assert.match(jobsPage, /function physicalWorkItem\(item\)[\s\S]*exactPack[\s\S]*quantity \*= Number\(exactPack\[1\]\)/,
   'Per-item pack sizes must become physical workload quantities.');
 assert.match(jobsPage, /queueWorkloadSummary\(b\._booking_items \|\| \[\]\)/,

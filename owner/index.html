@@ -1673,6 +1673,9 @@ window.intelQuick = intelQuick;
     <h3 id="qm-title">Set &amp; Send Quote</h3>
     <p id="qm-note" style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.</p>
     <input type="hidden" id="qm-id"/>
+    <!-- Filled by openQuoteModal. Pricing must never happen without the
+         customer's selected items and add-ons visible on the same screen. -->
+    <div id="qm-scope" style="background:var(--elevated);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.9rem;max-height:210px;overflow-y:auto"></div>
     <label class="modal-label">Quote Amount ($) *</label>
     <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01"/>
     <div id="qm-error" style="font-size:0.82rem;color:var(--red);margin-top:0.75rem;display:none"></div>
@@ -3643,6 +3646,7 @@ window.intelQuick = intelQuick;
       (b.return_visit_required || b.return_visit_completed_at) ? field('First-Visit Work', esc(b.return_visit_completed_scope || '—')) : '',
       b.return_visit_required ? field('Work Remaining', esc(b.return_visit_remaining_scope || '—')) : '',
       field('Address', esc(b.address || '—')),
+      wideField('Items &amp; Add-ons', bookingScopeHtml(b, { showPrices: true })),
       b.details ? field('Details', esc(b.details)) : '',
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
@@ -4153,6 +4157,11 @@ window.intelQuick = intelQuick;
     // amount, so start from what the customer was last quoted rather than blank.
     var existingCents = Number(quoteBooking && quoteBooking.quote_amount_cents || 0);
     var reissuing = existingCents > 0;
+    var scopeBox = document.getElementById('qm-scope');
+    if (scopeBox) {
+      scopeBox.innerHTML = '<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px">Customer selected</div>'
+        + bookingScopeHtml(quoteBooking || {});
+    }
     document.getElementById('qm-id').value = bookingId;
     document.getElementById('qm-amount').value = reissuing ? (existingCents / 100).toFixed(2) : '';
     document.getElementById('qm-error').style.display = 'none';
@@ -6292,6 +6301,37 @@ window.intelQuick = intelQuick;
     return isFinite(t) && t <= Date.now();
   }
 
+  // Renders the exact scope the customer bought, add-ons included. The owner
+  // dashboard previously showed NO line items at all while the Easer app showed
+  // the full list — which is how a quote got priced without the customer's
+  // floor levelling, placement support, and safety anchoring.
+  function bookingScopeHtml(b, opts) {
+    opts = opts || {};
+    var groups = b && b._booking_items;
+    if (groups === null || groups === undefined) {
+      return '<div style="font-size:0.78rem;color:var(--red)">Item scope could not be loaded &mdash; do not price this booking until it does.</div>';
+    }
+    if (!groups.length) return '<div style="font-size:0.78rem;color:var(--muted)">No itemised scope recorded for this booking.</div>';
+    var addOns = 0;
+    var html = groups.map(function(group) {
+      var rows = group.items.map(function(it) {
+        if (it.isAddOn) addOns++;
+        var qty = Number(it.quantity) > 1 ? ' &times;' + Number(it.quantity) : '';
+        var price = (opts.showPrices && Number(it.lineTotalCents) > 0) ? ' <span style="color:var(--muted)">' + fmt$(it.lineTotalCents) + '</span>' : '';
+        return '<div style="display:flex;gap:6px;align-items:baseline;font-size:0.79rem;line-height:1.6">'
+          + (it.isAddOn ? '<span style="flex-shrink:0;font-size:0.62rem;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:4px;padding:0 5px">Add-on</span>' : '<span style="flex-shrink:0;color:var(--muted)">&bull;</span>')
+          + '<span style="color:var(--text)">' + esc(it.name) + qty + '</span>' + price
+        + '</div>';
+      }).join('');
+      return '<div style="margin-bottom:0.5rem"><div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:2px">' + esc(group.label) + '</div>' + rows + '</div>';
+    }).join('');
+    if (addOns > 0) {
+      html = '<div style="font-size:0.74rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 8px;margin-bottom:0.5rem">'
+        + '<strong>' + addOns + ' add-on' + (addOns === 1 ? '' : 's') + '</strong> selected by the customer &mdash; price them in.</div>' + html;
+    }
+    return html;
+  }
+
   function wideField(label, value) {
     return '<div class="detail-field" style="grid-column:1/-1"><label>' + label + '</label><span>' + value + '</span></div>';
   }
@@ -6347,6 +6387,7 @@ window.intelQuick = intelQuick;
     out.push(field('Preferred Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')));
     out.push(field('Requested', formatDateTime(b.created_at)));
     out.push(wideField('Address', esc(b.address || '—')));
+    out.push(wideField('Items &amp; Add-ons the Customer Selected', bookingScopeHtml(b)));
     if (b.details) out.push(wideField('Job Details', esc(b.details)));
     if (amountCents > 0) {
       var breakdown = Number(b.quote_tax_cents || 0) > 0
@@ -9018,7 +9059,12 @@ window.intelQuick = intelQuick;
         }
         quickActions += '<button class="btn btn-red" data-reject-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Reject</button> ';
       }
-      if (a.status === 'rejected') {
+      // Archive was offered for 'rejected' only, so a DEACTIVATED account had no
+      // way out of the roster and sat there forever looking like live supply. The
+      // server action never had a status restriction — it guards on active jobs
+      // and unpaid earnings, which is the right gate — so this was purely a
+      // missing button.
+      if (a.status === 'rejected' || a.status === 'deactivated') {
         quickActions += '<button class="btn btn-red" data-delete-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">Archive</button> ';
       }
       quickActions += '<button class="btn" data-view-asm="' + a.id + '" style="font-size:0.73rem;padding:3px 10px">View</button>';
@@ -9098,7 +9144,7 @@ window.intelQuick = intelQuick;
     }
     var deleteAsmBtn = e.target.closest('[data-delete-asm]');
     if (deleteAsmBtn) {
-      if (!confirm('Archive this rejected application and revoke account access? Application and audit records will be retained.')) return;
+      if (!confirm('Archive this account and revoke sign-in access? Application, payout and audit records are retained. The server refuses if the Easer still has active jobs or unpaid earnings.')) return;
       deleteAsmBtn.disabled = true; deleteAsmBtn.textContent = '…';
       try {
         var r3 = await fetch('/api/assembler/update', { method:'POST', headers:headers(), body:JSON.stringify({ assemblerId:deleteAsmBtn.dataset.deleteAsm, action:'delete' }) });
