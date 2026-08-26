@@ -16,22 +16,60 @@ export default async function handler(req, res) {
   }
 
   const sb = getSupabase();
-  const { data: candidates, error: candidatesError } = await sb
+  // Load every confirmed, unassigned booking and partition it HERE rather than
+  // filtering the exclusions away in SQL. Filtering in the query made a skipped
+  // booking indistinguishable from a booking that does not exist, so the sweep
+  // could only ever answer "Nothing to dispatch" — which reads as "you have no
+  // work" when the truth is "the work you have needs a different action".
+  const { data: allUnassigned, error: candidatesError } = await sb
     .from('bookings')
-    .select('id, ref, payment_status, stripe_dispute_id, stripe_dispute_status')
+    .select('id, ref, payment_status, stripe_dispute_id, stripe_dispute_status, dispatch_paused, needs_manual_dispatch')
     .eq('status', 'confirmed')
-    .in('payment_status', DISPATCH_PAYMENT_STATUSES)
-    .is('assembler_id', null)
-    .eq('dispatch_paused', false)
-    .eq('needs_manual_dispatch', false);
+    .is('assembler_id', null);
 
   if (candidatesError) {
     return res.status(503).json({ error: 'Unable to verify dispatch candidates.' });
   }
 
-  const paymentReadyCandidates = (candidates || []).filter(isBookingPaymentReadyForDispatch);
+  const unassigned = allUnassigned || [];
+  // Each bucket is a DIFFERENT owner action, so each is counted separately.
+  const needsManual = unassigned.filter(b => b.needs_manual_dispatch === true);
+  const paused = unassigned.filter(b => !b.needs_manual_dispatch && b.dispatch_paused === true);
+  const eligibleByFlags = unassigned.filter(b => !b.needs_manual_dispatch && b.dispatch_paused !== true);
+  const paymentNotReady = eligibleByFlags.filter(b => !DISPATCH_PAYMENT_STATUSES.includes(b.payment_status)
+    || !isBookingPaymentReadyForDispatch(b));
+  const paymentReadyCandidates = eligibleByFlags.filter(b => DISPATCH_PAYMENT_STATUSES.includes(b.payment_status)
+    && isBookingPaymentReadyForDispatch(b));
+
+  const skipped = {
+    needsManualAssignment: needsManual.length,
+    dispatchPaused: paused.length,
+    paymentNotReady: paymentNotReady.length,
+    alreadyOffered: 0,
+  };
+
+  // Say which action each skipped booking actually needs.
+  function explain(extra) {
+    const parts = [];
+    if (skipped.needsManualAssignment) {
+      parts.push(`${skipped.needsManualAssignment} outside the automatic-dispatch ZIPs — assign an Easer directly on the booking (Smart Dispatch cannot send offers for these)`);
+    }
+    if (skipped.dispatchPaused) parts.push(`${skipped.dispatchPaused} with dispatch paused`);
+    if (skipped.paymentNotReady) parts.push(`${skipped.paymentNotReady} without a confirmed card authorization`);
+    if (skipped.alreadyOffered) parts.push(`${skipped.alreadyOffered} already have live offers out`);
+    if (extra) parts.push(extra);
+    if (!unassigned.length) return 'No unassigned confirmed bookings — nothing is waiting on dispatch.';
+    if (!parts.length) return 'Nothing to dispatch.';
+    return `Nothing auto-dispatchable. ${unassigned.length} unassigned booking${unassigned.length === 1 ? '' : 's'}: ` + parts.join('; ') + '.';
+  }
+
   if (!paymentReadyCandidates.length) {
-    return res.status(200).json({ ok: true, dispatched: 0, processed: 0, message: 'Nothing to dispatch' });
+    return res.status(200).json({
+      ok: true, dispatched: 0, processed: 0,
+      unassignedTotal: unassigned.length,
+      skipped,
+      message: explain(),
+    });
   }
 
   const { data: openOffers, error: openOffersError } = await sb
@@ -47,8 +85,14 @@ export default async function handler(req, res) {
 
   const bookingsWithOpenOffers = new Set((openOffers || []).map(o => o.booking_id));
   const toDispatch = paymentReadyCandidates.filter(b => !bookingsWithOpenOffers.has(b.id));
+  skipped.alreadyOffered = paymentReadyCandidates.length - toDispatch.length;
   if (!toDispatch.length) {
-    return res.status(200).json({ ok: true, dispatched: 0, processed: 0, message: 'Eligible bookings already have open offers' });
+    return res.status(200).json({
+      ok: true, dispatched: 0, processed: 0,
+      unassignedTotal: unassigned.length,
+      skipped,
+      message: explain(),
+    });
   }
 
   const results = [];
@@ -68,6 +112,12 @@ export default async function handler(req, res) {
     processed: toDispatch.length,
     dispatched,
     failed: toDispatch.length - dispatched,
+    unassignedTotal: unassigned.length,
+    skipped,
+    message: dispatched
+      ? `Dispatched ${dispatched} of ${toDispatch.length}.`
+        + (skipped.needsManualAssignment ? ` ${skipped.needsManualAssignment} still need direct assignment (outside the automatic-dispatch ZIPs).` : '')
+      : explain(`${toDispatch.length} attempted but no Easer was eligible — check Job Readiness on the Easers tab`),
     results,
   });
 }

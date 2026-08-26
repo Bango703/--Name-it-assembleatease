@@ -7223,7 +7223,12 @@ window.intelQuick = intelQuick;
       var r = await fetch('/api/owner/dispatch-all', { method:'POST', headers:headers() });
       var d = await r.json();
       if (!r.ok || d.error) throw new Error(d.error || 'Dispatch request failed');
-      toast('Dispatched ' + (d.dispatched||0) + ' booking(s)', 'success');
+      // The server explains exactly what it dispatched and why it skipped the
+      // rest. "Dispatched 0 booking(s)" told the owner nothing and read as "you
+      // have no work" when the real answer was "your work needs direct
+      // assignment because it is outside the auto-dispatch ZIPs".
+      toast(d.message || ('Dispatched ' + (d.dispatched || 0) + ' booking(s)'),
+        (d.dispatched || 0) > 0 ? 'success' : 'error');
     } catch (e) { toast((e && e.message) || 'Dispatch failed', 'error'); }
     finally { btn.disabled = false; btn.textContent = 'Dispatch All'; loadLiveOps(); }
   };
