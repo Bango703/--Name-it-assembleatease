@@ -194,6 +194,86 @@ Think like Travis is about to accept his first real customer tomorrow. Protect c
 
 ---
 
+---
+
+## PLATFORM CONSTITUTION (SUPREME — above the Chairman, the Board, and the Panel)
+
+> Adopted 2026-08-26 after a week in which a stale DB constraint blocked every Easer
+> application for two months, an owner priced a quote without the customer's add-ons,
+> an Easer was never told about their job, and four panels disagreed about whether a
+> job had been accepted. Every one of those was the same failure: **two places holding
+> one fact.** The Board decides *whether*; the Panel decides *how*; the Constitution
+> decides **what is structurally allowed to exist.** A change that violates it is wrong
+> even if it works, even if it ships, and even if a seat approved it.
+
+### The 15 Articles
+
+1. **One owner for every business rule.** A rule lives in exactly one module.
+2. **One source of truth for every authoritative datum.**
+3. **No duplicate domain logic.** If two files can disagree, they eventually will.
+4. **The UI never owns a critical business rule.** It renders a server verdict.
+5. **Critical state changes go through domain services**, never ad-hoc writes.
+6. **All financial operations are idempotent and auditable.**
+7. **No direct production schema mutation.** Every constraint, trigger, and column
+   exists in `api/migrations/` — *a constraint that lives only in the database is
+   invisible to review, to tests, and to every guard in this repo.*
+8. **Existing behavior requires regression protection.** Lock behavior with tests,
+   never by freezing code.
+9. **No unrelated refactors.** Fix the asked thing.
+10. **Critical modules require explicit authorization to modify** (see below).
+11. **Every change states its blast radius** before it is made.
+12. **No feature ships without appropriate tests.**
+13. **Every external integration has defined failure and retry behavior.**
+14. **Every production failure is observable** — and every refusal states its reason
+    to the human who hit it. *A disabled button with no explanation is a defect.*
+15. **Every critical production change is reversible.**
+
+### Article 16 — The Honesty Rule (this platform's own hard-won addition)
+
+**The UI must never assert something it has not verified.** Three separate outages
+came from optimistic display: a badge cleared before the write succeeded, a dispatch
+error naming a cause the server never gave, an "Accepted" label derived from a
+booking status that meant nothing of the kind.
+
+- Never clear, confirm, or label from *hope*. Clear from a server-confirmed result.
+- Never invent a cause. Show the server's reason, or say the reason is unknown.
+- Never show a raw API instruction, stack trace, or parser error to the owner.
+- A generic message where a specific one exists is a **P1 defect**, not polish.
+
+### Critical modules (Article 10)
+
+Changes here require audit-before-code and explicit intent in the request:
+
+`api/_source-of-truth.js` · `api/_easer-readiness.js` · `api/booking/_workflow-engine.js`
+`api/booking/_dispatch-internal.js` · `api/_send-governor.js` · `api/booking/_booking-items.js`
+`api/booking/payout.js` · `api/booking/refund.js` · `api/**/stripe-webhook.js`
+`api/migrations/**` · `assembler/contractor-agreement.html`
+
+### Enforcement — these run, they are not aspirations
+
+| Guard | Enforces |
+|---|---|
+| `npm run governance:truth` | Articles 1–4: duplicate truth, drifted mirrors, acceptance decided twice |
+| `scripts/audit-source-of-truth.mjs` | Service catalog, status mirror, readiness gates, fee/agreement match, server-reason passthrough |
+| `scripts/check-status-constraint-drift.mjs` | Article 7: code writing values the DB rejects |
+| `npm run test:launch` | Article 8: the regression gate |
+
+**Wire every new invariant into a guard.** An article without a script is a wish.
+
+### Known structural gaps (honest, tracked, not yet closed)
+
+- **No CI/CD gate.** `git push` deploys. The guards exist but nothing *forces* them
+  to run. Highest-leverage remaining control.
+- **No staging/preview environment.** Production is the first place a change runs.
+- **No E2E tests.** No Playwright; the three-role flow is verified by reading code.
+- **No feature-flag system** beyond individual env vars.
+- **Constraints added by hand in Supabase remain invisible** to Article 7's guard
+  (`073_AUDIT_constraints_not_in_migrations.sql` finds them; nothing prevents them).
+
+These are P1 backlog items, not permission to violate the Articles.
+
+---
+
 ## Business Judgment Standard
 
 When making business decisions, prioritize real-world business judgment over mathematical neatness. If a recommendation looks unrealistic, generic, or unlike what successful companies actually do, revise it until it reflects how an experienced operator would think.
