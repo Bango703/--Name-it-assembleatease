@@ -4475,6 +4475,22 @@ window.intelQuick = intelQuick;
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
   }
 
+  // THE acceptance rule. "The booking is confirmed" and "the Easer accepted" are
+  // different facts, and three panels used to answer the question three different
+  // ways — the Easer Availability widget read booking status 'confirmed' and
+  // printed "Accepted" for an Easer who had accepted nothing, while the booking
+  // detail correctly showed "Awaiting acceptance" on the same screen.
+  //
+  // Assignment (owner-assigned or dispatch-accepted) is NOT acceptance. Only
+  // assembler_accepted_at or dispatch_status 'accepted' is. Manual assignment
+  // deliberately sets dispatch_status 'assigned_pending_acceptance' and emails +
+  // pushes the Easer, exactly like an auto-dispatch offer — so both lanes wait
+  // for the same confirmation, and both must display it the same way.
+  function easerHasAccepted(b) {
+    if (!b) return false;
+    return !!b.assembler_accepted_at || b.dispatch_status === 'accepted';
+  }
+
   // Build the Edit Booking service list from the canonical catalog rather than a
   // hardcoded list. The hardcoded one had drifted badly — it offered 4 of the 7
   // real services (no Fitness Equipment, Outdoor & Playsets, or Office Assembly)
@@ -6344,7 +6360,7 @@ window.intelQuick = intelQuick;
         cls = 'bk-dispatched'; label = 'Needs Easer';
       } else if (!b.assembler_id) {
         cls = 'bk-confirmed'; label = 'Confirmed';
-      } else if (b.assembler_id && !b.assembler_accepted_at && b.dispatch_status !== 'accepted') {
+      } else if (b.assembler_id && !easerHasAccepted(b)) {
         cls = 'bk-dispatched'; label = 'Awaiting Accept';
       } else {
         cls = 'bk-accepted'; label = 'Accepted';
@@ -6682,7 +6698,7 @@ window.intelQuick = intelQuick;
       var a = eligibleAssemblers.find(function(x) { return x.id === b.assembler_id; })
         || (ownerEaserProfile && ownerEaserProfile.id === b.assembler_id ? ownerEaserProfile : null);
       var aName = a ? a.full_name : (b.assembler_name || 'Assigned Easer');
-      var isAccepted = !!(b.assembler_accepted_at || b.dispatch_status === 'accepted');
+      var isAccepted = easerHasAccepted(b);
       var acceptedAt = b.assembler_accepted_at ? ' at ' + new Date(b.assembler_accepted_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
       var accepted = isAccepted
         ? ' &bull; <span style="color:#1d9e75">Accepted' + acceptedAt + '</span>'
@@ -6997,7 +7013,7 @@ window.intelQuick = intelQuick;
       activeEl.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:0.5rem 0">No active jobs right now</div>';
     } else {
       activeEl.innerHTML = active.map(function(b) {
-        var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : b.assembler_accepted_at ? 'Accepted' : 'Awaiting Accept';
+        var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : easerHasAccepted(b) ? 'Accepted' : 'Awaiting Accept';
         var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#ea580c' };
         var color = stageColors[stage] || '#6b7280';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
@@ -7020,11 +7036,20 @@ window.intelQuick = intelQuick;
       easersEl.innerHTML = easers.map(function(e) {
         var isWorking = e.status === 'working';
         var dotClass = isWorking ? 'dot dot-active' : 'dot dot-green';
+        // 'confirmed' is the BOOKING's state, never the Easer's acceptance. This
+        // widget used to map it straight to "Accepted", contradicting the booking
+        // detail on the same screen. Acceptance now comes from the server as
+        // booking_accepted; only then does a stage label apply.
         var stageLabels = { en_route: 'En Route', arrived: 'Arrived', in_progress: 'In Progress', confirmed: 'Accepted' };
         var stageColors = { en_route: '#3b82f6', arrived: '#00BFFF', in_progress: '#059669', confirmed: '#6d28d9' };
         var stage = isWorking ? (e.booking_stage || 'working') : null;
-        var label = isWorking ? (stageLabels[stage] || 'On Job') : 'Available';
-        var labelColor = isWorking ? (stageColors[stage] || '#f59e0b') : '#10b981';
+        var awaitingAccept = isWorking && e.booking_accepted === false;
+        var label = !isWorking ? 'Available'
+          : awaitingAccept ? 'Awaiting accept'
+          : (stageLabels[stage] || 'On Job');
+        var labelColor = !isWorking ? '#10b981'
+          : awaitingAccept ? '#ea580c'
+          : (stageColors[stage] || '#f59e0b');
         return '<div class="ops-easer-row" style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
           + '<span class="' + dotClass + '"></span>'
           + '<span class="ops-easer-name" style="font-size:0.85rem;font-weight:500;color:var(--text);flex:1">' + esc(e.full_name) + '</span>'

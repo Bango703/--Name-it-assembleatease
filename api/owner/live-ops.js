@@ -76,6 +76,16 @@ export function classifyCronFailures(rows = []) {
   return { active, resolved };
 }
 
+function notificationFailureTitle(row = {}) {
+  const labels = {
+    bounced: 'Email bounced',
+    complained: 'Recipient marked email as spam',
+    delivery_delayed: 'Email delivery delayed',
+    failed: 'Email failed',
+  };
+  return labels[row.status] || `${row.channel || 'Notification'} needs attention`;
+}
+
 // How long a booking has been stuck, in the same shape the owner dashboard's
 // relativeAge() uses -- floored the same way, so both read "2 days". Raw hours
 // were fine for a morning but reported "for 69h" beside a panel saying "2 days ago".
@@ -128,8 +138,8 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(8),
     sb.from('notification_log')
-      .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, error_text, sent_at')
-      .eq('status', 'failed')
+      .select('id, booking_id, channel, notification_type, recipient_type, recipient_email, recipient_user_id, subject, status, error_text, sent_at, last_provider_event_at')
+      .in('status', ['failed', 'bounced', 'complained', 'delivery_delayed'])
       .gte('sent_at', twentyFourHoursAgo)
       .order('sent_at', { ascending: false })
       .limit(8),
@@ -193,16 +203,17 @@ export default async function handler(req, res) {
   const { history: runtimeHistory, active: runtimeErrors } = classifyRuntimeFailures(runtimeErrorsRes.data, twoHoursAgo);
   const failedNotifications = (failedNotificationsRes.data || []).map(row => ({
     kind: 'notification',
-    title: (row.channel || 'notification') + ' failed',
-    detail: row.error_text || row.subject || 'Notification delivery failed',
-    meta: [row.notification_type, row.recipient_type].filter(Boolean).join(' • '),
-    when: row.sent_at,
-    severity: 'medium',
+    title: notificationFailureTitle(row),
+    detail: row.error_text || row.subject || 'Notification needs attention',
+    meta: [row.notification_type, row.recipient_type, row.status].filter(Boolean).join(' • '),
+    when: row.last_provider_event_at || row.sent_at,
+    severity: ['failed', 'bounced', 'complained'].includes(row.status) ? 'high' : 'medium',
     bookingId: row.booking_id || null,
     notificationId: row.id,
     recipient: row.recipient_email || row.recipient_user_id || row.recipient_type || 'unknown',
     recipientType: row.recipient_type || null,
     notificationType: row.notification_type || null,
+    notificationStatus: row.status || null,
     ownerAction: 'Review the booking timeline and contact the recipient using the booking record. Do not assume delivery.',
   }));
   const { active: cronErrors, resolved: resolvedCronErrors } = classifyCronFailures(cronErrorsRes.data);
@@ -619,8 +630,16 @@ export default async function handler(req, res) {
 
   // Map assembler_id → their active booking's pipeline stage (en_route, arrived, in_progress, confirmed)
   const assemblerStageMap = {};
+  // A booking's status and an Easer's ACCEPTANCE are different facts. Shipping
+  // only the booking stage let the Easer Availability widget read status
+  // 'confirmed' and print "Accepted" for someone who had not accepted anything —
+  // while the booking detail correctly said "Awaiting acceptance" two panels
+  // away. Send both, so no consumer has to infer one from the other.
   operationalBookings.filter(b => b.assembler_id).forEach(b => {
-    assemblerStageMap[b.assembler_id] = b.pipeline_stage || b.status;
+    assemblerStageMap[b.assembler_id] = {
+      stage: b.pipeline_stage || b.status,
+      accepted: !!b.assembler_accepted_at || b.dispatch_status === 'accepted',
+    };
   });
   const rosterEasers = easers.filter(e => e.readiness?.ownerApproved && e.readiness?.tierEligible);
   const onlineEasers = rosterEasers.filter(e => e.is_available && e.readiness?.isReady);
@@ -713,7 +732,9 @@ export default async function handler(req, res) {
     onlineEasers: onlineEasers.map(e => ({
       ...e,
       status: assignedIds.has(e.id) ? 'working' : 'available',
-      booking_stage: assemblerStageMap[e.id] || null,
+      booking_stage: (assemblerStageMap[e.id] || {}).stage || null,
+      // null = not on a job. false = assigned, has NOT accepted yet.
+      booking_accepted: assemblerStageMap[e.id] ? assemblerStageMap[e.id].accepted : null,
     })),
     offlineCount: offlineEasers.length,
     recentFailures: runtimeHistory.concat(failedNotifications, cronErrors, resolvedCronErrors)

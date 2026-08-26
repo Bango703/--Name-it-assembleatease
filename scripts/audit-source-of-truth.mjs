@@ -250,6 +250,35 @@ function linesMatching(file, re) {
   }
 }
 
+// ── 4c. Easer acceptance decided in more than one place ──────────────────────
+// "The booking is confirmed" and "the Easer accepted" are different facts. The
+// Easer Availability widget mapped booking status 'confirmed' straight to
+// "Accepted" and contradicted the booking detail on the same screen. Acceptance
+// must be answered by exactly one rule.
+{
+  const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');
+  const helper = /function easerHasAccepted\(/.test(ownerSrc);
+  // Any inline re-derivation of acceptance outside the helper is a second copy.
+  const inline = [];
+  let insideHelper = false;
+  ownerSrc.split(/\r?\n/).forEach((line, i) => {
+    // The helper's own body is the one legitimate place the rule is written out.
+    if (/function easerHasAccepted\(/.test(line)) { insideHelper = true; return; }
+    if (insideHelper) { if (/^\s{0,2}\}/.test(line)) insideHelper = false; return; }
+    if (/^\s*(\/\/|\*)/.test(line)) return;
+    if (/assembler_accepted_at/.test(line) && /dispatch_status/.test(line)) inline.push(`owner/index.html:${i + 1}`);
+    // Mapping a booking status directly onto an acceptance word.
+    if (/confirmed\s*:\s*'Accepted'/.test(line) && !/booking_accepted/.test(ownerSrc)) inline.push(`owner/index.html:${i + 1}`);
+  });
+  report(!helper ? 'FAIL' : (inline.length ? 'FAIL' : 'PASS'), 'Easer acceptance',
+    !helper
+      ? 'no single easerHasAccepted() rule — acceptance is decided ad hoc'
+      : (inline.length
+        ? `acceptance is re-derived outside easerHasAccepted() in ${inline.length} place(s)`
+        : 'every display reads the one easerHasAccepted() rule, and live-ops ships booking_accepted from the server'),
+    inline.length ? inline : ['owner/index.html', 'api/owner/live-ops.js']);
+}
+
 // ── 5. Server error/reason text discarded by the UI ──────────────────────────
 {
   const ownerSrc = readFileSync(join(ROOT, 'owner/index.html'), 'utf8');
