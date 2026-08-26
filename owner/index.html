@@ -1664,8 +1664,8 @@ window.intelQuick = intelQuick;
 <!-- ─── Set Quote Modal ─── -->
 <div class="modal-overlay" id="quote-modal">
   <div class="modal" style="max-width:400px">
-    <h3>Set &amp; Send Quote</h3>
-    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.</p>
+    <h3 id="qm-title">Set &amp; Send Quote</h3>
+    <p id="qm-note" style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.</p>
     <input type="hidden" id="qm-id"/>
     <label class="modal-label">Quote Amount ($) *</label>
     <input type="number" class="modal-input" id="qm-amount" placeholder="e.g. 149.00" min="0.01" step="0.01"/>
@@ -3492,12 +3492,18 @@ window.intelQuick = intelQuick;
     $list.innerHTML = filtered.map(function(b) {
       var msgCount = 0;
       if (b.messages && b.messages.length) msgCount = b.messages[0].count || 0;
+      // A quote has no agreed job price. Never print total_price on its card — on a
+      // mixed cart that number is only the priced-items estimate, not what is owed.
+      var cardQuoteStage = quoteLane(b);
+      var cardMoney = cardQuoteStage
+        ? (Number(b.quote_amount_cents) ? fmt$(b.quote_amount_cents) + ' quoted' : 'Not priced yet')
+        : (b.total_price ? fmt$(b.total_price) : '');
       var cardUsesReturnVisit = b.return_visit_required === true || !!b.return_visit_completed_at;
       var cardDate = cardUsesReturnVisit ? b.return_visit_date : b.date;
       var cardTime = cardUsesReturnVisit ? b.return_visit_time : b.time;
       return '<div class="booking-card' + (selectedId === b.id ? ' selected' : '') + '" data-id="' + b.id + '" style="position:relative">'
         + '<div class="card-top"><h4>' + esc(b.customer_name) + '</h4>' + bookingBadge(b) + '</div>'
-        + '<div class="card-desc">' + esc(b.service) + '</div>'
+        + '<div class="card-desc">' + esc(cardQuoteStage ? quoteServiceLabel(b) : (b.service || '—')) + '</div>'
         + (b.assembler_name ? '<div style="font-size:0.75rem;color:var(--teal);margin-top:2px">Easer: ' + esc(b.assembler_name) + (b.assembler_tier ? ' &bull; ' + esc(b.assembler_tier) : '') + '</div>' : '')
         + (b.has_unread_customer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Customer message</div>' : '')
         + (b.has_unread_easer_msg ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.72rem;color:#dc2626;font-weight:600;margin-top:2px"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0;display:inline-block"></span>Easer message</div>' : '')
@@ -3506,7 +3512,7 @@ window.intelQuick = intelQuick;
           + '<span>' + esc(b.ref) + '</span>'
           + '<span class="meta-dot"></span>'
           + '<span>' + (b.return_visit_required ? 'Return: ' : (b.return_visit_completed_at ? 'Return completed: ' : '')) + formatDate(cardDate) + (cardTime ? ' ' + esc(cardTime) : '') + '</span>'
-          + (b.total_price ? '<span class="meta-dot"></span><span>'+fmt$(b.total_price)+'</span>' : '')
+          + (cardMoney ? '<span class="meta-dot"></span><span>' + cardMoney + '</span>' : '')
           + (msgCount ? '<span class="meta-dot"></span><span>' + msgCount + ' msg' + (msgCount !== 1 ? 's' : '') + '</span>' : '')
         + '</div></div>';
     }).join('');
@@ -3568,7 +3574,8 @@ window.intelQuick = intelQuick;
         + ' &bull; ' + esc(formatDateTime(b.customer_terms_accepted_at))
         + (b.customer_terms_version ? '<br><span style="font-size:0.72rem;color:var(--muted)">Terms ' + esc(b.customer_terms_version) + (b.customer_privacy_notice_version ? ' &bull; Privacy ' + esc(b.customer_privacy_notice_version) : '') + '</span>' : '')
       : '<span style="color:var(--amber)">No versioned acceptance record for this historical booking</span>';
-    $detailGrid.innerHTML = [
+    var quoteStage = quoteLane(b);
+    $detailGrid.innerHTML = quoteStage ? renderQuoteDetailGrid(b, quoteStage, customerAgreement) : [
       field('Customer', esc(b.customer_name || '—')),
       field('Email', b.customer_email ? '<a href="mailto:'+esc(b.customer_email)+'" style="color:var(--teal);text-decoration:none">'+esc(b.customer_email)+'</a>' : '—'),
       field('Phone', hasValidUsPhone(b.customer_phone) ? '<a href="tel:'+esc(b.customer_phone)+'" style="color:var(--teal);text-decoration:none;font-weight:600">'+esc(formatUsPhone(b.customer_phone))+'</a>' : '<span style="color:var(--red)">Valid phone required</span>'),
@@ -3627,8 +3634,12 @@ window.intelQuick = intelQuick;
     renderAssignSection(b);
     var dispatchTabButton = document.getElementById('detail-dispatch-tab');
     if (dispatchTabButton) {
-      dispatchTabButton.style.display = b.source === 'owner_manual' && b.status === 'completed' ? 'none' : '';
+      dispatchTabButton.style.display = quoteStage || (b.source === 'owner_manual' && b.status === 'completed') ? 'none' : '';
     }
+    // Nothing is dispatched and no work exists yet on a quote, so both tabs would
+    // only render empty states the owner has to read past.
+    var evidenceTabButton = document.querySelector('.detail-tab[data-tab="evidence"]');
+    if (evidenceTabButton) evidenceTabButton.style.display = quoteStage ? 'none' : '';
     // Show/hide Easer target toggle — only when an Easer is assigned
     var $targetRow = document.getElementById('msg-target-row');
     if ($targetRow) $targetRow.style.display = b.assembler_id ? '' : 'none';
@@ -4092,10 +4103,19 @@ window.intelQuick = intelQuick;
 
   // ─── Quote modal ───
   window.openQuoteModal = function(bookingId) {
+    var quoteBooking = allBookings.find(function(item){ return item.id === bookingId; });
+    // Repricing an outstanding quote issues a brand-new approval link at a new
+    // amount, so start from what the customer was last quoted rather than blank.
+    var existingCents = Number(quoteBooking && quoteBooking.quote_amount_cents || 0);
+    var reissuing = existingCents > 0;
     document.getElementById('qm-id').value = bookingId;
-    document.getElementById('qm-amount').value = '';
+    document.getElementById('qm-amount').value = reissuing ? (existingCents / 100).toFixed(2) : '';
     document.getElementById('qm-error').style.display = 'none';
-    document.getElementById('qm-submit').textContent = 'Send for Customer Approval';
+    document.getElementById('qm-title').textContent = reissuing ? 'Reprice & Resend Quote' : 'Set & Send Quote';
+    document.getElementById('qm-note').textContent = reissuing
+      ? 'Sending replaces the quote the customer already has, at a new amount, with a fresh approval link and expiry. The previous link stops working.'
+      : 'Enter the total quote, including tax. The customer must review the itemized amount, accept the cancellation terms, and authorize their card before the booking is confirmed.';
+    document.getElementById('qm-submit').textContent = reissuing ? 'Resend for Customer Approval' : 'Send for Customer Approval';
     document.getElementById('quote-modal').classList.add('open');
     setTimeout(function(){ document.getElementById('qm-amount').focus(); }, 50);
   };
@@ -4109,6 +4129,7 @@ window.intelQuick = intelQuick;
 
   document.getElementById('qm-submit').addEventListener('click', async function() {
     var btn = this;
+    var submitLabel = btn.textContent;
     var id     = document.getElementById('qm-id').value;
     var amount = parseFloat(document.getElementById('qm-amount').value);
     var errEl  = document.getElementById('qm-error');
@@ -4135,7 +4156,7 @@ window.intelQuick = intelQuick;
       await loadBookings();
       if (selectedId) selectBooking(selectedId);
     } catch { errEl.textContent = 'Failed to send quote. Try again.'; errEl.style.display = ''; }
-    finally { btn.disabled = false; btn.textContent = 'Send for Customer Approval'; }
+    finally { btn.disabled = false; btn.textContent = submitLabel; }
   });
 
   // ─── Owner create-booking modal ───
@@ -4645,33 +4666,48 @@ window.intelQuick = intelQuick;
     if (b.status === 'pending') {
       // A pending booking is not paid. Keep quote, authorization, and failed
       // checkout states visibly separate so the owner never dispatches it.
+      var pendingQuoteStage = quoteLane(b);
       var pendingRebooking = b.source === 'online' && !!b.rebooked_from_booking_id;
-      if (pendingRebooking && b.payment_status === 'pending') {
-        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Awaiting customer:</strong> the replacement appointment is not confirmed. The customer must add a payment method and complete the required Stripe authorization before assignment or dispatch.</div>');
-        btns.push('<button class="btn btn-teal" data-action="send-rebook-payment" data-id="' + b.id + '">Resend Payment Method Link</button>');
-      } else if (b.payment_status === 'card_saved' || !b.total_price || b.total_price === 0) {
-        notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Quote request:</strong> the customer has not been charged. Price the request and send it for approval.</div>');
-        btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">Send Quote for Customer Approval</button>');
-      } else if (b.payment_status === 'authorized') {
-        notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Card hold authorized:</strong> the customer has not been charged. Confirm the booking before dispatch; capture occurs after completed work.</div>');
-        btns.push('<button class="btn btn-teal" data-action="reconcile-payment" data-id="' + b.id + '">Reconcile Authorization &amp; Confirm</button>');
-      } else if (['pending', 'failed'].includes(b.payment_status)) {
-        notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment incomplete:</strong> no card hold or charge is confirmed. Do not confirm or dispatch this booking.</div>');
-        if (b.stripe_payment_intent_id) {
-          btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
-        } else {
-          notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--red)">No linked Stripe PaymentIntent is available. Reconcile this booking before contacting the customer for payment.</div>');
+      if (pendingQuoteStage) {
+        // The quote banner directly above already states the stage, the amount, and
+        // that no money has moved. Repeating it here is the clutter that made a quote
+        // read like a booking, so only the next action belongs in this row.
+        if (pendingQuoteStage === 'needs_price') {
+          btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">Send Quote for Customer Approval</button>');
+        } else if (pendingQuoteStage === 'awaiting_customer') {
+          // Repricing an outstanding quote is allowed server-side while no Stripe
+          // intent exists, and it is the only way to recover an expired approval link.
+          btns.push('<button class="btn btn-teal" onclick="openQuoteModal(\'' + b.id + '\')" style="background:#f59e0b;border-color:#f59e0b;color:#fff">' + (quoteExpired(b) ? 'Reprice &amp; Resend Quote' : 'Change Amount &amp; Resend Quote') + '</button>');
         }
-      } else if (b.payment_status === 'quote_pending_approval') {
-        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Customer action pending:</strong> the quote is awaiting approval. No payment has been captured.</div>');
-      } else if (b.payment_status === 'quote_authorization_pending') {
-        notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Authorization incomplete:</strong> the customer must finish authentication. Do not dispatch.</div>');
+        btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit Request</button>');
+        // Decline is the no-money terminal path and the server refuses it once a
+        // Stripe intent exists; from that point only cancellation reconciles Stripe.
+        if (b.stripe_payment_intent_id) {
+          btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Quote</button>');
+        } else {
+          btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline Request</button>');
+        }
       } else {
-        notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment state needs review:</strong> ' + esc(String(b.payment_status || 'unknown').replace(/_/g, ' ')) + '. Do not dispatch until reconciled.</div>');
+        if (pendingRebooking && b.payment_status === 'pending') {
+          notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Awaiting customer:</strong> the replacement appointment is not confirmed. The customer must add a payment method and complete the required Stripe authorization before assignment or dispatch.</div>');
+          btns.push('<button class="btn btn-teal" data-action="send-rebook-payment" data-id="' + b.id + '">Resend Payment Method Link</button>');
+        } else if (b.payment_status === 'authorized') {
+          notices.push('<div style="flex-basis:100%;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.65rem 0.8rem;color:#1e40af;font-size:0.78rem;line-height:1.5"><strong>Card hold authorized:</strong> the customer has not been charged. Confirm the booking before dispatch; capture occurs after completed work.</div>');
+          btns.push('<button class="btn btn-teal" data-action="reconcile-payment" data-id="' + b.id + '">Reconcile Authorization &amp; Confirm</button>');
+        } else if (['pending', 'failed'].includes(b.payment_status)) {
+          notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment incomplete:</strong> no card hold or charge is confirmed. Do not confirm or dispatch this booking.</div>');
+          if (b.stripe_payment_intent_id) {
+            btns.push('<button class="btn btn-teal" data-action="send-payment" data-id="' + b.id + '">Email Secure Payment Link</button>');
+          } else {
+            notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--red)">No linked Stripe PaymentIntent is available. Reconcile this booking before contacting the customer for payment.</div>');
+          }
+        } else {
+          notices.push('<div style="flex-basis:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.65rem 0.8rem;color:#991b1b;font-size:0.78rem;line-height:1.5"><strong>Payment state needs review:</strong> ' + esc(String(b.payment_status || 'unknown').replace(/_/g, ' ')) + '. Do not dispatch until reconciled.</div>');
+        }
+        btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
+        btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
+        btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
       }
-      btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
-      btns.push('<button class="btn btn-red" data-action="decline" data-id="' + b.id + '">Decline</button>');
-      btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel</button>');
     }
     if (b.status === 'confirmed') {
       if (b.payment_status === 'card_saved') {
@@ -6099,10 +6135,131 @@ window.intelQuick = intelQuick;
     return b && (b.status === 'cancelled' || b.status === 'completed' || b.status === 'declined' || b.status === 'refunded');
   }
 
+  // -- Quote lane ---------------------------------------------------------------
+  // A quote is NOT a booking. Nothing is scheduled, no card is authorized, and no
+  // amount is owed until the customer approves. This is the single place that
+  // decides it, so the list, the badge, and the detail panel can never disagree.
+  // Stages: needs_price -> awaiting_customer -> authorizing (after which it becomes
+  // a real confirmed booking and renders normally).
+  function quoteLane(b) {
+    if (!b || b.status !== 'pending') return null;
+    var pay = String(b.payment_status || '');
+    if (pay === 'quote_pending_approval') return 'awaiting_customer';
+    if (pay === 'quote_authorization_pending') return 'authorizing';
+    // A pending rebooking is a real priced job waiting on a card, not a quote.
+    if (b.rebooked_from_booking_id && pay === 'pending') return null;
+    if (pay === 'card_saved' || Number(b.quote_amount_cents) > 0 || !Number(b.total_price)) return 'needs_price';
+    return null;
+  }
+
+  var QUOTE_STAGE_LABEL = {
+    needs_price:       'Quote Request',
+    awaiting_customer: 'Quote Sent',
+    authorizing:       'Quote Approved',
+  };
+
+  // The booking row stores the custom-quote line as the raw catalog token "Other",
+  // which tells the owner nothing. Name it on every quote surface.
+  function quoteServiceLabel(b) {
+    var parts = String(b && b.service || '').split(',').map(function(part){ return part.trim(); }).filter(Boolean);
+    if (!parts.length) return '—';
+    return parts.map(function(part){ return part === 'Other' ? 'Custom Quote' : part; }).join(', ');
+  }
+
+  function quoteExpired(b) {
+    var iso = b && b.quote_expires_at;
+    if (!iso) return false;
+    var t = new Date(iso).getTime();
+    return isFinite(t) && t <= Date.now();
+  }
+
+  function wideField(label, value) {
+    return '<div class="detail-field" style="grid-column:1/-1"><label>' + label + '</label><span>' + value + '</span></div>';
+  }
+
+  // One honest headline for the quote, replacing the wall of booking money rows
+  // that are all zero, blank, or "not calculated" before a quote is approved.
+  function quoteBanner(b, stage) {
+    var amountCents = Number(b.quote_amount_cents || 0);
+    var expired = quoteExpired(b);
+    var head, body, bg, bd, fg;
+    if (stage === 'needs_price') {
+      bg = '#fffbeb'; bd = '#fcd34d'; fg = '#92400e';
+      head = 'Quote request — not priced yet';
+      body = 'Nothing is scheduled and no money is authorized. Review the job details below, then send a quote for the customer to approve.';
+    } else if (stage === 'awaiting_customer') {
+      bg = expired ? '#fef2f2' : '#fffbeb'; bd = expired ? '#fecaca' : '#fcd34d'; fg = expired ? '#991b1b' : '#92400e';
+      head = expired ? 'Quote expired — customer never approved' : 'Quote sent — awaiting customer approval';
+      body = (amountCents > 0 ? fmt$(amountCents) + ' quoted. ' : '')
+        + 'No card is authorized and no payment is captured. '
+        + (expired
+          ? 'The approval link is dead — reprice and resend it to keep this job.'
+          : 'The customer approves and authorizes from their emailed link.');
+    } else {
+      bg = '#eff6ff'; bd = '#bfdbfe'; fg = '#1e40af';
+      head = 'Quote approved — customer is finishing card authorization';
+      body = (amountCents > 0 ? fmt$(amountCents) + ' approved. ' : '')
+        + 'Stripe has not confirmed the hold yet. Do not schedule or dispatch until it does.';
+    }
+    return '<div style="grid-column:1/-1;background:' + bg + ';border:1px solid ' + bd + ';border-radius:10px;padding:0.8rem 0.9rem">'
+      + '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;flex-wrap:wrap">'
+        + '<span class="sb bk-quote">Quote</span>'
+        + '<strong style="font-size:0.92rem;color:' + fg + '">' + esc(head) + '</strong>'
+      + '</div>'
+      + '<div style="font-size:0.8rem;line-height:1.55;color:' + fg + '">' + body + '</div>'
+    + '</div>';
+  }
+
+  // Only what the owner needs to price and send a quote. Booking totals, tax,
+  // processing fees, platform fee, Easer earnings, platform gross, payout status
+  // and Easer assignment are deliberately absent -- none of them exist yet.
+  function renderQuoteDetailGrid(b, stage, customerAgreement) {
+    var amountCents = Number(b.quote_amount_cents || 0);
+    var estimateCents = Number(b.total_price || 0);
+    var out = [quoteBanner(b, stage)];
+    out.push(field('Customer', esc(b.customer_name || '—')));
+    out.push(field('Phone', hasValidUsPhone(b.customer_phone)
+      ? '<a href="tel:' + esc(b.customer_phone) + '" style="color:var(--teal);text-decoration:none;font-weight:600">' + esc(formatUsPhone(b.customer_phone)) + '</a>'
+      : '<span style="color:var(--red)">Valid phone required</span>'));
+    out.push(field('Email', b.customer_email
+      ? '<a href="mailto:' + esc(b.customer_email) + '" style="color:var(--teal);text-decoration:none">' + esc(b.customer_email) + '</a>'
+      : '—'));
+    out.push(field('Requested Service', esc(quoteServiceLabel(b))));
+    out.push(field('Preferred Date', formatDate(b.date) + (b.time ? ' at ' + esc(b.time) : '')));
+    out.push(field('Requested', formatDateTime(b.created_at)));
+    out.push(wideField('Address', esc(b.address || '—')));
+    if (b.details) out.push(wideField('Job Details', esc(b.details)));
+    if (amountCents > 0) {
+      var breakdown = Number(b.quote_tax_cents || 0) > 0
+        ? ' <span style="font-size:0.72rem;color:var(--muted)">(' + fmt$(b.quote_subtotal_cents) + ' + ' + fmt$(b.quote_tax_cents) + ' tax)</span>'
+        : '';
+      out.push(field('Quote Amount', '<strong>' + fmt$(amountCents) + '</strong>' + breakdown));
+      out.push(field('Quote Sent', b.quote_sent_at ? formatDateTime(b.quote_sent_at) : '—'));
+      out.push(field('Approval Expires', !b.quote_expires_at
+        ? '—'
+        : quoteExpired(b)
+          ? '<span style="color:var(--red);font-weight:600">Expired ' + formatDateTime(b.quote_expires_at) + '</span>'
+          : formatDateTime(b.quote_expires_at)));
+    } else if (estimateCents > 0) {
+      // Mixed cart: priced items plus a custom-quote item. This is an estimate of
+      // the priced part only -- it is not the quote and nothing has been charged.
+      out.push(wideField('Priced Items So Far', fmt$(estimateCents)
+        + ' <span style="font-size:0.72rem;color:var(--muted)">estimate for the selected items only — not the quote, nothing charged</span>'));
+    }
+    out.push(field('Card on File', b.stripe_payment_method_id
+      ? 'Saved — not charged'
+      : '<span style="color:var(--red)">None saved — customer must resubmit</span>'));
+    out.push(field('Customer Agreement', customerAgreement));
+    return out.join('');
+  }
+
   function bookingBadge(b) {
     // Derives the richest possible booking state from available fields
     var s = b.status;
     var cls, label;
+    // A quote must never read as a pending booking anywhere in the dashboard.
+    var lane = quoteLane(b);
+    if (lane) return '<span class="sb bk-quote">' + esc(QUOTE_STAGE_LABEL[lane]) + '</span>';
     if (s === 'pending') {
       cls = 'bk-pending'; label = 'Pending';
     } else if (s === 'confirmed') {

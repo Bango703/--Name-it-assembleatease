@@ -56,6 +56,13 @@
   border-color: rgba(245, 158, 11, 0.25);
 }
 
+/* quote — priced request awaiting the customer; NOT a booking, no money held */
+.bk-quote {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
 /* confirmed — confirmed, not yet dispatched */
 .bk-confirmed {
   background: rgba(14, 165, 233, 0.1);
