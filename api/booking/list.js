@@ -1,5 +1,6 @@
 import { getSupabase } from '../_supabase.js';
 import { loadBookingItems, countAddOns } from './_booking-items.js';
+import { loadChangeOrders, summarizeChangeOrders, changeOrderEligibility } from './_change-orders.js';
 import { verifyOwner } from '../_email.js';
 import {
   allocateCollectedTaxCents,
@@ -174,6 +175,28 @@ export default async function handler(req, res) {
       // Null (not []) so the dashboard can say "could not load" rather than
       // silently render an empty scope that looks like "no add-ons".
       data.forEach(booking => { booking._booking_items = null; booking._add_on_count = null; });
+    }
+
+    // Approved change orders change what the customer owes and what the Easer is
+    // paid on, so the owner must see them on the booking, not only in Stripe.
+    try {
+      const ordersByBooking = await loadChangeOrders(bookingIds, { sb });
+      data.forEach(booking => {
+        const rows = ordersByBooking.get(booking.id) || [];
+        booking._change_orders = rows;
+        booking._change_order_summary = summarizeChangeOrders(rows);
+        const eligible = changeOrderEligibility(booking);
+        booking._change_order_eligible = eligible.ok;
+        booking._change_order_blocked_reason = eligible.ok ? null : eligible.reason;
+      });
+    } catch (changeOrderError) {
+      console.error('Change-order lookup error:', changeOrderError);
+      data.forEach(booking => {
+        booking._change_orders = null;
+        booking._change_order_summary = null;
+        booking._change_order_eligible = false;
+        booking._change_order_blocked_reason = 'Change orders could not be loaded.';
+      });
     }
 
     if (unreadMsgs && unreadMsgs.length) {

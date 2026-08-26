@@ -222,7 +222,124 @@ async function recoverCapturedPayment({ stripe, booking }) {
   };
 }
 
+/**
+ * Capture every customer-approved change order for this booking.
+ *
+ * Change orders carry their OWN manual-capture PaymentIntents — the booking's
+ * intent is never resized, because captureAuthorizedPayment validates it against
+ * bookings.total_price and raising that would break capture platform-wide.
+ *
+ * Runs AFTER the primary capture and never throws: the job is finished and the
+ * main payment is already taken, so a failing extra must not roll that back or
+ * block the Easer's completion. A failure is audited and surfaced to the owner
+ * as an unrecovered amount to chase, which is recoverable — losing the primary
+ * capture is not.
+ */
+async function captureApprovedChangeOrders({ stripe, sb, booking, eventSource }) {
+  const result = { capturedCents: 0, capturedCount: 0, failed: [], feeCents: 0 };
+  let pending;
+  try {
+    const { data, error } = await sb
+      .from('booking_change_orders')
+      .select('id, total_cents, stripe_payment_intent_id, status')
+      .eq('booking_id', booking.id)
+      .eq('status', 'authorized')
+      .not('stripe_payment_intent_id', 'is', null);
+    if (error) throw error;
+    pending = data || [];
+  } catch (loadErr) {
+    console.error('Change-order capture lookup failed:', loadErr?.message || loadErr);
+    result.failed.push({ id: null, error: 'lookup_failed' });
+    return result;
+  }
+
+  for (const order of pending) {
+    const idempotencyKey = `change-order-capture-${order.id}`;
+    try {
+      await writeFinancialAudit(sb, {
+        eventType: 'change_order_capture',
+        eventSource,
+        bookingId: booking.id,
+        paymentIntentId: order.stripe_payment_intent_id,
+        idempotencyKey,
+        status: 'processing',
+        metadata: { ref: booking.ref, changeOrderId: order.id, amountCents: order.total_cents },
+      });
+
+      const intent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
+      // Only ever capture an intent that belongs to THIS change order on THIS
+      // booking, for the exact approved amount. Never trust the id alone.
+      const belongs = intent.metadata?.bookingId === booking.id
+        && intent.metadata?.changeOrderId === order.id
+        && intent.metadata?.type === 'customer_change_order'
+        && Number(intent.amount) === Number(order.total_cents);
+      if (!belongs) throw new Error('Change-order intent does not match the approved record');
+
+      const captured = intent.status === 'succeeded'
+        ? intent
+        : await stripe.paymentIntents.capture(
+          order.stripe_payment_intent_id,
+          { expand: ['latest_charge.balance_transaction'] },
+          { idempotencyKey },
+        );
+      if (captured.status !== 'succeeded') throw new Error(`Change-order capture ended in ${captured.status}`);
+
+      const amount = Number(captured.amount_received || 0);
+      const fee = intentFeeCents(captured);
+      await sb.from('booking_change_orders').update({
+        status: 'captured',
+        captured_at: new Date().toISOString(),
+        captured_amount_cents: amount,
+        stripe_fee_cents: fee,
+        updated_at: new Date().toISOString(),
+      }).eq('id', order.id).eq('status', 'authorized');
+
+      result.capturedCents += amount;
+      result.feeCents += Number(fee || 0);
+      result.capturedCount += 1;
+
+      await writeFinancialAudit(sb, {
+        eventType: 'change_order_capture',
+        eventSource,
+        bookingId: booking.id,
+        paymentIntentId: captured.id,
+        idempotencyKey,
+        status: 'processed',
+        metadata: { ref: booking.ref, changeOrderId: order.id, amountCents: amount },
+      });
+    } catch (captureErr) {
+      console.error(`Change-order capture failed (${order.id}):`, captureErr?.message || captureErr);
+      result.failed.push({ id: order.id, amountCents: order.total_cents, error: captureErr?.message || String(captureErr) });
+      await writeFinancialAudit(sb, {
+        eventType: 'change_order_capture',
+        eventSource,
+        bookingId: booking.id,
+        paymentIntentId: order.stripe_payment_intent_id,
+        idempotencyKey,
+        status: 'failed',
+        metadata: { ref: booking.ref, changeOrderId: order.id, error: captureErr?.message || String(captureErr) },
+      }).catch(() => {});
+    }
+  }
+  return result;
+}
+
 export async function captureOrRecoverBookingPayment({ stripe, sb, booking, eventSource }) {
+  const primary = await capturePrimaryBookingPayment({ stripe, sb, booking, eventSource });
+  // Approved extra work is captured with the job, after the primary amount is
+  // safely taken. Additive only — it never alters the primary result's contract.
+  const changeOrders = await captureApprovedChangeOrders({ stripe, sb, booking, eventSource });
+  return {
+    ...primary,
+    amountCharged: Number(primary.amountCharged || 0) + changeOrders.capturedCents,
+    actualStripeFee: Number(primary.actualStripeFee || 0) + changeOrders.feeCents,
+    changeOrderCapturedCents: changeOrders.capturedCents,
+    changeOrderCapturedCount: changeOrders.capturedCount,
+    changeOrderFailures: changeOrders.failed,
+  };
+}
+
+async function capturePrimaryBookingPayment({ stripe, sb, booking, eventSource }) {
   if (booking.payment_status === 'authorized') {
     return captureAuthorizedPayment({ stripe, sb, booking, eventSource });
   }

@@ -1688,6 +1688,25 @@ window.intelQuick = intelQuick;
   </div>
 </div>
 
+<!-- ─── Change Order Modal — additional scope on a LIVE booking ─── -->
+<div class="modal-overlay" id="change-order-modal">
+  <div class="modal" style="max-width:440px">
+    <h3>Add Work to This Job</h3>
+    <p style="font-size:0.82rem;color:var(--soft);margin-bottom:1.25rem">For work found on site that was not in the original booking. The customer approves before anything is charged; it is then authorized on their saved card and captured with the job. The original booking total is never altered.</p>
+    <input type="hidden" id="co-id"/>
+    <label class="modal-label">What is the additional work? *</label>
+    <textarea class="modal-input" id="co-desc" rows="2" maxlength="500" placeholder="e.g. Wall anchoring required — studs not where expected, added blocking" style="min-height:60px"></textarea>
+    <label class="modal-label">Amount before tax ($) *</label>
+    <input type="number" class="modal-input" id="co-amount" placeholder="e.g. 85.00" min="1" step="0.01" oninput="updateChangeOrderPreview()"/>
+    <div id="co-preview" style="font-size:0.76rem;color:var(--muted);margin-top:-0.4rem;margin-bottom:0.5rem"></div>
+    <div id="co-error" style="font-size:0.82rem;color:var(--red);margin-top:0.5rem;display:none"></div>
+    <div class="modal-actions" style="margin-top:1.25rem">
+      <button class="btn" onclick="document.getElementById('change-order-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-teal" id="co-submit">Send to Customer for Approval</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Owner Create Booking Modal (record-only offline lane) ─── -->
 <div class="modal-overlay" id="owner-create-booking-modal">
   <div class="modal" style="max-width:560px">
@@ -3649,6 +3668,10 @@ window.intelQuick = intelQuick;
       b.return_visit_required ? field('Work Remaining', esc(b.return_visit_remaining_scope || '—')) : '',
       field('Address', esc(b.address || '—')),
       wideField('Items &amp; Add-ons', bookingScopeHtml(b, { showPrices: true })),
+      (b._change_order_summary && b._change_order_summary.count) || b._change_orders === null
+        ? wideField('Additional Work (Change Orders)', changeOrdersHtml(b)) : '',
+      (b._change_order_summary && b._change_order_summary.billableTotalCents > 0)
+        ? field('Total With Approved Extras', '<strong>' + fmt$(Number(b.total_price || 0) + b._change_order_summary.billableTotalCents) + '</strong> <span style="font-size:0.7rem;color:var(--muted)">(' + fmt$(b.total_price) + ' original + ' + fmt$(b._change_order_summary.billableTotalCents) + ' approved)</span>') : '',
       b.details ? field('Details', esc(b.details)) : '',
       field('Easer', b.assembler_name ? esc(b.assembler_name) + (b.assembler_tier ? ' <span style="font-size:0.72rem;color:var(--teal)">(' + esc(b.assembler_tier) + ')</span>' : '') + (b.assembler_rating ? ' &bull; ' + Number(b.assembler_rating).toFixed(1) + ' stars' : '') + (hasValidUsPhone(b.assembler_phone) ? ' &bull; <a href="tel:' + esc(b.assembler_phone) + '" style="color:var(--teal);text-decoration:none">' + esc(formatUsPhone(b.assembler_phone)) + '</a>' : ' <span style="color:var(--red)">&bull; valid phone required</span>') : '<span style="color:var(--muted)">Unassigned</span>'),
       field('Source', (b.source === 'manual' || b.source === 'owner_manual') ? '<span style="color:var(--amber)">Manual entry</span>' : 'Online booking'),
@@ -4220,6 +4243,32 @@ window.intelQuick = intelQuick;
     finally { btn.disabled = false; btn.textContent = submitLabel; }
   });
 
+  document.getElementById('co-submit').addEventListener('click', async function() {
+    var btn = this;
+    var bookingId = document.getElementById('co-id').value;
+    var description = document.getElementById('co-desc').value.trim();
+    var amount = parseFloat(document.getElementById('co-amount').value);
+    var errEl = document.getElementById('co-error');
+    if (description.length < 3) { errEl.textContent = 'Describe the additional work — the customer reads this before approving.'; errEl.style.display = ''; return; }
+    if (!isFinite(amount) || amount <= 0) { errEl.textContent = 'Enter the amount for the additional work.'; errEl.style.display = ''; return; }
+    btn.disabled = true; btn.textContent = 'Sending…'; errEl.style.display = 'none';
+    try {
+      var r = await fetch('/api/owner/change-order', {
+        method: 'POST', headers: headers(),
+        // Server prices it. The browser never sends a total, tax, or split.
+        body: JSON.stringify({ bookingId: bookingId, description: description, subtotalDollars: amount })
+      });
+      var d = await r.json();
+      if (!r.ok || d.error) { errEl.textContent = d.error || 'Could not send the change order.'; errEl.style.display = ''; return; }
+      toast(d.message || 'Sent for customer approval', d.emailDelivered === false ? 'error' : 'success');
+      document.getElementById('change-order-modal').classList.remove('open');
+      await loadBookings(true);
+      if (selectedId) selectBooking(selectedId);
+    } catch (e) {
+      errEl.textContent = (e && e.message) || 'Could not send the change order.'; errEl.style.display = '';
+    } finally { btn.disabled = false; btn.textContent = 'Send to Customer for Approval'; }
+  });
+
   // ─── Owner create-booking modal ───
   function centsFromDollarsInput(v) {
     var n = parseFloat(String(v || '').trim());
@@ -4560,6 +4609,18 @@ window.intelQuick = intelQuick;
     btns.push('<button class="btn" onclick="rebookCustomer(\'' + jsAttr(b.customer_email) + '\',\'' + jsAttr(b.customer_name || '') + '\',\'' + jsAttr(b.customer_phone || '') + '\')">Email to Rebook</button>');
   }
 
+  // Adds the change-order control, or says why it is unavailable. Never a
+  // disabled button with no reason (Constitution Article 16).
+  function addChangeOrderAction(b, btns, notices) {
+    if (b._change_order_eligible) {
+      btns.push('<button class="btn" data-action="change-order" data-id="' + b.id + '">Add Work / Change Order</button>');
+      return;
+    }
+    if (b._change_order_blocked_reason) {
+      notices.push('<div style="flex-basis:100%;font-size:0.74rem;color:var(--muted)"><strong>Additional work:</strong> ' + esc(b._change_order_blocked_reason) + '</div>');
+    }
+  }
+
   function renderActions(b) {
     function renderOwnerActionCollection(notices, btns) {
       var actionPriority = [
@@ -4843,6 +4904,7 @@ window.intelQuick = intelQuick;
       } else if (!b.assembler_id) {
         btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '">Smart Dispatch</button>');
       }
+      addChangeOrderAction(b, btns, notices);
       btns.push('<button class="btn" data-action="edit" data-id="' + b.id + '">Edit</button>');
       btns.push('<button class="btn btn-amber" data-action="cancel" data-id="' + b.id + '">Cancel Booking</button>');
     }
@@ -4851,6 +4913,8 @@ window.intelQuick = intelQuick;
       if (b.status === 'in_progress') {
         btns.push('<button class="btn btn-teal" data-action="complete" data-id="' + b.id + '">Mark Complete</button>');
       }
+      // The whole point: work found ON SITE, while the job is live.
+      addChangeOrderAction(b, btns, notices);
       if (b.status === 'in_progress' || b.job_started_at) {
         notices.push('<div style="flex-basis:100%;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0.65rem 0.8rem;color:#9a3412;font-size:0.78rem;line-height:1.5"><strong>Work started:</strong> automatic cancellation fees are disabled. Best options: complete the job, or reassign it to another Easer (below). If something has gone wrong and you must stop the job, use Owner Override — no fee is charged, the hold is released or captured money refunded, and you settle any partial Easer pay manually.</div>');
         btns.push('<button class="btn btn-red" data-action="cancel-override" data-id="' + b.id + '">Owner Override: Cancel Job</button>');
@@ -5348,6 +5412,8 @@ window.intelQuick = intelQuick;
         $payoutMethod.value = bPayout.assembler_payout_method_preference;
       }
       $reasonModal.classList.add('open');
+    } else if (action === 'change-order') {
+      openChangeOrderModal(id);
     } else if (action === 'decline') {
       $reasonText.style.display = '';
       pendingAction = { path: '/decline', id: id };
@@ -6399,6 +6465,89 @@ window.intelQuick = intelQuick;
   }
 
   window.updateQuoteBreakdown = updateQuoteBreakdown;
+
+  // Additional approved work on a live booking. The original authorization is
+  // never resized — each change order carries its own, captured with the job —
+  // so the customer's real obligation is base + approved change orders.
+  function changeOrdersHtml(b) {
+    var sum = b && b._change_order_summary;
+    if (b && b._change_orders === null) {
+      return '<div style="font-size:0.78rem;color:var(--red)">Change orders could not be loaded &mdash; the totals below may be incomplete.</div>';
+    }
+    if (!sum || !sum.count) return '';
+    var statusStyle = {
+      pending_customer_approval: ['#92400e', '#fffbeb', '#fde68a', 'Awaiting customer'],
+      authorized:               ['#1e40af', '#eff6ff', '#bfdbfe', 'Approved &mdash; captures with the job'],
+      captured:                 ['#065f46', '#ecfdf5', '#a7f3d0', 'Captured'],
+      declined:                 ['#991b1b', '#fef2f2', '#fecaca', 'Customer declined'],
+      voided:                   ['#475569', '#f1f5f9', '#e2e8f0', 'Withdrawn'],
+      refunded:                 ['#c2410c', '#fff7ed', '#fed7aa', 'Refunded'],
+    };
+    var rows = sum.rows.map(function(o) {
+      var st = statusStyle[o.status] || ['#475569', '#f1f5f9', '#e2e8f0', o.status];
+      return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="min-width:0"><div style="font-size:0.79rem;color:var(--text)">' + esc(o.description) + '</div>'
+        + '<span style="display:inline-block;margin-top:2px;font-size:0.64rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:' + st[0] + ';background:' + st[1] + ';border:1px solid ' + st[2] + ';border-radius:4px;padding:0 5px">' + st[3] + '</span></div>'
+        + '<div style="text-align:right;white-space:nowrap"><strong style="font-size:0.8rem">' + fmt$(o.total_cents) + '</strong>'
+        + (o.status === 'pending_customer_approval' ? '<div><button class="btn" style="font-size:0.66rem;padding:1px 6px;margin-top:3px" data-void-change-order="' + o.id + '">Withdraw</button></div>' : '')
+        + '</div></div>';
+    }).join('');
+    var totals = '';
+    if (sum.billableTotalCents > 0) {
+      totals += '<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-top:6px;padding-top:5px;border-top:1px solid var(--border)"><strong>Approved additional</strong><strong>' + fmt$(sum.billableTotalCents) + '</strong></div>';
+    }
+    if (sum.pendingTotalCents > 0) {
+      totals += '<div style="font-size:0.74rem;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;margin-top:6px">'
+        + fmt$(sum.pendingTotalCents) + ' is awaiting customer approval and is <strong>not owed yet</strong> &mdash; do not count it as revenue or pay out on it.</div>';
+    }
+    return rows + totals;
+  }
+
+  window.openChangeOrderModal = function(bookingId) {
+    var b = allBookings.find(function(x){ return x.id === bookingId; });
+    if (!b) return;
+    if (!b._change_order_eligible) {
+      toast(b._change_order_blocked_reason || 'Additional work cannot be added to this booking.', 'error');
+      return;
+    }
+    document.getElementById('co-id').value = bookingId;
+    document.getElementById('co-desc').value = '';
+    document.getElementById('co-amount').value = '';
+    document.getElementById('co-error').style.display = 'none';
+    updateChangeOrderPreview();
+    document.getElementById('change-order-modal').classList.add('open');
+    setTimeout(function(){ document.getElementById('co-desc').focus(); }, 50);
+  };
+
+  window.updateChangeOrderPreview = function() {
+    var el = document.getElementById('co-preview');
+    var amount = parseFloat(document.getElementById('co-amount').value);
+    if (!el) return;
+    if (!isFinite(amount) || amount <= 0) { el.textContent = 'Enter the amount for the additional work (before tax).'; return; }
+    var rate = (window.AAE_RATES && window.AAE_RATES.SALES_TAX_RATE) || 0.0825;
+    var sub = Math.round(amount * 100);
+    var tax = Math.round(sub * rate);
+    el.innerHTML = 'Customer approves ' + fmt$(sub) + ' + ' + fmt$(tax) + ' tax = <strong>' + fmt$(sub + tax) + '</strong>, authorized on their saved card and captured with the job.';
+  };
+
+  document.addEventListener('click', function(e) {
+    var voidBtn = e.target.closest('[data-void-change-order]');
+    if (voidBtn) voidChangeOrder(voidBtn.getAttribute('data-void-change-order'), voidBtn);
+  });
+
+  window.voidChangeOrder = async function(changeOrderId, btn) {
+    if (!confirm('Withdraw this change order? The customer will no longer be able to approve it. Nothing has been charged.')) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Withdrawing...'; }
+    try {
+      var r = await fetch('/api/owner/change-order', { method:'POST', headers:headers(), body: JSON.stringify({ action:'void', changeOrderId: changeOrderId }) });
+      var d = await r.json();
+      if (!r.ok || d.error) { toast(d.error || 'Could not withdraw', 'error'); return; }
+      toast('Change order withdrawn', 'success');
+      await loadBookings(true);
+      if (selectedId) selectBooking(selectedId);
+    } catch (e) { toast('Could not withdraw the change order', 'error'); }
+    finally { if (btn) { btn.disabled = false; btn.textContent = 'Withdraw'; } }
+  };
 
   function wideField(label, value) {
     return '<div class="detail-field" style="grid-column:1/-1"><label>' + label + '</label><span>' + value + '</span></div>';

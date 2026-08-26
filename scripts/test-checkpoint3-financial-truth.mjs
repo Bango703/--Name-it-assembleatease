@@ -108,12 +108,21 @@ const depositResult = await captureOrRecoverBookingPayment({
   booking: depositBooking,
   eventSource: 'checkpoint_test',
 });
-assert.deepEqual(depositResult, {
-  amountCharged: 10_000,
-  actualStripeFee: 351,
-  balancePaymentIntentId: 'pi_balance',
-  balanceAmountCaptured: 7_500,
-});
+// Assert the MONEY CONTRACT, not the object shape. Change-order capture added
+// informational keys to this result, and a deepEqual on the whole object would
+// fail on any additive field even when every amount is identical — which turns a
+// safe extension into a red build and teaches people to loosen the test.
+// These four values are the actual guarantee: what was charged, the fee, and the
+// deposit-balance identifiers.
+assert.equal(depositResult.amountCharged, 10_000, 'Deposit flow must still charge the full amount.');
+assert.equal(depositResult.actualStripeFee, 351, 'Deposit flow must still report the combined Stripe fee.');
+assert.equal(depositResult.balancePaymentIntentId, 'pi_balance');
+assert.equal(depositResult.balanceAmountCaptured, 7_500);
+// A change-order lookup that fails must NEVER reduce the primary capture — the
+// job is done and the main payment is taken; an unrecoverable extra is chased,
+// not rolled back.
+assert.equal(depositResult.changeOrderCapturedCents, 0, 'No change orders in this fixture, so nothing extra may be captured.');
+assert.ok(Array.isArray(depositResult.changeOrderFailures), 'Change-order outcomes must always be reported.');
 assert.equal(stripeCalls[0].params.amount, 7_500);
 assert.equal(stripeCalls[0].params.metadata.type, 'customer_booking_balance');
 assert.equal(stripeCalls[0].options.idempotencyKey, 'booking-complete-balance-booking-deposit');
