@@ -22,6 +22,7 @@
   <script src="../config.js?v=20260818a" defer></script>
   <script src="../assets/js/app.js?v=20260818a" defer></script>
   <script src="../assets/js/api.js?v=20260818a" defer></script>
+  <script src="../assets/js/easer-notifications.js?v=20260818b" defer></script>
   <link rel="stylesheet" href="../assets/css/easer.css" />
   <link rel="stylesheet" href="../assets/status.css" />
   <style>
@@ -149,7 +150,8 @@
     .sheet-overlay { display: none !important; }
     .sheet-overlay.open { display: flex !important; }
   </style>
-</head>
+<script src="/assets/js/status-source-of-truth.js" defer></script>
+  </head>
 <body class="easer-booting">
 
 <div class="e-offline" id="e-offline">No connection — updates paused</div>
@@ -169,7 +171,7 @@
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--e-muted)">Notifications</div>
     <button onclick="document.getElementById('notif-panel').style.display='none';document.getElementById('notif-backdrop').style.display='none'" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--e-muted);display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent" aria-label="Close notifications"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
   </div>
-  <div style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">No new notifications</div>
+  <div id="notif-list" style="text-align:center;padding:1.5rem 0;color:var(--e-muted);font-size:0.875rem">Loading notifications...</div>
 </div>
 
 <div class="easer-page">
@@ -484,8 +486,8 @@
         title = 'Your account is suspended';
         body = 'Your Easer account is paused, so you can’t receive or view jobs right now. Check your email for details, or contact support to reactivate.';
       } else if (acctStatus === 'pending') {
-        title = 'Your account is under review';
-        body = 'Your Easer account isn’t active yet. We’ll email you as soon as it’s approved.';
+        title = 'Your application is pending';
+        body = 'Your Easer account isn’t active yet. We’ll email you when your status changes.';
       } else {
         title = 'Your account isn’t active';
         body = 'Your Easer account isn’t active for jobs right now. Contact support if you think this is a mistake.';
@@ -932,13 +934,13 @@
 
   function closureGreetingMessage() {
     if (currentClosureStatus === 'completed') return 'This Easer account is closed';
-    if (currentClosureStatus === 'reviewing') return 'Account closure is being reviewed';
+    if (currentClosureStatus === 'reviewing') return 'Account closure is in progress';
     return 'Account closure has been requested';
   }
 
   function closureAvailabilityMessage() {
     if (currentClosureStatus === 'completed') return 'A closed account cannot go Online or receive offers.';
-    return 'Availability stays Offline while the account closure request is under review.';
+    return 'Availability stays Offline while the account closure request is processed.';
   }
 
   function applyClosureState() {
@@ -1498,8 +1500,8 @@
     var tsBanner=document.getElementById('tier-status-banner');
     if(effectiveStatus==='pending'){
       tsBanner.classList.remove('hidden');
-      document.getElementById('tier-status-title').textContent='Your application is under review';
-      document.getElementById('tier-status-sub').textContent='We will notify you by email when you are approved.';
+      document.getElementById('tier-status-title').textContent='Your application is pending';
+      document.getElementById('tier-status-sub').textContent='We will notify you by email when your status changes.';
     }
 
     // Onboarding checklist — show for active Easers until all dispatch requirements are met

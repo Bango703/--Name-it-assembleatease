@@ -60,6 +60,10 @@ export default async function handler(req, res) {
     tier: 'starter',
     identity_verified: true,
     identity_verified_at: new Date().toISOString(),
+    // Explicit: dispatch selects Easers with .eq('status', 'active'), so a NULL
+    // status silently excludes this account from every job offer even though the
+    // dashboard displays it as active (that view infers a status from `tier`).
+    status: 'active',
     application_status: 'approved',
     payment_confirmed: true,
     application_fee_paid: true,

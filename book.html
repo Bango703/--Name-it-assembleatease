@@ -4059,7 +4059,7 @@ function renderStep5OrderTotal() {
       + assemblecashLineHtml
       + callFeeLineHtml
       + sameDayLineHtml
-      + '<div class="booking-money-row"><span>Sales tax (8.25%)</span><span>' + dollars(pricing.taxCents / 100) + '</span></div>'
+      + '<div class="booking-money-row"><span>Sales tax (' + (window.AAE_RATES ? window.AAE_RATES.salesTaxPctLabel() : '8.25') + '%)</span><span>' + dollars(pricing.taxCents / 100) + '</span></div>'
     : '';
   var totalDisplay = itemsBlock.hasCustom && localPricing.itemSubtotalCents === 0
     ? 'Custom quote'

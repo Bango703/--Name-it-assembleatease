@@ -2,6 +2,9 @@ import { getSupabase } from '../_supabase.js';
 import { sendEmail, ownerEmail } from '../_email.js';
 import { issueReviewToken } from '../_review-token.js';
 import { buildReviewEmail, completionPhotoUrl, bookingsWithOpenCase } from '../_review-email.js';
+import { minSendIntervalMs, remainingDailyBudget } from '../_send-governor.js';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Up-to-3 spaced review requests. The customer gets a first ask, then at most two
 // gentle follow-ups — but ONLY while no review has been logged AND no dispute/case
@@ -21,6 +24,22 @@ export default async function handler(req, res) {
 
   const sb = getSupabase();
   const now = Date.now();
+
+  // Shared fuse: if the platform has already spent its 24h email allowance,
+  // something is sending far more than it should. Stop rather than add to it —
+  // these requests are re-eligible on the next run.
+  try {
+    const budget = await remainingDailyBudget(sb);
+    if (budget.remaining <= 0) {
+      return res.status(200).json({
+        ok: true, skipped: true, reason: 'daily_email_ceiling',
+        ceiling: budget.ceiling, used: budget.used,
+      });
+    }
+  } catch (fuseErr) {
+    console.error('[review-request] send fuse unreadable:', fuseErr.message || fuseErr);
+    return res.status(503).json({ error: 'Send budget could not be verified; no review requests were sent.' });
+  }
 
   // Candidates: completed within the age window, not yet at the request cap.
   const COLS_BASE = 'id, ref, service, customer_email, completed_at, review_requested_at, assembler_id, assembler_name, job_started_at, evidence_requested_at, source, payment_status, status, return_visit_required';
@@ -109,6 +128,10 @@ export default async function handler(req, res) {
       const proFirst = (b.assembler_name || '').split(' ')[0] || '';
       const { subject, html } = buildReviewEmail(step, b, url, { photoUrl, proFirst });
 
+      // Hold the provider's pace. This loop can reach 100 bookings; unpaced that
+      // is far past Resend's 2/second default, and the overflow returns 429 —
+      // recorded as a failure and never retried, so the customer is never asked.
+      if (sent > 0) await sleep(minSendIntervalMs());
       const emailResult = await sendEmail({
         to: b.customer_email,
         from: 'AssembleAtEase <booking@assembleatease.com>',

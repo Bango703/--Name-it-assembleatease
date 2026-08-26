@@ -68,8 +68,18 @@ export default async function handler(req, res) {
     bio: bio?.trim() || null,
     tier: 'pending',
     identity_verified: false,
+    // Explicit, not inherited from a column default. A NULL status is invisible
+    // to every server query that filters .eq('status', 'pending') — including
+    // the owner dashboard's own Pending tab — even though the list view hides
+    // that by deriving a display status from `tier`.
+    status: 'pending',
     application_status: 'applied',
-    payment_confirmed: true,
+    // Approval requires the fee to be paid XOR waived. payment_confirmed:true
+    // alongside fee_waived_by_owner:true satisfies NEITHER branch, which left
+    // every owner-added Easer permanently un-approvable with a greyed-out
+    // Approve button and no error. No payment is taken on a waived fee, so
+    // `false` is both the truthful value and the one the check requires.
+    payment_confirmed: false,
     application_fee_paid: false,  // fee waived by owner
     fee_waived_by_owner: true,
   }, { onConflict: 'id' });

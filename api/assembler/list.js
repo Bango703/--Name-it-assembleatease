@@ -2,7 +2,7 @@ import { getSupabase } from '../_supabase.js';
 import { verifyOwner } from '../_email.js';
 import { isStripeConnectEnabled } from '../_stripe-connect.js';
 import { normalizeAssemblerProfile } from '../_assembler-state.js';
-import { getEaserReadiness } from '../_easer-readiness.js';
+import { getEaserReadiness, getEaserApprovalReadiness } from '../_easer-readiness.js';
 import { hasEffectiveEaserMembership } from '../_easer-membership.js';
 
 /**
@@ -36,9 +36,18 @@ export default async function handler(req, res) {
 
   const normalized = (data || []).map(profile => normalizeAssemblerProfile(sanitizeAssemblerForOwner(profile)));
   const requireConnect = isStripeConnectEnabled();
+  // Two DIFFERENT questions, both answered here so the browser never has to
+  // reimplement either:
+  //   readiness         — can this Easer take a JOB right now?
+  //   approvalReadiness — can the owner APPROVE this application?
+  // The owner dashboard previously had no server answer to the second and kept a
+  // hand-copy of the paid-XOR-waived fee rule to decide whether to enable the
+  // Approve button. Two copies of one money rule is exactly the drift that let an
+  // Easer sit permanently un-approvable with a greyed-out button and no reason.
   const assemblers = await Promise.all(normalized.map(async assembler => ({
     ...assembler,
     readiness: await getEaserReadiness(assembler, { connectRequired: requireConnect }),
+    approvalReadiness: getEaserApprovalReadiness(assembler),
   })));
 
   const stats = {

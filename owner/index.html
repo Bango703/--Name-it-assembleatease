@@ -16,6 +16,12 @@
   <link rel="stylesheet" href="/assets/status.css" />
   <link rel="stylesheet" href="/owner/assets/cases.css" />
   <script src="/assets/js/mobile-nav.js" defer></script>
+  <!-- Canonical service catalog. The Edit Booking service list was hardcoded here
+       and had drifted: it offered only 4 of the 7 real services and wrote
+       "Other / Custom", a value the catalog does not contain. Read the same
+       source of truth the booking page uses so it can never drift again. -->
+  <script src="/assets/js/booking-source-of-truth.js" defer></script>
+  <script src="/assets/js/status-source-of-truth.js" defer></script>
   <script src="/owner/assets/cases.js" defer></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1281,7 +1287,7 @@
         <div class="detail-panel open" style="margin-top:1.5rem">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem">
             <div>
-              <div class="detail-section-title" style="margin:0">Sales Tax Liability <span style="color:var(--muted);font-weight:400">(Texas &mdash; 8.25%)</span></div>
+              <div class="detail-section-title" style="margin:0">Sales Tax Liability <span style="color:var(--muted);font-weight:400">(Texas &mdash; <span id="tax-rate-label">8.25</span>%)</span></div>
               <div style="font-size:0.76rem;color:var(--muted);margin-top:0.25rem">Pass-through liability owed to the Texas Comptroller &mdash; never platform revenue. Collected on capture; refunds reduce it.</div>
               <div id="tax-next-due" style="font-size:0.78rem;font-weight:700;color:var(--teal,#0099CC);margin-top:0.35rem"></div>
               <div style="font-size:0.7rem;color:var(--muted);margin-top:0.2rem">Planning reminder only. Confirm the filing frequency and due date assigned to the business in the Texas Comptroller account.</div>
@@ -1642,10 +1648,10 @@ window.intelQuick = intelQuick;
       </div>
     </div>
     <label class="modal-label">Service</label>
+    <!-- Options are filled from the canonical catalog at load (see fillEditServiceOptions).
+         The static entries below are only a no-JS fallback and are replaced. -->
     <select class="modal-input" id="eb-service">
       <option value="">— no change —</option>
-      <option>Furniture Assembly</option><option>Mounting &amp; Hanging</option>
-      <option>Smart Home</option><option>Other / Custom</option>
     </select>
     <label class="modal-label">Address</label>
     <input type="text" class="modal-input" id="eb-address" placeholder="Full address"/>
@@ -3771,12 +3777,37 @@ window.intelQuick = intelQuick;
       var pd = await pr.json();
       var offeredTo = pd.offeredTo || [];
 
+      // The server always says WHY it dispatched nothing — "Flagged for manual
+      // dispatch", "Dispatch paused by owner", "Already assigned", "Max dispatch
+      // attempts reached", "Booking locked by a financial operation". Throwing
+      // that away and printing a generic "check availability and location" sent
+      // the owner hunting through Easer profiles that were never the problem.
+      // Translate the known reasons into the actual next step; otherwise show the
+      // server's own words rather than inventing a cause.
+      var reason = String(pd.message || '');
+      // Every reason _dispatch-internal.js can return, mapped to the actual next
+      // step. Anything unmapped falls through to the server's own wording below —
+      // the UI must never invent a cause it did not receive.
+      var reasonHelp = {
+        'Flagged for manual dispatch': 'This address is outside the automatic-dispatch ZIPs, so Smart Dispatch will never send offers for it. Use Easer Assignment on the booking to assign someone directly — any ready Easer can take it, whatever city they are in.',
+        'Dispatch paused by owner': 'Dispatch is paused on this booking. Resume it before dispatching.',
+        'Already assigned': 'This booking already has an Easer. Use Reassign instead.',
+        'Booking assigned while dispatching — offers cancelled': 'An Easer accepted while this was dispatching, so the remaining offers were withdrawn. The booking is assigned — no action needed.',
+        'No eligible Easers in system': 'No Easer currently passes every readiness gate. Open the Easers tab and check Job Readiness — the panel lists the exact missing items.',
+        'No available Easers in service area': 'Every Easer failed a readiness gate. Open the Easers tab and check Job Readiness for the exact missing items.',
+        'All eligible Easers already received offers': 'Everyone eligible has already been offered this job and has not accepted. Wait for the offers to expire, or assign someone directly via Easer Assignment.',
+        'Booking locked by a financial operation or reconciliation review': 'A payment, refund, cancellation, or payout action is mid-flight on this booking. Dispatch stays blocked until it finishes — do not start another money action.',
+        'Booking not found': 'This booking no longer exists. Refresh the dashboard.',
+        'Could not verify current dispatch offers': 'The dispatch-offer table could not be read, so nothing was sent rather than risking duplicate offers. Retry; if it repeats, the database is unreachable.',
+        'Could not verify prior dispatch recipients': 'Previous offer history could not be read, so nothing was sent rather than re-offering the same job to the same Easer. Retry.',
+      }[reason];
+
       var previewText = offeredTo.length
         ? 'Top ' + offeredTo.length + ' Easer(s):\n' + offeredTo.map(function(e){ return '  • ' + e.name + ' (' + e.tier + ', score ' + e.score + ')'; }).join('\n')
-        : 'No eligible Easers found. Check Easer availability and city settings.';
+        : (reasonHelp || reason || 'No eligible Easers found.');
 
       if (!offeredTo.length) {
-        toast('No eligible Easers — check availability and location settings', 'error');
+        toast(reasonHelp || (reason ? 'Dispatch stopped: ' + reason : 'No eligible Easers found'), 'error');
         if (previewEl) loadDispatchLog(bookingId);
         return;
       }
@@ -4431,8 +4462,43 @@ window.intelQuick = intelQuick;
     }
   });
 
+  // Sales-tax rate is read from the shared browser mirror, never typed copy, so a
+  // rate change cannot leave this header stating a number the server no longer uses.
+  (function paintTaxRate() {
+    var el = document.getElementById('tax-rate-label');
+    if (el && window.AAE_RATES && typeof window.AAE_RATES.salesTaxPctLabel === 'function') {
+      el.textContent = window.AAE_RATES.salesTaxPctLabel();
+    }
+  })();
+
   function field(label, value) {
     return '<div class="detail-field"><label>' + label + '</label><span>' + value + '</span></div>';
+  }
+
+  // Build the Edit Booking service list from the canonical catalog rather than a
+  // hardcoded list. The hardcoded one had drifted badly — it offered 4 of the 7
+  // real services (no Fitness Equipment, Outdoor & Playsets, or Office Assembly)
+  // and its "Other / Custom" entry wrote a value no catalog key matches.
+  // A booking's CURRENT service is always kept as an option even if it is no
+  // longer in the catalog, so opening the modal on a legacy booking can never
+  // silently blank out and rewrite its service on save.
+  function fillEditServiceOptions(currentService) {
+    var select = document.getElementById('eb-service');
+    if (!select) return;
+    var catalog = (window.AAE_BOOKING_SOURCE && window.AAE_BOOKING_SOURCE.subcategories) || null;
+    var services = catalog ? Object.keys(catalog) : [];
+    if (!services.length) {
+      // Catalog unavailable (script blocked or failed): leave whatever is already
+      // there rather than replacing a working list with an empty one.
+      return;
+    }
+    var current = String(currentService || '').trim();
+    if (current && services.indexOf(current) === -1) services.push(current);
+    select.innerHTML = '<option value="">&mdash; no change &mdash;</option>'
+      + services.map(function(name) {
+        return '<option value="' + esc(name) + '">' + esc(name)
+          + (name === current ? ' (current)' : '') + '</option>';
+      }).join('');
   }
 
   // Money-neutral post-completion customer actions — IDENTICAL for online and owner-
@@ -4720,6 +4786,14 @@ window.intelQuick = intelQuick;
         } else if (b.stripe_payment_intent_id && b.payment_status === 'authorized') {
           btns.push('<button class="btn btn-amber" data-action="reconcile-payment" data-id="' + b.id + '">Reconcile Stripe Authorization</button>');
         }
+      } else if (!b.assembler_id && b.needs_manual_dispatch) {
+        // Auto-dispatch refuses this booking outright — _dispatch-internal.js
+        // returns "Flagged for manual dispatch" before it even looks at an Easer,
+        // because the address is outside the automatic-dispatch ZIPs. Offering a
+        // Smart Dispatch button here means offering an action that can never
+        // succeed, with no explanation of why nothing happened. Say so instead,
+        // and point at the control that does work.
+        notices.push('<div style="flex-basis:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.8rem;color:#92400e;font-size:0.78rem;line-height:1.5"><strong>Outside the automatic-dispatch area:</strong> this address is not in the auto-dispatch ZIP list, so Smart Dispatch will not send offers for it. Assign an Easer directly using <strong>Easer Assignment</strong> below — every ready Easer is selectable regardless of their city.</div>');
       } else if (!b.assembler_id) {
         btns.push('<button class="btn btn-teal" data-action="dispatch" data-id="' + b.id + '">Smart Dispatch</button>');
       }
@@ -4900,6 +4974,7 @@ window.intelQuick = intelQuick;
       document.getElementById('eb-id').value = id;
       document.getElementById('eb-date').value = bEdit.date || '';
       document.getElementById('eb-time').value = bEdit.time || '';
+      fillEditServiceOptions(bEdit.service);
       document.getElementById('eb-service').value = bEdit.service || '';
       document.getElementById('eb-address').value = bEdit.address || '';
       document.getElementById('edit-booking-modal').querySelector('h3').textContent = (bEdit.source === 'owner_manual' && bEdit.status === 'completed') ? 'Edit Completed Owner Booking' : 'Edit Booking';
@@ -6330,21 +6405,26 @@ window.intelQuick = intelQuick;
     return '<span class="sb vr-not-started">Not Started</span>';
   }
 
+  // The SERVER decides whether an application-fee state permits approval
+  // (getEaserApprovalReadiness in api/_easer-readiness.js) and now ships that
+  // verdict on every Easer as `approvalReadiness`. This function used to be a
+  // second, hand-maintained copy of that rule; two copies of one money rule is
+  // exactly how an Easer ended up permanently un-approvable behind a greyed-out
+  // button with no reason shown. Read the verdict, never re-derive it.
+  //
+  // If the field is absent (older cached response mid-deploy), report NOT
+  // satisfied: the server refuses the approval anyway, so a disabled button with
+  // a reason beats an enabled button that errors.
   function easerApprovalFeeSatisfied(a) {
-    var paidMode = a.application_fee_paid === true
-      && a.payment_confirmed === true
-      && a.application_fee_waived !== true
-      && a.fee_waived_by_owner !== true;
-    var waivedMode = a.application_fee_paid !== true
-      && a.payment_confirmed !== true
-      && (a.application_fee_waived === true || a.fee_waived_by_owner === true);
-    var refundHold = a.application_fee_refunded === true
-      || Number(a.application_fee_refunded_cents || 0) > 0
-      || Number(a.application_fee_refund_pending_cents || 0) > 0
-      || !!a.application_fee_refund_review_required_at
-      || !!a.application_fee_refund_id
-      || !!a.application_fee_refunded_at;
-    return paidMode !== waivedMode && !refundHold;
+    var verdict = a && a.approvalReadiness;
+    if (!verdict) return false;
+    return verdict.applicationFeeStatusKnown === true && verdict.applicationFeeSatisfied === true;
+  }
+
+  // Everything blocking approval, straight from the server, for display.
+  function easerApprovalMissingItems(a) {
+    var verdict = a && a.approvalReadiness;
+    return (verdict && Array.isArray(verdict.missingItems)) ? verdict.missingItems : [];
   }
 
   function paymentBadge(status) {
@@ -8958,8 +9038,18 @@ window.intelQuick = intelQuick;
       ['Contractor Agreement Accepted', readinessChip(!!r.contractorAgreementAccepted)],
       ['Current Agreement Accepted', readinessChip(!!r.agreementCurrent)],
       ['Agreement Version', r.agreementVersion ? esc(r.agreementVersion) : '<span style="color:var(--red)">Missing</span>'],
+      // These four gate dispatch and manual assignment exactly as hard as the ones
+      // above, but were absent from this panel. An Easer failing any of them is
+      // silently dropped from the assign dropdown (assemblers.js skips anyone whose
+      // readiness fails), leaving the owner with an Easer that reads "Available"
+      // and no way to see why they cannot be given a job.
+      ['Code of Conduct Accepted', readinessChip(!!r.codeOfConductAccepted)],
+      ['Application Fee Satisfied', readinessChip(!!r.applicationFeeSatisfied)],
+      ['Valid Phone On File', readinessChip(!!r.phoneAvailable)],
+      ['Tier Eligible', readinessChip(!!r.tierEligible)],
       ['Identity Verified', readinessChip(!!r.identityVerified)],
       ['Owner Approved', readinessChip(!!r.ownerApproved)],
+      ['Online &amp; Available', readinessChip(!!r.available)],
     ].concat(asmConnectRequired ? [
       ['Stripe Connect Started', readinessChip(!!r.connectStarted)],
       ['Stripe Connect Complete', readinessChip(!!r.connectComplete)],
@@ -9038,9 +9128,19 @@ window.intelQuick = intelQuick;
       if (idStatus !== 'verified') {
         actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'mark_id_verified\')">Mark ID Verified</button> ';
       }
-      actionBtns += (idStatus === 'verified' && easerApprovalFeeSatisfied(a))
-        ? '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'approve\')">Approve Application</button> '
-        : '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="' + (idStatus !== 'verified' ? 'Verify ID first' : 'Reconcile application fee or refund truth first') + '">Approve Application</button> ';
+      if (idStatus === 'verified' && easerApprovalFeeSatisfied(a)) {
+        actionBtns += '<button class="btn btn-teal" onclick="asmAction(\'' + a.id + '\',\'approve\')">Approve Application</button> ';
+      } else {
+        // Never show a disabled Approve with no explanation — that is exactly how
+        // an application dead-ended with nothing on screen saying why. The server
+        // already lists every blocker; print it.
+        var approveBlockers = idStatus !== 'verified' ? ['Identity verified'] : easerApprovalMissingItems(a);
+        var approveBlockerText = approveBlockers.length
+          ? approveBlockers.join('; ')
+          : 'Application fee or refund truth must be reconciled first';
+        actionBtns += '<button class="btn" disabled style="opacity:0.45;cursor:not-allowed" title="' + esc(approveBlockerText) + '">Approve Application</button> ';
+        actionBtns += '<span style="display:inline-block;font-size:0.74rem;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:4px 9px">Cannot approve &mdash; ' + esc(approveBlockerText) + '</span> ';
+      }
       dangerBtns += '<button class="btn btn-red" onclick="rejectFromDetail(\'' + a.id + '\')">Reject Application</button> ';
     }
 

@@ -3,9 +3,15 @@ import { sendEmail, ownerEmail, esc } from '../_email.js';
 import { sendPushToUser } from '../_push.js';
 import { logCron } from './_cron-logger.js';
 import { loadActiveAnnouncements, ruleFor, isReminderDue } from '../_announcements.js';
+import { minSendIntervalMs, remainingDailyBudget } from '../_send-governor.js';
 
 const SITE = 'https://www.assembleatease.com';
+// Per-run cap AND a pace. The loop is sequential, but a sequential loop still
+// clears far more than Resend's 2/second default, so each send waits its turn.
+// The platform-wide 24h ceiling in _send-governor.js sits above both.
 const MAX_PER_RUN = 300;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * GET /api/cron/easer-announcements — daily.
@@ -69,7 +75,7 @@ async function processAnnouncement(sb, a, counters) {
   const channels = Array.isArray(a.channels) ? a.channels : [];
   let processed = 0;
   for (const easer of incomplete) {
-    if (counters.sent >= MAX_PER_RUN) break;
+    if (counters.sent >= (counters.runCap || MAX_PER_RUN)) break;
     const delivery = byEaser.get(easer.id) || null;
     if (!isReminderDue(delivery, a.reminder_days)) continue;
 
@@ -95,6 +101,10 @@ async function processAnnouncement(sb, a, counters) {
     if (channels.includes('in_app')) sent.add('in_app'); // banner is always live
 
     if (channels.includes('email') && easer.email) {
+      // Hold the provider's pace. Without this the loop can clear well past
+      // Resend's 2/second default and the overflow comes back as 429 — which
+      // sendEmail records as a failure and never retries, silently losing it.
+      if (counters.sent > 0) await sleep(minSendIntervalMs());
       try {
         await sendEmail({
           to: easer.email,
@@ -152,6 +162,28 @@ export default async function handler(req, res) {
       await logCron('easer-announcements', { status: 'ok', records: 0, duration: Date.now() - t });
       return res.status(200).json({ ok: true, message: 'No active announcements', ...counters });
     }
+    // One fuse above every campaign: if the platform has already sent its 24h
+    // allowance, this run does nothing rather than adding to a burst.
+    const budget = await remainingDailyBudget(sb);
+    if (budget.remaining <= 0) {
+      await logCron('easer-announcements', {
+        status: 'ok',
+        records: 0,
+        errorText: `skipped: platform 24h email ceiling reached (${budget.used}/${budget.ceiling})`,
+        duration: Date.now() - t,
+      });
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+        reason: 'daily_email_ceiling',
+        ceiling: budget.ceiling,
+        used: budget.used,
+      });
+    }
+    // Never let one cron run spend more than what is genuinely left today.
+    const runCap = Math.min(MAX_PER_RUN, budget.remaining);
+    counters.runCap = runCap;
+
     for (const a of active) {
       await processAnnouncement(sb, a, counters);
     }

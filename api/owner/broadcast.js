@@ -1,6 +1,7 @@
 import { getSupabase } from '../_supabase.js';
 import { verifyOwner, sendEmail, ownerEmail, esc } from '../_email.js';
 import { normalizeEmail, unsubscribeUrl, broadcastFooter } from '../_broadcast.js';
+import { governedSend, describeGovernedRun, remainingDailyBudget } from '../_send-governor.js';
 
 // Give the send loop headroom (Pro plans honor this).
 export const config = { maxDuration: 60 };
@@ -9,8 +10,9 @@ const LOGO = 'https://www.assembleatease.com/images/logo.jpg';
 const AUDIENCES = new Set(['past_customers', 'marketing_optins']);
 // Cap per send so the function stays well within its time budget. At launch
 // scale the list is far smaller; larger lists need batched sending (future).
+// Pacing, retry, and the platform-wide 24h ceiling live in _send-governor.js —
+// this number only bounds how much work one HTTP request takes on.
 const MAX_RECIPIENTS = 250;
-const CONCURRENCY = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function buildBroadcastHtml(bodyHtml, email) {
@@ -27,6 +29,8 @@ function buildBroadcastHtml(bodyHtml, email) {
 </div></body></html>`;
 }
 
+// Returns the shape the governor understands: `status` lets a 429 be retried
+// instead of being recorded as a permanent failure and silently dropped.
 async function sendOne(email, subject, bodyHtml) {
   try {
     const result = await sendEmail({
@@ -42,10 +46,14 @@ async function sendOne(email, subject, bodyHtml) {
         listUnsubscribe: unsubscribeUrl(email),
       },
     });
-    return result?.ok && !result?.suppressed;
+    return {
+      ok: !!(result?.ok && !result?.suppressed),
+      status: result?.status || null,
+      error: result?.error || null,
+    };
   } catch (err) {
     console.error('broadcast send error for', email, err?.message || err);
-    return false;
+    return { ok: false, error: err?.message || String(err) };
   }
 }
 
@@ -118,13 +126,28 @@ export default async function handler(req, res) {
     });
   }
 
-  // ── Throttled concurrent send ──
-  let sent = 0, failed = 0;
-  for (let i = 0; i < recipients.length; i += CONCURRENCY) {
-    const chunk = recipients.slice(i, i + CONCURRENCY);
-    const results = await Promise.all(chunk.map(email => sendOne(email, subject, bodyHtml)));
-    for (const ok of results) ok ? sent++ : failed++;
+  // Refuse a list the day's remaining budget cannot cover, rather than sending
+  // part of it and leaving the owner unsure who actually received the message.
+  const budget = await remainingDailyBudget(sb);
+  if (recipients.length > budget.remaining) {
+    return res.status(429).json({
+      error: `Sending ${recipients.length} emails would pass the platform 24-hour email ceiling. ${budget.used} of ${budget.ceiling} are already used, so ${budget.remaining} remain. Nothing was sent — wait for the window to clear or split this into smaller sends.`,
+      code: 'DAILY_EMAIL_CEILING',
+      recipientCount: recipients.length,
+      ceiling: budget.ceiling,
+      used: budget.used,
+      remaining: budget.remaining,
+    });
   }
+
+  // ── Paced, capped, retried send ──
+  const run = await governedSend(
+    recipients,
+    (email) => sendOne(email, subject, bodyHtml),
+    { sb, maxPerRun: MAX_RECIPIENTS, label: `broadcast:${audience}` },
+  );
+  const sent = run.sent;
+  const failed = run.failed;
 
   await sb.from('email_broadcasts').insert({
     audience, subject,
@@ -137,5 +160,8 @@ export default async function handler(req, res) {
     ok: true, audience,
     recipientCount: recipients.length,
     sent, failed, suppressed: suppressedCount,
+    notSent: run.skipped,
+    stoppedBy: run.stoppedBy,
+    summary: describeGovernedRun(run),
   });
 }

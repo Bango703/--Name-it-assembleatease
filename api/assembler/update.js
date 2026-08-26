@@ -537,15 +537,37 @@ export default async function handler(req, res) {
 
     sb.from('assembler_waitlist').delete().eq('email', profile.email.toLowerCase()).then(() => {});
 
-    let resetUrl = SITE + '/auth/set-password';
+    // Has this person already been into the app? Anyone who verified identity or
+    // accepted the agreement necessarily signed in first, so by approval time
+    // they already have a password. Telling them to "set your password" again —
+    // with a fresh recovery link — reads like their account broke or was reset,
+    // and it was the second such instruction in two emails for an owner-added
+    // Easer. Sign-in truth comes from auth; the profile fields are the fallback
+    // when that lookup is unavailable, so an uncertain read never re-issues a
+    // password link to someone who already has one.
+    let alreadyOnboarded = Boolean(
+      profile.identity_verified === true || profile.contractor_agreement_signed_at,
+    );
     try {
-      const { data: linkData } = await sb.auth.admin.generateLink({
-        type: 'recovery',
-        email: profile.email,
-        options: { redirectTo: SITE + '/auth/set-password' },
-      });
-      if (linkData?.properties?.action_link) resetUrl = linkData.properties.action_link;
-    } catch(e) { console.warn('generateLink error:', e.message); }
+      const { data: authRecord } = await sb.auth.admin.getUserById(assemblerId);
+      if (authRecord?.user?.last_sign_in_at) alreadyOnboarded = true;
+    } catch (signInLookupError) {
+      console.warn('approval sign-in lookup failed:', signInLookupError?.message || signInLookupError);
+    }
+
+    // Only mint a recovery link for someone who genuinely still needs one.
+    const dashboardUrl = SITE + '/assembler/';
+    let resetUrl = alreadyOnboarded ? dashboardUrl : SITE + '/auth/set-password';
+    if (!alreadyOnboarded) {
+      try {
+        const { data: linkData } = await sb.auth.admin.generateLink({
+          type: 'recovery',
+          email: profile.email,
+          options: { redirectTo: SITE + '/auth/set-password' },
+        });
+        if (linkData?.properties?.action_link) resetUrl = linkData.properties.action_link;
+      } catch(e) { console.warn('generateLink error:', e.message); }
+    }
 
     const firstName = (profile.full_name || '').split(' ')[0] || 'there';
     const accountReadiness = await approvedAccountReadiness({
@@ -560,7 +582,7 @@ export default async function handler(req, res) {
       from: 'AssembleAtEase <booking@assembleatease.com>',
       subject: 'Welcome to AssembleAtEase — Set your password to get started',
       replyTo: 'service@assembleatease.com',
-      html: buildApprovalEmail(firstName, profile.email, resetUrl, accountReadiness),
+      html: buildApprovalEmail(firstName, profile.email, resetUrl, { ...accountReadiness, alreadyOnboarded }),
       meta: {
         notificationType: 'approval',
         recipientType: 'easer',
@@ -1741,8 +1763,15 @@ async function revokeEaserAuthAccess(sb, assemblerId, revokedAt) {
 }
 
 function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
+  // Someone who already signed in has a password. Repeating "set your password"
+  // — especially as the primary button — reads as an account reset and was the
+  // second identical instruction an owner-added Easer received.
+  const alreadyOnboarded = readiness.alreadyOnboarded === true;
   const steps = [
-    { title: 'Set your password', desc: 'Click the button below to create your password and log into your Easer dashboard.' },
+    ...(alreadyOnboarded ? [] : [{
+      title: 'Set your password',
+      desc: 'Click the button below to create your password and log into your Easer dashboard.',
+    }]),
     ...(readiness.requiresCurrentAgreement ? [{
       title: 'Review the current contractor agreement',
       desc: 'Your dashboard will show the agreement action. Review and accept it before trying to go Online or receive a new job offer.',
@@ -1767,11 +1796,11 @@ function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
   <div style="background:#fff;border-radius:8px;border:1px solid #e4e4e7;overflow:hidden">
     <div style="background:linear-gradient(135deg,#003d47,#00BFFF);padding:2rem;text-align:center">
       <img src="${LOGO}" width="44" height="44" style="border-radius:50%;display:inline-block"/>
-      <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">Welcome to AssembleAtEase!</h1>
+      <h1 style="color:#fff;margin:12px 0 0;font-size:1.4rem">${alreadyOnboarded ? 'You&rsquo;re approved!' : 'Welcome to AssembleAtEase!'}</h1>
     </div>
     <div style="padding:2rem">
       <p style="font-size:1rem;font-weight:700;margin:0 0 8px">Congratulations, ${esc(firstName)}!</p>
-      <p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official <strong>Starter Easer</strong> on AssembleAtEase. Here is what to do next to start receiving jobs:</p>
+      <p style="color:#52525b;line-height:1.7;margin:0 0 20px">Your application has been approved. You are now an official <strong>Starter Easer</strong> on AssembleAtEase.${alreadyOnboarded ? ' Sign in with the password you already created &mdash; here is what to do next to start receiving jobs:' : ' Here is what to do next to start receiving jobs:'}</p>
 
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:1.5rem">
         ${stepsHtml}
@@ -1783,14 +1812,14 @@ function buildApprovalEmail(firstName, email, resetUrl, readiness = {}) {
       </div>
 
       <div style="text-align:center;margin:1.5rem 0">
-        <a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">Set Password &amp; Open Dashboard</a>
+        <a href="${resetUrl}" style="display:inline-block;background:#00BFFF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1rem;font-weight:700">${alreadyOnboarded ? 'Open Your Dashboard' : 'Set Password &amp; Open Dashboard'}</a>
       </div>
 
-      <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px">
+      ${alreadyOnboarded ? '' : `<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:6px;padding:12px 16px;margin-bottom:20px">
         <p style="margin:0;font-size:0.82rem;color:#92400e">This link expires in 24 hours. Use <a href="${SITE}/auth/forgot-password" style="color:#92400e">forgot password</a> if it expires.</p>
-      </div>
+      </div>`}
 
-      <p style="font-size:0.85rem;color:#71717a;margin:0"><strong>Your login:</strong> ${esc(email)}</p>
+      <p style="font-size:0.85rem;color:#71717a;margin:0"><strong>Your login:</strong> ${esc(email)}${alreadyOnboarded ? ` &mdash; <a href="${SITE}/auth/forgot-password" style="color:#00BFFF">forgot password?</a>` : ''}</p>
       <p style="font-size:0.82rem;color:#71717a;margin:8px 0 0">Questions? Email <a href="mailto:service@assembleatease.com" style="color:#00BFFF">service@assembleatease.com</a></p>
     </div>
   </div>
