@@ -6714,13 +6714,18 @@ window.intelQuick = intelQuick;
       var aName = a ? a.full_name : (b.assembler_name || 'Assigned Easer');
       var isAccepted = easerHasAccepted(b);
       var acceptedAt = b.assembler_accepted_at ? ' at ' + new Date(b.assembler_accepted_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+      // An unaccepted assignment is not a commitment and must never look like a
+      // blocker. State it plainly and put both ways out right next to it: hand it
+      // to someone else, or release it back to unassigned. No alarm colour — the
+      // owner already knows nobody accepted; what they need is the exit.
       var accepted = isAccepted
         ? ' &bull; <span style="color:#1d9e75">Accepted' + acceptedAt + '</span>'
-        : ' &bull; <span style="color:#f59e0b">Awaiting acceptance</span>';
+        : ' &bull; <span style="color:var(--muted)">not accepted yet</span>';
       status.innerHTML = 'Assigned to: <strong>' + esc(aName) + '</strong>' + accepted
         + (ownerEaserOnly
           ? ' &bull; <span style="color:#155e75">Owner-Easer offline flow</span>'
-          : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>');
+          : ' &nbsp;<button onclick="toggleReassign()" class="btn" style="font-size:0.72rem;padding:2px 8px;margin-left:6px">Reassign</button>'
+            + (isAccepted ? '' : ' <button onclick="releaseAssignment(\'' + b.id + '\',this)" class="btn" style="font-size:0.72rem;padding:2px 8px">Release</button>'));
       controls.style.display = 'none';
     } else {
       if (allowOwnerManualCompleted && !completedAttributionReady) {
@@ -6773,6 +6778,31 @@ window.intelQuick = intelQuick;
       }
     }
   }
+
+  // Hand an unaccepted job back to the pool in one click. Money-neutral: it
+  // clears assignment fields only — no status change, no payment, no payout, and
+  // the customer's booking and authorization are untouched. The server refuses if
+  // the Easer accepted in the meantime, so this can never race an acceptance.
+  window.releaseAssignment = async function(bookingId, btn) {
+    if (!confirm('Release this job from the assigned Easer? They have not accepted it. The booking goes back to unassigned so you can dispatch or assign it to someone else right away. The customer is not affected.')) return;
+    var original = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Releasing...'; }
+    try {
+      var r = await fetch('/api/booking/release-assignment', {
+        method: 'POST', headers: headers(), body: JSON.stringify({ bookingId: bookingId })
+      });
+      var d = await r.json();
+      if (!r.ok || d.error) { toast(d.error || 'Could not release the assignment', 'error'); return; }
+      toast(d.message || 'Assignment released', d.notificationDelivered === false ? 'error' : 'success');
+      await loadBookings(true);
+      if (selectedId) selectBooking(selectedId);
+      loadAssemblers();
+    } catch (e) {
+      toast('Could not release the assignment — check your connection', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = original; }
+    }
+  };
 
   window.toggleReassign = function() {
     var controls = document.getElementById('assign-controls');
@@ -6942,7 +6972,9 @@ window.intelQuick = intelQuick;
       { label: 'Quotes to Price', val: s.quoteNeedsPricing || 0, color: (s.quoteNeedsPricing || 0) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Quote Customer Action', val: (s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0), color: ((s.quoteAwaitingApproval || 0) + (s.quoteAuthorizationPending || 0)) > 0 ? '#d97706' : '#6b7280' },
       { label: 'Offers Sent', val: s.awaitingDispatch, color: s.awaitingDispatch > 0 ? '#8b5cf6' : '#6b7280' },
-      { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: s.awaitingAcceptance > 0 ? '#ea580c' : '#6b7280' },
+      // Not a fault — a job simply waiting on a tap. Orange made a normal state
+      // read as an incident every time an offer was outstanding.
+      { label: 'Awaiting Accept', val: s.awaitingAcceptance, color: '#6b7280' },
       { label: 'En Route', val: s.enRoute, color: '#00BFFF' },
       { label: 'In Progress', val: s.inProgress, color: '#059669' },
       { label: 'Today', val: s.todayJobs, color: '#7c3aed' },
@@ -7028,7 +7060,7 @@ window.intelQuick = intelQuick;
     } else {
       activeEl.innerHTML = active.map(function(b) {
         var stage = b.job_started_at ? 'In Progress' : b.checked_in_at ? 'Arrived' : b.en_route_at ? 'En Route' : easerHasAccepted(b) ? 'Accepted' : 'Awaiting Accept';
-        var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#ea580c' };
+        var stageColors = { 'In Progress':'#059669','Arrived':'#00BFFF','En Route':'#7c3aed','Accepted':'#00BFFF','Awaiting Accept':'#6b7280' };
         var color = stageColors[stage] || '#6b7280';
         return '<div style="padding:0.7rem 0;border-bottom:1px solid var(--border)">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
@@ -7062,7 +7094,7 @@ window.intelQuick = intelQuick;
           : awaitingAccept ? 'Awaiting accept'
           : (stageLabels[stage] || 'On Job');
         var labelColor = !isWorking ? '#10b981'
-          : awaitingAccept ? '#ea580c'
+          : awaitingAccept ? '#6b7280'
           : (stageColors[stage] || '#f59e0b');
         return '<div class="ops-easer-row" style="display:flex;align-items:center;gap:10px;padding:0.55rem 0;border-bottom:1px solid var(--border)">'
           + '<span class="' + dotClass + '"></span>'
