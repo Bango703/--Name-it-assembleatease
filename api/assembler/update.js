@@ -1400,8 +1400,14 @@ export default async function handler(req, res) {
       });
     }
     const storedPlatformStatus = String(rawProfile.status || '').trim().toLowerCase();
+    // 'deactivated' belongs here. It is a state THIS FILE creates: the deactivate
+    // action sets status='deactivated' and deliberately leaves application_status
+    // 'approved', because the application was approved — access was revoked
+    // afterwards. Omitting it meant an approved-then-deactivated Easer could never
+    // be archived: the guard reported the platform's own output as an
+    // inconsistency and offered no way to resolve it.
     const applicationStateConsistent = applicationStatus === 'approved'
-      ? ['active', 'suspended'].includes(storedPlatformStatus)
+      ? ['active', 'suspended', 'deactivated'].includes(storedPlatformStatus)
       : storedPlatformStatus === 'rejected';
     if (!applicationStateConsistent) {
       return res.status(409).json({

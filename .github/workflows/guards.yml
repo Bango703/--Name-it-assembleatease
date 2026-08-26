@@ -1,0 +1,67 @@
+# Platform Constitution — Article 8 enforcement.
+#
+# Until this existed, `git push` deployed straight to production and every guard
+# in this repo was opt-in. A constraint that lived only in the database blocked
+# every Easer application for two months; an owner priced a quote without the
+# customer's add-ons; four panels disagreed about whether a job was accepted.
+# The scripts that catch all three classes already existed — nothing ran them.
+#
+# This runs them on every push and pull request. A red check here means the
+# change is not safe to promote, whatever else works.
+name: Platform Guards
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: guards-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guards:
+    name: Constitution guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      # ── Article 3/9: every API module must parse. Catches the broken string
+      #    literal and stray-token class before it reaches a serverless function.
+      - name: Syntax — API modules
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            node --check "$f" >/dev/null 2>&1 || { echo "SYNTAX FAIL: $f"; fail=1; }
+          done < <(find api scripts assets/js -name '*.js' -o -name '*.mjs' | grep -v node_modules)
+          exit $fail
+        shell: bash
+
+      # ── The dashboards are single large HTML files with inline JS. A parse
+      #    error there is invisible to node --check unless the blocks are pulled
+      #    out first — which is exactly how a broken confirm() string shipped.
+      - name: Syntax — inline dashboard scripts
+        run: node scripts/ci-check-inline-scripts.mjs
+
+      # ── Articles 1-4: duplicate truth, drifted mirrors, acceptance decided
+      #    in more than one place, server reasons discarded by the UI.
+      - name: Source-of-truth audit
+        run: node scripts/audit-source-of-truth.mjs
+
+      # ── Article 7: code writing a value the database will reject.
+      - name: Status/constraint drift
+        run: node scripts/check-status-constraint-drift.mjs
+
+      # ── Article 8: the regression gate. Previously proven behaviour.
+      - name: Regression suite
+        run: npm run test:launch
