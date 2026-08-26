@@ -110,6 +110,13 @@ export default async function handler(req, res) {
         && (ownerRequest || message.recipient_user_id === easerAccess.user.id)
         && !message.read_at)
       .map(message => message.id);
+    // Report what was ACTUALLY marked, and what is still unread afterwards. The
+    // owner dashboard used to clear its unread badge optimistically the moment
+    // the thread loaded, so a failed or partial update left the badge cleared on
+    // screen and still unread in the database — it reappeared on the next load
+    // and survived a hard refresh, with nothing anywhere saying why.
+    let markedRead = 0;
+    let readError = null;
     if (unreadIds.length) {
       let readQuery = sb
         .from('messages')
@@ -119,14 +126,38 @@ export default async function handler(req, res) {
       if (!ownerRequest) {
         readQuery = readQuery.eq('recipient_user_id', easerAccess.user.id);
       }
-      const { error: readError } = await readQuery.is('read_at', null);
-      if (readError) {
-        // Non-fatal: the thread already loaded. Marking-as-read is a nicety and must
-        // never block the owner (or Easer) from actually seeing their messages.
-        console.error('Message read-state update error:', readError);
+      // .select() so the count is what the database actually changed, not what
+      // we hoped it would change.
+      const { data: readRows, error: readErr } = await readQuery.is('read_at', null).select('id');
+      if (readErr) {
+        // Still non-fatal: the thread already loaded, and seeing messages must
+        // never depend on the read-state write. But it is no longer silent.
+        console.error('Message read-state update error:', readErr);
+        readError = readErr.message || String(readErr);
+      } else {
+        markedRead = (readRows || []).length;
       }
     }
-    return res.status(200).json({ messages: msgs || [] });
+
+    // Authoritative post-update unread count for THIS booking, the same way
+    // api/booking/list.js computes the badge — so the two can never disagree.
+    let unreadRemaining = null;
+    if (ownerRequest) {
+      const { count, error: countErr } = await sb
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('booking_id', bk.id)
+        .eq('recipient_type', 'owner')
+        .is('read_at', null);
+      if (!countErr) unreadRemaining = Number(count || 0);
+    }
+
+    return res.status(200).json({
+      messages: msgs || [],
+      markedRead,
+      unreadRemaining,
+      readError,
+    });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

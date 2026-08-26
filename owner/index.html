@@ -6058,9 +6058,23 @@ window.intelQuick = intelQuick;
       var msgs = data.messages || [];
       var messageBooking = allBookings.find(function(item){ return item.id == bookingId; });
       if (messageBooking) {
-        messageBooking.unread_message_count = 0;
-        messageBooking.has_unread_customer_msg = false;
-        messageBooking.has_unread_easer_msg = false;
+        // Clear the badge from what the SERVER confirms it wrote, never from the
+        // fact that the thread rendered. Clearing optimistically is why an
+        // "Easer message" dot kept coming back after every hard refresh: the
+        // screen said read, the database still said unread, and nothing said why.
+        var stillUnread = (data.unreadRemaining == null) ? null : Number(data.unreadRemaining);
+        if (stillUnread === 0) {
+          messageBooking.unread_message_count = 0;
+          messageBooking.has_unread_customer_msg = false;
+          messageBooking.has_unread_easer_msg = false;
+        } else if (stillUnread > 0) {
+          // The read write did not stick. Keep the badge honest and say so once,
+          // rather than hiding it and letting it reappear on the next load.
+          messageBooking.unread_message_count = stillUnread;
+          toast('Could not mark ' + stillUnread + ' message' + (stillUnread === 1 ? '' : 's') + ' as read — the badge will stay until this clears.', 'error');
+        }
+        // stillUnread === null: older server response shape; leave the flags alone
+        // rather than clearing something we cannot confirm.
         updateStats();
         renderList();
       }
